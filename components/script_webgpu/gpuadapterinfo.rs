@@ -16,6 +16,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::traits::Equivalence;
 
 #[dom_struct]
 pub struct GPUAdapterInfo<D: DomTypes> {
@@ -31,10 +32,7 @@ pub struct GPUAdapterInfo<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> GPUAdapterInfo<D>
-where
-    D: DomTypes<GPUAdapterInfo = GPUAdapterInfo<D>>,
-{
+impl<D: Equivalence> GPUAdapterInfo<D> {
     fn new_inherited(
         vendor: DOMString,
         architecture: DOMString,

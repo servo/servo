@@ -30,7 +30,7 @@ use crate::datablock::DataBlock;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::gpuconvert::WebGPUConvert;
-use crate::traits::{GPUDeviceTrait, WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -110,7 +110,7 @@ pub struct GPUBuffer<D: DomTypes> {
 
 impl<D> GPUBuffer<D>
 where
-    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D: Equivalence,
     D::Promise: PromiseHelpers<D>,
 {
     fn new_inherited(
@@ -159,7 +159,7 @@ where
 
 impl<D> GPUBuffer<D>
 where
-    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D: Equivalence,
     D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait,
     D::Promise: PromiseHelpers<D>,
@@ -221,7 +221,7 @@ where
 
 impl<D> GPUBufferMethods<D> for GPUBuffer<D>
 where
-    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D: Equivalence,
     D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D> + PartialEq,
     D::GPUDevice: GPUDeviceTrait<D>,
     D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,

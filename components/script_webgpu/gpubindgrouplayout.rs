@@ -24,7 +24,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::gpuconvert::{WebGPUConvert, convert_bind_group_layout_entry};
-use crate::traits::{GPUDeviceTrait, WebGPUGlobalTrait};
+use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUBindGroupLayout {
@@ -58,10 +58,7 @@ pub struct GPUBindGroupLayout<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> GPUBindGroupLayout<D>
-where
-    D: DomTypes<GPUBindGroupLayout = GPUBindGroupLayout<D>>,
-{
+impl<D: Equivalence> GPUBindGroupLayout<D> {
     fn new_inherited(
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
@@ -100,7 +97,7 @@ where
 
 impl<D> GPUBindGroupLayout<D>
 where
-    D: DomTypes<GPUBindGroupLayout = GPUBindGroupLayout<D>>,
+    D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
 {

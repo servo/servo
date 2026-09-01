@@ -31,9 +31,8 @@ use wgpu_core::resource::{QuerySetDescriptor, TextureDescriptor};
 use wgpu_types::{self, AstcBlock, AstcChannel, IndexFormat};
 
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::gpubuffer::GPUBuffer;
 use crate::traits::{
-    GPUDeviceTrait, GPUExternalTextureTrait, GPUQuerySetTrait, GPUSamplerTrait,
+    Equivalence, GPUDeviceTrait, GPUExternalTextureTrait, GPUQuerySetTrait, GPUSamplerTrait,
     GPUShaderModuleTrait, GPUTextureTrait, GPUTextureViewTrait, WebGPUGlobalTrait,
 };
 
@@ -521,7 +520,7 @@ impl WebGPUConvert<wgpu_types::StencilOperation> for GPUStencilOperation {
 
 impl<D> WebGPUConvert<wgpu_com::TexelCopyBufferInfo> for &GPUTexelCopyBufferInfo<D>
 where
-    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D: Equivalence,
     D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait,
     D::Promise: PromiseHelpers<D>,
@@ -798,7 +797,7 @@ pub(crate) fn convert_bind_group_entry<'a, D>(
     bind_group: &GPUBindGroupEntry<D>,
 ) -> BindGroupEntry<'a>
 where
-    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D: Equivalence,
     D::GPUTexture: GPUTextureTrait,
     D::GPUTextureView: GPUTextureViewTrait,
     D::GPUSampler: GPUSamplerTrait,
