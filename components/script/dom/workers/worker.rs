@@ -221,28 +221,29 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                             .and_then(|w| w.browsing_context())
                     })
             });
-
-        #[cfg(feature = "devtools")]
-        let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
         let worker_id = WorkerId(Uuid::new_v4());
         #[cfg(feature = "devtools")]
-        if let Some(chan) = global.devtools_chan() {
-            let pipeline_id = global.pipeline_id();
-            let title = format!("Worker for {}", worker_url.url());
-            if let Some(browsing_context) = browsing_context {
-                let page_info = DevtoolsPageInfo {
-                    title,
-                    url: worker_url.url(),
-                    is_top_level_global: false,
-                    is_service_worker: false,
-                };
-                let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                    (browsing_context, pipeline_id, Some(worker_id), webview_id),
-                    devtools_sender.clone(),
-                    page_info,
-                ));
+        let ((devtools_sender, devtools_receiver), worker_id) = {
+            let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
+            if let Some(chan) = global.devtools_chan() {
+                let pipeline_id = global.pipeline_id();
+                let title = format!("Worker for {}", worker_url.url());
+                if let Some(browsing_context) = browsing_context {
+                    let page_info = DevtoolsPageInfo {
+                        title,
+                        url: worker_url.url(),
+                        is_top_level_global: false,
+                        is_service_worker: false,
+                    };
+                    let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+                        (browsing_context, pipeline_id, Some(worker_id), webview_id),
+                        devtools_sender.clone(),
+                        page_info,
+                    ));
+                }
             }
-        }
+            ((devtools_sender, devtools_receiver),worker_id)
+        };
 
         #[cfg(feature = "webgl")]
         let webgl_chan = global
