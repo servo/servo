@@ -8,7 +8,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::panic::Location;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -34,18 +34,18 @@ mod buffered;
 pub use buffered::GenericBufferedSender;
 
 /// Cache for being in Ipc Mode
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 static USE_IPC: OnceLock<bool> = OnceLock::new();
 
 /// Return if we should be in IPC Mode
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 fn use_ipc() -> bool {
     *USE_IPC.get_or_init(|| {
         servo_config::opts::get().multiprocess || servo_config::opts::get().force_ipc
     })
 }
 
-#[cfg(not(feature = "ipc"))]
+#[cfg(not(feature = "multiprocess"))]
 fn use_ipc() -> bool {
     false
 }

@@ -16,7 +16,7 @@ test = true
 doctest = false
 
 [features]
-ipc = []
+multiprocess = []
 
 [dependencies]
 accesskit = { workspace = true }

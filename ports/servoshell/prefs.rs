@@ -231,7 +231,7 @@ pub fn read_prefs_map(txt: &str) -> HashMap<String, PrefValue> {
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
 pub(crate) enum ArgumentParsingResult {
     ChromeProcess(Opts, Preferences, ServoShellPreferences),
-    #[cfg_attr(not(feature = "ipc"), expect(unused))]
+    #[cfg_attr(not(feature = "multiprocess"), expect(unused))]
     ContentProcess(String),
     Exit,
     ErrorParsing,
@@ -736,9 +736,9 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         return ArgumentParsingResult::ErrorParsing;
     };
 
-    #[cfg(not(feature = "ipc"))]
+    #[cfg(not(feature = "multiprocess"))]
     if cmd_args.multiprocess || cmd_args.force_ipc {
-        error!("IPC was disabled at compile time. IPC and multiprocess modes are disabled");
+        log::error!("IPC was disabled at compile time. IPC and multiprocess modes are disabled");
     }
 
     let opts = Opts {

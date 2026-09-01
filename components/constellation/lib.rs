@@ -15,7 +15,7 @@ mod embedder;
 mod event_loop;
 mod logging;
 mod pipeline;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 mod process_manager;
 mod sandboxing;
 mod serviceworker;

@@ -20,9 +20,9 @@ use script_traits::{InitialScriptState, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{GenericReceiver, GenericSender, SendError};
 use servo_base::id::ScriptEventLoopId;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use servo_config::opts::{self, Opts};
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use servo_config::prefs::{self, Preferences};
 use servo_constellation_traits::ServiceWorkerManagerFactory;
 
@@ -115,13 +115,13 @@ impl EventLoop {
             user_contents_for_manager_id: constellation.user_contents_for_manager_id.clone(),
         };
 
-        #[cfg(feature = "ipc")]
+        #[cfg(feature = "multiprocess")]
         let event_loop = if opts::get().multiprocess {
             Self::spawn_in_process(constellation, initial_script_state)?
         } else {
             Self::spawn_in_thread(constellation, initial_script_state)
         };
-        #[cfg(not(feature = "ipc"))]
+        #[cfg(not(feature = "multiprocess"))]
         let event_loop = Self::spawn_in_thread(constellation, initial_script_state);
 
         let event_loop = Rc::new(event_loop);
@@ -155,7 +155,7 @@ impl EventLoop {
         }
     }
 
-    #[cfg(feature = "ipc")]
+    #[cfg(feature = "multiprocess")]
     fn spawn_in_process<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
         constellation: &mut Constellation<STF, SWF>,
         initial_script_state: InitialScriptState,
@@ -174,9 +174,9 @@ impl EventLoop {
                 constellation_to_bhm_receiver: backgrond_hand_monitor_receiver,
                 bhm_to_constellation_sender: constellation.background_hang_monitor_sender.clone(),
                 lifeline_sender,
-                #[cfg(feature = "ipc")]
+                #[cfg(feature = "multiprocess")]
                 opts: (*opts::get()).clone(),
-                #[cfg(feature = "ipc")]
+                #[cfg(feature = "multiprocess")]
                 prefs: Box::new(prefs::get().clone()),
                 broken_image_icon_data: constellation.broken_image_icon_data.clone(),
             }),
@@ -225,9 +225,9 @@ pub struct NewScriptEventLoopProcessInfo {
     pub constellation_to_bhm_receiver: GenericReceiver<BackgroundHangMonitorControlMsg>,
     pub bhm_to_constellation_sender: GenericSender<HangAlert>,
     pub lifeline_sender: GenericSender<()>,
-    #[cfg(feature = "ipc")]
+    #[cfg(feature = "multiprocess")]
     pub opts: Opts,
-    #[cfg(feature = "ipc")]
+    #[cfg(feature = "multiprocess")]
     pub prefs: Box<Preferences>,
     /// The broken image icon data that is used to create an image to show in place of broken images.
     pub broken_image_icon_data: Vec<u8>,

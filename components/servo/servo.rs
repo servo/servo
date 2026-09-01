@@ -13,7 +13,7 @@ pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
 use fonts::SystemFontService;
 #[cfg(all(
-    feature = "ipc",
+    feature = "multiprocess",
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
@@ -24,19 +24,19 @@ use fonts::SystemFontService;
     not(target_env = "ohos"),
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use ipc_channel::ipc::{self, IpcSender};
 use layout::LayoutFactoryImpl;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use layout_api::ScriptThreadFactory;
 use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::embedder::NetToEmbedderMsg;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use net::image_cache::ImageCacheFactoryImpl;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use net_traits::FetchThread;
 use net_traits::ResourceThreads;
 use paint::{InitialPaintState, Paint};
@@ -44,14 +44,14 @@ pub use paint_api::rendering_context::RenderingContext;
 use paint_api::{CrossProcessPaintApi, PaintMessage, PaintProxy};
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::mem::MemoryReportResult;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use profile_traits::mem::{ProfilerMsg, Reporter};
 use profile_traits::{mem, time};
 use rustc_hash::FxHashMap;
 use script::JSEngineSetup;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use script::ServiceWorkerManager;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use servo_background_hang_monitor::HangMonitorRegister;
 use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
 pub use servo_base::id::WebViewId;
@@ -63,10 +63,10 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_config::opts::{DiagnosticsLoggingOption, Opts};
 use servo_config::prefs::{PrefValue, Preferences};
 use servo_config::{opts, pref, prefs};
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use servo_constellation::UnprivilegedContent;
 #[cfg(all(
-    feature = "ipc",
+    feature = "multiprocess",
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
@@ -80,21 +80,21 @@ use servo_constellation::content_process_sandbox_profile;
 use servo_constellation::{
     Constellation, ConstellationToEmbedderMsg, FromEmbedderLogger, InitialConstellationState,
 };
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use servo_constellation::{FromScriptLogger, NewScriptEventLoopProcessInfo};
 use servo_constellation_traits::EmbedderToConstellationMessage;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use servo_constellation_traits::ScriptToConstellationSender;
 use servo_geometry::{
     DeviceIndependentIntRect, convert_rect_to_css_pixel, convert_size_to_css_pixel,
 };
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_wakelock::DefaultWakeLockDelegate;
 use storage::new_storage_threads;
 use storage_traits::StorageThreads;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webxr")]
 use webxr::WebXrRegistry;
@@ -116,10 +116,10 @@ use crate::webview_delegate::{
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
-    #[cfg(feature = "ipc")]
+    #[cfg(feature = "multiprocess")]
     use servo_media_gstreamer::GStreamerBackend;
 
-    #[cfg(feature = "ipc")]
+    #[cfg(feature = "multiprocess")]
     use super::ServoMedia;
 
     #[cfg(any(windows, target_os = "macos"))]
@@ -143,7 +143,7 @@ mod media_platform {
         });
     }
 
-    #[cfg(not(any(windows, not(feature = "ipc"), target_os = "macos")))]
+    #[cfg(not(any(windows, not(feature = "multiprocess"), target_os = "macos")))]
     pub fn init() {
         ServoMedia::init::<GStreamerBackend>();
     }
@@ -920,7 +920,7 @@ impl Servo {
             Ordering::Relaxed,
         );
 
-        #[cfg(feature = "ipc")]
+        #[cfg(feature = "multiprocess")]
         if !opts.multiprocess {
             media_platform::init();
         }
@@ -957,13 +957,13 @@ impl Servo {
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
-        #[cfg(feature = "ipc")]
+        #[cfg(feature = "multiprocess")]
         let js_engine_setup = if !opts.multiprocess {
             Some(script::init())
         } else {
             None
         };
-        #[cfg(not(feature = "ipc"))]
+        #[cfg(not(feature = "multiprocess"))]
         let js_engine_setup = Some(script::init());
 
         // Create the constellation, which maintains the engine pipelines, including script and
@@ -1022,7 +1022,7 @@ impl Servo {
 
         net::connector::prewarm_tls();
 
-        #[cfg(feature = "ipc")]
+        #[cfg(feature = "multiprocess")]
         if opts::get().multiprocess {
             prefs::add_observer(Box::new(constellation_proxy.clone()));
         }
@@ -1308,7 +1308,7 @@ where
     }
 }
 
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 fn set_logger(script_to_constellation_sender: ScriptToConstellationSender) {
     let con_logger = FromScriptLogger::new(script_to_constellation_sender);
     let env = env_logger::Env::default();
@@ -1322,7 +1322,7 @@ fn set_logger(script_to_constellation_sender: ScriptToConstellationSender) {
 }
 
 /// Content process entry point.
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 pub fn run_content_process(token: String) {
     let (unprivileged_content_sender, unprivileged_content_receiver) =
         ipc::channel::<UnprivilegedContent>().unwrap();
@@ -1392,7 +1392,7 @@ pub fn run_content_process(token: String) {
 }
 
 #[cfg(all(
-    feature = "ipc",
+    feature = "multiprocess",
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
@@ -1477,7 +1477,7 @@ impl ServoBuilder {
     }
 }
 
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 fn register_system_memory_reporter_for_event_loop(
     new_event_loop_info: &NewScriptEventLoopProcessInfo,
 ) {
