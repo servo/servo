@@ -80,7 +80,7 @@ pub(crate) fn derive_bits(
     // OperationError.
     if length.is_some_and(|length| length > maximum_length) {
         return Err(Error::Operation(Some(
-            "Required length is greater than the maximum length suppported by the elliptic curve"
+            "Required length is greater than the maximum length supported by the elliptic curve"
                 .into(),
         )));
     }
