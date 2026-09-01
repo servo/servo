@@ -108,22 +108,9 @@ skip = [
 
     # Duplicated by egui
     "foldhash",
-    "windows-collections",
-    "windows-future",
-    "windows-numerics",
-    "windows-strings",
-    "windows-threading",
-
-    # Duplicated by egui-file-dialog
-    "windows",
-    "windows-link",
-    "windows-result",
 
     # Duplicated by winit.
     "windows-sys",
-
-    # wgpu has the latest and greatest.
-    "windows-core",
 
     # Duplicated by gilrs.
     "core-foundation",
@@ -147,7 +134,6 @@ skip = [
     # duplicated by tungstenite
     "getrandom",
     "rand",
-    "rand_chacha",
     "rand_core",
     "sha1",
 
