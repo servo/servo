@@ -2478,7 +2478,7 @@ pub(crate) fn check_support_for_algorithm(
     //     well.
     //
     // - Since usages is an empty list, it should pass the validation described in the specified
-    //   operation of the specified algorithm. So, we sipmly ignore it here.
+    //   operation of the specified algorithm. So, we simply ignore it here.
     //
     // - The "getPublicKey" operation is not included here, since it is handled in Step 3.
     //
