@@ -13,9 +13,6 @@ description.workspace = true
 name = "servo_config"
 path = "lib.rs"
 
-[features]
-ipc = []
-
 [dependencies]
 num_enum = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

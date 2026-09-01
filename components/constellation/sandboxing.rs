@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use std::ffi::OsStr;
 
 #[cfg(any(
@@ -20,9 +20,9 @@ use std::ffi::OsStr;
 ))]
 use gaol::profile::{Operation, PathPattern, Profile};
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use servo_config::opts::Opts;
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 use servo_config::prefs::Preferences;
 
 use crate::event_loop::NewScriptEventLoopProcessInfo;
@@ -35,7 +35,7 @@ pub enum UnprivilegedContent {
     ServiceWorker(ServiceWorkerUnprivilegedContent),
 }
 
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 impl UnprivilegedContent {
     pub fn opts(&self) -> Opts {
         match self {
@@ -147,7 +147,7 @@ pub fn content_process_sandbox_profile() {
 }
 
 #[cfg(all(
-    feature = "ipc",
+    feature = "multiprocess",
     any(
         target_os = "windows",
         target_os = "android",
@@ -182,7 +182,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
 }
 
 #[cfg(all(
-    feature = "ipc",
+    feature = "multiprocess",
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
@@ -260,7 +260,7 @@ pub fn spawn_multiprocess(_content: UnprivilegedContent) -> Result<Process, Erro
     process::exit(1);
 }
 
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 fn setup_common<C: CommandMethods>(command: &mut C, token: String) {
     C::arg(command, "--content-process");
     C::arg(command, token);
@@ -275,7 +275,7 @@ fn setup_common<C: CommandMethods>(command: &mut C, token: String) {
 }
 
 /// A trait to unify commands launched as multiprocess with or without a sandbox.
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 trait CommandMethods {
     /// A command line argument.
     fn arg<T>(&mut self, arg: T)
@@ -289,7 +289,7 @@ trait CommandMethods {
         U: AsRef<OsStr>;
 }
 
-#[cfg(feature = "ipc")]
+#[cfg(feature = "multiprocess")]
 impl CommandMethods for std::process::Command {
     fn arg<T>(&mut self, arg: T)
     where
