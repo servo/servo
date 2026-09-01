@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::iter::Sum;
+use std::mem::size_of;
 use std::ops::{Add, AddAssign, Range, Sub, SubAssign};
 
 use malloc_size_of_derive::MallocSizeOf;
@@ -199,6 +200,11 @@ unicode_length_type! {
     /// node counted in previous siblings.
     Utf32CodeUnitsOrNodeOffset
 }
+
+const _: () = assert!(size_of::<Utf8CodeUnits>() == size_of::<usize>());
+const _: () = assert!(size_of::<Option<Utf8CodeUnits>>() == 2 * size_of::<usize>());
+const _: () = assert!(size_of::<RangeAny<Utf8CodeUnits>>() == 4 * size_of::<usize>());
+const _: () = assert!(size_of::<Option<RangeAny<Utf8CodeUnits>>>() == 4 * size_of::<usize>());
 
 impl Utf16CodeUnits {
     pub fn length_of(string: &str) -> Self {
