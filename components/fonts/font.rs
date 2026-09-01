@@ -204,7 +204,7 @@ pub(crate) trait FontTableMethods {
     fn buffer(&self) -> &[u8];
     fn parse_as_specific_table<'a, Table>(&'a self) -> Result<Table, ReadError>
     where
-        Table: FontRead<'a>,
+        Table: FontRead<'a, Args = ()>,
     {
         Table::read(read_fonts::FontData::new(self.buffer()))
     }
