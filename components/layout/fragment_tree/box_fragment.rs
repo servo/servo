@@ -147,7 +147,7 @@ pub(crate) struct BoxFragment {
     pub rare_data: OnceBox<AtomicRefCell<BoxFragmentRareData>>,
 
     /// Additional information for block-level boxes.
-    pub block_level_layout_info: Option<Box<BlockLevelLayoutInfo>>,
+    pub block_level_layout_info: Option<BlockLevelLayoutInfo>,
 
     /// The containing spatial tree node of this [`BoxFragment`]. This is assigned during
     /// `StackingContextTree` construction, so isn't available before that time. This is
@@ -306,10 +306,10 @@ impl BoxFragment {
         block_margins_collapsed_with_children: CollapsedBlockMargins,
         clearance: Option<Au>,
     ) -> Self {
-        self.block_level_layout_info = Some(Box::new(BlockLevelLayoutInfo {
+        self.block_level_layout_info = Some(BlockLevelLayoutInfo {
             block_margins_collapsed_with_children,
             clearance,
-        }));
+        });
         self
     }
 

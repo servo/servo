@@ -1994,9 +1994,9 @@ impl<'container> PlacementState<'container> {
                 let BlockLevelLayoutInfo {
                     clearance,
                     block_margins_collapsed_with_children: fragment_block_margins,
-                } = *fragment
+                } = fragment
                     .block_level_layout_info
-                    .clone()
+                    .as_ref()
                     .expect("A block-level fragment should have a BlockLevelLayoutInfo.");
                 let mut fragment_block_size = fragment
                     .border_rect()
@@ -2010,7 +2010,7 @@ impl<'container> PlacementState<'container> {
                 // > its margins collapse with the adjoining margins of following siblings but that
                 // > resulting margin does not collapse with the bottom margin of the parent block.
                 if let Some(clearance) = clearance {
-                    fragment_block_size += clearance;
+                    fragment_block_size += *clearance;
                     // Margins can't be adjoining if they are separated by clearance.
                     // Setting `next_in_flow_margin_collapses_with_parent_start_margin` to false
                     // prevents collapsing with the start margin of the parent, and will set
