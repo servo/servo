@@ -63,7 +63,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
 
         // Step 2 : Set the selection range with 0 and infinity.
         self.set_range(
-            Some(Utf16CodeUnits::zero()),
+            Some(Utf16CodeUnits::ZERO),
             Some(Utf16CodeUnits(usize::MAX)),
             None,
             None,

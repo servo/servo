@@ -117,13 +117,7 @@ macro_rules! unicode_length_type {
         pub struct $type_name(pub usize);
 
         impl $type_name {
-            pub fn zero() -> Self {
-                Self(0)
-            }
-
-            pub fn one() -> Self {
-                Self(1)
-            }
+            pub const ZERO: Self = Self(0);
 
             pub fn saturating_sub(self, value: Self) -> Self {
                 Self(self.0.saturating_sub(value.0))
@@ -170,7 +164,7 @@ macro_rules! unicode_length_type {
 
         impl Sum for $type_name {
             fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-                iter.fold(Self::zero(), |a, b| Self(a.0 + b.0))
+                iter.fold(Self::ZERO, |a, b| Self(a.0 + b.0))
             }
         }
     };

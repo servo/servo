@@ -273,8 +273,8 @@ pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 ///
 /// If the string is fewer than n code units, returns the length of the whole string.
 fn len_of_first_n_code_units(text: &DOMString, n: Utf16CodeUnits) -> Utf8CodeUnits {
-    let mut utf8_len = Utf8CodeUnits::zero();
-    let mut utf16_len = Utf16CodeUnits::zero();
+    let mut utf8_len = Utf8CodeUnits::ZERO;
+    let mut utf16_len = Utf16CodeUnits::ZERO;
     for c in text.str().chars() {
         utf16_len += Utf16CodeUnits(c.len_utf16());
         if utf16_len > n {

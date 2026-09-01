@@ -375,8 +375,8 @@ impl Rope {
     }
 
     pub fn utf16_offset_to_utf8_offset(&self, utf16_offset: Utf16CodeUnits) -> Utf8CodeUnits {
-        let mut current_utf16_offset = Utf16CodeUnits::zero();
-        let mut current_utf8_offset = Utf8CodeUnits::zero();
+        let mut current_utf16_offset = Utf16CodeUnits::ZERO;
+        let mut current_utf8_offset = Utf8CodeUnits::ZERO;
 
         for character in self.chars() {
             let utf16_length = character.len_utf16();
