@@ -854,7 +854,7 @@ dependencies = [
  "bitflags 2.13.1",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "regex",
@@ -2586,7 +2586,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3154,7 +3154,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5440,7 +5440,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.25.1"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "bindgen",
  "cc",
@@ -5454,7 +5454,7 @@ dependencies = [
 [[package]]
 name = "mozjs_collator_glue"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "arraystring",
  "arrayvec",
@@ -5468,7 +5468,7 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_collator"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "displaydoc",
  "icu_locale",
@@ -5488,12 +5488,12 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_collator_data"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 
 [[package]]
 name = "mozjs_icu_collections"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "displaydoc",
  "icu_casemap",
@@ -5507,7 +5507,7 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_normalizer"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "displaydoc",
  "icu_properties 2.1.2",
@@ -5524,12 +5524,12 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_normalizer_data"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 
 [[package]]
 name = "mozjs_locale_glue"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "cbindgen",
  "icu_locale",
@@ -5538,7 +5538,7 @@ dependencies = [
 [[package]]
 name = "mozjs_normalizer_glue"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "cbindgen",
  "encoding_rs",
@@ -5550,7 +5550,7 @@ dependencies = [
 [[package]]
 name = "mozjs_properties_glue"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "cbindgen",
  "icu_casemap",
@@ -5561,7 +5561,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "153.0.0-1"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "bindgen",
  "cc",
@@ -5583,7 +5583,7 @@ dependencies = [
 [[package]]
 name = "mozjs_unicode_bidi_ffi"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "cbindgen",
  "icu_properties 2.1.2",
@@ -5593,7 +5593,7 @@ dependencies = [
 [[package]]
 name = "mozjs_utf16_iter"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "mozjs_icu_collections",
 ]
@@ -5601,7 +5601,7 @@ dependencies = [
 [[package]]
 name = "mozjs_utf8_iter"
 version = "153.0.0"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#2bcf845c6564fb8a6adf341f613013d9890ffd33"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F500%2Fhead#2bcf845c6564fb8a6adf341f613013d9890ffd33"
 dependencies = [
  "mozjs_icu_collections",
 ]
@@ -6577,7 +6577,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7726,7 +7726,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7783,7 +7783,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -10266,7 +10266,7 @@ dependencies = [
  "derive_more",
  "encoding_rs",
  "euclid",
- "icu_segmenter 2.1.2",
+ "icu_segmenter 1.5.0",
  "indexmap",
  "itertools 0.14.0",
  "itoa",
@@ -10554,7 +10554,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -12278,7 +12278,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

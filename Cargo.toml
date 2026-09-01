@@ -460,8 +460,8 @@ codegen-units = 1
 #
 # Or for mozjs:
 #
-mozjs = { git = "https://github.com/Gae24/mozjs.git", branch = "offthread" }
-mozjs_sys = { git = "https://github.com/Gae24/mozjs.git", branch = "offthread" }
+mozjs = { git = "https://github.com/servo/mozjs.git", rev = "refs/pull/500/head" }
+mozjs_sys = { git = "https://github.com/servo/mozjs.git", rev = "refs/pull/500/head" }
 #
 # Or for CSP crate:
 # content-security-policy = { path = "../rust-content-security-policy" }
