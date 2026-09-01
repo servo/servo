@@ -425,7 +425,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         let start = self.selection_start();
         let end = self.selection_end();
         let start = (start != rope.first_index()).then(|| rope.index_to_character_offset(start));
-        let end = (end != rope.last_index()).then(|| rope.index_to_character_offset(end));
+        // TODO: `TextInputWidgetShadowTree::update` has a hack with a "\u{200B}" to force
+        // the text to be non-empty, so `rope.last_index()` is untrustworthy.
+        // For now, use a bounded end unconditionally instead.
+        // let end = (end != rope.last_index()).then(|| rope.index_to_character_offset(end));
+        let end = Some(rope.index_to_character_offset(end));
         RangeAny { start, end }
     }
 
