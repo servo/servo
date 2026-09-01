@@ -492,7 +492,8 @@ pub(crate) struct Document {
     target_element: MutNullableDom<Element>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-policy-container>
     #[no_trace]
-    policy_container: DomRefCell<PolicyContainer>,
+    #[conditional_malloc_size_of]
+    policy_container: DomRefCell<StdArc<PolicyContainer>>,
     /// <https://html.spec.whatwg.org/multipage/#map-of-preloaded-resources>
     #[no_trace]
     preloaded_resources: DomRefCell<PreloadedResources>,
@@ -1943,16 +1944,16 @@ impl Document {
         }
     }
 
-    pub(crate) fn policy_container(&self) -> Ref<'_, PolicyContainer> {
+    pub(crate) fn policy_container(&self) -> Ref<'_, StdArc<PolicyContainer>> {
         self.policy_container.borrow()
     }
 
-    pub(crate) fn set_policy_container(&self, policy_container: PolicyContainer) {
+    pub(crate) fn set_policy_container(&self, policy_container: StdArc<PolicyContainer>) {
         *self.policy_container.borrow_mut() = policy_container;
     }
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
-        self.policy_container.borrow_mut().set_csp_list(csp_list);
+        StdArc::make_mut(&mut *self.policy_container.borrow_mut()).set_csp_list(csp_list);
     }
 
     /// <https://www.w3.org/TR/CSP/#enforced>
@@ -1960,9 +1961,7 @@ impl Document {
         // > A policy is enforced or monitored for a global object by inserting it into the global object’s CSP list.
         let mut csp_list = self.get_csp_list().clone().unwrap_or(CspList(vec![]));
         csp_list.push(policy);
-        self.policy_container
-            .borrow_mut()
-            .set_csp_list(Some(csp_list));
+        StdArc::make_mut(&mut *self.policy_container.borrow_mut()).set_csp_list(Some(csp_list));
     }
 
     pub(crate) fn get_csp_list(&self) -> Ref<'_, Option<CspList>> {
@@ -3990,7 +3989,7 @@ impl Document {
             origin: DomRefCell::new(origin),
             referrer,
             target_element: MutNullableDom::new(None),
-            policy_container: DomRefCell::new(PolicyContainer::default()),
+            policy_container: DomRefCell::new(StdArc::new(PolicyContainer::default())),
             preloaded_resources: Default::default(),
             ignore_destructive_writes_counter: Default::default(),
             ignore_opens_during_unload_counter: Default::default(),
@@ -4557,9 +4556,7 @@ impl Document {
     }
 
     pub(crate) fn set_referrer_policy(&self, policy: ReferrerPolicy) {
-        self.policy_container
-            .borrow_mut()
-            .set_referrer_policy(policy);
+        StdArc::make_mut(&mut *self.policy_container.borrow_mut()).set_referrer_policy(policy);
     }
 
     pub(crate) fn get_referrer_policy(&self) -> ReferrerPolicy {

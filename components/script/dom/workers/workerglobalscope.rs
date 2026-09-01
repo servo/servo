@@ -151,14 +151,14 @@ pub(crate) struct ScriptFetchContext {
     response: Option<Metadata>,
     body_bytes: BytesMut,
     url: ServoUrl,
-    policy_container: PolicyContainer,
+    policy_container: Arc<PolicyContainer>,
 }
 
 impl ScriptFetchContext {
     pub(crate) fn new(
         scope: Trusted<WorkerGlobalScope>,
         url: ServoUrl,
-        policy_container: PolicyContainer,
+        policy_container: Arc<PolicyContainer>,
     ) -> ScriptFetchContext {
         ScriptFetchContext {
             scope,
@@ -320,7 +320,8 @@ pub(crate) struct WorkerGlobalScope {
     crypto: MutNullableDom<Crypto>,
     #[no_trace]
     /// <https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface:policy-container>
-    policy_container: DomRefCell<PolicyContainer>,
+    #[conditional_malloc_size_of]
+    policy_container: DomRefCell<Arc<PolicyContainer>>,
 
     #[ignore_malloc_size_of = "Defined in base"]
     #[no_trace]
@@ -543,17 +544,16 @@ impl WorkerGlobalScope {
         self.task_manager.clone()
     }
 
-    pub(crate) fn policy_container(&self) -> Ref<'_, PolicyContainer> {
+    pub(crate) fn policy_container(&self) -> Ref<'_, Arc<PolicyContainer>> {
         self.policy_container.borrow()
     }
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
-        self.policy_container.borrow_mut().set_csp_list(csp_list);
+        Arc::make_mut(&mut *self.policy_container.borrow_mut()).set_csp_list(csp_list);
     }
 
     pub(crate) fn set_referrer_policy(&self, referrer_policy: ReferrerPolicy) {
-        self.policy_container
-            .borrow_mut()
+        Arc::make_mut(&mut *self.policy_container.borrow_mut())
             .set_referrer_policy(referrer_policy);
     }
 

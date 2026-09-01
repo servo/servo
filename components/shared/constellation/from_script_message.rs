@@ -5,6 +5,7 @@
 //! Messages send from the ScriptThread to the Constellation.
 
 use std::fmt;
+use std::sync::Arc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
@@ -123,7 +124,7 @@ pub struct LoadData {
     /// The referrer policy.
     pub referrer_policy: ReferrerPolicy,
     /// The policy container.
-    pub policy_container: Option<PolicyContainer>,
+    pub policy_container: Option<Arc<PolicyContainer>>,
 
     /// The source to use instead of a network response for a srcdoc document.
     pub srcdoc: String,
