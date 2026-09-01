@@ -3028,30 +3028,34 @@ impl RsaHashedKeyGenParams {
 
         // Step 3. If modulusLength is less than 4, or if publicExponent is less than 3, is even, or
         // is greater than or equal to 2^modulusLength - 1, then throw an OperationError.
-        let public_exponent_length_in_bits = public_exponent
-            .iter()
-            .fold(None, |length, next| match (length, *next == 0) {
-                (None, true) => None,
-                (None, false) => Some(8 - next.leading_zeros()),
-                (Some(length), _) => Some(length + 8),
-            })
-            .unwrap_or(0);
-        let is_public_exponent_too_small = || {
-            public_exponent_length_in_bits <= 2 &&
-                public_exponent.last().is_none_or(|byte| *byte < 3)
+        let is_less_than_3 = |public_exponent: &[u8]| {
+            let mut byte_iterator = public_exponent.iter().skip_while(|byte| **byte == 0);
+            byte_iterator.next().is_none_or(|byte| *byte < 3) && byte_iterator.count() == 0
         };
-        let is_public_exponent_too_large = || {
-            public_exponent_length_in_bits > modulus_length ||
-                public_exponent_length_in_bits == modulus_length &&
-                    public_exponent
-                        .iter()
-                        .skip_while(|byte| **byte == 0)
-                        .all(|byte| *byte == 255)
+        let is_even =
+            |public_exponent: &[u8]| public_exponent.last().is_none_or(|byte| byte % 2 == 0);
+        let upper_bound_first_byte = (1u8 << (modulus_length % 8)).wrapping_sub(1);
+        let upper_bound_length_in_bytes = modulus_length.div_ceil(8) as usize;
+        let is_greater_than_upper_bound = |public_exponent: &[u8]| {
+            let mut byte_iterator = public_exponent.iter().skip_while(|byte| **byte == 0);
+            byte_iterator
+                .next()
+                .is_some_and(|byte| *byte > upper_bound_first_byte) &&
+                byte_iterator.count() + 1 >= upper_bound_length_in_bytes
+        };
+        let is_equal_to_upper_bound = |public_exponent: &[u8]| {
+            let mut byte_iterator = public_exponent.iter().skip_while(|byte| **byte == 0);
+            byte_iterator
+                .next()
+                .is_some_and(|byte| *byte == upper_bound_first_byte) &&
+                byte_iterator.clone().all(|byte| *byte == 255) &&
+                byte_iterator.count() + 1 == upper_bound_length_in_bytes
         };
         if modulus_length < 4 ||
-            is_public_exponent_too_small() ||
-            public_exponent.last().is_none_or(|byte| byte % 2 == 0) ||
-            is_public_exponent_too_large()
+            is_less_than_3(public_exponent) ||
+            is_even(public_exponent) ||
+            is_greater_than_upper_bound(public_exponent) ||
+            is_equal_to_upper_bound(public_exponent)
         {
             return Err(Error::Operation(Some(
                 "Invalid RsaHashedKeyGenParams".into(),
