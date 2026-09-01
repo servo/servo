@@ -1099,8 +1099,8 @@ fn test_preferences_change() {
         // so when layout.unimplemented feature is disabled, the backdrop-filter style specified
         // in the stylesheet won't parse and the computed value undefined
         Ok(JSValue::Array(vec![
-            JSValue::String("".to_string()),
-            JSValue::String("".to_string())
+            JSValue::String(String::new()),
+            JSValue::String(String::new())
         ])),
         evaluate_javascript(
             &servo_test,

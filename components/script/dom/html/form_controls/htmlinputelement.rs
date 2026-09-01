@@ -1154,7 +1154,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 .map(|value| value.into())
                 .unwrap_or(DOMString::from("on")),
             ValueMode::Filename => {
-                let mut path = DOMString::from("");
+                let mut path = DOMString::new();
                 match self.input_type().as_specific().get_files() {
                     Some(ref fl) => match fl.Item(0) {
                         Some(ref f) => {
@@ -1266,7 +1266,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             )));
         }
         if value.is_null() {
-            return self.SetValue(cx, DOMString::from(""));
+            return self.SetValue(cx, DOMString::new());
         }
         let mut msecs: f64 = 0.0;
         // We need to go through unsafe code to interrogate jsapi about a Date.
@@ -1284,12 +1284,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 return Err(Error::JSFailed);
             }
             if !msecs.is_finite() {
-                return self.SetValue(cx, DOMString::from(""));
+                return self.SetValue(cx, DOMString::new());
             }
         }
 
         let Ok(date_time) = OffsetDateTime::from_unix_timestamp_nanos((msecs * 1e6) as i128) else {
-            return self.SetValue(cx, DOMString::from(""));
+            return self.SetValue(cx, DOMString::new());
         };
         self.SetValue(
             cx,
@@ -1314,7 +1314,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 "Input element value cannot be treated as a number".into(),
             )))
         } else if value.is_nan() {
-            self.SetValue(cx, DOMString::from(""))
+            self.SetValue(cx, DOMString::new())
         } else if let Some(converted) = self.convert_number_to_string(value) {
             self.SetValue(cx, converted)
         } else {
@@ -1322,7 +1322,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             // overflow is impossible, but just setting an overflow to the empty string
             // matches Firefox's behavior. For example, try input.valueAsNumber=1e30 on
             // a type="date" input.
-            self.SetValue(cx, DOMString::from(""))
+            self.SetValue(cx, DOMString::new())
         }
     }
 
@@ -1626,7 +1626,7 @@ impl HTMLInputElement {
                 // Step 5.7.1: If the field element has a value attribute specified, then let value be the value of that attribute; otherwise, let value be the string "on".
                 let field_value = self.Value();
                 let value = if field_value.is_empty() {
-                    DOMString::from("on")
+                    DOMString::from_static("on")
                 } else {
                     field_value
                 };
@@ -1675,7 +1675,7 @@ impl HTMLInputElement {
             InputType::Hidden(_) if name.eq_ignore_ascii_case("_charset_") => {
                 // Step 5.9.1: Let charset be the name of encoding.
                 let charset = match encoding {
-                    None => DOMString::from("UTF-8"),
+                    None => DOMString::from_static("UTF-8"),
                     Some(enc) => DOMString::from(enc.name()),
                 };
                 // Step 5.9.2: Create an entry with name and charset, and append it to entry list.
@@ -1764,7 +1764,7 @@ impl HTMLInputElement {
         self.value_dirty.set(false);
         self.checked_changed.set(false);
         // Step 2. Set value to empty string.
-        self.textinput.borrow_mut().set_content(DOMString::from(""));
+        self.textinput.borrow_mut().set_content(DOMString::new());
         // Step 3. Set checkedness based on presence of content attribute.
         self.update_checked_state(cx, self.DefaultChecked(), false);
         // Step 4. Empty selected files
@@ -2098,7 +2098,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(cx, DOMString::from(""))
+                                self.SetValue(cx, DOMString::new())
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},

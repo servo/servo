@@ -92,8 +92,8 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
     fn Kind(&self) -> DOMString {
         self.item_kind()
             .map_or(DOMString::new(), |item| match *item {
-                Kind::Text { .. } => DOMString::from("string"),
-                Kind::File { .. } => DOMString::from("file"),
+                Kind::Text { .. } => DOMString::from_static("string"),
+                Kind::File { .. } => DOMString::from_static("file"),
             })
     }
 

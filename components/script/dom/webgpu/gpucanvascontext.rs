@@ -29,8 +29,9 @@ use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOff
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUCanvasAlphaMode, GPUCanvasConfiguration, GPUDeviceMethods, GPUExtent3D, GPUExtent3DDict,
-    GPUObjectDescriptorBase, GPUTextureDescriptor, GPUTextureDimension,
+    GPUCanvasAlphaMode, GPUCanvasConfiguration as RootedGPUCanvasConfiguration, GPUDeviceMethods,
+    GPUExtent3D, GPUExtent3DDict, GPUObjectDescriptorBase, GPUTextureDescriptor,
+    GPUTextureDimension,
 };
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -39,6 +40,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::webgpu::gpudevice::GPUDevice;
 
 /// <https://gpuweb.github.io/gpuweb/#supported-context-formats>
 fn supported_context_format(format: GPUTextureFormat) -> bool {
@@ -66,6 +68,40 @@ impl Drop for DroppableGPUCanvasContext {
                 "Failed to send DestroyContext({:?}): {error}",
                 self.context_id,
             );
+        }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct GPUCanvasConfiguration {
+    alpha_mode: GPUCanvasAlphaMode,
+    device: Dom<GPUDevice>,
+    format: GPUTextureFormat,
+    usage: u32,
+    view_formats: Vec<GPUTextureFormat>,
+}
+
+impl From<&RootedGPUCanvasConfiguration> for GPUCanvasConfiguration {
+    fn from(value: &RootedGPUCanvasConfiguration) -> GPUCanvasConfiguration {
+        GPUCanvasConfiguration {
+            alpha_mode: value.alphaMode,
+            device: value.device.as_traced(),
+            format: value.format,
+            usage: value.usage,
+            view_formats: value.viewFormats.clone(),
+        }
+    }
+}
+
+impl GPUCanvasConfiguration {
+    fn root(&self) -> RootedGPUCanvasConfiguration {
+        RootedGPUCanvasConfiguration {
+            alphaMode: self.alpha_mode,
+            device: self.device.as_rooted(),
+            format: self.format,
+            usage: self.usage,
+            viewFormats: self.view_formats.clone(),
         }
     }
 }
@@ -181,7 +217,7 @@ impl GPUCanvasContext {
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-gputexturedescriptor-for-the-canvas-and-configuration>
     fn texture_descriptor_for_canvas_and_configuration(
         &self,
-        configuration: &GPUCanvasConfiguration,
+        configuration: &RootedGPUCanvasConfiguration,
     ) -> GPUTextureDescriptor {
         let size = self.size();
         GPUTextureDescriptor {
@@ -252,7 +288,7 @@ impl GPUCanvasContext {
                 GPUTextureFormat::Rgba8unorm => ImageFormat::RGBA8,
                 _ => unreachable!("Configure method should set valid texture format"),
             },
-            is_opaque: matches!(configuration.alphaMode, GPUCanvasAlphaMode::Opaque),
+            is_opaque: matches!(configuration.alpha_mode, GPUCanvasAlphaMode::Opaque),
             size: self.size(),
         })
     }
@@ -287,7 +323,7 @@ impl CanvasContext for GPUCanvasContext {
             // 3.1. Set context.[[textureDescriptor]] to the
             // GPUTextureDescriptor for the canvas and configuration(canvas, configuration).
             self.texture_descriptor.replace(Some(
-                self.texture_descriptor_for_canvas_and_configuration(configuration),
+                self.texture_descriptor_for_canvas_and_configuration(&configuration.root()),
             ));
         }
     }
@@ -333,7 +369,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure>
-    fn Configure(&self, configuration: &GPUCanvasConfiguration) -> Fallible<()> {
+    fn Configure(&self, configuration: &RootedGPUCanvasConfiguration) -> Fallible<()> {
         // 1. Let device be configuration.device
         let device = &configuration.device;
 
@@ -364,7 +400,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
         }
 
         // 7. Let this.[[configuration]] to configuration.
-        self.configuration.replace(Some(configuration.clone()));
+        self.configuration.replace(Some(configuration.into()));
 
         // 8. Set this.[[textureDescriptor]] to descriptor.
         self.texture_descriptor.replace(Some(descriptor));
@@ -399,8 +435,11 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
     }
 
     /// <https://www.w3.org/TR/webgpu/#dom-gpucanvascontext-getconfiguration>
-    fn GetConfiguration(&self) -> Option<GPUCanvasConfiguration> {
-        self.configuration.borrow().clone()
+    fn GetConfiguration(&self) -> Option<RootedGPUCanvasConfiguration> {
+        self.configuration
+            .borrow()
+            .as_ref()
+            .map(|configuration| configuration.root())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>
@@ -408,7 +447,9 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
         // 1. If this.[[configuration]] is null, throw an InvalidStateError and return.
         let configuration = self.configuration.borrow();
         let Some(configuration) = configuration.as_ref() else {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "GPUCanvasContext is not configured".into(),
+            )));
         };
         // 2. Assert this.[[textureDescriptor]] is not null.
         let texture_descriptor = self.texture_descriptor.borrow();

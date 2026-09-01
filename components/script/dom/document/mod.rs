@@ -11,6 +11,8 @@ pub(crate) mod document_event_handler;
 pub(crate) mod documentfragment;
 pub(crate) mod documentorshadowroot;
 pub(crate) mod documenttype;
+pub(crate) mod domimplementation;
+pub(crate) mod domparser;
 pub(crate) mod focus;
 mod iframe_collection;
 mod image_animation;

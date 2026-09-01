@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::str::{Chars, FromStr};
 use std::time::Duration;
 
+use bytes::Bytes;
 use dom_struct::dom_struct;
 use encoding_rs::{Decoder, UTF_8};
 use headers::ContentType;
@@ -282,7 +283,7 @@ impl EventSourceContext {
             let mut realm = enter_auto_realm(cx, &*event_source);
             let cx = &mut realm.current_realm();
             rooted!(&in(cx) let mut data = UndefinedValue());
-            self.data.safe_to_jsval(cx, data.handle_mut());
+            self.data.to_jsval(cx, data.handle_mut());
             MessageEvent::new(
                 cx,
                 &event_source.global(),
@@ -435,7 +436,7 @@ impl FetchResponseListener for EventSourceContext {
         }
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Bytes) {
         let mut output = String::with_capacity(chunk.len());
         let mut input = &chunk[..];
 
@@ -517,7 +518,7 @@ impl EventSource {
             eventtarget: EventTarget::new_inherited(),
             url,
             request: DomRefCell::new(None),
-            last_event_id: DomRefCell::new(DOMString::from("")),
+            last_event_id: DomRefCell::new(DOMString::new()),
             reconnection_time: Cell::new(DEFAULT_RECONNECTION_TIME),
             generation_id: Cell::new(GenerationId(0)),
 

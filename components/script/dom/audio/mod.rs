@@ -28,4 +28,5 @@ pub(crate) mod offlineaudiocompletionevent;
 pub(crate) mod offlineaudiocontext;
 pub(crate) mod oscillatornode;
 pub(crate) mod pannernode;
+pub(crate) mod periodicwave;
 pub(crate) mod stereopannernode;

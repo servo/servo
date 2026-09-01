@@ -42,7 +42,7 @@ impl LargestContentfulPaint {
     ) -> LargestContentfulPaint {
         LargestContentfulPaint {
             entry: PerformanceEntry::new_inherited(
-                DOMString::from(""),
+                DOMString::new(),
                 EntryType::LargestContentfulPaint,
                 Some(render_time),
                 Duration::ZERO,

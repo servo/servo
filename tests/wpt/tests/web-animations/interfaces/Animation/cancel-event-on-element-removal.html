@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Cancel events on element removal</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#canceling-an-animation-section">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@keyframes anim { to { opacity: 0; } }
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(async t => {
+    const div = document.createElement('div');
+    div.style.animation = 'anim 10s';
+    document.body.appendChild(div);
+
+    const animation = div.getAnimations()[0];
+    await animation.ready;
+
+    const cancelFired = new Promise(resolve => {
+        animation.addEventListener('cancel', resolve);
+    });
+
+    div.remove();
+
+    const result = await Promise.race([
+        cancelFired.then(() => 'fired'),
+        new Promise(resolve => step_timeout(() => resolve('timeout'), 100))
+    ]);
+
+    assert_equals(result, 'fired',
+        'Web Animations API cancel event should fire on element removal');
+}, 'Animation.cancel event fires when element is removed');
+
+</script>
+</body>

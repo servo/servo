@@ -199,6 +199,7 @@ impl AbortSignal {
             },
             AbortAlgorithm::FetchLater(deferred_fetch_record_id) => {
                 global
+                    .fetch_group()
                     .deferred_fetch_record_for_id(deferred_fetch_record_id)
                     .abort();
             },
@@ -384,7 +385,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
 
         // Step 3. Run steps after a timeout given global, "AbortSignal-timeout", milliseconds, and the following step:
         global.run_steps_after_a_timeout(
-            DOMString::from("AbortSignal-timeout"),
+            DOMString::from_static("AbortSignal-timeout"),
             ms_i64,
             move |_cx, global| {
                 let task_source = global.task_manager().timer_task_source().to_sendable();

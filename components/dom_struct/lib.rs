@@ -122,13 +122,13 @@ fn test_valid_dom_struct_generation() {
             {}
         };
         impl ::js::conversions::ToJSValConvertible for DomElement {
-            fn safe_to_jsval(
+            fn to_jsval(
                 &self,
                 cx: &mut js::context::JSContext,
                 rval: js::rust::MutableHandleValue,
             ) {
                 let object = crate::DomObject::reflector(self).get_jsobject();
-                object.safe_to_jsval(cx, rval);
+                object.to_jsval(cx, rval);
             }
         }
         impl crate::DomObject for DomElement {

@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Duration;
 
+use bytes::Bytes;
 use js::context::JSContext;
 use js::jsapi::ExceptionStackBehavior;
 use js::jsval::UndefinedValue;
@@ -19,7 +20,7 @@ use net_traits::request::{
 };
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseMsg,
-    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, cancel_async_fetch,
+    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, cancel_async_fetch, fetch_async,
 };
 use rustc_hash::FxHashMap;
 use script_bindings::cformat;
@@ -123,8 +124,8 @@ impl FetchCanceller {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 /// An id to differentiate one deferred fetch record from another.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub(crate) struct DeferredFetchRecordId(Uuid);
 
 impl Default for DeferredFetchRecordId {
@@ -135,12 +136,166 @@ impl Default for DeferredFetchRecordId {
 
 pub(crate) type QueuedDeferredFetchRecord = Rc<DeferredFetchRecord>;
 
+/// <https://fetch.spec.whatwg.org/#fetch-record>
+#[derive(MallocSizeOf)]
+pub(crate) struct FetchRecord {
+    /// <https://fetch.spec.whatwg.org/#concept-fetch-record-fetch>
+    ///
+    /// Note: The fetch controller is currently represented in Servo by the [`FetchCanceller`].
+    controller: Option<FetchCanceller>,
+    /// Whether or not the [`Request`] has finished.
+    ///
+    /// TODO: In the specification this is in the [`Request`], so it should be moved there and the
+    /// [`Request`] stored here, which requires making everything traceable.
+    done: bool,
+}
+
 /// <https://fetch.spec.whatwg.org/#concept-fetch-group>
-#[derive(Default, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub(crate) struct FetchGroup {
+    /// The [`CoreResourceThread`] for this [`FetchGroup`].
+    core_resource_thread: CoreResourceThread,
     /// <https://fetch.spec.whatwg.org/#fetch-group-deferred-fetch-records>
     #[conditional_malloc_size_of]
     pub(crate) deferred_fetch_records: FxHashMap<DeferredFetchRecordId, QueuedDeferredFetchRecord>,
+    /// <https://fetch.spec.whatwg.org/#concept-fetch-record>
+    pub(crate) fetch_records: FxHashMap<RequestId, FetchRecord>,
+}
+
+impl FetchGroup {
+    pub(crate) fn new(core_resource_thread: CoreResourceThread) -> Self {
+        Self {
+            core_resource_thread,
+            deferred_fetch_records: Default::default(),
+            fetch_records: Default::default(),
+        }
+    }
+
+    pub(crate) fn fetch<Listener: FetchResponseListener>(
+        &mut self,
+        request: RequestBuilder,
+        listener: NetworkListener<Listener>,
+    ) {
+        self.fetch_records.insert(
+            request.id,
+            FetchRecord {
+                controller: Some(FetchCanceller::new(
+                    request.id,
+                    request.keep_alive,
+                    self.core_resource_thread.clone(),
+                )),
+                done: false,
+            },
+        );
+        fetch_async(
+            &self.core_resource_thread,
+            request,
+            None,
+            listener.into_callback(),
+        );
+    }
+
+    pub(crate) fn deferred_fetches(&self) -> Vec<QueuedDeferredFetchRecord> {
+        self.deferred_fetch_records.values().cloned().collect()
+    }
+
+    fn append_deferred_fetch(
+        &mut self,
+        deferred_record: DeferredFetchRecord,
+    ) -> DeferredFetchRecordId {
+        let deferred_fetch_record_id = DeferredFetchRecordId::default();
+        self.deferred_fetch_records
+            .insert(deferred_fetch_record_id, Rc::new(deferred_record));
+        deferred_fetch_record_id
+    }
+
+    pub(crate) fn deferred_fetch_record_for_id(
+        &self,
+        deferred_fetch_record_id: &DeferredFetchRecordId,
+    ) -> QueuedDeferredFetchRecord {
+        self.deferred_fetch_records
+            .get(deferred_fetch_record_id)
+            .expect("Should always use a generated fetch_record_id instead of passing your own")
+            .clone()
+    }
+
+    pub(crate) fn fetch_controller(
+        &mut self,
+        request_id: &RequestId,
+    ) -> Option<&mut FetchCanceller> {
+        self.fetch_records.get_mut(request_id)?.controller.as_mut()
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
+    ///
+    /// Returns `true` if any fetches were cancelled and `false` otherwise.
+    pub(crate) fn terminate(&mut self, global: &GlobalScope) -> bool {
+        // Step 1. For each fetch record record of fetchGroup’s fetch records,
+        // if record’s controller is non-null and record’s request’s done flag
+        // is unset and keepalive is false, terminate record’s controller.
+        let mut cancelled_any = false;
+        self.fetch_records.retain(|_, fetch_record| {
+            let Some(controller) = fetch_record.controller.as_mut() else {
+                return false;
+            };
+            if fetch_record.done {
+                return false;
+            }
+            if !controller.keep_alive() {
+                controller.terminate();
+                cancelled_any = true;
+                return false;
+            }
+            true
+        });
+
+        // Step 2. Process deferred fetches for fetchGroup.
+        self.process_deferred_fetches(global);
+
+        cancelled_any
+    }
+
+    /// <https://fetch.spec.whatwg.org/#process-deferred-fetches>
+    pub(crate) fn process_deferred_fetches(&mut self, global: &GlobalScope) {
+        // Step 1. For each deferred fetch record deferredRecord of fetchGroup’s
+        // deferred fetch records, process a deferred fetch deferredRecord.
+        for deferred_fetch in self.deferred_fetches() {
+            self.process_a_deferred_fetch(global, &deferred_fetch);
+        }
+    }
+
+    /// <https://fetch.spec.whatwg.org/#process-a-deferred-fetch>
+    pub(crate) fn process_a_deferred_fetch(
+        &mut self,
+        global: &GlobalScope,
+        deferred_fetch: &DeferredFetchRecord,
+    ) {
+        // Step 1. If deferredRecord’s invoke state is not "pending", then return.
+        if deferred_fetch.invoke_state.get() != DeferredFetchRecordInvokeState::Pending {
+            return;
+        }
+        // Step 2. Set deferredRecord’s invoke state to "sent".
+        deferred_fetch
+            .invoke_state
+            .set(DeferredFetchRecordInvokeState::Sent);
+        // Step 3. Fetch deferredRecord’s request.
+        let fetch_later_listener = FetchLaterListener {
+            url: deferred_fetch.request.url(),
+            global: Trusted::new(global),
+        };
+        let task_source = global.task_manager().networking_task_source().to_sendable();
+        self.fetch(
+            request_init_from_request(deferred_fetch.request.clone(), global),
+            NetworkListener::new(fetch_later_listener, task_source, global),
+        );
+        // Step 4 is handled by caller
+    }
+
+    pub(crate) fn mark_fetch_request_as_done(&mut self, request_id: &RequestId) {
+        if let Some(fetch_record) = self.fetch_records.get_mut(request_id) {
+            fetch_record.done = true;
+        }
+    }
 }
 
 fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) -> RequestBuilder {
@@ -232,8 +387,7 @@ pub(crate) fn Fetch(
         Ok(r) => r,
     };
     // Step 3. Let request be requestObject’s request.
-    let request = request_object.get_request();
-    let request_id = request.id;
+    let request = request_object.request().clone();
 
     // Step 4. If requestObject’s signal is aborted, then:
     let signal = request_object.Signal();
@@ -253,15 +407,14 @@ pub(crate) fn Fetch(
         return promise;
     }
 
-    let keep_alive = request.keep_alive;
     // Step 5. Let globalObject be request’s client’s global object.
     // NOTE:   We already get the global object as an argument
-    let mut request_init = request_init_from_request(request, global);
+    let mut request_builder = request_init_from_request(request, global);
 
     // Step 6. If globalObject is a ServiceWorkerGlobalScope object, then set request’s
     //         service-workers mode to "none".
     if global.is::<ServiceWorkerGlobalScope>() {
-        request_init.service_workers_mode = ServiceWorkersMode::None;
+        request_builder.service_workers_mode = ServiceWorkersMode::None;
     }
 
     // Step 8. Let relevantRealm be this’s relevant realm.
@@ -276,12 +429,12 @@ pub(crate) fn Fetch(
         request: Trusted::new(&*request_object),
         global: Trusted::new(global),
         locally_aborted: false,
-        canceller: FetchCanceller::new(request_id, keep_alive, global.core_resource_thread()),
-        url: request_init.url.url(),
+        url: request_builder.url.url(),
     };
     let network_listener = NetworkListener::new(
         fetch_context,
         global.task_manager().networking_task_source().to_sendable(),
+        global,
     );
     let fetch_context = network_listener.context.clone();
 
@@ -290,7 +443,9 @@ pub(crate) fn Fetch(
 
     // Step 12. Set controller to the result of calling fetch given request and
     // processResponse given response being these steps:
-    global.fetch_with_network_listener(request_init, network_listener);
+    global
+        .fetch_group_mut()
+        .fetch(request_builder, network_listener);
 
     // Step 13. Return p.
     promise
@@ -312,19 +467,26 @@ fn queue_deferred_fetch(
     // Step 3. Set request’s keepalive to true.
     request.keep_alive = true;
     // Step 4. Let deferredRecord be a new deferred fetch record whose request is request, and whose notify invoked is onActivatedWithoutTermination.
-    let deferred_record = Rc::new(DeferredFetchRecord {
+    let deferred_record = DeferredFetchRecord {
         request,
         invoke_state: Cell::new(DeferredFetchRecordInvokeState::Pending),
         activated: Cell::new(false),
-    });
+    };
+
     // Step 5. Append deferredRecord to request’s client’s fetch group’s deferred fetch records.
-    let deferred_fetch_record_id = global.append_deferred_fetch(deferred_record);
+    let deferred_fetch_record_id = global
+        .fetch_group_mut()
+        .append_deferred_fetch(deferred_record);
+
     // Step 6. If activateAfter is non-null, then run the following steps in parallel:
     global.schedule_timer(TimerEventRequest {
         callback: Box::new(move || {
             // Step 6.2. Process deferredRecord.
             let global = trusted_global.root();
-            global.deferred_fetch_record_for_id(&deferred_fetch_record_id).process(&global);
+            let mut fetch_group = global.fetch_group_mut();
+            let deferred_fetch_record =
+                fetch_group.deferred_fetch_record_for_id(&deferred_fetch_record_id);
+            fetch_group.process_a_deferred_fetch(&global, &deferred_fetch_record);
 
             // Last step of https://fetch.spec.whatwg.org/#process-a-deferred-fetch
             //
@@ -333,7 +495,7 @@ fn queue_deferred_fetch(
             let trusted_global = trusted_global.clone();
             global.task_manager().deferred_fetch_task_source().queue(
                 task!(notify_deferred_record: move || {
-                    trusted_global.root().deferred_fetch_record_for_id(&deferred_fetch_record_id).activate();
+                    trusted_global.root().fetch_group().deferred_fetch_record_for_id(&deferred_fetch_record_id).activate();
                 }),
             );
         }),
@@ -369,7 +531,7 @@ pub(crate) fn FetchLater(
         return Err(Error::JSFailed);
     }
     // Step 3. Let request be requestObject’s request.
-    let request = request_object.get_request();
+    let request = request_object.request();
     // Step 4. Let activateAfter be null.
     let mut activate_after = Finite::wrap(0_f64);
     // Step 5. If init is given and init["activateAfter"] exists, then set
@@ -415,7 +577,7 @@ pub(crate) fn FetchLater(
     // Step 12. Let activated be false.
     // Step 13. Let deferredRecord be the result of calling queue a deferred fetch given request,
     // activateAfter, and the following step: set activated to true.
-    let deferred_record_id = queue_deferred_fetch(request, activate_after, global_scope);
+    let deferred_record_id = queue_deferred_fetch(request.clone(), activate_after, global_scope);
     // Step 14. Add the following abort steps to requestObject’s signal: Set deferredRecord’s invoke state to "aborted".
     signal.add(&AbortAlgorithm::FetchLater(deferred_record_id));
     // Step 15. Return a new FetchLaterResult whose activated getter steps are to return activated.
@@ -457,27 +619,6 @@ impl DeferredFetchRecord {
         // whose activated getter steps are to return activated.
         self.activated.get()
     }
-    /// <https://fetch.spec.whatwg.org/#process-a-deferred-fetch>
-    pub(crate) fn process(&self, global: &GlobalScope) {
-        // Step 1. If deferredRecord’s invoke state is not "pending", then return.
-        if self.invoke_state.get() != DeferredFetchRecordInvokeState::Pending {
-            return;
-        }
-        // Step 2. Set deferredRecord’s invoke state to "sent".
-        self.invoke_state.set(DeferredFetchRecordInvokeState::Sent);
-        // Step 3. Fetch deferredRecord’s request.
-        let fetch_later_listener = FetchLaterListener {
-            url: self.request.url(),
-            global: Trusted::new(global),
-        };
-        let request_init = request_init_from_request(self.request.clone(), global);
-        global.fetch(
-            request_init,
-            fetch_later_listener,
-            global.task_manager().networking_task_source().to_sendable(),
-        );
-        // Step 4 is handled by caller
-    }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -488,7 +629,6 @@ pub(crate) struct FetchContext {
     request: Trusted<Request>,
     global: Trusted<GlobalScope>,
     locally_aborted: bool,
-    canceller: FetchCanceller,
     #[no_trace]
     url: ServoUrl,
 }
@@ -498,12 +638,22 @@ impl FetchContext {
     pub(crate) fn abort_fetch(&mut self, abort_reason: HandleValue, cx: &mut JSContext) {
         // Step 11.1. Set locallyAborted to true.
         self.locally_aborted = true;
+
         // Step 11.2. Assert: controller is non-null.
         //
-        // N/a, that's self
+        // Note: We currently prune fetch records that have finished (behaviorally
+        // equivalent to the specification and better for memory usage), so it might be
+        // the case that the `FetchRecord` is gone and the controller inaccessible.
 
         // Step 11.3. Abort controller with requestObject’s signal’s abort reason.
-        self.canceller.abort();
+        let global = self.global.root();
+        let request = self.request.root();
+        if let Some(controller) = global
+            .fetch_group_mut()
+            .fetch_controller(&request.request().id)
+        {
+            controller.abort();
+        }
 
         // Step 11.4. Abort the fetch() call with p, request, responseObject,
         // and requestObject’s signal’s abort reason.
@@ -514,10 +664,10 @@ impl FetchContext {
             .root();
         abort_fetch_call(
             promise,
-            &self.request.root(),
+            &request,
             Some(&self.response_object.root()),
             abort_reason,
-            &self.global.root(),
+            &global,
             cx,
         );
     }
@@ -596,7 +746,7 @@ impl FetchResponseListener for FetchContext {
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Bytes) {
         let response = self.response_object.root();
         response.stream_chunk(cx, chunk);
     }
@@ -664,7 +814,7 @@ impl FetchResponseListener for FetchLaterListener {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
         _ = chunk;
     }
 

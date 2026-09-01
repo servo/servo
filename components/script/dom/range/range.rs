@@ -332,6 +332,7 @@ impl Range {
             .for_each(|selection| {
                 selection.queue_selectionchange_task();
                 selection.set_visible_selection_dirty();
+                selection.clear_command_overrides();
             });
     }
 

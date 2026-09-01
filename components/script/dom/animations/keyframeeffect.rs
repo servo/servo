@@ -202,7 +202,7 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
 
                 // Step 3.3.3 Let value be the result of converting IDL value to an ECMAScript String value.
                 rooted!(&in(cx) let mut value = UndefinedValue());
-                value_string.safe_to_jsval(cx, value.handle_mut());
+                value_string.to_jsval(cx, value.handle_mut());
 
                 // Step 3.3.4 Call the [[DefineOwnProperty]] internal method on output keyframe with property
                 // name property name, Property Descriptor { [[Writable]]: true, [[Enumerable]]: true, [[Configurable]]:
@@ -368,7 +368,7 @@ fn process_a_keyframe_like_object(
     //
     // Note: 'allow lists' is currently never true.
     // Use the following dictionary type:
-    let Ok(keyframe_output) = BaseKeyframe::safe_from_jsval(cx, value, ()) else {
+    let Ok(keyframe_output) = BaseKeyframe::from_jsval(cx, value, ()) else {
         return Err(Error::JSFailed);
     };
     let ConversionResult::Success(keyframe_output) = keyframe_output else {
@@ -461,7 +461,7 @@ fn get_property_declarations(
         // Otherwise,
         // Let property values be the result of converting raw value to a DOMString using the procedure
         // for converting an ECMAScript value to a DOMString [WEBIDL].
-        let property_value = match DOMString::safe_from_jsval(
+        let property_value = match DOMString::from_jsval(
             cx,
             property_value.handle(),
             StringificationBehavior::Default,

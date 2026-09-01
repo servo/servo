@@ -24,7 +24,7 @@ use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 use crate::proxies::ConstellationProxy;
-use crate::responders::{IpcResponder, OneshotSender, ServoErrorSender};
+use crate::responders::{AutomaticResponder, OneshotSender, ServoErrorSender};
 use crate::{RegisterOrUnregister, Servo, WebView, WebViewBuilder};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
@@ -99,7 +99,7 @@ impl PermissionRequest {
 /// to Servo. This is used as a part of requests from Servo to the embedder
 /// to perform certain actions and the request can either be allowed or denied
 /// by the embedder.
-pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>, ServoErrorSender);
+pub struct AllowOrDenyRequest(AutomaticResponder<AllowOrDeny>, ServoErrorSender);
 
 impl AllowOrDenyRequest {
     pub(crate) fn new(
@@ -108,7 +108,7 @@ impl AllowOrDenyRequest {
         error_sender: ServoErrorSender,
     ) -> Self {
         Self(
-            IpcResponder::new(response_sender, default_response),
+            AutomaticResponder::new(response_sender, default_response),
             error_sender,
         )
     }
@@ -119,7 +119,7 @@ impl AllowOrDenyRequest {
         error_sender: ServoErrorSender,
     ) -> Self {
         Self(
-            IpcResponder::new_same_process(Box::new(callback), default_response),
+            AutomaticResponder::new_same_process(Box::new(callback), default_response),
             error_sender,
         )
     }
@@ -157,7 +157,7 @@ pub struct ProtocolHandlerRegistration {
 /// A request to let the user chose a Bluetooth device.
 pub struct BluetoothDeviceSelectionRequest {
     devices: Vec<BluetoothDeviceDescription>,
-    responder: IpcResponder<Option<String>>,
+    responder: AutomaticResponder<Option<String>>,
 }
 
 impl BluetoothDeviceSelectionRequest {
@@ -167,7 +167,7 @@ impl BluetoothDeviceSelectionRequest {
     ) -> Self {
         Self {
             devices,
-            responder: IpcResponder::new(responder, None),
+            responder: AutomaticResponder::new(responder, None),
         }
     }
 
@@ -193,7 +193,7 @@ impl BluetoothDeviceSelectionRequest {
 pub struct AuthenticationRequest {
     pub(crate) url: Url,
     pub(crate) for_proxy: bool,
-    pub(crate) responder: IpcResponder<Option<AuthenticationResponse>>,
+    pub(crate) responder: AutomaticResponder<Option<AuthenticationResponse>>,
     pub(crate) error_sender: ServoErrorSender,
 }
 
@@ -207,7 +207,7 @@ impl AuthenticationRequest {
         Self {
             url,
             for_proxy,
-            responder: IpcResponder::new_same_process(
+            responder: AutomaticResponder::new_same_process(
                 Box::new(OneshotSender::from(response_sender)),
                 None,
             ),
@@ -239,7 +239,7 @@ impl AuthenticationRequest {
 /// by calling [`WebResourceLoad::intercept`].
 pub struct WebResourceLoad {
     pub request: WebResourceRequest,
-    pub(crate) responder: IpcResponder<WebResourceResponseMsg>,
+    pub(crate) responder: AutomaticResponder<WebResourceResponseMsg>,
     pub(crate) error_sender: ServoErrorSender,
 }
 
@@ -251,7 +251,7 @@ impl WebResourceLoad {
     ) -> Self {
         Self {
             request: web_resource_request,
-            responder: IpcResponder::new_same_process(
+            responder: AutomaticResponder::new_same_process(
                 Box::new(response_sender),
                 WebResourceResponseMsg::DoNotIntercept,
             ),
@@ -286,7 +286,7 @@ impl WebResourceLoad {
 /// this interception will automatically be finished when dropped.
 pub struct InterceptedWebResourceLoad {
     pub request: WebResourceRequest,
-    pub(crate) response_sender: IpcResponder<WebResourceResponseMsg>,
+    pub(crate) response_sender: AutomaticResponder<WebResourceResponseMsg>,
     pub(crate) finished: bool,
     pub(crate) error_sender: ServoErrorSender,
 }
@@ -901,7 +901,7 @@ impl PromptDialog {
 /// Refer to the documentation of [`WebViewDelegate::request_create_new`] for more information.
 pub struct CreateNewWebViewRequest {
     pub(crate) servo: Servo,
-    pub(crate) responder: IpcResponder<Option<NewWebViewDetails>>,
+    pub(crate) responder: AutomaticResponder<Option<NewWebViewDetails>>,
 }
 
 impl CreateNewWebViewRequest {

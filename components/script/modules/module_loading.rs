@@ -8,32 +8,37 @@
 
 #![expect(unsafe_code)]
 
-use std::cell::{Cell, RefCell};
-use std::collections::HashSet;
+use std::cell::RefCell;
+use std::ffi::c_void;
+use std::ptr;
 use std::rc::Rc;
 
-use js::context::JSContext;
-use js::conversions::jsstr_to_string;
-use js::jsapi::{HandleValue as RawHandleValue, IsCyclicModule, ModuleType};
-use js::jsval::{ObjectValue, UndefinedValue};
-use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers2::{
-    GetModuleNamespace, GetRequestedModuleSpecifier, GetRequestedModuleType,
-    GetRequestedModulesCount, JS_GetModulePrivate, ModuleEvaluate, ModuleLink,
+use js::context::{JSContext, RawJSContext};
+use js::jsapi::{
+    CallArgs, GetErrorType, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JSExnType,
+    JSObject, JSScript, ModuleType, SetFunctionNativeReserved,
 };
-use js::rust::{HandleValue, IntoHandle};
+use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
+use js::realm::CurrentRealm;
+use js::rust::Handle;
+use js::rust::wrappers2::{
+    AddPromiseReactions, FinishLoadingDynamicImportedModule, FinishLoadingImportedModule,
+    FinishLoadingImportedModuleFailed, GetModuleNamespace, GetModuleRequestType, IsPromiseObject,
+    JS_GetScriptPrivate, LoadRequestedModules1, ModuleEvaluate, ModuleLink,
+    NewFunctionWithReserved,
+};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{Destination, Referrer, RequestClient};
-use script_bindings::reflector::DomObject;
+use script_bindings::cell::DomRefCell;
 use script_bindings::settings_stack::run_a_callback;
-use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+use crate::dom::promise::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::modules::script_module::{
     ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
@@ -49,269 +54,274 @@ struct OnRejectedHandler {
 }
 
 impl Callback for OnRejectedHandler {
-    fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
+    fn callback(&self, cx: &mut CurrentRealm, v: Handle<JSVal>) {
         // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « reason »).
         self.promise.reject(cx, v);
     }
 }
 
-pub(crate) enum Payload {
-    GraphRecord(Rc<GraphLoadingState>),
-    PromiseRecord(Rc<Promise>),
-}
-
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct LoadState {
+    #[ignore_malloc_size_of = "mozjs"]
     pub(crate) error_to_rethrow: RefCell<Option<RethrowError>>,
     #[no_trace]
     pub(crate) destination: Destination,
     #[no_trace]
     pub(crate) fetch_client: RequestClient,
+    #[conditional_malloc_size_of]
+    pub(crate) module_script: DomRefCell<Option<Rc<ModuleTree>>>,
+    #[ignore_malloc_size_of = "Measuring trait objects is hard"]
+    #[no_trace]
+    #[allow(clippy::type_complexity)]
+    pub(crate) on_complete:
+        DomRefCell<Option<Box<dyn FnOnce(&mut JSContext, Option<Rc<ModuleTree>>)>>>,
 }
 
-/// <https://tc39.es/ecma262/#graphloadingstate-record>
-pub(crate) struct GraphLoadingState {
-    /// [[PromiseCapability]]
-    promise: Rc<Promise>,
-    /// [[IsLoading]]
-    is_loading: Cell<bool>,
-    /// [[PendingModulesCount]]
-    pending_modules_count: Cell<u32>,
-    /// [[Visited]]
-    visited: RefCell<HashSet<ServoUrl>>,
-    /// [[HostDefined]]
-    load_state: Option<Rc<LoadState>>,
+const LOAD_REACTION_HOST_DEFINED_SLOT: usize = 0;
+
+fn take_state_from_reserved_slot(cx: &mut JSContext, args: &CallArgs) -> Box<LoadState> {
+    rooted!(&in(cx) let host_defined = unsafe { *GetFunctionNativeReserved(args.callee(), LOAD_REACTION_HOST_DEFINED_SLOT) });
+    unsafe {
+        SetFunctionNativeReserved(
+            args.callee(),
+            LOAD_REACTION_HOST_DEFINED_SLOT,
+            &UndefinedValue(),
+        )
+    };
+    assert!(!host_defined.get().is_undefined());
+    unsafe { Box::from_raw((*host_defined).to_private() as *mut LoadState) }
 }
 
-/// <https://tc39.es/ecma262/#sec-LoadRequestedModules>
+unsafe extern "C" fn on_load_requested_modules_resolved(
+    cx: *mut RawJSContext,
+    argc: u32,
+    vp: *mut JSVal,
+) -> bool {
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let cx = &mut realm;
+
+    let args = unsafe { CallArgs::from_vp(vp, argc) };
+
+    let state = take_state_from_reserved_slot(cx, &args);
+
+    let on_complete = state.on_complete.safe_borrow_mut(cx).take().unwrap();
+    let module_script = state.module_script.safe_borrow_mut(cx).take().unwrap();
+
+    let record = module_script
+        .get_record()
+        .map(|module| module.handle())
+        .unwrap();
+
+    // https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
+    // Step 6. Upon fulfillment of loadingPromise, run the following steps:
+
+    // Step 6.1. Perform record.Link().
+    let link = unsafe { ModuleLink(cx, record) };
+
+    // If this throws an exception, catch it, and set moduleScript's error to rethrow to that exception.
+    if !link {
+        let exception = RethrowError::from_pending_exception(cx);
+        module_script.set_rethrow_error(exception);
+    }
+
+    // Step 6.2. Run onComplete given moduleScript.
+    on_complete(cx, Some(module_script));
+
+    true
+}
+
+unsafe extern "C" fn on_load_requested_modules_rejected(
+    cx: *mut RawJSContext,
+    argc: u32,
+    vp: *mut JSVal,
+) -> bool {
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let cx = &mut realm;
+
+    let args = unsafe { CallArgs::from_vp(vp, argc) };
+
+    let state = take_state_from_reserved_slot(cx, &args);
+
+    let error = unsafe { Handle::from_raw(args.get(0)) };
+
+    let on_complete = state.on_complete.safe_borrow_mut(cx).take().unwrap();
+    let module_script = state.module_script.safe_borrow_mut(cx).take().unwrap();
+
+    // https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
+    // Step 7. Upon rejection of loadingPromise, run the following steps:
+
+    // Note: When the error is thrown on the SpiderMonkey side, which happens when encountering
+    // an unsupported attribute inside `InnerModuleLoading`, state.[[ErrorToRethrow]] doesn't
+    // contain the expected error, we need to use the value passed down.
+    if unsafe { GetErrorType(error.as_ref(cx)) } == JSExnType::JSEXN_SYNTAXERR {
+        module_script.set_rethrow_error(RethrowError::new(Heap::boxed(*error.as_ref(cx))));
+        on_complete(cx, Some(module_script));
+        return true;
+    }
+
+    // Step 7.1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to
+    // state.[[ErrorToRethrow]] and run onComplete given moduleScript.
+    let error_to_rethrow = state.error_to_rethrow.borrow().as_ref().cloned();
+    if let Some(error) = error_to_rethrow {
+        module_script.set_rethrow_error(error);
+        on_complete(cx, Some(module_script));
+    } else {
+        // Step 7.2. Otherwise, run onComplete given null.
+        on_complete(cx, None);
+    }
+
+    true
+}
+
+struct ImportRequest {
+    referrer: RootedTraceableBox<Heap<*mut JSScript>>,
+    module_request: RootedTraceableBox<Heap<*mut JSObject>>,
+    payload: RootedTraceableBox<Heap<JSVal>>,
+    host_defined: RootedTraceableBox<Heap<JSVal>>,
+}
+
+fn load_state_from_handle_value<'a>(reference_private: Handle<'a, JSVal>) -> Option<&'a LoadState> {
+    if reference_private.get().is_undefined() {
+        return None;
+    }
+    unsafe { (reference_private.get().to_private() as *const LoadState).as_ref() }
+}
+
 pub(crate) fn load_requested_modules(
     cx: &mut CurrentRealm,
-    module: Rc<ModuleTree>,
-    load_state: Option<Rc<LoadState>>,
-) -> Rc<Promise> {
-    // Step 1. If hostDefined is not present, let hostDefined be empty.
-    //
-    // Not required, since we implement it as an `Option`
-
-    // Step 2. Let pc be ! NewPromiseCapability(%Promise%).
-    let mut realm = CurrentRealm::assert(cx);
-    let promise = Promise::new_in_realm(&mut realm);
-
-    // Step 3. Let state be the GraphLoadingState Record
-    // { [[IsLoading]]: true, [[PendingModulesCount]]: 1, [[Visited]]: « », [[PromiseCapability]]: pc, [[HostDefined]]: hostDefined }.
-    let state = GraphLoadingState {
-        promise: promise.clone(),
-        is_loading: Cell::new(true),
-        pending_modules_count: Cell::new(1),
-        visited: RefCell::new(HashSet::new()),
-        load_state,
-    };
-
-    // Step 4. Perform InnerModuleLoading(state, module).
-    inner_module_loading(cx, &Rc::new(state), module);
-
-    // Step 5. Return pc.[[Promise]].
-    promise
-}
-
-/// <https://tc39.es/ecma262/#sec-InnerModuleLoading>
-fn inner_module_loading(
-    cx: &mut CurrentRealm,
-    state: &Rc<GraphLoadingState>,
-    module: Rc<ModuleTree>,
+    module: Handle<*mut JSObject>,
+    load_state: Box<LoadState>,
 ) {
-    // Step 1. Assert: state.[[IsLoading]] is true.
-    assert!(state.is_loading.get());
+    rooted!(&in(cx) let host_defined = PrivateValue(Box::into_raw(load_state) as *const _ as *const c_void));
 
-    let module_handle = module.get_record().map(|module| module.handle()).unwrap();
+    unsafe {
+        let on_resolved = NewFunctionWithReserved(
+            cx,
+            Some(on_load_requested_modules_resolved),
+            0,
+            0,
+            ptr::null(),
+        );
+        let on_rejected = NewFunctionWithReserved(
+            cx,
+            Some(on_load_requested_modules_rejected),
+            1,
+            0,
+            ptr::null(),
+        );
 
-    let module_url = module.get_url();
-    let visited_contains_module = state.visited.borrow().contains(&module_url);
+        rooted!(&in(cx) let resolved_function_object = JS_GetFunctionObject(on_resolved));
+        SetFunctionNativeReserved(
+            resolved_function_object.get(),
+            LOAD_REACTION_HOST_DEFINED_SLOT,
+            host_defined.handle().as_ref(cx),
+        );
 
-    // Step 2. If module is a Cyclic Module Record, module.[[Status]] is new, and state.[[Visited]] does not contain module, then
-    // Note: mozjs doesn't expose a way to check the ModuleStatus of a ModuleObject.
-    if unsafe { IsCyclicModule(module_handle.get()) } && !visited_contains_module {
-        // a. Append module to state.[[Visited]].
-        state.visited.borrow_mut().insert(module_url);
+        rooted!(&in(cx) let rejected_function_object = JS_GetFunctionObject(on_rejected));
+        SetFunctionNativeReserved(
+            rejected_function_object.get(),
+            LOAD_REACTION_HOST_DEFINED_SLOT,
+            host_defined.handle().as_ref(cx),
+        );
 
-        // b. Let requestedModulesCount be the number of elements in module.[[RequestedModules]].
-        let requested_modules_count = unsafe { GetRequestedModulesCount(cx, module_handle) };
+        rooted!(&in(cx) let mut promise_obj = ptr::null_mut::<JSObject>());
+        assert!(LoadRequestedModules1(
+            cx,
+            module,
+            host_defined.handle(),
+            promise_obj.handle_mut(),
+        ));
 
-        // c. Set state.[[PendingModulesCount]] to state.[[PendingModulesCount]] + requestedModulesCount.
-        let pending_modules_count = state.pending_modules_count.get();
-        state
-            .pending_modules_count
-            .set(pending_modules_count + requested_modules_count);
-
-        // d. For each ModuleRequest Record request of module.[[RequestedModules]], do
-        for index in 0..requested_modules_count {
-            // i. If AllImportAttributesSupported(request.[[Attributes]]) is false, then
-            // Note: Gecko will call hasFirstUnsupportedAttributeKey on each module request,
-            // GetRequestedModuleSpecifier will do it for us.
-            // In addition it will also check if specifier has an unknown module type.
-            let jsstr = unsafe { GetRequestedModuleSpecifier(cx, module_handle, index) };
-
-            if jsstr.is_null() {
-                // 1. Let error be ThrowCompletion(a newly created SyntaxError object).
-                let error = RethrowError::from_pending_exception(cx);
-
-                // See Step 7. of `host_load_imported_module`.
-                state.load_state.as_ref().inspect(|load_state| {
-                    load_state
-                        .error_to_rethrow
-                        .borrow_mut()
-                        .get_or_insert(error.clone());
-                });
-
-                // 2. Perform ContinueModuleLoading(state, error).
-                continue_module_loading(cx, state, Err(error));
-            } else {
-                let specifier =
-                    unsafe { jsstr_to_string(cx, std::ptr::NonNull::new(jsstr).unwrap()) };
-                let module_type = unsafe { GetRequestedModuleType(cx, module_handle, index) };
-
-                let mut realm = CurrentRealm::assert(cx);
-                let global = GlobalScope::from_current_realm(&mut realm);
-
-                // ii. Else if module.[[LoadedModules]] contains a LoadedModuleRequest Record record
-                // such that ModuleRequestsEqual(record, request) is true, then
-                let loaded_module =
-                    module.find_descendant_inside_module_map(&global, &specifier, module_type);
-
-                match loaded_module {
-                    // 1. Perform InnerModuleLoading(state, record.[[Module]]).
-                    Some(module) => inner_module_loading(cx, state, module),
-                    // iii. Else,
-                    None => {
-                        rooted!(&in(cx) let mut referrer = UndefinedValue());
-                        unsafe { JS_GetModulePrivate(module_handle.get(), referrer.handle_mut()) };
-
-                        // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
-                        host_load_imported_module(
-                            cx,
-                            Some(module.clone()),
-                            referrer.handle().into_handle(),
-                            specifier,
-                            module_type,
-                            state.load_state.clone(),
-                            Payload::GraphRecord(state.clone()),
-                        );
-                    },
-                }
-            }
-
-            // iv. If state.[[IsLoading]] is false, return unused.
-            if !state.is_loading.get() {
-                return;
-            }
-        }
+        AddPromiseReactions(
+            cx,
+            promise_obj.handle(),
+            resolved_function_object.handle(),
+            rejected_function_object.handle(),
+        );
     }
-
-    // Step 3. Assert: state.[[PendingModulesCount]] ≥ 1.
-    assert!(state.pending_modules_count.get() >= 1);
-
-    // Step 4. Set state.[[PendingModulesCount]] to state.[[PendingModulesCount]] - 1.
-    let pending_modules_count = state.pending_modules_count.get();
-    state.pending_modules_count.set(pending_modules_count - 1);
-
-    // Step 5. If state.[[PendingModulesCount]] = 0, then
-    if state.pending_modules_count.get() == 0 {
-        // a. Set state.[[IsLoading]] to false.
-        state.is_loading.set(false);
-
-        // b. For each Cyclic Module Record loaded of state.[[Visited]], do
-        // i. If loaded.[[Status]] is new, set loaded.[[Status]] to unlinked.
-        // Note: mozjs defaults to the unlinked status.
-
-        // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
-        state.promise.resolve_native(cx, &());
-    }
-
-    // Step 6. Return unused.
-}
-
-/// <https://tc39.es/ecma262/#sec-ContinueModuleLoading>
-fn continue_module_loading(
-    cx: &mut CurrentRealm,
-    state: &Rc<GraphLoadingState>,
-    module_completion: Result<Rc<ModuleTree>, RethrowError>,
-) {
-    // Step 1. If state.[[IsLoading]] is false, return unused.
-    if !state.is_loading.get() {
-        return;
-    }
-
-    match module_completion {
-        // Step 2. If moduleCompletion is a normal completion, then
-        // a. Perform InnerModuleLoading(state, moduleCompletion.[[Value]]).
-        Ok(module) => inner_module_loading(cx, state, module),
-
-        // Step 3. Else,
-        Err(exception) => {
-            // a. Set state.[[IsLoading]] to false.
-            state.is_loading.set(false);
-
-            // b. Perform ! Call(state.[[PromiseCapability]].[[Reject]], undefined, « moduleCompletion.[[Value]] »).
-            state.promise.reject(cx, exception.handle());
-        },
-    }
-
-    // Step 4. Return unused.
 }
 
 /// <https://tc39.es/ecma262/#sec-FinishLoadingImportedModule>
 fn finish_loading_imported_module(
     cx: &mut CurrentRealm,
-    referrer_module: Option<Rc<ModuleTree>>,
-    module_request_specifier: String,
-    payload: Payload,
+    referrer: Handle<*mut JSScript>,
+    module_request: Handle<*mut JSObject>,
+    payload: Handle<JSVal>,
     result: Result<Rc<ModuleTree>, RethrowError>,
 ) {
-    match payload {
-        // Step 2. If payload is a GraphLoadingState Record, then
-        Payload::GraphRecord(state) => {
-            let module_tree =
-                referrer_module.expect("Module must not be None in non dynamic imports");
+    match result {
+        Ok(module_tree) => {
+            let module_handle = module_tree
+                .get_record()
+                .map(|module| module.handle())
+                .unwrap();
 
-            // Step 1. If result is a normal completion, then
-            if let Ok(ref module) = result {
-                module_tree.insert_module_dependency(module, module_request_specifier);
+            if payload.is_object() {
+                rooted!(&in(cx) let object = payload.to_object());
+                let is_promise = unsafe { IsPromiseObject(object.handle()) };
+
+                if is_promise {
+                    unsafe {
+                        FinishLoadingDynamicImportedModule(
+                            cx,
+                            referrer,
+                            module_request,
+                            payload,
+                            module_handle,
+                        )
+                    };
+                    let promise = Promise::new_with_js_promise(cx, object.handle());
+                    let record = ModuleObject::new(module_handle);
+                    return continue_dynamic_import(cx, promise, record);
+                }
             }
 
-            // a. Perform ContinueModuleLoading(payload, result).
-            continue_module_loading(cx, &state, result);
+            assert!(unsafe {
+                FinishLoadingImportedModule(
+                    cx,
+                    referrer,
+                    module_request,
+                    payload,
+                    module_handle,
+                    true,
+                )
+            });
         },
-
-        // Step 3. Else,
-        // a. Perform ContinueDynamicImport(payload, result).
-        Payload::PromiseRecord(promise) => continue_dynamic_import(cx, promise, result),
+        Err(error) => {
+            unsafe { FinishLoadingImportedModuleFailed(cx, payload, error.handle()) };
+        },
     }
-
-    // 4. Return unused.
 }
 
 /// <https://tc39.es/ecma262/#sec-ContinueDynamicImport>
-fn continue_dynamic_import(
-    realm: &mut CurrentRealm,
-    promise: Rc<Promise>,
-    module_completion: Result<Rc<ModuleTree>, RethrowError>,
-) {
+fn continue_dynamic_import(realm: &mut CurrentRealm, promise: Rc<Promise>, module: ModuleObject) {
     // Step 1. If moduleCompletion is an abrupt completion, then
-    if let Err(exception) = module_completion {
-        // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « moduleCompletion.[[Value]] »).
-        promise.reject(realm, exception.handle());
+    // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « moduleCompletion.[[Value]] »).
+    // b. Return unused.
+    // Note: Done inside `finish_loading_imported_module`
 
-        // b. Return unused.
-        return;
-    }
     let global = GlobalScope::from_current_realm(realm);
 
     // Step 2. Let module be moduleCompletion.[[Value]].
-    let module = module_completion.unwrap();
-    let record = ModuleObject::new(module.get_record().map(|module| module.handle()).unwrap());
+
+    rooted!(&in(*realm) let host_defined = UndefinedValue());
+    rooted!(&in(*realm) let mut promise_obj = ptr::null_mut::<JSObject>());
 
     // Step 3. Let loadPromise be module.LoadRequestedModules().
-    let load_promise = load_requested_modules(realm, module, None);
+    unsafe {
+        LoadRequestedModules1(
+            realm,
+            module.handle(),
+            host_defined.handle(),
+            promise_obj.handle_mut(),
+        )
+    };
+
+    let load_promise = Promise::new_with_js_promise(realm, promise_obj.handle());
 
     // Step 4. Let rejectedClosure be a new Abstract Closure with parameters (reason)
     // that captures promiseCapability and performs the following steps when called:
@@ -326,14 +336,12 @@ fn continue_dynamic_import(
     // module, promiseCapability, and onRejected and performs the following steps when called:
     // Step 7. Let linkAndEvaluate be CreateBuiltinFunction(linkAndEvaluateClosure, 0, "", « »).
     let link_and_evaluate = ModuleHandler::new_boxed(Box::new(
-        task!(link_and_evaluate: |cx, global_scope: DomRoot<GlobalScope>, inner_promise: Rc<Promise>, record: ModuleObject| {
-            let mut realm = AutoRealm::new(
-                cx,
-                std::ptr::NonNull::new(global_scope.reflector().get_jsobject().get()).unwrap(),
-            );
+        task!(link_and_evaluate: |cx, global_scope: DomRoot<GlobalScope>, inner_promise: Rc<Promise>, module: ModuleObject| {
+            let mut realm = enter_auto_realm(cx, &*global_scope);
             let cx = &mut realm.current_realm();
+
             // a. Let link be Completion(module.Link()).
-            let link = unsafe { ModuleLink(cx, record.handle()) };
+            let link = unsafe { ModuleLink(cx, module.handle()) };
 
             // b. If link is an abrupt completion, then
             if !link {
@@ -348,7 +356,7 @@ fn continue_dynamic_import(
             rooted!(&in(cx) let mut rval = UndefinedValue());
 
             // c. Let evaluatePromise be module.Evaluate().
-            assert!(unsafe { ModuleEvaluate(cx, record.handle(), rval.handle_mut()) });
+            assert!(unsafe { ModuleEvaluate(cx, module.handle(), rval.handle_mut()) });
 
             if !rval.is_object() {
                 let error = RethrowError::from_pending_exception(cx);
@@ -362,10 +370,10 @@ fn continue_dynamic_import(
             // module and promiseCapability and performs the following steps when called:
             // e. Let onFulfilled be CreateBuiltinFunction(fulfilledClosure, 0, "", « »).
             let on_fulfilled = ModuleHandler::new_boxed(Box::new(
-                task!(on_fulfilled: |cx, fulfilled_promise: Rc<Promise>, record: ModuleObject| {
+                task!(on_fulfilled: |cx, fulfilled_promise: Rc<Promise>, module: ModuleObject| {
 
                     // i. Let namespace be GetModuleNamespace(module).
-                    rooted!(&in(cx) let rval = unsafe { GetModuleNamespace(cx, record.handle()) });
+                    rooted!(&in(cx) let rval = unsafe { GetModuleNamespace(cx, module.handle()) });
                     rooted!(&in(cx) let namespace = ObjectValue(rval.get()));
 
                     // ii. Perform ! Call(promiseCapability.[[Resolve]], undefined, « namespace »).
@@ -375,26 +383,27 @@ fn continue_dynamic_import(
             })));
 
             // f. Perform PerformPromiseThen(evaluatePromise, onFulfilled, onRejected).
-            let handler = PromiseNativeHandler::new(cx, &global_scope,
+            let handler = PromiseNativeHandler::new(
+                cx,
+                &global_scope,
                 Some(on_fulfilled),
-                Some(Box::new(OnRejectedHandler { promise: inner_promise })));
+                Some(Box::new(OnRejectedHandler { promise: inner_promise }))
+            );
             evaluate_promise.append_native_handler(cx, &handler);
 
             // g. Return unused.
         }),
     ));
 
-    let mut realm = enter_auto_realm(realm, &*global);
-    let cx = &mut realm.current_realm();
     run_a_callback::<DomTypeHolder, _>(&*global, || {
         // Step 8. Perform PerformPromiseThen(loadPromise, linkAndEvaluate, onRejected).
         let handler = PromiseNativeHandler::new(
-            cx,
+            realm,
             &global,
             Some(link_and_evaluate),
             Some(Box::new(OnRejectedHandler { promise })),
         );
-        load_promise.append_native_handler(cx, &handler);
+        load_promise.append_native_handler(realm, &handler);
     });
     // Step 9. Return unused.
 }
@@ -402,22 +411,27 @@ fn continue_dynamic_import(
 /// <https://html.spec.whatwg.org/multipage/#hostloadimportedmodule>
 pub(crate) fn host_load_imported_module(
     cx: &mut CurrentRealm,
-    referrer_module: Option<Rc<ModuleTree>>,
-    referrer: RawHandleValue,
+    referrer: Handle<*mut JSScript>,
+    module_request: Handle<*mut JSObject>,
     specifier: String,
-    module_type: ModuleType,
-    load_state: Option<Rc<LoadState>>,
-    payload: Payload,
+    host_defined: Handle<JSVal>,
+    payload: Handle<JSVal>,
 ) {
     // Step 1. Let settingsObject be the current settings object.
     let mut realm = CurrentRealm::assert(cx);
     let mut global_scope = GlobalScope::from_current_realm(&mut realm);
 
+    let load_state = load_state_from_handle_value(host_defined);
+
     // TODO Step 2. If settingsObject's global object implements WorkletGlobalScope or ServiceWorkerGlobalScope and loadState is undefined, then:
 
     // Step 3. Let referencingScript be null.
+    rooted!(&in(cx) let mut script_private = UndefinedValue());
+
     // Step 6.1. Set referencingScript to referrer.[[HostDefined]].
-    let referencing_script = unsafe { module_script_from_reference_private(&referrer) };
+    unsafe { JS_GetScriptPrivate(*referrer.as_ref(cx), script_private.handle_mut()) };
+    let referencing_script =
+        unsafe { module_script_from_reference_private(script_private.handle()) };
 
     // Step 6. If referrer is a Script Record or a Cyclic Module Record, then:
     let (original_fetch_options, fetch_referrer) = match referencing_script {
@@ -445,14 +459,43 @@ pub(crate) fn host_load_imported_module(
 
     let global = &global_scope.clone();
 
-    // Step 7 If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
-    // Note: These substeps are implemented by `GetRequestedModuleSpecifier`,
-    // setting loadState.[[ErrorToRethrow]] is done by `inner_module_loading`.
+    // Step 7. If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
+    // Note: Spidermonkey removed the API for iterating through a module's requested modules,
+    // preventing upfront validation.
+    // Additionally, we skip step 7.1.1 (handled internally by Spidermonkey in `InnerModuleLoading`),
+    // as well as steps 7.1.2 and 7.1.3 (executed later in steps 8 and 9).
+
+    // Step 7.1.4. Let moduleType be the result of running the module type from module request steps given requested.
+    let module_type = unsafe { GetModuleRequestType(cx, module_request) };
+
+    // Step 7.1.5. If the result of running the module type allowed steps given moduleType and settingsObject is false:
+    if let ModuleType::Unknown = module_type {
+        // Step 7.1.5.1. Let error be a new TypeError exception.
+        let error = gen_type_error(
+            cx,
+            global,
+            Error::Type(c"Found invalid module type attribute".to_owned()),
+        );
+
+        // Step 7.1.5.2. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null, set
+        // loadState.[[ErrorToRethrow]] to error.
+        if let Some(load_state) = load_state {
+            load_state
+                .error_to_rethrow
+                .borrow_mut()
+                .get_or_insert(error.clone());
+        }
+
+        // Step 7.1.5.3. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, ThrowCompletion(error)).
+        finish_loading_imported_module(cx, referrer, module_request, payload, Err(error));
+
+        // Step 7.1.5.4. Return.
+        return;
+    }
 
     // Step 8 Let url be the result of resolving a module specifier given referencingScript and moduleRequest.[[Specifier]],
     // catching any exceptions. If they throw an exception, let resolutionError be the thrown exception.
-    let url =
-        ModuleTree::resolve_module_specifier(global, referencing_script, specifier.clone().into());
+    let url = ModuleTree::resolve_module_specifier(global, referencing_script, specifier);
 
     // Step 9 If the previous step threw an exception, then:
     if let Err(error) = url {
@@ -470,8 +513,8 @@ pub(crate) fn host_load_imported_module(
         // Step 9.2. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, ThrowCompletion(resolutionError)).
         finish_loading_imported_module(
             cx,
-            referrer_module,
-            specifier,
+            referrer,
+            module_request,
             payload,
             Err(resolution_error),
         );
@@ -488,7 +531,7 @@ pub(crate) fn host_load_imported_module(
 
     // Step 13. If loadState is not undefined, then:
     // Note: loadState is undefined only in dynamic imports
-    let (destination, fetch_client) = match load_state.as_ref() {
+    let (destination, fetch_client) = match load_state {
         // Step 13.1. Set destination to loadState.[[Destination]].
         // Step 13.2. Set fetchClient to loadState.[[FetchClient]].
         Some(load_state) => (load_state.destination, load_state.fetch_client.clone()),
@@ -498,6 +541,13 @@ pub(crate) fn host_load_imported_module(
             // Step 12. Let fetchClient be settingsObject.
             global_scope.request_client(Some(cx.no_gc())),
         ),
+    };
+
+    let request = ImportRequest {
+        referrer: RootedTraceableBox::from_box(Heap::boxed(*referrer.as_ref(cx))),
+        module_request: RootedTraceableBox::from_box(Heap::boxed(*module_request.as_ref(cx))),
+        payload: RootedTraceableBox::from_box(Heap::boxed(*payload.as_ref(cx))),
+        host_defined: RootedTraceableBox::from_box(Heap::boxed(*host_defined.as_ref(cx))),
     };
 
     let on_single_fetch_complete =
@@ -519,7 +569,9 @@ pub(crate) fn host_load_imported_module(
                     if let Some(parse_error) = module_tree.get_parse_error() {
                         // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
                         // set loadState.[[ErrorToRethrow]] to parseError.
-                        load_state.as_ref().inspect(|load_state| {
+                        let load_state =
+                            load_state_from_handle_value(request.host_defined.handle());
+                        load_state.inspect(|load_state| {
                             load_state
                                 .error_to_rethrow
                                 .borrow_mut()
@@ -536,7 +588,13 @@ pub(crate) fn host_load_imported_module(
             };
 
             // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
-            finish_loading_imported_module(cx, referrer_module, specifier, payload, completion);
+            finish_loading_imported_module(
+                cx,
+                request.referrer.handle(),
+                request.module_request.handle(),
+                request.payload.handle(),
+                completion,
+            );
         };
 
     // Step 14 Fetch a single imported module script given url, fetchClient, destination, fetchOptions, settingsObject,
@@ -577,7 +635,9 @@ fn fetch_a_single_imported_module_script(
     // Step 3. If the result of running the module type allowed steps given moduleType and settingsObject is false,
     // then run onComplete given null, and return.
     match module_type {
-        ModuleType::Unknown => return on_complete(cx, None),
+        ModuleType::Unknown | ModuleType::Bytes | ModuleType::Text | ModuleType::CSS => {
+            return on_complete(cx, None);
+        },
         ModuleType::JavaScript | ModuleType::JSON => (),
     }
 

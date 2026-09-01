@@ -9,6 +9,7 @@ use std::rc::Rc;
 
 use base64::Engine as _;
 use base64::engine::general_purpose;
+use bytes::Bytes;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -65,7 +66,7 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
 use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
 use crate::dom::customelementregistry::{CustomElementReactionStack, CustomElementRegistry};
-use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domstringlist::DOMStringList;
@@ -257,7 +258,6 @@ impl ServoParser {
             None,
             None,
             DocumentActivity::Inactive,
-            DocumentSource::FromParser,
             loader,
             None,
             None,
@@ -585,12 +585,12 @@ impl ServoParser {
         self.network_input.push_back(chunk);
     }
 
-    fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
+    fn push_bytes_input_chunk(&self, chunk: &[u8]) {
         // For byte input, we convert it to text using the network decoder.
         if let Some(decoded_chunk) = self
             .network_decoder
             .borrow_mut()
-            .push(&chunk, &self.document)
+            .push(chunk, &self.document)
         {
             self.push_tendril_input_chunk(decoded_chunk);
         }
@@ -602,7 +602,7 @@ impl ServoParser {
             // to overwrite the network input, this prefetching may
             // have been wasted, but in most cases it won't.
             let mut prefetch_decoder = self.prefetch_decoder.borrow_mut();
-            prefetch_decoder.process(ByteTendril::from(&*chunk));
+            prefetch_decoder.process(ByteTendril::from(chunk));
 
             self.prefetch_input
                 .push_back(mem::take(&mut prefetch_decoder.inner_sink_mut().output));
@@ -685,11 +685,11 @@ impl ServoParser {
         }
     }
 
-    fn parse_bytes_chunk(&self, cx: &mut JSContext, input: Vec<u8>) {
+    fn parse_bytes_chunk(&self, cx: &mut JSContext, input: &[u8]) {
         let mut realm = enter_auto_realm(cx, &*self.document);
         let cx = &mut realm.current_realm();
         self.document.set_current_parser(Some(self));
-        self.push_bytes_input_chunk(input);
+        self.push_bytes_input_chunk(input.as_ref());
         if !self.suspended.get() {
             self.parse_sync(cx);
         }
@@ -1020,8 +1020,13 @@ impl ParserContext {
     /// <https://html.spec.whatwg.org/multipage/#initialise-the-document-object>
     fn initialize_document_object(&self, cx: &mut JSContext, document: &Document) {
         // Step 9. Let document be a new Document, with
+        // policy container: navigationParams's policy container
         document.set_policy_container(self.navigation_params.policy_container.clone());
+        // active sandboxing flag: set navigationParams's final sandboxing flag set
         document.set_active_sandboxing_flag_set(self.navigation_params.final_sandboxing_flag_set);
+        // current document readiness: "loading"
+        document.set_document_readiness_to_loading_for_initialization();
+        // about base URL: navigationParams's about base URL
         document.set_about_base_url(self.navigation_params.about_base_url.clone());
         // Step 11. Set document's internal ancestor origin objects list to the result of
         // running the internal ancestor origin objects list creation steps given
@@ -1134,7 +1139,7 @@ impl ParserContext {
         if let Some(parser) = parser {
             parser.parse_bytes_chunk(
                 cx,
-                std::mem::take(&mut self.navigation_params.resource_header),
+                std::mem::take(&mut self.navigation_params.resource_header).as_ref(),
             );
         }
     }
@@ -1315,7 +1320,6 @@ impl ParserContext {
         debug_assert_eq!(document.ReadyState(), DocumentReadyState::Complete);
 
         document.set_current_parser(None);
-        document.start_the_end_loading_phase();
         document.finish_load(LoadType::PageSource(self.url.clone()), cx);
 
         document.notify_embedder_of_load_completion();
@@ -1555,7 +1559,7 @@ impl FetchResponseListener for ParserContext {
         }
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, payload: Bytes) {
         if self.is_synthesized_document {
             return;
         }
@@ -1572,13 +1576,13 @@ impl FetchResponseListener for ParserContext {
             // https://mimesniff.spec.whatwg.org/#read-the-resource-header
             self.navigation_params
                 .resource_header
-                .extend_from_slice(&payload);
+                .extend_from_slice(payload.as_ref());
             // the number of bytes in buffer is greater than or equal to 1445.
             if self.navigation_params.resource_header.len() >= 1445 {
                 self.load_document(cx, Some(&parser), &document);
             }
         } else {
-            parser.parse_bytes_chunk(cx, payload);
+            parser.parse_bytes_chunk(cx, payload.as_ref());
         }
     }
 

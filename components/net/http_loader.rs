@@ -2357,7 +2357,7 @@ async fn http_network_fetch(
                 }
                 if let ResponseBody::Receiving(ref mut body) = *response_body_accumulator.lock() {
                     body.extend_from_slice(&chunk);
-                    let _ = done_sender.send(Data::Payload(chunk.to_vec()));
+                    let _ = done_sender.send(Data::Payload(chunk));
                 }
                 future::ready(Ok(response_body_accumulator))
             })
@@ -2591,9 +2591,14 @@ async fn cors_preflight_fetch(
 
         // Step 7.6 If one of request’s header list’s names is a CORS non-wildcard request-header name
         // and is not a byte-case-insensitive match for an item in headerNames, then return a network error.
+        //
+        // Note: This check deviates from the spec. Other browsers (Chrome, Firefox, Safari) all treat a
+        // `*` in headerNames as covering CORS non-wildcard request-header names.
+        let header_names_set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
         if request.headers.iter().any(|(name, _)| {
             is_cors_non_wildcard_request_header_name(name) &&
-                header_names.iter().all(|header_name| header_name != name)
+                !header_names_set.contains(name) &&
+                !header_names_set.contains(&HeaderName::from_static("*"))
         }) {
             return Response::network_error(NetworkError::CorsAuthorization);
         }
@@ -2602,14 +2607,10 @@ async fn cors_preflight_fetch(
         // if unsafeName is not a byte-case-insensitive match for an item in headerNames and request’s credentials
         // mode is "include" or headerNames does not contain `*`, return a network error.
         let unsafe_names = get_cors_unsafe_header_names(&request.headers);
-        let header_names_set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
-        let header_names_contains_star = header_names
-            .iter()
-            .any(|header_name| header_name.as_str() == "*");
         for unsafe_name in unsafe_names.iter() {
             if !header_names_set.contains(unsafe_name) &&
                 (request.credentials_mode == CredentialsMode::Include ||
-                    !header_names_contains_star)
+                    !header_names_set.contains(&HeaderName::from_static("*")))
             {
                 return Response::network_error(NetworkError::CorsHeaders);
             }

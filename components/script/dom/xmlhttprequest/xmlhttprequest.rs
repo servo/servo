@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use atomic_refcell::AtomicRefCell;
+use bytes::{Bytes, BytesMut};
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -60,7 +61,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use crate::dom::blob::{Blob, normalize_type_string};
 use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -125,7 +126,7 @@ impl FetchResponseListener for XHRContext {
         }
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Bytes) {
         self.xhr
             .root()
             .process_data_available(cx, self.gen_id, chunk);
@@ -177,7 +178,7 @@ pub(crate) enum XHRProgress {
     /// Notify that headers have been received
     HeadersReceived(GenerationId, Option<HeaderMap>, HttpStatus),
     /// Partial progress (after receiving headers), containing portion of the response
-    Loading(GenerationId, Vec<u8>),
+    Loading(GenerationId, Bytes),
     /// Loading is done
     Done(GenerationId),
     /// There was an error (only Error::Abort(None), Error::Timeout(None) or Error::Network(None) is used)
@@ -205,7 +206,8 @@ pub(crate) struct XMLHttpRequest {
     response_url: DomRefCell<String>,
     #[no_trace]
     status: DomRefCell<HttpStatus>,
-    response: DomRefCell<Vec<u8>>,
+    #[no_trace]
+    response: DomRefCell<BytesMut>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableDom<Document>,
     response_blob: MutNullableDom<Blob>,
@@ -252,7 +254,7 @@ impl XMLHttpRequest {
             upload: Dom::from_ref(upload),
             response_url: DomRefCell::new(String::new()),
             status: DomRefCell::new(HttpStatus::new_error()),
-            response: DomRefCell::new(vec![]),
+            response: DomRefCell::new(BytesMut::new()),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
@@ -853,7 +855,9 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#the-getresponseheader()-method>
     fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
         let headers = self.filter_response_headers();
-        let headers = headers.get_all(HeaderName::from_str(&name.as_str()?.to_lowercase()).ok()?);
+        // > All custom header names are lower cased upon conversion to a HeaderName value.
+        // https://docs.rs/http/latest/http/header/struct.HeaderName.html#representation
+        let headers = headers.get_all(HeaderName::from_str(name.as_str()?).ok()?);
         let mut first = true;
         let s = headers.iter().fold(Vec::new(), |mut vec, value| {
             if !first {
@@ -962,10 +966,10 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 if ready_state == XMLHttpRequestState::Done ||
                     ready_state == XMLHttpRequestState::Loading
                 {
-                    self.text_response().safe_to_jsval(cx, rval);
+                    self.text_response().to_jsval(cx, rval);
                 } else {
                     // Step 1
-                    "".safe_to_jsval(cx, rval);
+                    "".to_jsval(cx, rval);
                 }
             },
             // Step 1
@@ -973,13 +977,11 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 rval.set(NullValue());
             },
             // Step 2
-            XMLHttpRequestResponseType::Document => {
-                self.document_response(cx).safe_to_jsval(cx, rval)
-            },
+            XMLHttpRequestResponseType::Document => self.document_response(cx).to_jsval(cx, rval),
             XMLHttpRequestResponseType::Json => self.json_response(cx, rval),
-            XMLHttpRequestResponseType::Blob => self.blob_response(cx).safe_to_jsval(cx, rval),
+            XMLHttpRequestResponseType::Blob => self.blob_response(cx).to_jsval(cx, rval),
             XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
-                Some(array_buffer) => array_buffer.safe_to_jsval(cx, rval),
+                Some(array_buffer) => array_buffer.to_jsval(cx, rval),
                 None => rval.set(NullValue()),
             },
         }
@@ -1079,7 +1081,7 @@ impl XMLHttpRequest {
         Ok(())
     }
 
-    fn process_data_available(&self, cx: &mut JSContext, gen_id: GenerationId, payload: Vec<u8>) {
+    fn process_data_available(&self, cx: &mut JSContext, gen_id: GenerationId, payload: Bytes) {
         self.process_partial_response(cx, XHRProgress::Loading(gen_id, payload));
     }
 
@@ -1174,14 +1176,14 @@ impl XMLHttpRequest {
                     self.change_ready_state(cx, XMLHttpRequestState::HeadersReceived);
                 }
             },
-            XHRProgress::Loading(_, mut partial_response) => {
+            XHRProgress::Loading(_, partial_response) => {
                 // For synchronous requests, this should not fire any events, and just store data
                 // Part of step 11, send() (processing response body)
                 // XXXManishearth handle errors, if any (substep 2)
 
                 self.response
                     .safe_borrow_mut(cx.no_gc())
-                    .append(&mut partial_response);
+                    .extend_from_slice(&partial_response);
                 if !self.sync.get() {
                     if self.ready_state.get() == XMLHttpRequestState::HeadersReceived {
                         self.ready_state.set(XMLHttpRequestState::Loading);
@@ -1567,7 +1569,6 @@ impl XMLHttpRequest {
             content_type,
             None,
             DocumentActivity::Inactive,
-            DocumentSource::FromParser,
             docloader,
             None,
             None,

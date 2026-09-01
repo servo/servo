@@ -57,7 +57,6 @@ use webrender_api::{
 use wr_malloc_size_of::MallocSizeOfOps;
 
 use crate::Paint;
-use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
 use crate::paint::{RepaintReason, WebRenderDebugOption};
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
@@ -124,9 +123,6 @@ pub(crate) struct Painter {
 
     /// The channel on which messages can be sent to the constellation.
     embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
-
-    /// Calculater for largest-contentful-paint.
-    lcp_calculator: LargestContentfulPaintCalculator,
 
     /// A cache that stores data for all animating images uploaded to WebRender. This is used
     /// for animated images, which only need to update their offset in the data.
@@ -292,7 +288,6 @@ impl Painter {
             webrender_gl,
             last_mouse_move_position: None,
             frame_delayer: Default::default(),
-            lcp_calculator: LargestContentfulPaintCalculator::new(),
             animation_image_cache: FxHashMap::default(),
             web_content_animator: WebContentAnimator::new(
                 paint.event_loop_waker.clone_box(),
@@ -472,8 +467,10 @@ impl Painter {
     /// the list.
     fn send_pending_paint_metrics_messages_after_composite(&mut self) {
         let paint_time = CrossProcessInstant::now();
-        for webview_renderer in self.webview_renderers.values() {
-            for (pipeline_id, pipeline) in webview_renderer.pipelines.iter() {
+        let mut paint_metric_events = Vec::new();
+
+        for webview_renderer in self.webview_renderers.values_mut() {
+            for (pipeline_id, pipeline) in webview_renderer.pipelines.iter_mut() {
                 let Some(current_epoch) = self
                     .webrender_renderer
                     .as_ref()
@@ -482,7 +479,7 @@ impl Painter {
                     continue;
                 };
 
-                match pipeline.first_paint_metric.get() {
+                match pipeline.first_paint_metric {
                     // We need to check whether the current epoch is later, because
                     // CrossProcessPaintMessage::SendInitialTransaction sends an
                     // empty display list to WebRender which can happen before we receive
@@ -498,17 +495,17 @@ impl Painter {
                             pipeline_id = ?pipeline_id,
                         );
 
-                        self.send_to_constellation(EmbedderToConstellationMessage::PaintMetric(
+                        paint_metric_events.push((
                             *pipeline_id,
                             PaintMetricEvent::FirstPaint(paint_time, first_reflow),
                         ));
 
-                        pipeline.first_paint_metric.set(PaintMetricState::Sent);
+                        pipeline.first_paint_metric = PaintMetricState::Sent;
                     },
                     _ => {},
                 }
 
-                match pipeline.first_contentful_paint_metric.get() {
+                match pipeline.first_contentful_paint_metric {
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
                         #[cfg(feature = "tracing")]
                         tracing::info!(
@@ -518,50 +515,47 @@ impl Painter {
                             paint_time = ?paint_time,
                             pipeline_id = ?pipeline_id,
                         );
-                        self.send_to_constellation(EmbedderToConstellationMessage::PaintMetric(
+                        paint_metric_events.push((
                             *pipeline_id,
                             PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
                         ));
-                        pipeline
-                            .first_contentful_paint_metric
-                            .set(PaintMetricState::Sent);
+                        pipeline.first_contentful_paint_metric = PaintMetricState::Sent;
                     },
                     _ => {},
                 }
 
-                match pipeline.largest_contentful_paint_metric.get() {
-                    PaintMetricState::Seen(epoch, _) if epoch <= current_epoch => {
-                        if let Some(lcp) = self
-                            .lcp_calculator
-                            .calculate_largest_contentful_paint(paint_time, pipeline_id.into())
-                        {
-                            #[cfg(feature = "tracing")]
-                            tracing::info!(
-                                name: "LargestContentfulPaint",
-                                servo_profiling = true,
-                                paint_time = ?paint_time,
-                                area = ?lcp.area,
-                                pipeline_id = ?pipeline_id,
-                            );
-                            self.send_to_constellation(
-                                EmbedderToConstellationMessage::PaintMetric(
-                                    *pipeline_id,
-                                    PaintMetricEvent::LargestContentfulPaint(
-                                        lcp.paint_time,
-                                        lcp.area,
-                                        lcp.url.clone(),
-                                        lcp.id,
-                                    ),
-                                ),
-                            );
-                        }
-                        pipeline
-                            .largest_contentful_paint_metric
-                            .set(PaintMetricState::Sent);
-                    },
-                    _ => {},
+                let pending_lcp_candidates = &mut pipeline.lcp_candidates;
+                while let Some((epoch, candidate)) = pending_lcp_candidates.pop_front() {
+                    if epoch > current_epoch {
+                        pending_lcp_candidates.push_front((epoch, candidate));
+                        break;
+                    }
+                    #[cfg(feature = "tracing")]
+                    tracing::info!(
+                        name: "LargestContentfulPaint",
+                        servo_profiling = true,
+                        paint_time = ?paint_time,
+                        area = ?candidate.area,
+                        pipeline_id = ?pipeline_id,
+                    );
+                    paint_metric_events.push((
+                        *pipeline_id,
+                        PaintMetricEvent::LargestContentfulPaint(
+                            paint_time,
+                            candidate.area,
+                            candidate.url.clone(),
+                            candidate.id,
+                        ),
+                    ));
                 }
             }
+        }
+
+        for (pipeline_id, event) in paint_metric_events {
+            self.send_to_constellation(EmbedderToConstellationMessage::PaintMetric(
+                pipeline_id,
+                event,
+            ));
         }
     }
 
@@ -852,8 +846,6 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
         }
-        self.lcp_calculator
-            .remove_lcp_candidates_for_pipeline(&pipeline_id.into());
     }
 
     pub(crate) fn send_initial_pipeline_transaction(
@@ -987,21 +979,16 @@ impl Painter {
 
         let epoch = display_list_info.epoch.into();
         let first_reflow = display_list_info.first_reflow;
-        if details.first_paint_metric.get() == PaintMetricState::Waiting &&
-            display_list_info.is_paintable
+        if details.first_paint_metric == PaintMetricState::Waiting && display_list_info.is_paintable
         {
-            details
-                .first_paint_metric
-                .set(PaintMetricState::Seen(epoch, first_reflow));
+            details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }
 
-        if details.first_contentful_paint_metric.get() == PaintMetricState::Waiting &&
+        if details.first_contentful_paint_metric == PaintMetricState::Waiting &&
             display_list_info.is_paintable &&
             display_list_info.is_contentful
         {
-            details
-                .first_contentful_paint_metric
-                .set(PaintMetricState::Seen(epoch, first_reflow));
+            details.first_contentful_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }
 
         details.animations.handle_new_display_list(
@@ -1498,13 +1485,11 @@ impl Painter {
         pipeline_id: PipelineId,
         epoch: Epoch,
     ) {
-        self.lcp_calculator
-            .append_lcp_candidate(lcp_candidate, pipeline_id.into());
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer
                 .ensure_pipeline_details(pipeline_id)
-                .largest_contentful_paint_metric
-                .set(PaintMetricState::Seen(epoch.into(), false));
+                .lcp_candidates
+                .push_back((epoch.into(), lcp_candidate));
         }
     }
 }

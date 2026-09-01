@@ -217,7 +217,7 @@ impl MessagePort {
         // Let message be OrdinaryObjectCreate(null).
         rooted!(&in(cx) let mut message = unsafe { JS_NewObject(cx, ptr::null()) });
         rooted!(&in(cx) let mut type_string = UndefinedValue());
-        type_.safe_to_jsval(cx, type_string.handle_mut());
+        type_.to_jsval(cx, type_string.handle_mut());
 
         // Perform ! CreateDataProperty(message, "type", type).
         set_dictionary_property(cx, message.handle(), c"type", type_string.handle())
@@ -236,7 +236,7 @@ impl MessagePort {
 
         // Run the message port post message steps providing targetPort, message, and options.
         rooted!(&in(cx) let mut message_val = UndefinedValue());
-        message.safe_to_jsval(cx, message_val.handle_mut());
+        message.to_jsval(cx, message_val.handle_mut());
         self.post_message_impl(cx, message_val.handle(), transfer)
     }
 }

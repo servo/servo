@@ -7,7 +7,9 @@ use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use rustc_hash::FxHashSet;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::text::Utf32CodeUnitsOrNodeOffset;
 
@@ -80,55 +82,97 @@ impl Selection {
             return;
         }
 
-        if let Some(old_range) = self.range.take() {
+        let old_range = self.range.take();
+        if let Some(old_range) = old_range.as_ref() {
             old_range.disassociate_selection(self);
         }
+
+        let boundary_points_changed = match (old_range, new_range) {
+            (Some(old_range), Some(new_range)) => {
+                old_range.start() != new_range.start() || old_range.end() != new_range.end()
+            },
+            _ => true,
+        };
 
         if let Some(new_range) = new_range {
             self.range.set(Some(new_range));
             new_range.associate_selection(self);
         }
 
-        self.set_visible_selection_dirty();
+        // From <https://w3c.github.io/selection-api/#selectionchange-event>:
+        // > When the selection is dissociated with its range, associated with a new
+        // > range, or the associated range's boundary point is mutated either by the user
+        // > or the content script, the user agent must schedule a selectionchange event on
+        // > document.
+        //
+        // This means we should fire the event even if the boundaries themselves did not
+        // change. A change to the range object is enough.
         self.queue_selectionchange_task();
+
+        // On the other hand, clearing command overrides and marking the visible selection
+        // as dirty should only happen when the selection really changed.
+        if boundary_points_changed {
+            self.set_visible_selection_dirty();
+            self.clear_command_overrides();
+        }
     }
 
-    fn unset_flags_for_visible_selection(&self, no_gc: &NoGC) {
+    fn iter_nodes_with_overlaps_document_selection_flag<'no_gc>(
+        &self,
+        no_gc: &'no_gc NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'no_gc, Node>> {
         let mut traversal = self
             .document
             .upcast::<Node>()
             .following_flat_tree_nodes_unrooted(no_gc);
         let mut next = traversal.next();
-        while let Some(node) = next.take() {
-            match node {
-                PrePostIteration::Enter(node) => {
-                    if node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
-                        node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
-
-                        // Currently only `CharacterData` nodes show visible selection.
-                        if node.is::<CharacterData>() {
-                            node.dirty(no_gc, NodeDamage::ContentOrHeritage);
+        std::iter::from_fn(move || {
+            while let Some(node) = next.take() {
+                match node {
+                    PrePostIteration::Enter(node) => {
+                        if node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
+                            next = traversal.next();
+                            return Some(node);
+                        } else {
+                            // This relies on flags being set consistently: this node
+                            // with the flag unset claims that no part of it overlaps selection,
+                            // which implies that none of its descendant either have any part
+                            // of them overlapping selection, meaning none of them have the flag
+                            next = traversal.next_skipping_subtree();
                         }
-
-                        next = traversal.next();
-                    } else {
-                        next = traversal.next_skipping_subtree();
-                    }
-                },
-                PrePostIteration::Leave(_) => next = traversal.next(),
+                    },
+                    PrePostIteration::Leave(_) => next = traversal.next(),
+                }
             }
-        }
+            None
+        })
     }
 
-    pub(crate) fn set_flags_for_visible_selection(&self, no_gc: &NoGC) {
+    pub(crate) fn update_overlaps_document_selection_flags<'no_gc>(&self, no_gc: &'no_gc NoGC) {
         if !self.visible_selection_dirty.take() {
             return;
         }
 
-        self.unset_flags_for_visible_selection(no_gc);
+        let previously_flagged_nodes = self.iter_nodes_with_overlaps_document_selection_flag(no_gc);
+
+        let remove_selection_flag = |node: &Node| {
+            node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
+            // Currently only `CharacterData` nodes show visible selection.
+            if node.is::<CharacterData>() {
+                node.dirty(no_gc, NodeDamage::ContentOrHeritage);
+            }
+        };
+
         let Some(range) = self.range.get() else {
+            for node in previously_flagged_nodes {
+                remove_selection_flag(&node)
+            }
             return;
         };
+
+        // Hash keys are pointer addresses which are not directly controlled by web content
+        // so we don’t need HashDoS resistance and can use a faster hasher than `std`’s default
+        let mut previously_flagged_nodes: FxHashSet<_> = previously_flagged_nodes.collect();
 
         let start_position = position_in_flat_tree_for_selection(
             no_gc,
@@ -155,7 +199,7 @@ impl Selection {
             end_node.dirty(no_gc, NodeDamage::ContentOrHeritage);
         }
 
-        let add_selection_flag = |node: &Node| {
+        let mut add_selection_flag = |node: &UnrootedDom<'no_gc, Node>| {
             if !node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
                 node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, true);
 
@@ -163,6 +207,9 @@ impl Selection {
                 if node.is::<CharacterData>() {
                     node.dirty(no_gc, NodeDamage::ContentOrHeritage);
                 }
+                debug_assert!(!previously_flagged_nodes.contains(node));
+            } else {
+                previously_flagged_nodes.remove(node);
             }
         };
 
@@ -204,18 +251,28 @@ impl Selection {
                 },
             }
         }
+
+        // Nodes that haven’t been removed from the `HashSet` by `add_selection_flag`
+        // should no longer have the flag:
+        for node in &previously_flagged_nodes {
+            remove_selection_flag(node)
+        }
+    }
+
+    /// An implementation of:
+    ///  - <https://w3c.github.io/editing/docs/execCommand/#state-override> and
+    ///  - <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    ///
+    /// > Whenever the number of ranges in the selection changes to something
+    /// > different, and whenever a boundary point of the range at a given index in the
+    /// > selection changes to something different, the state override and value
+    /// > override must be unset for every command.
+    pub(crate) fn clear_command_overrides(&self) {
+        self.document.clear_command_overrides();
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
     pub(crate) fn queue_selectionchange_task(&self) {
-        // https://w3c.github.io/editing/docs/execCommand/#state-override
-        // https://w3c.github.io/editing/docs/execCommand/#value-override
-        // > Whenever the number of ranges in the selection changes to something
-        // > different, and whenever a boundary point of the range at a given index in the
-        // > selection changes to something different, the state override and value
-        // > override must be unset for every command.
-        self.document.clear_command_overrides();
-
         // Step 1. If target's has scheduled selectionchange event is true, abort these steps.
         if self.has_scheduled_selectionchange_event.get() {
             return;
@@ -256,6 +313,16 @@ impl Selection {
             self.document.upcast::<Node>()
     }
 
+    pub(crate) fn start_boundary(&self, cx: &mut JSContext) -> (DomRoot<Node>, u32) {
+        let range = self.expect_active_range(cx);
+        (range.start_container(), range.start_offset())
+    }
+
+    pub(crate) fn end_boundary(&self, cx: &mut JSContext) -> (DomRoot<Node>, u32) {
+        let range = self.expect_active_range(cx);
+        (range.end_container(), range.end_offset())
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#active-range>
     pub(crate) fn active_range(&self, _cx: &mut JSContext) -> Option<DomRoot<Range>> {
         // > The active range is the range of the selection given by calling
@@ -263,28 +330,10 @@ impl Selection {
         self.range.get()
     }
 
-    pub(crate) fn collapse_current_range(&self, node: &Node, offset: u32) {
-        let range = self.range.get().expect("Must always have a range");
-        range.set_start(node, offset);
-        range.set_end(node, offset);
-
-        self.set_visible_selection_dirty();
-    }
-
-    pub(crate) fn extend_current_range(&self, node: &Node, offset: u32) {
-        let range = self.range.get().expect("Must always have a range");
-        assert!(range.collapsed(), "Must only extend after collapsing");
-
-        let anchor_node = range.start_container();
-        if (*anchor_node == *node && range.start_offset() < offset) || anchor_node.is_before(node) {
-            range.set_end(node, offset);
-            self.direction.set(Direction::Forwards);
-        } else {
-            range.set_start(node, offset);
-            self.direction.set(Direction::Backwards);
-        }
-
-        self.set_visible_selection_dirty();
+    pub(crate) fn expect_active_range(&self, _cx: &mut JSContext) -> DomRoot<Range> {
+        self.range
+            .get()
+            .expect("Should always have an active range")
     }
 
     pub(crate) fn set_visible_selection_dirty(&self) {
@@ -436,16 +485,16 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > is not in the document tree, "Caret" if this's range is collapsed, and "Range"
         // > otherwise.
         let Some(range) = self.range.get() else {
-            return DOMString::from("None");
+            return DOMString::from_static("None");
         };
         if !range.start_and_end_are_in_document_tree() {
-            return DOMString::from("None");
+            return DOMString::from_static("None");
         }
 
         if range.collapsed() {
-            DOMString::from("Caret")
+            DOMString::from_static("Caret")
         } else {
-            DOMString::from("Range")
+            DOMString::from_static("Range")
         }
     }
 
@@ -874,7 +923,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         if let Some(range) = self.range.get() {
             range.Stringifier(no_gc)
         } else {
-            DOMString::from("")
+            DOMString::new()
         }
     }
 }

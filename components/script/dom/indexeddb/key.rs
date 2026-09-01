@@ -50,7 +50,7 @@ pub fn key_type_to_jsval(
         IndexedDBKeyType::Number(n) => result.set(DoubleValue(*n)),
 
         // Step 3. If type is string, return an ECMAScript String value equal to value.
-        IndexedDBKeyType::String(s) => s.safe_to_jsval(cx, result),
+        IndexedDBKeyType::String(s) => s.to_jsval(cx, result),
 
         IndexedDBKeyType::Date(d) => unsafe {
             // Step 3.1. Let date be the result of executing the ECMAScript Date
@@ -64,7 +64,7 @@ pub fn key_type_to_jsval(
             );
 
             // Step 3.3. Return date.
-            date.safe_to_jsval(cx, result);
+            date.to_jsval(cx, result);
         },
 
         IndexedDBKeyType::Binary(b) => unsafe {
@@ -157,7 +157,7 @@ pub(crate) fn is_valid_key_path(
     #[expect(unsafe_code)]
     let is_identifier_name = |cx: &mut JSContext, name: &str| -> Result<bool, Error> {
         rooted!(&in(cx) let mut value = UndefinedValue());
-        name.safe_to_jsval(cx, value.handle_mut());
+        name.to_jsval(cx, value.handle_mut());
         rooted!(&in(cx) let string = value.to_string());
 
         unsafe {
@@ -498,7 +498,7 @@ pub(crate) fn evaluate_key_path_on_value(
             }
 
             // Step 1.4. Return result.
-            result.safe_to_jsval(cx, return_val);
+            result.to_jsval(cx, return_val);
         },
         KeyPath::String(key_path) => {
             // Step 2. If keyPath is the empty string, return value and skip the remaining steps.
@@ -520,7 +520,7 @@ pub(crate) fn evaluate_key_path_on_value(
                     rooted!(&in(cx) let string_value = current_value.to_string());
                     unsafe {
                         let string_length = JS_GetStringLength(*string_value) as u64;
-                        string_length.safe_to_jsval(cx, current_value.handle_mut());
+                        string_length.to_jsval(cx, current_value.handle_mut());
                     }
                     continue;
                 }
@@ -550,7 +550,7 @@ pub(crate) fn evaluate_key_path_on_value(
                     let Ok(blob) = root_from_handlevalue::<Blob>(cx, current_value.handle())
                 {
                     // Let value be a Number equal to value’s size.
-                    blob.Size().safe_to_jsval(cx, current_value.handle_mut());
+                    blob.Size().to_jsval(cx, current_value.handle_mut());
 
                     continue;
                 }
@@ -560,7 +560,7 @@ pub(crate) fn evaluate_key_path_on_value(
                     let Ok(blob) = root_from_handlevalue::<Blob>(cx, current_value.handle())
                 {
                     // Let value be a String equal to value’s type.
-                    blob.Type().safe_to_jsval(cx, current_value.handle_mut());
+                    blob.Type().to_jsval(cx, current_value.handle_mut());
 
                     continue;
                 }
@@ -570,7 +570,7 @@ pub(crate) fn evaluate_key_path_on_value(
                     let Ok(file) = root_from_handlevalue::<File>(cx, current_value.handle())
                 {
                     // Let value be a String equal to value’s name.
-                    file.name().safe_to_jsval(cx, current_value.handle_mut());
+                    file.name().to_jsval(cx, current_value.handle_mut());
 
                     continue;
                 }
@@ -580,8 +580,7 @@ pub(crate) fn evaluate_key_path_on_value(
                     let Ok(file) = root_from_handlevalue::<File>(cx, current_value.handle())
                 {
                     // Let value be a Number equal to value’s lastModified.
-                    file.LastModified()
-                        .safe_to_jsval(cx, current_value.handle_mut());
+                    file.LastModified().to_jsval(cx, current_value.handle_mut());
 
                     continue;
                 }
@@ -595,7 +594,7 @@ pub(crate) fn evaluate_key_path_on_value(
                         t: file.LastModified() as f64,
                     };
                     unsafe {
-                        NewDateObject(cx, time).safe_to_jsval(cx, current_value.handle_mut());
+                        NewDateObject(cx, time).to_jsval(cx, current_value.handle_mut());
                     }
 
                     continue;
@@ -748,7 +747,7 @@ pub(crate) fn inject_key_into_value(
             // Step 4.3.1 Let o be a new Object created as if by the expression ({}).
             rooted!(&in(cx) let o = unsafe { JS_NewObject(cx, ptr::null()) });
             rooted!(&in(cx) let mut o_value = UndefinedValue());
-            o.safe_to_jsval(cx, o_value.handle_mut());
+            o.to_jsval(cx, o_value.handle_mut());
 
             // Step 4.3.2 Let status be CreateDataProperty(value, identifier, o).
             define_dictionary_property(

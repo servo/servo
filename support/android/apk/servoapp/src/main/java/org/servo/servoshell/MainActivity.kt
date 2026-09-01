@@ -67,16 +67,24 @@ class MainActivity : ComponentActivity(), Servo.Client {
         var experimental = preferences.getBoolean("experimental", false)
     }
 
+    private lateinit var sharedPreferences: SharedPreferences
     private lateinit var settings: Settings
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        servoView = ServoView(this, this)
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        settings = Settings(sharedPreferences)
+
+        servoView = ServoView(
+            context = this,
+            client = this,
+            servoArgs = intent.getStringExtra("servoargs"),
+            servoLog = intent.getStringExtra("servolog"),
+            experimentalMode = settings.experimental,
+        )
 
         historyManager = HistoryManager(this)
-
-        updateSettingsIfNecessary(true)
 
         setContent {
             val isWindowWidthAtLeastMedium = currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
@@ -207,11 +215,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
             e.printStackTrace()
         }
 
-        val intent = getIntent()
-        val args = intent.getStringExtra("servoargs")
-        val log = intent.getStringExtra("servolog")
-        servoView.setServoArgs(args, log, settings.experimental)
-
         if (Intent.ACTION_VIEW == intent.action) {
             servoView.loadUri(intent.data.toString())
         }
@@ -304,15 +307,13 @@ class MainActivity : ComponentActivity(), Servo.Client {
         canGoForwardState.value = canGoForward
     }
 
-    public override fun onPause() {
-        servoView.onPause()
-        super.onPause()
-    }
-
     public override fun onResume() {
-        servoView.onResume()
         super.onResume()
-        updateSettingsIfNecessary(false)
+        val updatedSettings = Settings(sharedPreferences)
+        if (updatedSettings.experimental != settings.experimental) {
+            servoView.setExperimentalMode(updatedSettings.experimental)
+        }
+        settings = updatedSettings
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -352,21 +353,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
     override fun onMediaSessionSetPositionState(duration: Float, position: Float, playbackRate: Float) {
         Log.d("onMediaSessionSetPositionState", "$duration $position $playbackRate")
-    }
-
-    private fun onExperimentalPrefChanged(value: Boolean) {
-        servoView.setExperimentalMode(value)
-    }
-
-    private fun updateSettingsIfNecessary(force: Boolean) {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        val updated = Settings(preferences)
-
-        if (force || updated.experimental != settings.experimental) {
-            onExperimentalPrefChanged(updated.experimental)
-        }
-
-        settings = updated
     }
 
     companion object {

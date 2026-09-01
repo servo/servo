@@ -5,6 +5,7 @@
 use std::io::{Read, Seek, Write};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use bytes::{Bytes, BytesMut};
 use crossbeam_channel::Sender;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
@@ -105,7 +106,7 @@ struct StylesheetContext {
     url: ServoUrl,
     metadata: Option<Metadata>,
     /// The response body received to date.
-    data: Vec<u8>,
+    data: BytesMut,
     /// The node document for elem when the load was initiated.
     document: Trusted<Document>,
     shadow_root: Option<Trusted<ShadowRoot>>,
@@ -125,7 +126,7 @@ impl StylesheetContext {
             return;
         };
 
-        let mut style_content = std::mem::take(&mut self.data);
+        let mut style_content = std::mem::take(&mut self.data).to_vec();
         if let Some((input, mut output)) = create_temp_files() &&
             execute_js_beautify(
                 input.path(),
@@ -145,7 +146,9 @@ impl StylesheetContext {
             },
         }
 
-        self.data = style_content;
+        self.data = Bytes::copy_from_slice(&style_content)
+            .try_into_mut()
+            .unwrap();
     }
 
     fn empty_stylesheet(&self, document: &Document) -> Arc<Stylesheet> {
@@ -366,9 +369,9 @@ impl FetchResponseListener for StylesheetContext {
         &mut self,
         _: &mut js::context::JSContext,
         _: RequestId,
-        mut payload: Vec<u8>,
+        payload: Bytes,
     ) {
-        self.data.append(&mut payload);
+        self.data.extend_from_slice(&payload);
     }
 
     fn process_response_eof(
@@ -503,7 +506,7 @@ impl ElementStylesheetLoader<'_> {
             media,
             url: url.clone(),
             metadata: None,
-            data: vec![],
+            data: BytesMut::new(),
             document: Trusted::new(&*document),
             shadow_root,
             origin_clean: true,
@@ -552,7 +555,7 @@ impl ElementStylesheetLoader<'_> {
         .referrer_policy(referrer_policy)
         .integrity_metadata(integrity_metadata);
 
-        document.fetch(LoadType::Stylesheet(url), request, context);
+        document.fetch_blocking(LoadType::Stylesheet(url), request, context);
     }
 
     fn parse(

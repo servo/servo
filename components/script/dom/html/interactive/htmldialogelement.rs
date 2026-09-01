@@ -107,8 +107,8 @@ impl HTMLDialogElement {
             atom!("beforetoggle"),
             EventBubbles::DoesNotBubble,
             EventCancelable::Cancelable,
-            DOMString::from("closed"),
-            DOMString::from("open"),
+            DOMString::from_static("closed"),
+            DOMString::from_static("open"),
             source.as_deref(),
         );
         let event = event.upcast::<Event>();
@@ -188,8 +188,8 @@ impl HTMLDialogElement {
             atom!("beforetoggle"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            DOMString::from("open"),
-            DOMString::from("closed"),
+            DOMString::from_static("open"),
+            DOMString::from_static("closed"),
             source.as_deref(),
         );
         let event = event.upcast::<Event>();
@@ -390,8 +390,8 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
             atom!("beforetoggle"),
             EventBubbles::DoesNotBubble,
             EventCancelable::Cancelable,
-            DOMString::from("closed"),
-            DOMString::from("open"),
+            DOMString::from_static("closed"),
+            DOMString::from_static("open"),
             None,
         );
         let event = event.upcast::<Event>();

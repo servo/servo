@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-column {
+    position: relative;
+    columns: 2;
+    column-width: 190px;
+    column-gap: 10px;
+    height: 60px;
+    width: 390px;
+    background: lightgray;
+    column-fill: auto;
+  }
+  #flexbox {
+    display: flex;
+    flex-direction: row-reverse;
+    flex-wrap: wrap-reverse;
+    border: 1px solid black;
+    width: 190px;
+    row-gap: 10px;
+    column-gap: 10px;
+  }
+  .item {
+    flex: none;
+    width: 40px;
+    background: cornflowerblue;
+  }
+  .tall {
+    height: 70px;
+  }
+  .short {
+    height: 20px;
+  }
+  .column-rule {
+    position: absolute;
+    width: 10px;
+  }
+</style>
+<div class="multi-column">
+  <div class="column-rule" style="top: 1px; left: 141px; height: 20px; background: yellow;"></div>
+  <div class="column-rule" style="top: 31px; left: 41px; height: 29px; background: blue;"></div>
+  <div class="column-rule" style="top: 31px; left: 91px; height: 29px; background: lime;"></div>
+  <div class="column-rule" style="top: 31px; left: 141px; height: 29px; background: red;"></div>
+
+  <div class="column-rule" style="left: 241px; height: 41px; background: blue;"></div>
+  <div class="column-rule" style="left: 291px; height: 41px; background: lime;"></div>
+  <div class="column-rule" style="left: 341px; height: 41px; background: red;"></div>
+
+  <div id="flexbox">
+    <div class="item tall"></div>
+    <div class="item tall"></div>
+    <div class="item tall"></div>
+    <div class="item tall"></div>
+    <div class="item short"></div>
+    <div class="item short"></div>
+  </div>
+</div>

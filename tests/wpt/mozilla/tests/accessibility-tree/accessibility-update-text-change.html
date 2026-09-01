@@ -23,7 +23,8 @@
       let update = window.ServoTestUtils.forceAccessibilityUpdate();
 
       // Just the text node has changed
-      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+      // But we need to walk all the nodes to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 16, "nodesUpdatedFromDom");
 
       // The document, <body>, <section>, <h1> and the text node.
       assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");

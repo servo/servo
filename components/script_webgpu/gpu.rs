@@ -123,7 +123,9 @@ where
         {
             promise.reject_error(
                 cx,
-                Error::Operation(Some("Could not request adapter".into())),
+                Error::Operation(Some(
+                    "Could not send `requestAdapter` request from script thread to constellation thread".into(),
+                )),
             );
         }
         // 4. Return promise

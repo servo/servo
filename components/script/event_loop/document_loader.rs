@@ -8,15 +8,13 @@
 
 use std::collections::HashMap;
 
-use net_traits::request::RequestBuilder;
-use net_traits::{BoxedFetchCallback, ResourceThreads, fetch_async};
+use net_traits::ResourceThreads;
 use script_bindings::cell::DomRefCell;
 use script_bindings::script_runtime::{during_gc_collection, runtime_is_alive};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
-use crate::fetch::fetch::FetchCanceller;
 
 #[derive(Clone, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum LoadType {
@@ -28,9 +26,8 @@ pub(crate) enum LoadType {
     Media,
 }
 
-/// Canary value ensuring that manually added blocking loads (ie. ones that weren't
-/// created via DocumentLoader::fetch_async) are always removed by the time
-/// that the owner is destroyed.
+/// Canary value ensuring that manually added blocking loads are always removed by the
+/// time that the owner is destroyed.
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct LoadBlocker {
@@ -99,7 +96,6 @@ pub(crate) struct DocumentLoader {
     /// reaches zero, it is removed from the map and no longer blocks the load.
     blocking_loads: HashMap<LoadType, u32>,
     events_inhibited: bool,
-    cancellers: Vec<FetchCanceller>,
 }
 
 impl DocumentLoader {
@@ -122,17 +118,11 @@ impl DocumentLoader {
             resource_threads,
             blocking_loads: initial_loads,
             events_inhibited: false,
-            cancellers: Vec::new(),
         }
     }
 
-    /// <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
-    pub(crate) fn cancel_all_loads(&mut self) -> Vec<FetchCanceller> {
-        self.cancellers.drain(..).collect()
-    }
-
     /// Add a load to the list of blocking loads.
-    fn add_blocking_load(&mut self, load: LoadType) {
+    pub(crate) fn add_blocking_load(&mut self, load: LoadType) {
         debug!(
             "Adding blocking load {:?} ({}).",
             load,
@@ -142,31 +132,6 @@ impl DocumentLoader {
             .entry(load)
             .and_modify(|load_number| *load_number += 1)
             .or_insert(1);
-    }
-
-    /// Initiate a new fetch given a response callback.
-    pub(crate) fn fetch_async_with_callback(
-        &mut self,
-        load: LoadType,
-        request: RequestBuilder,
-        callback: BoxedFetchCallback,
-    ) {
-        self.add_blocking_load(load);
-        self.fetch_async_background(request, callback);
-    }
-
-    /// Initiate a new fetch that does not block the document load event.
-    pub(crate) fn fetch_async_background(
-        &mut self,
-        request: RequestBuilder,
-        callback: BoxedFetchCallback,
-    ) {
-        self.cancellers.push(FetchCanceller::new(
-            request.id,
-            request.keep_alive,
-            self.resource_threads.core_thread.clone(),
-        ));
-        fetch_async(&self.resource_threads.core_thread, request, None, callback);
     }
 
     /// Mark an in-progress network request complete.

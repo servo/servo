@@ -268,7 +268,7 @@ impl SubtleCrypto {
                 match JsonWebKey::parse(cx, stringified_jwk.as_bytes()) {
                     Ok(jwk) => {
                         rooted!(&in(cx) let mut rval = UndefinedValue());
-                        jwk.safe_to_jsval(cx, rval.handle_mut());
+                        jwk.to_jsval(cx, rval.handle_mut());
                         rooted!(&in(cx) let mut object = rval.to_object());
                         promise.resolve_native(cx, &*object);
                     },
@@ -2189,7 +2189,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // getPublicKey operation.
         let get_public_key_algorithm = match normalize_algorithm::<GetPublicKeyOperation>(
             cx,
-            &AlgorithmIdentifier::String(DOMString::from(algorithm.name().as_str())),
+            &AlgorithmIdentifier::String(DOMString::from_static(algorithm.name().as_str())),
         ) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
@@ -2435,7 +2435,9 @@ pub(crate) fn check_support_for_algorithm(
         // getPublicKey operation.
         return normalize_algorithm::<GetPublicKeyOperation>(
             cx,
-            &AlgorithmIdentifier::String(DOMString::from(normalized_algorithm.name().as_str())),
+            &AlgorithmIdentifier::String(DOMString::from_static(
+                normalized_algorithm.name().as_str(),
+            )),
         )
         .is_ok();
     }
@@ -2939,11 +2941,11 @@ pub(crate) struct KeyAlgorithm {
 
 impl ToJSValConvertible for KeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of KeyAlgorithm");
 
@@ -3084,17 +3086,17 @@ pub(crate) struct RsaHashedKeyAlgorithm {
 
 impl ToJSValConvertible for RsaHashedKeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of RsaHashedKeyAlgorithm");
 
         rooted!(&in(cx) let mut modulus_length_js = UndefinedValue());
         self.modulus_length
-            .safe_to_jsval(cx, modulus_length_js.handle_mut());
+            .to_jsval(cx, modulus_length_js.handle_mut());
         set_dictionary_property(
             cx,
             object.handle(),
@@ -3111,7 +3113,7 @@ impl ToJSValConvertible for RsaHashedKeyAlgorithm {
             public_exponent_js_object.handle_mut(),
         )
         .expect("Failed to convert publicExponent to Uint8Array");
-        public_exponent.safe_to_jsval(cx, public_exponent_js.handle_mut());
+        public_exponent.to_jsval(cx, public_exponent_js.handle_mut());
         set_dictionary_property(
             cx,
             object.handle(),
@@ -3124,7 +3126,7 @@ impl ToJSValConvertible for RsaHashedKeyAlgorithm {
         let hash = KeyAlgorithm {
             name: self.hash.name(),
         };
-        hash.safe_to_jsval(cx, hash_js.handle_mut());
+        hash.to_jsval(cx, hash_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"hash", hash_js.handle())
             .expect("Failed to set hash property of RsaHashedKeyAlgorithm");
 
@@ -3307,17 +3309,16 @@ pub(crate) struct EcKeyAlgorithm {
 
 impl ToJSValConvertible for EcKeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of EcKeyAlgorithm");
 
         rooted!(&in(cx) let mut named_curve_js = UndefinedValue());
-        self.named_curve
-            .safe_to_jsval(cx, named_curve_js.handle_mut());
+        self.named_curve.to_jsval(cx, named_curve_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"namedCurve", named_curve_js.handle())
             .expect("Failed to set namedCurve property of EcKeyAlgorithm");
 
@@ -3448,16 +3449,16 @@ pub(crate) struct AesKeyAlgorithm {
 
 impl ToJSValConvertible for AesKeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of AesKeyAlgorithm");
 
         rooted!(&in(cx) let mut length_js = UndefinedValue());
-        self.length.safe_to_jsval(cx, length_js.handle_mut());
+        self.length.to_jsval(cx, length_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"length", length_js.handle())
             .expect("Failed to set length property of AesKeyAlgorithm");
 
@@ -3649,11 +3650,11 @@ pub(crate) struct HmacKeyAlgorithm {
 
 impl ToJSValConvertible for HmacKeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of HmacKeyAlgorithm");
 
@@ -3661,12 +3662,12 @@ impl ToJSValConvertible for HmacKeyAlgorithm {
         let hash = KeyAlgorithm {
             name: self.hash.name(),
         };
-        hash.safe_to_jsval(cx, hash_js.handle_mut());
+        hash.to_jsval(cx, hash_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"hash", hash_js.handle())
             .expect("Failed to set hash property of HmacKeyAlgorithm");
 
         rooted!(&in(cx) let mut length_js = UndefinedValue());
-        self.length.safe_to_jsval(cx, length_js.handle_mut());
+        self.length.to_jsval(cx, length_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"length", length_js.handle())
             .expect("Failed to set length property of HmacKeyAlgorithm");
 
@@ -4101,16 +4102,16 @@ pub(crate) struct KmacKeyAlgorithm {
 
 impl ToJSValConvertible for KmacKeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of KmacKeyAlgorithm");
 
         rooted!(&in(cx) let mut length_js = UndefinedValue());
-        self.length.safe_to_jsval(cx, length_js.handle_mut());
+        self.length.to_jsval(cx, length_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"length", length_js.handle())
             .expect("Failed to set length property of KmacKeyAlgorithm");
 
@@ -4246,14 +4247,14 @@ struct EncapsulatedKey {
 
 impl ToJSValConvertible for EncapsulatedKey {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut shared_key_js = UndefinedValue());
         self.shared_key
             .as_ref()
             .map(|shared_key| shared_key.root())
-            .safe_to_jsval(cx, shared_key_js.handle_mut());
+            .to_jsval(cx, shared_key_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"sharedKey", shared_key_js.handle())
             .expect("Failed to set sharedKey property of EncapsulatedKey");
 
@@ -4269,7 +4270,7 @@ impl ToJSValConvertible for EncapsulatedKey {
                 )
                 .expect("Failed to convert ciphertext to ArrayBufferU8")
             })
-            .safe_to_jsval(cx, ciphertext_js.handle_mut());
+            .to_jsval(cx, ciphertext_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"ciphertext", ciphertext_js.handle())
             .expect("Failed to set ciphertext property of EncapsulatedKey");
 
@@ -4288,7 +4289,7 @@ struct EncapsulatedBits {
 
 impl ToJSValConvertible for EncapsulatedBits {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut shared_key_js = UndefinedValue());
@@ -4303,7 +4304,7 @@ impl ToJSValConvertible for EncapsulatedBits {
                 )
                 .expect("Failed to convert shared_key to ArrayBufferU8")
             })
-            .safe_to_jsval(cx, shared_key_js.handle_mut());
+            .to_jsval(cx, shared_key_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"sharedKey", shared_key_js.handle())
             .expect("Failed to set sharedKey property of EncapsulatedBits");
 
@@ -4319,7 +4320,7 @@ impl ToJSValConvertible for EncapsulatedBits {
                 )
                 .expect("Failed to convert ciphertext to ArrayBufferU8")
             })
-            .safe_to_jsval(cx, ciphertext_js.handle_mut());
+            .to_jsval(cx, ciphertext_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"ciphertext", ciphertext_js.handle())
             .expect("Failed to set ciphertext property of EncapsulatedBits");
 
@@ -4447,14 +4448,14 @@ impl KeyAlgorithmAndDerivatives {
 }
 
 impl ToJSValConvertible for KeyAlgorithmAndDerivatives {
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         match self {
-            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => algo.to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => algo.to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => algo.to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => algo.to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algo) => algo.to_jsval(cx, rval),
         }
     }
 }
@@ -4622,7 +4623,7 @@ impl JsonWebKeyExt for JsonWebKey {
     /// bytes.
     fn stringify(&self, cx: &mut js::context::JSContext) -> Result<Zeroizing<DOMString>, Error> {
         rooted!(&in(cx) let mut data = UndefinedValue());
-        self.safe_to_jsval(cx, data.handle_mut());
+        self.to_jsval(cx, data.handle_mut());
         serialize_jsval_to_json_utf8(cx, data.handle()).map(Zeroizing::new)
     }
 
@@ -4854,7 +4855,7 @@ fn normalize_algorithm<Op: Operation>(
                 name: name.to_owned(),
             };
             rooted!(&in(cx) let mut algorithm_value = UndefinedValue());
-            algorithm.safe_to_jsval(cx, algorithm_value.handle_mut());
+            algorithm.to_jsval(cx, algorithm_value.handle_mut());
             let algorithm_object = RootedTraceableBox::new(Heap::default());
             algorithm_object.set(algorithm_value.to_object());
             normalize_algorithm::<Op>(cx, &AlgorithmIdentifier::Object(algorithm_object))

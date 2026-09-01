@@ -70,8 +70,8 @@ impl DefaultSingleLineContainerName {
 impl From<DefaultSingleLineContainerName> for DOMString {
     fn from(default_single_line_container_name: DefaultSingleLineContainerName) -> Self {
         match default_single_line_container_name {
-            DefaultSingleLineContainerName::Div => DOMString::from("div"),
-            DefaultSingleLineContainerName::Paragraph => DOMString::from("p"),
+            DefaultSingleLineContainerName::Div => DOMString::from_static("div"),
+            DefaultSingleLineContainerName::Paragraph => DOMString::from_static("p"),
         }
     }
 }

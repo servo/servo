@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: sharing an @apply style sheet with a scope that has no mixins</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#apply-rule">
+    <link rel="help" href="https://drafts.csswg.org/css-shadow-1/#css-tree-scoped-name">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      function addHost(name, localColor, sheet) {
+        const host = document.createElement('div');
+        document.body.append(host);
+        const root = host.attachShadow({mode: 'open'});
+        if (localColor) {
+          const style = document.createElement('style');
+          style.textContent = `
+            @mixin ${name}() {
+              @result {
+                color: ${localColor};
+              }
+            }
+          `;
+          root.append(style);
+        }
+        const target = document.createElement('div');
+        target.id = 'target';
+        root.append(target);
+        root.adoptedStyleSheets = [sheet];
+        return target;
+      }
+
+      function testScopeWithoutMixins(name, noMixinsFirst) {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(`#target { color: red; @apply ${name}; }`);
+        document.adoptedStyleSheets = [sheet];
+
+        const check = (target, expected) =>
+            assert_equals(getComputedStyle(target).color, expected);
+
+        if (noMixinsFirst) {
+          check(addHost(name, null, sheet), 'rgb(255, 0, 0)');
+          check(addHost(name, 'blue', sheet), 'rgb(0, 0, 255)');
+        } else {
+          check(addHost(name, 'blue', sheet), 'rgb(0, 0, 255)');
+          check(addHost(name, null, sheet), 'rgb(255, 0, 0)');
+        }
+        document.adoptedStyleSheets = [];
+      }
+
+      test(() => {
+        testScopeWithoutMixins('--no-mixins-first', true);
+      }, 'A scope with no mixins does not affect @apply in a scope that ' +
+         'declares the mixin');
+
+      test(() => {
+        testScopeWithoutMixins('--declared-first', false);
+      }, 'An applied mixin does not affect @apply in a scope that has no ' +
+         'mixins');
+    </script>
+  </body>
+</html>

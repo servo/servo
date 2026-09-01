@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<script>
+'use strict';
+
+promise_test(async () => {
+  const w = window.open('resources/frame-with-anchor.html#anchor1');
+  await waitForLoad(w);
+  const doc = w.document;
+  const anchor = doc.querySelector('#anchor1');
+  assert_equals(doc.querySelector(':target'), anchor);
+
+  // Removing the target element does not set the target element to null.
+  anchor.remove();
+  assert_equals(doc.querySelector(':target'), null);
+
+  const input = doc.createElement('input');
+  input.autofocus = true;
+  doc.body.appendChild(input);
+  await waitUntilStableAutofocusState(w);
+  assert_not_equals(doc.activeElement, input);
+  w.close();
+}, 'Autofocus should be skipped when the target element has been removed from the document.');
+</script>

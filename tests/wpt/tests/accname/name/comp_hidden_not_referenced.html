@@ -15,7 +15,7 @@
 <p>Tests the <a href="https://w3c.github.io/accname/#comp_hidden_not_referenced">#comp_hidden_not_referenced</a> portions of the AccName <em>Name Computation</em> algorithm.</p>
 
 <button
-  class="ex"
+  class="ex-label"
   data-expectedlabel="visible to all users"
   data-testname="button containing a rendered, unreferenced element that is aria-hidden=true, an unreferenced element with the hidden host language attribute, and an unreferenced element that is unconditionally rendered"
 >
@@ -25,7 +25,7 @@
 </button>
 
 <button
-  class="ex"
+  class="ex-label"
   data-expectedlabel="hidden but referenced,"
   data-testname="button labelled by element that is aria-hidden=true"
   aria-labelledby="button-label-2"
@@ -36,7 +36,7 @@
 </button>
 
 <button
-  class="ex"
+  class="ex-label"
   data-expectedlabel="hidden from all users but referenced,"
   data-testname="button labelled by element with the hidden host language attribute"
   aria-labelledby="button-label-3"
@@ -47,7 +47,7 @@
 </button>
 
 <a
-  class="ex"
+  class="ex-label"
   data-testname="link labelled by elements with assorted visibility and a11y tree exposure"
   data-expectedlabel="visible to all users, hidden but referenced, hidden from all users but referenced"
   href="#"
@@ -62,7 +62,7 @@
 </a>
 
 <h2
-  class="ex"
+  class="ex-label"
   data-testname="heading with name from content, containing element that is visibility:hidden with nested content that is visibility:visible"
   data-expectedlabel="visible to all users, un-hidden for all users"
 >
@@ -72,6 +72,36 @@
     <span style="visibility: visible;">un-hidden for all users</span>
   </span>
 </h2>
+
+<h2>Input with hidden label</h2>
+<label id="hidden-label" for="input-01" hidden>Hidden label</label>
+<input
+  id="input-01"
+  class="ex-label"
+  data-testname="Input that is aria-labelledby hidden label"
+  data-expectedlabel="Hidden label"
+  aria-labelledby="hidden-label"
+>
+
+<h2>Table with hidden caption</h2>
+<table
+  class="ex-label"
+  data-testname="Table that is aria-labelledby hidden caption"
+  data-expectedlabel="Hidden caption"
+  aria-labelledby="hidden-caption"
+>
+  <caption id="hidden-caption" hidden>Hidden caption</caption>
+</table>
+
+<h2>Fieldset with hidden legend</h2>
+<fieldset
+  class="ex-label"
+  data-testname="Fieldset that is aria-labelledby hidden legend"
+  data-expectedlabel="Hidden legend"
+  aria-labelledby="hidden-legend"
+>
+  <legend id="hidden-legend" hidden>Hidden legend</legend>
+</fieldset>
 
 <!-- TODO: Test cases once https://github.com/w3c/aria/issues/1256 resolved: -->
 <!--       - button labelled by an element that is aria-hidden=true which contains a nested child that is aria-hidden=false -->
@@ -86,7 +116,7 @@
 <!--       that are both not rendered and excluded from the a11y tree. -->
 
 <script>
-AriaUtils.verifyLabelsBySelector(".ex");
+AriaUtils.verifyLabelsBySelector(".ex-label");
 </script>
 </body>
 </html>

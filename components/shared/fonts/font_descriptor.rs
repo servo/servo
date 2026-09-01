@@ -7,7 +7,7 @@ use std::ops::{Deref, RangeInclusive};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
-use style::computed_values::font_variant_caps;
+use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::font_face::{
     ComputedFontStretchRange, ComputedFontStyleRange, ComputedFontWeightRange, Descriptors,
     FontStretchRange, FontStyleRange, FontWeightRange,
@@ -26,7 +26,7 @@ pub struct FontDescriptor {
     pub weight: FontWeight,
     pub stretch: FontStretch,
     pub style: FontStyle,
-    pub variant: font_variant_caps::T,
+    pub variant: FontVariantCaps,
     pub pt_size: Au,
     /// The value of the `@font-variation-settings` property.
     ///

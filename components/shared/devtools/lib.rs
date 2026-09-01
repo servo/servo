@@ -27,9 +27,9 @@ pub use embedder_traits::ConsoleLogLevel;
 use embedder_traits::Theme;
 use http::{HeaderMap, Method};
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::TlsSecurityInfo;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Destination;
-use net_traits::{DebugVec, TlsSecurityInfo};
 use profile_traits::mem::ReportsChan;
 use serde::de::{Error, Visitor};
 use serde::{Deserialize, Serialize};
@@ -475,6 +475,7 @@ pub enum DevtoolScriptControlMsg {
         String,
         PipelineId,
         Option<String>,
+        bool,
         GenericSender<EvaluateJSReply>,
     ),
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
@@ -568,7 +569,7 @@ pub struct HttpRequest {
     pub url: ServoUrl,
     pub method: Method,
     pub headers: HeaderMap,
-    pub body: Option<DebugVec>,
+    pub body: Option<bytes::Bytes>,
     pub pipeline_id: PipelineId,
     pub started_date_time: SystemTime,
     pub time_stamp: i64,
@@ -584,7 +585,7 @@ pub struct HttpResponse {
     #[ignore_malloc_size_of = "Http type"]
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
-    pub body: Option<DebugVec>,
+    pub body: Option<bytes::Bytes>,
     pub from_cache: bool,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,

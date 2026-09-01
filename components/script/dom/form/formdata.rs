@@ -141,7 +141,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         self.data.borrow_mut().push((
             NoTrace(LocalName::from(name.0.clone())),
             FormDatumUnrooted {
-                ty: DOMString::from("string"),
+                ty: DOMString::from_static("string"),
                 name: DOMString::from(name.0),
                 value: FormDatumValueUnrooted::String(DOMString::from(str_value.0)),
             },
@@ -161,7 +161,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         self.data.borrow_mut().push((
             NoTrace(LocalName::from(name.0.clone())),
             FormDatumUnrooted {
-                ty: DOMString::from("file"),
+                ty: DOMString::from_static("file"),
                 name: DOMString::from(name.0),
                 value: FormDatumValueUnrooted::File(file.as_traced()),
             },
@@ -227,7 +227,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         data.push((
             NoTrace(local_name),
             FormDatumUnrooted {
-                ty: DOMString::from("string"),
+                ty: DOMString::from_static("string"),
                 name: DOMString::from(name.0),
                 value: FormDatumValueUnrooted::String(DOMString::from(str_value.0)),
             },
@@ -246,7 +246,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         data.push((
             NoTrace(LocalName::from(name.0.clone())),
             FormDatumUnrooted {
-                ty: DOMString::from("file"),
+                ty: DOMString::from_static("file"),
                 name: DOMString::from(name.0),
                 value: FormDatumValueUnrooted::File(file.as_traced()),
             },
@@ -266,7 +266,7 @@ impl FormData {
         let name = match opt_filename {
             Some(filename) => DOMString::from(filename.0),
             None => match blob.downcast::<File>() {
-                None => DOMString::from("blob"),
+                None => DOMString::from_static("blob"),
                 // If it is already a file and no filename was given,
                 // then neither step 3 nor step 4 happens, so instead of
                 // creating a new File object we use the existing one.

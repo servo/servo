@@ -231,7 +231,7 @@ fn html_constructor(
             return Err(());
         }
 
-        result.safe_to_jsval(cx, MutableHandleValue::from_raw(call_args.rval()));
+        result.to_jsval(cx, MutableHandleValue::from_raw(call_args.rval()));
     }
     Ok(())
 }

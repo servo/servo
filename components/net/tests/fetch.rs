@@ -165,8 +165,8 @@ fn test_fetch_blob() {
     impl FetchTaskTarget for FetchResponseCollector {
         fn process_request_body(&mut self, _: &Request) {}
         fn process_response(&mut self, _: &Request, _: &Response) {}
-        fn process_response_chunk(&mut self, _: &Request, chunk: Vec<u8>) {
-            self.buffer.extend_from_slice(chunk.as_slice());
+        fn process_response_chunk(&mut self, _: &Request, chunk: bytes::Bytes) {
+            self.buffer.extend_from_slice(&chunk);
         }
         /// Fired when the response is fully fetched
         fn process_response_eof(&mut self, _: &Request, response: &Response) {

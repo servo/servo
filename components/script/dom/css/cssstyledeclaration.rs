@@ -507,7 +507,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
         self.owner.with_block(|pdb| {
             if pdb.property_priority(&id).important() {
-                DOMString::from("important")
+                DOMString::from_static("important")
             } else {
                 // Step 4
                 DOMString::new()

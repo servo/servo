@@ -21,14 +21,13 @@ import android.view.SurfaceView
 class ServoView(
     context: Context,
     client: Servo.Client,
+    servoArgs: String?,
+    servoLog: String?,
+    private val experimentalMode: Boolean,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     private val glThread: GLThread
-    private val surfaceHolderCallback: SurfaceHolderCallback
     private var servo: Servo? = null
-    private var servoArgs: String? = null
     private var initialUri: String? = null
-
-    private var experimentalMode = false
 
     init {
         isFocusable = true
@@ -36,15 +35,14 @@ class ServoView(
         isClickable = true
         addTouchables(arrayListOf(this))
         glThread = GLThread()
-        surfaceHolderCallback = SurfaceHolderCallback(this, client)
+        val surfaceHolderCallback = SurfaceHolderCallback(
+            servoView = this,
+            client = client,
+            servoArgs = servoArgs,
+            servoLog = servoLog,
+        )
         holder.addCallback(surfaceHolderCallback)
         glThread.start()
-    }
-
-    fun setServoArgs(args: String?, log: String?, experimentalMode: Boolean) {
-        servoArgs = args
-        surfaceHolderCallback.servoLog = log
-        this.experimentalMode = experimentalMode
     }
 
     override fun inGLThread(r: Runnable) {
@@ -95,11 +93,11 @@ class ServoView(
         Choreographer.getInstance().postFrameCallback(this)
     }
 
-    fun onPause() {
+    internal fun onPause() {
         servo?.suspend(true)
     }
 
-    fun onResume() {
+    internal fun onResume() {
         servo?.suspend(false)
     }
 
@@ -133,7 +131,7 @@ class ServoView(
     }
 
     fun setExperimentalMode(enable: Boolean) {
-        servo?.setExperimentalMode(enable)
+        servo!!.setExperimentalMode(enable)
     }
 
     private class GLThread : Thread() {
@@ -151,8 +149,9 @@ class ServoView(
     private class SurfaceHolderCallback(
         private val servoView: ServoView,
         private val client: Servo.Client,
+        private val servoArgs: String?,
+        private val servoLog: String?,
     ) : SurfaceHolder.Callback {
-        var servoLog: String? = null
         private var paused = false
 
         override fun surfaceCreated(holder: SurfaceHolder) {
@@ -164,12 +163,11 @@ class ServoView(
 
             if (servoView.servo == null && !paused) {
                 servoView.servo = Servo(
-                    servoView.servoArgs,
+                    servoArgs,
                     servoView.initialUri,
                     size,
                     servoView.resources.displayMetrics.density,
                     servoLog,
-                    true,
                     servoView.experimentalMode,
                     servoView,
                     client,

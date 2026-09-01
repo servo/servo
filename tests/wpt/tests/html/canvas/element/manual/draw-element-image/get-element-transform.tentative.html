@@ -88,12 +88,9 @@
     let draw_transform = new DOMMatrix().rotateSelf(45);
     await waitForCanvasPaint(canvas);
     let element_transform = canvas.getElementTransform(element, draw_transform);
-    let expected = new DOMMatrix()
-      .translateSelf(-5, -5)
-      .rotateSelf(45)
-      .translateSelf(5, 5);
+    let expected = new DOMMatrix().rotateSelf(45);
     assert_array_approx_equals(element_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
-  }, 'Element transform should account for transform-origin');
+  }, 'Element transform should not account for transform-origin');
 
   promise_test(async t => {
     t.add_cleanup(async () => {
@@ -147,14 +144,12 @@
     await waitForCanvasPaint(canvas);
     let element_transform = canvas.getElementTransform(element, draw_transform);
     let expected = new DOMMatrix()
-      .translateSelf(-5, -5)
       .scaleSelf(0.5, 2)
       .translateSelf(42, 17)
       .rotateSelf(45)
       .scaleSelf(2, 0.5)
-      .translateSelf(5, 5);
     assert_array_approx_equals(element_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
-  }, 'Element transform should account for canvas pixel scale, transform-origin, and a complex draw transform');
+  }, 'Element transform should account for canvas pixel scale, and a complex draw transform');
 
   promise_test(async t => {
     t.add_cleanup(async() => {

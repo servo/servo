@@ -39,6 +39,9 @@ profile = { workspace = true }
 servo-default-resources = { workspace = true }
 url = { workspace = true }
 
+[lints]
+workspace = true
+
 [[test]]
 name = "main"
 path = "tests/main.rs"

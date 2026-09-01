@@ -109,15 +109,15 @@ impl<T> AbstractSender for OneshotSender<T> {
     }
 }
 
-/// Sends a response over an IPC channel, or a default response on [`Drop`] if no response was sent.
-pub(crate) struct IpcResponder<T> {
+/// Sends a response over a channel, or a default response on [`Drop`] if no response was sent.
+pub(crate) struct AutomaticResponder<T> {
     response_sender: Box<dyn AbstractSender<Message = T>>,
     response_sent: bool,
     /// Always present, except when taken by [`Drop`].
     default_response: Option<T>,
 }
 
-impl<T: Serialize + 'static> IpcResponder<T> {
+impl<T: Serialize + 'static> AutomaticResponder<T> {
     pub(crate) fn new(response_sender: GenericSender<T>, default_response: T) -> Self {
         Self {
             response_sender: Box::new(response_sender),
@@ -127,7 +127,7 @@ impl<T: Serialize + 'static> IpcResponder<T> {
     }
 }
 
-impl<T: 'static> IpcResponder<T> {
+impl<T: 'static> AutomaticResponder<T> {
     pub(crate) fn new_same_process(
         response_sender: Box<dyn AbstractSender<Message = T>>,
         default_response: T,
@@ -140,7 +140,7 @@ impl<T: 'static> IpcResponder<T> {
     }
 }
 
-impl<T> IpcResponder<T> {
+impl<T> AutomaticResponder<T> {
     pub(crate) fn send(&mut self, response: T) -> SendResult {
         let result = self.response_sender.send(response);
         self.response_sent = true;
@@ -148,7 +148,7 @@ impl<T> IpcResponder<T> {
     }
 }
 
-impl<T> Drop for IpcResponder<T> {
+impl<T> Drop for AutomaticResponder<T> {
     fn drop(&mut self) {
         if !self.response_sent {
             let response = self

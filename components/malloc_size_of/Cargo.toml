@@ -15,6 +15,7 @@ path = "lib.rs"
 [dependencies]
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
+bytes = { workspace = true }
 cookie = { workspace = true }
 content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -51,3 +52,6 @@ vello_cpu = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 wr_malloc_size_of = { workspace = true }
+
+[lints]
+workspace = true

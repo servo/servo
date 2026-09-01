@@ -24,9 +24,8 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, JavaScriptEvaluationError, PromptResponse,
-    ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
-    WebDriverJSResult, WebDriverLoadStatus,
+    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, ScriptToEmbedderChan,
+    SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails, WebDriverLoadStatus,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{
@@ -131,9 +130,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
 use crate::dom::bindings::codegen::UnionTypes::{
     RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
 };
-use crate::dom::bindings::error::{
-    Error, ErrorInfo, ErrorResult, Fallible, javascript_error_info_from_error_info,
-};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -148,7 +145,7 @@ use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
-use crate::dom::cookiestore::CookieStore;
+use crate::dom::cookiestore::cookiestore::CookieStore;
 use crate::dom::csp::GlobalCspReporting;
 use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
@@ -201,9 +198,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::event_loop::script_window_proxies::ScriptWindowProxies;
 use crate::event_loop::timers::{IsInterval, OneshotTimers, TimerCallback};
-use crate::event_loop::webdriver_handlers::{
-    find_node_by_unique_id_in_document, jsval_to_webdriver,
-};
+use crate::event_loop::webdriver_handlers::find_node_by_unique_id_in_document;
 use crate::fetch::fetch;
 use crate::fetch::network_listener::{ResourceTimingListener, submit_timing};
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
@@ -378,10 +373,6 @@ pub(crate) struct Window {
     /// cases.
     #[no_trace]
     layout_blocker: Cell<LayoutBlocker>,
-
-    /// A channel for communicating results of async scripts back to the webdriver server
-    #[no_trace]
-    webdriver_script_chan: DomRefCell<Option<GenericSender<WebDriverJSResult>>>,
 
     /// A channel to notify webdriver if there is a navigation
     #[no_trace]
@@ -1921,27 +1912,6 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // This method intentionally does nothing
     }
 
-    // check-tidy: no specs after this line
-    fn WebdriverCallback(&self, realm: &mut CurrentRealm, value: HandleValue) {
-        let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
-        if let Some(webdriver_script_sender) = webdriver_script_sender {
-            let result = jsval_to_webdriver(realm, &self.globalscope, value);
-            let _ = webdriver_script_sender.send(result);
-        }
-    }
-
-    fn WebdriverException(&self, cx: &mut JSContext, value: HandleValue) {
-        let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
-        if let Some(webdriver_script_sender) = webdriver_script_sender {
-            let error_info = ErrorInfo::from_value(cx, value);
-            let _ = webdriver_script_sender.send(Err(
-                JavaScriptEvaluationError::EvaluationFailure(Some(
-                    javascript_error_info_from_error_info(cx, &error_info, value),
-                )),
-            ));
-        }
-    }
-
     fn WebdriverElement(&self, id: DOMString) -> Option<DomRoot<Element>> {
         find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
@@ -2320,7 +2290,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://dom.spec.whatwg.org/#dom-window-event>
     fn Event(&self, cx: &mut JSContext, rval: MutableHandleValue) {
         if let Some(ref event) = *self.current_event.borrow() {
-            event.reflector().get_jsobject().safe_to_jsval(cx, rval);
+            event.reflector().get_jsobject().to_jsval(cx, rval);
         }
     }
 
@@ -2699,7 +2669,7 @@ impl Window {
         };
 
         if let Some(selection) = document.selection() {
-            selection.set_flags_for_visible_selection(cx.no_gc());
+            selection.update_overlaps_document_selection_flags(cx.no_gc());
         }
 
         let restyle_reason = document.restyle_reason(cx.no_gc());
@@ -3545,10 +3515,6 @@ impl Window {
         }
     }
 
-    pub(crate) fn set_webdriver_script_chan(&self, chan: Option<GenericSender<WebDriverJSResult>>) {
-        *self.webdriver_script_chan.borrow_mut() = chan;
-    }
-
     pub(crate) fn set_webdriver_load_status_sender(
         &self,
         sender: Option<GenericSender<WebDriverLoadStatus>>,
@@ -4005,7 +3971,6 @@ impl Window {
             current_state: Cell::new(WindowState::Alive),
             devtools_marker_sender: Default::default(),
             devtools_markers: Default::default(),
-            webdriver_script_chan: Default::default(),
             webdriver_load_status_sender: Default::default(),
             error_reporter,
             media_query_lists: DOMTracker::new(),

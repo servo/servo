@@ -5,19 +5,19 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
-<embed name="exposed_embed">
+<embed name="embed">
 <form name="form">
 </form>
 <iframe name="iframe">
 </iframe>
 <img name="img">
-<object data="/common/blank.html" type="text/html" name="exposed_object_with_name">
-  <embed name="not_exposed_embed">
-  <object name="not_exposed_object_with_name">
+<object data="/common/blank.html" type="text/html" name="object_with_name">
+  <embed name="embed_in_object">
+  <object name="object_in_object_with_name">
   </object>
 </object>
-<object data="/common/blank.html" type="text/html" id="exposed_object_with_id">
-  <object id="not_exposed_object_with_id">
+<object data="/common/blank.html" type="text/html" id="object_with_id">
+  <object id="object_in_object_with_id">
   </object>
 </object>
 <img name="img_with_id" id="img_id">
@@ -33,12 +33,8 @@ window.addEventListener("load", function() {
   var names = Object.getOwnPropertyNames(document);
 
   test(function() {
-    assert_true(names.includes("exposed_embed"))
-  }, "An embed name appears in a document's property names if the embed is exposed.");
-
-  test(function() {
-    assert_false(names.includes("not_exposed_embed"))
-  }, "An embed name does not appear in a document's property names if the embed has an exposed object ancestor.");
+    assert_true(names.includes("embed"))
+  }, "An embed name appears in a document's property names.");
 
   test(function() {
     assert_true(names.includes("form"))
@@ -53,24 +49,57 @@ window.addEventListener("load", function() {
   }, "An img name appears in a document's property names when the img has no id.");
 
   test(function() {
-    assert_not_equals(document.querySelector('[name="exposed_object_with_name"]').contentDocument, null,
+    assert_true(names.includes("object_with_name"))
+  }, "An object name appears in a document's property names.");
+
+  test(function() {
+    assert_true(names.includes("object_with_id"))
+  }, "An object id appears in a document's property names.");
+
+  test(function() {
+    assert_not_equals(document.querySelector('[name="object_with_name"]').contentDocument, null,
                       "The object must successfully load its data resource");
-    assert_true(names.includes("exposed_object_with_name"))
-  }, "An object name appears in a document's property names if the object is exposed.");
+    assert_true(names.includes("embed_in_object"))
+  }, "An embed name appears in a document's property names when the embed is inside an object that is not showing its fallback content.");
 
   test(function() {
-    assert_not_equals(document.querySelector("#exposed_object_with_id").contentDocument, null,
+    assert_not_equals(document.querySelector('[name="object_with_name"]').contentDocument, null,
                       "The object must successfully load its data resource");
-    assert_true(names.includes("exposed_object_with_id"))
-  }, "An object id appears in a document's property names if the object is exposed.");
+    assert_true(names.includes("object_in_object_with_name"))
+  }, "An object name appears in a document's property names when the object is inside an object that is not showing its fallback content.");
 
   test(function() {
-    assert_false(names.includes("not_exposed_object_with_name"))
-  }, "An object name does not appear in a document's property names if the object has an exposed object ancestor.");
+    assert_not_equals(document.querySelector("#object_with_id").contentDocument, null,
+                      "The object must successfully load its data resource");
+    assert_true(names.includes("object_in_object_with_id"))
+  }, "An object id appears in a document's property names when the object is inside an object that is not showing its fallback content.");
+
+  // A name is only useful if the named getter resolves it, so check that the
+  // two algorithms agree for object elements and their descendants.
+  test(function() {
+    var object = document.querySelector('[name="object_with_name"]');
+    assert_equals(document.object_with_name, object);
+  }, "An object with object and embed descendants is returned by the named getter (name).");
 
   test(function() {
-    assert_false(names.includes("not_exposed_object_with_id"))
-  }, "An object id does not appear in a document's property names if the object has an exposed object ancestor.");
+    var object = document.querySelector("#object_with_id");
+    assert_equals(document.object_with_id, object);
+  }, "An object with an object descendant is returned by the named getter (id).");
+
+  test(function() {
+    var object = document.querySelector('[name="object_with_name"]');
+    assert_equals(document.embed_in_object, object.querySelector("embed"));
+  }, "An embed inside an object that is not showing its fallback content is returned by the named getter.");
+
+  test(function() {
+    var object = document.querySelector('[name="object_with_name"]');
+    assert_equals(document.object_in_object_with_name, object.querySelector("object"));
+  }, "An object inside an object that is not showing its fallback content is returned by the named getter (name).");
+
+  test(function() {
+    var object = document.querySelector("#object_with_id");
+    assert_equals(document.object_in_object_with_id, object.querySelector("object"));
+  }, "An object inside an object that is not showing its fallback content is returned by the named getter (id).");
 
   test(function() {
     assert_true(names.includes("img_with_id"))

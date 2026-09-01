@@ -16,6 +16,35 @@ const TOOL_CALL_TRIGGER = '<GenerateSimpleToolCalls>';
 // Constant for triggering multiple tool call batches in the echo model.
 const MULTIPLE_TOOL_CALL_TRIGGER = '<GenerateMultipleToolCalls>';
 
+const EXAMPLE_TOOL = {
+  name: 'lookup',
+  description: 'Look up structured data. Args: {}',
+  // All properties are optional so the history tests can cover both empty and
+  // structured arguments without requiring schema validation of history.
+  inputSchema: {type: 'object', properties: {}}
+};
+
+// Returns the common capabilities needed for caller-supplied tool history.
+function toolHistoryOptions(overrides = {}) {
+  return {
+    expectedInputs: [{type: 'tool-call'}, {type: 'tool-response'}],
+    expectedOutputs: [{type: 'tool-call'}],
+    tools: [EXAMPLE_TOOL],
+    ...overrides
+  };
+}
+
+// Parses the deterministic representation produced by EchoAILanguageModel.
+function extractEchoedToolCalls(response) {
+  return Array.from(response.matchAll(/<tool-call>(.*?)<\/tool-call>/g),
+                    match => JSON.parse(match[1]));
+}
+
+function extractEchoedToolResponses(response) {
+  return Array.from(response.matchAll(/<tool-response>(.*?)<\/tool-response>/g),
+                    match => JSON.parse(match[1]));
+}
+
 promise_test(async t => {
   await ensureLanguageModel();
 
@@ -554,6 +583,158 @@ promise_test(async t => {
   assert_true(result.includes('Hello'), 'Result should echo back the input "Hello"');
 }, 'createLanguageModel should succeed with tool-call in expectedOutputs but no tools.');
 
+promise_test(async t => {
+  await ensureLanguageModel();
+
+  // Verify that initial history preserves structured arguments and
+  // canonicalizes explicit, undefined, and omitted empty arguments to {}.
+  const nestedCall = new LanguageModelToolCall({
+    callID: 'nested-call',
+    name: 'lookup',
+    arguments:
+        {query: 'weather', filters: {cities: ['Paris', 'Tokyo'], metric: true}}
+  });
+  const emptyCall = new LanguageModelToolCall(
+      {callID: 'empty-call', name: 'lookup', arguments: {}});
+  const undefinedCall = new LanguageModelToolCall(
+      {callID: 'undefined-call', name: 'lookup', arguments: undefined});
+  const omittedCall =
+      new LanguageModelToolCall({callID: 'omitted-call', name: 'lookup'});
+  const model = await createLanguageModel(toolHistoryOptions({
+    initialPrompts: [{
+      role: 'assistant',
+      content: [nestedCall, emptyCall, undefinedCall, omittedCall].map(
+          value => ({type: 'tool-call', value}))
+    }]
+  }));
+
+  const response = await model.prompt('Continue');
+  assert_equals(typeof response, 'string');
+  const calls = extractEchoedToolCalls(response);
+  assert_equals(calls.length, 4);
+  assert_equals(calls[0].callID, 'nested-call');
+  assert_equals(calls[0].name, 'lookup');
+  assert_equals(calls[0].arguments.query, 'weather');
+  assert_array_equals(calls[0].arguments.filters.cities, ['Paris', 'Tokyo']);
+  assert_true(calls[0].arguments.filters.metric);
+  assert_equals(calls[1].callID, 'empty-call');
+  assert_object_equals(calls[1].arguments, {});
+  assert_equals(calls[2].callID, 'undefined-call');
+  assert_object_equals(calls[2].arguments, {});
+  assert_equals(calls[3].callID, 'omitted-call');
+  assert_object_equals(calls[3].arguments, {});
+}, 'Caller-supplied tool calls preserve structured initial history and normalize empty arguments');
+
+promise_test(async t => {
+  await ensureLanguageModel();
+
+  // Verify caller-supplied history can be appended and used to reconstruct an
+  // edited session without depending on generated tool-call state.
+  const call = new LanguageModelToolCall(
+      {callID: 'history-call', name: 'lookup', arguments: {query: 'original'}});
+  const response = new LanguageModelToolSuccess({
+    callID: 'history-call',
+    name: 'lookup',
+    result: [{type: 'text', value: 'original result'}]
+  });
+  const model = await createLanguageModel(toolHistoryOptions());
+  await model.append([
+    {role: 'assistant', content: [{type: 'tool-call', value: call}]},
+    {role: 'user', content: [{type: 'tool-response', value: response}]}
+  ]);
+
+  const appendedResponse = await model.prompt('Continue');
+  const appendedCalls = extractEchoedToolCalls(appendedResponse);
+  assert_equals(appendedCalls.length, 1);
+  assert_equals(appendedCalls[0].callID, 'history-call');
+  assert_equals(appendedCalls[0].name, 'lookup');
+  assert_equals(appendedCalls[0].arguments.query, 'original');
+  const appendedResponses = extractEchoedToolResponses(appendedResponse);
+  assert_equals(appendedResponses.length, 1);
+  assert_equals(appendedResponses[0].callID, 'history-call');
+  assert_equals(appendedResponses[0].name, 'lookup');
+  // Blink transports each result item's converted value without its type.
+  assert_array_equals(appendedResponses[0].result, ['original result']);
+
+  const recreated = await createLanguageModel(toolHistoryOptions({
+    initialPrompts: [{
+      role: 'assistant',
+      content: [{
+        type: 'tool-call',
+        value: new LanguageModelToolCall({
+          callID: 'history-call',
+          name: 'lookup',
+          arguments: {query: 'edited'}
+        })
+      }]
+    }]
+  }));
+  const recreatedResponse = await recreated.prompt('Continue');
+  assert_equals(extractEchoedToolCalls(recreatedResponse)[0].arguments.query,
+                'edited');
+}, 'append() and recreated sessions preserve caller-supplied tool-call history');
+
+promise_test(async t => {
+  await ensureLanguageModel();
+
+  // Verify structural, role, and negotiated-capability validation at the web
+  // API boundary.
+  const model = await createLanguageModel(toolHistoryOptions());
+  const promptWithArguments = toolArguments => model.prompt([{
+    role: 'assistant',
+    content: [{
+      type: 'tool-call',
+      value: new LanguageModelToolCall(
+          {callID: 'invalid-call', name: 'lookup', arguments: toolArguments})
+    }]
+  }]);
+
+  await promise_rejects_dom(t, 'DataError', promptWithArguments([]),
+                            'Tool-call arguments must be a dictionary');
+
+  const cyclicArguments = {};
+  cyclicArguments.self = cyclicArguments;
+  await promise_rejects_dom(t, 'DataError',
+                            promptWithArguments(cyclicArguments),
+                            'Circular tool-call arguments must be rejected');
+
+  await promise_rejects_js(t, TypeError, model.prompt([{
+    role: 'user',
+    content: [{
+      type: 'tool-call',
+      value: new LanguageModelToolCall(
+          {callID: 'invalid-role-call', name: 'lookup', arguments: {}})
+    }]
+  }]),
+                           'Tool calls must use the assistant role');
+
+  await promise_rejects_js(t, TypeError, model.prompt([{
+    role: 'assistant',
+    content: [{
+      type: 'tool-response',
+      value: new LanguageModelToolSuccess({
+        callID: 'invalid-role-response',
+        name: 'lookup',
+        result: [{type: 'text', value: 'result'}]
+      })
+    }]
+  }]),
+                           'Tool responses must use the user role');
+
+  const unsupportedModel = await createLanguageModel(
+      {expectedOutputs: [{type: 'tool-call'}], tools: [EXAMPLE_TOOL]});
+  await promise_rejects_dom(
+      t, 'NotSupportedError', unsupportedModel.prompt([{
+        role: 'assistant',
+        content: [{
+          type: 'tool-call',
+          value: new LanguageModelToolCall(
+              {callID: 'unsupported-call', name: 'lookup', arguments: {}})
+        }]
+      }]),
+      'Tool-call input must be requested when creating the session');
+}, 'Caller-supplied tool-call input rejects invalid arguments and unsupported sessions');
+
 // Open-loop tool-calling pattern tests.
 // The EchoAILanguageModel generates tool calls based on argument hints
 // provided in tool descriptions using the format: "Args: {JSON}"
@@ -1055,6 +1236,11 @@ promise_test(async t => {
 
   // Model should handle the error response.
   assert_equals(typeof secondResult, 'string', 'Should return a string response');
+  const echoedResponses = extractEchoedToolResponses(secondResult);
+  assert_equals(echoedResponses.length, 1);
+  assert_equals(echoedResponses[0].callID, callID);
+  assert_equals(echoedResponses[0].name, 'errorTool');
+  assert_equals(echoedResponses[0].errorMessage, 'Tool execution failed');
 }, 'Tool response can include error field');
 
 // Tool response serialization error handling tests.

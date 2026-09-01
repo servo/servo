@@ -704,7 +704,7 @@ pub(crate) fn exception_to_promise(cx: &mut JSContext, rval: RawMutableHandleVal
         }
         JS_ClearPendingException(cx);
         if let Some(promise) = NonNull::new(CallOriginalPromiseReject(cx, exception.handle())) {
-            promise.safe_to_jsval(cx, MutableHandleValue::from_raw(rval));
+            promise.to_jsval(cx, MutableHandleValue::from_raw(rval));
             true
         } else {
             // We just give up. Put the exception back.
@@ -875,7 +875,7 @@ pub fn to_frozen_array<T: ToJSValConvertible>(
     convertibles: &[T],
     mut rval: MutableHandleValue,
 ) {
-    convertibles.safe_to_jsval(cx, rval.reborrow());
+    convertibles.to_jsval(cx, rval.reborrow());
 
     rooted!(&in(cx) let obj = rval.to_object());
     unsafe { JS_FreezeObject(cx, obj.handle()) };

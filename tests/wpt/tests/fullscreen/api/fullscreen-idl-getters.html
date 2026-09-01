@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>Fullscreen IDL getters: Document.fullscreen, fullscreenElement, simple fullscreen document</title>
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#dom-document-fullscreen">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#simple-fullscreen-document">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<script>
+// - Document.fullscreen (deprecated) is true iff there is a fullscreen
+//   element for the document.
+// - Document.fullscreenElement returns the topmost element in the
+//   document's top layer with the fullscreen flag set, or null.
+// - A document is a "simple fullscreen document" iff exactly one element
+//   in its top layer has the fullscreen flag set.
+
+test(() => {
+    assert_equals(document.fullscreenElement, null,
+        "fullscreenElement is null when no element is fullscreen");
+    assert_false(document.fullscreen,
+        "Document.fullscreen is false when no element is fullscreen");
+}, "IDL getters return null/false when not fullscreen");
+
+promise_test(async t => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        el.remove();
+    });
+
+    await trusted_request(el);
+
+    assert_equals(document.fullscreenElement, el, "fullscreenElement returns the fullscreen element");
+    assert_true(document.fullscreen, "Document.fullscreen is true when there is a fullscreen element");
+
+    await document.exitFullscreen();
+
+    assert_equals(document.fullscreenElement, null, "fullscreenElement is null after exitFullscreen");
+    assert_false(document.fullscreen, "Document.fullscreen is false after exitFullscreen");
+}, "IDL getters reflect fullscreen state through enter and exit");
+
+promise_test(async t => {
+    // Simple fullscreen document: exactly one element in top layer has
+    // the fullscreen flag set. Verified indirectly: after entering,
+    // fullscreenElement returns a single non-null value, and after
+    // exiting, top layer contains no fullscreen element.
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        el.remove();
+    });
+
+    await trusted_request(el);
+    assert_not_equals(document.fullscreenElement, null,
+        "top layer has a fullscreen element (simple-fullscreen state)");
+    assert_equals(document.fullscreenElement, el,
+        "Document.fullscreenElement returns the single top-layer fullscreen element");
+
+    await document.exitFullscreen();
+    assert_equals(document.fullscreenElement, null,
+        "top layer has no fullscreen element after exit");
+}, "simple fullscreen document: top layer has exactly one fullscreen element while entered");
+</script>

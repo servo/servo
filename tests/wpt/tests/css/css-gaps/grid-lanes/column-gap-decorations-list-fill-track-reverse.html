@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: grid-axis and stacking-axis rule values follow independent placement orders with combined fill-reverse and track-reverse in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-list-fill-track-reverse-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 60px);
+    grid-lanes-direction: column fill-reverse track-reverse;
+    gap: 10px;
+    height: 110px;
+    width: max-content;
+    background: #cdd5e0;
+    column-rule-width: 4px;
+    column-rule-style: solid;
+    column-rule-color: blue, gold;
+    row-rule-width: 4px;
+    row-rule-style: solid;
+    row-rule-color: purple, orange;
+  }
+  .lanes > div {
+    height: 30px;
+    background: #5b8def;
+  }
+  .t1 { grid-column: 1; }
+  .t2 { grid-column: 2; }
+  .t3 { grid-column: 3; }
+</style>
+<div class="lanes">
+  <div class="t1"></div>
+  <div class="t1"></div>
+  <div class="t1"></div>
+  <div class="t2"></div>
+  <div class="t2"></div>
+  <div class="t2"></div>
+  <div class="t3"></div>
+  <div class="t3"></div>
+  <div class="t3"></div>
+</div>

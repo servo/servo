@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Computed keyframe offsets for a zero-length animation attachment range</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#animation-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+</head>
+<style>
+  @keyframes anim {
+    cover 0% { margin-left: 0px; }
+    cover 100% { margin-right: 0px; }
+  }
+
+  #scroller {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+    timeline-scope: --t1;
+  }
+  #block {
+    margin-top: 800px;
+    width: 100px;
+    height: 50px;
+    view-timeline: --t1;
+  }
+  .target {
+    margin-bottom: 800px;
+    width: 100px;
+    height: 100px;
+    animation: anim auto both linear;
+    animation-timeline: --t1;
+  }
+  /* A zero-length attachment range: start and end resolve to the same offset. */
+  #degenerate {
+    animation-range-start: contain 50%;
+    animation-range-end: contain 50%;
+  }
+  /* A normal, non-degenerate attachment range, for contrast. */
+  #ordinary {
+    animation-range-start: contain 0%;
+    animation-range-end: contain 100%;
+  }
+</style>
+<body>
+  <div id="scroller">
+    <div id="block"></div>
+    <div id="degenerate" class="target"></div>
+    <div id="ordinary" class="target"></div>
+  </div>
+</body>
+<script>
+function animationForTarget(id) {
+  return document.getAnimations().find(animation => animation.effect.target.id === id);
+}
+
+async function activeAnimationFor(id) {
+  await waitForNextFrame();
+  const animation = animationForTarget(id);
+  assert_true(!!animation, `an animation is attached to #${id}`);
+  await animation.ready;
+  await waitForNextFrame();
+  return animation;
+}
+
+// getKeyframes() also reports the implicit offset-0 and offset-1 keyframes synthesized for
+// the "both" fill, so pick out just the ones written with a timeline range offset. Those
+// report their offset as a { rangeName, offset } object rather than a number.
+function computedOffsetsByRange(animation) {
+  const offsets = new Map();
+  for (const frame of animation.effect.getKeyframes()) {
+    if (!frame.offset || typeof frame.offset !== 'object')
+      continue;
+    offsets.set(`${frame.offset.rangeName} ${frame.offset.offset.value}%`, frame.computedOffset);
+  }
+  return offsets;
+}
+
+// The subject is 50px tall inside a 200px scrollport, so the cover range spans 250px and the
+// contain range spans the middle 150px of it. "contain 50%" therefore resolves to timeline
+// offset 0.5, and both edges of #degenerate's attachment range land on that single point.
+promise_test(async t => {
+  const animation = await activeAnimationFor('degenerate');
+  const offsets = computedOffsetsByRange(animation);
+  assert_array_equals([...offsets.keys()].sort(), ['cover 0%', 'cover 100%'].sort(),
+                      'both timeline range offsets are reported');
+
+  for (const [range, offset] of offsets) {
+    assert_false(offset === Infinity || offset === -Infinity,
+                 `computedOffset for "${range}" is not infinite`);
+    assert_true(Number.isNaN(offset),
+                `computedOffset for "${range}" is unresolved`);
+  }
+}, 'A zero-length attachment range yields unresolved computed keyframe offsets, not infinite ones');
+
+// Guards against the zero-length check above swallowing ranges that are merely narrow.
+promise_test(async t => {
+  const animation = await activeAnimationFor('ordinary');
+  const offsets = computedOffsetsByRange(animation);
+  assert_array_equals([...offsets.keys()].sort(), ['cover 0%', 'cover 100%'].sort(),
+                      'both timeline range offsets are reported');
+
+  assert_approx_equals(offsets.get('cover 0%'), -1 / 3, 1e-6, 'computedOffset for "cover 0%"');
+  assert_approx_equals(offsets.get('cover 100%'), 4 / 3, 1e-6, 'computedOffset for "cover 100%"');
+}, 'A non-degenerate attachment range still maps timeline range offsets outside [0,1]');
+</script>
+</html>

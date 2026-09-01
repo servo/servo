@@ -22,8 +22,9 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::serviceworker::cache::Cache;
 
-/// <https://w3c.github.io/ServiceWorker/#cachestorage-interface>
+/// <https://w3c.github.io/ServiceWorker/#cachestorage>
 #[dom_struct]
 pub(crate) struct CacheStorage {
     reflector_: Reflector,
@@ -61,7 +62,7 @@ impl CacheStorage {
 
         let task_source = global
             .task_manager()
-            .database_access_task_source()
+            .dom_manipulation_task_source()
             .to_sendable();
         let callback = GenericCallback::new(move |message| {
             let response_listener = response_listener.clone();
@@ -88,33 +89,88 @@ impl CacheStorage {
         let response = match response {
             Some(response) => response,
             None => {
-                if self.pending_promises.borrow_mut().pop_front().is_none() {
+                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
                     error!("No pending promise for CacheStorage response.");
-                }
+                    return;
+                };
+                promise.reject_error(
+                    cx,
+                    Error::Operation(Some("No response from CacheStorage backend.".to_string())),
+                );
                 return;
             },
         };
         match response {
-            // https://w3c.github.io/ServiceWorker/#cache-storage-has
+            // <https://w3c.github.io/ServiceWorker/#cache-storage-has>
             // the steps resolving the promise with the result.
-            // Note: spec forgets to queue a task see https://github.com/w3c/ServiceWorker/issues/1831
+            // Note: spec forgets to queue a task see <https://github.com/w3c/ServiceWorker/issues/1831>
             CacheStorageThreadResponse::HasCacheResult(result) => {
-                let promise = self.pending_promises.borrow_mut().pop_front();
-                if let Some(promise) = promise {
-                    match result {
-                        Ok(has_cache) => {
-                            // Step 2.1:For each key → value of the relevant name to cache map:
-                            // Step 2.1.1: If cacheName matches key, resolve promise with true and abort these steps.
-                            // Step 2.2: Resolve promise with false.
-                            // Note: promise resolved with the result obtained in parallel.
-                            promise.resolve_native(cx, &has_cache);
-                        },
-                        Err(err) => promise.reject_error(cx, Error::Operation(Some(err))),
-                    }
-                } else {
-                    error!("No pending promise for HasCacheResult response.");
-                }
+                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
+                    debug_assert!(false, "No pending promise for HasCacheResult response.");
+                    return;
+                };
+                let Ok(has_cache) = result else {
+                    promise.reject_error(
+                        cx,
+                        Error::Operation(Some(
+                            result
+                                .err()
+                                .unwrap_or_else(|| "HasCacheResult error".to_string()),
+                        )),
+                    );
+                    return;
+                };
+                // Step 2.1:For each key → value of the relevant name to cache map:
+                // Step 2.1.1: If cacheName matches key, resolve promise with true and abort these steps.
+                // Step 2.2: Resolve promise with false.
+                // Note: promise resolved with the result obtained in parallel.
+                promise.resolve_native(cx, &has_cache);
             },
+            // <https://w3c.github.io/ServiceWorker/#cache-storage-open>
+            // the steps resolving the promise with the result.
+            CacheStorageThreadResponse::OpenCacheResult { result, cache_name } => {
+                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
+                    debug_assert!(false, "No pending promise for OpenCacheResult response.");
+                    return;
+                };
+                if result.is_err() {
+                    promise.reject_error(
+                        cx,
+                        Error::Operation(Some(
+                            result
+                                .err()
+                                .unwrap_or_else(|| "OpenCacheResult error".to_string()),
+                        )),
+                    );
+                    return;
+                };
+                // Resolve promise with a new Cache object that represents value.
+                let cache = Cache::new(cx, &self.global(), DOMString::from(cache_name));
+                promise.resolve_native(cx, &cache);
+            },
+            // <https://w3c.github.io/ServiceWorker/#dom-cachestorage-delete>
+            CacheStorageThreadResponse::DeleteCacheResult(result) => {
+                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
+                    debug_assert!(false, "No pending promise for DeleteCacheResult response.");
+                    return;
+                };
+                let Ok(deleted) = result else {
+                    promise.reject_error(
+                        cx,
+                        Error::Operation(Some(
+                            result
+                                .err()
+                                .unwrap_or_else(|| "DeleteCacheResult error".to_string()),
+                        )),
+                    );
+                    return;
+                };
+                promise.resolve_native(cx, &deleted);
+            },
+            CacheStorageThreadResponse::KeysResult(_) => debug_assert!(
+                false,
+                "Unexpected KeysResult response in CacheStorage handle_response."
+            ),
         }
     }
 }
@@ -138,10 +194,14 @@ fn relevant_name_to_cache_map(
         )
         .recv();
     let Ok(response) = message else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Could not obtain a local storage bottle map.".to_string(),
+        )));
     };
     let Ok(proxy_map) = response else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Could not obtain a local storage bottle map.".to_string(),
+        )));
     };
     Ok(proxy_map)
 }
@@ -174,7 +234,10 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
             })
             .is_err()
         {
-            promise.reject_error(cx, Error::Operation(None));
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not run the parallel steps.".to_string())),
+            );
             return promise;
         }
 
@@ -182,6 +245,95 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
             .borrow_mut()
             .push_back(promise.clone());
 
+        promise
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-cachestorage-open>
+    fn Open(&self, cx: &mut JSContext, cache_name: DOMString) -> Rc<Promise> {
+        // Step 1: Let promise be a new promise.
+        let global = self.global();
+        let promise = Promise::new(cx, &global);
+
+        // Step 2: Run the following substeps in parallel:
+        let callback = self.get_or_setup_callback();
+        let origin = global.origin().immutable().clone();
+        let proxy_map = match relevant_name_to_cache_map(&global, origin.clone()) {
+            Ok(proxy_map) => proxy_map,
+            Err(err) => {
+                promise.reject_error(cx, err);
+                return promise;
+            },
+        };
+        if global
+            .storage_threads()
+            .send(CacheStorageThreadMessage::OpenCache {
+                cache_name: cache_name.to_string(),
+                callback,
+                proxy: proxy_map,
+                origin,
+            })
+            .is_err()
+        {
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not run the parallel steps.".to_string())),
+            );
+            return promise;
+        }
+
+        self.pending_promises
+            .borrow_mut()
+            .push_back(promise.clone());
+
+        // Step 3: Return promise.
+        promise
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-cachestorage-delete>
+    fn Delete(&self, cx: &mut JSContext, cache_name: DOMString) -> Rc<Promise> {
+        // Step 1: Let promise be the result of running the algorithm specified in has(cacheName) method with cacheName.
+        // Step 2: Return the result of reacting to promise with a fulfillment handler that,
+        // when called with argument cacheExists, performs the following substeps:
+        // Step 2.1: If cacheExists is false, then
+        // Step 2.1.1: Return false.
+        // Note: we skip the promise, and will run the equivalent steps directly in the backend.
+
+        // Step 2.2: Let cacheJobPromise be a new promise.
+        let global = self.global();
+        let promise = Promise::new(cx, &global);
+
+        // Step 3: Run the following substeps in parallel:
+        let callback = self.get_or_setup_callback();
+        let origin = global.origin().immutable().clone();
+        let proxy_map = match relevant_name_to_cache_map(&global, origin.clone()) {
+            Ok(proxy_map) => proxy_map,
+            Err(err) => {
+                promise.reject_error(cx, err);
+                return promise;
+            },
+        };
+        if global
+            .storage_threads()
+            .send(CacheStorageThreadMessage::DeleteCache {
+                cache_name: cache_name.to_string(),
+                callback,
+                proxy: proxy_map,
+                origin,
+            })
+            .is_err()
+        {
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not run the parallel steps.".to_string())),
+            );
+            return promise;
+        }
+
+        self.pending_promises
+            .borrow_mut()
+            .push_back(promise.clone());
+
+        // Step 4: Return cacheJobPromise.
         promise
     }
 }

@@ -392,7 +392,7 @@ pub(crate) fn generate_pseudo_element_content(
                         let attr_val =
                             element.attribute(&attr.namespace_url, &LocalName::from(attr_name));
                         vec.push(PseudoElementContentItem::Text(
-                            attr_val.map_or("".to_string(), |s| s.to_string()),
+                            attr_val.map_or(String::new(), |s| s.to_string()),
                         ));
                     },
                     ContentItem::Image(image) => {

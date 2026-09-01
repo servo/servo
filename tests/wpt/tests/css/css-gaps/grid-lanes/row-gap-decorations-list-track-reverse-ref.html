@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(4, 60px);
+    grid-lanes-direction: row track-reverse;
+    gap: 10px;
+    width: 40px;
+    background: #cdd5e0;
+  }
+  .lanes > div {
+    width: 40px;
+    background: #5b8def;
+  }
+  .r1 { grid-row: 1; }
+  .r2 { grid-row: 2; }
+  .r3 { grid-row: 3; }
+  .r4 { grid-row: 4; }
+  .row-rule { position: absolute; left: 0; height: 0; width: 40px; }
+</style>
+<div class="lanes">
+  <div class="r1"></div>
+  <div class="r2"></div>
+  <div class="r3"></div>
+  <div class="r4"></div>
+</div>
+<div class="row-rule" style="top: 63px; border-top: 4px solid purple;"></div>
+<div class="row-rule" style="top: 133px; border-top: 4px solid gold;"></div>
+<div class="row-rule" style="top: 203px; border-top: 4px solid blue;"></div>

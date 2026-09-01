@@ -22,3 +22,6 @@ script_traits = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
+
+[lints]
+workspace = true

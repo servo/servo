@@ -13,6 +13,9 @@ tools/docker/Dockerfile @web-platform-tests/wpt-core-team @web-platform-tests/ad
 wasm/core/ @web-platform-tests/wpt-core-team
 wasm/proposals @web-platform-tests/wpt-core-team
 
+# Prevent accidentally touching test262 which is updated by a workflow
+third_party/test262/ @web-platform-tests/wpt-core-team
+
 # GENERATED: interop-tests
 css/css-anchor-position/anchor-as-multicol-crash.html @web-platform-tests/interop
 css/css-anchor-position/anchor-scroll-composited-scrolling-001-crash.html @web-platform-tests/interop

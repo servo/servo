@@ -27,6 +27,9 @@ servo-config = { workspace = true }
 tokio = { workspace = true, features = ["rt", "sync", "time"], optional = true }
 uuid = { workspace = true }
 
+[lints]
+workspace = true
+
 [features]
 default = ["bluetooth-test"]
 bluetooth-test = ["blurmock"]

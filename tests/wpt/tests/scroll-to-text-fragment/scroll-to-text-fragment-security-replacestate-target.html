@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Scroll to text fragment security replaceState target</title>
+  <script src="stash.js"></script>
+  <style>
+    body {
+      margin: 0;
+    }
+    .spacer {
+      height: 3000px;
+    }
+    #text {
+      font-size: 24px;
+      background-color: yellow;
+    }
+  </style>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const action = params.get("action");
+    const key = params.get("key");
+
+    if (action === "replaceState-head") {
+      history.replaceState(null, "", location.pathname + "?cleaned=1");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (action === "replaceState-domcontentloaded") {
+        history.replaceState(null, "", location.pathname + "?cleaned=1");
+      }
+    });
+
+    function isInView(element) {
+      const rect = element.getBoundingClientRect();
+      return rect.top >= 0 && rect.top <= window.innerHeight
+          && rect.left >= 0 && rect.left <= window.innerWidth;
+    }
+
+    function checkScroll() {
+      let position = 'unknown';
+      if (window.scrollY === 0) {
+        position = 'top';
+      } else if (isInView(document.getElementById('text'))) {
+        position = 'text';
+      }
+
+      const results = {
+        action: action,
+        scrollPosition: position,
+        scrollY: window.scrollY,
+        href: window.location.href
+      };
+      stashResultsThenClose(key, results);
+    }
+
+    window.addEventListener("load", () => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(checkScroll);
+      });
+    });
+  </script>
+</head>
+<body>
+  <script>
+    if (action === "replaceState-body-start") {
+      history.replaceState(null, "", location.pathname + "?cleaned=1");
+    }
+  </script>
+  <div class="spacer"></div>
+  <p id="text">target text to match</p>
+  <div class="spacer"></div>
+  <script>
+    if (action === "replaceState-body-end") {
+      history.replaceState(null, "", location.pathname + "?cleaned=1");
+    }
+  </script>
+</body>
+</html>

@@ -91,7 +91,8 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
             return Ok(());
         };
 
-        valid_name = valid_name.to_lowercase();
+        // Validated tokens are always ASCII.
+        valid_name.make_ascii_lowercase();
 
         // 3. If headers’s guard is "request-no-cors":
         if self.guard.get() == Guard::RequestNoCors {
@@ -142,7 +143,8 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
             return Ok(());
         };
 
-        valid_name = valid_name.to_lowercase();
+        // Validated tokens are always ASCII.
+        valid_name.make_ascii_lowercase();
 
         // Step 2 If this’s guard is "request-no-cors", name is not a no-CORS-safelisted request-header name,
         // and name is not a privileged no-CORS request-header name, then return.
@@ -208,7 +210,8 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         else {
             return Ok(());
         };
-        valid_name = valid_name.to_lowercase();
+        // Validated tokens are always ASCII.
+        valid_name.make_ascii_lowercase();
 
         // 3. If this’s guard is "request-no-cors" and (name, value) is not a
         // no-CORS-safelisted request-header, then return.
@@ -378,14 +381,19 @@ impl Iterable for Headers {
 
     fn get_value_at_index(&self, _cx: &mut JSContext, index: u32) -> ByteString {
         let sorted_header_vec = self.sort_and_combine();
-        let value = sorted_header_vec[index as usize].1.clone();
-        ByteString::new(value)
+        ByteString::new(sorted_header_vec.into_iter().nth(index as usize).unwrap().1)
     }
 
     fn get_key_at_index(&self, _cx: &mut JSContext, index: u32) -> ByteString {
         let sorted_header_vec = self.sort_and_combine();
-        let key = sorted_header_vec[index as usize].0.clone();
-        ByteString::new(key.into_bytes().to_vec())
+        ByteString::new(
+            sorted_header_vec
+                .into_iter()
+                .nth(index as usize)
+                .unwrap()
+                .0
+                .into_bytes(),
+        )
     }
 }
 

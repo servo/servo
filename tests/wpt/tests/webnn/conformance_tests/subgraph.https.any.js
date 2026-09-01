@@ -2614,6 +2614,64 @@ const subgraphTests = [
       }
     }
   },
+  {
+    'name': 'identity + relu',
+    'graph': {
+      'inputs': {
+        'identityInput': {
+          'data': [-4, -1, 1, 4],
+          'descriptor': {shape: [4], dataType: 'float32'}
+        }
+      },
+      'operators': [
+        {
+          'name': 'identity',
+          'arguments': [{'input': 'identityInput'}],
+          'outputs': 'identityOutput'
+        },
+        {
+          'name': 'relu',
+          'arguments': [{'input': 'identityOutput'}],
+          'outputs': 'output'
+        },
+      ],
+      'expectedOutputs': {
+        'output': {
+          'data': [0, 0, 1, 4],
+          'descriptor': {shape: [4], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'identity + relu / float16',
+    'graph': {
+      'inputs': {
+        'identityInput': {
+          'data': [-4, -1, 1, 4],
+          'descriptor': {shape: [4], dataType: 'float16'}
+        }
+      },
+      'operators': [
+        {
+          'name': 'identity',
+          'arguments': [{'input': 'identityInput'}],
+          'outputs': 'identityOutput'
+        },
+        {
+          'name': 'relu',
+          'arguments': [{'input': 'identityOutput'}],
+          'outputs': 'output'
+        },
+      ],
+      'expectedOutputs': {
+        'output': {
+          'data': [0, 0, 1, 4],
+          'descriptor': {shape: [4], dataType: 'float16'}
+        }
+      }
+    }
+  },
 ];
 
 webnn_conformance_test(

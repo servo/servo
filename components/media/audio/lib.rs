@@ -41,6 +41,7 @@ pub mod offline_sink;
 pub mod oscillator_node;
 pub mod panner_node;
 pub mod param;
+pub mod periodic_wave;
 pub mod render_thread;
 pub mod sink;
 pub mod stereo_panner;

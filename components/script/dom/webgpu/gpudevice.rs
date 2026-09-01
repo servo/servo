@@ -683,7 +683,10 @@ impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
     ) {
         match response {
             Ok(None) | Err(PopError::Lost) => promise.resolve_native(cx, &None::<Option<GPUError>>),
-            Err(PopError::Empty) => promise.reject_error(cx, Error::Operation(None)),
+            Err(PopError::Empty) => promise.reject_error(
+                cx,
+                Error::Operation(Some("Error scope stack is empty".into())),
+            ),
             Ok(Some(error)) => {
                 let error = GPUError::from_error(cx, &self.global(), error);
                 promise.resolve_native(cx, &error);

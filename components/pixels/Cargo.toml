@@ -26,6 +26,9 @@ webrender_api = { workspace = true }
 [dev-dependencies]
 criterion = { workspace = true, features = ["html_reports"] }
 
+[lints]
+workspace = true
+
 [[bench]]
 name = "unmultiply_inplace"
 path = "benches/unmultiply_inplace.rs"

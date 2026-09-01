@@ -495,6 +495,14 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
                 families.push("Noto Sans CJK SC");
                 families.push("Noto Sans Mono CJK SC");
             },
+            // Note: CJKCompatibilityIdeographsSupplement & CJKRadicalsSupplement are not included because
+            // neither HarmonyOS Sans SC nor TC cover the entire range of these blocks.
+            // Whereas the CJKUnifiedIdeographs and its extensions are not included because they contain regular characters and
+            // have been covered in the previous if block, at least for Chinese characters.
+            UnicodeBlock::CJKCompatibility |
+            UnicodeBlock::CJKCompatibilityForms |
+            UnicodeBlock::CJKCompatibilityIdeographs |
+            UnicodeBlock::CJKStrokes |
             UnicodeBlock::CJKSymbolsandPunctuation => {
                 families.push("HarmonyOS Sans SC");
                 families.push("HarmonyOS Sans TC");

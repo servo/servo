@@ -32,6 +32,7 @@ use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister,
     HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
+use bytes::Bytes;
 use chrono::{DateTime, Local};
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
@@ -42,8 +43,8 @@ use devtools_traits::{
 use embedder_traits::user_contents::{UserContentManagerId, UserContents, UserScript};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FocusSequenceNumber,
-    InputEventOutcome, JavaScriptEvaluationError, JavaScriptEvaluationId, LoadStatus,
-    MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
+    InputEventOutcome, JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType,
+    Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use encoding_rs::Encoding;
 use fonts::{FontContext, SystemFontServiceProxy, WebFontLoadEvent};
@@ -113,9 +114,7 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
-};
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
@@ -129,9 +128,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
 use crate::dom::document::focus::FocusableArea;
-use crate::dom::document::{
-    Document, DocumentSource, HasBrowsingContext, IsHTMLDocument, RenderingUpdateReason,
-};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument, RenderingUpdateReason};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
@@ -344,11 +341,6 @@ pub struct ScriptThread {
     #[cfg(feature = "webxr")]
     webxr_registry: Option<webxr_api::Registry>,
 
-    /// A list of pipelines containing documents that finished loading all their blocking
-    /// resources during a turn of the event loop.
-    /// TODO(43149): Remove when document replacement is implemented
-    docs_with_no_blocking_loads: DomRefCell<FxHashSet<Dom<Document>>>,
-
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
 
@@ -555,15 +547,6 @@ impl ScriptThread {
 
     pub(crate) fn shared_style_locks(&self) -> &SharedRwLocks {
         &self.shared_style_locks
-    }
-
-    pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .docs_with_no_blocking_loads
-                .borrow_mut()
-                .insert(Dom::from_ref(doc));
-        })
     }
 
     pub(crate) fn page_headers_available(
@@ -978,7 +961,6 @@ impl ScriptThread {
                     webgl_chan: state.webgl_chan,
                     #[cfg(feature = "webxr")]
                     webxr_registry: state.webxr_registry,
-                    docs_with_no_blocking_loads: Default::default(),
                     custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
                     paint_api: state.cross_process_paint_api,
                     profile_script_events: opts
@@ -1514,20 +1496,6 @@ impl ScriptThread {
             window
                 .upcast::<GlobalScope>()
                 .perform_a_dom_garbage_collection_checkpoint();
-        }
-
-        // TODO(43149): Remove when document replacement is implemented
-        {
-            // https://html.spec.whatwg.org/multipage/#the-end step 6
-            {
-                let docs = self.docs_with_no_blocking_loads.borrow();
-                for document in docs.iter() {
-                    let mut realm = enter_auto_realm(cx, &**document);
-                    let cx = &mut realm.current_realm();
-                    document.maybe_queue_document_completion(cx);
-                }
-            }
-            self.docs_with_no_blocking_loads.borrow_mut().clear();
         }
 
         let built_any_display_lists =
@@ -2265,9 +2233,16 @@ impl ScriptThread {
                     node_id.as_deref(),
                 )
             },
-            DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
-                self.debugger_global
-                    .fire_eval(cx, code.into(), id, None, frame_actor_id, reply);
+            DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, eager, reply) => {
+                self.debugger_global.fire_eval(
+                    cx,
+                    code.into(),
+                    id,
+                    None,
+                    frame_actor_id,
+                    eager,
+                    reply,
+                );
             },
             DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
                 self.debugger_global.fire_get_possible_breakpoints(
@@ -2685,7 +2660,7 @@ impl ScriptThread {
             WebDriverScriptCommand::ExecuteScriptWithCallback(script, reply) => {
                 let window = documents.find_window(pipeline_id);
                 drop(documents);
-                webdriver_handlers::handle_execute_async_script(window, script, reply, cx);
+                webdriver_handlers::handle_execute_script(window, script, reply, cx);
             },
             WebDriverScriptCommand::SetProtocolHandlerAutomationMode(mode) => {
                 webdriver_handlers::set_protocol_handler_automation_mode(
@@ -3621,12 +3596,6 @@ impl ScriptThread {
             .as_ref()
             .map(|referrer| referrer.clone().into_string());
 
-        let document_source = if incomplete.load_data.is_initial_about_blank {
-            DocumentSource::NotFromParser
-        } else {
-            DocumentSource::FromParser
-        };
-
         // Step 9. Let document be a new Document, with
         // - content type: contentType
         // - origin: navigationParams's origin
@@ -3646,7 +3615,6 @@ impl ScriptThread {
             content_type,
             last_modified,
             incomplete.activity,
-            document_source,
             loader,
             referrer,
             Some(metadata.status.raw_code()),
@@ -3660,21 +3628,6 @@ impl ScriptThread {
             incomplete.pipeline_id,
             image_cache,
         );
-
-        // Only send loading-related messages if this document is actually in the loading state.
-        // `about:blank` documents should never be in that state when starting.
-        if !incomplete.load_data.is_initial_about_blank {
-            debug_assert_eq!(document.ReadyState(), DocumentReadyState::Loading);
-            if window.is_top_level() {
-                window.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
-                    incomplete.webview_id,
-                    LoadStatus::Started,
-                ));
-                window.send_to_embedder(EmbedderMsg::Status(incomplete.webview_id, None));
-            }
-        } else {
-            debug_assert_eq!(document.ReadyState(), DocumentReadyState::Complete);
-        }
 
         // Step 8. Let loadTimingInfo be a new document load timing info with its
         //   navigation start time set to navigationParams's response's timing
@@ -4007,7 +3960,7 @@ impl ScriptThread {
             return false;
         }
         let Ok(ConversionResult::Success(body)) =
-            DOMString::safe_from_jsval(cx, return_value.handle(), StringificationBehavior::Empty)
+            DOMString::from_jsval(cx, return_value.handle(), StringificationBehavior::Empty)
         else {
             return false;
         };
@@ -4118,7 +4071,7 @@ impl ScriptThread {
                 self.handle_fetch_metadata(cx, pipeline_id, request_id, metadata)
             },
             FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
-                self.handle_fetch_chunk(cx, pipeline_id, request_id, chunk.0)
+                self.handle_fetch_chunk(cx, pipeline_id, request_id, chunk)
             },
             FetchResponseMsg::ProcessResponseEOF(request_id, eof, timing) => {
                 self.handle_fetch_eof(cx, pipeline_id, request_id, eof, timing)
@@ -4160,7 +4113,7 @@ impl ScriptThread {
         cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         request_id: RequestId,
-        chunk: Vec<u8>,
+        chunk: Bytes,
     ) {
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.0.borrow_mut();
         let parser = incomplete_parser_contexts
@@ -4376,7 +4329,7 @@ impl ScriptThread {
         context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
-        context.process_response_chunk(cx, dummy_request_id, chunk);
+        context.process_response_chunk(cx, dummy_request_id, Bytes::copy_from_slice(&chunk));
         context.process_response_eof(
             cx,
             dummy_request_id,
