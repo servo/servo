@@ -1400,6 +1400,10 @@ impl Fragment {
             return;
         }
 
+        if !fragment.run_data.paint_caret {
+            return;
+        }
+
         let insertion_point_rect = Rect::new(
             containing_block_rect.origin + Vector2D::new(start_x + fragment_x_offset, Au::zero()),
             Size2D::new(

@@ -316,7 +316,7 @@ impl InlineFormattingContextBuilder {
         container_info: &NodeAndStyleInfo<'dom>,
         layout_context: &LayoutContext,
     ) -> bool {
-        let selection = info.node.selection_for_text_node();
+        let selection = info.node.text_node_selection();
         if self.has_processed_first_letter || !container_info.pseudo_element_chain().is_empty() {
             self.push_text(text, info, selection);
             return false;
@@ -474,6 +474,7 @@ impl InlineFormattingContextBuilder {
                 character_range_in_ifc_text: new_character_range,
                 original_offset: original_size_before,
                 selection: AtomicRefCell::new(selection),
+                paint_caret: info.node.text_node_paints_caret(),
                 offset_map: self.offset_map.clone(),
             }
             .into(),

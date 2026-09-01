@@ -247,13 +247,17 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         self.node.text_content()
     }
 
-    fn selection_for_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
+    fn text_node_selection(&self) -> Option<RangeAny<Utf32CodeUnits>> {
         // Pseudo-elements do not ever have a selection.
         if !self.pseudo_element_chain.is_empty() {
             return None;
         }
 
         self.node.selection_for_text_node()
+    }
+
+    fn text_node_paints_caret(&self) -> bool {
+        self.node.text_node_paints_caret()
     }
 
     fn image_url(&self) -> Option<ServoUrl> {

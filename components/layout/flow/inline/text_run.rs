@@ -335,6 +335,8 @@ pub(crate) struct SharedTextRunData {
     /// selection.
     // TODO: make this more compact with a pair of `AtomicUsize`?
     pub selection: AtomicRefCell<Option<RangeAny<Utf32CodeUnits>>>,
+    /// Whether a caret should be painted when the selection is an empty range (start == end)
+    pub paint_caret: bool,
     /// The [`OffsetMap`] used when creating this `TextRun`'s `InlineFormattingContext`. This
     /// is used for mapping between DOM text offsets and layout text offsets (and vice-versa).
     pub offset_map: ArcRefCell<OffsetMap>,
@@ -536,8 +538,8 @@ impl TextRun {
 
             if character == '\n' {
                 finish_current_segment(&mut current, &mut results);
-                let has_selection = self.run_data.selection.borrow().is_some();
-                results.push(TextRunItem::LineBreak(has_selection.then(|| {
+                let paint_caret = self.run_data.paint_caret;
+                results.push(TextRunItem::LineBreak(paint_caret.then(|| {
                     CaretPlaceholder {
                         run_data: self.run_data.clone(),
                         base_fragment_info: self.base_fragment_info,

@@ -173,7 +173,11 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// For a text node, returns which range of this text is part of the document selection
     ///
     /// Returned offsets are counted in `char`s in the `self.text_content()` string.
-    fn selection_for_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>>;
+    fn text_node_selection(&self) -> Option<RangeAny<Utf32CodeUnits>>;
+
+    /// For a text node, whether a caret should be painted when the selection is an empty range
+    /// (start == end)
+    fn text_node_paints_caret(&self) -> bool;
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     fn image_url(&self) -> Option<ServoUrl>;
