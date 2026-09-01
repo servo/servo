@@ -3143,7 +3143,7 @@ impl Window {
         &self,
         element: TrustedNodeAddress,
     )-> Option<accesskit::Node> {
-        self.layout().set_needs_accessibility_update();
+        self.layout().set_force_accessibility_update();
         self.layout_reflow(QueryMsg::AccessKitNodeQuery);
         self.layout.borrow().query_accesskit_node(element)
     }
