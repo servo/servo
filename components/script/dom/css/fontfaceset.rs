@@ -351,19 +351,24 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
 
         // Step 2. Return promise. Complete the rest of these steps asynchronously.
         #[derive(MallocSizeOf, JSTraceable)]
+        #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
         struct LoadPromiseFulfillmentHandler {
             /// The font faces that this should wait on.
             ///
             /// (Our current implementation waits for `document.fonts.ready` instead)
-            font_face_objects: Vec<DomRoot<FontFace>>,
+            font_face_objects: Vec<Dom<FontFace>>,
 
             #[conditional_malloc_size_of]
             load_promise: Rc<Promise>,
         }
         impl Callback for LoadPromiseFulfillmentHandler {
             fn callback(&self, cx: &mut CurrentRealm, _: Handle<Value>) {
-                self.load_promise
-                    .resolve_native(cx, &self.font_face_objects);
+                let font_face_objects: Vec<DomRoot<FontFace>> = self
+                    .font_face_objects
+                    .iter()
+                    .map(|font_face| font_face.as_rooted())
+                    .collect();
+                self.load_promise.resolve_native(cx, &font_face_objects);
             }
         }
 
@@ -411,7 +416,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                     cx,
                     &global,
                     Some(Box::new(LoadPromiseFulfillmentHandler {
-                        font_face_objects,
+                        font_face_objects: font_face_objects.into_iter().map(|font_face| font_face.as_traced()).collect(),
                         load_promise,
                     })),
                     None,
