@@ -4,7 +4,7 @@
 
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use servo_base::generic_channel::SendResult;
+use servo_base::generic_channel::{SendError, SendResult};
 
 use crate::time::{ProfilerCategory, ProfilerChan};
 use crate::time_profile;
@@ -22,10 +22,10 @@ impl<T> GenericCallback<T>
 where
     T: for<'de> Deserialize<'de> + Serialize + Send + 'static,
 {
-    pub fn new<F: FnMut(Result<T, ipc_channel::IpcError>) + Send + 'static>(
+    pub fn new<F: FnMut(Result<T, SendError>) + Send + 'static>(
         time_profiler_chan: ProfilerChan,
         callback: F,
-    ) -> Result<Self, ipc_channel::IpcError> {
+    ) -> Result<Self, SendError> {
         Ok(GenericCallback {
             callback: servo_base::generic_channel::GenericCallback::new(callback)?,
             time_profiler_chan,

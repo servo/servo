@@ -9217,7 +9217,6 @@ dependencies = [
  "gleam",
  "glow",
  "image",
- "ipc-channel",
  "log",
  "malloc_size_of_derive",
  "parking_lot",

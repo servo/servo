@@ -318,7 +318,7 @@ impl IDBTransaction {
         // connection callbacks) instead of creating one per transaction operation.
         let callback = GenericCallback::new(
             global.time_profiler_chan().clone(),
-            move |message: Result<TxnCompleteMsg, ipc_channel::IpcError>| {
+            move |message: Result<TxnCompleteMsg, SendError>| {
                 let this = this.clone();
                 let task_source = task_source.clone();
                 task_source.queue(task!(handle_commit_result: move |cx| {
@@ -522,7 +522,7 @@ impl IDBTransaction {
             .to_sendable();
         let callback = GenericCallback::new(
             global.time_profiler_chan().clone(),
-            move |message: Result<TxnCompleteMsg, ipc_channel::IpcError>| {
+            move |message: Result<TxnCompleteMsg, SendError>| {
                 let this = this.clone();
                 let task_source = task_source.clone();
                 task_source.queue(task!(handle_abort_result: move || {
@@ -733,7 +733,7 @@ impl IDBTransaction {
             .to_sendable();
         GenericCallback::new(
             self.global().time_profiler_chan().clone(),
-            move |error: Result<BackendError, ipc_channel::IpcError>| {
+            move |error: Result<BackendError, SendError>| {
                 let Ok(error) = error else {
                     return;
                 };
