@@ -441,7 +441,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-textlength>
     fn TextLength(&self) -> u32 {
-        self.textinput.borrow().len_utf16().0 as u32
+        self.textinput.borrow().len_utf16().get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -454,7 +454,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.selection().dom_start().map(|start| start.0 as u32)
+        self.selection().dom_start().map(|start| start.get())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
@@ -465,7 +465,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.selection().dom_end().map(|end| end.0 as u32)
+        self.selection().dom_end().map(|end| end.get())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>

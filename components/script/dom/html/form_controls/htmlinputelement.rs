@@ -762,7 +762,7 @@ impl HTMLInputElement {
         }
 
         let mut failed_flags = ValidationFlags::empty();
-        let Utf16CodeUnits(value_len) = textinput.len_utf16();
+        let value_len = usize::from(textinput.len_utf16());
         let min_length = self.MinLength();
         let max_length = self.MaxLength();
 
@@ -1469,18 +1469,19 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.selection().dom_start().map(|start| start.0 as u32)
+        self.selection().dom_start().map(|start| start.get())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, _cx: &mut JSContext, start: Option<u32>) -> ErrorResult {
-        self.selection()
-            .set_dom_start(start.map(Utf16CodeUnits::from))
+        self.selection().set_dom_start(
+            start.map(|start| Utf16CodeUnits::new(start).expect("SetSelectionStart arg overflow")),
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.selection().dom_end().map(|end| end.0 as u32)
+        self.selection().dom_end().map(|end| end.get())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
@@ -1505,8 +1506,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
         self.selection().set_dom_range(
-            Utf16CodeUnits::from(start),
-            Utf16CodeUnits::from(end),
+            Utf16CodeUnits::new(start).expect("SetSelectionRange arg overflow"),
+            Utf16CodeUnits::new(end).expect("SetSelectionRange arg overflow"),
             direction,
         )
     }
@@ -1527,8 +1528,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     ) -> ErrorResult {
         self.selection().set_dom_range_text(
             replacement,
-            Some(Utf16CodeUnits::from(start)),
-            Some(Utf16CodeUnits::from(end)),
+            Some(Utf16CodeUnits::new(start).expect("SetRangeText arg overflow")),
+            Some(Utf16CodeUnits::new(end).expect("SetRangeText arg overflow")),
             selection_mode,
         )
     }

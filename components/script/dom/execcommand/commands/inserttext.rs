@@ -128,7 +128,7 @@ pub(crate) fn execute_insert_text_command(
         // Step 13.3. Call extend(node, offset + 1) on the context object's selection.
         // Note: We're doing this per UTF-8 character instead of per UTF-16 code unit.
         if selection
-            .Extend(cx, &node, offset + (value.len_utf16().0 as u32))
+            .Extend(cx, &node, offset + (value.len_utf16().get()))
             .is_err()
         {
             unreachable!("Must always be able to extend the selection");
@@ -160,7 +160,7 @@ pub(crate) fn execute_insert_text_command(
         // Step 14.5. Call extend(text, 1) on the context object's selection.
         // Note: We're doing this per UTF-8 character instead of per UTF-16 code unit.
         if selection
-            .Extend(cx, text, value.len_utf16().0 as u32)
+            .Extend(cx, text, value.len_utf16().get())
             .is_err()
         {
             unreachable!("Must always be able to extend the selection");

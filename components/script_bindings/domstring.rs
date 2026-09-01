@@ -425,21 +425,22 @@ impl DOMString {
     }
 
     /// The length of this string in UTF-8 code units, each one being one byte in size.
-    ///
-    /// Note: This is different than the number of Unicode characters (or code points). A
-    /// character may require multiple UTF-8 code units.
-    pub fn len(&self) -> usize {
-        self.encoded_bytes().len()
-    }
-
-    /// The length of this string in UTF-8 code units, each one being one byte in size.
     /// This method is the same as [`DOMString::len`], but the result is wrapped in a
     /// `Utf8CodeUnits` to be used in code that mixes different kinds of offsets.
     ///
     /// Note: This is different than the number of Unicode characters (or code points). A
     /// character may require multiple UTF-8 code units.
     pub fn len_utf8(&self) -> Utf8CodeUnits {
-        Utf8CodeUnits(self.len())
+        let len = match self.encoded_bytes() {
+            EncodedBytes::Utf8(bytes) => bytes.len(),
+            EncodedBytes::Latin1(bytes) => bytes
+                .iter()
+                // Latin-1 bytes 0x00 to 0x7F are ASCII-compatible and UTF-8-compatible
+                // Latin-1 bytes 0x80 to 0xFF convert to two-bytes UTF-8 sequences
+                .map(|&byte| if byte < 128 { 1 } else { 2 })
+                .sum::<usize>(),
+        };
+        Utf8CodeUnits::try_from(len).expect("DOMString length overflow")
     }
 
     /// The length of this string in UTF-16 code units, each one being one two bytes in size.
@@ -447,7 +448,7 @@ impl DOMString {
     /// Note: This is different than the number of Unicode characters (or code points). A
     /// character may require multiple UTF-16 code units.
     pub fn len_utf16(&self) -> Utf16CodeUnits {
-        Utf16CodeUnits(self.str().chars().map(char::len_utf16).sum())
+        Utf16CodeUnits::length_of(&self.str()).expect("DOMString length overflow")
     }
 
     /// This works the same as `make_ascii_lowercase` on std::string. This means that any character in [A-Z]
