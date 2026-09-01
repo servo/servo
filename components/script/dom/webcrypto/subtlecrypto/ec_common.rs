@@ -229,6 +229,7 @@ pub(crate) fn import_key(
 
     // Step 3.
     let key = match format {
+        // If format is "spki":
         KeyFormat::Spki => {
             match ec_algorithm {
                 EcAlgorithm::Ecdsa => {
@@ -345,6 +346,7 @@ pub(crate) fn import_key(
                 handle,
             )
         },
+        // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
             match ec_algorithm {
                 EcAlgorithm::Ecdsa => {
@@ -474,6 +476,7 @@ pub(crate) fn import_key(
                 handle,
             )
         },
+        // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 3.1.
             // If keyData is a JsonWebKey dictionary:
@@ -763,6 +766,7 @@ pub(crate) fn import_key(
                 handle,
             )
         },
+        // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 3.1. If the namedCurve member of normalizedAlgorithm is not a named curve, then
             // throw a DataError.
