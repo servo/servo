@@ -310,6 +310,14 @@ impl MemoryCacheLifecycle {
 impl Lifecycle<CacheKey, CacheEntry> for MemoryCacheLifecycle {
     type RequestState = ();
 
+    // Cached Resources that are not complete could get evicted which means they cannot fill their body.
+    // We allow unfinished resources to stay in the cache.
+    fn is_pinned(&self, _: &CacheKey, val: &CacheEntry) -> bool {
+        val.blocking_read()
+            .iter()
+            .any(|resource| !resource.is_done())
+    }
+
     fn on_evict(&self, _state: &mut Self::RequestState, key: CacheKey, value: CacheEntry) {
         if let Some(disk_cache_data) = &self.disk_cache {
             let disk_cache_data = disk_cache_data.clone();
