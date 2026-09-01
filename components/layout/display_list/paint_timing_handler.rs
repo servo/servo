@@ -442,13 +442,6 @@ impl PaintTimingHandler {
         painted_images: Vec<PendingImageRecord>,
         painted_text_nodes: HashMap<OpaqueNode, TextRecord>,
     ) {
-        // > Note: Each pending image record in paintedImages and text
-        // > element in paintedTextNodes will only be reported exactly
-        // > once, from mark paint timing, for the first paint where the
-        // > element is considered paintable (i.e. has opacity and
-        // > visibility) and contentful (i.e. image resource or blocking
-        // > fonts are sufficiently loaded).
-
         // Step 1. Let window be document’s relevant global object.
         // Step 2. If either of window’s has dispatched scroll event or has
         // dispatched input event is true, return.
