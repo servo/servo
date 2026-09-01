@@ -12,13 +12,14 @@
 //! (ie. address equality for the native objects is meaningless).
 
 use std::cell::{Cell, RefCell};
-use std::ops::DerefMut;
+use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::{ConversionResult, FromJSValConvertibleRc, ToJSValConvertible};
+use js::gc::MutableHandleValue;
 use js::jsapi::{
     CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JSContext as RawJSContext,
     JSObject, PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
@@ -46,6 +47,52 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
 use crate::runtime::microtask::MicrotaskRunnable;
+
+pub(crate) struct RootedPromise(Rc<Promise>);
+
+impl Deref for RootedPromise {
+    type Target = Rc<Promise>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<RootedPromise> for Rc<Promise> {
+    fn from(root: RootedPromise) -> Self {
+        root.0
+    }
+}
+
+impl RootedPromise {
+    pub(crate) fn to_traced(&self) -> TracedPromise {
+        TracedPromise(self.0.clone())
+    }
+}
+
+impl ToJSValConvertible for RootedPromise {
+    fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue<'_>) {
+        self.0.to_jsval(cx, rval)
+    }
+}
+
+#[derive(Clone, MallocSizeOf, JSTraceable)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct TracedPromise(#[conditional_malloc_size_of] Rc<Promise>);
+
+impl js::rust::Rootable for TracedPromise {}
+
+impl TracedPromise {
+    pub(crate) fn root(&self) -> RootedPromise {
+        RootedPromise(self.0.clone())
+    }
+}
+
+impl std::ops::Deref for TracedPromise {
+    type Target = Rc<Promise>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[dom_struct]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
@@ -96,6 +143,10 @@ impl Drop for Promise {
 }
 
 impl Promise {
+    pub(crate) fn new_rooted(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
+        RootedPromise(Self::new(cx, global))
+    }
+
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
@@ -109,8 +160,13 @@ impl Promise {
         Promise::new_with_js_promise(cx, obj.handle())
     }
 
-    pub(crate) fn duplicate(&self, cx: &mut JSContext) -> Rc<Promise> {
-        Promise::new_with_js_promise(cx, self.reflector().get_jsobject())
+    #[expect(dead_code)]
+    pub(crate) fn new_in_realm_rooted(current_realm: &mut CurrentRealm) -> RootedPromise {
+        RootedPromise(Self::new_in_realm(current_realm))
+    }
+
+    pub(crate) fn duplicate(&self, cx: &mut JSContext) -> RootedPromise {
+        Promise::new_with_js_promise_rooted(cx, self.reflector().get_jsobject())
     }
 
     #[expect(unsafe_code)]
@@ -129,6 +185,13 @@ impl Promise {
         }
         promise.initialize(cx);
         promise
+    }
+
+    pub(crate) fn new_with_js_promise_rooted(
+        cx: &mut JSContext,
+        obj: HandleObject,
+    ) -> RootedPromise {
+        RootedPromise(Self::new_with_js_promise(cx, obj))
     }
 
     #[expect(unsafe_code)]
@@ -170,6 +233,14 @@ impl Promise {
         Promise::new_with_js_promise(cx, p.handle())
     }
 
+    pub(crate) fn new_resolved_rooted(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        value: impl ToJSValConvertible,
+    ) -> RootedPromise {
+        RootedPromise(Self::new_resolved(cx, global, value))
+    }
+
     #[expect(unsafe_code)]
     pub(crate) fn new_rejected(
         cx: &mut JSContext,
@@ -183,6 +254,15 @@ impl Promise {
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseReject(cx, rval.handle()) });
         assert!(!p.handle().is_null());
         Promise::new_with_js_promise(cx, p.handle())
+    }
+
+    #[expect(dead_code)]
+    pub(crate) fn new_rejected_rooted(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        value: impl ToJSValConvertible,
+    ) -> RootedPromise {
+        RootedPromise(Self::new_rejected(cx, global, value))
     }
 
     pub(crate) fn resolve_native<T>(&self, cx: &mut JSContext, val: &T)
@@ -506,7 +586,7 @@ impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask {
 fn wait_for_all(
     cx: &mut CurrentRealm,
     global: &GlobalScope,
-    promises: Vec<Rc<Promise>>,
+    promises: Vec<RootedPromise>,
     success_steps: WaitForAllSuccessSteps,
     failure_steps: WaitForAllFailureSteps,
 ) {
@@ -593,10 +673,10 @@ fn wait_for_all(
 pub(crate) fn wait_for_all_promise(
     cx: &mut CurrentRealm,
     global: &GlobalScope,
-    promises: Vec<Rc<Promise>>,
-) -> Rc<Promise> {
+    promises: Vec<RootedPromise>,
+) -> RootedPromise {
     // Let promise be a new promise of type Promise<sequence<T>> in realm.
-    let promise = Promise::new(cx, global);
+    let promise = Promise::new_rooted(cx, global);
     let success_promise = promise.clone();
     let failure_promise = promise.clone();
 

@@ -78,7 +78,7 @@ pub(crate) trait ReadableStreamGenericReader {
             stream.expect("Reader should have a stream when generic cancel is called into.");
 
         // Return ! ReadableStreamCancel(stream, reason).
-        stream.cancel(cx, global, reason)
+        stream.cancel(cx, global, reason).into()
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>

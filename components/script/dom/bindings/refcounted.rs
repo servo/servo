@@ -37,7 +37,7 @@ use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::trace_reflector;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::tasks::task::TaskOnce;
 
 mod dummy {
@@ -84,6 +84,12 @@ pub struct TrustedPromise {
 }
 
 unsafe impl Send for TrustedPromise {}
+
+impl From<RootedPromise> for TrustedPromise {
+    fn from(promise: RootedPromise) -> Self {
+        TrustedPromise::new((*promise).clone())
+    }
+}
 
 impl TrustedPromise {
     /// Create a new `TrustedPromise` instance from an existing DOM object. The object will
