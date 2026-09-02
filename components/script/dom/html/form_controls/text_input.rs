@@ -430,7 +430,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         // For now, use a bounded end unconditionally instead.
         // let end = (end != rope.last_index()).then(|| rope.index_to_character_offset(end));
         let end = Some(rope.index_to_character_offset(end));
-        RangeAny { start, end }
+        RangeAny::new(start, end)
     }
 
     /// The state of the current selection. Can be used to compare whether selection state has changed.

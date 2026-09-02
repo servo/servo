@@ -343,10 +343,8 @@ impl InlineFormattingContextBuilder {
         if first_letter_range.start != 0 {
             let leading_whitespace_range = 0..first_letter_range.start;
             let leading_whitespace_selection_range = selection.and_then(|range| {
-                let leading_whitespace_range_u32 = RangeAny {
-                    start: None,
-                    end: Some(first_letter_range_u32.start),
-                };
+                let leading_whitespace_range_u32 =
+                    RangeAny::new(None, Some(first_letter_range_u32.start));
                 range.intersect(leading_whitespace_range_u32)
             });
 
@@ -381,10 +379,8 @@ impl InlineFormattingContextBuilder {
 
         // Now push the non-first-letter text.
         let remaining_selection_range = selection.and_then(|range| {
-            let remaining_text_range_u32 = RangeAny {
-                start: Some(first_letter_range_u32.end),
-                end: range.end,
-            };
+            let remaining_text_range_u32 =
+                RangeAny::new(Some(first_letter_range_u32.end), range.end());
             range
                 .intersect(remaining_text_range_u32)
                 .map(|range| range.map(|offset| offset - first_letter_range_u32.end))

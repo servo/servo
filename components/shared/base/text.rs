@@ -4,7 +4,7 @@
 
 use std::fmt;
 use std::iter::Sum;
-use std::mem::size_of;
+use std::mem::{MaybeUninit, size_of};
 use std::ops::{Add, AddAssign, Range, Sub, SubAssign};
 
 use malloc_size_of_derive::MallocSizeOf;
@@ -53,60 +53,147 @@ pub fn is_cjk(codepoint: char) -> bool {
 
 /// Equivalent to either `Range`, `RangeTo`, `RangeFrom`, or `RangeFull`
 #[derive(Clone, Copy, Eq, PartialEq, MallocSizeOf)]
-pub struct RangeAny<T> {
-    /// `None` means zero
-    pub start: Option<T>,
-    /// `None` means the full available length
-    pub end: Option<T>,
+pub struct RangeAny<T>(RangeAnyInner<T>);
+
+#[derive(Copy, MallocSizeOf)]
+pub enum RangeAnyInner<T> {
+    Range {
+        start: T,
+        end: T,
+    },
+    RangeFrom {
+        start: T,
+    },
+    RangeTo {
+        // Nudges rustc towards placing `end` at the same offset as in the `Range` variant,
+        // for slightly better codegen in the `fn end()` getter
+        #[ignore_malloc_size_of = "always uninitialized"]
+        _layout_hint: MaybeUninit<T>,
+        end: T,
+    },
+    RangeFull,
 }
 
-const _: () = assert!(size_of::<RangeAny<u32>>() == 16);
-const _: () = assert!(size_of::<Option<RangeAny<u32>>>() == 16);
+const _: () = assert!(size_of::<RangeAny<u32>>() == 12);
+const _: () = assert!(size_of::<Option<RangeAny<u32>>>() == 12);
 
 impl<T: fmt::Debug> fmt::Debug for RangeAny<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match (&self.start, &self.end) {
-            (Some(start), Some(end)) => write!(f, "{start:?}..{end:?}"),
-            (Some(start), None) => write!(f, "{start:?}.."),
-            (None, Some(end)) => write!(f, "..{end:?}"),
-            (None, None) => write!(f, ".."),
+        match &self.0 {
+            RangeAnyInner::Range { start, end } => write!(f, "{start:?}..{end:?}"),
+            RangeAnyInner::RangeFrom { start } => write!(f, "{start:?}.."),
+            RangeAnyInner::RangeTo { end, .. } => write!(f, "..{end:?}"),
+            RangeAnyInner::RangeFull => write!(f, ".."),
+        }
+    }
+}
+impl<T: Eq> Eq for RangeAnyInner<T> {}
+
+impl<T: PartialEq> PartialEq for RangeAnyInner<T> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::Range {
+                    start: l_start,
+                    end: l_end,
+                },
+                Self::Range {
+                    start: r_start,
+                    end: r_end,
+                },
+            ) => l_start == r_start && l_end == r_end,
+            (Self::RangeFrom { start: l_start }, Self::RangeFrom { start: r_start }) => {
+                l_start == r_start
+            },
+            (Self::RangeTo { end: l_end, .. }, Self::RangeTo { end: r_end, .. }) => l_end == r_end,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
+}
+
+impl<T: Clone> Clone for RangeAnyInner<T> {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Range { start, end } => Self::Range {
+                start: start.clone(),
+                end: end.clone(),
+            },
+            Self::RangeFrom { start } => Self::RangeFrom {
+                start: start.clone(),
+            },
+            Self::RangeTo { end, .. } => Self::RangeTo {
+                _layout_hint: MaybeUninit::uninit(),
+                end: end.clone(),
+            },
+            Self::RangeFull => Self::RangeFull,
         }
     }
 }
 
 impl<T> RangeAny<T> {
+    pub fn new(start: Option<T>, end: Option<T>) -> Self {
+        Self(match (start, end) {
+            (Some(start), Some(end)) => RangeAnyInner::Range { start, end },
+            (Some(start), None) => RangeAnyInner::RangeFrom { start },
+            (None, Some(end)) => RangeAnyInner::RangeTo {
+                _layout_hint: MaybeUninit::uninit(),
+                end,
+            },
+            (None, None) => RangeAnyInner::RangeFull,
+        })
+    }
+
     /// Returns a `RangeAny` that represents the full range: both bounds unset
     pub fn full() -> Self {
-        Self {
-            start: None,
-            end: None,
+        Self(RangeAnyInner::RangeFull)
+    }
+
+    // Note: for a fully-generic general puprose container we’d return `Option<&T>`
+    // and remove the `Copy` bound, but Servo only uses `RangeAny` with `Utf*CodeUnits` types
+    // that implement `Copy`, so relying on `Copy` makes callers less verbose.
+    pub fn start(&self) -> Option<T>
+    where
+        T: Copy,
+    {
+        match self.0 {
+            RangeAnyInner::Range { start, .. } | RangeAnyInner::RangeFrom { start } => Some(start),
+            RangeAnyInner::RangeTo { .. } | RangeAnyInner::RangeFull => None,
+        }
+    }
+
+    pub fn end(&self) -> Option<T>
+    where
+        T: Copy,
+    {
+        match self.0 {
+            RangeAnyInner::Range { end, .. } | RangeAnyInner::RangeTo { end, .. } => Some(end),
+            RangeAnyInner::RangeFrom { .. } | RangeAnyInner::RangeFull => None,
         }
     }
 
     /// Apply `Option::map` to each bound of this range
-    pub fn map<U>(self, f: impl Fn(T) -> U + Copy) -> RangeAny<U> {
-        let Self { start, end } = self;
-        RangeAny {
-            start: start.map(f),
-            end: end.map(f),
-        }
+    pub fn map<U>(&self, f: impl Fn(T) -> U + Copy) -> RangeAny<U>
+    where
+        T: Copy,
+    {
+        RangeAny::new(self.start().map(f), self.end().map(f))
     }
 
     /// Returns the intersection of two ranges, if it is non-empty
-    pub fn intersect(self, other: Self) -> Option<Self>
+    pub fn intersect(&self, other: Self) -> Option<Self>
     where
-        T: Ord,
+        T: Copy + Ord,
     {
         // TODO: https://github.com/rust-lang/rust/issues/144273
         // let start = a.start.reduce(b.start, std::cmp::max);
         // let end = a.end.reduce(b.end, std::cmp::min);
-        let start = match (self.start, other.start) {
+        let start = match (self.start(), other.start()) {
             (None, None) => None,
             (None, Some(b)) => Some(b),
             (Some(a), None) => Some(a),
             (Some(a), Some(b)) => Some(a.max(b)),
         };
-        let end = match (self.end, other.end) {
+        let end = match (self.end(), other.end()) {
             (None, None) => None,
             (None, Some(b)) => Some(b),
             (Some(a), None) => Some(a),
@@ -116,7 +203,7 @@ impl<T> RangeAny<T> {
             .as_ref()
             .is_none_or(|start| end.as_ref().is_none_or(|end| start < end))
         {
-            Some(RangeAny { start, end })
+            Some(Self::new(start, end))
         } else {
             // `max()..min()` producing a "backwards" range means the intersection is empty
             None
@@ -126,10 +213,7 @@ impl<T> RangeAny<T> {
 
 impl<T> From<Range<T>> for RangeAny<T> {
     fn from(value: Range<T>) -> Self {
-        Self {
-            start: Some(value.start),
-            end: Some(value.end),
-        }
+        Self::new(Some(value.start), Some(value.end))
     }
 }
 

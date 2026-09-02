@@ -284,21 +284,21 @@ impl Selection {
         // But that requires keeping track of the previous range, to compare.
         if let Some(character_data) = start_container.downcast::<CharacterData>() {
             let text = character_data.data();
-            let range = RangeAny {
-                start: Some(Utf16CodeUnits(start_offset).to_utf32_code_units_in(&text)),
-                end: (start_node == end_node)
+            let range = RangeAny::new(
+                Some(Utf16CodeUnits(start_offset).to_utf32_code_units_in(&text)),
+                (start_node == end_node)
                     .then_some(Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text)),
-            };
+            );
             set_text_run_selection(character_data, Some(range))
         }
         if end_container != start_container &&
             let Some(character_data) = end_container.downcast::<CharacterData>()
         {
             let text = character_data.data();
-            let range = RangeAny {
-                start: None,
-                end: Some(Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text)),
-            };
+            let range = RangeAny::new(
+                None,
+                Some(Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text)),
+            );
             set_text_run_selection(character_data, Some(range))
         }
 

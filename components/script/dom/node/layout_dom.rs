@@ -278,7 +278,7 @@ impl<'dom> LayoutDom<'dom, Node> {
             .then(|| Utf16CodeUnits(range.start.offset as usize).to_utf32_code_units_in(&text));
         let end = is_end_node
             .then(|| Utf16CodeUnits(range.end.offset as usize).to_utf32_code_units_in(&text));
-        Some(RangeAny { start, end })
+        Some(RangeAny::new(start, end))
     }
 
     pub(crate) fn text_node_paints_caret(&self) -> bool {

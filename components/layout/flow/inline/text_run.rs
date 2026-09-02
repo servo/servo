@@ -352,12 +352,12 @@ impl SharedTextRunData {
     ) -> Range<Utf32CodeUnits> {
         let offset_map = self.offset_map.borrow();
         let offset_in_ifc_text = Utf32CodeUnits(self.character_range_in_ifc_text.start);
-        let start = if let Some(dom_start) = dom_range.start {
+        let start = if let Some(dom_start) = dom_range.start() {
             offset_map.map(dom_start + self.original_offset) - offset_in_ifc_text
         } else {
             Utf32CodeUnits(0)
         };
-        let end = if let Some(dom_end) = dom_range.end {
+        let end = if let Some(dom_end) = dom_range.end() {
             offset_map.map(dom_end + self.original_offset) - offset_in_ifc_text
         } else {
             Utf32CodeUnits(self.character_range_in_ifc_text.len())
