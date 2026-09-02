@@ -189,7 +189,6 @@ impl Promise {
         Promise::new_with_js_promise(cx, obj.handle())
     }
 
-    #[expect(dead_code)]
     pub(crate) fn new_in_realm_rooted(current_realm: &mut CurrentRealm) -> RootedPromise {
         RootedPromise(Self::new_in_realm(current_realm))
     }
