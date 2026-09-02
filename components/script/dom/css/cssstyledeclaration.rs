@@ -553,6 +553,15 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         Ok(DOMString::from(string))
     }
 
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-parentrule>
+    fn GetParentRule(&self) -> Option<DomRoot<CSSRule>> {
+        if let CSSStyleOwner::CSSRule(rule, _) = &self.owner {
+            Some(rule.as_rooted())
+        } else {
+            None
+        }
+    }
+
     /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
     fn CssFloat(&self) -> DOMString {
         self.get_property_value(PropertyId::NonCustom(LonghandId::Float.into()))
