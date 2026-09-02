@@ -15,7 +15,7 @@ use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, SVGElementTypeId, SVGGraphicsElementTypeId,
 };
 use servo_base::id::{BrowsingContextId, PipelineId};
-use servo_base::text::{RangeAny, Utf32CodeUnits};
+use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
@@ -265,22 +265,19 @@ impl<'dom> LayoutDom<'dom, Node> {
 
         let text_node = self.downcast::<Text>()?;
         let text = text_node.upcast().data_for_layout();
-        let range = self
-            .owner_doc_for_layout()
-            .selection_for_layout()?
-            .range_for_layout()?
-            .unsafe_get();
-
-        let range_start = range.start();
-        let range_end = range.end();
+        let selection = self.owner_doc_for_layout().selection_for_layout()?;
+        let range = selection.range_for_layout();
 
         // Text nodes are always the same node when projected into the flat tree, so
         // it is fine to do the following check against the original unprojected nodes.
-        let is_start_node = unsafe { range_start.node().to_layout() } == *self;
-        let is_end_node = unsafe { range_end.node().to_layout() } == *self;
+        let range = range.as_ref()?;
+        let is_start_node = unsafe { range.start.container.to_layout() } == *self;
+        let is_end_node = unsafe { range.end.container.to_layout() } == *self;
 
-        let start = is_start_node.then(|| range_start.offset().to_utf32_code_units_in(&text));
-        let end = is_end_node.then(|| range_end.offset().to_utf32_code_units_in(&text));
+        let start = is_start_node
+            .then(|| Utf16CodeUnits(range.start.offset as usize).to_utf32_code_units_in(&text));
+        let end = is_end_node
+            .then(|| Utf16CodeUnits(range.end.offset as usize).to_utf32_code_units_in(&text));
         Some(RangeAny { start, end })
     }
 

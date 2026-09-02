@@ -43,7 +43,7 @@ use crate::dom::element::Element;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::selection::Selection;
+use crate::dom::selection::{Selection, SelectionLiveRangeNotification};
 use crate::dom::text::Text;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::window::Window;
@@ -229,11 +229,11 @@ impl Range {
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
     pub(crate) fn set_start(&self, node: &Node, offset: u32) {
         if self.set_start_without_reporting(node, offset) {
-            self.report_change();
+            self.report_change(SelectionLiveRangeNotification::Start);
         }
     }
 
-    fn set_start_without_reporting(&self, node: &Node, offset: u32) -> bool {
+    pub(crate) fn set_start_without_reporting(&self, node: &Node, offset: u32) -> bool {
         if self.start().node() == node && self.start_offset() == offset {
             return false;
         }
@@ -256,15 +256,14 @@ impl Range {
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
     pub(crate) fn set_end(&self, node: &Node, offset: u32) {
         if self.set_end_without_reporting(node, offset) {
-            self.report_change();
+            self.report_change(SelectionLiveRangeNotification::End);
         }
     }
 
-    fn set_end_without_reporting(&self, node: &Node, offset: u32) -> bool {
+    pub(crate) fn set_end_without_reporting(&self, node: &Node, offset: u32) -> bool {
         if self.end().node() == node && self.end_offset() == offset {
             return false;
         }
-
         if self.end().node() != node {
             if self.end().node() == self.start().node() {
                 node.ensure_weak_ranges().push(WeakRef::new(self));
@@ -325,14 +324,16 @@ impl Range {
             .retain(|s| &**s != selection);
     }
 
-    fn report_change(&self) {
+    pub(crate) fn report_change(&self, notification: SelectionLiveRangeNotification) {
+        if notification.is_empty() {
+            return;
+        }
+
         self.associated_selections
             .borrow()
             .iter()
             .for_each(|selection| {
-                selection.queue_selectionchange_task();
-                selection.set_visible_selection_dirty();
-                selection.clear_command_overrides();
+                selection.update_from_live_range(self, notification);
             });
     }
 
@@ -346,11 +347,6 @@ impl Range {
 
     pub(crate) fn end(&self) -> &BoundaryPoint {
         self.abstract_range().end()
-    }
-
-    pub(crate) fn start_and_end_are_in_document_tree(&self) -> bool {
-        self.start_container().is_in_a_document_tree() &&
-            self.end_container().is_in_a_document_tree()
     }
 
     pub(crate) fn start_container(&self) -> DomRoot<Node> {
@@ -426,8 +422,7 @@ impl Range {
 
         // Step 3. Let bp be the boundary point (node, offset).
         // NOTE: We don't need this part.
-        let mut set_start = false;
-        let mut set_end = false;
+        let mut notification = SelectionLiveRangeNotification::empty();
         match start_or_end {
             // If these steps were invoked as "set the start"
             StartOrEnd::Start => {
@@ -437,11 +432,17 @@ impl Range {
                     bp_position(node, offset, &self.end_container(), self.end_offset()) ==
                         Ordering::Greater
                 {
-                    set_end = self.set_end_without_reporting(node, offset);
+                    notification.set(
+                        SelectionLiveRangeNotification::End,
+                        self.set_end_without_reporting(node, offset),
+                    );
                 }
 
                 // Step 4.2. Set range’s start to bp.
-                set_start = self.set_start_without_reporting(node, offset);
+                notification.set(
+                    SelectionLiveRangeNotification::Start,
+                    self.set_start_without_reporting(node, offset),
+                );
             },
             // If these steps were invoked as "set the end"
             StartOrEnd::End => {
@@ -451,18 +452,21 @@ impl Range {
                     bp_position(node, offset, &self.start_container(), self.start_offset()) ==
                         Ordering::Less
                 {
-                    set_start = self.set_start_without_reporting(node, offset);
+                    notification.set(
+                        SelectionLiveRangeNotification::Start,
+                        self.set_start_without_reporting(node, offset),
+                    );
                 }
 
                 // Step 4.2. Set range’s end to bp.
-                set_end = self.set_end_without_reporting(node, offset);
+                notification.set(
+                    SelectionLiveRangeNotification::End,
+                    self.set_end_without_reporting(node, offset),
+                );
             },
         }
 
-        if set_start || set_end {
-            self.report_change();
-        }
-
+        self.report_change(notification);
         Ok(())
     }
 }
@@ -480,7 +484,8 @@ impl std::fmt::Debug for Range {
     }
 }
 
-enum StartOrEnd {
+#[derive(Copy, Clone)]
+pub(crate) enum StartOrEnd {
     Start,
     End,
 }
@@ -1042,10 +1047,6 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         if start_node == end_node &&
             let Some(text) = start_node.downcast::<CharacterData>()
         {
-            if end_offset > start_offset {
-                self.report_change();
-            }
-
             // Step 3.1. Replace data of originalStartNode with originalStartOffset,
             // originalEndOffset − originalStartOffset, and the empty string.
             // Step 3.2. Return.
@@ -1391,12 +1392,12 @@ pub(crate) fn live_range_insert_steps(parent: &Node, child: &Node, count: u32) {
             // Step 5.1: For each live range whose start node is parent and start offset is
             // greater than child’s index: increase its start offset by count.
             if &*range.start_container() == parent && range.start_offset() > *child_index {
-                range.set_start(parent, range.start_offset() + count);
+                range.set_start_without_reporting(parent, range.start_offset() + count);
             }
             // Step 5.2: For each live range whose end node is parent and end offset is
             // greater than child’s index: increase its end offset by count.
             if &*range.end_container() == parent && range.end_offset() > *child_index {
-                range.set_end(parent, range.end_offset() + count);
+                range.set_end_without_reporting(parent, range.end_offset() + count);
             }
         }
     }
@@ -1421,12 +1422,12 @@ pub(crate) fn live_range_pre_remove_steps_for_removed_subtree(
         // Step 4: For each live range whose start node is an inclusive descendant of
         // node, set its start to (parent, index).
         if &*range.start_container() == inclusive_descendant_of_removed_node {
-            range.set_start(parent_of_removed_node, index_of_removed_node());
+            range.set_start_without_reporting(parent_of_removed_node, index_of_removed_node());
         }
         // Step 5: For each live range whose end node is an inclusive descendant of node,
         // set its end to (parent, index).
         if &*range.end_container() == inclusive_descendant_of_removed_node {
-            range.set_end(parent_of_removed_node, index_of_removed_node());
+            range.set_end_without_reporting(parent_of_removed_node, index_of_removed_node());
         }
     }
 }
@@ -1440,12 +1441,12 @@ pub(crate) fn live_range_pre_remove_steps_for_parent(
         // Step 6: For each live range whose start node is parent and start offset is
         // greater than index, decrease its start offset by 1.
         if &*range.start_container() == parent && range.start_offset() > node_index() {
-            range.set_start(parent, range.start_offset() - 1);
+            range.set_start_without_reporting(parent, range.start_offset() - 1);
         }
         // Step 7: For each live range whose end node is parent and end offset is greater than
         // index, decrease its end offset by 1.
         if &*range.end_container() == parent && range.end_offset() > node_index() {
-            range.set_end(parent, range.end_offset() - 1);
+            range.set_end_without_reporting(parent, range.end_offset() - 1);
         }
     }
 }
@@ -1471,12 +1472,12 @@ pub(crate) fn live_range_normalization_steps(
         // Step 6.1: For each live range whose start node is currentNode: add length to
         // its start offset and set its start node to node.
         if &*range.start_container() == current_node {
-            range.set_start(node, range.start_offset() + length);
+            range.set_start_without_reporting(node, range.start_offset() + length);
         }
         // Step 6.2: For each live range whose end node is currentNode: add length to its
         // end offset and set its end node to node.
         if &*range.end_container() == current_node {
-            range.set_end(node, range.end_offset() + length);
+            range.set_end_without_reporting(node, range.end_offset() + length);
         }
     }
 
@@ -1485,13 +1486,13 @@ pub(crate) fn live_range_normalization_steps(
         // start offset is currentNode’s index: set its start node to node and its start
         // offset to length.
         if &*range.start_container() == parent && range.start_offset() == current_node_index() {
-            range.set_start(node, length);
+            range.set_start_without_reporting(node, length);
         }
         // Step 6.4: For each live range whose end node is currentNode’s parent and end
         // offset is currentNode’s index: set its end node to node and its end offset to
         // length.
         if &*range.end_container() == parent && range.end_offset() == current_node_index() {
-            range.set_end(node, length);
+            range.set_end_without_reporting(node, length);
         }
     }
 }
@@ -1501,7 +1502,7 @@ pub(crate) fn live_range_replace_data_steps(
     node: &Node,
     offset: u32,
     removed_code_units: u32,
-    added_code_units: u32,
+    added_code_units: &mut dyn FnMut() -> u32,
 ) {
     for range in node.live_ranges() {
         // Step 8: For each live range whose start node is node and start offset is
@@ -1513,7 +1514,7 @@ pub(crate) fn live_range_replace_data_steps(
             start_offset > offset &&
             start_offset <= offset + removed_code_units
         {
-            range.set_start(node, offset);
+            range.set_start_without_reporting(node, offset);
         }
         // Step 9: For each live range whose end node is node and end offset is
         // greater than offset but less than or equal to offset + count: set its end
@@ -1524,19 +1525,25 @@ pub(crate) fn live_range_replace_data_steps(
             end_offset > offset &&
             end_offset <= offset + removed_code_units
         {
-            range.set_end(node, offset);
+            range.set_end_without_reporting(node, offset);
         }
         // Step 10: For each live range whose start node is node and start offset is
         // greater than offset + count: increase its start offset by data’s length and
         // decrease it by count.
         if &*start_container == node && start_offset > offset + removed_code_units {
-            range.set_start(node, start_offset + added_code_units - removed_code_units);
+            range.set_start_without_reporting(
+                node,
+                start_offset + added_code_units() - removed_code_units,
+            );
         }
         // Step 11: For each live range whose end node is node and end offset is
         // greater than offset + count: increase its end offset by data’s length and
         // decrease it by count.
         if &*end_container == node && end_offset > offset + removed_code_units {
-            range.set_end(node, end_offset + added_code_units - removed_code_units);
+            range.set_end_without_reporting(
+                node,
+                end_offset + added_code_units() - removed_code_units,
+            );
         }
     }
 }
@@ -1553,13 +1560,13 @@ pub(crate) fn live_range_text_split_steps(
         // greater than offset, set its start node to newNode and decrease its start
         // offset by offset.
         if &*range.start_container() == node && range.start_offset() > offset {
-            range.set_start(new_node, range.start_offset() - offset);
+            range.set_start_without_reporting(new_node, range.start_offset() - offset);
         }
         // Step 7.3. For each live range whose end node is node and end offset is
         // greater than offset, set its end node to newNode and decrease its end
         // offset by offset.
         if &*range.end_container() == node && range.end_offset() > offset {
-            range.set_end(new_node, range.end_offset() - offset);
+            range.set_end_without_reporting(new_node, range.end_offset() - offset);
         }
     }
 
@@ -1568,13 +1575,13 @@ pub(crate) fn live_range_text_split_steps(
         // Step 7.4. For each live range whose start node is parent and start offset
         // is equal to the index of node plus 1, increase its start offset by 1.
         if &*range.start_container() == parent && range.start_offset() == *node_index + 1 {
-            range.set_start(parent, range.start_offset() + 1);
+            range.set_start_without_reporting(parent, range.start_offset() + 1);
         }
 
         // Step 7.5. For each live range whose end node is parent and end offset is
         // equal to the index of node plus 1, increase its end offset by 1.
         if &*range.end_container() == parent && range.end_offset() == *node_index + 1 {
-            range.set_end(parent, range.end_offset() + 1);
+            range.set_end_without_reporting(parent, range.end_offset() + 1);
         }
     }
 }
@@ -1596,7 +1603,11 @@ pub(crate) fn live_range_pre_remove_steps(node: &Node, old_parent: &Node) {
     // its end to (parent, index).
     //
     // TODO: Only run this part if there are live ranges in this subtree and/or a selection.
+    let selection = node.owner_document().selection();
     for descendant in node.traverse_preorder(ShadowIncluding::No) {
+        if let Some(selection) = &selection {
+            selection.remove_steps_for_removed_subtree(&descendant, old_parent, &mut lazy_index);
+        }
         live_range_pre_remove_steps_for_removed_subtree(&descendant, old_parent, &mut lazy_index);
     }
 
@@ -1604,5 +1615,8 @@ pub(crate) fn live_range_pre_remove_steps(node: &Node, old_parent: &Node) {
     // than index, decrease its start offset by 1.
     // Step 7. For each live range whose end node is parent and end offset is greater than
     // index, decrease its end offset by 1.
+    if let Some(selection) = &selection {
+        selection.remove_steps_for_parent(old_parent, &mut lazy_index);
+    }
     live_range_pre_remove_steps_for_parent(old_parent, &mut lazy_index);
 }

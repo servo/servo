@@ -1533,6 +1533,9 @@ impl Node {
         // Step 17. If child is non-null:
         if let Some(child) = child {
             // Steps 17.1-17.2: The live range move steps.
+            if let Some(selection) = new_parent.owner_document().selection() {
+                selection.insert_steps(new_parent, child, 1);
+            }
             live_range_insert_steps(new_parent, child, 1);
         }
 
@@ -2682,7 +2685,11 @@ impl Node {
         // Step 5. If child is non-null:
         if let Some(child) = child {
             // Step 5.1. The live range insert steps.
-            live_range_insert_steps(parent, child, count.try_into().unwrap());
+            let count = count.try_into().unwrap();
+            if let Some(selection) = parent.owner_document().selection() {
+                selection.insert_steps(parent, child, count);
+            }
+            live_range_insert_steps(parent, child, count);
         }
 
         // Step 6. Let previousSibling be child’s previous sibling or parent’s last child if child is null.
@@ -2982,6 +2989,9 @@ impl Node {
         let mut cached_index = None;
         {
             let mut lazy_index = || *cached_index.get_or_insert_with(|| node.index());
+            if let Some(selection) = node.owner_document().selection() {
+                selection.remove_steps_for_parent(parent, &mut lazy_index);
+            }
             live_range_pre_remove_steps_for_parent(parent, &mut lazy_index);
         }
 
@@ -4034,6 +4044,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     fn Normalize(&self, cx: &mut JSContext) {
         let mut children = self.children().peekable();
+        let selection = self.owner_document().selection();
         while let Some(node) = children.next() {
             // The normalize() method steps are to run these steps for each descendant
             // exclusive Text node node of this:
@@ -4091,14 +4102,18 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             // Note: Condition guaranteed by collection loop above.
             let first_sibling_index = LazyCell::new(|| node.index() + 1);
             for (current_node_index, current_node) in siblings_to_merge.iter().enumerate() {
+                let index = &|| *first_sibling_index + current_node_index as u32;
                 // Steps 6.1-6.4: The live range update steps.
-                live_range_normalization_steps(
-                    self,
-                    &node,
-                    current_node.upcast(),
-                    &|| *first_sibling_index + current_node_index as u32,
-                    length,
-                );
+                if let Some(selection) = &selection {
+                    selection.normalization_steps(
+                        self,
+                        &node,
+                        current_node.upcast(),
+                        &index,
+                        length,
+                    );
+                }
+                live_range_normalization_steps(self, &node, current_node.upcast(), &index, length);
                 // Step 6.5:  Add currentNode’s length to length.
                 length += current_node.Length();
                 // Step 6.6 Set currentNode to its next sibling.
@@ -4528,6 +4543,9 @@ impl VirtualMethods for Node {
 
         let mut cached_index = None;
         let mut lazy_index = || *cached_index.get_or_insert_with(|| context.index());
+        if let Some(selection) = self.owner_document().selection() {
+            selection.remove_steps_for_removed_subtree(self, context.parent, &mut lazy_index);
+        }
         live_range_pre_remove_steps_for_removed_subtree(self, context.parent, &mut lazy_index);
     }
 
