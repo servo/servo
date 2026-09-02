@@ -36,10 +36,14 @@ unsafe_no_jsmanaged_fields!(RulesSource);
 impl Convert<Error> for RulesMutateError {
     fn convert(self) -> Error {
         match self {
-            RulesMutateError::Syntax => Error::Syntax(None),
-            RulesMutateError::IndexSize => Error::IndexSize(None),
-            RulesMutateError::HierarchyRequest => Error::HierarchyRequest(None),
-            RulesMutateError::InvalidState => Error::InvalidState(None),
+            RulesMutateError::Syntax => Error::Syntax(Some("Invalid CSS syntax".into())),
+            RulesMutateError::IndexSize => Error::IndexSize(Some("Index is out of bounds".into())),
+            RulesMutateError::HierarchyRequest => Error::HierarchyRequest(Some(
+                "This request would result in an incorrect node tree".into(),
+            )),
+            RulesMutateError::InvalidState => {
+                Error::InvalidState(Some("CSS rule is invalid".into()))
+            },
         }
     }
 }

@@ -38,10 +38,6 @@
 ./components/script/dom/cookiestore/cookiestore.rs 8
 ./components/script/dom/credentialmanagement/credentialscontainer.rs 8
 ./components/script/dom/credentialmanagement/passwordcredential.rs 1
-./components/script/dom/css/css.rs 2
-./components/script/dom/css/cssrulelist.rs 4
-./components/script/dom/css/cssstyledeclaration.rs 3
-./components/script/dom/css/fontface.rs 4
 ./components/script/dom/datatransfer/datatransferitemlist.rs 1
 ./components/script/dom/document/document.rs 28
 ./components/script/dom/document/documentorshadowroot.rs 1

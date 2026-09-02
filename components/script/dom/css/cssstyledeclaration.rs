@@ -344,7 +344,9 @@ impl CSSStyleDeclaration {
     ) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "This CSS style declaration is read-only".into(),
+            )));
         }
 
         let id = match id {
@@ -535,7 +537,9 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     fn RemoveProperty(&self, cx: &mut JSContext, property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "This CSS style declaration is read-only".into(),
+            )));
         }
 
         let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
@@ -602,7 +606,9 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     fn SetCssText(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "This CSS style declaration is read-only".into(),
+            )));
         }
 
         let window = self.owner.window();

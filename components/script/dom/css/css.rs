@@ -95,8 +95,12 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
             InvalidSyntax |
             InvalidInitialValue |
             NoInitialValue |
-            InitialValueNotComputationallyIndependent => Error::Syntax(None),
-            AlreadyRegistered => Error::InvalidModification(None),
+            InitialValueNotComputationallyIndependent => Error::Syntax(Some(
+                "CSS property value is not computationally independent".into(),
+            )),
+            AlreadyRegistered => {
+                Error::InvalidModification(Some("CSS property is already registered".into()))
+            },
         })
     }
 }
