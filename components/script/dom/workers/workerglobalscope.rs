@@ -420,11 +420,7 @@ impl WorkerGlobalScope {
         PipelineNamespace::auto_install();
 
         #[cfg(feature = "devtools")]
-        let devtools_receiver = if init.from_devtools_sender.is_some() {
-            devtools_receiver
-        } else {
-            None
-        };
+        let devtools_receiver = init.from_devtools_sender.as_ref().and(devtools_receiver);
 
         Self {
             globalscope: GlobalScope::new_inherited(

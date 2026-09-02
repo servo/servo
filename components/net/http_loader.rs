@@ -665,12 +665,10 @@ async fn obtain_response(
     let client_future = client
         .request(request)
         .and_then(move |res| {
-            #[cfg(feature = "devtools")]
-            let send_end = CrossProcessInstant::now();
-
             // TODO(#21271) response_start: immediately after receiving first byte of response
             #[cfg(feature = "devtools")]
             let msg = if let Some(request_id) = request_id {
+                let send_end = CrossProcessInstant::now();
                 if let Some(pipeline_id) = pipeline_id {
                     if let Some(browsing_context_id) = browsing_context_id {
                         Some(prepare_devtools_request(
