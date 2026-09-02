@@ -930,8 +930,8 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > "backward" if this selection's direction is backwards.
         match self.direction.get() {
             Direction::Directionless => DOMString::from_static("none"),
-            Direction::Forwards => DOMString::from_static("forwards"),
-            Direction::Backwards => DOMString::from_static("backwards"),
+            Direction::Forwards => DOMString::from_static("forward"),
+            Direction::Backwards => DOMString::from_static("backward"),
         }
     }
 
@@ -1021,11 +1021,19 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         let mut start_node = range.start.container.as_rooted();
         let mut start_offset = range.start.offset;
 
+        let is_ancestor_of_provided_shadow_roots = |shadow_root: &ShadowRoot| {
+            let shadow_root_node = shadow_root.upcast::<Node>();
+            options.shadowRoots.iter().any(|option_shadow_root| {
+                shadow_root_node
+                    .is_shadow_including_inclusive_ancestor_of(option_shadow_root.upcast())
+            })
+        };
+
         // Step 3. While startNode is a node, startNode's root is a shadow root, and
         // startNode's root is not a shadow-including inclusive ancestor of any of
         // options["shadowRoots"], repeat these steps:
-        if let Some(containing_shadow_root) = start_node.containing_shadow_root() &&
-            !options.shadowRoots.contains(&containing_shadow_root)
+        while let Some(containing_shadow_root) = start_node.containing_shadow_root() &&
+            !is_ancestor_of_provided_shadow_roots(&containing_shadow_root)
         {
             // Step 3.1. Set startOffset to index of startNode's root's host.
             let host = DomRoot::upcast::<Node>(containing_shadow_root.Host());
@@ -1047,8 +1055,8 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 5. While endNode is a node, endNode's root is a shadow root, and endNode's
         // root is not a shadow-including inclusive ancestor of any of
         // options["shadowRoots"], repeat these steps:
-        if let Some(containing_shadow_root) = end_node.containing_shadow_root() &&
-            !options.shadowRoots.contains(&containing_shadow_root)
+        while let Some(containing_shadow_root) = end_node.containing_shadow_root() &&
+            !is_ancestor_of_provided_shadow_roots(&containing_shadow_root)
         {
             // Step 5.1. Set endOffset to index of endNode's root's host plus 1.
             let host = DomRoot::upcast::<Node>(containing_shadow_root.Host());
