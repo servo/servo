@@ -579,65 +579,44 @@ impl Selection {
         }
     }
 
-    /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps> steps 4 and 5
+    /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps> steps 4-7
     /// adapted for selections.
-    ///
-    /// These steps are run on the inclusive descendants of a removed node, but to avoid
-    /// having to iterate through those nodes twice, they are run when the inclusive
-    /// descendants themselves are unbound from the tree.
-    pub(crate) fn remove_steps_for_removed_subtree(
+    pub(crate) fn pre_remove_steps(
         &self,
-        inclusive_descendant_of_removed_node: &Node, // "node" in the specification
-        parent_of_removed_node: &Node,               // "parent" in the specification
+        removed_node: &Node,           // "node" in the specification
+        parent_of_removed_node: &Node, // "parent" in the specification
         index_of_removed_node: &mut dyn FnMut() -> u32, // "index" in the specification
     ) {
-        // The steps are only supposed to run on DOM tree inclusive descendants of the removal
-        // root and elements in shadow trees are not, so they shouldn't run for them.
-        //
-        // TODO: This won't be true once selections can span shadow tree roots.
-        if inclusive_descendant_of_removed_node.is_in_a_shadow_tree() {
-            return;
-        }
-
         let mut range_borrow = self.range.borrow_mut();
         let Some(range) = &mut *range_borrow else {
             return;
         };
+
         // Step 4: For each live range whose start node is an inclusive descendant of
         // node, set its start to (parent, index).
-        if range.start.container == inclusive_descendant_of_removed_node {
+        if removed_node.is_inclusive_ancestor_of(&range.start.container) {
             range.start = SelectionBoundary::new(parent_of_removed_node, index_of_removed_node());
             self.selection_boundaries_changed();
         }
         // Step 5: For each live range whose end node is an inclusive descendant of node,
         // set its end to (parent, index).
-        if range.end.container == inclusive_descendant_of_removed_node {
+        if removed_node.is_inclusive_ancestor_of(&range.end.container) {
             range.end = SelectionBoundary::new(parent_of_removed_node, index_of_removed_node());
             self.selection_boundaries_changed();
         }
-    }
-
-    /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps> steps 6 and 7
-    /// adapted for selections.
-    pub(crate) fn remove_steps_for_parent(
-        &self,
-        parent: &Node,
-        node_index: &mut dyn FnMut() -> u32,
-    ) {
-        let mut range_borrow = self.range.borrow_mut();
-        let Some(range) = &mut *range_borrow else {
-            return;
-        };
-
         // Step 6: For each live range whose start node is parent and start offset is
         // greater than index, decrease its start offset by 1.
-        if range.start.container == parent && range.start.offset > node_index() {
+        if range.start.container == parent_of_removed_node &&
+            range.start.offset > index_of_removed_node()
+        {
             range.start.offset -= 1;
             self.selection_boundaries_changed();
         }
         // Step 7: For each live range whose end node is parent and end offset is greater than
         // index, decrease its end offset by 1.
-        if range.end.container == parent && range.end.offset > node_index() {
+        if range.end.container == parent_of_removed_node &&
+            range.end.offset > index_of_removed_node()
+        {
             range.end.offset -= 1;
             self.selection_boundaries_changed();
         }

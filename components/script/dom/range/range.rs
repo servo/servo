@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{LazyCell, RefCell};
+use std::cell::LazyCell;
 use std::cmp::{Ordering, PartialOrd};
 use std::iter;
 use std::rc::Rc;
@@ -14,7 +14,7 @@ use js::context::{JSContext, NoGC};
 use js::jsapi::JSTracer;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::dom::UnrootedDom;
+use script_bindings::dom::{MutDom, UnrootedDom};
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use smallvec::SmallVec;
 use style_traits::CSSPixel;
@@ -51,6 +51,10 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct Range {
     abstract_range: AbstractRange,
+    /// The [`Document`] that this range belongs to i.e. the owner [`Document`]
+    /// of its two nodes. [`Range`] is written to ensure that both ends share
+    /// a root, so this should always be the same for both ends.
+    document: MutDom<Document>,
     // A range that belongs to a Selection needs to know about it
     // so selectionchange can fire when the range changes.
     // A range shouldn't belong to more than one Selection at a time,
@@ -75,16 +79,18 @@ impl Range {
         start_offset: u32,
         end_container: &Node,
         end_offset: u32,
-    ) -> Range {
+        start_container_document: &Document,
+    ) -> Self {
         debug_assert!(start_offset <= start_container.len());
         debug_assert!(end_offset <= end_container.len());
-        Range {
+        Self {
             abstract_range: AbstractRange::new_inherited(
                 start_container,
                 start_offset,
                 end_container,
                 end_offset,
             ),
+            document: MutDom::new(start_container_document),
             associated_selections: DomRefCell::new(vec![]),
         }
     }
@@ -93,9 +99,9 @@ impl Range {
         cx: &mut JSContext,
         document: &Document,
         proto: Option<HandleObject>,
-    ) -> DomRoot<Range> {
+    ) -> DomRoot<Self> {
         let root = document.upcast();
-        Range::new_with_proto(cx, document, proto, root, 0, root, 0)
+        Self::new_with_proto(cx, document, proto, root, 0, root, 0)
     }
 
     pub(crate) fn new(
@@ -119,32 +125,31 @@ impl Range {
 
     fn new_with_proto(
         cx: &mut JSContext,
-        document: &Document,
+        document_to_reflect_into: &Document,
         proto: Option<HandleObject>,
         start_container: &Node,
         start_offset: u32,
         end_container: &Node,
         end_offset: u32,
     ) -> DomRoot<Range> {
+        let start_container_document = start_container.owner_document();
         let range = reflect_weak_referenceable_dom_object_with_proto(
             cx,
-            Rc::new(Range::new_inherited(
+            Rc::new(Self::new_inherited(
                 start_container,
                 start_offset,
                 end_container,
                 end_offset,
+                &start_container_document,
             )),
-            document.window(),
+            document_to_reflect_into.window(),
             proto,
         );
-        start_container
-            .ensure_weak_ranges()
+
+        start_container_document
+            .live_ranges()
             .push(WeakRef::new(&range));
-        if start_container != end_container {
-            end_container
-                .ensure_weak_ranges()
-                .push(WeakRef::new(&range));
-        }
+
         range
     }
 
@@ -237,18 +242,6 @@ impl Range {
         if self.start().node() == node && self.start_offset() == offset {
             return false;
         }
-
-        if self.start().node() != node {
-            if self.start().node() == self.end().node() {
-                node.ensure_weak_ranges().push(WeakRef::new(self));
-            } else if self.end().node() == node {
-                self.start_container().ensure_weak_ranges().remove(self);
-            } else {
-                node.ensure_weak_ranges()
-                    .push(self.start_container().ensure_weak_ranges().remove(self));
-            }
-        }
-
         self.start().set(node, offset);
         true
     }
@@ -264,17 +257,6 @@ impl Range {
         if self.end().node() == node && self.end_offset() == offset {
             return false;
         }
-        if self.end().node() != node {
-            if self.end().node() == self.start().node() {
-                node.ensure_weak_ranges().push(WeakRef::new(self));
-            } else if self.start().node() == node {
-                self.end_container().ensure_weak_ranges().remove(self);
-            } else {
-                node.ensure_weak_ranges()
-                    .push(self.end_container().ensure_weak_ranges().remove(self));
-            }
-        }
-
         self.end().set(node, offset);
         true
     }
@@ -466,8 +448,32 @@ impl Range {
             },
         }
 
+        self.maybe_update_document();
         self.report_change(notification);
         Ok(())
+    }
+
+    /// When:
+    ///
+    /// - The start and end node have changed in a way in which they no longer have the same
+    ///   [`Document`]
+    /// - A node is adopted into a different [`Document`]
+    ///
+    /// this method ensures that the [`Document`] of this [`Range`] remains the same. If it doesn't
+    /// the [`Range`] is moved from the old [`Document`] to the new one.
+    pub(crate) fn maybe_update_document(&self) {
+        // Note: `debug_assert_eq!` requires the arguments to implement `Debug`.
+        debug_assert!(
+            self.start_container().owner_document() == self.end_container().owner_document(),
+        );
+
+        let current_document = self.document.get();
+        let new_document = self.start_container().owner_document();
+        if new_document != current_document {
+            current_document.live_ranges().remove(self);
+            new_document.live_ranges().push(WeakRef::new(self));
+            self.document.set(&new_document);
+        }
     }
 }
 
@@ -940,6 +946,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-detach>
+    /// > The detach() method steps are to do nothing. Its functionality (disabling a Range object)
+    /// > was removed, but the method itself is preserved for compatibility.
     fn Detach(&self) {
         // This method intentionally left blank.
     }
@@ -1338,40 +1346,47 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct WeakRangeVec {
-    cell: RefCell<WeakRefVec<Range>>,
+    cell: DomRefCell<WeakRefVec<Range>>,
 }
 
 impl Default for WeakRangeVec {
     fn default() -> Self {
         WeakRangeVec {
-            cell: RefCell::new(WeakRefVec::new()),
+            cell: DomRefCell::new(WeakRefVec::new()),
         }
     }
 }
 
 impl WeakRangeVec {
-    /// Whether that vector of ranges is empty.
+    /// Get a rooted version of the contents of this [`WeakRangeVec`]
+    pub(crate) fn as_vec(&self) -> SmallVec<[DomRoot<Range>; 4]> {
+        self.cell
+            .borrow()
+            .iter()
+            .filter_map(|range| range.root())
+            .collect()
+    }
+
+    pub(crate) fn for_each(&self, no_gc: &NoGC, mut callback: impl FnMut(&Range)) {
+        for weak_range in self.cell.safe_borrow_mut(no_gc).iter() {
+            if let Some(range) = weak_range.unrooted(no_gc) {
+                callback(&range);
+            }
+        }
+    }
+
     pub(crate) fn is_empty(&self) -> bool {
         self.cell.borrow().is_empty()
     }
 
-    /// Get a rooted version of the contents of this [`WeakRangeVec`]
-    pub(crate) fn live_ranges(&self) -> SmallVec<[DomRoot<Range>; 4]> {
-        let cell = self.cell.borrow();
-        if cell.is_empty() {
-            return Default::default();
-        }
-        cell.iter().filter_map(|range| range.root()).collect()
+    fn push(&self, weak_range: WeakRef<Range>) {
+        self.cell.borrow_mut().push(weak_range);
     }
 
-    pub(crate) fn push(&self, ref_: WeakRef<Range>) {
-        self.cell.borrow_mut().push(ref_);
-    }
-
-    fn remove(&self, range: &Range) -> WeakRef<Range> {
-        let mut ranges = self.cell.borrow_mut();
-        let position = ranges.iter().position(|ref_| ref_ == range).unwrap();
-        ranges.swap_remove(position)
+    fn remove(&self, range_to_remove: &Range) {
+        self.cell
+            .borrow_mut()
+            .retain(|range| range != range_to_remove);
     }
 }
 
@@ -1382,13 +1397,23 @@ unsafe impl JSTraceable for WeakRangeVec {
     }
 }
 
-/// <https://dom.spec.whatwg.org/#concept-node-insert> steps 5.1-5.2
-/// and
-/// <https://dom.spec.whatwg.org/#move> steps 17.1-17.2.
-pub(crate) fn live_range_insert_steps(parent: &Node, child: &Node, count: u32) {
-    if parent.has_live_ranges() {
+impl Document {
+    /// <https://dom.spec.whatwg.org/#concept-node-insert> steps 5.1-5.2
+    /// and
+    /// <https://dom.spec.whatwg.org/#move> steps 17.1-17.2.
+    pub(crate) fn live_range_insert_steps(
+        &self,
+        no_gc: &NoGC,
+        parent: &Node,
+        child: &Node,
+        count: u32,
+    ) {
+        if self.live_ranges().is_empty() {
+            return;
+        }
+
         let child_index = LazyCell::new(|| child.index());
-        for range in parent.live_ranges() {
+        self.live_ranges().for_each(no_gc, |range| {
             // Step 5.1: For each live range whose start node is parent and start offset is
             // greater than child’s index: increase its start offset by count.
             if &*range.start_container() == parent && range.start_offset() > *child_index {
@@ -1399,224 +1424,205 @@ pub(crate) fn live_range_insert_steps(parent: &Node, child: &Node, count: u32) {
             if &*range.end_container() == parent && range.end_offset() > *child_index {
                 range.set_end_without_reporting(parent, range.end_offset() + count);
             }
-        }
-    }
-}
-
-/// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps> steps 4 and 5.
-///
-/// These steps are run on the inclusive descendants of a removed node, but to avoid
-/// having to iterate through those nodes twice, they are run when the inclusive
-/// descendants themselves are unbound from the tree.
-pub(crate) fn live_range_pre_remove_steps_for_removed_subtree(
-    inclusive_descendant_of_removed_node: &Node, // "node" in the specification
-    parent_of_removed_node: &Node,               // "parent" in the specification
-    index_of_removed_node: &mut dyn FnMut() -> u32, // "index" in the specification
-) {
-    // The steps are only supposed to run on DOM tree inclusive descendants of the removal
-    // root and elements in shadow trees are not, so they shouldn't run for them.
-    if inclusive_descendant_of_removed_node.is_in_a_shadow_tree() {
-        return;
-    }
-    for range in inclusive_descendant_of_removed_node.live_ranges() {
-        // Step 4: For each live range whose start node is an inclusive descendant of
-        // node, set its start to (parent, index).
-        if &*range.start_container() == inclusive_descendant_of_removed_node {
-            range.set_start_without_reporting(parent_of_removed_node, index_of_removed_node());
-        }
-        // Step 5: For each live range whose end node is an inclusive descendant of node,
-        // set its end to (parent, index).
-        if &*range.end_container() == inclusive_descendant_of_removed_node {
-            range.set_end_without_reporting(parent_of_removed_node, index_of_removed_node());
-        }
-    }
-}
-
-/// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps> steps 6 and 7.
-pub(crate) fn live_range_pre_remove_steps_for_parent(
-    parent: &Node,
-    node_index: &mut dyn FnMut() -> u32,
-) {
-    for range in parent.live_ranges() {
-        // Step 6: For each live range whose start node is parent and start offset is
-        // greater than index, decrease its start offset by 1.
-        if &*range.start_container() == parent && range.start_offset() > node_index() {
-            range.set_start_without_reporting(parent, range.start_offset() - 1);
-        }
-        // Step 7: For each live range whose end node is parent and end offset is greater than
-        // index, decrease its end offset by 1.
-        if &*range.end_container() == parent && range.end_offset() > node_index() {
-            range.set_end_without_reporting(parent, range.end_offset() - 1);
-        }
-    }
-}
-
-/// <https://dom.spec.whatwg.org/#dom-node-normalize> Steps 6.1-6.4.
-///
-/// - `parent`: The parent of both other node arguments.
-/// - `node`: The node that text is being merged into.
-/// - `current_node`: The node which has text being merged into `node` and will be
-///   removed from the DOM.
-/// - `current_node_index`: The index of `current_node` in `parent`.
-/// - `length`: The length of the text content in `node`, its orginal length plus
-///   the length of all content that has already been merged from siblings before
-///   `current_node`.
-pub(crate) fn live_range_normalization_steps(
-    parent: &Node,
-    node: &Node,
-    current_node: &Node,
-    current_node_index: &dyn Fn() -> u32,
-    length: u32,
-) {
-    for range in current_node.live_ranges() {
-        // Step 6.1: For each live range whose start node is currentNode: add length to
-        // its start offset and set its start node to node.
-        if &*range.start_container() == current_node {
-            range.set_start_without_reporting(node, range.start_offset() + length);
-        }
-        // Step 6.2: For each live range whose end node is currentNode: add length to its
-        // end offset and set its end node to node.
-        if &*range.end_container() == current_node {
-            range.set_end_without_reporting(node, range.end_offset() + length);
-        }
+        });
     }
 
-    for range in parent.live_ranges() {
-        // Step 6.3: For each live range whose start node is currentNode’s parent and
-        // start offset is currentNode’s index: set its start node to node and its start
-        // offset to length.
-        if &*range.start_container() == parent && range.start_offset() == current_node_index() {
-            range.set_start_without_reporting(node, length);
+    /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps> steps 4-7.
+    pub(crate) fn live_range_pre_remove_steps(
+        &self,
+        no_gc: &NoGC,
+        removed_node: &Node,           // "node" in the specification
+        parent_of_removed_node: &Node, // "parent" in the specification
+        index_of_removed_node: &mut dyn FnMut() -> u32, // "index" in the specification
+    ) {
+        if self.live_ranges().is_empty() {
+            return;
         }
-        // Step 6.4: For each live range whose end node is currentNode’s parent and end
-        // offset is currentNode’s index: set its end node to node and its end offset to
-        // length.
-        if &*range.end_container() == parent && range.end_offset() == current_node_index() {
-            range.set_end_without_reporting(node, length);
-        }
-    }
-}
 
-/// <https://dom.spec.whatwg.org/#concept-cd-replace> steps 8-11.
-pub(crate) fn live_range_replace_data_steps(
-    node: &Node,
-    offset: u32,
-    removed_code_units: u32,
-    added_code_units: &mut dyn FnMut() -> u32,
-) {
-    for range in node.live_ranges() {
-        // Step 8: For each live range whose start node is node and start offset is
-        // greater than offset but less than or equal to offset + count: set its start
-        // offset to offset.
-        let start_container = range.start_container();
-        let start_offset = range.start_offset();
-        if &*start_container == node &&
-            start_offset > offset &&
-            start_offset <= offset + removed_code_units
-        {
-            range.set_start_without_reporting(node, offset);
-        }
-        // Step 9: For each live range whose end node is node and end offset is
-        // greater than offset but less than or equal to offset + count: set its end
-        // offset to offset.
-        let end_container = range.end_container();
-        let end_offset = range.end_offset();
-        if &*end_container == node &&
-            end_offset > offset &&
-            end_offset <= offset + removed_code_units
-        {
-            range.set_end_without_reporting(node, offset);
-        }
-        // Step 10: For each live range whose start node is node and start offset is
-        // greater than offset + count: increase its start offset by data’s length and
-        // decrease it by count.
-        if &*start_container == node && start_offset > offset + removed_code_units {
-            range.set_start_without_reporting(
-                node,
-                start_offset + added_code_units() - removed_code_units,
-            );
-        }
-        // Step 11: For each live range whose end node is node and end offset is
-        // greater than offset + count: increase its end offset by data’s length and
-        // decrease it by count.
-        if &*end_container == node && end_offset > offset + removed_code_units {
-            range.set_end_without_reporting(
-                node,
-                end_offset + added_code_units() - removed_code_units,
-            );
-        }
-    }
-}
+        // Step 1. Let parent be node’s parent.
+        // Note: This is `parent_of_removed_node`.
+        // Step 2. Assert: parent is non-null.
+        // Note: Cannot be null.
 
-/// <https://dom.spec.whatwg.org/#concept-text-split> steps 7.2-7.5.
-pub(crate) fn live_range_text_split_steps(
-    parent: &Node,
-    node: &Node,
-    offset: u32,
-    new_node: &Node,
-) {
-    for range in node.live_ranges() {
-        // Step 7.2. For each live range whose start node is node and start offset is
-        // greater than offset, set its start node to newNode and decrease its start
-        // offset by offset.
-        if &*range.start_container() == node && range.start_offset() > offset {
-            range.set_start_without_reporting(new_node, range.start_offset() - offset);
-        }
-        // Step 7.3. For each live range whose end node is node and end offset is
-        // greater than offset, set its end node to newNode and decrease its end
-        // offset by offset.
-        if &*range.end_container() == node && range.end_offset() > offset {
-            range.set_end_without_reporting(new_node, range.end_offset() - offset);
-        }
+        // Step 3. Let index be node’s index.
+        // Note: This is `index_of_removed_node`.
+
+        self.live_ranges().for_each(no_gc, |range| {
+            // Step 4: For each live range whose start node is an inclusive descendant of
+            // node, set its start to (parent, index).
+            let start_container = range.start_container();
+            if removed_node.is_inclusive_ancestor_of(&start_container) {
+                range.set_start_without_reporting(parent_of_removed_node, index_of_removed_node());
+            }
+            // Step 5: For each live range whose end node is an inclusive descendant of node,
+            // set its end to (parent, index).
+            if removed_node.is_inclusive_ancestor_of(&range.end_container()) {
+                range.set_end_without_reporting(parent_of_removed_node, index_of_removed_node());
+            }
+
+            // Step 6: For each live range whose start node is parent and start offset is
+            // greater than index, decrease its start offset by 1.
+            if &*range.start_container() == parent_of_removed_node &&
+                range.start_offset() > index_of_removed_node()
+            {
+                range.set_start_without_reporting(parent_of_removed_node, range.start_offset() - 1);
+            }
+            // Step 7: For each live range whose end node is parent and end offset is greater than
+            // index, decrease its end offset by 1.
+            if &*range.end_container() == parent_of_removed_node &&
+                range.end_offset() > index_of_removed_node()
+            {
+                range.set_end_without_reporting(parent_of_removed_node, range.end_offset() - 1);
+            }
+        });
     }
 
-    let node_index = LazyCell::new(|| node.index());
-    for range in parent.live_ranges() {
-        // Step 7.4. For each live range whose start node is parent and start offset
-        // is equal to the index of node plus 1, increase its start offset by 1.
-        if &*range.start_container() == parent && range.start_offset() == *node_index + 1 {
-            range.set_start_without_reporting(parent, range.start_offset() + 1);
+    /// <https://dom.spec.whatwg.org/#dom-node-normalize> Steps 6.1-6.4.
+    ///
+    /// - `parent`: The parent of both other node arguments.
+    /// - `node`: The node that text is being merged into.
+    /// - `current_node`: The node which has text being merged into `node` and will be
+    ///   removed from the DOM.
+    /// - `current_node_index`: The index of `current_node` in `parent`.
+    /// - `length`: The length of the text content in `node`, its original length plus
+    ///   the length of all content that has already been merged from siblings before
+    ///   `current_node`.
+    pub(crate) fn live_range_normalization_steps(
+        &self,
+        no_gc: &NoGC,
+        parent: &Node,
+        node: &Node,
+        current_node: &Node,
+        current_node_index: &dyn Fn() -> u32,
+        length: u32,
+    ) {
+        if self.live_ranges().is_empty() {
+            return;
         }
 
-        // Step 7.5. For each live range whose end node is parent and end offset is
-        // equal to the index of node plus 1, increase its end offset by 1.
-        if &*range.end_container() == parent && range.end_offset() == *node_index + 1 {
-            range.set_end_without_reporting(parent, range.end_offset() + 1);
+        self.live_ranges().for_each(no_gc, |range| {
+            // Step 6.1: For each live range whose start node is currentNode: add length to
+            // its start offset and set its start node to node.
+            if &*range.start_container() == current_node {
+                range.set_start_without_reporting(node, range.start_offset() + length);
+            }
+            // Step 6.2: For each live range whose end node is currentNode: add length to its
+            // end offset and set its end node to node.
+            if &*range.end_container() == current_node {
+                range.set_end_without_reporting(node, range.end_offset() + length);
+            }
+
+            // Step 6.3: For each live range whose start node is currentNode’s parent and
+            // start offset is currentNode’s index: set its start node to node and its start
+            // offset to length.
+            if &*range.start_container() == parent && range.start_offset() == current_node_index() {
+                range.set_start_without_reporting(node, length);
+            }
+            // Step 6.4: For each live range whose end node is currentNode’s parent and end
+            // offset is currentNode’s index: set its end node to node and its end offset to
+            // length.
+            if &*range.end_container() == parent && range.end_offset() == current_node_index() {
+                range.set_end_without_reporting(node, length);
+            }
+        });
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-cd-replace> steps 8-11.
+    pub(crate) fn live_range_replace_data_steps(
+        &self,
+        no_gc: &NoGC,
+        node: &Node,
+        offset: u32,
+        removed_code_units: u32,
+        added_code_units: &mut dyn FnMut() -> u32,
+    ) {
+        if self.live_ranges().is_empty() {
+            return;
         }
+
+        self.live_ranges().for_each(no_gc, |range| {
+            // Step 8: For each live range whose start node is node and start offset is
+            // greater than offset but less than or equal to offset + count: set its start
+            // offset to offset.
+            let start_container = range.start_container();
+            let start_offset = range.start_offset();
+            if &*start_container == node &&
+                start_offset > offset &&
+                start_offset <= offset + removed_code_units
+            {
+                range.set_start_without_reporting(node, offset);
+            }
+            // Step 9: For each live range whose end node is node and end offset is
+            // greater than offset but less than or equal to offset + count: set its end
+            // offset to offset.
+            let end_container = range.end_container();
+            let end_offset = range.end_offset();
+            if &*end_container == node &&
+                end_offset > offset &&
+                end_offset <= offset + removed_code_units
+            {
+                range.set_end_without_reporting(node, offset);
+            }
+            // Step 10: For each live range whose start node is node and start offset is
+            // greater than offset + count: increase its start offset by data’s length and
+            // decrease it by count.
+            if &*start_container == node && start_offset > offset + removed_code_units {
+                range.set_start_without_reporting(
+                    node,
+                    start_offset + added_code_units() - removed_code_units,
+                );
+            }
+            // Step 11: For each live range whose end node is node and end offset is
+            // greater than offset + count: increase its end offset by data’s length and
+            // decrease it by count.
+            if &*end_container == node && end_offset > offset + removed_code_units {
+                range.set_end_without_reporting(
+                    node,
+                    end_offset + added_code_units() - removed_code_units,
+                );
+            }
+        });
     }
-}
 
-/// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps>
-pub(crate) fn live_range_pre_remove_steps(node: &Node, old_parent: &Node) {
-    // Step 1. Let parent be node’s parent.
-    // Note: This is `old_parent`.
-    // Step 2. Assert: parent is non-null.
-    // Note: Cannot be null.
-
-    // Step 3. Let index be node’s index.
-    let mut cached_index = None;
-    let mut lazy_index = || *cached_index.get_or_insert_with(|| node.index());
-
-    // Step 4. For each live range whose start node is an inclusive descendant of node,
-    // set its start to (parent, index).
-    // Step 5. For each live range whose end node is an inclusive descendant of node, set
-    // its end to (parent, index).
-    //
-    // TODO: Only run this part if there are live ranges in this subtree and/or a selection.
-    let selection = node.owner_document().selection();
-    for descendant in node.traverse_preorder(ShadowIncluding::No) {
-        if let Some(selection) = &selection {
-            selection.remove_steps_for_removed_subtree(&descendant, old_parent, &mut lazy_index);
+    /// <https://dom.spec.whatwg.org/#concept-text-split> steps 7.2-7.5.
+    pub(crate) fn live_range_text_split_steps(
+        &self,
+        no_gc: &NoGC,
+        parent: &Node,
+        node: &Node,
+        offset: u32,
+        new_node: &Node,
+    ) {
+        if self.live_ranges().is_empty() {
+            return;
         }
-        live_range_pre_remove_steps_for_removed_subtree(&descendant, old_parent, &mut lazy_index);
-    }
 
-    // Step 6. For each live range whose start node is parent and start offset is greater
-    // than index, decrease its start offset by 1.
-    // Step 7. For each live range whose end node is parent and end offset is greater than
-    // index, decrease its end offset by 1.
-    if let Some(selection) = &selection {
-        selection.remove_steps_for_parent(old_parent, &mut lazy_index);
+        let node_index = LazyCell::new(|| node.index());
+        self.live_ranges().for_each(no_gc, |range| {
+            // Step 7.2. For each live range whose start node is node and start offset is
+            // greater than offset, set its start node to newNode and decrease its start
+            // offset by offset.
+            if &*range.start_container() == node && range.start_offset() > offset {
+                range.set_start_without_reporting(new_node, range.start_offset() - offset);
+            }
+            // Step 7.3. For each live range whose end node is node and end offset is
+            // greater than offset, set its end node to newNode and decrease its end
+            // offset by offset.
+            if &*range.end_container() == node && range.end_offset() > offset {
+                range.set_end_without_reporting(new_node, range.end_offset() - offset);
+            }
+
+            // Step 7.4. For each live range whose start node is parent and start offset
+            // is equal to the index of node plus 1, increase its start offset by 1.
+            if &*range.start_container() == parent && range.start_offset() == *node_index + 1 {
+                range.set_start_without_reporting(parent, range.start_offset() + 1);
+            }
+
+            // Step 7.5. For each live range whose end node is parent and end offset is
+            // equal to the index of node plus 1, increase its end offset by 1.
+            if &*range.end_container() == parent && range.end_offset() == *node_index + 1 {
+                range.set_end_without_reporting(parent, range.end_offset() + 1);
+            }
+        });
     }
-    live_range_pre_remove_steps_for_parent(old_parent, &mut lazy_index);
 }
