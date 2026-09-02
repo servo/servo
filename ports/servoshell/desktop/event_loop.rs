@@ -9,7 +9,9 @@ use std::time;
 
 use gilrs::Event;
 use log::warn;
-use servo::{EventLoopWaker, GamepadIndex};
+use servo::EventLoopWaker;
+#[cfg(feature = "gamepad")]
+use servo::GamepadIndex;
 use winit::event_loop::{EventLoop, EventLoop as WinitEventLoop, EventLoopProxy};
 
 use super::app::App;
@@ -19,6 +21,7 @@ pub enum AppEvent {
     /// Another process or thread has kicked the OS event loop with EventLoopWaker.
     Waker,
     Accessibility(egui_winit::accesskit_winit::Event),
+    #[cfg(feature = "gamepad")]
     Gamepad(Event, String, GamepadIndex),
 }
 
