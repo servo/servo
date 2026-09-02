@@ -82,7 +82,7 @@ mod test {
     #[test]
     fn test_linebreaker_ranges() {
         let linebreaker = LineBreaker::new("abc def", LineBreakOptions::default());
-        assert_eq!(linebreaker.linebreaks, [4, 7]);
+        assert_eq!(linebreaker.linebreaks, [Utf8CodeUnits(4), Utf8CodeUnits(7)]);
         assert_eq!(
             linebreaks_in_range_after_current_offset(&linebreaker, 0..5),
             0..1
@@ -94,7 +94,10 @@ mod test {
         );
 
         let linebreaker = LineBreaker::new("abc d def", LineBreakOptions::default());
-        assert_eq!(linebreaker.linebreaks, [4, 6, 9]);
+        assert_eq!(
+            linebreaker.linebreaks,
+            [Utf8CodeUnits(4), Utf8CodeUnits(6), Utf8CodeUnits(9)]
+        );
         assert_eq!(
             linebreaks_in_range_after_current_offset(&linebreaker, 0..5),
             0..1
@@ -131,8 +134,14 @@ mod test {
     #[test]
     fn test_linebreaker_stateful_advance() {
         let mut linebreaker = LineBreaker::new("abc d def", LineBreakOptions::default());
-        assert_eq!(linebreaker.linebreaks, [4, 6, 9]);
-        assert!(advance_to_linebreaks_in_range(&mut linebreaker, 0..7) == &[4, 6]);
+        assert_eq!(
+            linebreaker.linebreaks,
+            [Utf8CodeUnits(4), Utf8CodeUnits(6), Utf8CodeUnits(9)]
+        );
+        assert!(
+            advance_to_linebreaks_in_range(&mut linebreaker, 0..7) ==
+                &[Utf8CodeUnits(4), Utf8CodeUnits(6)]
+        );
         assert!(advance_to_linebreaks_in_range(&mut linebreaker, 8..9).is_empty());
 
         // We've already advanced, so a range from the beginning shouldn't affect things.
@@ -141,7 +150,10 @@ mod test {
         linebreaker.current_linebreak_offset = 0;
 
         // Sending a value out of range shouldn't break things.
-        assert!(advance_to_linebreaks_in_range(&mut linebreaker, 0..999) == &[4, 6]);
+        assert!(
+            advance_to_linebreaks_in_range(&mut linebreaker, 0..999) ==
+                &[Utf8CodeUnits(4), Utf8CodeUnits(6)]
+        );
 
         linebreaker.current_linebreak_offset = 0;
 

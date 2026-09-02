@@ -15,6 +15,8 @@ use icu_properties::props::{EnumeratedProperty, GeneralCategory, GeneralCategory
 use icu_segmenter::WordSegmenter;
 use icu_segmenter::options::WordBreakInvariantOptions;
 use malloc_size_of_derive::MallocSizeOf;
+#[cfg(test)]
+use servo_base::text::Str32;
 use servo_base::text::Utf32CodeUnits;
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -630,13 +632,17 @@ fn test_offsetmap_basic_expansion() {
     assert_eq!(offset_map.map(Utf32CodeUnits(100)).0, 7);
 
     let map_substring = |offset: u32, length: u32| {
-        let start = offset_map
-            .map(Utf32CodeUnits(offset))
-            .to_utf8_code_units_in(final_string);
-        let end = offset_map
-            .map(Utf32CodeUnits(offset + length))
-            .to_utf8_code_units_in(final_string);
-        &final_string[start.0..end.0]
+        let start = usize::from(
+            offset_map
+                .map(Utf32CodeUnits(offset))
+                .to_utf8_code_units_in(Str32(final_string)),
+        );
+        let end = usize::from(
+            offset_map
+                .map(Utf32CodeUnits(offset + length))
+                .to_utf8_code_units_in(Str32(final_string)),
+        );
+        &final_string[start..end]
     };
     assert_eq!(map_substring(0, 1), "A");
     assert_eq!(map_substring(0, 2), "ASS");
@@ -696,8 +702,8 @@ fn test_offsetmap_basic_collapse() {
     assert_eq!(offset_map.map(Utf32CodeUnits(100)).0, 7);
 
     let map_substring = |offset: u32, length: u32| {
-        let start = offset_map.map(Utf32CodeUnits(offset)).0;
-        let end = offset_map.map(Utf32CodeUnits(offset + length)).0;
+        let start = usize::from(offset_map.map(Utf32CodeUnits(offset)));
+        let end = usize::from(offset_map.map(Utf32CodeUnits(offset + length)));
         &final_string[start..end]
     };
     assert_eq!(map_substring(0, 1), "");

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use fonts::{ShapedText, ShapedTextSlice, ShapedTextSliceType, ShapedTextSlicer, ShapingOptions};
 use icu_segmenter::options::LineBreakOptions;
-use servo_base::text::{Utf8CodeUnits, Utf32CodeUnits};
+use servo_base::text::{Str32, Utf8CodeUnits, Utf32CodeUnits};
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
@@ -166,7 +166,8 @@ impl BatchSlicer<'_> {
             // Push the non-whitespace part of the range.
             if !slice.is_empty() {
                 let slice = usize::from(slice.start)..usize::from(slice.end);
-                current_character_offset += Utf32CodeUnits::length_of(&self.text[slice]);
+                // TODO: ensure layout doesn’t handle more than 4 GiB at a time?
+                current_character_offset += Utf32CodeUnits::length_of(Str32(&self.text[slice]));
                 maybe_push_run(
                     self.slicer
                         .slice_until_character_offset(current_character_offset, slice_type),
@@ -191,7 +192,8 @@ impl BatchSlicer<'_> {
                 continue;
             }
 
-            current_character_offset += Utf32CodeUnits::length_of(&self.text[whitespace]);
+            // TODO: ensure layout doesn’t handle more than 4 GiB at a time?
+            current_character_offset += Utf32CodeUnits::length_of(Str32(&self.text[whitespace]));
             maybe_push_run(self.slicer.slice_until_character_offset(
                 current_character_offset,
                 ShapedTextSliceType::WhiteSpace,

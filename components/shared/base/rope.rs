@@ -9,7 +9,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::Either;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::text::{Utf8CodeUnits, Utf16CodeUnits, Utf32CodeUnits};
+use crate::text::{Str32, Utf8CodeUnits, Utf16CodeUnits, Utf32CodeUnits};
 
 fn contents_vec(contents: impl Into<String>) -> Vec<String> {
     let mut contents: Vec<_> = contents
@@ -161,7 +161,7 @@ impl Rope {
         // TODO: add some check that ropes stay under 4 GiB total?
         self.lines
             .iter()
-            .map(|line| Utf16CodeUnits::length_of(line))
+            .map(|line| Utf16CodeUnits::length_of(Str32(line)))
             .sum()
     }
 
@@ -341,12 +341,13 @@ impl Rope {
         let final_line = self.line(rope_index.line);
 
         // The offset might be past the end of the line due to being an exclusive offset.
-        let final_line_offset = Utf16CodeUnits::length_of(&final_line[0..rope_index.code_point]);
+        let final_line_offset =
+            Utf16CodeUnits::length_of(Str32(&final_line[..rope_index.code_point]));
 
         // TODO: add some check that ropes stay under 4 GiB total?
         self.lines[..rope_index.line]
             .iter()
-            .map(|line| Utf16CodeUnits::length_of(line))
+            .map(|line| Utf16CodeUnits::length_of(Str32(line)))
             .sum::<Utf16CodeUnits>() +
             final_line_offset
     }
@@ -358,11 +359,12 @@ impl Rope {
         // The offset might be past the end of the line due to being an exclusive offset.
         let final_line = self.line(rope_index.line);
         // TODO: add some check that ropes stay under 4 GiB total?
-        let final_line_offset = Utf32CodeUnits::length_of(&final_line[..rope_index.code_point]);
+        let final_line_offset =
+            Utf32CodeUnits::length_of(Str32(&final_line[..rope_index.code_point]));
         self.lines
             .iter()
             .take(rope_index.line)
-            .map(|line| Utf32CodeUnits::length_of(line))
+            .map(|line| Utf32CodeUnits::length_of(Str32(line)))
             .sum::<Utf32CodeUnits>() +
             final_line_offset
     }
@@ -381,7 +383,7 @@ impl Rope {
 
     pub fn utf16_offset_to_utf8_offset(&self, utf16_offset: Utf16CodeUnits) -> Utf8CodeUnits {
         // TODO: add some check that ropes stay under 4 GiB total?
-        utf16_offset.to_utf8_code_units_in_iter(&self.lines)
+        utf16_offset.to_utf8_code_units_in_iter(self.lines.iter().map(|line| Str32(line)))
     }
 
     /// Find the boundaries of the word most relevant to the given [`RopeIndex`]. Word

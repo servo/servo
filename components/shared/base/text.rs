@@ -217,6 +217,13 @@ impl<T> From<Range<T>> for RangeAny<T> {
     }
 }
 
+/// A wrapper for `&str` whose length is not greater than 4 GiB, `u32::MAX` bytes
+///
+/// Using `Str32` with a string too long is not memory unsafe, but other APIs
+/// like `Utf8CodeUnits::length_of` may silently return an incorrect (wrapped) value.
+#[derive(Clone, Copy)]
+pub struct Str32<'a>(pub &'a str);
+
 #[expect(unexpected_cfgs)] // for `target_pointer_width = "128"`
 fn infalliable_u32_to_usize(value: u32) -> usize {
     cfg_if::cfg_if! {
@@ -340,11 +347,8 @@ unicode_length_type! {
 
 impl Utf8CodeUnits {
     /// Returns the length of `string` in UTF-8 code units (bytes)
-    ///
-    /// Note: this silently wraps and returns an incorrect value for strings larger than
-    /// `u32::MAX` bytes (4 GiB)
-    pub fn length_of(string: &str) -> Self {
-        Self(string.len() as u32)
+    pub fn length_of(string: Str32) -> Self {
+        Self(string.0.len() as u32)
     }
 
     pub fn length_of_char(char: char) -> Self {
@@ -355,11 +359,8 @@ impl Utf8CodeUnits {
 
 impl Utf16CodeUnits {
     /// Returns the length of `string` in UTF-16 code units
-    ///
-    /// Note: this silently wraps and returns an incorrect value for strings larger than
-    /// `u32::MAX` (~4 billion) code units
-    pub fn length_of(string: &str) -> Self {
-        Self(string.bytes().map(len_utf16_for_utf8_byte).sum())
+    pub fn length_of(string: Str32) -> Self {
+        Self(string.0.bytes().map(len_utf16_for_utf8_byte).sum())
 
         // TODO: after upgrading to a Rust version (1.99?) that includes that PR,
         // replace the above with:
@@ -374,25 +375,22 @@ impl Utf16CodeUnits {
     }
 
     /// Convert this UTF-16 offset in `string` to an UTF-8 (byte) offset
-    ///
-    /// Note: this silently wraps and returns an incorrect value for offsets larger than
-    /// `u32::MAX` bytes (4 GiB)
-    pub fn to_utf8_code_units_in(self, string: &str) -> Utf8CodeUnits {
+    pub fn to_utf8_code_units_in(self, string: Str32) -> Utf8CodeUnits {
         self.to_utf8_code_units_in_iter(Some(string))
     }
 
     /// Convert this UTF-16 offset in an iterator of strings, to an UTF-8 (byte) offset
     ///
-    /// Note: this silently wraps and returns an incorrect value for offsets larger than
-    /// `u32::MAX` bytes (4 GiB)
-    pub fn to_utf8_code_units_in_iter<S: AsRef<str>>(
+    /// Note: this silently wraps and returns an incorrect value for results larger than
+    /// `u32::MAX` bytes (4 GiB), even if individual iterator items fits `Str32`.
+    pub fn to_utf8_code_units_in_iter<'a>(
         self,
-        iter: impl IntoIterator<Item = S>,
+        iter: impl IntoIterator<Item = Str32<'a>>,
     ) -> Utf8CodeUnits {
         let mut current_utf16_offset = Utf16CodeUnits(0);
         let mut current_utf8_offset = Utf8CodeUnits(0);
         for string in iter {
-            for utf8_byte in string.as_ref().bytes() {
+            for utf8_byte in string.0.bytes() {
                 if current_utf16_offset >= self {
                     break;
                 }
@@ -477,22 +475,16 @@ fn increment_offsets_for_utf8_byte(
 
 impl Utf32CodeUnits {
     /// Returns the length of `string` in UTF-32 code units (`char` count)
-    ///
-    /// Note: this silently wraps and returns an incorrect value for strings larger than
-    /// `u32::MAX` (~4 billion) code units / `char`s
-    pub fn length_of(string: &str) -> Self {
+    pub fn length_of(string: Str32) -> Self {
         // `std::str::Chars::count` is optimized in:
         // https://github.com/rust-lang/rust/blob/main/library/core/src/str/count.rs
-        Self(string.chars().count() as u32)
+        Self(string.0.chars().count() as u32)
     }
 
     /// Convert this UTF-32 (`char`) offset in `string` to an UTF-8 (byte) offset
-    ///
-    /// Note: this silently wraps and returns an incorrect value for offsets larger than
-    /// `u32::MAX` bytes (4 GiB)
-    pub fn to_utf8_code_units_in(self, string: &str) -> Utf8CodeUnits {
+    pub fn to_utf8_code_units_in(self, string: Str32) -> Utf8CodeUnits {
         let mut current_utf32_offset = Utf32CodeUnits(0);
-        for (current_utf8_offset, utf8_byte) in string.bytes().enumerate() {
+        for (current_utf8_offset, utf8_byte) in string.0.bytes().enumerate() {
             if (utf8_byte & 0b1100_0000) == 0b1000_0000 {
                 // UTF-8 continuation byte
                 continue;
@@ -502,17 +494,14 @@ impl Utf32CodeUnits {
             }
             current_utf32_offset.0 += 1;
         }
-        Utf8CodeUnits(string.len() as u32)
+        Utf8CodeUnits(string.0.len() as u32)
     }
 
     /// Convert this UTF-32 (`char`) offset in `string` to an UTF-16 offset
-    ///
-    /// Note: this silently wraps and returns an incorrect value for offsets larger than
-    /// `u32::MAX` (~4 billion) code units
-    pub fn to_utf16_code_units_in(self, string: &str) -> Utf16CodeUnits {
+    pub fn to_utf16_code_units_in(self, string: Str32) -> Utf16CodeUnits {
         let mut current_utf32_offset = Utf32CodeUnits(0);
         let mut current_utf16_offset = Utf16CodeUnits(0);
-        for utf8_byte in string.bytes() {
+        for utf8_byte in string.0.bytes() {
             if current_utf32_offset >= self {
                 break;
             }
@@ -531,7 +520,7 @@ impl Utf32CodeUnitsOrNodeOffset {
     ///
     /// Note: this silently wraps and returns an incorrect value for offsets larger than
     /// `u32::MAX` (~4 billion) code units
-    pub fn to_utf16_code_units_in(self, string: &str) -> Utf16CodeUnits {
+    pub fn to_utf16_code_units_in(self, string: Str32) -> Utf16CodeUnits {
         Utf32CodeUnits(self.0).to_utf16_code_units_in(string)
     }
 }
@@ -561,13 +550,16 @@ mod test {
 
     #[test]
     fn test_utf16_length() {
-        assert_eq!(Utf16CodeUnits::length_of(""), Utf16CodeUnits(0));
-        assert_eq!(Utf16CodeUnits::length_of("a"), Utf16CodeUnits(1));
-        assert_eq!(Utf16CodeUnits::length_of("é"), Utf16CodeUnits(1));
-        assert_eq!(Utf16CodeUnits::length_of("字"), Utf16CodeUnits(1));
-        assert_eq!(Utf16CodeUnits::length_of("\u{1F4A9}"), Utf16CodeUnits(2));
+        assert_eq!(Utf16CodeUnits::length_of(Str32("")), Utf16CodeUnits(0));
+        assert_eq!(Utf16CodeUnits::length_of(Str32("a")), Utf16CodeUnits(1));
+        assert_eq!(Utf16CodeUnits::length_of(Str32("é")), Utf16CodeUnits(1));
+        assert_eq!(Utf16CodeUnits::length_of(Str32("字")), Utf16CodeUnits(1));
         assert_eq!(
-            Utf16CodeUnits::length_of("\u{1F4A9}字éa"),
+            Utf16CodeUnits::length_of(Str32("\u{1F4A9}")),
+            Utf16CodeUnits(2)
+        );
+        assert_eq!(
+            Utf16CodeUnits::length_of(Str32("\u{1F4A9}字éa")),
             Utf16CodeUnits(5)
         );
     }
@@ -618,7 +610,7 @@ mod test {
 
     #[test]
     fn test_utf32_to_utf16() {
-        let string = "aé字\u{1F4A9}";
+        let string = Str32("aé字\u{1F4A9}");
         assert_eq!(
             Utf32CodeUnits(0).to_utf16_code_units_in(string),
             Utf16CodeUnits(0),

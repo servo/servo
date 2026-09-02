@@ -13,7 +13,9 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
-use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
+use servo_base::text::{
+    RangeAny, Str32, Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset,
+};
 
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
@@ -1447,7 +1449,10 @@ impl Node {
     /// `CharacterData` or else return the offset in the child list.
     fn to_sibling_or_utf16_offset(&self, offset: Utf32CodeUnitsOrNodeOffset) -> u32 {
         if let Some(character_data) = self.downcast::<CharacterData>() {
-            offset.to_utf16_code_units_in(&character_data.data()).0
+            // TODO: ensure that each `CharacterData` holds no more than 4 GiB?
+            offset
+                .to_utf16_code_units_in(Str32(&character_data.data()))
+                .0
         } else {
             offset.0
         }
