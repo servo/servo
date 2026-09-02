@@ -4543,6 +4543,9 @@ impl VirtualMethods for Node {
 
         let mut cached_index = None;
         let mut lazy_index = || *cached_index.get_or_insert_with(|| context.index());
+        if let Some(selection) = self.owner_document().selection() {
+            selection.remove_steps_for_removed_subtree(self, context.parent, &mut lazy_index);
+        }
         live_range_pre_remove_steps_for_removed_subtree(self, context.parent, &mut lazy_index);
     }
 

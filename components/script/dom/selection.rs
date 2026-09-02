@@ -267,7 +267,7 @@ impl Selection {
         let start_offset = range.start.offset as usize;
         let end_offset = range.end.offset as usize;
         let start_container = range.start.container.as_rooted();
-        let end_container = range.start.container.as_rooted();
+        let end_container = range.end.container.as_rooted();
         let start_position =
             position_in_flat_tree_for_selection(no_gc, start_container.clone(), start_offset);
         let end_position =
