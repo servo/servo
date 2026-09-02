@@ -85,6 +85,7 @@ use crate::dom::bindings::root::{
 };
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
+use crate::dom::comparator::{DomPositionContainment, compare_dom_positions};
 use crate::dom::context::{BindContext, IsShadowTree, MoveContext, UnbindContext};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheetlist::StyleSheetListOwner;
@@ -122,6 +123,7 @@ use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::servoparser::serialize_html_fragment;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
+use crate::dom::traversal::LightDomNoGcTraversal;
 use crate::dom::types::{CDATASection, KeyboardEvent, MouseEvent, ProcessingInstruction};
 use crate::dom::window::Window;
 use crate::dom::{
@@ -717,8 +719,8 @@ impl Node {
 
     /// Returns true if this node is before `other` in the same connected DOM
     /// tree.
-    pub(crate) fn is_before(&self, other: &Node) -> bool {
-        let cmp = other.CompareDocumentPosition(self);
+    pub(crate) fn is_before(&self, no_gc: &NoGC, other: &Node) -> bool {
+        let cmp = other.CompareDocumentPosition(no_gc, self);
         if cmp & NodeConstants::DOCUMENT_POSITION_DISCONNECTED != 0 {
             return false;
         }
@@ -4261,7 +4263,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-comparedocumentposition>
-    fn CompareDocumentPosition(&self, other: &Node) -> u16 {
+    fn CompareDocumentPosition(&self, no_gc: &NoGC, other: &Node) -> u16 {
         // Step 1. If this is other, then return zero.
         if self == other {
             return 0;
@@ -4334,86 +4336,65 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             unreachable!();
         }
 
-        // Step 6
-        match (node1, node2) {
-            (None, _) => {
-                // node1 is null
-                NodeConstants::DOCUMENT_POSITION_FOLLOWING +
-                    NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC
-            },
-            (_, None) => {
-                // node2 is null
-                NodeConstants::DOCUMENT_POSITION_PRECEDING +
-                    NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC
-            },
-            (Some(node1), Some(node2)) => {
-                // still step 6, testing if node1 and 2 share a root
-                let mut self_and_ancestors = node2
-                    .inclusive_ancestors(ShadowIncluding::No)
-                    .collect::<SmallVec<[_; 20]>>();
-                let mut other_and_ancestors = node1
-                    .inclusive_ancestors(ShadowIncluding::No)
-                    .collect::<SmallVec<[_; 20]>>();
+        // Step 6. If node1 or node2 is null, or node1’s root is not node2’s root, then
+        // return the result of adding DOCUMENT_POSITION_DISCONNECTED,
+        // DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC, and either
+        // DOCUMENT_POSITION_PRECEDING or DOCUMENT_POSITION_FOLLOWING, with the constraint
+        // that this is to be consistent, together.
+        let options = GetRootNodeOptions { composed: false };
+        let node1_root = node1.map(|node| node.GetRootNode(&options));
+        let node2_root = node2.map(|node| node.GetRootNode(&options));
+        if node1_root.is_none() || node2_root.is_none() || node1_root != node2_root {
+            // Auto-deref and compare the addresses of GC-owned `&Node`s,
+            // more stable than addresses of SmallVec-owned `&Root<Dom<Node>>`
+            let pointer1 = node1.map(as_uintptr::<Node>).unwrap_or_default();
+            let pointer2 = node2.map(as_uintptr::<Node>).unwrap_or_default();
+            let arbitrary_order = if pointer1 < pointer2 {
+                NodeConstants::DOCUMENT_POSITION_PRECEDING
+            } else {
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING
+            };
 
-                if self_and_ancestors.last() != other_and_ancestors.last() {
-                    // Auto-deref and compare the addresses of GC-owned `&Node`s,
-                    // more stable than addresses of SmallVec-owned `&Root<Dom<Node>>`
-                    let arbitrary = as_uintptr::<Node>(self_and_ancestors.last().unwrap()) <
-                        as_uintptr::<Node>(other_and_ancestors.last().unwrap());
-                    let arbitrary = if arbitrary {
-                        NodeConstants::DOCUMENT_POSITION_FOLLOWING
-                    } else {
-                        NodeConstants::DOCUMENT_POSITION_PRECEDING
-                    };
-
-                    // Disconnected.
-                    return arbitrary +
-                        NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                        NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
-                }
-                // steps 7-10
-                let mut parent = self_and_ancestors.pop().unwrap();
-                other_and_ancestors.pop().unwrap();
-
-                let mut current_position =
-                    cmp::min(self_and_ancestors.len(), other_and_ancestors.len());
-
-                while current_position > 0 {
-                    current_position -= 1;
-                    let child_1 = self_and_ancestors.pop().unwrap();
-                    let child_2 = other_and_ancestors.pop().unwrap();
-
-                    if child_1 != child_2 {
-                        for child in parent.children() {
-                            if child == child_1 {
-                                // `other` is following `self`.
-                                return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
-                            }
-                            if child == child_2 {
-                                // `other` is preceding `self`.
-                                return NodeConstants::DOCUMENT_POSITION_PRECEDING;
-                            }
-                        }
-                    }
-
-                    parent = child_1;
-                }
-
-                // We hit the end of one of the parent chains, so one node needs to be
-                // contained in the other.
-                //
-                // If we're the container, return that `other` is contained by us.
-                if self_and_ancestors.len() < other_and_ancestors.len() {
-                    NodeConstants::DOCUMENT_POSITION_FOLLOWING +
-                        NodeConstants::DOCUMENT_POSITION_CONTAINED_BY
-                } else {
-                    NodeConstants::DOCUMENT_POSITION_PRECEDING +
-                        NodeConstants::DOCUMENT_POSITION_CONTAINS
-                }
-            },
+            return arbitrary_order +
+                NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
+                NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
         }
+
+        // Comparison goes here:
+        let (ordering, containment_flags) = match (node1, node2) {
+            (Some(node1), Some(node2)) => {
+                compare_dom_positions::<LightDomNoGcTraversal>(no_gc, node1, 0, node2, 0)
+            },
+            _ => (None, DomPositionContainment::empty()),
+        };
+
+        // Step 7. If node1 is an ancestor of node2 and attr1 is null, or node1 is node2
+        // and attr2 is non-null, then return the result of adding
+        // DOCUMENT_POSITION_CONTAINS to DOCUMENT_POSITION_PRECEDING.
+        if (containment_flags.contains(DomPositionContainment::AContainsB) && attr1.is_none()) ||
+            (node1 == node2 && attr2.is_some())
+        {
+            return NodeConstants::DOCUMENT_POSITION_CONTAINS +
+                NodeConstants::DOCUMENT_POSITION_PRECEDING;
+        }
+
+        // Step 8. If node1 is a descendant of node2 and attr2 is null, or node1 is node2
+        // and attr1 is non-null, then return the result of adding
+        // DOCUMENT_POSITION_CONTAINED_BY to DOCUMENT_POSITION_FOLLOWING.
+        if (containment_flags.contains(DomPositionContainment::BContainsA) && attr2.is_none()) ||
+            (node1 == node2 && attr1.is_some())
+        {
+            return NodeConstants::DOCUMENT_POSITION_CONTAINED_BY +
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING;
+        }
+
+        // Step 9. If node1 is preceding node2, then return DOCUMENT_POSITION_PRECEDING.
+        if ordering == Some(Ordering::Less) {
+            return NodeConstants::DOCUMENT_POSITION_PRECEDING;
+        }
+
+        // Step 10. Return DOCUMENT_POSITION_FOLLOWING.
+        NodeConstants::DOCUMENT_POSITION_FOLLOWING
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-contains>

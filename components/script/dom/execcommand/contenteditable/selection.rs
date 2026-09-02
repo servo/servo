@@ -193,7 +193,9 @@ impl Selection {
         let (mut end_node, mut end_offset) = self.end_boundary(cx).first_equivalent_point();
 
         // Step 6. If (end node, end offset) is not after (start node, start offset):
-        if bp_position(&end_node, end_offset, &start_node, start_offset) != Ordering::Greater {
+        if bp_position(cx.no_gc(), &end_node, end_offset, &start_node, start_offset) !=
+            Ordering::Greater
+        {
             // Step 6.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
                 let _ = self.CollapseToStart(cx);
@@ -823,7 +825,7 @@ impl Selection {
             };
             let _ = self
                 .expect_active_range(cx)
-                .SetStart(start_text.upcast(), 0);
+                .SetStart(cx.no_gc(), start_text.upcast(), 0);
         }
         // Step 4. If the active range's end node is an editable Text node,
         // and its end offset is neither zero nor its end node's length,
@@ -841,7 +843,7 @@ impl Selection {
         // Step 5. Let element list be all editable Elements effectively contained in the active range.
         // Step 6. For each element in element list, clear the value of element.
         self.expect_active_range(cx)
-            .for_each_effectively_contained_child(|child| {
+            .for_each_effectively_contained_child(cx, |cx, child| {
                 if child.is_editable() &&
                     let Some(element_child) = child.downcast::<HTMLElement>()
                 {
@@ -851,7 +853,7 @@ impl Selection {
         // Step 7. Let node list be all editable nodes effectively contained in the active range.
         // Step 8. For each node in node list:
         self.expect_active_range(cx)
-            .for_each_effectively_contained_child(|child| {
+            .for_each_effectively_contained_child(cx, |cx, child| {
                 if child.is_editable() {
                     // Step 8.1. Push down values on node.
                     child.push_down_values(cx, &command, new_value.clone());

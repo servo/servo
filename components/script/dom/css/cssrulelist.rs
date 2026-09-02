@@ -121,7 +121,7 @@ impl CSSRuleList {
         rule: &DOMString,
         idx: u32,
     ) -> Fallible<u32> {
-        self.parent_stylesheet.will_modify();
+        self.parent_stylesheet.will_modify(cx.no_gc());
         let css_rules = if let RulesSource::Rules(rules) = &*self.rules.borrow() {
             rules.clone()
         } else {
@@ -188,7 +188,7 @@ impl CSSRuleList {
         }
 
         let parent_stylesheet = &*self.parent_stylesheet;
-        parent_stylesheet.will_modify();
+        parent_stylesheet.will_modify(cx.no_gc());
 
         let dom_rule = CSSRule::new_specific(
             cx,
@@ -206,7 +206,7 @@ impl CSSRuleList {
 
     /// In case of a keyframe rule, index must be valid.
     pub(crate) fn remove_rule(&self, cx: &mut JSContext, index: u32) -> ErrorResult {
-        self.parent_stylesheet.will_modify();
+        self.parent_stylesheet.will_modify(cx.no_gc());
 
         let index = index as usize;
         let mut guard = self.parent_stylesheet.shared_lock().write();

@@ -262,8 +262,8 @@ impl HTMLElement {
             }
             previous_node = child;
         }
-        let _ = range.SetStart(&selected_node, selected_offset);
-        let _ = range.SetEnd(&selected_node, selected_offset);
-        selection.AddRange(&range);
+        let _ = range.SetStart(cx.no_gc(), &selected_node, selected_offset);
+        let _ = range.SetEnd(cx.no_gc(), &selected_node, selected_offset);
+        selection.AddRange(cx.no_gc(), &range);
     }
 }

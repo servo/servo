@@ -126,7 +126,7 @@ impl CSSStyleOwner {
                 result
             },
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
-                rule.parent_stylesheet().will_modify();
+                rule.parent_stylesheet().will_modify(cx.no_gc());
                 let result = {
                     let mut guard = rule.shared_lock().write();
                     f(&mut *pdb.borrow().write_with(&mut guard), &mut changed)

@@ -21,7 +21,7 @@ pub(crate) fn execute_unlink_command(cx: &mut JSContext, selection: &Selection) 
         .active_range(cx)
         .expect("Must always have an active range");
     let mut hyperlinks = vec![];
-    active_range.for_each_effectively_contained_child(|node| {
+    active_range.for_each_effectively_contained_child(cx, |_cx, node| {
         if let Some(anchor) = node.downcast::<HTMLAnchorElement>() &&
             anchor
                 .upcast::<Element>()

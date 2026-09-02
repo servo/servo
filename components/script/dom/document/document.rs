@@ -4674,7 +4674,12 @@ impl Document {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(
+        &self,
+        no_gc: &NoGC,
+        owner_node: &Element,
+        sheet: Arc<Stylesheet>,
+    ) {
         let insertion_point = {
             let stylesheets = &mut *self.stylesheets.borrow_mut();
 
@@ -4684,9 +4689,9 @@ impl Document {
                 .map(|(sheet, _origin)| sheet)
                 .find(|sheet_in_doc| {
                     match &sheet_in_doc.owner {
-                        StylesheetSource::Element(other_node) => {
-                            owner_node.upcast::<Node>().is_before(other_node.upcast())
-                        },
+                        StylesheetSource::Element(other_node) => owner_node
+                            .upcast::<Node>()
+                            .is_before(no_gc, other_node.upcast()),
                         // Non-constructed stylesheet should be ordered before the
                         // constructed ones.
                         StylesheetSource::Constructed(_) => true,
@@ -6486,7 +6491,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 match names_with_first_named_element_map.entry(id.clone()) {
                     Vacant(entry) => drop(entry.insert(first.as_rooted())),
                     Occupied(mut entry) => {
-                        if first.upcast::<Node>().is_before(entry.get().upcast()) {
+                        if first
+                            .upcast::<Node>()
+                            .is_before(no_gc, entry.get().upcast())
+                        {
                             *entry.get_mut() = first.as_rooted();
                         }
                     },
@@ -6501,7 +6509,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 // This can happen if an img has an id different from its name,
                 // spec does not say which string to put first.
                 a.0.cmp(&b.0)
-            } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
+            } else if a.1.upcast::<Node>().is_before(no_gc, b.1.upcast::<Node>()) {
                 Ordering::Less
             } else {
                 Ordering::Greater

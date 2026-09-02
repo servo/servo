@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{LazyCell, RefCell};
-use std::cmp::{Ordering, PartialOrd};
+use std::cmp::Ordering;
 use std::iter;
 use std::rc::Rc;
 
@@ -156,14 +156,20 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#contained>
-    pub(crate) fn contains(&self, node: &Node) -> bool {
+    pub(crate) fn contains(&self, no_gc: &NoGC, node: &Node) -> bool {
         // > A node node is contained in a live range range if node’s root is range’s root,
         // > and (node, 0) is after range’s start, and (node, node’s length) is before range’s end.
         node.GetRootNode(&Default::default()) == self.root() &&
             matches!(
                 (
-                    bp_position(node, 0, &self.start_container(), self.start_offset()),
-                    bp_position(node, node.len(), &self.end_container(), self.end_offset()),
+                    bp_position(no_gc, node, 0, &self.start_container(), self.start_offset()),
+                    bp_position(
+                        no_gc,
+                        node,
+                        node.len(),
+                        &self.end_container(),
+                        self.end_offset()
+                    ),
                 ),
                 (Ordering::Greater, Ordering::Less)
             )
@@ -182,7 +188,7 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-clone>
-    pub(crate) fn contained_children(&self) -> Fallible<ContainedChildren> {
+    pub(crate) fn contained_children(&self, no_gc: &NoGC) -> Fallible<ContainedChildren> {
         let start_node = self.start_container();
         let end_node = self.end_container();
         // Steps 5-6.
@@ -211,7 +217,7 @@ impl Range {
         // Step 11.
         let contained_children: Vec<DomRoot<Node>> = common_ancestor
             .children()
-            .filter(|n| self.contains(n))
+            .filter(|n| self.contains(no_gc, n))
             .collect();
 
         // Step 12.
@@ -280,7 +286,7 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset>
-    fn compare_point(&self, node: &Node, offset: u32) -> Fallible<Ordering> {
+    fn compare_point(&self, no_gc: &NoGC, node: &Node, offset: u32) -> Fallible<Ordering> {
         // Step 1. If node’s root is not this’s root, then throw a "WrongDocumentError"
         // DOMException.
         if node.GetRootNode(&Default::default()) != self.root() {
@@ -298,13 +304,17 @@ impl Range {
         }
         // Step 4. If (node, offset) is before start, then return −1.
         let start_node = self.start_container();
-        if let Ordering::Less = bp_position(node, offset, &start_node, self.start_offset()) {
+        if let Ordering::Less = bp_position(no_gc, node, offset, &start_node, self.start_offset()) {
             return Ok(Ordering::Less);
         }
         // Step 5. If (node, offset) is after end, then return 1.
-        if let Ordering::Greater =
-            bp_position(node, offset, &self.end_container(), self.end_offset())
-        {
+        if let Ordering::Greater = bp_position(
+            no_gc,
+            node,
+            offset,
+            &self.end_container(),
+            self.end_offset(),
+        ) {
             return Ok(Ordering::Greater);
         }
         // Step 6. Return 0.
@@ -404,6 +414,7 @@ impl Range {
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
     fn set_the_start_or_end(
         &self,
+        no_gc: &NoGC,
         node: &Node,
         offset: u32,
         start_or_end: StartOrEnd,
@@ -429,8 +440,13 @@ impl Range {
                 // Step 4.1. If range’s root is not equal to node’s root, or if bp is after
                 // the range’s end, set range’s end to bp.
                 if self.root() != node.GetRootNode(&Default::default()) ||
-                    bp_position(node, offset, &self.end_container(), self.end_offset()) ==
-                        Ordering::Greater
+                    bp_position(
+                        no_gc,
+                        node,
+                        offset,
+                        &self.end_container(),
+                        self.end_offset(),
+                    ) == Ordering::Greater
                 {
                     notification.set(
                         SelectionLiveRangeNotification::End,
@@ -449,8 +465,13 @@ impl Range {
                 // Step 4.1. If range’s root is not equal to node’s root, or if bp is
                 // before the range’s start, set range’s start to bp.
                 if self.root() != node.GetRootNode(&Default::default()) ||
-                    bp_position(node, offset, &self.start_container(), self.start_offset()) ==
-                        Ordering::Less
+                    bp_position(
+                        no_gc,
+                        node,
+                        offset,
+                        &self.start_container(),
+                        self.start_offset(),
+                    ) == Ordering::Less
                 {
                     notification.set(
                         SelectionLiveRangeNotification::Start,
@@ -509,37 +530,37 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstart>
-    fn SetStart(&self, node: &Node, offset: u32) -> ErrorResult {
-        self.set_the_start_or_end(node, offset, StartOrEnd::Start)
+    fn SetStart(&self, no_gc: &NoGC, node: &Node, offset: u32) -> ErrorResult {
+        self.set_the_start_or_end(no_gc, node, offset, StartOrEnd::Start)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setend>
-    fn SetEnd(&self, node: &Node, offset: u32) -> ErrorResult {
-        self.set_the_start_or_end(node, offset, StartOrEnd::End)
+    fn SetEnd(&self, no_gc: &NoGC, node: &Node, offset: u32) -> ErrorResult {
+        self.set_the_start_or_end(no_gc, node, offset, StartOrEnd::End)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstartbefore>
-    fn SetStartBefore(&self, node: &Node) -> ErrorResult {
+    fn SetStartBefore(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
-        self.SetStart(&parent, node.index())
+        self.SetStart(no_gc, &parent, node.index())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstartafter>
-    fn SetStartAfter(&self, node: &Node) -> ErrorResult {
+    fn SetStartAfter(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
-        self.SetStart(&parent, node.index() + 1)
+        self.SetStart(no_gc, &parent, node.index() + 1)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setendbefore>
-    fn SetEndBefore(&self, node: &Node) -> ErrorResult {
+    fn SetEndBefore(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
-        self.SetEnd(&parent, node.index())
+        self.SetEnd(no_gc, &parent, node.index())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setendafter>
-    fn SetEndAfter(&self, node: &Node) -> ErrorResult {
+    fn SetEndAfter(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
-        self.SetEnd(&parent, node.index() + 1)
+        self.SetEnd(no_gc, &parent, node.index() + 1)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-collapse>
@@ -580,7 +601,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-compareboundarypoints>
-    fn CompareBoundaryPoints(&self, how: u16, source_range: &Range) -> Fallible<i16> {
+    fn CompareBoundaryPoints(&self, no_gc: &NoGC, how: u16, source_range: &Range) -> Fallible<i16> {
         // Step 1. If how is not one of
         //    * START_TO_START,
         //    * START_TO_END,
@@ -619,7 +640,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         //      Return 0.
         //  ↪ after
         //      Return 1.
-        match this_point.partial_cmp(source_point).unwrap() {
+        match this_point.partial_cmp(no_gc, source_point).unwrap() {
             Ordering::Less => Ok(-1),
             Ordering::Equal => Ok(0),
             Ordering::Greater => Ok(1),
@@ -641,8 +662,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-ispointinrange>
-    fn IsPointInRange(&self, node: &Node, offset: u32) -> Fallible<bool> {
-        match self.compare_point(node, offset) {
+    fn IsPointInRange(&self, no_gc: &NoGC, node: &Node, offset: u32) -> Fallible<bool> {
+        match self.compare_point(no_gc, node, offset) {
             Ok(Ordering::Less) => Ok(false),
             Ok(Ordering::Equal) => Ok(true),
             Ok(Ordering::Greater) => Ok(false),
@@ -656,16 +677,17 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-comparepoint>
-    fn ComparePoint(&self, node: &Node, offset: u32) -> Fallible<i16> {
-        self.compare_point(node, offset).map(|order| match order {
-            Ordering::Less => -1,
-            Ordering::Equal => 0,
-            Ordering::Greater => 1,
-        })
+    fn ComparePoint(&self, no_gc: &NoGC, node: &Node, offset: u32) -> Fallible<i16> {
+        self.compare_point(no_gc, node, offset)
+            .map(|order| match order {
+                Ordering::Less => -1,
+                Ordering::Equal => 0,
+                Ordering::Greater => 1,
+            })
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-intersectsnode>
-    fn IntersectsNode(&self, node: &Node) -> bool {
+    fn IntersectsNode(&self, no_gc: &NoGC, node: &Node) -> bool {
         // Step 1. If node’s root is not this’s root, then return false.
         if self.root() != node.GetRootNode(&Default::default()) {
             return false;
@@ -681,9 +703,16 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // start, then return true.
         // Step 6. Return false.
         let start_node = self.start_container();
-        Ordering::Greater == bp_position(&parent, offset + 1, &start_node, self.start_offset()) &&
+        Ordering::Greater ==
+            bp_position(no_gc, &parent, offset + 1, &start_node, self.start_offset()) &&
             Ordering::Less ==
-                bp_position(&parent, offset, &self.end_container(), self.end_offset())
+                bp_position(
+                    no_gc,
+                    &parent,
+                    offset,
+                    &self.end_container(),
+                    self.end_offset(),
+                )
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-clonecontents>
@@ -722,7 +751,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             first_partially_contained_child,
             last_partially_contained_child,
             contained_children,
-        } = self.contained_children()?;
+        } = self.contained_children(cx.no_gc())?;
 
         if let Some(child) = first_partially_contained_child {
             // Step 13.
@@ -837,7 +866,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             first_partially_contained_child,
             last_partially_contained_child,
             contained_children,
-        } = self.contained_children()?;
+        } = self.contained_children(cx.no_gc())?;
 
         let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
             // Step 13.
@@ -932,8 +961,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         }
 
         // Step 20.
-        self.SetStart(&new_node, new_offset)?;
-        self.SetEnd(&new_node, new_offset)?;
+        self.SetStart(cx.no_gc(), &new_node, new_offset)?;
+        self.SetEnd(cx.no_gc(), &new_node, new_offset)?;
 
         // Step 21.
         Ok(fragment)
@@ -1067,7 +1096,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         let mut next = iter.next();
         while let Some(child) = next {
-            if self.contains(&child) {
+            if self.contains(cx.no_gc(), &child) {
                 contained_children.push(Dom::from_ref(&*child));
                 next = iter.next_skipping_children();
             } else {
@@ -1101,8 +1130,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         };
 
         // Step 8. Set this’s start and end to (newNode, newOffset).
-        self.SetStart(&new_node, new_offset).unwrap();
-        self.SetEnd(&new_node, new_offset).unwrap();
+        self.SetStart(cx.no_gc(), &new_node, new_offset).unwrap();
+        self.SetEnd(cx.no_gc(), &new_node, new_offset).unwrap();
 
         // Step 9. If originalStartNode is a CharacterData node,
         // then replace data of originalStartNode with originalStartOffset,
@@ -1214,7 +1243,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             .filter_map(UnrootedDom::downcast::<Text>);
 
         for child in iter {
-            if self.contains(child.upcast()) {
+            if self.contains(no_gc, child.upcast()) {
                 s.push_str(&child.upcast::<CharacterData>().Data().str());
             }
         }

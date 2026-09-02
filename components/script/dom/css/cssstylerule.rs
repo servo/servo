@@ -183,7 +183,9 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         }) else {
             return;
         };
-        self.css_grouping_rule.parent_stylesheet().will_modify();
+        self.css_grouping_rule
+            .parent_stylesheet()
+            .will_modify(no_gc);
         // This mirrors what we do in CSSStyleOwner::mutate_associated_block.
         let mut guard = self.css_grouping_rule.shared_lock().write();
         mem::swap(
