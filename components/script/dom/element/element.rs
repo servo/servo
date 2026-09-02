@@ -5237,11 +5237,12 @@ impl Element {
     pub(crate) fn get_computed_role(&self) -> Option<DOMString> {
         let accesskit_node = self
             .owner_window()
-            .accesskit_node_query(self.upcast::<Node>().to_trusted_node_address())?;
-
+            .accesskit_node_query(self.upcast::<Node>().to_trusted_node_address());
+        let accesskit_node = accesskit_node?;
         let role = accesskit_node.role();
         // TODO: Eventually will need mapping table that maps accesskit roles to aria roles
-        Some(DOMString::from(format!("{role:?}")))
+        let role_string = format!("{role:?}");
+        Some(DOMString::from(role_string.to_lowercase()))
     }
 
 }
