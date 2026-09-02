@@ -24,7 +24,6 @@ use crate::dom::cdatasection::CDATASection;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
-use crate::dom::live_range_replace_data_steps;
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::node::{ChildrenMutation, Node, NodeDamage};
@@ -138,10 +137,11 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         };
 
         let node: &Node = self.upcast();
-        if let Some(selection) = node.owner_doc_unrooted(cx.no_gc()).selection() {
+        let document = node.owner_doc_unrooted(cx.no_gc());
+        if let Some(selection) = document.selection() {
             selection.replace_data_steps(node, 0, old_length, &mut lazy_length);
         }
-        live_range_replace_data_steps(node, 0, old_length, &mut lazy_length);
+        document.live_range_replace_data_steps(cx.no_gc(), node, 0, old_length, &mut lazy_length);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
@@ -273,13 +273,11 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(&arg.str()).0 as u32)
         };
 
-        if let Some(selection) = node.owner_doc_unrooted(cx.no_gc()).selection() {
+        let document = node.owner_doc_unrooted(cx.no_gc());
+        if let Some(selection) = document.selection() {
             selection.replace_data_steps(node, offset, count, &mut lazy_length);
         }
-
-        if node.has_live_ranges() {
-            live_range_replace_data_steps(node, offset, count, &mut lazy_length);
-        }
+        document.live_range_replace_data_steps(cx.no_gc(), node, offset, count, &mut lazy_length);
 
         // Step 12: If node is a ProcessingInstruction node and piAttributesAlreadyUpdated
         // is false, then update attributes from data given node.

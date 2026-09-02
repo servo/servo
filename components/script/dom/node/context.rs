@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
-
 use crate::dom::Node;
 
 /// The context of the binding to tree of a node.
@@ -58,12 +56,9 @@ impl<'a> BindContext<'a> {
 /// The context of the unbinding from a tree of a node when one of its
 /// inclusive ancestors is removed.
 pub(crate) struct UnbindContext<'a> {
-    /// The index of the inclusive ancestor that was removed.
-    index: Cell<Option<u32>>,
     /// The parent of the inclusive ancestor that was removed.
     pub(crate) parent: &'a Node,
-    /// The previous sibling of the inclusive ancestor that was removed.
-    prev_sibling: Option<&'a Node>,
+
     /// The next sibling of the inclusive ancestor that was removed.
     pub(crate) next_sibling: Option<&'a Node>,
 
@@ -83,31 +78,14 @@ pub(crate) struct UnbindContext<'a> {
 
 impl<'a> UnbindContext<'a> {
     /// Create a new `UnbindContext` value.
-    pub(crate) fn new(
-        parent: &'a Node,
-        prev_sibling: Option<&'a Node>,
-        next_sibling: Option<&'a Node>,
-        cached_index: Option<u32>,
-    ) -> Self {
+    pub(crate) fn new(parent: &'a Node, next_sibling: Option<&'a Node>) -> Self {
         UnbindContext {
-            index: Cell::new(cached_index),
             parent,
-            prev_sibling,
             next_sibling,
             tree_connected: parent.is_connected(),
             tree_is_in_a_document_tree: parent.is_in_a_document_tree(),
             tree_is_in_a_shadow_tree: parent.is_in_a_shadow_tree(),
         }
-    }
-
-    /// The index of the inclusive ancestor that was removed from the tree.
-    pub(crate) fn index(&self) -> u32 {
-        if let Some(index) = self.index.get() {
-            return index;
-        }
-        let index = self.prev_sibling.map_or(0, |sibling| sibling.index() + 1);
-        self.index.set(Some(index));
-        index
     }
 }
 
