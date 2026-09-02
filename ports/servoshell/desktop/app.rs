@@ -232,6 +232,7 @@ impl ApplicationHandler<AppEvent> for App {
                 }
             },
             AppEvent::Gamepad(event, gamepad_name, gamepad_index) => {
+                #[cfg(feature = "gamepad")]
                 state.handle_gamepad_events(event, gamepad_name, gamepad_index);
             },
         }
