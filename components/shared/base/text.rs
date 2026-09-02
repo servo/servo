@@ -4,6 +4,7 @@
 
 use std::fmt;
 use std::iter::Sum;
+use std::mem::size_of;
 use std::ops::{Add, AddAssign, Range, Sub, SubAssign};
 
 use malloc_size_of_derive::MallocSizeOf;
@@ -58,6 +59,9 @@ pub struct RangeAny<T> {
     /// `None` means the full available length
     pub end: Option<T>,
 }
+
+const _: () = assert!(size_of::<RangeAny<u32>>() == 16);
+const _: () = assert!(size_of::<Option<RangeAny<u32>>>() == 16);
 
 impl<T: fmt::Debug> fmt::Debug for RangeAny<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
