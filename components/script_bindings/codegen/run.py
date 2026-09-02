@@ -126,6 +126,7 @@ def make_dir(path: str)-> str:
         os.makedirs(path)
     return path
 
+
 def filter_conditional_blocks(contents: str) -> str:
     """Remove `skip-unless` blocks whose Cargo feature is disabled."""
     enabled = [True]
@@ -144,6 +145,7 @@ def filter_conditional_blocks(contents: str) -> str:
 
     assert len(enabled) == 1, "Unterminated skip-unless block"
     return "".join(filtered_contents)
+
 
 def generate(config: Configuration, name: str, filename: str) -> None:
     from codegen import GlobalGenRoots
