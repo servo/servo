@@ -288,8 +288,6 @@ th {
 thead, tbody, tfoot, table > tr { vertical-align: middle; }
 tr, td, th { vertical-align: inherit; }
 
-
-table, td, th { border-color: black; }
 thead, tbody, tfoot, tr { border-color: inherit; }
 table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
