@@ -91,6 +91,9 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
 }
 
 pub trait PromiseHelpers<D: DomTypes> {
+    type StackRoot: js::conversions::FromJSValConvertible<Config = ()>
+        + js::conversions::ToJSValConvertible
+        + std::ops::Deref<Target = D::Promise>;
     fn new_in_realm(cx: &mut CurrentRealm) -> Rc<D::Promise>;
     fn reject_error(&self, cx: &mut JSContext, error: Error);
     fn is_rejected(&self) -> bool;

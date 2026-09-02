@@ -18,7 +18,7 @@ pub(crate) use script_bindings::refcounted::Trusted;
 use script_bindings::reflector::DomObject;
 use script_bindings::trace::trace_reflector;
 
-use crate::dom::promise::{Promise, RootedPromise};
+use crate::dom::promise::Promise;
 use crate::tasks::task::TaskOnce;
 
 thread_local!(pub(super) static LIVE_REFERENCES: Rc<RefCell<LivePromiseReferences>> =
@@ -59,12 +59,6 @@ pub struct TrustedPromise {
 }
 
 unsafe impl Send for TrustedPromise {}
-
-impl From<RootedPromise> for TrustedPromise {
-    fn from(promise: RootedPromise) -> Self {
-        TrustedPromise::new((*promise).clone())
-    }
-}
 
 impl TrustedPromise {
     /// Create a new `TrustedPromise` instance from an existing DOM object. The object will
