@@ -79,8 +79,8 @@ use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use url::Url;
-use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
+use webrender_api::{ExternalScrollId, ImageKey};
 
 use crate::accessibility_tree::{AccessibilityContext, AccessibilityDamageMap, AccessibilityTree};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
@@ -206,6 +206,11 @@ pub struct LayoutThread {
 
     /// Cross-process access to the `Paint` API.
     paint_api: CrossProcessPaintApi,
+
+    /// Image keys for `background-clip: text`registered with the paint thread by the
+    /// previous display list build.
+    /// Will be freed when the next display list is submitted.
+    text_mask_image_keys: RefCell<Vec<ImageKey>>,
 
     /// Debug options, copied from configuration to this `LayoutThread` in order
     /// to avoid having to constantly access the thread-safe global options.
@@ -834,6 +839,7 @@ impl LayoutThread {
             fragment_tree: Default::default(),
             stacking_context_tree: Default::default(),
             paint_api: config.paint_api,
+            text_mask_image_keys: RefCell::new(Vec::new()),
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
@@ -1532,7 +1538,7 @@ impl LayoutThread {
             },
         };
 
-        let built_display_list = DisplayListBuilder::build(
+        let (built_display_list, text_mask_image_keys) = DisplayListBuilder::build(
             stacking_context_tree,
             fragment_tree,
             image_resolver.clone(),
@@ -1550,6 +1556,14 @@ impl LayoutThread {
             &stacking_context_tree.paint_info,
             built_display_list,
         );
+
+        // The new display list no longer references the masks generated for the previous one,
+        // so those image keys can now be freed. Keep the keys for the display list we just
+        // submitted so they can be freed next.
+        let previous_text_mask_image_keys = self.text_mask_image_keys.replace(text_mask_image_keys);
+        for image_key in previous_text_mask_image_keys {
+            self.paint_api.delete_image(image_key);
+        }
 
         if paint_timing_handler.did_lcp_candidate_update() &&
             let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()
