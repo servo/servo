@@ -4541,12 +4541,17 @@ impl VirtualMethods for Node {
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
 
+        // The steps are only supposed to run on DOM tree inclusive descendants of the removal
+        // root and elements in shadow trees are not, so they shouldn't run for them.
         let mut cached_index = None;
         let mut lazy_index = || *cached_index.get_or_insert_with(|| context.index());
         if let Some(selection) = self.owner_document().selection() {
             selection.remove_steps_for_removed_subtree(self, context.parent, &mut lazy_index);
         }
-        live_range_pre_remove_steps_for_removed_subtree(self, context.parent, &mut lazy_index);
+
+        if !self.is_in_a_shadow_tree() {
+            live_range_pre_remove_steps_for_removed_subtree(self, context.parent, &mut lazy_index);
+        }
     }
 
     fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {

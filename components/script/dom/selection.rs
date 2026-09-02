@@ -18,7 +18,9 @@ use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsO
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
-use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
+use crate::dom::bindings::codegen::Bindings::SelectionBinding::{
+    GetComposedRangesOptions, SelectionMethods,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -31,6 +33,7 @@ use crate::dom::iterators::PrePostIteration;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
 use crate::dom::selection_range::{SelectionBoundary, SelectionRange};
+use crate::dom::staticrange::StaticRange;
 use crate::dom::types::ShadowRoot;
 use crate::dom::{CharacterData, FlatTreeParent, NodeDamage, NodeFlags};
 
@@ -132,6 +135,10 @@ impl Selection {
             let mut range = self.range.borrow_mut();
             changed = *range != new_range;
             *range = new_range;
+
+            if range.is_none() {
+                self.direction.set(Direction::Directionless);
+            }
         }
 
         // Any changes must unconditionally install a new live range.
@@ -400,12 +407,9 @@ impl Selection {
             );
     }
 
-    fn is_in_document_of_range(&self, node: &Node) -> bool {
-        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
-        // not just the same tree), but this requires more work to allow `Selection` to cross
-        // shadow tree boundaries.
-        &*node.GetRootNode(&GetRootNodeOptions { composed: false }) ==
-            self.document.upcast::<Node>()
+    fn is_in_composed_tree_of_document_and_is_not_ua_widget(&self, node: &Node) -> bool {
+        &*node.GetRootNode(&GetRootNodeOptions { composed: true }) == self.document.upcast::<Node>() &&
+            !node.is_in_ua_widget()
     }
 
     pub(crate) fn start_boundary(&self, cx: &mut JSContext) -> (DomRoot<Node>, u32) {
@@ -591,14 +595,6 @@ impl Selection {
         parent_of_removed_node: &Node,               // "parent" in the specification
         index_of_removed_node: &mut dyn FnMut() -> u32, // "index" in the specification
     ) {
-        // The steps are only supposed to run on DOM tree inclusive descendants of the removal
-        // root and elements in shadow trees are not, so they shouldn't run for them.
-        //
-        // TODO: This won't be true once selections can span shadow tree roots.
-        if inclusive_descendant_of_removed_node.is_in_a_shadow_tree() {
-            return;
-        }
-
         let mut range_borrow = self.range.borrow_mut();
         let Some(range) = &mut *range_borrow else {
             return;
@@ -914,6 +910,18 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
     }
 
+    /// <https://w3c.github.io/selection-api/#dom-selection-direction>
+    fn Direction(&self) -> DOMString {
+        // > The attribute must return "none" if this is empty or this selection is
+        // > directionless. "forward" if this selection's direction is forwards and
+        // > "backward" if this selection's direction is backwards.
+        match self.direction.get() {
+            Direction::Directionless => DOMString::from_static("none"),
+            Direction::Forwards => DOMString::from_static("forward"),
+            Direction::Backwards => DOMString::from_static("backward"),
+        }
+    }
+
     /// <https://w3c.github.io/selection-api/#dom-selection-getrangeat>
     fn GetRangeAt(&self, cx: &mut JSContext, index: u32) -> Fallible<DomRoot<Range>> {
         // > The method must throw an IndexSizeError exception if index is not 0, or if this
@@ -941,7 +949,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     fn AddRange(&self, range: &Range) {
         // Step 1. If the root of the range's boundary points are not the document
         // associated with this, abort these steps.
-        if !self.is_in_document_of_range(&range.start_container()) {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(&range.start_container()) {
             return;
         }
 
@@ -983,6 +991,89 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         self.RemoveAllRanges();
     }
 
+    /// <https://w3c.github.io/selection-api/#dom-selection-getcomposedranges>
+    fn GetComposedRanges(
+        &self,
+        cx: &mut JSContext,
+        options: &GetComposedRangesOptions,
+    ) -> Vec<DomRoot<StaticRange>> {
+        // Step 1. If this is empty, return an empty array.
+        let borrowed_range = self.range.borrow();
+        let Some(range) = borrowed_range.as_ref() else {
+            return Vec::new();
+        };
+
+        // Step 2. Otherwise, let startNode be start node of the range associated with
+        // this, and let startOffset be start offset of the range.
+        let mut start_node = range.start.container.as_rooted();
+        let mut start_offset = range.start.offset;
+
+        let is_ancestor_of_provided_shadow_roots = |shadow_root: &ShadowRoot| {
+            let shadow_root_node = shadow_root.upcast::<Node>();
+            options.shadowRoots.iter().any(|option_shadow_root| {
+                shadow_root_node
+                    .is_shadow_including_inclusive_ancestor_of(option_shadow_root.upcast())
+            })
+        };
+
+        // Step 3. While startNode is a node, startNode's root is a shadow root, and
+        // startNode's root is not a shadow-including inclusive ancestor of any of
+        // options["shadowRoots"], repeat these steps:
+        while let Some(containing_shadow_root) = start_node.containing_shadow_root() &&
+            !is_ancestor_of_provided_shadow_roots(&containing_shadow_root)
+        {
+            // Step 3.1. Set startOffset to index of startNode's root's host.
+            let host = DomRoot::upcast::<Node>(containing_shadow_root.Host());
+            start_offset = host.index();
+
+            // Step 3.2. Set startNode to startNode's root's host's parent.
+            // See <https://github.com/w3c/selection-api/issues/161> for why
+            // we always know that the start_node is a node.
+            let Some(new_start_node) = host.GetParentNode() else {
+                return Vec::new();
+            };
+            start_node = new_start_node;
+        }
+
+        // Step 4. Let endNode be end node of the range associated with this, and let
+        // endOffset be end offset of the range.
+        let mut end_node = range.end.container.as_rooted();
+        let mut end_offset = range.end.offset;
+
+        // Step 5. While endNode is a node, endNode's root is a shadow root, and endNode's
+        // root is not a shadow-including inclusive ancestor of any of
+        // options["shadowRoots"], repeat these steps:
+        while let Some(containing_shadow_root) = end_node.containing_shadow_root() &&
+            !is_ancestor_of_provided_shadow_roots(&containing_shadow_root)
+        {
+            // Step 5.1. Set endOffset to index of endNode's root's host plus 1.
+            let host = DomRoot::upcast::<Node>(containing_shadow_root.Host());
+            end_offset = host.index() + 1;
+
+            // Step 5.2. Set endNode to endNode's root's host's parent.
+            // See <https://github.com/w3c/selection-api/issues/161> for why
+            // we always know that the end_node is a node.
+            let Some(new_end_node) = host.GetParentNode() else {
+                return Vec::new();
+            };
+            end_node = new_end_node;
+        }
+
+        drop(borrowed_range);
+
+        // Step 6. Return an array consisting of new StaticRange whose start node is
+        // startNode, start offset is startOffset, end node is endNode, and end offset is
+        // endOffset.
+        vec![DomRoot::from_ref(&StaticRange::new(
+            cx,
+            &self.document,
+            &start_node,
+            start_offset,
+            &end_node,
+            end_offset,
+        ))]
+    }
+
     /// <https://w3c.github.io/selection-api/#dom-selection-collapse>
     fn Collapse(&self, _cx: &mut JSContext, node: Option<&Node>, offset: u32) -> ErrorResult {
         // Step 1. If node is null, this method must behave identically as
@@ -1006,13 +1097,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 4. If document associated with this is not a shadow-including inclusive
         // ancestor of node, abort these steps.
-        //
-        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
-        // not just the same tree), but this requires more work to allow `Selection` to cross
-        // shadow tree boundaries.
-        if &*node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
-            self.document.upcast::<Node>()
-        {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(node) {
             return Ok(());
         }
 
@@ -1072,13 +1157,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     fn Extend(&self, _cx: &mut JSContext, node: &Node, offset: u32) -> ErrorResult {
         // Step 1. If the document associated with this is not a shadow-including
         // inclusive ancestor of node, abort these steps.
-        //
-        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
-        // not just the same tree), but this requires more work to allow `Selection` to cross
-        // shadow tree boundaries.
-        if &*node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
-            self.document.upcast::<Node>()
-        {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(node) {
             return Ok(());
         }
 
@@ -1114,10 +1193,10 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 5. If node's root is not the same as the this's range's root, set the
         // start newRange's start and end to newFocus.
-        let is_in_document_of_range = self.is_in_document_of_range(&range.start.container);
+        let in_different_roots = !nodes_have_same_shadow_root(&range.start.container, node);
         drop(range_borrow);
 
-        if !is_in_document_of_range {
+        if in_different_roots {
             self.set_range(Some(SelectionRange::collapsed_at(SelectionBoundary::new(
                 node, offset,
             ))));
@@ -1180,17 +1259,8 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 2. If document associated with this is not a shadow-including inclusive
         // ancestor of anchorNode or focusNode, abort these steps.
-        //
-        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
-        // not just the same tree), but this requires more work to allow `Selection` to cross
-        // shadow tree boundaries.
-        if &*anchor_node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
-            self.document.upcast::<Node>()
-        {
-            return Ok(());
-        }
-        if &*focus_node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
-            self.document.upcast::<Node>()
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(anchor_node) ||
+            !self.is_in_composed_tree_of_document_and_is_not_ua_widget(focus_node)
         {
             return Ok(());
         }
@@ -1203,23 +1273,26 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 4. Let newRange be a new range.
         // Note: We set the range directly to satisfy crown.
 
+        // TODO(mrobinson): Eventually we should allow nodes in different roots, but for
+        // now they must be contained within the same one.
+        if !nodes_have_same_shadow_root(anchor_node, focus_node) {
+            return Ok(());
+        }
+
         // Step 5. If anchor is before focus, set the start the newRange's start to anchor
         // and its end to focus. Otherwise, set the start them to focus and anchor
         // respectively.
-        let is_anchor_before_focus =
-            bp_position(anchor_node, anchor_offset, focus_node, focus_offset) == Ordering::Less;
-        let direction = if is_anchor_before_focus {
+        let ordering = bp_position(anchor_node, anchor_offset, focus_node, focus_offset);
+        if ordering == Ordering::Less {
             self.set_range(Some(SelectionRange::new(
                 SelectionBoundary::new(anchor_node, anchor_offset),
                 SelectionBoundary::new(focus_node, focus_offset),
             )));
-            Direction::Forwards
         } else {
             self.set_range(Some(SelectionRange::new(
                 SelectionBoundary::new(focus_node, focus_offset),
                 SelectionBoundary::new(anchor_node, anchor_offset),
             )));
-            Direction::Backwards
         };
 
         // Step 6. Set this's range to newRange.
@@ -1227,7 +1300,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 7. If focus is before anchor, set this's direction to backwards.
         // Otherwise, set it to forwards
-        self.direction.set(direction);
+        if ordering == Ordering::Greater {
+            self.direction.set(Direction::Backwards);
+        } else {
+            self.direction.set(Direction::Forwards);
+        }
 
         Ok(())
     }
@@ -1242,7 +1319,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 2. If node's root is not the document associated with this, abort these
         // steps.
-        if !self.is_in_document_of_range(node) {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(node) {
             return Ok(());
         }
 
@@ -1295,7 +1372,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > its range is before or visually equivalent to the last boundary point in the node *and*
         // > end of its range is after or visually equivalent to the first boundary point in the
         // > node.
-        if !self.is_in_document_of_range(node) {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(node) {
             return false;
         }
         let range = self.range.borrow();
@@ -1303,10 +1380,15 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             return false;
         };
         let start_node = &*range.start.container;
-        if !self.is_in_document_of_range(start_node) {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(start_node) {
             return false;
         }
         let end_node = &*range.end.container;
+
+        // TODO: Eventually this should support comparing nodes from different shadow roots.
+        if !nodes_have_same_shadow_root(start_node, node) {
+            return false;
+        }
 
         let first_offset = 0;
         let last_offset = node.len();
@@ -1420,4 +1502,8 @@ bitflags! {
         const Start = 1 << 0;
         const End = 1 << 1;
     }
+}
+
+fn nodes_have_same_shadow_root(a: &Node, b: &Node) -> bool {
+    a.is_connected() && b.is_connected() && a.containing_shadow_root() == b.containing_shadow_root()
 }
