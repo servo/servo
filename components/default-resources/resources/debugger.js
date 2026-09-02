@@ -439,10 +439,6 @@ addEventListener("eval", event => {
                 hasException: false,
             };
         } else if ("throw" in completionValue) {
-            // See adoptDebuggeeValue() in <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger/index.html>
-            // <https://searchfox.org/firefox-main/source/devtools/server/actors/webconsole/eval-with-debugger.js#312>
-            // we probably don't need adoptDebuggeeValue, as we only have one debugger instance for now
-            // let value = dbg.adoptDebuggeeValue(completionValue.throw);
             let exceptionMessage= null;
             if(typeof completionValue.throw.unsafeDereference === "function") {
                 const deref = completionValue.throw.unsafeDereference();
