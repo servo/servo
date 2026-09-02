@@ -8,7 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::FileSystemDirectoryReaderBinding::{
@@ -57,10 +57,10 @@ impl FileSystemDirectoryReader {
         global: &GlobalScope,
         dir: &FileSystemDirectoryEntry,
     ) -> DomRoot<FileSystemDirectoryReader> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(FileSystemDirectoryReader::new_inherited(dir)),
             global,
-            cx,
         )
     }
 }

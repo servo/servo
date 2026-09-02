@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::GeolocationCoordinatesBinding::GeolocationCoordinatesMethods;
 use script_bindings::num::Finite;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 
 use crate::dom::globalscope::GlobalScope;
@@ -57,7 +57,8 @@ impl GeolocationCoordinates {
         heading: Option<Finite<f64>>,
         speed: Option<Finite<f64>>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Self::new_inherited(
                 accuracy,
                 latitude,
@@ -68,7 +69,6 @@ impl GeolocationCoordinates {
                 speed,
             )),
             global,
-            cx,
         )
     }
 }

@@ -8,7 +8,7 @@ use js::gc::HandleValue;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -49,12 +49,12 @@ impl PerformanceMeasure {
         start_time: CrossProcessInstant,
         duration: Duration,
     ) -> DomRoot<PerformanceMeasure> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(PerformanceMeasure::new_inherited(
                 name, start_time, duration,
             )),
             global,
-            cx,
         )
     }
 

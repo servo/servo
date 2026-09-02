@@ -6,7 +6,7 @@ use std::cell::RefCell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_arc::Arc;
 use style::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, MediaRule};
@@ -57,14 +57,14 @@ impl CSSMediaRule {
         parent_stylesheet: &CSSStyleSheet,
         mediarule: Arc<MediaRule>,
     ) -> DomRoot<CSSMediaRule> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(CSSMediaRule::new_inherited(
                 parent_rule,
                 parent_stylesheet,
                 mediarule,
             )),
             window,
-            cx,
         )
     }
 

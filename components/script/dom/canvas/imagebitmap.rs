@@ -13,7 +13,7 @@ use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::id::{ImageBitmapId, ImageBitmapIndex};
 use servo_constellation_traits::SerializableImageBitmap;
 
@@ -55,10 +55,10 @@ impl ImageBitmap {
         global: &GlobalScope,
         bitmap_data: Snapshot,
     ) -> DomRoot<ImageBitmap> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ImageBitmap::new_inherited(bitmap_data)),
             global,
-            cx,
         )
     }
 

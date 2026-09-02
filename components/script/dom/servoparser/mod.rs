@@ -34,7 +34,7 @@ use profile_traits::time::{
 };
 use profile_traits::time_profile;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::script_runtime::temp_cx;
 use script_traits::DocumentActivity;
 use servo_base::id::{PipelineId, WebViewId};
@@ -553,7 +553,8 @@ impl ServoParser {
         encoding_hint_from_content_type: Option<&'static Encoding>,
         encoding_of_container_document: Option<&'static Encoding>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ServoParser::new_inherited(
                 document,
                 tokenizer,
@@ -562,7 +563,6 @@ impl ServoParser {
                 encoding_of_container_document,
             )),
             document.window(),
-            cx,
         )
     }
 

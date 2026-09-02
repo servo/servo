@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webgpu_traits::{WebGPU, WebGPUComputePass, WebGPURequest};
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePassEncoderMethods;
@@ -71,7 +71,8 @@ impl GPUComputePassEncoder {
         compute_pass: WebGPUComputePass,
         label: USVString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GPUComputePassEncoder::new_inherited(
                 channel,
                 parent,
@@ -79,7 +80,6 @@ impl GPUComputePassEncoder {
                 label,
             )),
             global,
-            cx,
         )
     }
 }

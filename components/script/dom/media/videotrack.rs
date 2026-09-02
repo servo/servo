@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::VideoTrackBinding::VideoTrackMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -54,12 +54,12 @@ impl VideoTrack {
         language: DOMString,
         track_list: Option<&VideoTrackList>,
     ) -> DomRoot<VideoTrack> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(VideoTrack::new_inherited(
                 id, kind, label, language, track_list,
             )),
             window,
-            cx,
         )
     }
 

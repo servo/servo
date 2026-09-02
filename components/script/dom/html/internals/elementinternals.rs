@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use html5ever::local_name;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::{
     ElementInternalsMethods, ValidityStateFlags,
@@ -102,10 +102,10 @@ impl ElementInternals {
 
     pub(crate) fn new(cx: &mut JSContext, element: &HTMLElement) -> DomRoot<ElementInternals> {
         let global = element.owner_window();
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ElementInternals::new_inherited(element)),
             &*global,
-            cx,
         )
     }
 

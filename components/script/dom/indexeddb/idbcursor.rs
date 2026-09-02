@@ -10,7 +10,7 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use storage_traits::indexeddb::{IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord};
 
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::{
@@ -114,7 +114,8 @@ impl IDBCursor {
         range: IndexedDBKeyRange,
         key_only: bool,
     ) -> DomRoot<IDBCursor> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(IDBCursor::new_inherited(
                 transaction,
                 direction,
@@ -124,7 +125,6 @@ impl IDBCursor {
                 key_only,
             )),
             global,
-            cx,
         )
     }
 

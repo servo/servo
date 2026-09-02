@@ -7,7 +7,7 @@ use std::iter::Iterator;
 
 use dom_struct::dom_struct;
 use rustc_hash::FxBuildHasher;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use style::custom_properties;
 use stylo_atoms::Atom;
 
@@ -55,10 +55,10 @@ impl StylePropertyMapReadOnly {
             values.push(Dom::from_ref(&*value));
         }
         let iter = keys.into_iter().zip(values.iter().cloned());
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(StylePropertyMapReadOnly::new_inherited(iter)),
             global,
-            cx,
         )
     }
 }

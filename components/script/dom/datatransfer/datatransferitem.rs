@@ -8,7 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::{
@@ -63,10 +63,10 @@ impl DataTransferItem {
         data_store: Rc<RefCell<Option<DragDataStore>>>,
         id: u16,
     ) -> DomRoot<DataTransferItem> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(DataTransferItem::new_inherited(data_store, id)),
             global,
-            cx,
         )
     }
 

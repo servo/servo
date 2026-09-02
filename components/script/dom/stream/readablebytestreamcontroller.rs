@@ -15,7 +15,7 @@ use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
@@ -252,13 +252,13 @@ impl ReadableByteStreamController {
     ) -> DomRoot<ReadableByteStreamController> {
         let underlying_source_container =
             UnderlyingSourceContainer::new(cx, global, underlying_source_type);
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ReadableByteStreamController::new_inherited(
                 &underlying_source_container,
                 strategy_hwm,
             )),
             global,
-            cx,
         )
     }
 

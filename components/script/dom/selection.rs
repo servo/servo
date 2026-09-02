@@ -12,7 +12,7 @@ use rustc_hash::FxHashSet;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::dom::UnrootedDom;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 
 use crate::dom::abstractrange::bp_position;
@@ -75,10 +75,10 @@ impl Selection {
     }
 
     pub(crate) fn new(cx: &mut JSContext, document: &Document) -> DomRoot<Selection> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Selection::new_inherited(document)),
             &*document.global(),
-            cx,
         )
     }
 

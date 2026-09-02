@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::bindings::codegen::Bindings::AudioTrackListBinding::AudioTrackListMethods;
@@ -43,10 +43,10 @@ impl AudioTrackList {
         tracks: &[&AudioTrack],
         media_element: Option<&HTMLMediaElement>,
     ) -> DomRoot<AudioTrackList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(AudioTrackList::new_inherited(tracks, media_element)),
             window,
-            cx,
         )
     }
 

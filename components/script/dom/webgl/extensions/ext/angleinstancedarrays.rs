@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_canvas_traits::webgl::WebGLVersion;
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
@@ -34,10 +34,10 @@ impl WebGLExtension for ANGLEInstancedArrays {
     type Extension = Self;
 
     fn new(cx: &mut JSContext, ctx: &WebGLRenderingContext) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ANGLEInstancedArrays::new_inherited(ctx)),
             &*ctx.global(),
-            cx,
         )
     }
 

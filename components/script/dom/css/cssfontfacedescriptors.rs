@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use style::font_face::DescriptorId;
 
 use crate::dom::GlobalScope;
@@ -39,10 +39,10 @@ impl CSSFontFaceDescriptors {
         global: &GlobalScope,
         font_face_rule: &CSSFontFaceRule,
     ) -> DomRoot<CSSFontFaceDescriptors> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(CSSFontFaceDescriptors::new_inherited(font_face_rule)),
             global,
-            cx,
         )
     }
 

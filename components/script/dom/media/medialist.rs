@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_arc::Arc;
 use style::media_queries::{MediaList as StyleMediaList, MediaQuery};
 use style::parser::ParserContext;
@@ -53,10 +53,10 @@ impl MediaList {
         parent_stylesheet: &CSSStyleSheet,
         media_queries: Arc<Locked<StyleMediaList>>,
     ) -> DomRoot<MediaList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(MediaList::new_inherited(parent_stylesheet, media_queries)),
             window,
-            cx,
         )
     }
 

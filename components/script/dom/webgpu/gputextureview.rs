@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_webgpu::traits::GPUTextureViewTrait;
 use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTextureView};
 
@@ -73,7 +73,8 @@ impl GPUTextureView {
         texture: &GPUTexture,
         label: USVString,
     ) -> DomRoot<GPUTextureView> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GPUTextureView::new_inherited(
                 channel,
                 texture_view,
@@ -81,7 +82,6 @@ impl GPUTextureView {
                 label,
             )),
             global,
-            cx,
         )
     }
 }

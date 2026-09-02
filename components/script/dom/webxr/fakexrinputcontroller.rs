@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSender;
 use webxr_api::{
     Handedness, InputId, MockButton, MockButtonType, MockDeviceMsg, MockInputMsg, SelectEvent,
@@ -52,10 +52,10 @@ impl FakeXRInputController {
         sender: GenericSender<MockDeviceMsg>,
         id: InputId,
     ) -> DomRoot<FakeXRInputController> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(FakeXRInputController::new_inherited(sender, id)),
             global,
-            cx,
         )
     }
 

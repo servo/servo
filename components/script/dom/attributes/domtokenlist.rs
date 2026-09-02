@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
 
@@ -46,14 +46,14 @@ impl DOMTokenList {
         local_name: &LocalName,
         supported_tokens: Option<Vec<Atom>>,
     ) -> DomRoot<DOMTokenList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(DOMTokenList::new_inherited(
                 element,
                 local_name.clone(),
                 supported_tokens,
             )),
             &*element.owner_window(),
-            cx,
         )
     }
 

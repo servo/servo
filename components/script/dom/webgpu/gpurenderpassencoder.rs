@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_webgpu::gpuconvert::WebGPUTryConvert;
 use webgpu_traits::{RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
@@ -76,7 +76,8 @@ impl GPURenderPassEncoder {
         parent: &GPUCommandEncoder,
         label: USVString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GPURenderPassEncoder::new_inherited(
                 channel,
                 render_pass,
@@ -84,7 +85,6 @@ impl GPURenderPassEncoder {
                 label,
             )),
             global,
-            cx,
         )
     }
 
