@@ -159,7 +159,9 @@ fn parse_font_face_descriptors(
     if error_reporter.not_encountered_error.get() {
         Ok(parsed_font_face_rule)
     } else {
-        Err(Error::Syntax(None))
+        Err(Error::Syntax(Some(
+            "Failed to parse `@font-face` descriptors".into(),
+        )))
     }
 }
 
@@ -206,7 +208,8 @@ impl FontFace {
         let font_status_promise = Promise::new(cx, global);
         // If any of them fail to parse correctly, reject font face’s [[FontStatusPromise]] with a
         // DOMException named "SyntaxError"
-        font_status_promise.reject_error(cx, Error::Syntax(None));
+        font_status_promise
+            .reject_error(cx, Error::Syntax(Some("Failed to parse font face".into())));
 
         // set font face’s corresponding attributes to the empty string, and set font face’s status
         // attribute to "error"
@@ -416,7 +419,7 @@ impl FontFace {
             // Step 2. Otherwise, reject font face’s [[FontStatusPromise]] with a DOMException named "SyntaxError"
             // and set font face’s status attribute to "error".
             self.font_status_promise
-                .reject_error(cx, Error::Syntax(None));
+                .reject_error(cx, Error::Syntax(Some("Failed to parse font data".into())));
             self.status.set(FontFaceLoadStatus::Error);
 
             // For each FontFaceSet font face is in:
@@ -647,7 +650,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
                             // [[FontStatusPromise]] with a DOMException whose name is "NetworkError"
                             // and set font face’s status attribute to "error".
                             font_face.status.set(FontFaceLoadStatus::Error);
-                            font_face.font_status_promise.reject_error(cx, Error::Network(None));
+                            font_face.font_status_promise.reject_error(cx, Error::Network(Some("Failed to load font data".into())));
                         }
                         Some(template) => {
                             // Step 5.2. Otherwise, font face now represents the loaded font;
