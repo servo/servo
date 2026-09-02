@@ -459,7 +459,12 @@ impl AccessibilityTree {
         (id, node_ref)
     }
     
-    pub(crate) fn accesskit_node_for_dom_node(&mut self, dom_node: &ServoLayoutNode) -> Option<accesskit::Node> {
+    fn node_for_dom_node(&self, dom_node: &ServoLayoutNode) -> Option<ArcRefCell<AccessibilityNode>> {
+        let node = self.existing_id_for_opaque(dom_node.opaque())?;
+        Some(self.node_for_id(node)?)
+    }
+    
+    pub(crate) fn accesskit_node_for_dom_node(&self, dom_node: &ServoLayoutNode) -> Option<accesskit::Node> {
         let node = self.node_for_dom_node(dom_node)?;
         Some(node.borrow().accesskit_node.clone())
     }
