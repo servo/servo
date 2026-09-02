@@ -141,8 +141,6 @@ impl Console {
             );
         }
 
-        let _ = include_stacktrace;
-
         let prefix = global.current_group_label().unwrap_or_default();
         let formatted_message = format!("{prefix}{embedder_msg}");
 
