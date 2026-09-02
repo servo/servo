@@ -1222,7 +1222,6 @@ fn test_webview_title_updates_when_title_element_is_created_from_javascript() {
 }
 
 #[test]
-// It seems that currently `WebView::load` does not keep the history, so we have to do javascript evaluation.
 fn test_webview_clear_history() {
     let session_history_changed = Arc::new(AtomicBool::new(false));
     struct MyDelegate(Arc<AtomicBool>);
@@ -1244,19 +1243,13 @@ fn test_webview_clear_history() {
         let webview = webview.clone();
         servo_test.spin(move || webview.page_title() != Some("Success".into()));
     }
-    webview.evaluate_javascript(
-        "window.location.assign(\"data:text/html,<script>document.title='Success2';</script>\");",
-        |_| {},
-    );
+    webview.load(Url::parse("data:text/html,<script>document.title='Success2';</script>").unwrap());
     {
         let webview = webview.clone();
         servo_test.spin(move || webview.page_title() != Some("Success2".into()));
     }
 
-    webview.evaluate_javascript(
-        "window.location.assign(\"data:text/html,<script>document.title='Success3';</script>\");",
-        |_| {},
-    );
+    webview.load(Url::parse("data:text/html,<script>document.title='Success3';</script>").unwrap());
     {
         let webview = webview.clone();
         servo_test.spin(move || webview.page_title() != Some("Success3".into()));
