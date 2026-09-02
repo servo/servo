@@ -53,9 +53,10 @@ use webrender_api::units::{
 use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
     ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, FillRule,
-    GlyphInstance, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageMask, MixBlendMode,
-    NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding,
-    PropertyBindingKey, RasterSpace, SpatialId, StackingContextFlags, TransformStyle, units,
+    GlyphInstance, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey, ImageMask,
+    MixBlendMode, NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags,
+    PropertyBinding, PropertyBindingKey, RasterSpace, SpatialId, StackingContextFlags,
+    TransformStyle, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -131,6 +132,9 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// The [`WebViewId`] of the document being laid out, needed to generate image keys.
     webview_id: WebViewId,
 
+    /// Pending image keys used for `background-clip: text` to be released.
+    text_mask_image_keys: Vec<ImageKey>,
+
     /// The device pixel ratio used for this `Document`'s display list.
     device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
 
@@ -192,7 +196,7 @@ impl DisplayListBuilder<'_> {
         debug: &DiagnosticsLogging,
         paint_timing_handler: &mut PaintTimingHandler,
         reflow_statistics: &mut ReflowStatistics,
-    ) -> BuiltDisplayList {
+    ) -> (BuiltDisplayList, Vec<ImageKey>) {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
         let pipeline_id = paint_info.pipeline_id;
@@ -220,6 +224,7 @@ impl DisplayListBuilder<'_> {
             image_resolver,
             paint_api,
             webview_id,
+            text_mask_image_keys: Vec::new(),
             device_pixel_ratio,
             paint_timing_handler,
             reflow_statistics,
@@ -250,7 +255,8 @@ impl DisplayListBuilder<'_> {
         PaintTraversal::traverse(&stacking_context_tree.root_stacking_context, &mut builder);
         builder.paint_dom_inspector_highlight();
 
-        webrender_display_list_builder.end().1
+        let text_mask_image_keys = std::mem::take(&mut builder.text_mask_image_keys);
+        (webrender_display_list_builder.end().1, text_mask_image_keys)
     }
 
     fn wr(&mut self) -> &mut wr::DisplayListBuilder {
@@ -1697,6 +1703,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         let image_key = builder
             .paint_api
             .generate_image_key_blocking(builder.webview_id)?;
+        builder.text_mask_image_keys.push(image_key);
         let descriptor = ImageDescriptor::new(
             mask_width,
             mask_height,

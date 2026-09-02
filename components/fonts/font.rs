@@ -280,6 +280,10 @@ pub struct Font {
     /// This might be uninitialized for system fonts.
     data_and_index: OnceLock<FontDataAndIndex>,
 
+    /// A parsed font used to rasterize glyph outlines for the display list,
+    /// loaded and parsed lazily.
+    outlined_glyph_font: OnceLock<Option<ab_glyph::FontVec>>,
+
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
     font_instance_key: RwLock<FxHashMap<PainterId, FontInstanceKey>>,
@@ -382,6 +386,7 @@ impl Font {
             data_and_index: data
                 .map(|data| OnceLock::from(FontDataAndIndex { data, index: 0 }))
                 .unwrap_or_default(),
+            outlined_glyph_font: OnceLock::new(),
             shaper: OnceLock::new(),
             cached_shape_data: Default::default(),
             font_instance_key: Default::default(),
@@ -435,18 +440,36 @@ impl Font {
         Ok(data_and_index)
     }
 
+    /// Outline and rasterize glyphs. The font bytes and face index are taken from the cached
+    /// `data_and_index` if available, otherwise loaded from the local font identifier.
+    /// Returns `None` if the font data cannot be loaded or parsed by `ab_glyph`.
+    fn outline_font(&self) -> Option<&ab_glyph::FontVec> {
+        self.outlined_glyph_font
+            .get_or_init(|| {
+                let (data, index) = match self.data_and_index.get() {
+                    Some(data_and_index) => {
+                        (data_and_index.data.as_ref().to_vec(), data_and_index.index)
+                    },
+                    None => {
+                        let FontIdentifier::Local(local_font_identifier) = &*self.identifier()
+                        else {
+                            return None;
+                        };
+                        let data_and_index = local_font_identifier.font_data_and_index()?;
+                        (data_and_index.data.as_ref().to_vec(), data_and_index.index)
+                    },
+                };
+                ab_glyph::FontVec::try_from_vec_and_index(data, index).ok()
+            })
+            .as_ref()
+    }
+
     pub(crate) fn variations(&self) -> &[FontVariation] {
         self.handle.variations()
     }
 
     pub fn rasterize_glyph(&self, glyph_id: u32, size: f32) -> Option<RasterizedGlyph> {
-        let data_and_index = self.font_data_and_index().ok()?;
-
-        let font = ab_glyph::FontRef::try_from_slice_and_index(
-            data_and_index.data.as_ref(),
-            data_and_index.index,
-        )
-        .ok()?;
+        let font = self.outline_font()?;
 
         let glyph = ab_glyph::GlyphId(glyph_id as u16).with_scale(size);
         let outlined = font.outline_glyph(glyph)?;
