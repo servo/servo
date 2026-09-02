@@ -8575,6 +8575,7 @@ dependencies = [
 name = "servo-layout-api"
 version = "0.6.0"
 dependencies = [
+ "accesskit",
  "app_units",
  "atomic_refcell",
  "bitflags 2.13.1",
@@ -9136,6 +9137,7 @@ dependencies = [
 name = "servo-script"
 version = "0.6.0"
 dependencies = [
+ "accesskit",
  "aes",
  "aes-gcm",
  "aes-kw",
