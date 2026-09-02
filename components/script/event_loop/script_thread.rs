@@ -862,11 +862,14 @@ impl ScriptThread {
 
         // Ask the router to proxy IPC messages from the devtools to us.
         #[cfg(feature = "devtools")]
-        let devtools_server_sender = state.devtools_server_sender;
-        #[cfg(feature = "devtools")]
-        let (ipc_devtools_sender, ipc_devtools_receiver) = generic_channel::channel().unwrap();
-        #[cfg(feature = "devtools")]
-        let devtools_server_receiver = ipc_devtools_receiver.route_preserving_errors();
+        let (devtools_server_sender, ipc_devtools_sender, devtools_server_receiver) = {
+            let (ipc_devtools_sender, ipc_devtools_receiver) = generic_channel::channel().unwrap();
+            (
+                state.devtools_server_sender,
+                ipc_devtools_sender,
+                ipc_devtools_receiver.route_preserving_errors(),
+            )
+        };
 
         let task_queue = TaskQueue::new(self_receiver, self_sender.clone());
 
@@ -919,23 +922,24 @@ impl ScriptThread {
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
         #[cfg(feature = "devtools")]
-        let debugger_global = DebuggerGlobalScope::new(
-            PipelineId::new(),
-            senders.devtools_server_sender.clone(),
-            senders.devtools_client_to_script_thread_sender.clone(),
-            senders.memory_profiler_sender.clone(),
-            senders.time_profiler_sender.clone(),
-            senders.pipeline_to_constellation_sender.clone(),
-            senders.pipeline_to_embedder_sender.clone(),
-            state.resource_threads.clone(),
-            state.storage_threads.clone(),
-            #[cfg(feature = "webgpu")]
-            gpu_id_hub.clone(),
-            &mut cx,
-        );
-
-        #[cfg(feature = "devtools")]
-        debugger_global.execute(&mut cx);
+        let debugger_global = {
+            let debugger_global = DebuggerGlobalScope::new(
+                PipelineId::new(),
+                senders.devtools_server_sender.clone(),
+                senders.devtools_client_to_script_thread_sender.clone(),
+                senders.memory_profiler_sender.clone(),
+                senders.time_profiler_sender.clone(),
+                senders.pipeline_to_constellation_sender.clone(),
+                senders.pipeline_to_embedder_sender.clone(),
+                state.resource_threads.clone(),
+                state.storage_threads.clone(),
+                #[cfg(feature = "webgpu")]
+                gpu_id_hub.clone(),
+                &mut cx,
+            );
+            debugger_global.execute(&mut cx);
+            debugger_global
+        };
 
         let shared_style_locks = Default::default();
         let user_contents_for_manager_id =
