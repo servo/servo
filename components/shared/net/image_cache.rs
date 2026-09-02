@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use log::debug;
-use malloc_size_of::MallocSizeOfOps;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::CrossProcessPaintApi;
 use pixels::{CorsStatus, ImageMetadata, RasterImage};
@@ -26,7 +26,7 @@ use crate::request::CorsSettings;
 // ======================================================================
 
 /// An interface for resolving font families and styles for SVG images.
-pub trait FontResolver: Sync + Send {
+pub trait FontResolver: Sync + Send + MallocSizeOf {
     /// Attempt to resolve a font reference using the provided database of fonts.
     /// Adding new fonts to the database is allowed. Return an index into the database
     /// if the font resolves to an entry, otherwise return None.

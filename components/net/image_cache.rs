@@ -815,10 +815,11 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             None
         });
         let font_resolver2 = font_resolver.clone();
-        let font_resolver = usvg::FontResolver {
-            select_font: Box::new(move |font, database| font_resolver.resolve(font, database)),
+        let font_resolver3 = font_resolver.clone();
+        let usvg_font_resolver = usvg::FontResolver {
+            select_font: Box::new(move |font, database| font_resolver2.resolve(font, database)),
             select_fallback: Box::new(move |char, ids, database| {
-                font_resolver2.resolve_fallback(char, ids, database)
+                font_resolver3.resolve_fallback(char, ids, database)
             }),
         };
 
@@ -827,7 +828,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
                 resolve_data: usvg::ImageHrefResolver::default_data_resolver(),
                 resolve_string: image_string_href_resolver,
             },
-            font_resolver,
+            font_resolver: usvg_font_resolver,
             fontdb: Arc::new(fontdb::Database::new()),
             ..usvg::Options::default()
         };
@@ -849,6 +850,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             broken_image_icon_data: self.broken_image_icon_data.clone(),
             thread_pool: self.thread_pool.clone(),
             usvg_options: Arc::new(opt),
+            usvg_font_resolver: font_resolver.clone(),
         })
     }
 }
@@ -865,17 +867,39 @@ pub struct ImageCacheImpl {
     thread_pool: Arc<ThreadPool>,
     /// The options for usvg. Contains a fontdb::Database and fontresolver.
     usvg_options: Arc<usvg::Options<'static>>,
+    /// A font resolve used for resolving fonts when rasterizing SVGs.
+    ///
+    /// This is only used inside `usvg::Options` but is here so we can measure it.
+    usvg_font_resolver: Arc<dyn FontResolver>,
 }
 
 impl ImageCache for ImageCacheImpl {
     fn memory_reports(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Vec<Report> {
         let store_size = self.store.lock().size_of(ops);
         let fontdb_size = self.usvg_options.conditional_size_of(ops);
+        let broken_image_size = self.broken_image_icon_data.conditional_size_of(ops);
+        let svg_id_map = self.svg_id_image_id_map.conditional_size_of(ops);
+        let svg_font_resolver = self.usvg_font_resolver.size_of(ops);
         vec![
             Report {
                 path: path![prefix, "image-cache", "cache"],
                 kind: ReportKind::ExplicitSystemHeapSize,
                 size: store_size,
+            },
+            Report {
+                path: path![prefix, "image-cache", "svg_id_map"],
+                kind: ReportKind::ExplicitSystemHeapSize,
+                size: svg_id_map,
+            },
+            Report {
+                path: path![prefix, "image-cache", "broken_image_icon"],
+                kind: ReportKind::ExplicitSystemHeapSize,
+                size: broken_image_size,
+            },
+            Report {
+                path: path![prefix, "image-cache", "svg_font_resolver"],
+                kind: ReportKind::ExplicitSystemHeapSize,
+                size: svg_font_resolver,
             },
             Report {
                 path: path![prefix, "image-cache", "usvg_options"],
