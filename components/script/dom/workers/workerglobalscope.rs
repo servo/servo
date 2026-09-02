@@ -78,15 +78,6 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
-#[cfg(feature = "devtools")]
-pub(crate) type WorkerDevtoolsControlMsg = DevtoolScriptControlMsg;
-#[cfg(not(feature = "devtools"))]
-pub(crate) type WorkerDevtoolsControlMsg = ();
-
-#[cfg(feature = "devtools")]
-pub(crate) type WorkerDebuggerGlobalScope = DebuggerGlobalScope;
-#[cfg(not(feature = "devtools"))]
-pub(crate) type WorkerDebuggerGlobalScope = ();
 use crate::dom::globalscope::script_execution::RethrowErrors;
 use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
@@ -120,6 +111,16 @@ use crate::runtime::job_queue::{MicrotaskRunnable, UserMicrotask, job_queue_micr
 use crate::runtime::script_runtime::{IntroductionType, Runtime, get_reports};
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
+
+#[cfg(feature = "devtools")]
+pub(crate) type WorkerDevtoolsControlMsg = DevtoolScriptControlMsg;
+#[cfg(not(feature = "devtools"))]
+pub(crate) type WorkerDevtoolsControlMsg = ();
+
+#[cfg(feature = "devtools")]
+pub(crate) type WorkerDebuggerGlobalScope = DebuggerGlobalScope;
+#[cfg(not(feature = "devtools"))]
+pub(crate) type WorkerDebuggerGlobalScope = ();
 
 /// <https://html.spec.whatwg.org/multipage/#animation-frames>
 pub(crate) fn prepare_workerscope_init(
