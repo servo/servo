@@ -391,10 +391,10 @@ impl Utf16CodeUnits {
         let mut current_utf8_offset = Utf8CodeUnits(0);
         for string in iter {
             for utf8_byte in string.0.bytes() {
-                if current_utf16_offset >= self {
+                current_utf16_offset.0 += len_utf16_for_utf8_byte(utf8_byte);
+                if current_utf16_offset > self {
                     break;
                 }
-                current_utf16_offset.0 += len_utf16_for_utf8_byte(utf8_byte);
                 current_utf8_offset.0 += len_utf8_for_utf8_byte(utf8_byte);
             }
         }
@@ -409,14 +409,12 @@ impl Utf16CodeUnits {
         let mut current_utf16_offset = Utf16CodeUnits(0);
         let mut current_utf32_offset = Utf32CodeUnits(0);
         for utf8_byte in string.bytes() {
-            if current_utf16_offset >= self {
+            let len_utf16 = len_utf16_for_utf8_byte(utf8_byte);
+            current_utf16_offset.0 += len_utf16;
+            if current_utf16_offset > self {
                 break;
             }
-            increment_offsets_for_utf8_byte(
-                utf8_byte,
-                &mut current_utf16_offset,
-                &mut current_utf32_offset,
-            );
+            current_utf32_offset.0 += len_utf16_to_len_utf32_for_utf8_byte(len_utf16);
         }
         current_utf32_offset
     }
@@ -461,16 +459,14 @@ fn len_utf8_for_utf8_byte(byte: u8) -> u32 {
     }
 }
 
-fn increment_offsets_for_utf8_byte(
-    utf8_byte: u8,
-    utf16_offset: &mut Utf16CodeUnits,
-    utf32_offset: &mut Utf32CodeUnits,
-) {
-    let len_utf16 = len_utf16_for_utf8_byte(utf8_byte);
-    utf16_offset.0 += len_utf16;
-    // `len_utf16 != 0` means this byte is the first byte of the UTF-8 byte sequence
-    // for one `char` /  UTF-32 code unit
-    utf32_offset.0 += (len_utf16 != 0) as u32;
+fn len_utf16_to_len_utf32_for_utf8_byte(len_utf16: u32) -> u32 {
+    if len_utf16 != 0 {
+        // First byte of the UTF-8 byte sequence for one code point / UTF-32 code unit
+        1
+    } else {
+        // UTF-8 continuation byte
+        0
+    }
 }
 
 impl Utf32CodeUnits {
@@ -505,11 +501,9 @@ impl Utf32CodeUnits {
             if current_utf32_offset >= self {
                 break;
             }
-            increment_offsets_for_utf8_byte(
-                utf8_byte,
-                &mut current_utf16_offset,
-                &mut current_utf32_offset,
-            );
+            let len_utf16 = len_utf16_for_utf8_byte(utf8_byte);
+            current_utf16_offset.0 += len_utf16;
+            current_utf32_offset.0 += len_utf16_to_len_utf32_for_utf8_byte(len_utf16);
         }
         current_utf16_offset
     }
@@ -585,10 +579,10 @@ mod test {
         );
 
         // This 16-bit offset splits the would-be surrogate pair. We return the 32-bit position
-        // after the whole pair. Should this be an error instead?
+        // before the whole pair. Should this be an error instead?
         assert_eq!(
             Utf16CodeUnits(4).to_utf32_code_units_in(s),
-            Utf32CodeUnits(4)
+            Utf32CodeUnits(3)
         );
 
         assert_eq!(
