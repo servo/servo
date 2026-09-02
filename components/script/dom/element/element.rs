@@ -5240,7 +5240,7 @@ impl Element {
             .accesskit_node_query(self.upcast::<Node>().to_trusted_node_address());
         let accesskit_node = accesskit_node?;
         let role = accesskit_node.role();
-        // TODO: Eventually will need mapping table that maps accesskit roles to aria roles
+        // TODO(#43734): Eventually will need mapping table that maps accesskit roles to aria roles
         let role_string = format!("{role:?}");
         Some(DOMString::from(role_string.to_lowercase()))
     }
