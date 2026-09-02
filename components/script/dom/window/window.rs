@@ -2715,7 +2715,8 @@ impl Window {
 
         let mut rooted_nodes_for_accessibility_integrity_check = None;
         let mut accessibility_damage = None;
-        if reflow_goal == ReflowGoal::UpdateTheRendering && self.layout().accessibility_active() {
+        if (reflow_goal == ReflowGoal::UpdateTheRendering || self.layout().force_accessibility_update())
+            && self.layout().accessibility_active() {
             rooted_nodes_for_accessibility_integrity_check =
                 document.rooted_nodes_for_accessibility_integrity_check();
             let mut accessibility_data = document.accessibility_data_mut();
