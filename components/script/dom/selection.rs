@@ -264,8 +264,8 @@ impl Selection {
         // so we don’t need HashDoS resistance and can use a faster hasher than `std`’s default
         let mut previously_flagged_nodes: FxHashSet<_> = previously_flagged_nodes.collect();
 
-        let start_offset = range.start.offset as usize;
-        let end_offset = range.end.offset as usize;
+        let start_offset = range.start.offset;
+        let end_offset = range.end.offset;
         let start_container = range.start.container.as_rooted();
         let end_container = range.end.container.as_rooted();
         let start_position =
@@ -1414,7 +1414,7 @@ impl FlatTreeNodePosition {
 fn position_in_flat_tree_for_selection(
     no_gc: &NoGC,
     container: DomRoot<Node>,
-    offset: usize,
+    offset: u32,
 ) -> FlatTreeNodePosition {
     if container.is::<CharacterData>() {
         return FlatTreeNodePosition::Inside(container);
@@ -1427,7 +1427,7 @@ fn position_in_flat_tree_for_selection(
             .unwrap_or(DomRoot::from_ref(node))
     };
 
-    if let Some(child) = container.children().nth(offset) {
+    if let Some(child) = container.children().nth(offset as usize) {
         if let FlatTreeParent::Parent(_) = child.parent_in_flat_tree(no_gc) {
             return FlatTreeNodePosition::Before(child);
         }
@@ -1447,9 +1447,9 @@ impl Node {
     /// `CharacterData` or else return the offset in the child list.
     fn to_sibling_or_utf16_offset(&self, offset: Utf32CodeUnitsOrNodeOffset) -> u32 {
         if let Some(character_data) = self.downcast::<CharacterData>() {
-            offset.to_utf16_code_units_in(&character_data.data()).0 as u32
+            offset.to_utf16_code_units_in(&character_data.data()).0
         } else {
-            offset.0 as u32
+            offset.0
         }
     }
 }

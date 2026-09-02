@@ -8063,6 +8063,7 @@ name = "servo-base"
 version = "0.6.0"
 dependencies = [
  "accesskit",
+ "cfg-if",
  "crossbeam-channel",
  "ipc-channel",
  "libc",

@@ -10,7 +10,7 @@ use atomic_refcell::AtomicRefCell;
 use icu_properties::CodePointMapData;
 use icu_properties::props::BidiClass;
 use layout_api::LayoutNode;
-use servo_base::text::{RangeAny, Utf32CodeUnits};
+use servo_base::text::{RangeAny, Utf8CodeUnits, Utf32CodeUnits};
 use style::computed_values::direction::T as Direction;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::dom::NodeInfo;
@@ -49,12 +49,12 @@ pub(crate) struct InlineFormattingContextBuilder {
 
     /// The current offset in the final text string of this [`InlineFormattingContext`],
     /// used to properly set the text range of new [`InlineItem::TextRun`]s.
-    current_text_offset: usize,
+    current_text_offset: Utf8CodeUnits,
 
     /// The current character offset in the final text string of this [`InlineFormattingContext`],
     /// used to properly set the text range of new [`InlineItem::TextRun`]s. Note that this is
     /// different from the UTF-8 code point offset.
-    current_character_offset: usize,
+    current_character_offset: Utf32CodeUnits,
 
     /// Whether the last processed node ended with whitespace. This is used to
     /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
@@ -146,10 +146,10 @@ impl InlineFormattingContextBuilder {
 
     fn push_control_character_string(&mut self, string_to_push: &str) {
         self.text_segments.push(string_to_push.to_owned());
-        self.current_text_offset += string_to_push.len();
+        self.current_text_offset += Utf8CodeUnits::length_of(string_to_push);
 
         let new_characters = Utf32CodeUnits::length_of(string_to_push);
-        self.current_character_offset += new_characters.0;
+        self.current_character_offset += new_characters;
         self.offset_map
             .borrow_mut()
             .push_range(new_characters, new_characters);
@@ -405,7 +405,7 @@ impl InlineFormattingContextBuilder {
 
         let bidi_class_map = CodePointMapData::<BidiClass>::new();
         let white_space_collapse = info.style.clone_white_space_collapse();
-        let mut character_count = 0;
+        let mut character_count = Utf32CodeUnits(0);
         let mut new_text = String::with_capacity(text.len());
         for iteration in TextTransformationIterator::new(
             &text,
@@ -415,7 +415,7 @@ impl InlineFormattingContextBuilder {
         ) {
             offset_map.push_iteration(&iteration);
             for &character in iteration.characters() {
-                character_count += 1;
+                character_count.0 += 1;
 
                 // If this character has a strong right-to-left class the new inline formatting context will
                 // need to be BiDi-aware. This match is derived from the list of strong right-to-left classes
@@ -453,7 +453,8 @@ impl InlineFormattingContextBuilder {
                 self.on_word_boundary && white_space_collapse != WhiteSpaceCollapse::Preserve;
         }
 
-        let new_utf8_range = self.current_text_offset..self.current_text_offset + new_text.len();
+        let new_utf8_range = self.current_text_offset..
+            self.current_text_offset + Utf8CodeUnits::length_of(&new_text);
         self.current_text_offset = new_utf8_range.end;
 
         let new_character_range =
@@ -510,7 +511,7 @@ impl InlineFormattingContextBuilder {
 
         assert!(self.inline_box_stack.is_empty());
         debug_assert_eq!(
-            self.offset_map.borrow().total_final_size().0,
+            self.offset_map.borrow().total_final_size(),
             self.current_character_offset
         );
 

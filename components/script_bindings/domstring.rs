@@ -425,21 +425,30 @@ impl DOMString {
     }
 
     /// The length of this string in UTF-8 code units, each one being one byte in size.
-    ///
-    /// Note: This is different than the number of Unicode characters (or code points). A
-    /// character may require multiple UTF-8 code units.
-    pub fn len(&self) -> usize {
-        self.encoded_bytes().len()
-    }
-
-    /// The length of this string in UTF-8 code units, each one being one byte in size.
     /// This method is the same as [`DOMString::len`], but the result is wrapped in a
     /// `Utf8CodeUnits` to be used in code that mixes different kinds of offsets.
     ///
     /// Note: This is different than the number of Unicode characters (or code points). A
     /// character may require multiple UTF-8 code units.
     pub fn len_utf8(&self) -> Utf8CodeUnits {
-        Utf8CodeUnits(self.len())
+        // TODO: add a check that DOMString values never exceed 2 GiB?
+        Utf8CodeUnits(match self.encoded_bytes() {
+            EncodedBytes::Utf8(bytes) => bytes.len() as u32,
+            EncodedBytes::Latin1(bytes) => bytes
+                .iter()
+                // Latin-1 bytes 0x00 to 0x7F are ASCII-compatible and UTF-8-compatible
+                // Latin-1 bytes 0x80 to 0xFF convert to two-bytes UTF-8 sequences
+                .map(|&byte| if byte < 128 { 1 } else { 2 })
+                .sum::<u32>(),
+        })
+    }
+
+    /// Returns a length for “is small” heuristics, whose precise definition does not matter
+    pub fn len_utf8_or_latin1(&self) -> usize {
+        match self.encoded_bytes() {
+            EncodedBytes::Utf8(bytes) => bytes.len(),
+            EncodedBytes::Latin1(bytes) => bytes.len(),
+        }
     }
 
     /// The length of this string in UTF-16 code units, each one being one two bytes in size.
@@ -447,7 +456,22 @@ impl DOMString {
     /// Note: This is different than the number of Unicode characters (or code points). A
     /// character may require multiple UTF-16 code units.
     pub fn len_utf16(&self) -> Utf16CodeUnits {
-        Utf16CodeUnits(self.str().chars().map(char::len_utf16).sum())
+        let inner = self.0.borrow();
+        let as_str = match &*inner {
+            DOMStringType::Rust(string) => Ok(string.as_str()),
+            DOMStringType::RustStatic(string) => Ok(*string),
+            DOMStringType::JSString(rooted_traceable_box) => {
+                Err(unsafe { get_latin1_string_bytes(rooted_traceable_box) })
+            },
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(vec) => Err(vec.as_slice()),
+        };
+        match as_str {
+            // TODO: add a check that DOMString values never exceed 2 GiB?
+            Ok(string) => Utf16CodeUnits::length_of(string),
+            // All Latin-1 bytes characters encode to a single UTF-16 code unit
+            Err(latin1_bytes) => Utf16CodeUnits(latin1_bytes.len() as u32),
+        }
     }
 
     /// This works the same as `make_ascii_lowercase` on std::string. This means that any character in [A-Z]

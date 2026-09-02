@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use fonts::{ShapedText, ShapedTextSlice, ShapedTextSliceType, ShapedTextSlicer, ShapingOptions};
 use icu_segmenter::options::LineBreakOptions;
+use servo_base::text::{Utf8CodeUnits, Utf32CodeUnits};
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
@@ -23,8 +24,8 @@ use crate::flow::inline::text_run::{FontAndScriptInfo, TextRun, TextRunItem, scr
 /// it can outlive a mutable borrow on the owning `TextRun`.
 pub(crate) struct ShapingQueueText {
     info: FontAndScriptInfo,
-    byte_range: Range<usize>,
-    character_range: Range<usize>,
+    byte_range: Range<Utf8CodeUnits>,
+    character_range: Range<Utf32CodeUnits>,
     text_run: ArcRefCell<TextRun>,
     index_in_text_run: usize,
     old_shaped_text: Option<Arc<ShapedText>>,
@@ -75,7 +76,7 @@ struct BatchSlicer<'a> {
     slicer: ShapedTextSlicer,
     text: &'a str,
     line_breaker: &'a mut LineBreaker,
-    character_offset_origin: usize,
+    character_offset_origin: Utf32CodeUnits,
 }
 
 impl BatchSlicer<'_> {
@@ -119,7 +120,7 @@ impl BatchSlicer<'_> {
 
             // Extend the slice to the next UAX#14 line break opportunity.
             let mut slice = last_slice.end..*break_index;
-            let word = &self.text[slice.clone()];
+            let word = &self.text[usize::from(slice.start)..usize::from(slice.end)];
 
             // Split off any trailing whitespace into a separate glyph run.
             let mut whitespace = slice.end..slice.end;
@@ -132,7 +133,7 @@ impl BatchSlicer<'_> {
                 .last()
             {
                 ends_with_whitespace = true;
-                whitespace.start = slice.start + first_white_space_index;
+                whitespace.start = slice.start + Utf8CodeUnits(first_white_space_index as u32);
 
                 // If line breaking for a piece of text that has `white-space-collapse:
                 // break-spaces` there is a line break opportunity *after* every preserved space,
@@ -142,7 +143,7 @@ impl BatchSlicer<'_> {
                 if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces &&
                     !can_break_anywhere
                 {
-                    whitespace.start += first_white_space_character.len_utf8();
+                    whitespace.start += Utf8CodeUnits::length_of_char(first_white_space_character);
                     slice_type = ShapedTextSliceType::WordAndWhiteSpace;
                 }
 
@@ -164,7 +165,8 @@ impl BatchSlicer<'_> {
 
             // Push the non-whitespace part of the range.
             if !slice.is_empty() {
-                current_character_offset += self.text[slice].chars().count();
+                let slice = usize::from(slice.start)..usize::from(slice.end);
+                current_character_offset += Utf32CodeUnits::length_of(&self.text[slice]);
                 maybe_push_run(
                     self.slicer
                         .slice_until_character_offset(current_character_offset, slice_type),
@@ -174,12 +176,13 @@ impl BatchSlicer<'_> {
             if whitespace.is_empty() {
                 continue;
             }
+            let whitespace = usize::from(whitespace.start)..usize::from(whitespace.end);
 
             // If `white-space-collapse: break-spaces` is active, insert a line breaking opportunity
             // between each white space character in the white space that we trimmed off.
             if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces {
                 for _ in self.text[whitespace].chars() {
-                    current_character_offset += 1;
+                    current_character_offset += Utf32CodeUnits(1);
                     maybe_push_run(self.slicer.slice_until_character_offset(
                         current_character_offset,
                         ShapedTextSliceType::WhiteSpace,
@@ -188,7 +191,7 @@ impl BatchSlicer<'_> {
                 continue;
             }
 
-            current_character_offset += self.text[whitespace].chars().count();
+            current_character_offset += Utf32CodeUnits::length_of(&self.text[whitespace]);
             maybe_push_run(self.slicer.slice_until_character_offset(
                 current_character_offset,
                 ShapedTextSliceType::WhiteSpace,
@@ -222,10 +225,10 @@ pub(crate) struct ShapingQueue<'a> {
     line_breaker: LineBreaker,
     /// The byte range of the text to shape in [`Self::text`] for the current batch.
     /// Only contiguous ranges can be shaped together.
-    byte_range: Range<usize>,
+    byte_range: Range<Utf8CodeUnits>,
     /// The character range of the text to shape in [`Self::text`] for the current batch.
     /// Only contiguous ranges can be shaped together.
-    character_range: Range<usize>,
+    character_range: Range<Utf32CodeUnits>,
     /// The resolved script for the current batch. This is used to gradually turn non-specific
     /// scripts into a resolved value for shaping.
     resolved_script: Option<Script>,
@@ -243,7 +246,10 @@ impl<'a> ShapingQueue<'a> {
         }
     }
 
-    fn compatible_old_shaping_result(&self, character_count: usize) -> Option<Arc<ShapedText>> {
+    fn compatible_old_shaping_result(
+        &self,
+        character_count: Utf32CodeUnits,
+    ) -> Option<Arc<ShapedText>> {
         let old_shaped_text = self.queue.first()?.old_shaped_text.as_ref()?;
         if old_shaped_text.character_count() != character_count {
             return None;
@@ -274,7 +280,8 @@ impl<'a> ShapingQueue<'a> {
         options.script = self.resolved_script.unwrap_or(first.info.script);
 
         let font = &first.info.font_info.font;
-        Some(font.shape_text(&self.text[self.byte_range.clone()], &options))
+        let byte_range = usize::from(self.byte_range.start)..usize::from(self.byte_range.end);
+        Some(font.shape_text(&self.text[byte_range], &options))
     }
 
     /// Flush this [`ShapingQueue`]. If any content had been collected up to this point,

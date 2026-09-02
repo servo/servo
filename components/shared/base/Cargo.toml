@@ -17,6 +17,7 @@ doctest = false
 
 [dependencies]
 accesskit = { workspace = true }
+cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }

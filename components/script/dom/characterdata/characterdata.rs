@@ -133,9 +133,8 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         self.content_changed(cx);
 
         let mut utf16_length = None;
-        let mut lazy_length = move || {
-            *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(&data.str()).0 as u32)
-        };
+        let mut lazy_length =
+            move || *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(&data.str()).0);
 
         let node: &Node = self.upcast();
         if let Some(selection) = node.owner_doc_unrooted(cx.no_gc()).selection() {
@@ -146,7 +145,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
     fn Length(&self) -> u32 {
-        Utf16CodeUnits::length_of(&self.data.borrow()).0 as u32
+        Utf16CodeUnits::length_of(&self.data.borrow()).0
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-substringdata>
@@ -253,7 +252,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             new_data = String::with_capacity(
                 prefix.len() +
                     replacement_before.len() +
-                    arg.len() +
+                    usize::from(arg.len_utf8()) +
                     replacement_after.len() +
                     suffix.len(),
             );
@@ -269,9 +268,8 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         let node = self.upcast::<Node>();
 
         let mut utf16_length = None;
-        let mut lazy_length = move || {
-            *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(&arg.str()).0 as u32)
-        };
+        let mut lazy_length =
+            move || *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(&arg.str()).0);
 
         if let Some(selection) = node.owner_doc_unrooted(cx.no_gc()).selection() {
             selection.replace_data_steps(node, offset, count, &mut lazy_length);

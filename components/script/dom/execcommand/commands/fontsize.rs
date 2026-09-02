@@ -147,7 +147,7 @@ pub(crate) fn maybe_normalize_pixels(
     document: &Document,
 ) -> Option<DOMString> {
     if command_value.ends_with_str("px") {
-        command_value.str()[0..command_value.len() - 2]
+        command_value.str()[..usize::from(command_value.len_utf8()) - 2]
             .parse::<f32>()
             .ok()
             .map(|value| legacy_font_size_for(value, document))
