@@ -9,7 +9,7 @@ use std::ops::Deref;
 use std::sync::{Arc, OnceLock};
 use std::{iter, str};
 
-use ab_glyph::Font as _;
+use ab_glyph::{Font as _, VariableFont as _};
 use app_units::Au;
 use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
@@ -459,7 +459,12 @@ impl Font {
                         (data_and_index.data.as_ref().to_vec(), data_and_index.index)
                     },
                 };
-                ab_glyph::FontVec::try_from_vec_and_index(data, index).ok()
+                let mut font = ab_glyph::FontVec::try_from_vec_and_index(data, index).ok()?;
+
+                for variation in self.variations() {
+                    font.set_variation(&variation.tag.to_be_bytes(), variation.value);
+                }
+                Some(font)
             })
             .as_ref()
     }
