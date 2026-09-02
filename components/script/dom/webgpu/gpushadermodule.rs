@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_webgpu::traits::GPUShaderModuleTrait;
 use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
@@ -83,7 +83,8 @@ impl GPUShaderModule {
         label: USVString,
         promise: Rc<Promise>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GPUShaderModule::new_inherited(
                 channel,
                 shader_module,
@@ -91,7 +92,6 @@ impl GPUShaderModule {
                 promise,
             )),
             global,
-            cx,
         )
     }
 }

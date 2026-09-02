@@ -6,7 +6,7 @@ use std::ops::Deref;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -49,10 +49,10 @@ impl VisibilityStateEntry {
         state: DocumentVisibilityState,
         timestamp: CrossProcessInstant,
     ) -> DomRoot<VisibilityStateEntry> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(VisibilityStateEntry::new_inherited(state, timestamp)),
             global,
-            cx,
         )
     }
 }

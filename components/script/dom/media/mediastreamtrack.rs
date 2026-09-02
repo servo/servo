@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 
@@ -40,10 +40,10 @@ impl MediaStreamTrack {
         id: MediaStreamId,
         ty: MediaStreamType,
     ) -> DomRoot<MediaStreamTrack> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(MediaStreamTrack::new_inherited(id, ty)),
             global,
-            cx,
         )
     }
 

@@ -14,7 +14,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::IDBObjectStoreBinding::IDBIndexParameters;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use script_bindings::error::ErrorResult;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{
     self, AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, AsyncSchemaOperation,
@@ -171,7 +171,8 @@ impl IDBObjectStore {
         abort_state: IDBObjectStoreAbortState,
         transaction: &IDBTransaction,
     ) -> DomRoot<IDBObjectStore> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(IDBObjectStore::new_inherited(
                 db_name,
                 name,
@@ -180,7 +181,6 @@ impl IDBObjectStore {
                 transaction,
             )),
             global,
-            cx,
         )
     }
 

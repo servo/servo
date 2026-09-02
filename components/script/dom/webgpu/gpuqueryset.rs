@@ -7,7 +7,7 @@ use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{GPUDeviceMethods, GPUQueryType};
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 use script_webgpu::gpuconvert::WebGPUConvert;
 use script_webgpu::traits::GPUQuerySetTrait;
@@ -78,12 +78,12 @@ impl GPUQuerySet {
         r#type: GPUQueryType,
         count: u32,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GPUQuerySet::new_inherited(
                 label, channel, query_set, r#type, count,
             )),
             global,
-            cx,
         )
     }
 

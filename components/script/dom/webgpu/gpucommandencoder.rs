@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_webgpu::gpuconvert::{
     WebGPUConvert, WebGPUTryConvert, convert_load_op, convert_texture_for_wgpu_with_cx,
 };
@@ -82,12 +82,12 @@ impl GPUCommandEncoder {
         encoder: WebGPUCommandEncoder,
         label: USVString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GPUCommandEncoder::new_inherited(
                 channel, device, encoder, label,
             )),
             global,
-            cx,
         )
     }
 }

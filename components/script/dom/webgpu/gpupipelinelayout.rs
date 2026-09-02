@@ -7,7 +7,7 @@ use std::borrow::Cow;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_webgpu::gpuconvert::WebGPUConvert;
 use webgpu_traits::{WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest};
 use wgpu_core::binding_model::PipelineLayoutDescriptor;
@@ -79,7 +79,8 @@ impl GPUPipelineLayout {
         label: USVString,
         bgls: Vec<WebGPUBindGroupLayout>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GPUPipelineLayout::new_inherited(
                 channel,
                 pipeline_layout,
@@ -87,7 +88,6 @@ impl GPUPipelineLayout {
                 bgls,
             )),
             global,
-            cx,
         )
     }
 }

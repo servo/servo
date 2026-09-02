@@ -13,7 +13,7 @@ use js::rust::{HandleValue, MutableHandleValue};
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::dom::UnrootedDom;
 use script_bindings::error::{ErrorResult, Fallible};
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -168,7 +168,8 @@ impl ShadowRoot {
         clonable: bool,
         is_user_agent_widget: IsUserAgentWidget,
     ) -> DomRoot<ShadowRoot> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ShadowRoot::new_inherited(
                 host,
                 document,
@@ -178,7 +179,6 @@ impl ShadowRoot {
                 is_user_agent_widget,
             )),
             document.window(),
-            cx,
         )
     }
 

@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_arc::Arc;
 use style::stylesheets::Stylesheet;
 
@@ -107,10 +107,10 @@ impl StyleSheetList {
         window: &Window,
         doc_or_sr: StyleSheetListOwner,
     ) -> DomRoot<StyleSheetList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(StyleSheetList::new_inherited(doc_or_sr)),
             window,
-            cx,
         )
     }
 }

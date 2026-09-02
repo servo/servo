@@ -13,7 +13,7 @@ use js::realm::CurrentRealm;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::ipc;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
@@ -63,10 +63,10 @@ impl XRSystem {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<XRSystem> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(XRSystem::new_inherited(window.pipeline_id())),
             window,
-            cx,
         )
     }
 

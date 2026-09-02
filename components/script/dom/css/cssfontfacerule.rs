@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::dom::MutNullableDom;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_arc::Arc;
 use style::font_face::DescriptorId;
 use style::shared_lock::{Locked, ToCssWithGuard};
@@ -52,14 +52,14 @@ impl CSSFontFaceRule {
         parent_stylesheet: &CSSStyleSheet,
         fontfacerule: Arc<Locked<FontFaceRule>>,
     ) -> DomRoot<CSSFontFaceRule> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(CSSFontFaceRule::new_inherited(
                 parent_rule,
                 parent_stylesheet,
                 fontfacerule,
             )),
             window,
-            cx,
         )
     }
 

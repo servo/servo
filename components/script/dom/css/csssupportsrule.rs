@@ -6,7 +6,7 @@ use std::cell::RefCell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_arc::Arc;
 use style::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, SupportsRule};
@@ -52,14 +52,14 @@ impl CSSSupportsRule {
         parent_stylesheet: &CSSStyleSheet,
         supportsrule: Arc<SupportsRule>,
     ) -> DomRoot<CSSSupportsRule> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(CSSSupportsRule::new_inherited(
                 parent_rule,
                 parent_stylesheet,
                 supportsrule,
             )),
             window,
-            cx,
         )
     }
 

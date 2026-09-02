@@ -13,7 +13,7 @@ use script_bindings::codegen::GenericBindings::VisualViewportBinding::VisualView
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::root::{Dom, DomRoot};
 use style_traits::CSSPixel;
 use webrender_api::units::DevicePixel;
@@ -71,14 +71,14 @@ impl VisualViewport {
         window: &Window,
         viewport_size: Size2D<f32, CSSPixel>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Self::new_inherited(
                 window,
                 Rect::from_size(viewport_size),
                 Scale::identity(),
             )),
             window,
-            cx,
         )
     }
 

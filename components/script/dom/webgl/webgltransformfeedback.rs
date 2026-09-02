@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{WebGLCommand, webgl_channel};
 
@@ -87,10 +87,10 @@ impl WebGLTransformFeedback {
         context.send_command(WebGLCommand::CreateTransformFeedback(sender));
         let id = receiver.recv().unwrap();
 
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(WebGLTransformFeedback::new_inherited(context, id)),
             &*context.global(),
-            cx,
         )
     }
 }

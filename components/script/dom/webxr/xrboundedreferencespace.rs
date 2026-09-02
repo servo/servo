@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::XRBoundedReferenceSpaceBinding::XRBoundedReferenceSpaceMethods;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
@@ -56,10 +56,10 @@ impl XRBoundedReferenceSpace {
         session: &XRSession,
         offset: &XRRigidTransform,
     ) -> DomRoot<XRBoundedReferenceSpace> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(XRBoundedReferenceSpace::new_inherited(session, offset)),
             global,
-            cx,
         )
     }
 

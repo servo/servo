@@ -9,7 +9,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::IDBIndexBinding::IDBIndexMethods;
 use script_bindings::codegen::GenericBindings::IDBTransactionBinding::IDBTransactionMode;
 use script_bindings::error::{Error, ErrorResult};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -54,7 +54,8 @@ impl IDBIndex {
         unique: bool,
         key_path: KeyPath,
     ) -> DomRoot<IDBIndex> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(IDBIndex::new_inherited(
                 object_store,
                 name,
@@ -63,7 +64,6 @@ impl IDBIndex {
                 key_path,
             )),
             global,
-            cx,
         )
     }
 }

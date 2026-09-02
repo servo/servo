@@ -12,7 +12,7 @@ use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::ServiceWorkerRegistrationId;
 use servo_constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
@@ -82,13 +82,13 @@ impl ServiceWorkerRegistration {
         scope: ServoUrl,
         registration_id: ServiceWorkerRegistrationId,
     ) -> DomRoot<ServiceWorkerRegistration> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ServiceWorkerRegistration::new_inherited(
                 scope,
                 registration_id,
             )),
             global,
-            cx,
         )
     }
 

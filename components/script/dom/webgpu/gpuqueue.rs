@@ -14,7 +14,7 @@ use script_bindings::codegen::GenericBindings::HTMLImageElementBinding::HTMLImag
 use script_bindings::codegen::GenericBindings::HTMLVideoElementBinding::HTMLVideoElementMethods;
 use script_bindings::codegen::GenericBindings::ImageBitmapBinding::ImageBitmapMethods;
 use script_bindings::codegen::GenericBindings::OffscreenCanvasBinding::OffscreenCanvasMethods;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_webgpu::gpuconvert::{WebGPUConvert, WebGPUTryConvert};
 use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
@@ -68,10 +68,10 @@ impl GPUQueue {
         channel: WebGPU,
         queue: WebGPUQueue,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GPUQueue::new_inherited(channel, queue)),
             global,
-            cx,
         )
     }
 }

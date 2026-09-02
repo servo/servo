@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     TextTrackKind, TextTrackMethods, TextTrackMode,
@@ -74,12 +74,12 @@ impl TextTrack {
         mode: TextTrackMode,
         track_list: Option<&TextTrackList>,
     ) -> DomRoot<TextTrack> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(TextTrack::new_inherited(
                 id, kind, label, language, mode, track_list,
             )),
             window,
-            cx,
         )
     }
 

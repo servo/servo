@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
@@ -74,7 +74,8 @@ impl BluetoothRemoteGATTCharacteristic {
         properties: &BluetoothCharacteristicProperties,
         instance_id: String,
     ) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(BluetoothRemoteGATTCharacteristic::new_inherited(
                 service,
                 uuid,
@@ -82,7 +83,6 @@ impl BluetoothRemoteGATTCharacteristic {
                 instance_id,
             )),
             global,
-            cx,
         )
     }
 

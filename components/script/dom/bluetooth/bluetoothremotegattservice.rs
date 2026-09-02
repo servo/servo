@@ -7,7 +7,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_bluetooth_traits::{BluetoothResponse, GATTType};
 
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
@@ -57,12 +57,12 @@ impl BluetoothRemoteGATTService {
         isPrimary: bool,
         instanceID: String,
     ) -> DomRoot<BluetoothRemoteGATTService> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(BluetoothRemoteGATTService::new_inherited(
                 device, uuid, isPrimary, instanceID,
             )),
             global,
-            cx,
         )
     }
 
