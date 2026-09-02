@@ -6,7 +6,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::str::{DOMString, USVString};
 
 use crate::dom::bindings::codegen::Bindings::CredentialBinding::CredentialMethods;
@@ -39,10 +39,10 @@ impl Credential {
         id: USVString,
         credential_type: DOMString,
     ) -> DomRoot<Credential> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Credential::new_inherited(id, credential_type)),
             global,
-            cx,
         )
     }
 }

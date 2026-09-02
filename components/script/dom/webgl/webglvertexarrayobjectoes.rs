@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::Ref;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 
 use crate::dom::bindings::reflector::DomGlobal;
@@ -34,10 +34,10 @@ impl WebGLVertexArrayObjectOES {
         context: &WebGLRenderingContext,
         id: Option<WebGLVertexArrayId>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(WebGLVertexArrayObjectOES::new_inherited(context, id)),
             &*context.global(),
-            cx,
         )
     }
 

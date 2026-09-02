@@ -28,7 +28,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, Origin, PreloadedResources, RequestClient};
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::id::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
@@ -124,14 +124,14 @@ impl Worklet {
         thread_pool_constructor: Box<dyn FnOnce() -> Rc<dyn WorkletThreadPool>>,
     ) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Worklet::new_inherited(
                 window,
                 global_type,
                 thread_pool_constructor,
             )),
             window,
-            cx,
         )
     }
 

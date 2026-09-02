@@ -11,7 +11,7 @@ use js::context::JSContext;
 use js::realm::CurrentRealm;
 use profile_traits::generic_channel;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::{
     BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothRequest, BluetoothResponse,
@@ -84,10 +84,10 @@ impl BluetoothDevice {
         name: Option<DOMString>,
         context: &Bluetooth,
     ) -> DomRoot<BluetoothDevice> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(BluetoothDevice::new_inherited(id, name, context)),
             global,
-            cx,
         )
     }
 

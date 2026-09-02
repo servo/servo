@@ -10,9 +10,7 @@ use euclid::Point2D;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{
-    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto,
-};
+use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
 use script_traits::MouseButtons;
 
 use crate::dom::bindings::codegen::Bindings::TouchBinding::{TouchInit, TouchMethods};
@@ -74,12 +72,12 @@ impl Touch {
         page_x: Finite<f64>,
         page_y: Finite<f64>,
     ) -> DomRoot<Touch> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Touch::new_inherited(
                 identifier, target, screen_x, screen_y, client_x, client_y, page_x, page_y,
             )),
             window,
-            cx,
         )
     }
 

@@ -10,7 +10,7 @@ use js::context::JSContext;
 use paint_api::SerializableImageData;
 use pixels::Snapshot;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::Epoch;
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{ImageDescriptor, ImageFormat, ImageKey};
@@ -64,12 +64,12 @@ impl ImageBitmapRenderingContext {
         global: &GlobalScope,
         canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
     ) -> DomRoot<ImageBitmapRenderingContext> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ImageBitmapRenderingContext::new_inherited(
                 HTMLCanvasElementOrOffscreenCanvas::from(canvas),
             )),
             global,
-            cx,
         )
     }
 

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, ns};
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -123,10 +123,10 @@ impl DOMStringMap {
     }
 
     pub(crate) fn new(cx: &mut JSContext, element: &HTMLElement) -> DomRoot<DOMStringMap> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(DOMStringMap::new_inherited(element)),
             &*element.owner_window(),
-            cx,
         )
     }
 

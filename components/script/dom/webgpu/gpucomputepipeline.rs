@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_webgpu::gpuconvert::WebGPUConvert;
 use servo_base::generic_channel::GenericCallback;
 use webgpu_traits::{
@@ -80,14 +80,14 @@ impl GPUComputePipeline {
         label: USVString,
         device: &GPUDevice,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GPUComputePipeline::new_inherited(
                 compute_pipeline,
                 label,
                 device,
             )),
             global,
-            cx,
         )
     }
 }

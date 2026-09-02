@@ -7,9 +7,7 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::match_domstring_ascii;
-use script_bindings::reflector::{
-    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto,
-};
+use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
 use servo_base::id::{DomExceptionId, DomExceptionIndex};
 use servo_constellation_traits::DomException;
 
@@ -184,10 +182,10 @@ impl DOMException {
     ) -> DomRoot<DOMException> {
         let (message, name) = DOMException::get_error_data_by_code(code);
 
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(DOMException::new_inherited(message, name)),
             global,
-            cx,
         )
     }
 
@@ -199,10 +197,10 @@ impl DOMException {
     ) -> DomRoot<DOMException> {
         let (_, name) = DOMException::get_error_data_by_code(code);
 
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(DOMException::new_inherited(DOMString::from(message), name)),
             global,
-            cx,
         )
     }
 

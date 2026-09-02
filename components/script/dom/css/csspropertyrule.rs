@@ -6,7 +6,7 @@ use std::cell::RefCell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_arc::Arc;
 use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::{CssRuleType, PropertyRule};
@@ -47,14 +47,14 @@ impl CSSPropertyRule {
         parent_stylesheet: &CSSStyleSheet,
         property_rule: Arc<PropertyRule>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Self::new_inherited(
                 parent_rule,
                 parent_stylesheet,
                 property_rule,
             )),
             window,
-            cx,
         )
     }
 

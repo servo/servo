@@ -10,7 +10,7 @@ use std::cmp;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{DomObject as _, reflect_dom_object_with_cx};
+use script_bindings::reflector::{DomObject as _, reflect_dom_object};
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt, WebGLCommand,
@@ -175,7 +175,8 @@ impl WebGLTexture {
         context: &WebGLRenderingContext,
         id: WebGLTextureId,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(WebGLTexture::new_inherited(
                 context,
                 id,
@@ -183,7 +184,6 @@ impl WebGLTexture {
                 None,
             )),
             &*context.global(),
-            cx,
         )
     }
 
@@ -194,10 +194,10 @@ impl WebGLTexture {
         id: WebGLTextureId,
         session: &XRSession,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(WebGLTexture::new_inherited(context, id, Some(session))),
             &*context.global(),
-            cx,
         )
     }
 }

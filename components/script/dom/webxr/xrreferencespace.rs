@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use euclid::{Point2D, RigidTransform3D};
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use webxr_api::{self, Floor, Frame, Space};
 
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::{
@@ -57,10 +57,10 @@ impl XRReferenceSpace {
         ty: XRReferenceSpaceType,
         offset: &XRRigidTransform,
     ) -> DomRoot<XRReferenceSpace> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(XRReferenceSpace::new_inherited(session, offset, ty)),
             global,
-            cx,
         )
     }
 

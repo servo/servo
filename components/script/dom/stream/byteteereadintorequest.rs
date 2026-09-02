@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::typedarray::ArrayBufferViewU8;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::trace::RootedTraceableBox;
 
 use super::byteteeunderlyingsource::ByteTeePullAlgorithm;
@@ -78,7 +78,8 @@ impl ByteTeeReadIntoRequest {
         tee_underlying_source: &ByteTeeUnderlyingSource,
         global: &GlobalScope,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ByteTeeReadIntoRequest {
                 reflector_: Reflector::new(),
                 for_branch2,
@@ -94,7 +95,6 @@ impl ByteTeeReadIntoRequest {
                 tee_underlying_source: Dom::from_ref(tee_underlying_source),
             }),
             global,
-            cx,
         )
     }
 

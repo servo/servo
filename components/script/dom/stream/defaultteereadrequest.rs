@@ -10,7 +10,7 @@ use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::error::ErrorToJsval;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -75,7 +75,8 @@ impl DefaultTeeReadRequest {
         cancel_promise: Rc<Promise>,
         tee_underlying_source: &DefaultTeeUnderlyingSource,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(DefaultTeeReadRequest {
                 reflector_: Reflector::new(),
                 stream: Dom::from_ref(stream),
@@ -90,7 +91,6 @@ impl DefaultTeeReadRequest {
                 tee_underlying_source: Dom::from_ref(tee_underlying_source),
             }),
             &*stream.global(),
-            cx,
         )
     }
     /// Call into cancel of the stream,

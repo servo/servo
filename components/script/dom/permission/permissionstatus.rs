@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionDescriptor, PermissionName, PermissionState, PermissionStatusMethods,
@@ -37,10 +37,10 @@ impl PermissionStatus {
         global: &GlobalScope,
         query: &PermissionDescriptor,
     ) -> DomRoot<PermissionStatus> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(PermissionStatus::new_inherited(query.name)),
             global,
-            cx,
         )
     }
 

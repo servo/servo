@@ -7,7 +7,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
+use script_bindings::reflector::{DomObject, reflect_dom_object};
 use script_bindings::weakref::WeakRef;
 use servo_base::generic_channel;
 use servo_canvas_traits::webgl::{
@@ -153,10 +153,10 @@ impl WebGLBuffer {
         context: &WebGLRenderingContext,
         id: WebGLBufferId,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(WebGLBuffer::new_inherited(context, id)),
             &*context.global(),
-            cx,
         )
     }
 }

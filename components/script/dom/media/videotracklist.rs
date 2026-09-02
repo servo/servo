@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::VideoTrackListBinding::VideoTrackListMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -43,10 +43,10 @@ impl VideoTrackList {
         tracks: &[&VideoTrack],
         media_element: Option<&HTMLMediaElement>,
     ) -> DomRoot<VideoTrackList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(VideoTrackList::new_inherited(tracks, media_element)),
             window,
-            cx,
         )
     }
 

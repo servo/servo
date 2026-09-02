@@ -6,7 +6,7 @@ use std::slice::Iter;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::id::{FileListId, FileListIndex};
 use servo_constellation_traits::SerializableFileList;
 
@@ -39,12 +39,12 @@ impl FileList {
         window: &Window,
         files: Vec<DomRoot<File>>,
     ) -> DomRoot<FileList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(FileList::new_inherited(
                 files.iter().map(|r| Dom::from_ref(&**r)).collect(),
             )),
             window,
-            cx,
         )
     }
 
@@ -53,12 +53,12 @@ impl FileList {
         global: &GlobalScope,
         files: Vec<DomRoot<File>>,
     ) -> DomRoot<FileList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(FileList::new_inherited(
                 files.iter().map(|r| Dom::from_ref(&**r)).collect(),
             )),
             global,
-            cx,
         )
     }
 

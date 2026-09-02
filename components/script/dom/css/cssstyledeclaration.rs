@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 use dom_struct::dom_struct;
 use html5ever::local_name;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -261,14 +261,14 @@ impl CSSStyleDeclaration {
         pseudo: Option<PseudoElement>,
         modification_access: CSSModificationAccess,
     ) -> DomRoot<CSSStyleDeclaration> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(CSSStyleDeclaration::new_inherited(
                 owner,
                 pseudo,
                 modification_access,
             )),
             global,
-            cx,
         )
     }
 

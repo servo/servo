@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::root::DomRoot;
 use stylo_atoms::Atom;
 
@@ -39,10 +39,10 @@ impl RadioNodeList {
         window: &Window,
         list_type: NodeListType,
     ) -> DomRoot<RadioNodeList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(RadioNodeList::new_inherited(list_type)),
             window,
-            cx,
         )
     }
 

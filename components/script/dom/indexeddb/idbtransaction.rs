@@ -11,7 +11,7 @@ use profile_traits::generic_callback::GenericCallback;
 use profile_traits::generic_channel::channel;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use servo_base::id::ScriptEventLoopId;
 use storage_traits::indexeddb::{
@@ -158,7 +158,8 @@ impl IDBTransaction {
         scope: &DOMStringList,
         serial_number: u64,
     ) -> DomRoot<IDBTransaction> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(IDBTransaction::new_inherited(
                 connection,
                 mode,
@@ -167,7 +168,6 @@ impl IDBTransaction {
                 serial_number,
             )),
             global,
-            cx,
         )
     }
 
