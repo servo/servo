@@ -6,24 +6,26 @@ use std::string::String;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_webgpu::gpuconvert::{WebGPUConvert, convert_texture_descriptor};
-use script_webgpu::traits::GPUTextureTrait;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
+    GPUTextureMethods, GPUTextureViewDescriptor, GPUTextureWrap,
+};
+use script_bindings::dom::MutNullableDom;
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 use wgpu_core::resource::{self, TextureDescriptor};
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
-    GPUTextureMethods, GPUTextureViewDescriptor,
-};
+use crate::JSTraceable;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::webgpu::gpudevice::GPUDevice;
-use crate::dom::webgpu::gputextureview::GPUTextureView;
+use crate::gpuconvert::{WebGPUConvert, convert_texture_descriptor};
+use crate::gputextureview::GPUTextureView;
+use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUTexture {
@@ -49,10 +51,10 @@ impl Drop for DroppableGPUTexture {
 }
 
 #[dom_struct]
-pub(crate) struct GPUTexture {
+pub struct GPUTexture<D: DomTypes> {
     reflector_: Reflector,
     label: DomRefCell<USVString>,
-    device: Dom<GPUDevice>,
+    device: Dom<D::GPUDevice>,
     #[no_trace]
     #[ignore_malloc_size_of = "External type"]
     texture_size: wgpu_types::Extent3d,
@@ -62,14 +64,14 @@ pub(crate) struct GPUTexture {
     format: GPUTextureFormat,
     texture_usage: u32,
     droppable: DroppableGPUTexture,
-    default_view: MutNullableDom<GPUTextureView>,
+    default_view: MutNullableDom<GPUTextureView<D>>,
 }
 
-impl GPUTexture {
+impl<D: Equivalence> GPUTexture<D> {
     #[expect(clippy::too_many_arguments)]
     fn new_inherited(
         texture: WebGPUTexture,
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         channel: WebGPU,
         texture_size: wgpu_types::Extent3d,
         mip_level_count: u32,
@@ -97,9 +99,9 @@ impl GPUTexture {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         texture: WebGPUTexture,
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         channel: WebGPU,
         texture_size: wgpu_types::Extent3d,
         mip_level_count: u32,
@@ -109,8 +111,7 @@ impl GPUTexture {
         texture_usage: u32,
         label: USVString,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
-            cx,
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPUTexture::new_inherited(
                 texture,
                 device,
@@ -124,16 +125,23 @@ impl GPUTexture {
                 label,
             )),
             global,
+            cx,
+            GPUTextureWrap::<D>,
         )
     }
 }
 
-impl GPUTexture {
-    pub(crate) fn id(&self) -> WebGPUTexture {
+impl<D> GPUTexture<D>
+where
+    D: Equivalence,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+{
+    pub fn id(&self) -> WebGPUTexture {
         self.droppable.texture
     }
 
-    pub(crate) fn wgpu_texture_descriptor(&self) -> TextureDescriptor<'static> {
+    pub fn wgpu_texture_descriptor(&self) -> TextureDescriptor<'static> {
         TextureDescriptor {
             label: Some(self.label.borrow().to_string().into()),
             size: self.texture_size,
@@ -147,14 +155,17 @@ impl GPUTexture {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
-    pub(crate) fn create(
+    pub fn create(
         cx: &mut JSContext,
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         descriptor: &GPUTextureDescriptor,
-    ) -> Fallible<DomRoot<GPUTexture>> {
-        let (desc, size) = convert_texture_descriptor::<crate::DomTypeHolder>(descriptor, device)?;
+    ) -> Fallible<DomRoot<GPUTexture<D>>> {
+        let (desc, size) = convert_texture_descriptor::<D>(descriptor, device)?;
 
-        let texture_id = device.global().wgpu_id_hub().create_texture_id();
+        let texture_id = device
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_texture_id();
 
         device
             .channel()
@@ -170,7 +181,7 @@ impl GPUTexture {
 
         Ok(GPUTexture::new(
             cx,
-            &device.global(),
+            &*device.global_from_reflector(),
             texture,
             device,
             device.channel(),
@@ -194,7 +205,13 @@ impl GPUTexture {
     }
 }
 
-impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
+impl<D> GPUTextureMethods<D> for GPUTexture<D>
+where
+    D: Equivalence,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+    Self: DomGlobalGeneric<D>,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
@@ -210,7 +227,7 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
         &self,
         cx: &mut JSContext,
         descriptor: &GPUTextureViewDescriptor,
-    ) -> Fallible<DomRoot<GPUTextureView>> {
+    ) -> Fallible<DomRoot<GPUTextureView<D>>> {
         let desc = if !matches!(descriptor.mipLevelCount, Some(0)) &&
             !matches!(descriptor.arrayLayerCount, Some(0))
         {
@@ -244,7 +261,10 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
             None
         };
 
-        let texture_view_id = self.global().wgpu_id_hub().create_texture_view_id();
+        let texture_view_id = self
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_texture_view_id();
 
         self.droppable
             .channel
@@ -261,7 +281,7 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
 
         Ok(GPUTextureView::new(
             cx,
-            &self.global(),
+            &*self.global_from_reflector(),
             self.droppable.channel.clone(),
             texture_view,
             self,
@@ -323,15 +343,5 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
     /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-usage>
     fn Usage(&self) -> u32 {
         self.texture_usage
-    }
-}
-
-impl GPUTextureTrait for GPUTexture {
-    fn id(&self) -> WebGPUTexture {
-        self.id()
-    }
-
-    fn get_default_view(&self, cx: &mut JSContext) -> WebGPUTextureView {
-        self.get_default_view(cx)
     }
 }

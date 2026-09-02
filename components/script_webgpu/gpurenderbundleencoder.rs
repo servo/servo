@@ -6,28 +6,31 @@ use std::borrow::Cow;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_webgpu::gpuconvert::WebGPUConvert;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,
+    GPURenderBundleEncoderMethods, GPURenderBundleEncoderWrap,
+};
+use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
     RenderBundleCommand, WebGPU, WebGPURenderBundle, WebGPURenderBundleEncoder, WebGPURequest,
 };
 use wgpu_core::command::RenderBundleEncoderDescriptor;
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,
-    GPURenderBundleEncoderMethods,
-};
+use crate::JSTraceable;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::webgpu::gpubindgroup::GPUBindGroup;
-use crate::dom::webgpu::gpubuffer::GPUBuffer;
-use crate::dom::webgpu::gpudevice::GPUDevice;
-use crate::dom::webgpu::gpurenderbundle::GPURenderBundle;
-use crate::dom::webgpu::gpurenderpipeline::GPURenderPipeline;
+use crate::gpubindgroup::GPUBindGroup;
+use crate::gpubuffer::GPUBuffer;
+use crate::gpuconvert::WebGPUConvert;
+use crate::gpurenderbundle::GPURenderBundle;
+use crate::gpurenderpipeline::GPURenderPipeline;
+use crate::traits::{Equivalence, GPUDeviceTrait, GPUExternalTextureTrait, WebGPUGlobalTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPURenderBundleEncoder {
@@ -51,16 +54,19 @@ impl Drop for DroppableGPURenderBundleEncoder {
 }
 
 #[dom_struct]
-pub(crate) struct GPURenderBundleEncoder {
+pub struct GPURenderBundleEncoder<D: DomTypes> {
     reflector_: Reflector,
-    device: Dom<GPUDevice>,
+    device: Dom<D::GPUDevice>,
     label: DomRefCell<USVString>,
     droppable: DroppableGPURenderBundleEncoder,
 }
 
-impl GPURenderBundleEncoder {
+impl<D> GPURenderBundleEncoder<D>
+where
+    D: Equivalence,
+{
     fn new_inherited(
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         channel: WebGPU,
         label: USVString,
         render_bundle_encoder: WebGPURenderBundleEncoder,
@@ -78,14 +84,13 @@ impl GPURenderBundleEncoder {
 
     pub(crate) fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         render_bundle_encoder: WebGPURenderBundleEncoder,
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         channel: WebGPU,
         label: USVString,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
-            cx,
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPURenderBundleEncoder::new_inherited(
                 device,
                 channel,
@@ -93,17 +98,25 @@ impl GPURenderBundleEncoder {
                 render_bundle_encoder,
             )),
             global,
+            cx,
+            GPURenderBundleEncoderWrap::<D>,
         )
     }
 }
 
-impl GPURenderBundleEncoder {
+impl<D> GPURenderBundleEncoder<D>
+where
+    D: Equivalence,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+    Self: DomGlobalGeneric<D>,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
-    pub(crate) fn create(
+    pub fn create(
         cx: &mut JSContext,
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         descriptor: &GPURenderBundleEncoderDescriptor,
-    ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
+    ) -> Fallible<DomRoot<GPURenderBundleEncoder<D>>> {
         let desc = RenderBundleEncoderDescriptor {
             label: (&descriptor.parent.parent).convert(),
             color_formats: Cow::Owned(
@@ -136,8 +149,8 @@ impl GPURenderBundleEncoder {
         };
 
         let id = device
-            .global()
-            .wgpu_id_hub()
+            .global_from_reflector()
+            .global_wgpu_id_hub()
             .create_render_bundle_encoder_id();
         let render_bundle_encoder = WebGPURenderBundleEncoder(id);
 
@@ -156,7 +169,7 @@ impl GPURenderBundleEncoder {
 
         Ok(GPURenderBundleEncoder::new(
             cx,
-            &device.global(),
+            &*device.global_from_reflector(),
             render_bundle_encoder,
             device,
             device.channel(),
@@ -169,7 +182,15 @@ impl GPURenderBundleEncoder {
     }
 }
 
-impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEncoder {
+impl<D> GPURenderBundleEncoderMethods<D> for GPURenderBundleEncoder<D>
+where
+    D: Equivalence,
+    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
+    D::GPUExternalTexture: GPUExternalTextureTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
+    D::Promise: PromiseHelpers<D>,
+    Self: DomGlobalGeneric<D>,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
@@ -181,7 +202,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
-    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
+    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup<D>, dynamic_offsets: Vec<u32>) {
         if let Err(error) =
             self.droppable
                 .channel
@@ -204,7 +225,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline>
-    fn SetPipeline(&self, pipeline: &GPURenderPipeline) {
+    fn SetPipeline(&self, pipeline: &GPURenderPipeline<D>) {
         if let Err(error) =
             self.droppable
                 .channel
@@ -225,7 +246,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setindexbuffer>
     fn SetIndexBuffer(
         &self,
-        buffer: &GPUBuffer,
+        buffer: &D::GPUBuffer,
         index_format: GPUIndexFormat,
         offset: u64,
         size: u64,
@@ -253,7 +274,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
-    fn SetVertexBuffer(&self, slot: u32, buffer: Option<&GPUBuffer>, offset: u64, size: u64) {
+    fn SetVertexBuffer(&self, slot: u32, buffer: Option<&GPUBuffer<D>>, offset: u64, size: u64) {
         if let Err(error) =
             self.droppable
                 .channel
@@ -333,7 +354,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindirect>
-    fn DrawIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
+    fn DrawIndirect(&self, indirect_buffer: &GPUBuffer<D>, indirect_offset: u64) {
         if let Err(error) =
             self.droppable
                 .channel
@@ -355,7 +376,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect>
-    fn DrawIndexedIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
+    fn DrawIndexedIndirect(&self, indirect_buffer: &GPUBuffer<D>, indirect_offset: u64) {
         if let Err(error) =
             self.droppable
                 .channel
@@ -440,11 +461,14 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
         &self,
         cx: &mut JSContext,
         descriptor: &GPURenderBundleDescriptor,
-    ) -> DomRoot<GPURenderBundle> {
+    ) -> DomRoot<D::GPURenderBundle> {
         let desc = wgpu_types::RenderBundleDescriptor {
             label: (&descriptor.parent).convert(),
         };
-        let render_bundle_id = self.global().wgpu_id_hub().create_render_bundle_id();
+        let render_bundle_id = self
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_render_bundle_id();
 
         if let Err(error) =
             self.droppable
@@ -466,7 +490,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
         let render_bundle = WebGPURenderBundle(render_bundle_id);
         GPURenderBundle::new(
             cx,
-            &self.global(),
+            &*self.global_from_reflector(),
             render_bundle,
             self.device.id(),
             self.droppable.channel.clone(),

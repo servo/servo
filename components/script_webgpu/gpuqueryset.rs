@@ -1,30 +1,30 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::marker::PhantomData;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
-use script_bindings::codegen::GenericBindings::WebGPUBinding::{GPUDeviceMethods, GPUQueryType};
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUDeviceMethods, GPUQuerySetDescriptor, GPUQuerySetMethods, GPUQuerySetWrap, GPUQueryType,
+};
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
-use script_webgpu::gpuconvert::WebGPUConvert;
-use script_webgpu::traits::GPUQuerySetTrait;
 use webgpu_traits::{WebGPU, WebGPUQuerySet, WebGPURequest};
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUQuerySetDescriptor, GPUQuerySetMethods,
-};
-use crate::dom::bindings::reflector::DomGlobal as _;
+use crate::JSTraceable;
 use crate::dom::bindings::str::USVString;
-use crate::dom::types::{GPUDevice, GlobalScope};
+use crate::gpuconvert::WebGPUConvert;
+use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait};
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 struct DroppableGPUQuerySet {
-    #[no_trace]
     channel: WebGPU,
-    #[no_trace]
     query_set: WebGPUQuerySet,
 }
 
@@ -44,15 +44,23 @@ impl Drop for DroppableGPUQuerySet {
 }
 
 #[dom_struct]
-pub(crate) struct GPUQuerySet {
+pub struct GPUQuerySet<D: DomTypes> {
     reflector_: Reflector,
+    #[no_trace]
     droppable: DroppableGPUQuerySet,
     label: DomRefCell<USVString>,
     r#type: GPUQueryType,
     count: u32,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl GPUQuerySet {
+impl<D> GPUQuerySet<D>
+where
+    D: Equivalence,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+{
     pub(crate) fn new_inherited(
         label: USVString,
         channel: WebGPU,
@@ -66,31 +74,33 @@ impl GPUQuerySet {
             droppable: DroppableGPUQuerySet { channel, query_set },
             r#type,
             count,
+            phantom: PhantomData,
         }
     }
 
     pub(crate) fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         label: USVString,
         channel: WebGPU,
         query_set: WebGPUQuerySet,
         r#type: GPUQueryType,
         count: u32,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
-            cx,
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPUQuerySet::new_inherited(
                 label, channel, query_set, r#type, count,
             )),
             global,
+            cx,
+            GPUQuerySetWrap::<D>,
         )
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createqueryset>
-    pub(crate) fn create(
+    pub fn create(
         cx: &mut JSContext,
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         descriptor: &GPUQuerySetDescriptor,
     ) -> Fallible<DomRoot<Self>> {
         // 1. If descriptor.type is "timestamp", but "timestamp-query" is not enabled for this:
@@ -106,7 +116,10 @@ impl GPUQuerySet {
             ));
         }
         // 2. Let q be ! create a new WebGPU object(this, GPUQuerySet, descriptor).
-        let query_set_id = device.global().wgpu_id_hub().create_query_set_id();
+        let query_set_id = device
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_query_set_id();
         // 5. Issue the initialization steps on the Device timeline of this.
         let channel = device.channel();
         if let Err(error) = channel.0.send(WebGPURequest::CreateQuerySet {
@@ -119,7 +132,7 @@ impl GPUQuerySet {
         // 6. Return q
         Ok(Self::new(
             cx,
-            &device.global(),
+            &device.global_from_reflector(),
             descriptor.parent.label.clone(),
             channel,
             WebGPUQuerySet(query_set_id),
@@ -135,7 +148,12 @@ impl GPUQuerySet {
     }
 }
 
-impl GPUQuerySetMethods<crate::DomTypeHolder> for GPUQuerySet {
+impl<D> GPUQuerySetMethods<D> for GPUQuerySet<D>
+where
+    D: Equivalence,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-destroy>
     fn Destroy(&self) {
         // 1. Issue the subsequent steps on the device timeline.
@@ -170,11 +188,5 @@ impl GPUQuerySetMethods<crate::DomTypeHolder> for GPUQuerySet {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-count>
     fn Count(&self) -> u32 {
         self.count
-    }
-}
-
-impl GPUQuerySetTrait for GPUQuerySet {
-    fn id(&self) -> WebGPUQuerySet {
-        self.id()
     }
 }

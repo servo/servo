@@ -9523,6 +9523,8 @@ dependencies = [
 name = "servo-script-webgpu"
 version = "0.6.0"
 dependencies = [
+ "arrayvec",
+ "euclid",
  "indexmap",
  "log",
  "malloc_size_of_derive",
@@ -9534,8 +9536,10 @@ dependencies = [
  "servo-dom-struct",
  "servo-jstraceable-derive",
  "servo-malloc-size-of",
+ "servo-pixels",
  "servo-script-bindings",
  "servo-webgpu-traits",
+ "stylo_atoms",
  "trait-set",
  "wgpu-core 30.0.1",
  "wgpu-types 30.0.0",
