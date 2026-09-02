@@ -11,7 +11,7 @@ use fonts_traits::FontData;
 use freetype_sys::{
     FT_Done_Face, FT_Done_MM_Var, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
     FT_FACE_FLAG_SCALABLE, FT_Face, FT_FaceRec, FT_Fixed, FT_Get_MM_Var, FT_HAS_MULTIPLE_MASTERS,
-    FT_Int32, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_TARGET_LIGHT, FT_Long, FT_MM_Var,
+    FT_Int32, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Long, FT_MM_Var,
     FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Set_Var_Design_Coordinates,
     FTErrorMethods,
 };
@@ -166,11 +166,11 @@ impl FreeTypeFace {
     pub(crate) fn glyph_load_flags(&self) -> FT_Int32 {
         let mut load_flags = FT_LOAD_DEFAULT;
 
-        // Default to slight hinting, which is what most
-        // Linux distros use by default, and is a better
-        // default than no hinting.
-        // TODO(gw): Make this configurable.
-        load_flags |= FT_LOAD_TARGET_LIGHT;
+        // Default to no hinting. Although most Linux distros use slight hinting by default, no hinting is needed as default,
+        // else freetype can only return glyph advances in whole numbers, which in turn makes rendering glyphs with non-whole number advances,
+        // such as 3.544px impossible as it will be rounded off to 4px.
+        // TODO: Make this configurable.
+        load_flags |= FT_LOAD_NO_HINTING;
 
         let face_flags = self.as_ref().face_flags;
         if (face_flags & (FT_FACE_FLAG_FIXED_SIZES as FT_Long)) != 0 {

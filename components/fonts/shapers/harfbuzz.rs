@@ -32,8 +32,8 @@ use read_fonts::types::Tag;
 use super::{GlyphShapingResult, ShapedGlyph, unicode_script_to_iso15924_tag};
 use crate::platform::font::FontTable;
 use crate::{
-    BASE, Font, FontBaseline, FontTableMethods, GlyphId, ShapedText, ShapingFlags, ShapingOptions,
-    fixed_to_float, float_to_fixed,
+    BASE, Font, FontBaseline, FontTableMethods, GLYPH_SCALE_FACTOR, GlyphId, ShapedText,
+    ShapingFlags, ShapingOptions, fixed_to_float, float_to_fixed,
 };
 
 const HB_OT_TAG_DEFAULT_SCRIPT: hb_tag_t = u32::from_be_bytes(Tag::new(b"DFLT").to_be_bytes());
@@ -101,10 +101,10 @@ impl<'a> Iterator for ShapedGlyphIterator<'a> {
                 .shaped_glyph_data
                 .pos_infos
                 .add(self.current_glyph_offset);
-            let x_offset = Shaper::fixed_to_float((*pos_info_i).x_offset);
-            let y_offset = Shaper::fixed_to_float((*pos_info_i).y_offset);
-            let x_advance = Shaper::fixed_to_float((*pos_info_i).x_advance);
-            let y_advance = Shaper::fixed_to_float((*pos_info_i).y_advance);
+            let x_offset = Shaper::fixed_to_float((*pos_info_i).x_offset) / GLYPH_SCALE_FACTOR;
+            let y_offset = Shaper::fixed_to_float((*pos_info_i).y_offset) / GLYPH_SCALE_FACTOR;
+            let x_advance = Shaper::fixed_to_float((*pos_info_i).x_advance) / GLYPH_SCALE_FACTOR;
+            let y_advance = Shaper::fixed_to_float((*pos_info_i).y_advance) / GLYPH_SCALE_FACTOR;
 
             let x_offset = Au::from_f64_px(x_offset);
             let y_offset = Au::from_f64_px(y_offset);
@@ -204,8 +204,8 @@ impl Shaper {
             // Set scaling. Note that this takes 16.16 fixed point.
             hb_font_set_scale(
                 hb_font,
-                Shaper::float_to_fixed(pt_size) as c_int,
-                Shaper::float_to_fixed(pt_size) as c_int,
+                Shaper::float_to_fixed(pt_size * GLYPH_SCALE_FACTOR) as c_int,
+                Shaper::float_to_fixed(pt_size * GLYPH_SCALE_FACTOR) as c_int,
             );
 
             if servo_config::pref!(layout_variable_fonts_enabled) {
@@ -419,7 +419,7 @@ extern "C" fn glyph_h_advance_func(
     assert!(!font.is_null());
 
     let advance = unsafe { (*font).glyph_h_advance(glyph as GlyphId) };
-    Shaper::float_to_fixed(advance)
+    Shaper::float_to_fixed(advance * GLYPH_SCALE_FACTOR)
 }
 
 /// Callback to get a font table out of a font.
