@@ -76,6 +76,10 @@ pub(crate) struct CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-disallow-modification-flag>
     disallow_modification: Cell<bool>,
 
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-stylesheet-base-url>
+    #[no_trace]
+    stylesheet_base_url: DomRefCell<Option<ServoUrl>>,
+
     /// Documents or shadow DOMs thats adopt this stylesheet, they will be notified whenever
     /// the stylesheet is modified.
     adopters: DomRefCell<Vec<StyleSheetListOwner>>,
@@ -100,6 +104,7 @@ impl CSSStyleSheet {
             constructor_document: constructor_document.map(Dom::from_ref),
             adopters: Default::default(),
             disallow_modification: Cell::new(false),
+            stylesheet_base_url: Default::default(),
         }
     }
 
@@ -315,9 +320,15 @@ impl CSSStyleSheet {
 
         let _span = profile_traits::trace_span!("ParseStylesheet").entered();
         let sheet = self.style_stylesheet();
+        let stylesheet_base_url = self
+            .stylesheet_base_url
+            .borrow()
+            .clone()
+            .unwrap_or(window.get_url());
+
         let new_contents = StylesheetContents::from_str(
             &text,
-            UrlExtraData(window.get_url().get_arc()),
+            UrlExtraData(stylesheet_base_url.get_arc()),
             Origin::Author,
             &self.style_shared_lock,
             None,
@@ -356,14 +367,10 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             MediaListOrString::MediaList(media_list) => media_list.clone_media_list(),
             MediaListOrString::String(str) => MediaList::parse_media_list(&str.str(), window),
         }));
-        let base_url = options
-            .baseURL
-            .as_ref()
-            .and_then(|url| ServoUrl::parse(&url.str()).ok())
-            .unwrap_or(window.get_url());
+
         let stylesheet = Arc::new(StyleStyleSheet::from_str(
             "",
-            UrlExtraData(base_url.get_arc()),
+            UrlExtraData(window.get_url().get_arc()),
             Origin::Author,
             media,
             shared_lock,
@@ -375,7 +382,10 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         if options.disabled {
             stylesheet.set_disabled(true);
         }
-        Self::new_with_proto(
+
+        // Step 1. Construct a new CSSStyleSheet object sheet.
+        // Note: Subsequent steps are implicitly handled by the arguments passed down.
+        let sheet = Self::new_with_proto(
             cx,
             window,
             proto,
@@ -385,7 +395,17 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             None, // title
             stylesheet,
             Some(&window.Document()), // constructor_document
-        )
+        );
+
+        let base_url = options
+            .baseURL
+            .as_ref()
+            .and_then(|url| ServoUrl::parse(&url.str()).ok());
+        // Step 3. Set sheet’s stylesheet base URL to the baseURL attribute value from options.
+        *sheet.stylesheet_base_url.safe_borrow_mut(cx) = base_url;
+
+        // Step 14. Return sheet.
+        sheet
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules>
