@@ -475,9 +475,9 @@ impl RasterImage {
     /// For animations the image already exists in a cache in 'Painter'. We just send the description.
     /// Currently we do not support 'PixelFormat::RGB8'
     pub fn webrender_image_descriptor_and_offset_for_frame(&self) -> Option<ImageDescriptor> {
-        if self.format == PixelFormat::RGB8
-            || self.format == PixelFormat::K8
-            || self.format == PixelFormat::KA8
+        if self.format == PixelFormat::RGB8 ||
+            self.format == PixelFormat::K8 ||
+            self.format == PixelFormat::KA8
         {
             return None;
         }
