@@ -39,8 +39,9 @@ thread_local!(pub(super) static LIVE_REFERENCES: Rc<RefCell<LiveDOMReferences>> 
     }
 )));
 
-use crate::DomObject;
 use crate::root::DomRoot;
+use crate::trace::trace_reflector;
+use crate::{DomObject, Reflector};
 
 /// A pointer to a Rust DOM object that needs to be destroyed.
 #[derive(MallocSizeOf)]
@@ -136,6 +137,22 @@ impl<T: DomObject> Clone for Trusted<T> {
 pub struct LiveDOMReferences {
     // keyed on pointer to Rust DOM object
     reflectable_table: RefCell<FxHashMap<*const libc::c_void, Weak<TrustedReference>>>,
+}
+
+/// Trace all the references that are in Trusted and liive.
+/// # Safety
+/// tracer must point to a valid, non-null JS tracer.
+pub unsafe fn trace_live_domreferences(tracer: *mut JSTracer) {
+    LIVE_REFERENCES.with(|r| {
+        let live_references = r.borrow();
+        let mut table = live_references.reflectable_table.borrow_mut();
+        remove_nulls(&mut table);
+        for obj in table.keys() {
+            unsafe {
+                trace_reflector(tracer, "refcounted", &*(*obj as *const Reflector));
+            }
+        }
+    })
 }
 
 impl LiveDOMReferences {

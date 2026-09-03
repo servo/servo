@@ -150,4 +150,7 @@ pub(crate) unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
             }
         }
     });
+    unsafe {
+        script_bindings::refcounted::trace_live_domreferences(tracer);
+    }
 }
