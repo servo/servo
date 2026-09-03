@@ -8,7 +8,7 @@ use image::metadata::LoopCount;
 use image::{Frames, ImageDecoder, ImageResult};
 
 /// Main image decoder encoder factory trait. Implement this if you want to have custom Encoding and Decoding facilities.
-/// Compare [`DefaultImageEncoderDecoderFactory']
+/// Compare [`DefaultImageEncoderDecoderFactory'] and annotate them with `#[typetag::serde]`.
 #[typetag::serde]
 pub trait ImageEncoderDecoderFactory: Send + Sync {
     /// Create a decoder from bytes. Return an error if the image format is not supported.
