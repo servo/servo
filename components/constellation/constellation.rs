@@ -535,7 +535,7 @@ pub struct Constellation<STF, SWF> {
     /// Whether Servo is online or not. This is controlled by the embedder.
     online: bool,
 
-    /// The Image Encoder Decoder Factory that is used for the image cache.
+    /// The [`ImageEncoderDecoder Factory`] to use for image encoding and decoding.
     pub(crate) image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
 
