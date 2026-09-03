@@ -793,6 +793,8 @@ fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayou
 
     #[expect(unsafe_code)]
     while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
+        current_ancestor = ancestor;
+
         let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
             continue;
         };
@@ -803,7 +805,6 @@ fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayou
         }
 
         current_position_value = ancestor_style.clone_position();
-        current_ancestor = ancestor;
     }
     None
 }
