@@ -210,7 +210,7 @@ pub(crate) struct DocumentEventHandler {
     #[no_trace]
     current_cursor: Cell<Option<Cursor>>,
     /// Registry of decoded cursor images. This is populated on demand when the user
-    /// hovers over and item that has uses a custom cursor image.
+    /// hovers over an item that has uses a custom cursor image.
     /// The insertion order generates the CursorId.
     /// The cursor image data is sent to the embedder for storage.
     #[no_trace]
@@ -318,10 +318,6 @@ impl DocumentEventHandler {
     /// "update the rendering."
     pub(crate) fn has_pending_input_events(&self) -> bool {
         !self.pending_input_events.borrow().is_empty()
-    }
-
-    pub(crate) fn cursor_registry(&self) -> &DomRefCell<IndexMap<Url, Option<DevicePoint>>> {
-        &self.cursor_registry
     }
 
     fn insert_cursor(
@@ -514,7 +510,7 @@ impl DocumentEventHandler {
                 };
 
                 if let Some((cursor_id, _, registry_hotspot)) = self
-                    .cursor_registry()
+                    .cursor_registry
                     .borrow_mut()
                     .get_full_mut(&cursor_metadata.url)
                 {
@@ -595,25 +591,20 @@ impl DocumentEventHandler {
         cursor_metadata: CursorMetadata,
     ) -> ImageCacheResponseCallback {
         let trusted_node = Trusted::new(node);
-        self.window.register_image_cache_listener(id, move |response, _| {
-            let trusted_node = trusted_node.clone();
-            let item = trusted_node.root();
-            let window = item.owner_window();
-            let cursor_metadata = cursor_metadata.clone();
-            let ImageResponse::Loaded(image, _) = response.response else {
-                // We're only listening for fully loaded rasterized images
-                return;
-            };
-            window
-                .as_global_scope()
-                .task_manager()
-                .networking_task_source()
-                .queue(task!(process_cursor_image_response: move || {
-                    let node = trusted_node.root();
-                    let document = node.owner_document();
-                    document.event_handler().process_cursor_image_response(&node, image, cursor_metadata);
-                }));
-        })
+        self.window
+            .register_image_cache_listener(id, move |response, _| {
+                let item = trusted_node.root();
+                let cursor_metadata = cursor_metadata.clone();
+                let ImageResponse::Loaded(image, _) = response.response else {
+                    // We're only listening for fully loaded rasterized images
+                    return;
+                };
+                let document = item.owner_document();
+                let event_handler = document.event_handler();
+                event_handler.process_cursor_image_response(&item, image, cursor_metadata);
+                // Trigger a new hit test to update the cursor, if necessary
+                event_handler.handle_refresh_cursor();
+            })
     }
 
     /// Rasterizes a loaded cursor file if necessary and notifies the embedder about it.
@@ -623,11 +614,9 @@ impl DocumentEventHandler {
         image: Image,
         cursor_metadata: CursorMetadata,
     ) -> Option<Cursor> {
-        let trusted_window = Trusted::new(&*self.window);
         let send_rasterized_cursor_image_to_embedder =
             |raster_image: &pixels::RasterImage| -> Cursor {
                 let cursor_metadata = cursor_metadata.clone();
-                let window = trusted_window.root();
                 let frame = raster_image.first_frame();
                 let format = match raster_image.format {
                     PixelFormat::K8 => embedder_traits::PixelFormat::K8,
@@ -646,23 +635,16 @@ impl DocumentEventHandler {
                     raster_image.frames[0].byte_range.clone(),
                     format,
                 );
-                let document = window.Document();
-                let (cursor_id, _) = document
-                    .event_handler()
-                    .insert_cursor(cursor_metadata.clone());
+                let (cursor_id, _) = self.insert_cursor(cursor_metadata.clone());
                 let cursor_id = CursorId::new(cursor_id);
                 // Register the cursor in the embedder
-                window.send_to_embedder(EmbedderMsg::RegisterCursor(
-                    window.webview_id(),
+                self.window.send_to_embedder(EmbedderMsg::RegisterCursor(
+                    self.window.webview_id(),
                     cursor_id,
                     embedder_image,
                     cursor_metadata,
                 ));
-                // Set the cursor to the registered cursor. This will update the cursor even if there
-                // are no subsequent hit tests triggered.
-                let cursor = Cursor::Url(cursor_id);
-                document.event_handler().set_cursor(Some(cursor));
-                cursor
+                Cursor::Url(cursor_id)
             };
         match image {
             Image::Raster(raster_image) => {

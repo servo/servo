@@ -193,7 +193,7 @@ pub enum ShutdownState {
 /// <https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/cursor>
 #[derive(Clone, Debug, Deserialize, PartialEq, MallocSizeOf, Serialize)]
 pub struct CursorMetadata {
-    /// url() pointing to the image file
+    /// URL used to retrieve the image.
     pub url: Url,
     /// Optional x- and y-coordinates indicating the cursor hotspot;
     /// the precise position within the cursor that is being pointed to.

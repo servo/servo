@@ -912,7 +912,7 @@ impl CreateNewWebViewRequest {
     }
 }
 
-/// A cursor image read from url
+/// A cursor image fetched from a URL.
 /// Refer to the documentation of [`embedder_traits::CursorMetadata`] for more information.
 #[derive(Clone)]
 pub struct CustomCursorImage {

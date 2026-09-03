@@ -433,7 +433,7 @@ impl WebView {
     }
 
     /// Updates the metadata (the hotspot coordinates) for an existing custom cursor in the cursor registry.
-    /// The embedder can use [`WebViewDelegate::nofity_custom_cursor_changed`]
+    /// The embedder can use [`WebViewDelegate::notify_custom_cursor_changed`]
     /// to subscribe to changes in the cursor registry.
     pub(crate) fn update_cursor_metadata(self, cursor_id: CursorId, metadata: CursorMetadata) {
         let cursor_image = {
