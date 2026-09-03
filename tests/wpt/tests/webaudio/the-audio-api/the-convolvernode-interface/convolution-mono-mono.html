@@ -40,6 +40,7 @@
         bufferSource.buffer = squarePulse;
 
         let convolver = context.createConvolver();
+	let bufferChannels = squarePulse.numberOfChannels;
         convolver.normalize = false;
         convolver.buffer = squarePulse;
 
