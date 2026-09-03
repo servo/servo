@@ -21,7 +21,7 @@ interface CSSStyleDeclaration {
                                        optional [LegacyNullToEmptyString] DOMString priority = "");
   [CEReactions, Throws]
   DOMString removeProperty(DOMString property);
-  // readonly attribute CSSRule? parentRule;
+  readonly attribute CSSRule? parentRule;
   [CEReactions, SetterThrows]
            attribute DOMString cssFloat;
 };
