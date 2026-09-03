@@ -270,5 +270,5 @@ pub trait ImageCache: Sync + Send {
     fn clear(&self);
 
     /// Get the Image Encoder Decoder factory
-    fn get_factory(&self) -> Arc<dyn ImageEncoderDecoderFactory>;
+    fn image_encoder_decoder_factory(&self) -> Arc<dyn ImageEncoderDecoderFactory>;
 }
