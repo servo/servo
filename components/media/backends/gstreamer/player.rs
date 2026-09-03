@@ -451,6 +451,9 @@ pub struct GStreamerPlayer {
     stream_type: StreamType,
     /// Decorator used to setup the video sink and process the produced frames.
     render: Arc<Mutex<GStreamerRender>>,
+    /// Whether to enable download buffering. This is only enabled heuristically for some media,
+    /// because it causes issues in certain situations. See <https://github.com/servo/servo/issues/23241>.
+    download_buffering_enabled: AtomicBool,
 }
 
 impl GStreamerPlayer {
@@ -482,6 +485,7 @@ impl GStreamerPlayer {
             is_ready: Arc::new(Once::new()),
             stream_type,
             render: Arc::new(Mutex::new(GStreamerRender::new(gl_context))),
+            download_buffering_enabled: AtomicBool::new(false),
         }
     }
 
@@ -506,7 +510,9 @@ impl GStreamerPlayer {
         let pipeline = player.pipeline();
 
         // FIXME(#282): The progressive downloading breaks playback on Windows and Android.
-        if !cfg!(any(target_os = "windows", target_os = "android")) {
+        if !cfg!(any(target_os = "windows", target_os = "android")) &&
+            self.download_buffering_enabled.load(Ordering::Relaxed)
+        {
             // Set player to perform progressive downloading. This will make the
             // player store the downloaded media in a local temporary file for
             // faster playback of already-downloaded chunks.
@@ -712,13 +718,14 @@ impl GStreamerPlayer {
             // <https://github.com/servo/servo/issues/40740>
             let mut send_pause_event = false;
 
-            if inner.last_metadata.is_none() && metadata.is_seekable {
-                if inner.playback_rate.get() != DEFAULT_PLAYBACK_RATE {
+            if inner.last_metadata.is_none() {
+                if metadata.is_seekable && inner.playback_rate.get() != DEFAULT_PLAYBACK_RATE {
                     // The `paused` state change event will be fired after the
                     // seek initiated by the playback rate change has
                     // completed.
                     inner.player.set_rate(inner.playback_rate.get());
                 } else if inner.play_state == gstreamer_play::PlayState::Paused {
+                    // We need to send the paused event for non seekable push streams.
                     send_pause_event = true;
                 }
             }
@@ -997,6 +1004,17 @@ impl Player for GStreamerPlayer {
     inner_player_proxy!(set_stream, stream, &MediaStreamId, only_stream, bool);
     inner_player_proxy!(set_audio_track, stream_index, i32, enabled, bool);
     inner_player_proxy!(set_video_track, stream_index, i32, enabled, bool);
+
+    fn set_download_buffering_enabled(&self, enable: bool) -> Result<(), PlayerError> {
+        // We can't use the default implementation because we need to set the
+        // download_buffering_enabled flag before calling setup, which is where
+        // the "download" flag is set on the pipeline. That has to happen before
+        // the URI is set.
+        self.download_buffering_enabled
+            .store(enable, Ordering::Relaxed);
+        self.setup()?;
+        Ok(())
+    }
 
     fn render_use_gl(&self) -> bool {
         self.render.lock().unwrap().is_gl()

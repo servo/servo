@@ -471,6 +471,15 @@ impl Player for OhosAvPlayer {
         Ok(())
     }
 
+    fn set_download_buffering_enabled(
+        &self,
+        enabled: bool,
+    ) -> Result<(), servo_media::player::PlayerError> {
+        debug!("SetDownloadBufferingEnabled: {}", enabled);
+
+        Ok(())
+    }
+
     fn set_playback_rate(
         &self,
         playback_rate: f64,
