@@ -378,7 +378,7 @@ impl CommandName {
         };
         let mut at_least_two_different_effective_values = false;
         let mut previous_effective_value: Option<DOMString> = None;
-        active_range.for_each_effectively_contained_child(|node| {
+        active_range.for_each_effectively_contained_child(cx, |cx, node| {
             if at_least_two_different_effective_values || !node.is_formattable(cx.no_gc()) {
                 return;
             }
@@ -427,7 +427,7 @@ impl CommandName {
                 let active_range = selection.active_range(cx)?;
                 let mut at_least_one_child_is_formattable = false;
                 let mut all_children_have_matching_command_values = true;
-                active_range.for_each_effectively_contained_child(|node| {
+                active_range.for_each_effectively_contained_child(cx, |cx, node| {
                     if !node.is_formattable(cx.no_gc()) {
                         return;
                     }

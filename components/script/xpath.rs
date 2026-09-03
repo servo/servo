@@ -90,10 +90,10 @@ impl xpath::Node for XPathWrapper<DomRoot<Node>> {
         self.0.children().map(XPathWrapper)
     }
 
-    fn compare_tree_order(&self, other: &Self) -> Ordering {
+    fn compare_tree_order(&self, cx: &mut JSContext, other: &Self) -> Ordering {
         if self == other {
             Ordering::Equal
-        } else if self.0.is_before(&other.0) {
+        } else if self.0.is_before(cx.no_gc(), &other.0) {
             Ordering::Less
         } else {
             Ordering::Greater

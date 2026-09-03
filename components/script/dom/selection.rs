@@ -126,7 +126,7 @@ impl Selection {
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn set_range(&self, new_range: Option<SelectionRange>) -> bool {
+    fn set_range(&self, no_gc: &NoGC, new_range: Option<SelectionRange>) -> bool {
         let changed;
         {
             let mut range = self.range.borrow_mut();
@@ -139,18 +139,18 @@ impl Selection {
 
         if changed {
             self.selection_boundaries_changed();
-            self.assert_valid_selection();
+            self.assert_valid_selection(no_gc);
         }
 
         changed
     }
 
-    pub(crate) fn set_live_range(&self, new_range: Option<&Range>) {
+    pub(crate) fn set_live_range(&self, no_gc: &NoGC, new_range: Option<&Range>) {
         if new_range == self.live_range.get().as_deref() {
             return;
         }
 
-        let boundaries_changed = self.set_range(new_range.map(|new_range| new_range.into()));
+        let boundaries_changed = self.set_range(no_gc, new_range.map(|new_range| new_range.into()));
 
         // It's possible that `set_range` was a no-op, but still in that case we need to
         // replace the live range per-specification.
@@ -418,7 +418,7 @@ impl Selection {
         (range.end_container(), range.end_offset())
     }
 
-    fn assert_valid_selection(&self) {
+    fn assert_valid_selection(&self, no_gc: &NoGC) {
         #[cfg(not(debug_assertions))]
         return;
 
@@ -432,6 +432,7 @@ impl Selection {
         );
         debug_assert!(
             bp_position(
+                no_gc,
                 &range.start.container,
                 range.start.offset,
                 &range.end.container,
@@ -440,11 +441,11 @@ impl Selection {
         );
     }
 
-    fn assert_valid_selection_and_live_range(&self) {
+    fn assert_valid_selection_and_live_range(&self, no_gc: &NoGC) {
         #[cfg(not(debug_assertions))]
         return;
 
-        self.assert_valid_selection();
+        self.assert_valid_selection(no_gc);
 
         let Some(active_range) = self.live_range.get() else {
             return;
@@ -462,6 +463,7 @@ impl Selection {
         debug_assert_eq!(range.end.offset, active_range.end_offset());
         debug_assert!(
             bp_position(
+                no_gc,
                 &active_range.start_container(),
                 active_range.start_offset(),
                 &active_range.end_container(),
@@ -475,7 +477,7 @@ impl Selection {
     /// > The active range is the range of the selection given by calling
     /// > getSelection() on the context object. (Thus the active range may be null.)
     pub(crate) fn active_range(&self, cx: &mut JSContext) -> Option<DomRoot<Range>> {
-        self.assert_valid_selection_and_live_range();
+        self.assert_valid_selection_and_live_range(cx.no_gc());
 
         if let Some(active_range) = self.live_range.get() {
             return Some(active_range);
@@ -938,7 +940,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-addrange>
-    fn AddRange(&self, range: &Range) {
+    fn AddRange(&self, no_gc: &NoGC, range: &Range) {
         // Step 1. If the root of the range's boundary points are not the document
         // associated with this, abort these steps.
         if !self.is_in_document_of_range(&range.start_container()) {
@@ -951,44 +953,44 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
 
         // Step 3. Set this's range to range by a strong reference (not by making a copy).
-        self.set_live_range(Some(range));
+        self.set_live_range(no_gc, Some(range));
 
         // Are we supposed to set Direction here? w3c/selection-api#116
         self.direction.set(Direction::Forwards);
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-removerange>
-    fn RemoveRange(&self, range: &Range) -> ErrorResult {
+    fn RemoveRange(&self, no_gc: &NoGC, range: &Range) -> ErrorResult {
         // > The method must make this empty by disassociating its range if this's range
         // > is range. Otherwise, it must throw a NotFoundError.
         if let Some(own_range) = self.live_range.get() &&
             &*own_range == range
         {
-            self.set_range(None);
+            self.set_range(no_gc, None);
             return Ok(());
         }
         Err(Error::NotFound(None))
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-removeallranges>
-    fn RemoveAllRanges(&self) {
+    fn RemoveAllRanges(&self, no_gc: &NoGC) {
         // > The method must make this empty by disassociating its range if this has an
         // > associated range.
-        self.set_range(None);
+        self.set_range(no_gc, None);
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-empty>
-    fn Empty(&self) {
+    fn Empty(&self, no_gc: &NoGC) {
         // > The method must be an alias, and behave identically, to removeAllRanges().
-        self.RemoveAllRanges();
+        self.RemoveAllRanges(no_gc);
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-collapse>
-    fn Collapse(&self, _cx: &mut JSContext, node: Option<&Node>, offset: u32) -> ErrorResult {
+    fn Collapse(&self, cx: &mut JSContext, node: Option<&Node>, offset: u32) -> ErrorResult {
         // Step 1. If node is null, this method must behave identically as
         // removeAllRanges() and abort these steps.
         let Some(node) = node else {
-            self.set_range(None);
+            self.set_range(cx.no_gc(), None);
             return Ok(());
         };
 
@@ -1019,9 +1021,12 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 5. Otherwise, let newRange be a new range.
         // Step 6. Set the start the start and the end of newRange to (node, offset).
         // Step 7. Set this's range to newRange.
-        self.set_range(Some(SelectionRange::collapsed_at(SelectionBoundary::new(
-            node, offset,
-        ))));
+        self.set_range(
+            cx.no_gc(),
+            Some(SelectionRange::collapsed_at(SelectionBoundary::new(
+                node, offset,
+            ))),
+        );
 
         // Are we supposed to set Direction here? w3c/selection-api#116
         self.direction.set(Direction::Forwards);
@@ -1069,7 +1074,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-extend>
-    fn Extend(&self, _cx: &mut JSContext, node: &Node, offset: u32) -> ErrorResult {
+    fn Extend(&self, cx: &mut JSContext, node: &Node, offset: u32) -> ErrorResult {
         // Step 1. If the document associated with this is not a shadow-including
         // inclusive ancestor of node, abort these steps.
         //
@@ -1118,30 +1123,45 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         drop(range_borrow);
 
         if !is_in_document_of_range {
-            self.set_range(Some(SelectionRange::collapsed_at(SelectionBoundary::new(
-                node, offset,
-            ))));
+            self.set_range(
+                cx.no_gc(),
+                Some(SelectionRange::collapsed_at(SelectionBoundary::new(
+                    node, offset,
+                ))),
+            );
             direction = Direction::Forwards;
         } else {
             let is_old_anchor_before_or_equal = matches!(
-                bp_position(&old_anchor_node, old_anchor_offset, node, offset),
+                bp_position(
+                    cx.no_gc(),
+                    &old_anchor_node,
+                    old_anchor_offset,
+                    node,
+                    offset
+                ),
                 Ordering::Less | Ordering::Equal
             );
             if is_old_anchor_before_or_equal {
                 // Step 6. Otherwise, if oldAnchor is before or equal to newFocus, set the start
                 // newRange's start to oldAnchor, then set its end to newFocus.
-                self.set_range(Some(SelectionRange::new(
-                    SelectionBoundary::new(&old_anchor_node, old_anchor_offset),
-                    SelectionBoundary::new(node, offset),
-                )));
+                self.set_range(
+                    cx.no_gc(),
+                    Some(SelectionRange::new(
+                        SelectionBoundary::new(&old_anchor_node, old_anchor_offset),
+                        SelectionBoundary::new(node, offset),
+                    )),
+                );
                 direction = Direction::Forwards;
             } else {
                 // Step 7. Otherwise, set the start newRange's start to newFocus, then set
                 // its end to oldAnchor.
-                self.set_range(Some(SelectionRange::new(
-                    SelectionBoundary::new(node, offset),
-                    SelectionBoundary::new(&old_anchor_node, old_anchor_offset),
-                )));
+                self.set_range(
+                    cx.no_gc(),
+                    Some(SelectionRange::new(
+                        SelectionBoundary::new(node, offset),
+                        SelectionBoundary::new(&old_anchor_node, old_anchor_offset),
+                    )),
+                );
                 direction = Direction::Backwards;
             }
         }
@@ -1159,7 +1179,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     /// <https://w3c.github.io/selection-api/#dom-selection-setbaseandextent>
     fn SetBaseAndExtent(
         &self,
-        _cx: &mut JSContext,
+        cx: &mut JSContext,
         anchor_node: &Node,
         anchor_offset: u32,
         focus_node: &Node,
@@ -1206,19 +1226,30 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 5. If anchor is before focus, set the start the newRange's start to anchor
         // and its end to focus. Otherwise, set the start them to focus and anchor
         // respectively.
-        let is_anchor_before_focus =
-            bp_position(anchor_node, anchor_offset, focus_node, focus_offset) == Ordering::Less;
+        let is_anchor_before_focus = bp_position(
+            cx.no_gc(),
+            anchor_node,
+            anchor_offset,
+            focus_node,
+            focus_offset,
+        ) == Ordering::Less;
         let direction = if is_anchor_before_focus {
-            self.set_range(Some(SelectionRange::new(
-                SelectionBoundary::new(anchor_node, anchor_offset),
-                SelectionBoundary::new(focus_node, focus_offset),
-            )));
+            self.set_range(
+                cx.no_gc(),
+                Some(SelectionRange::new(
+                    SelectionBoundary::new(anchor_node, anchor_offset),
+                    SelectionBoundary::new(focus_node, focus_offset),
+                )),
+            );
             Direction::Forwards
         } else {
-            self.set_range(Some(SelectionRange::new(
-                SelectionBoundary::new(focus_node, focus_offset),
-                SelectionBoundary::new(anchor_node, anchor_offset),
-            )));
+            self.set_range(
+                cx.no_gc(),
+                Some(SelectionRange::new(
+                    SelectionBoundary::new(focus_node, focus_offset),
+                    SelectionBoundary::new(anchor_node, anchor_offset),
+                )),
+            );
             Direction::Backwards
         };
 
@@ -1233,7 +1264,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-selectallchildren>
-    fn SelectAllChildren(&self, _cx: &mut JSContext, node: &Node) -> ErrorResult {
+    fn SelectAllChildren(&self, cx: &mut JSContext, node: &Node) -> ErrorResult {
         // Step 1. If node is a DocumentType, throw an InvalidNodeTypeError exception and
         // abort these steps.
         if node.is_doctype() {
@@ -1252,10 +1283,13 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 4. Set newRange's start to (node, 0).
         // Step 5. Set newRange's end to (node, childCount).
         // Step 6. Set this's range to newRange.
-        self.set_range(Some(SelectionRange::new(
-            SelectionBoundary::new(node, 0),
-            SelectionBoundary::new(node, child_count),
-        )));
+        self.set_range(
+            cx.no_gc(),
+            Some(SelectionRange::new(
+                SelectionBoundary::new(node, 0),
+                SelectionBoundary::new(node, child_count),
+            )),
+        );
 
         // Step 7. Set this's direction to forwards.
         self.direction.set(Direction::Forwards);
@@ -1282,7 +1316,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-containsnode>
-    fn ContainsNode(&self, node: &Node, allow_partial_containment: bool) -> bool {
+    fn ContainsNode(&self, no_gc: &NoGC, node: &Node, allow_partial_containment: bool) -> bool {
         // > The method must return false if this is empty or if node's root is not the document
         // > associated with this.
         // >
@@ -1320,10 +1354,16 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // https://github.com/w3c/selection-api/issues/6
         // For now it is simplified to "position is equal".
         matches!(
-            bp_position(start_node, range.start.offset, node, compare_start_to),
+            bp_position(
+                no_gc,
+                start_node,
+                range.start.offset,
+                node,
+                compare_start_to
+            ),
             Ordering::Less | Ordering::Equal
         ) && matches!(
-            bp_position(end_node, range.end.offset, node, compare_end_to),
+            bp_position(no_gc, end_node, range.end.offset, node, compare_end_to),
             Ordering::Greater | Ordering::Equal
         )
     }

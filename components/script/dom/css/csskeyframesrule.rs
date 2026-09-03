@@ -133,7 +133,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         };
 
         if let Ok(rule) = rule {
-            self.css_rule.parent_stylesheet().will_modify();
+            self.css_rule.parent_stylesheet().will_modify(no_gc);
             {
                 let mut guard = self.css_rule.shared_lock().write();
                 self.keyframes_rule
@@ -189,7 +189,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` does not throw,
         // it stores a value that serializes as a quoted string.
-        self.css_rule.parent_stylesheet().will_modify();
+        self.css_rule.parent_stylesheet().will_modify(no_gc);
         let name = KeyframesName::from_ident(&value.str());
         let mut guard = self.css_rule.shared_lock().write();
         self.keyframes_rule.borrow().write_with(&mut guard).name = name;

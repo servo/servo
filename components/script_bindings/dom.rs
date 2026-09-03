@@ -129,6 +129,17 @@ impl<'a, T: DomObject> UnrootedDom<'a, T> {
             _phantom: PhantomData,
         }
     }
+
+    /// Construct an [`UnrootedDom`] with the lifetime of the given [`NoGC`] token. It is
+    /// safe to keep the returned value on the stack as it cannot outlive the lifetime of
+    /// the token and the token should ensure that no garbage collection will take place
+    /// as long as it is alive.
+    pub fn from_ref(object: &T, _no_gc: &'a NoGC) -> UnrootedDom<'a, T> {
+        UnrootedDom {
+            inner: Dom::from_ref(object),
+            _phantom: PhantomData,
+        }
+    }
 }
 
 impl<'a, T: DomObject> Deref for UnrootedDom<'a, T> {

@@ -232,8 +232,8 @@ where
     let (new_end_container, new_end_offset) =
         adjust_boundary_point(end_container, end_offset, should_adjust_end);
 
-    let _ = active_range.SetStart(&new_start_container, new_start_offset);
-    let _ = active_range.SetEnd(&new_end_container, new_end_offset);
+    let _ = active_range.SetStart(cx.no_gc(), &new_start_container, new_start_offset);
+    let _ = active_range.SetEnd(cx.no_gc(), &new_end_container, new_end_offset);
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#allowed-child>
@@ -674,19 +674,19 @@ where
             let start_offset = range.start_offset();
 
             if start_container == parent_of_new_parent && start_offset == new_parent.index() {
-                let _ = range.SetStart(&start_container, start_offset + 1);
+                let _ = range.SetStart(cx.no_gc(), &start_container, start_offset + 1);
             }
 
             let end_container = range.end_container();
             let end_offset = range.end_offset();
 
             if end_container == parent_of_new_parent && end_offset == new_parent.index() {
-                let _ = range.SetEnd(&end_container, end_offset + 1);
+                let _ = range.SetEnd(cx.no_gc(), &end_container, end_offset + 1);
             }
         }
     }
     // Step 12. If new parent is before the first member of node list in tree order:
-    if new_parent.is_before(first_in_node_list) {
+    if new_parent.is_before(cx.no_gc(), first_in_node_list) {
         // Step 12.1. If new parent is not an inline node, but the last visible child of new parent
         // and the first visible member of node list are both inline nodes,
         // and the last child of new parent is not a br,
@@ -2023,7 +2023,9 @@ impl Node {
         // Step 8. If fix collapsed space is true, then while (start node, start offset)
         // is before (end node, end offset):
         if fix_collapsed_space {
-            while bp_position(&start_node, start_offset, &end_node, end_offset) == Ordering::Less {
+            while bp_position(cx.no_gc(), &start_node, start_offset, &end_node, end_offset) ==
+                Ordering::Less
+            {
                 // Step 8.1. If end node has a child in the same editing host with index end offset − 1,
                 // set end node to that child, then set end offset to end node's length.
                 if end_offset > 0 &&
@@ -2083,7 +2085,9 @@ impl Node {
         );
         let mut replacement_whitespace_chars = replacement_whitespace.chars();
         // Step 10. While (start node, start offset) is before (end node, end offset):
-        while bp_position(&start_node, start_offset, &end_node, end_offset) == Ordering::Less {
+        while bp_position(cx.no_gc(), &start_node, start_offset, &end_node, end_offset) ==
+            Ordering::Less
+        {
             // Step 10.1. If start node has a child with index start offset, set start node to that child, then set start offset to zero.
             if let Some(child) = start_node.children().nth(start_offset as usize) {
                 start_node = child;

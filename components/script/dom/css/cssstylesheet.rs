@@ -260,7 +260,7 @@ impl CSSStyleSheet {
         }
     }
 
-    pub(crate) fn will_modify(&self) {
+    pub(crate) fn will_modify(&self, no_gc: &NoGC) {
         let Some(node) = self.owner_node.get() else {
             return;
         };
@@ -269,7 +269,7 @@ impl CSSStyleSheet {
             return;
         };
 
-        node.will_modify_stylesheet();
+        node.will_modify_stylesheet(no_gc);
     }
 
     pub(crate) fn update_style_stylesheet(
@@ -311,7 +311,7 @@ impl CSSStyleSheet {
         let global = self.global();
         let window = global.as_window();
 
-        self.will_modify();
+        self.will_modify(no_gc);
 
         let _span = profile_traits::trace_span!("ParseStylesheet").entered();
         let sheet = self.style_stylesheet();

@@ -4,6 +4,7 @@
 
 pub(crate) use self::node::*;
 pub(crate) mod children_mutation;
+pub(crate) mod comparator;
 pub(crate) mod context;
 pub(crate) mod customelementregistry;
 pub(crate) mod focus;
@@ -13,6 +14,7 @@ pub(crate) mod layout_dom;
 pub(crate) mod node;
 pub(crate) mod nodeiterator;
 pub(crate) mod nodelist;
+pub(crate) mod traversal;
 pub(crate) mod treewalker;
 pub(crate) mod virtualmethods;
 
