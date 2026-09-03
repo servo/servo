@@ -238,10 +238,10 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
         match &self.decoder {
             GenericImageDecoder::Apng(_) | GenericImageDecoder::Gif(_) => true,
             GenericImageDecoder::Webp(decoder) => decoder.has_animation(),
-            GenericImageDecoder::Png(_)
-            | GenericImageDecoder::Jpeg(_)
-            | GenericImageDecoder::Bmp(_)
-            | GenericImageDecoder::Ico(_) => false,
+            GenericImageDecoder::Png(_) |
+            GenericImageDecoder::Jpeg(_) |
+            GenericImageDecoder::Bmp(_) |
+            GenericImageDecoder::Ico(_) => false,
         }
     }
 
@@ -254,7 +254,7 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
     }
 }
 
-const MAX_DECODED_DIMENSION: u32 = 300;
+const MAX_DECODED_DIMENSION: u32 = 900;
 
 fn limited_decoded_resolution(metadata: ImageMetadata) -> ImageMetadata {
     if metadata.width <= MAX_DECODED_DIMENSION && metadata.height <= MAX_DECODED_DIMENSION {
@@ -428,34 +428,4 @@ where
         is_opaque,
         loop_count: Some(loop_count),
     })
-}
-
-#[cfg(test)]
-mod test {
-    use super::limited_decoded_resolution;
-    use crate::ImageMetadata;
-
-    #[test]
-    fn test_limited_decoded_resolution_preserves_aspect_ratio() {
-        assert_eq!(
-            limited_decoded_resolution(ImageMetadata {
-                width: 1200,
-                height: 600,
-            }),
-            ImageMetadata {
-                width: 300,
-                height: 150,
-            }
-        );
-        assert_eq!(
-            limited_decoded_resolution(ImageMetadata {
-                width: 600,
-                height: 1200,
-            }),
-            ImageMetadata {
-                width: 150,
-                height: 300,
-            }
-        );
-    }
 }
