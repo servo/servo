@@ -1,0 +1,22 @@
+<html>
+<head></head>
+<body>
+<script>
+addEventListener("load", () => {
+  document.documentElement.contentEditable = true;
+  const head = document.querySelector("head");
+  // Add a non-editable node in between the div and the head parent
+  head.appendChild(document.createElement('template'));
+  const div = document.createElement("div");
+  div.innerText = "This text will be selected";
+  head.appendChild(div);
+  getSelection().collapse(div.firstChild);
+  // At this point, we should not delete anything, since there is nothing in front of the div
+  // Note that it is important for this crash to not have a doctype, as that would be a comment
+  // that would otherwise exist. Thus, there should be no node before in tree order of the
+  // non-editable element, in this test case the template.
+  document.execCommand("delete");
+});
+</script>
+</body>
+</html>
