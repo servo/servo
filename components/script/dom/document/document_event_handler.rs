@@ -2243,6 +2243,7 @@ impl DocumentEventHandler {
         true
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#additional-requirements>
     fn maybe_perform_editing_command(
         &self,
         cx: &mut js::context::JSContext,
@@ -2253,59 +2254,63 @@ impl DocumentEventHandler {
         }
         // This function does not do any checks for whether or not we are actually inside an
         // editing host, since those checks are performed by exec_command_for_command_id either way.
-
-        // https://w3c.github.io/editing/docs/execCommand/#additional-requirements
         match event.key() {
             Key::Named(NamedKey::Enter) => {
+                // TODO: Figure out if the bit about Option+Enter works and whether or not this
+                //       ends up providing the correct behavior on Mac. (i.e. whether or not
+                //       Shift should be accepted in addition to Option.)
                 if event.modifiers().contains(Modifiers::SHIFT) {
-                    // When the user instructs the user agent to insert a line break inside an editing
-                    // host without breaking out of the current block, such as by pressing Shift-Enter
-                    // or Option-Enter while the cursor is in an editable node, the user agent must
-                    // call execCommand("insertlinebreak") on the relevant document.
+                    // > When the user instructs the user agent to insert a line break inside an
+                    // > editing host without breaking out of the current block, such as by
+                    // > pressing Shift-Enter or Option-Enter while the cursor is in an editable
+                    // > node, the user agent must call execCommand("insertlinebreak") on the
+                    // > relevant document.
                     self.window.Document().exec_command_for_command_id(
                         cx,
-                        DOMString::from("insertlinebreak"),
-                        DOMString::from(""),
+                        DOMString::from_static("insertlinebreak"),
+                        DOMString::new(),
                     )
                 } else {
-                    // When the user instructs the user agent to insert a line break inside an editing
-                    // host, such as by pressing the Enter key while the cursor is in an editable node,
-                    // the user agent must call execCommand("insertparagraph") on the relevant document.
+                    // > When the user instructs the user agent to insert a line break inside an
+                    // > editing host, such as by pressing the Enter key while the cursor is in an
+                    // > editable node, the user agent must call execCommand("insertparagraph") on
+                    // > the relevant document.
                     self.window.Document().exec_command_for_command_id(
                         cx,
-                        DOMString::from("insertparagraph"),
-                        DOMString::from(""),
+                        DOMString::from_static("insertparagraph"),
+                        DOMString::new(),
                     )
                 }
             },
-            // When the user instructs the user agent to delete the previous character inside an
-            // editing host, such as by pressing the Backspace key while the cursor is in an
-            // editable node, the user agent must call execCommand("delete") on the relevant
-            // document.
+            // > When the user instructs the user agent to delete the previous character inside an
+            // > editing host, such as by pressing the Backspace key while the cursor is in an
+            // > editable node, the user agent must call execCommand("delete") on the relevant
+            // > document.
             // TODO: Gecko, Chromium and WebKit seem to delete up to the next word boundary on
             //       Ctrl+Backspace and Ctrl+Delete. We probably want that as well.
             Key::Named(NamedKey::Backspace) => self.window.Document().exec_command_for_command_id(
                 cx,
-                DOMString::from("delete"),
-                DOMString::from(""),
+                DOMString::from_static("delete"),
+                DOMString::new(),
             ),
-            // When the user instructs the user agent to delete the next character inside an
-            // editing host, such as by pressing the Delete key while the cursor is in an editable
-            // node, the user agent must call execCommand("forwarddelete") on the relevant document.
+            // > When the user instructs the user agent to delete the next character inside an
+            // > editing host, such as by pressing the Delete key while the cursor is in an
+            // > editable node, the user agent must call execCommand("forwarddelete") on the
+            // > relevant document.
             Key::Named(NamedKey::Delete) => self.window.Document().exec_command_for_command_id(
                 cx,
-                DOMString::from("forwarddelete"),
-                DOMString::from(""),
+                DOMString::from_static("forwarddelete"),
+                DOMString::new(),
             ),
-            // When the user instructs the user agent to insert text inside an editing host, such
-            // as by typing on the keyboard while the cursor is in an editable node, the user agent
-            // must call execCommand("inserttext", false, value) on the relevant document, with
-            // value equal to the text the user provided. If the user inserts multiple characters
-            // at once or in quick succession, this specification does not define whether it is
-            // treated as one insertion or several consecutive insertions.
+            // > When the user instructs the user agent to insert text inside an editing host, such
+            // > as by typing on the keyboard while the cursor is in an editable node, the user
+            // > agent must call execCommand("inserttext", false, value) on the relevant document,
+            // > with value equal to the text the user provided. If the user inserts multiple
+            // > characters at once or in quick succession, this specification does not define
+            // > whether it is treated as one insertion or several consecutive insertions.
             Key::Character(string) => self.window.Document().exec_command_for_command_id(
                 cx,
-                DOMString::from("inserttext"),
+                DOMString::from_static("inserttext"),
                 DOMString::from(string),
             ),
             _ => false,
