@@ -101,17 +101,18 @@ pub(crate) struct HTMLLinkElement {
 
     /// <https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts>
     parser_inserted: Cell<bool>,
-    /// The number of loads that this link element has triggered (could be more
-    /// than one because of imports) and have not yet finished.
-    pending_loads: Cell<u32>,
     /// Whether any of the loads have failed.
     any_failed_load: Cell<bool>,
-    /// A monotonically increasing counter that keeps track of which stylesheet to apply.
-    request_generation_id: Cell<RequestGenerationId>,
     /// <https://html.spec.whatwg.org/multipage/#explicitly-enabled>
     is_explicitly_enabled: Cell<bool>,
     /// Whether the previous type matched with the destination
     previous_type_matched: Cell<bool>,
+    /// The number of loads that this link element has triggered (could be more
+    /// than one because of imports) and have not yet finished.
+    pending_loads: Cell<u32>,
+    /// A monotonically increasing counter that keeps track of which stylesheet to apply.
+    request_generation_id: Cell<RequestGenerationId>,
+
     /// Whether the previous media environment matched with the media query
     previous_media_environment_matched: Cell<bool>,
     /// Line number this element was created on
