@@ -40,6 +40,7 @@ parking_lot = { workspace = true }
 phf = { workspace = true }
 profile_traits = { workspace = true }
 regex = { workspace = true }
+rustc-hash = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-constellation-traits = { workspace = true }
