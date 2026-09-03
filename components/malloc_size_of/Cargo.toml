@@ -23,7 +23,7 @@ data-url = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true }
-icu_locid = { workspace = true }
+icu_locale_core = { workspace = true }
 indexmap = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }

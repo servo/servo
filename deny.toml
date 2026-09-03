@@ -122,9 +122,6 @@ skip = [
     "thiserror",
     "thiserror-impl",
 
-    # duplicated by webdriver
-    "http",
-
     # duplicated by winit
     "block2",
     "objc2-app-kit",
@@ -209,23 +206,10 @@ skip = [
     # duplicated by mozjs which brings in new versions
     "anstream",
     "anstyle-parse",
-    "icu_collections",
-    "icu_properties",
-    "icu_properties_data",
-    "icu_provider",
-    "icu_segmenter",
-    "icu_segmenter_data",
-    "litemap",
     "syn",
-    "tinystr",
     "toml",
     "toml_datetime",
     "winnow",
-    "writeable",
-    "yoke",
-    "yoke-derive",
-    "zerovec",
-    "zerovec-derive",
 ]
 
 # github.com organizations to allow git sources for

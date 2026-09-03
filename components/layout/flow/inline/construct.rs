@@ -7,7 +7,8 @@ use std::cell::LazyCell;
 use std::ops::Range;
 
 use atomic_refcell::AtomicRefCell;
-use icu_properties::BidiClass;
+use icu_properties::CodePointMapData;
+use icu_properties::props::BidiClass;
 use layout_api::LayoutNode;
 use servo_base::text::{RangeAny, Utf32CodeUnits};
 use style::computed_values::direction::T as Direction;
@@ -406,7 +407,7 @@ impl InlineFormattingContextBuilder {
         let mut offset_map = self.offset_map.borrow_mut();
         let original_size_before = offset_map.total_original_size();
 
-        let bidi_class_map = icu_properties::maps::bidi_class();
+        let bidi_class_map = CodePointMapData::<BidiClass>::new();
         let white_space_collapse = info.style.clone_white_space_collapse();
         let mut character_count = 0;
         let mut new_text = String::with_capacity(text.len());

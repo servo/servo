@@ -10,8 +10,8 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use fonts::font_feature_values::ResolvedFontVariantAlternates;
 use fonts::{FontContext, FontRef, ShapedText, ShapedTextSlice, ShapingFlags, ShapingOptions};
-use icu_locid::subtags::Language;
-use icu_properties::{self, LineBreak};
+use icu_locale_core::subtags::Language;
+use icu_properties::props::{EnumeratedProperty, LineBreak};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
@@ -116,7 +116,7 @@ impl FontInfo {
         Self {
             font,
             bidi_level: Level::ltr(),
-            language: Language::UND,
+            language: Language::UNKNOWN,
             letter_spacing: None,
             word_spacing: None,
             text_rendering: TextRendering::Auto,
@@ -477,7 +477,7 @@ impl TextRun {
         parent_style: &ServoArc<ComputedValues>,
     ) -> Vec<TextRunItem> {
         let font_style = parent_style.clone_font();
-        let language = font_style._x_lang.0.parse().unwrap_or(Language::UND);
+        let language = font_style._x_lang.0.parse().unwrap_or(Language::UNKNOWN);
         let language_for_shaping = Some(font_style.font_language_override)
             .filter(|language_override| *language_override != FontLanguageOverride::normal())
             .and_then(|language_override| {
@@ -489,7 +489,7 @@ impl TextRun {
                 // https://www.w3.org/TR/css-fonts-4/#font-language-override-string-value
                 //
                 // For now we need to truncate the language tag ):
-                Language::try_from_bytes(&language_override.0.to_be_bytes()[..3]).ok()
+                Language::try_from_utf8(&language_override.0.to_be_bytes()[..3]).ok()
             })
             .unwrap_or(language);
         let font_size = font_style.font_size.computed_size().into();
@@ -728,7 +728,7 @@ fn character_cannot_change_font(character: char) -> bool {
     }
 
     matches!(
-        icu_properties::maps::line_break().get(character),
+        LineBreak::for_char(character),
         LineBreak::CombiningMark |
             LineBreak::Glue |
             LineBreak::ZWSpace |

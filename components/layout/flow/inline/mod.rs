@@ -90,10 +90,9 @@ use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{FontMetrics, FontRef, ShapedTextSlice};
-use icu_locid::LanguageIdentifier;
-use icu_locid::subtags::{Language, language};
-use icu_properties::{self, LineBreak as ICULineBreak};
-use icu_segmenter::{LineBreakOptions, LineBreakStrictness, LineBreakWordOption};
+use icu_locale_core::LanguageIdentifier;
+use icu_properties::props::{EnumeratedProperty, LineBreak as ICULineBreak};
+use icu_segmenter::options::{LineBreakOptions, LineBreakStrictness, LineBreakWordOption};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
 use layout_api::LayoutNode;
 use line::{
@@ -1949,7 +1948,7 @@ impl InlineFormattingContext {
 
         let mut options = LineBreakOptions::default();
 
-        options.strictness = match line_break {
+        options.strictness = Some(match line_break {
             LineBreak::Loose => LineBreakStrictness::Loose,
             LineBreak::Normal => LineBreakStrictness::Normal,
             LineBreak::Strict => LineBreakStrictness::Strict,
@@ -1957,21 +1956,16 @@ impl InlineFormattingContext {
             // For `auto`, the UA determines the set of line-breaking restrictions to use.
             // So it's fine if we always treat it as `normal`.
             LineBreak::Auto => LineBreakStrictness::Normal,
-        };
-        options.word_option = match word_break {
+        });
+        options.word_option = Some(match word_break {
             WordBreak::Normal => LineBreakWordOption::Normal,
             WordBreak::BreakAll => LineBreakWordOption::BreakAll,
             WordBreak::KeepAll => LineBreakWordOption::KeepAll,
-        };
+        });
         // Enable Chinese/Japanese line breaking behavior when this inline formatting context
         // has a Japanese or Chinese language set.
-        options.ja_zh = {
-            lang.0.parse::<LanguageIdentifier>().is_ok_and(|lang_id| {
-                const JA: Language = language!("ja");
-                const ZH: Language = language!("zh");
-                matches!(lang_id.language, JA | ZH)
-            })
-        };
+        let content_locale = lang.0.parse::<LanguageIdentifier>().ok();
+        options.content_locale = content_locale.as_ref();
 
         let mut shaping_queue = ShapingQueue::new(&text_content, options);
         for item in &mut builder.inline_items {
@@ -3180,7 +3174,7 @@ fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: ch
         return false;
     }
     matches!(
-        icu_properties::maps::line_break().get(character),
+        ICULineBreak::for_char(character),
         ICULineBreak::Glue | ICULineBreak::WordJoiner | ICULineBreak::ZWJ
     )
 }
