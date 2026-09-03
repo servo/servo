@@ -65,9 +65,6 @@ pub(crate) struct CSSStyleSheet {
     #[no_trace]
     style_shared_lock: SharedRwLock,
 
-    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-origin-clean-flag>
-    origin_clean: Cell<bool>,
-
     /// In which [Document] that this stylesheet was constructed.
     ///
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-constructor-document>
@@ -75,6 +72,9 @@ pub(crate) struct CSSStyleSheet {
 
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-disallow-modification-flag>
     disallow_modification: Cell<bool>,
+
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-origin-clean-flag>
+    origin_clean: Cell<bool>,
 
     /// Documents or shadow DOMs thats adopt this stylesheet, they will be notified whenever
     /// the stylesheet is modified.

@@ -109,21 +109,21 @@ pub(crate) struct HTMLInputElement {
     /// textual input. This is cached so that it can be read during layout.
     is_textual_or_password: Cell<bool>,
 
-    /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
-    checked_changed: Cell<bool>,
     placeholder: DomRefCell<DOMString>,
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
+    checked_changed: Cell<bool>,
     #[no_trace]
     textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
-    /// <https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag>
-    value_dirty: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
     #[no_trace]
     pending_webdriver_response: RefCell<Option<PendingWebDriverResponse>>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag>
+    value_dirty: Cell<bool>,
 
     /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
     has_scheduled_selectionchange_event: Cell<bool>,
