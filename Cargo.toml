@@ -148,7 +148,7 @@ keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.13.1", features = ["euclid"] }
 libc = "0.2"
 log = "0.4.32"
-mach2 = "0.6"
+mach2 = "0.7"
 malloc_size_of_derive = "0.1"
 markup5ever = "0.39"
 memmap2 = "0.9.10"
