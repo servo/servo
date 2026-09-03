@@ -416,11 +416,9 @@ impl ShapedText {
         // applied to the last glyph in the cluster. Note that this is unconditionally
         // converting the previous glyph to a detailed one because it's quite likely that
         // the advance will not fit into the simple bitmask due to being negative.
-        if let Some(letter_spacing) = options.letter_spacing &&
-            letter_spacing != Au::zero()
-        {
+        if options.letter_spacing != Au::zero() {
             let last_glyph_index = self.ensure_last_glyph_is_detailed();
-            self.detailed_glyphs[last_glyph_index].advance -= letter_spacing;
+            self.detailed_glyphs[last_glyph_index].advance -= options.letter_spacing;
         }
 
         // Add a detailed glyph entry for this new glyph, but it corresponds to a character
@@ -486,19 +484,15 @@ impl ShapedGlyph {
         character: char,
         shaping_options: &ShapingOptions,
     ) {
-        if let Some(letter_spacing) = shaping_options.letter_spacing_for_character(character) {
-            self.advance += letter_spacing;
-        };
+        self.advance += shaping_options.letter_spacing_for_character(character);
 
         // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
         // space (U+00A0) left in the text after the white space processing rules have been
         // applied. The effect of the property on other word-separator characters is undefined."
         // We elect to only space the two required code points.
-        if let Some(word_spacing) = shaping_options.word_spacing &&
-            (character == ' ' || character == '\u{a0}')
-        {
+        if character == ' ' || character == '\u{a0}' {
             // https://drafts.csswg.org/css-text-3/#word-spacing-property
-            self.advance += word_spacing;
+            self.advance += shaping_options.word_spacing;
         }
     }
 }
