@@ -3720,7 +3720,7 @@ class CGCrossOriginProperties(CGThing):
     def define(self) -> str:
         return f"{self.methods}{self.attributes}" + dedent(
             """
-            static CROSS_ORIGIN_PROPERTIES: ThreadUnsafeOnceLock<CrossOriginProperties> = ThreadUnsafeOnceLock::new();
+            pub static CROSS_ORIGIN_PROPERTIES: ThreadUnsafeOnceLock<CrossOriginProperties> = ThreadUnsafeOnceLock::new();
 
             pub(crate) fn init_cross_origin_properties<D: DomTypes>() {
                 CROSS_ORIGIN_PROPERTIES.set(CrossOriginProperties {
@@ -7331,7 +7331,7 @@ class CGInitStatics(CGThing):
             "init_sCrossOriginMethods::<D>();",
             "init_sCrossOriginAttributes::<D>();",
             "init_cross_origin_properties::<D>();"
-        ] if descriptor.isMaybeCrossOriginObject() else []
+        ] if descriptor.emitsCrossOriginPropertyTable() else []
         crossorigin_joined = '\n'.join(crossorigin)
         interface = (
             "init_interface_object::<D>();"
@@ -7450,8 +7450,9 @@ class CGDescriptor(CGThing):
         if descriptor.proxy:
             cgThings.append(CGDefineProxyHandler(descriptor))
 
-        if descriptor.isMaybeCrossOriginObject():
+        if descriptor.emitsCrossOriginPropertyTable():
             cgThings.append(CGCrossOriginProperties(descriptor))
+            reexports.append("CROSS_ORIGIN_PROPERTIES")
 
         properties = PropertyArrays(descriptor)
 
