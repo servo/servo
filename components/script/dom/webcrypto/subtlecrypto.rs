@@ -2584,7 +2584,11 @@ pub(crate) fn check_support_for_algorithm(
                 SignAlgorithm::Ed448(normalized_algorithm) => normalized_algorithm
                     .context
                     .is_none_or(|context| context.len() <= 255),
-                SignAlgorithm::Hmac(_) | SignAlgorithm::MlDsa(_) | SignAlgorithm::Kmac(_) => true,
+                SignAlgorithm::Hmac(_) => true,
+                SignAlgorithm::MlDsa(normalized_algorithm) => normalized_algorithm
+                    .context
+                    .is_none_or(|context| context.len() <= 255),
+                SignAlgorithm::Kmac(_) => true,
             }
         },
         "verify" => {
@@ -2601,9 +2605,11 @@ pub(crate) fn check_support_for_algorithm(
                 VerifyAlgorithm::Ed448(normalized_algorithm) => normalized_algorithm
                     .context
                     .is_none_or(|context| context.len() <= 255),
-                VerifyAlgorithm::Hmac(_) | VerifyAlgorithm::MlDsa(_) | VerifyAlgorithm::Kmac(_) => {
-                    true
-                },
+                VerifyAlgorithm::Hmac(_) => true,
+                VerifyAlgorithm::MlDsa(normalized_algorithm) => normalized_algorithm
+                    .context
+                    .is_none_or(|context| context.len() <= 255),
+                VerifyAlgorithm::Kmac(_) => true,
             }
         },
         "digest" => {
