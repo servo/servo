@@ -10,6 +10,11 @@ use image::error::ImageFormatHint;
 use image::metadata::LoopCount;
 use image::{Frame, Frames, ImageDecoder, ImageError, ImageResult, RgbaImage};
 use ohos_image_kit_sys::native_image::common::{Image_String, ImageResult as OhosImageResult};
+use ohos_image_kit_sys::native_image::image_packer::{
+    OH_ImagePackerNative_Create, OH_ImagePackerNative_PackToDataFromPixelmap,
+    OH_ImagePackerNative_Release, OH_PackingOptions_Create, OH_PackingOptions_Release,
+    OH_PackingOptions_SetMimeType, OH_PackingOptions_SetQuality,
+};
 use ohos_image_kit_sys::native_image::image_source::{
     OH_DecodingOptions, OH_DecodingOptions_Create, OH_DecodingOptions_Release,
     OH_DecodingOptions_SetPixelFormat, OH_ImageSource_Info, OH_ImageSourceInfo_Create,
@@ -20,13 +25,16 @@ use ohos_image_kit_sys::native_image::image_source::{
     OH_ImageSourceNative_GetImageProperty, OH_ImageSourceNative_Release,
 };
 use ohos_image_kit_sys::native_image::pixelmap::{
-    OH_PixelmapNative, OH_PixelmapNative_GetByteCount, OH_PixelmapNative_ReadPixels,
-    OH_PixelmapNative_Release, PIXEL_FORMAT,
+    OH_PixelmapInitializationOptions_Create, OH_PixelmapInitializationOptions_Release,
+    OH_PixelmapInitializationOptions_SetHeight, OH_PixelmapInitializationOptions_SetWidth,
+    OH_PixelmapNative, OH_PixelmapNative_CreatePixelmap, OH_PixelmapNative_GetByteCount,
+    OH_PixelmapNative_ReadPixels, OH_PixelmapNative_Release, PIXEL_FORMAT,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::image_encoder_decoder_factory::{
-    ImageEncoderDecoderFactory, ServoAnimation, ServoImageDecoder,
+    EncodedImageType, ImageEncoderDecoderFactory, ServoAnimation, ServoImageDecoder,
+    ServoImageEncoder,
 };
 
 #[derive(Default, Serialize, Deserialize)]
@@ -41,6 +49,10 @@ impl ImageEncoderDecoderFactory for OhosImageEncoderDecoderFactory {
         OhosImageDecoder::new(buffer)
             .map(|decoder| Box::new(decoder) as Box<dyn ServoImageDecoder>)
             .map_err(|_| ImageError::Unsupported(ImageFormatHint::Unknown.into()))
+    }
+
+    fn make_encoder(&self) -> Box<dyn ServoImageEncoder> {
+        Box::new(OhosImageEncoder::default())
     }
 }
 
@@ -338,6 +350,120 @@ impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
             }
         } else {
             LoopCount::Finite(NonZeroU32::new(1).unwrap())
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct OhosImageEncoder {}
+
+impl ServoImageEncoder for OhosImageEncoder {
+    fn encode_to_writer(
+        &self,
+        data: &[u8],
+        image_type: &EncodedImageType,
+        width: u32,
+        height: u32,
+        mut writer: Box<dyn std::io::Write>,
+        quality: Option<f64>,
+    ) -> Result<(), ()> {
+        unsafe {
+            let mut image_packer = ptr::null_mut();
+            let res = OH_ImagePackerNative_Create(&raw mut image_packer);
+            if res != OhosImageResult::SUCCESS || image_packer.is_null() {
+                return Err(());
+            }
+            let mut packing_options = ptr::null_mut();
+            let res = OH_PackingOptions_Create(&raw mut packing_options);
+            if res != OhosImageResult::SUCCESS || packing_options.is_null() {
+                OH_ImagePackerNative_Release(image_packer);
+                return Err(());
+            }
+
+            let mime_type = match image_type {
+                EncodedImageType::Png => c"image/png",
+                EncodedImageType::Jpeg => c"image/jpg",
+                EncodedImageType::Webp => c"image/webp",
+            };
+
+            // this should be read only
+            let mut mime_type = Image_String {
+                data: mime_type.as_ptr() as *mut u8,
+                size: mime_type.count_bytes(),
+            };
+
+            let res = OH_PackingOptions_SetMimeType(packing_options, &raw mut mime_type);
+            if res != OhosImageResult::SUCCESS {
+                OH_PackingOptions_Release(packing_options);
+                OH_ImagePackerNative_Release(image_packer);
+                return Err(());
+            }
+
+            if let Some(quality) = quality {
+                let quality = (quality * 100.0).abs().round() as u32;
+                let res = OH_PackingOptions_SetQuality(packing_options, quality);
+                if res != OhosImageResult::SUCCESS {
+                    OH_PackingOptions_Release(packing_options);
+                    OH_ImagePackerNative_Release(image_packer);
+                    return Err(());
+                }
+            }
+
+            let mut pixmap_options = ptr::null_mut();
+            let res = OH_PixelmapInitializationOptions_Create(&raw mut pixmap_options);
+            if res != OhosImageResult::SUCCESS || pixmap_options.is_null() {
+                OH_PackingOptions_Release(packing_options);
+                OH_ImagePackerNative_Release(image_packer);
+                return Err(());
+            }
+            let res = OH_PixelmapInitializationOptions_SetHeight(pixmap_options, height);
+            if res != OhosImageResult::SUCCESS {
+                OH_PixelmapInitializationOptions_Release(pixmap_options);
+                OH_PackingOptions_Release(packing_options);
+                OH_ImagePackerNative_Release(image_packer);
+                return Err(());
+            }
+            let res = OH_PixelmapInitializationOptions_SetWidth(pixmap_options, width);
+            if res != OhosImageResult::SUCCESS {
+                OH_PixelmapInitializationOptions_Release(pixmap_options);
+                OH_PackingOptions_Release(packing_options);
+                OH_ImagePackerNative_Release(image_packer);
+                return Err(());
+            }
+            let mut pixmap = ptr::null_mut();
+            // The data should be never written to and the *mut is just a binding artefact.
+            let res = OH_PixelmapNative_CreatePixelmap(
+                data.as_ptr() as *mut u8,
+                data.len(),
+                pixmap_options,
+                &raw mut pixmap,
+            );
+            if res != OhosImageResult::SUCCESS || pixmap.is_null() {
+                OH_PixelmapInitializationOptions_Release(pixmap_options);
+                OH_PackingOptions_Release(packing_options);
+                OH_ImagePackerNative_Release(image_packer);
+                return Err(());
+            }
+
+            let mut out_buffer = vec![0_u8; (width * height * 4) as usize];
+            let mut buffer_size = out_buffer.len();
+            OH_ImagePackerNative_PackToDataFromPixelmap(
+                image_packer,
+                packing_options,
+                pixmap,
+                out_buffer.as_mut_ptr(),
+                &raw mut buffer_size,
+            );
+            out_buffer.truncate(buffer_size);
+
+            writer.write_all(&out_buffer).map_err(|_| ())?;
+
+            OH_PixelmapInitializationOptions_Release(pixmap_options);
+            OH_PixelmapNative_Release(pixmap);
+            OH_PackingOptions_Release(packing_options);
+            OH_ImagePackerNative_Release(image_packer);
+
+            Ok(())
         }
     }
 }

@@ -7,18 +7,22 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{cmp, fmt, vec};
 
+use image::codecs::jpeg::JpegEncoder;
+use image::codecs::png::PngEncoder;
+use image::codecs::webp::WebPEncoder;
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
 use image::metadata::LoopCount;
 use image::{
-    AnimationDecoder, DynamicImage, Frames, ImageDecoder, ImageError, ImageFormat, ImageResult,
-    Limits,
+    AnimationDecoder, DynamicImage, ExtendedColorType, Frames, GenericImageView, ImageDecoder,
+    ImageEncoder, ImageError, ImageFormat, ImageResult, Limits, Rgb,
 };
 use log::debug;
 use serde::{Deserialize, Serialize};
 
 use crate::image_encoder_decoder_factory::{
-    ImageEncoderDecoderFactory, ServoAnimation, ServoImageDecoder,
+    EncodedImageType, ImageEncoderDecoderFactory, ServoAnimation, ServoImageDecoder,
+    ServoImageEncoder,
 };
 use crate::{
     CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, Repeat,
@@ -234,6 +238,10 @@ impl ImageEncoderDecoderFactory for DefaultImageEncoderDecoderFactory {
 
         Ok(Box::new(DefaultImageDecoder { decoder }))
     }
+
+    fn make_encoder(&self) -> Box<dyn ServoImageEncoder> {
+        Box::new(DefaultImageEncoder::default())
+    }
 }
 
 impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
@@ -383,4 +391,85 @@ pub(crate) fn decode_animated_image(
         is_opaque,
         loop_count: Some(loop_count),
     })
+}
+
+/// The Default Image Encoder
+#[derive(Default)]
+struct DefaultImageEncoder {}
+
+impl ServoImageEncoder for DefaultImageEncoder {
+    fn encode_to_writer(
+        &self,
+        data: &[u8],
+        image_type: &crate::image_encoder_decoder_factory::EncodedImageType,
+        width: u32,
+        height: u32,
+        writer: Box<dyn std::io::Write>,
+        quality: Option<f64>,
+    ) -> Result<(), ()> {
+        match image_type {
+            EncodedImageType::Png => {
+                // FIXME(nox): https://github.com/image-rs/image-png/issues/86
+                // FIXME(nox): https://github.com/image-rs/image-png/issues/87
+                PngEncoder::new(writer)
+                    .write_image(data, width, height, ExtendedColorType::Rgba8)
+                    .map_err(|_| ())
+            },
+            EncodedImageType::Jpeg => {
+                let mut jpeg_encoder = if let Some(quality) = quality {
+                    // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
+                    // expects it to be in [1..100]
+                    if (0.0..=1.0).contains(&quality) {
+                        JpegEncoder::new_with_quality(
+                            writer,
+                            (quality * 100.0).round().clamp(1.0, 100.0) as u8,
+                        )
+                    } else {
+                        JpegEncoder::new(writer)
+                    }
+                } else {
+                    JpegEncoder::new(writer)
+                };
+
+                // JPEG doesn't support transparency, so simply calling jpeg_encoder.write_image fails here.
+                // Instead we have to create a struct to translate from rgba to rgb.
+                struct RgbaDataForJpegEncoder<'a> {
+                    width: u32,
+                    height: u32,
+                    data: &'a [u8],
+                }
+
+                impl<'a> GenericImageView for RgbaDataForJpegEncoder<'a> {
+                    type Pixel = Rgb<u8>;
+
+                    fn dimensions(&self) -> (u32, u32) {
+                        (self.width, self.height)
+                    }
+
+                    fn get_pixel(&self, x: u32, y: u32) -> Self::Pixel {
+                        let offset = (self.width * y + x) as usize * 4;
+                        Rgb([
+                            self.data[offset],
+                            self.data[offset + 1],
+                            self.data[offset + 2],
+                        ])
+                    }
+                }
+
+                let image = RgbaDataForJpegEncoder {
+                    width,
+                    height,
+                    data,
+                };
+
+                jpeg_encoder.encode_image(&image).map_err(|_| ())
+            },
+            EncodedImageType::Webp => {
+                // No quality support because of https://github.com/image-rs/image/issues/1984
+                WebPEncoder::new_lossless(writer)
+                    .write_image(data, width, height, ExtendedColorType::Rgba8)
+                    .map_err(|_| ())
+            },
+        }
+    }
 }

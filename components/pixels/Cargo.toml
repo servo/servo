@@ -26,7 +26,7 @@ typetag = { workspace = true }
 webrender_api = { workspace = true }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
-ohos-image-kit-sys = { version = "0.3.6", features = ["api-20", "picture"] }
+ohos-image-kit-sys = { version = "0.3.6", features = ["api-20", "picture", "image-packer"] }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["html_reports"] }

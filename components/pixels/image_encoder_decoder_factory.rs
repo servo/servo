@@ -16,6 +16,9 @@ pub trait ImageEncoderDecoderFactory: Send + Sync {
         &self,
         buffer: &'a [u8],
     ) -> ImageResult<Box<dyn ServoImageDecoder<'a> + 'a>>;
+
+    /// Creates an encoder that can use the `ServoImageEncoder` trait to encode images.
+    fn make_encoder(&self) -> Box<dyn ServoImageEncoder>;
 }
 
 /// Main Image decoder trait.
@@ -32,4 +35,25 @@ pub trait ServoImageDecoder<'a> {
 pub trait ServoAnimation<'a> {
     fn boxed_into_frames(self: Box<Self>) -> Frames<'a>;
     fn loop_count(&self) -> LoopCount;
+}
+
+#[derive(PartialEq)]
+pub enum EncodedImageType {
+    Png,
+    Jpeg,
+    Webp,
+}
+
+/// Trait to Encode Images.
+pub trait ServoImageEncoder {
+    /// Given pixels in an array `data` representing a picuture of `width` and `height`, encode them into `image_type` with optional quality `quality` and write the bytes to a `writer`.
+    fn encode_to_writer(
+        &self,
+        data: &[u8],
+        image_type: &EncodedImageType,
+        width: u32,
+        height: u32,
+        writer: Box<dyn std::io::Write>,
+        quality: Option<f64>,
+    ) -> Result<(), ()>;
 }
