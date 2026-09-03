@@ -85,7 +85,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+        uses: servo/ci-runners/actions/runner-select@30afe916979484337d3dd1ea608fc9444021501d
         with:
           GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: ${{ inputs.github-runner-label }}
