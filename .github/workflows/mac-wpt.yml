@@ -30,7 +30,7 @@ jobs:
       matrix:
         chunk_id: [1, 2, 3, 4, 5]
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
       - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-${{ env.NAME }}
