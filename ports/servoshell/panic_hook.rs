@@ -44,14 +44,7 @@ pub(crate) fn panic_hook(info: &PanicHookInfo) {
     // TODO: This shouldn't be using internal Servo options here. Perhaps this functionality should
     // move into libservo itself.
     if !should_panic_hook_suppress_termination() {
-        #[cfg(feature = "multiprocess")]
         if opts::get().hard_fail && !opts::get().multiprocess {
-            // When we are exiting due to a hard-failure mode, we trigger a segfault so that crash
-            // tests detect that we crashed. If we exit normally it just looks like a non-crash exit.
-            raise_signal_or_exit_with_error(libc::SIGSEGV);
-        }
-        #[cfg(not(feature = "multiprocess"))]
-        if opts::get().hard_fail {
             // When we are exiting due to a hard-failure mode, we trigger a segfault so that crash
             // tests detect that we crashed. If we exit normally it just looks like a non-crash exit.
             raise_signal_or_exit_with_error(libc::SIGSEGV);
