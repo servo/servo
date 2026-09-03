@@ -6,7 +6,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use fonts::{ShapedText, ShapedTextSlice, ShapedTextSliceType, ShapedTextSlicer, ShapingOptions};
-use icu_segmenter::LineBreakOptions;
+use icu_segmenter::options::LineBreakOptions;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
@@ -232,7 +232,7 @@ pub(crate) struct ShapingQueue<'a> {
 }
 
 impl<'a> ShapingQueue<'a> {
-    pub(crate) fn new(text: &'a str, line_break_options: LineBreakOptions) -> Self {
+    pub(crate) fn new(text: &'a str, line_break_options: LineBreakOptions<'_>) -> Self {
         Self {
             queue: Default::default(),
             text,

@@ -21,7 +21,7 @@ mod font_context {
         PlatformFontMethods, SystemFontServiceMessage, SystemFontServiceProxy,
         SystemFontServiceProxySender, fallback_font_families,
     };
-    use icu_locid::subtags::Language;
+    use icu_locale_core::subtags::Language;
     use net_traits::ResourceThreads;
     use paint_api::CrossProcessPaintApi;
     use parking_lot::Mutex;
@@ -257,7 +257,7 @@ mod font_context {
         let group = context.context.font_group(ServoArc::new(style));
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'a', None, Language::UND)
+            .find_by_codepoint(&mut context.context, 'a', None, Language::UNKNOWN)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
         assert_eq!(
@@ -270,7 +270,7 @@ mod font_context {
         );
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'a', None, Language::UND)
+            .find_by_codepoint(&mut context.context, 'a', None, Language::UNKNOWN)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
         assert_eq!(
@@ -283,7 +283,7 @@ mod font_context {
         );
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'á', None, Language::UND)
+            .find_by_codepoint(&mut context.context, 'á', None, Language::UNKNOWN)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-basic-regular");
         assert_eq!(
@@ -306,7 +306,7 @@ mod font_context {
         let group = context.context.font_group(ServoArc::new(style));
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'a', None, Language::UND)
+            .find_by_codepoint(&mut context.context, 'a', None, Language::UNKNOWN)
             .unwrap();
         assert_eq!(
             &font_face_name(&font.identifier()),
@@ -315,7 +315,7 @@ mod font_context {
         );
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'á', None, Language::UND)
+            .find_by_codepoint(&mut context.context, 'á', None, Language::UNKNOWN)
             .unwrap();
         assert_eq!(
             &font_face_name(&font.identifier()),

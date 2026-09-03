@@ -5,7 +5,7 @@
 use std::ffi::c_void;
 
 use fonts_traits::LocalFontIdentifier;
-use icu_locid::subtags::language;
+use icu_locale_core::subtags::language;
 use log::debug;
 use objc2_core_foundation::{CFDictionary, CFRetained, CFSet, CFString, CFType, CFURL};
 use objc2_core_text::{
