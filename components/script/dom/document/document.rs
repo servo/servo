@@ -4607,6 +4607,19 @@ impl Document {
             .filter(move |node| Document::is_element_in_get_by_name(node, name))
     }
 
+    pub(crate) fn elements_by_name_iter_after<'a>(
+        &self,
+        no_gc: &'a NoGC,
+        name: &TracedDOMString,
+        after: &Node,
+    ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + 'a {
+        let name = name.clone();
+
+        after
+            .following_nodes_unrooted(no_gc, self.document.upcast::<Node>(), ShadowIncluding::No)
+            .filter(move |node| Document::is_element_in_get_by_name(node, &name))
+    }
+
     // Note that document.getByName does not match on the same conditions
     // as the document named getter.
     fn is_element_in_get_by_name(node: &Node, name: &TracedDOMString) -> bool {
