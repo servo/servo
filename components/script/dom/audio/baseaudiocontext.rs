@@ -20,6 +20,7 @@ use script_bindings::codegen::GenericBindings::BiquadFilterNodeBinding::BiquadFi
 use script_bindings::codegen::GenericBindings::ChannelMergerNodeBinding::ChannelMergerNodeMethods;
 use script_bindings::codegen::GenericBindings::ChannelSplitterNodeBinding::ChannelSplitterNodeMethods;
 use script_bindings::codegen::GenericBindings::ConstantSourceNodeBinding::ConstantSourceNodeMethods;
+use script_bindings::codegen::GenericBindings::ConvolverNodeBinding::{ConvolverNodeMethods, ConvolverOptions};
 use script_bindings::codegen::GenericBindings::DelayNodeBinding::{DelayNodeMethods, DelayOptions};
 use script_bindings::codegen::GenericBindings::GainNodeBinding::GainNodeMethods;
 use script_bindings::codegen::GenericBindings::IIRFilterNodeBinding::IIRFilterNodeMethods;
@@ -48,6 +49,7 @@ use crate::dom::audio::biquadfilternode::BiquadFilterNode;
 use crate::dom::audio::channelmergernode::ChannelMergerNode;
 use crate::dom::audio::channelsplitternode::ChannelSplitterNode;
 use crate::dom::audio::constantsourcenode::ConstantSourceNode;
+use crate::dom::audio::convolvernode::ConvolverNode;
 use crate::dom::audio::delaynode::DelayNode;
 use crate::dom::audio::gainnode::GainNode;
 use crate::dom::audio::iirfilternode::IIRFilterNode;
@@ -361,6 +363,13 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
+
+    fn CreateConvolver(&self, cx: &mut JSContext) -> Fallible<DomRoot<ConvolverNode>> {
+        ConvolverNode::Constructor(cx, self.global().as_window(),
+            None,
+            self,
+            &ConvolverOptions::empty(),)
+    }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator>
     fn CreateOscillator(&self, cx: &mut JSContext) -> Fallible<DomRoot<OscillatorNode>> {
