@@ -107,7 +107,7 @@ jobs:
     outputs:
       release_artifact_ids: ${{ steps.artifact_ids.outputs.release_artifact_ids }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
 
       - name: ccache
         # FIXME: “Error: Restoring cache failed: Error: Unable to locate executable file: sh.”
@@ -282,7 +282,7 @@ jobs:
     name: Build libservo and MSRV check
     runs-on: windows-2022
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Determine MSRV
@@ -312,7 +312,7 @@ jobs:
     name: Build and test Servo's C API
     runs-on: windows-2022
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
       - name: Install cargo-c # required by servo-capi-tests's build.rs
         uses: taiki-e/install-action@v2
         with:

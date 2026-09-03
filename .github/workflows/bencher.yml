@@ -77,7 +77,7 @@ jobs:
     name: Bencher (${{ inputs.target }}) [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
       - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-${{ inputs.target }}

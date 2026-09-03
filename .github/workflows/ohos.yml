@@ -58,7 +58,7 @@ jobs:
       artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
       signed: ${{ steps.signing_config.outputs.signed }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
       - name: Install crown
         run: cargo install --path support/crown
       - name: Setup Python
@@ -181,7 +181,7 @@ jobs:
       # will make `needs.build-harmonyos-aarch64.result` evaluate to `success` even if the job failed.
       job_status: ${{ steps.result.outputs.JOB_STATUS }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
       - name: Adding test files to directory
         run: cp -r support/hitrace-bencher/* support/openharmony/AppScope/resources/resfile/
       # This should be a no-op in most cases, since the image build already ran bootstrap.

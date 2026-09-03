@@ -105,7 +105,7 @@ jobs:
     outputs:
       artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         if: ${{ runner.environment != 'self-hosted' }}
@@ -230,7 +230,7 @@ jobs:
     name: Build libservo and MSRV check (${{ inputs.arch }})
     runs-on: ${{ inputs.github-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         if: ${{ runner.environment != 'self-hosted' }}
@@ -272,7 +272,7 @@ jobs:
     name: Build and test Servo's C API (${{ inputs.arch }})
     runs-on: ${{ inputs.github-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:

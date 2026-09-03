@@ -79,7 +79,7 @@ jobs:
           tool-cache: false
           large-packages: false
           swap-storage: false
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
       - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-linux
@@ -156,7 +156,7 @@ jobs:
           name: wpt-filtered-logs-linux
           pattern: wpt-filtered-logs-linux-*
           delete-merged: true
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
       - uses: actions/download-artifact@v8
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}

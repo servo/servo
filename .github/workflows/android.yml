@@ -49,7 +49,7 @@ jobs:
           tool-cache: true
           android: false
           swap-storage: false
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@30afe916979484337d3dd1ea608fc9444021501d
       - name: Install crown
         run: cargo install --path support/crown
       - name: Change Mirror Priorities
