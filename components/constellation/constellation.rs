@@ -515,7 +515,7 @@ pub struct Constellation<STF, SWF> {
     /// the relevant `WebView`.
     pub(crate) user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
 
-    /// The Image Encoder Decoder Factory that is used for the image cache.
+    /// The [`ImageEncoderDecoder Factory`] to use for image encoding and decoding. 
     pub(crate) image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
 
