@@ -43,6 +43,11 @@ impl FontData {
         Self(Arc::new(GenericSharedMemory::from_bytes(bytes)))
     }
 
+    /// This is in single process mode more efficient because we do not have to copy the vector.
+    pub fn from_vec(bytes: Vec<u8>) -> Self {
+        Self(Arc::new(GenericSharedMemory::from_vec(bytes)))
+    }
+
     pub fn as_ipc_shared_memory(&self) -> Arc<GenericSharedMemory> {
         self.0.clone()
     }
