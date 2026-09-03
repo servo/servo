@@ -15,12 +15,14 @@ use std::hash::{Hash, Hasher};
 use std::rc::{Rc, Weak};
 use std::{mem, ptr};
 
+use js::context::NoGC;
 use js::jsapi::JSTracer;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 use crate::JSTraceable;
+use crate::dom::UnrootedDom;
 use crate::reflector::DomObject;
-use crate::root::DomRoot;
+use crate::root::{Dom, DomRoot};
 
 /// A weak reference to a JS-managed DOM object.
 #[derive(Clone)]
@@ -57,6 +59,14 @@ impl<T: WeakReferenceable> WeakRef<T> {
     /// DomRoot a weak reference. Returns `None` if the object was already collected.
     pub fn root(&self) -> Option<DomRoot<T>> {
         self.0.upgrade().map(|x| DomRoot::from_ref(&*x))
+    }
+
+    /// Return an [`UnrootedDom`] reference to the data contained in this [`WeakRef`],
+    /// if it is still alive.
+    pub fn unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, T>> {
+        self.0
+            .upgrade()
+            .map(|x| UnrootedDom::from_dom(Dom::from_ref(&*x), no_gc))
     }
 
     /// Return whether the weakly-referenced object is still alive.

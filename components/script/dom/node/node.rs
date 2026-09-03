@@ -57,6 +57,7 @@ use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
 
 use crate::conversions::Convert;
+use crate::dom::ChildrenMutation;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -116,7 +117,6 @@ use crate::dom::node::iterators::{
 use crate::dom::node::nodelist::NodeList;
 use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
-use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
 use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::servoparser::serialize_html_fragment;
@@ -124,11 +124,6 @@ use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::types::{CDATASection, KeyboardEvent, MouseEvent, ProcessingInstruction};
 use crate::dom::window::Window;
-use crate::dom::{
-    ChildrenMutation, Range, live_range_insert_steps, live_range_normalization_steps,
-    live_range_pre_remove_steps, live_range_pre_remove_steps_for_parent,
-    live_range_pre_remove_steps_for_removed_subtree,
-};
 use crate::drag::document_selection_drag::DocumentSelectionDragHandler;
 use crate::drag::drag_gesture::{DragGesture, DragHandler};
 use crate::event_loop::document_loader::DocumentLoader;
@@ -516,7 +511,7 @@ impl Node {
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
-    fn remove_child(&self, cx: &mut JSContext, child: &Node, cached_index: Option<u32>) {
+    fn remove_child(&self, cx: &mut JSContext, child: &Node) {
         assert!(child.parent_node.get().as_deref() == Some(self));
 
         if let Some(element) = self.downcast::<Element>() {
@@ -547,12 +542,7 @@ impl Node {
             },
         }
 
-        let context = UnbindContext::new(
-            self,
-            prev_sibling.as_deref(),
-            next_sibling.as_deref(),
-            cached_index,
-        );
+        let context = UnbindContext::new(self, next_sibling.as_deref());
 
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
@@ -833,29 +823,6 @@ impl Node {
 
     pub(crate) fn children_count(&self) -> u32 {
         self.children_count.get()
-    }
-
-    pub(crate) fn ensure_weak_ranges(&self) -> RefMut<'_, WeakRangeVec> {
-        RefMut::map(self.ensure_rare_data(), |rare_data| {
-            &mut rare_data.weak_ranges
-        })
-    }
-
-    /// Whether or not this node has any live ranges.
-    pub(crate) fn has_live_ranges(&self) -> bool {
-        self.rare_data
-            .borrow()
-            .as_ref()
-            .is_some_and(|data| !data.weak_ranges.is_empty())
-    }
-
-    /// Return a `SmallVec` of all live ranges registered on this node.
-    pub(crate) fn live_ranges(&self) -> SmallVec<[DomRoot<Range>; 4]> {
-        let rare_data = self.rare_data.borrow();
-        let Some(rare_data) = &*rare_data else {
-            return Default::default();
-        };
-        rare_data.weak_ranges.live_ranges()
     }
 
     #[inline]
@@ -1461,7 +1428,13 @@ impl Node {
             .expect("old_parent should always be initialized");
 
         // Step 9. Run the live range pre-remove steps, given node.
-        live_range_pre_remove_steps(node, &old_parent);
+        let document = node.owner_doc_unrooted(cx.no_gc());
+        let mut cached_index = None;
+        let mut lazy_index = || *cached_index.get_or_insert_with(|| node.index());
+        if let Some(selection) = document.selection() {
+            selection.pre_remove_steps(node, &old_parent, &mut lazy_index);
+        }
+        document.live_range_pre_remove_steps(cx.no_gc(), node, &old_parent, &mut lazy_index);
 
         // TODO Step 10. For each NodeIterator object iterator whose root’s node document is node’s
         // node document: run the NodeIterator pre-remove steps given node and iterator.
@@ -1533,10 +1506,11 @@ impl Node {
         // Step 17. If child is non-null:
         if let Some(child) = child {
             // Steps 17.1-17.2: The live range move steps.
-            if let Some(selection) = new_parent.owner_document().selection() {
+            let document = new_parent.owner_doc_unrooted(cx.no_gc());
+            if let Some(selection) = document.selection() {
                 selection.insert_steps(new_parent, child, 1);
             }
-            live_range_insert_steps(new_parent, child, 1);
+            document.live_range_insert_steps(cx.no_gc(), new_parent, child, 1);
         }
 
         // Step 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and
@@ -2427,6 +2401,13 @@ impl Node {
                 // Step 3.4. Run the adopting steps with inclusiveDescendant and oldDocument.
                 vtable_for(&descendant).adopting_steps(cx, &old_doc);
             }
+
+            // It's possible that in the process of adopting this node a Range has moved from the
+            // old document to the new one. We must iterate a vector here because
+            // `maybe_udpate_document` modifies the list of Ranges we'd like to iterate.
+            for range in old_doc.live_ranges().as_vec() {
+                range.maybe_update_document();
+            }
         }
 
         old_doc.remove_script_and_layout_blocker(cx);
@@ -2686,10 +2667,11 @@ impl Node {
         if let Some(child) = child {
             // Step 5.1. The live range insert steps.
             let count = count.try_into().unwrap();
-            if let Some(selection) = parent.owner_document().selection() {
+            let document = parent.owner_doc_unrooted(cx.no_gc());
+            if let Some(selection) = document.selection() {
                 selection.insert_steps(parent, child, count);
             }
-            live_range_insert_steps(parent, child, count);
+            document.live_range_insert_steps(cx.no_gc(), parent, child, count);
         }
 
         // Step 6. Let previousSibling be child’s previous sibling or parent’s last child if child is null.
@@ -2989,10 +2971,11 @@ impl Node {
         let mut cached_index = None;
         {
             let mut lazy_index = || *cached_index.get_or_insert_with(|| node.index());
-            if let Some(selection) = node.owner_document().selection() {
-                selection.remove_steps_for_parent(parent, &mut lazy_index);
+            let document = parent.owner_doc_unrooted(cx.no_gc());
+            if let Some(selection) = document.selection() {
+                selection.pre_remove_steps(node, parent, &mut lazy_index);
             }
-            live_range_pre_remove_steps_for_parent(parent, &mut lazy_index);
+            document.live_range_pre_remove_steps(cx.no_gc(), node, parent, &mut lazy_index);
         }
 
         // TODO: Step 4. Pre-removing steps for node iterators
@@ -3005,7 +2988,7 @@ impl Node {
 
         // Step 7. Remove node from its parent's children.
         // Step 11-14. Run removing steps and enqueue disconnected custom element reactions for the subtree.
-        parent.remove_child(cx, node, cached_index);
+        parent.remove_child(cx, node);
 
         // Step 8. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
@@ -4044,7 +4027,9 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     fn Normalize(&self, cx: &mut JSContext) {
         let mut children = self.children().peekable();
-        let selection = self.owner_document().selection();
+
+        let document = self.owner_document();
+        let selection = document.selection();
         while let Some(node) = children.next() {
             // The normalize() method steps are to run these steps for each descendant
             // exclusive Text node node of this:
@@ -4113,7 +4098,14 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                         length,
                     );
                 }
-                live_range_normalization_steps(self, &node, current_node.upcast(), &index, length);
+                document.live_range_normalization_steps(
+                    cx.no_gc(),
+                    self,
+                    &node,
+                    current_node.upcast(),
+                    &index,
+                    length,
+                );
                 // Step 6.5:  Add currentNode’s length to length.
                 length += current_node.Length();
                 // Step 6.6 Set currentNode to its next sibling.
@@ -4535,18 +4527,6 @@ impl VirtualMethods for Node {
 
         self.owner_doc_unrooted(cx.no_gc())
             .content_and_heritage_changed(cx.no_gc(), self);
-    }
-
-    /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(cx, context);
-
-        let mut cached_index = None;
-        let mut lazy_index = || *cached_index.get_or_insert_with(|| context.index());
-        if let Some(selection) = self.owner_document().selection() {
-            selection.remove_steps_for_removed_subtree(self, context.parent, &mut lazy_index);
-        }
-        live_range_pre_remove_steps_for_removed_subtree(self, context.parent, &mut lazy_index);
     }
 
     fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
