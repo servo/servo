@@ -151,7 +151,7 @@ impl TextInputWidgetShadowTree {
         element: &impl TextControlElement,
     ) -> Option<DomRoot<Element>> {
         if let Some(placeholder_container) = &*self.placeholder_container.borrow() {
-            return Some(placeholder_container.root_element());
+            return Some(placeholder_container.as_rooted());
         }
         // If there is no placeholder text and we haven't already created one then it is
         // not necessary to initialize a new placeholder container.
