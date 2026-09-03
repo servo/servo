@@ -5,7 +5,8 @@
 use std::sync::Arc;
 
 use layout_api::{
-    DangerousStyleElement, DangerousStyleNode, LayoutDamage, LayoutElement, LayoutNode,
+    AccessibilityDamage, DangerousStyleElement, DangerousStyleNode, LayoutDamage, LayoutElement,
+    LayoutNode,
 };
 use script::layout_dom::ServoLayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
@@ -155,6 +156,15 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_above_dirty_root<'dom>(
     let mut damage_for_parent = layout_damage;
     let mut maybe_parent_node = unsafe { dirty_root.dangerous_flat_tree_parent() };
     while let Some(parent_node) = maybe_parent_node {
+        if layout_context.accessibility_active &&
+            damage_for_parent.contains(LayoutDamage::DescendantHasAccessibilityDamage) &&
+            let Some(parent_element) = parent_node.as_element()
+        {
+            let mut element_data = parent_element.element_data_mut();
+            element_data.damage.insert(RestyleDamage::from_bits_retain(
+                AccessibilityDamage::DescendantHasDamage.bits(),
+            ));
+        }
         let damage_set = ElementDamageSet {
             node: parent_node,
             from_parent: LayoutDamage::empty(),
@@ -225,6 +235,17 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root<'dom>(
         damage_for_children,
         layout_roots,
     );
+
+    if layout_context.accessibility_active &&
+        damage_set
+            .from_children
+            .intersects(LayoutDamage::DescendantHasAccessibilityDamage)
+    {
+        let mut element_data = element.element_data_mut();
+        element_data.damage.insert(RestyleDamage::from_bits_retain(
+            AccessibilityDamage::DescendantHasDamage.bits(),
+        ));
+    }
 
     // Apply the calculated damage to this element (perhaps triggering box tree layout),
     // and propagate resulting damage to ancestors.
@@ -327,9 +348,24 @@ impl<'a> ElementDamageSet<'a> {
         let only_layout_mode_damage =
             (self.from_parent | self.on_element | self.from_children).only_layout_modes();
 
+        let record_accessibility_layout_damage = || {
+            if layout_context.accessibility_active &&
+                let Some(element) = self.node.as_element()
+            {
+                let mut element_data = element.element_data_mut();
+                element_data.damage.insert(RestyleDamage::from_bits_retain(
+                    AccessibilityDamage::Layout.bits(),
+                ));
+                return LayoutDamage::DescendantHasAccessibilityDamage;
+            }
+            LayoutDamage::empty()
+        };
+
         let invalidate_for_rebuild = || {
             self.node.unset_all_boxes();
-            LayoutDamage::DescendantHasBoxDamage | LayoutDamage::Relayout
+            record_accessibility_layout_damage() |
+                LayoutDamage::DescendantHasBoxDamage |
+                LayoutDamage::Relayout
         };
 
         // This removes any dirty layout roots from descendants.
@@ -349,7 +385,9 @@ impl<'a> ElementDamageSet<'a> {
                 {
                     // In this case, we have rebuilt the box tree from this point and we do not
                     // have to propagate rebuild box tree damage up the tree any further.
-                    LayoutDamage::Relayout | LayoutDamage::RecomputeInlineContentSizes
+                    record_accessibility_layout_damage() |
+                        LayoutDamage::Relayout |
+                        LayoutDamage::RecomputeInlineContentSizes
                 } else {
                     // A descendant needs to be rebuilt, but couldn't be rebuilt here,
                     // because this node was an not a rebuild-compatible independent
@@ -416,7 +454,9 @@ impl<'a> ElementDamageSet<'a> {
                     base.invalidate_caches(&self);
                     base.mark_fragments_as_descendants_changed();
                 });
-                LayoutDamage::RecalculateOverflow |
+
+                record_accessibility_layout_damage() |
+                    LayoutDamage::RecalculateOverflow |
                     LayoutDamage::DescendantCollectedAsLayoutRoot |
                     LayoutDamage::RecomputeInlineContentSizes
             },
