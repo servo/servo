@@ -50,6 +50,8 @@ bitflags! {
         const RoleChanged = 0b0010;
         /// This node's computed label or text value (for a text node) changed.
         const TextChanged = 0b0100;
+        /// This node's visibility changed.
+        const VisibilityChanged = 0b1000;
     }
 }
 
@@ -306,10 +308,14 @@ impl AccessibilityTree {
             return;
         };
         let damage_root = self.assert_node_for_id(&damage_root_id);
-        let local_damage =
-            damage_root
-                .borrow_mut()
-                .update_subtree(damage_root.clone(), context, self, update);
+        let hidden = false;
+        let local_damage = damage_root.borrow_mut().update_subtree(
+            damage_root.clone(),
+            hidden,
+            context,
+            self,
+            update,
+        );
 
         damage_root.borrow().update_ancestors(local_damage, update);
     }
@@ -751,6 +757,7 @@ impl AccessibilityNode {
     fn update_subtree<'update>(
         &mut self,
         ref_self: ArcRefCell<Self>,
+        mut hidden: bool,
         context: &AccessibilityContext,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate<'update>,
@@ -767,7 +774,8 @@ impl AccessibilityNode {
             local_damage.insert(self.update_properties_and_children_from_dom_node(
                 ref_self, &dom_node, damage, tree, update,
             ));
-            self.update_node_from_layout(&dom_node, damage, context, update);
+            local_damage
+                .insert(self.update_node_from_layout(&dom_node, damage, hidden, context, update));
 
             if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) {
                 children_changed = true;
@@ -776,6 +784,8 @@ impl AccessibilityNode {
             self.dirty_state -= DirtyState::HasDamage;
         }
 
+        hidden |= self.is_hidden();
+
         if self.dirty_state.descendant_has_damage() ||
             damage.contains(AccessibilityDamage::DescendantHasDamage)
         {
@@ -783,16 +793,21 @@ impl AccessibilityNode {
                 let child_node_ref = child_node.clone();
                 let mut child_node = child_node.borrow_mut();
                 let child_local_damage =
-                    child_node.update_subtree(child_node_ref, context, tree, update);
+                    child_node.update_subtree(child_node_ref, hidden, context, tree, update);
                 if !child_local_damage.is_empty() {
                     local_damage.insert(LocalAccessibilityDamage::SubtreeChanged);
+                    if child_local_damage.contains(LocalAccessibilityDamage::VisibilityChanged) &&
+                        !child_node.is_hidden()
+                    {
+                        children_changed = true;
+                    }
                 }
             }
         }
         self.dirty_state -= DirtyState::DescendantHasDamage;
 
         if children_changed && let Some(scroll_offset) = self.scroll_offset {
-            // If this node may have new children, update their scroll offsets.
+            // If this node may have new, or newly-visible, children, update their scroll offsets.
             self.set_scroll_offset(scroll_offset, update);
         }
 
@@ -962,16 +977,40 @@ impl AccessibilityNode {
         local_damage
     }
 
-    /// Update this node's bounds from the current layout geometry.
+    /// Update this node's bounds from layout, given a query function and the bounds inherited from
+    /// an ancestor (used as a fallback for nodes without their own box). Returns the damage caused by
+    /// the update, and the bounds descendants without their own box should inherit.
     fn update_node_from_layout(
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
-        dom_damage: AccessibilityDamage,
+        mut dom_damage: AccessibilityDamage,
+        hidden: bool,
         context: &AccessibilityContext,
         update: &mut AccessibilityUpdate,
-    ) {
-        if !dom_damage.contains(AccessibilityDamage::Layout) {
-            return;
+    ) -> LocalAccessibilityDamage {
+        let mut local_damage = LocalAccessibilityDamage::empty();
+
+        if !dom_damage.intersects(AccessibilityDamage::Style | AccessibilityDamage::Layout) {
+            return local_damage;
+        }
+
+        if dom_damage.contains(AccessibilityDamage::Style) &&
+            let Some(dom_element) = dom_node.as_element() &&
+            dom_element.style_data().is_some()
+        {
+            let data = dom_element.element_data();
+            let style = data.styles.primary();
+            if style.clone_display().is_none() {
+                self.clear_bounds();
+                local_damage.insert(self.set_hidden());
+            } else {
+                dom_damage |= AccessibilityDamage::Layout;
+                local_damage.insert(self.clear_hidden());
+            }
+        }
+
+        if hidden || self.is_hidden() || !dom_damage.contains(AccessibilityDamage::Layout) {
+            return local_damage;
         }
 
         update.counters.nodes_updated_bounds += 1;
@@ -1007,6 +1046,7 @@ impl AccessibilityNode {
             Some(bounds) => self.set_bounds(bounds),
             None => self.clear_bounds(), // display: contents case
         };
+        local_damage
     }
 
     /// Update this node's properties based on changes already made to the accessibility tree.
@@ -1045,6 +1085,9 @@ impl AccessibilityNode {
         let mut text = String::new();
         while let Some(child) = children.pop_front() {
             let child = child.borrow();
+            if child.is_hidden() {
+                continue;
+            }
             match child.role() {
                 Role::TextRun => {
                     if let Some(child_text) = child.value() {
@@ -1096,6 +1139,9 @@ impl AccessibilityNode {
         let transform = scroll_offset_to_affine(offset);
         for child in self.children() {
             let mut child = child.borrow_mut();
+            if child.is_hidden() {
+                continue;
+            }
             child.set_transform(transform);
             if child.dirty_state.updated() {
                 update.add(&mut child);
@@ -1163,6 +1209,29 @@ impl AccessibilityNode {
         self.accesskit_node.set_value(value);
         self.dirty_state |= DirtyState::Updated;
         LocalAccessibilityDamage::TextChanged
+    }
+
+    fn is_hidden(&self) -> bool {
+        self.accesskit_node.is_hidden()
+    }
+
+    fn set_hidden(&mut self) -> LocalAccessibilityDamage {
+        if self.is_hidden() {
+            return LocalAccessibilityDamage::empty();
+        }
+        self.accesskit_node.set_hidden();
+        self.dirty_state |= DirtyState::Updated;
+        LocalAccessibilityDamage::VisibilityChanged
+    }
+
+    fn clear_hidden(&mut self) -> LocalAccessibilityDamage {
+        if !self.is_hidden() {
+            return LocalAccessibilityDamage::empty();
+        }
+
+        self.accesskit_node.clear_hidden();
+        self.dirty_state |= DirtyState::Updated;
+        LocalAccessibilityDamage::VisibilityChanged
     }
 
     fn bounds(&self) -> Option<accesskit::Rect> {
@@ -1263,6 +1332,9 @@ impl AccessibilityNode {
 
 impl Debug for AccessibilityNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_hidden() {
+            write!(f, "[hidden] ")?;
+        }
         write!(f, "{:?}: {:?}", self.id, self.role())?;
         if let Some(html_tag) = self.html_tag() {
             write!(f, " (html_tag: {html_tag:?})")?;

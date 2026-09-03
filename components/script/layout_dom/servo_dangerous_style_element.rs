@@ -509,7 +509,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
     }
 
     fn compute_layout_damage(old: &ComputedValues, new: &ComputedValues) -> RestyleDamage {
-        let box_tree_needs_rebuild = || {
+        let box_tree_needs_rebuild = |accessibility_style_damaged: &mut bool| {
             let old_box = old.get_box();
             let new_box = new.get_box();
 
@@ -517,6 +517,9 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
                 old_box.float != new_box.float ||
                 old_box.position != new_box.position
             {
+                if old_box.display.is_none() != new_box.display.is_none() {
+                    *accessibility_style_damaged = true;
+                }
                 return true;
             }
 
@@ -633,8 +636,13 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
             false
         };
 
-        if box_tree_needs_rebuild() {
-            RestyleDamage::from_bits_retain(LayoutDamage::BoxDamage.bits())
+        let mut accessibility_style_damaged = false;
+        if box_tree_needs_rebuild(&mut accessibility_style_damaged) {
+            let mut layout_damage = LayoutDamage::BoxDamage;
+            if accessibility_style_damaged {
+                layout_damage |= LayoutDamage::AccessibilityStyleDamage;
+            }
+            RestyleDamage::from_bits_retain(layout_damage.bits())
         } else if text_shaping_needs_recollect() {
             RestyleDamage::from_bits_retain(LayoutDamage::DescendantHasBoxDamage.bits())
         } else {

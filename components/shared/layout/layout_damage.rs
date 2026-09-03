@@ -41,6 +41,9 @@ bitflags! {
         /// A descendant of this node has accessibility damage. This node should be marked as having
         /// `AccessibilityDamage::DescendantHasDamage`.
         const DescendantHasAccessibilityDamage = 0b0000_0000_1000_0000;
+        /// This node has accessibility damage caused by a new style property being applied. This
+        /// node should be marked as having `AccessibilityDamage::Style`.
+        const AccessibilityStyleDamage = 0b0000_0000_0100_0000;
     }
 }
 
@@ -67,6 +70,7 @@ bitflags! {
     pub struct AccessibilityDamage: u16 {
         const Node = 0b0001;
         const Children = 0b0010;
+        const Style = 0b0100;
         const Layout = 0b1000;
         const Rebuild = 0b1111;
 

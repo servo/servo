@@ -15,8 +15,8 @@
 
       assert_equals(initial.nodesUpdatedFromDom, 16, "nodesUpdatedFromDom");
       assert_equals(initial.nodesUpdatedFromTree, 16, "nodesUpdatedFromTree");
-      // Bounds are refreshed for every node in the tree
-      assert_equals(initial.nodesUpdatedBounds, 16, "nodesUpdatedBounds");
+      // Bounds are refreshed for every visible node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 9, "nodesUpdatedBounds");
       assert_equals(initial.nodesInTreeUpdate, 16, "nodesInTreeUpdate");
 
       h1.firstChild.appendData(", now with more text");

@@ -203,6 +203,18 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root<'dom>(
         )
     };
 
+    let mut damage_for_parent = element_damage | damage_from_parent;
+
+    if layout_context.accessibility_active &&
+        element_damage.contains(LayoutDamage::AccessibilityStyleDamage)
+    {
+        let mut element_data = element.element_data_mut();
+        element_data.damage.insert(RestyleDamage::from_bits_retain(
+            AccessibilityDamage::Style.bits(),
+        ));
+        damage_for_parent.insert(LayoutDamage::DescendantHasAccessibilityDamage)
+    }
+
     let has_dirty_descendants;
     #[expect(unsafe_code)]
     unsafe {
@@ -213,7 +225,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root<'dom>(
 
     if is_display_none {
         node.unset_all_boxes();
-        return element_damage | damage_from_parent;
+        return damage_for_parent;
     }
 
     let mut damage_set = ElementDamageSet {
