@@ -88,7 +88,6 @@ use servo_constellation_traits::ScriptToConstellationSender;
 use servo_geometry::{
     DeviceIndependentIntRect, convert_rect_to_css_pixel, convert_size_to_css_pixel,
 };
-#[cfg(feature = "multiprocess")]
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_wakelock::DefaultWakeLockDelegate;
@@ -116,10 +115,8 @@ use crate::webview_delegate::{
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
-    #[cfg(feature = "multiprocess")]
     use servo_media_gstreamer::GStreamerBackend;
 
-    #[cfg(feature = "multiprocess")]
     use super::ServoMedia;
 
     #[cfg(any(windows, target_os = "macos"))]
@@ -143,7 +140,7 @@ mod media_platform {
         });
     }
 
-    #[cfg(not(any(windows, not(feature = "multiprocess"), target_os = "macos")))]
+    #[cfg(not(any(windows, target_os = "macos")))]
     pub fn init() {
         ServoMedia::init::<GStreamerBackend>();
     }
@@ -920,7 +917,6 @@ impl Servo {
             Ordering::Relaxed,
         );
 
-        #[cfg(feature = "multiprocess")]
         if !opts.multiprocess {
             media_platform::init();
         }
@@ -957,7 +953,6 @@ impl Servo {
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
-        #[cfg(feature = "multiprocess")]
         let js_engine_setup = if !opts.multiprocess {
             Some(script::init())
         } else {

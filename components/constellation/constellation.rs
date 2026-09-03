@@ -639,7 +639,6 @@ where
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
 
-                #[cfg(feature = "multiprocess")]
                 let (
                     background_monitor_register,
                     background_monitor_register_join_handle,
@@ -662,29 +661,6 @@ where
                         Some(background_hang_monitor_control_ipc_sender),
                     )
                 };
-
-                #[cfg(not(feature = "multiprocess"))]
-                let (
-                    background_monitor_register,
-                    background_monitor_register_join_handle,
-                    background_monitor_control_sender
-                ) = {
-                    let (
-                        background_hang_monitor_control_ipc_sender,
-                        background_hang_monitor_control_ipc_receiver,
-                    ) = generic_channel::channel().expect("ipc channel failure");
-                    let (register, join_handle) = HangMonitorRegister::init(
-                        background_hang_monitor_ipc_sender.clone(),
-                        background_hang_monitor_control_ipc_receiver,
-                        opts::get().background_hang_monitor,
-                    );
-                    (
-                        Some(register),
-                        Some(join_handle),
-                        Some(background_hang_monitor_control_ipc_sender),
-                    )
-                };
-
 
                 PipelineNamespace::install(CONSTELLATION_PIPELINE_NAMESPACE_ID);
 
@@ -813,7 +789,6 @@ where
         }
         self.handle_shutdown();
 
-        #[cfg(feature = "multiprocess")]
         if !opts::get().multiprocess {
             style::global_style_data::StyleThreadPool::shutdown();
         }

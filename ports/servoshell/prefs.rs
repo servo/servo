@@ -231,7 +231,6 @@ pub fn read_prefs_map(txt: &str) -> HashMap<String, PrefValue> {
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
 pub(crate) enum ArgumentParsingResult {
     ChromeProcess(Opts, Preferences, ServoShellPreferences),
-    #[cfg_attr(not(feature = "multiprocess"), expect(unused))]
     ContentProcess(String),
     Exit,
     ErrorParsing,

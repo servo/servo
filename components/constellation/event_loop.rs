@@ -174,9 +174,7 @@ impl EventLoop {
                 constellation_to_bhm_receiver: backgrond_hand_monitor_receiver,
                 bhm_to_constellation_sender: constellation.background_hang_monitor_sender.clone(),
                 lifeline_sender,
-                #[cfg(feature = "multiprocess")]
                 opts: (*opts::get()).clone(),
-                #[cfg(feature = "multiprocess")]
                 prefs: Box::new(prefs::get().clone()),
                 broken_image_icon_data: constellation.broken_image_icon_data.clone(),
             }),
@@ -220,14 +218,13 @@ impl EventLoop {
 
 /// All of the information necessary to create a new script [`EventLoop`] in a new process.
 #[derive(Deserialize, Serialize)]
+#[cfg(feature = "multiprocess")]
 pub struct NewScriptEventLoopProcessInfo {
     pub initial_script_state: InitialScriptState,
     pub constellation_to_bhm_receiver: GenericReceiver<BackgroundHangMonitorControlMsg>,
     pub bhm_to_constellation_sender: GenericSender<HangAlert>,
     pub lifeline_sender: GenericSender<()>,
-    #[cfg(feature = "multiprocess")]
     pub opts: Opts,
-    #[cfg(feature = "multiprocess")]
     pub prefs: Box<Preferences>,
     /// The broken image icon data that is used to create an image to show in place of broken images.
     pub broken_image_icon_data: Vec<u8>,
