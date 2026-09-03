@@ -19,7 +19,7 @@ use fontconfig_sys::{
     FcPatternDestroy, FcPatternGetInteger, FcPatternGetString, FcResultMatch, FcSetSystem,
 };
 use fonts_traits::{FontTemplate, FontTemplateDescriptor, LocalFontIdentifier};
-use icu_locid::subtags::language;
+use icu_locale_core::subtags::language;
 use libc::{c_char, c_int};
 use log::debug;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};

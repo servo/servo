@@ -274,7 +274,7 @@ fn build_warp_routes<U: 'static + WebDriverExtensionRoute + Send + Sync>(
         address,
         allow_hosts.clone(),
         allow_origins.clone(),
-        convert_method(method),
+        method,
         path,
         res,
         chan.clone(),
@@ -287,7 +287,7 @@ fn build_warp_routes<U: 'static + WebDriverExtensionRoute + Send + Sync>(
                 address,
                 allow_hosts.clone(),
                 allow_origins.clone(),
-                convert_method(method),
+                method,
                 path,
                 res.clone(),
                 chan.clone(),
@@ -563,10 +563,7 @@ fn build_route<U: 'static + WebDriverExtensionRoute + Send + Sync>(
                             Err(e) => panic!("Error reading response: {:?}", e),
                         }
                     },
-                    Err(e) => (
-                        convert_status(e.http_status()),
-                        serde_json::to_string(&e).unwrap(),
-                    ),
+                    Err(e) => (e.http_status(), serde_json::to_string(&e).unwrap()),
                 };
 
                 debug!("<- {} {}", status, resp_body);
@@ -582,27 +579,6 @@ fn build_route<U: 'static + WebDriverExtensionRoute + Send + Sync>(
             "no-cache",
         ))
         .boxed()
-}
-
-/// Convert from http 0.2 StatusCode to http 1.0 StatusCode
-fn convert_status(status: http02::StatusCode) -> StatusCode {
-    StatusCode::from_u16(status.as_u16()).unwrap()
-}
-
-/// Convert from http 0.2 Method to http 1.0 Method
-fn convert_method(method: http02::Method) -> Method {
-    match method {
-        http02::Method::OPTIONS => http::Method::OPTIONS,
-        http02::Method::GET => http::Method::GET,
-        http02::Method::POST => http::Method::POST,
-        http02::Method::PUT => http::Method::PUT,
-        http02::Method::DELETE => http::Method::DELETE,
-        http02::Method::HEAD => http::Method::HEAD,
-        http02::Method::TRACE => http::Method::TRACE,
-        http02::Method::CONNECT => http::Method::CONNECT,
-        http02::Method::PATCH => http::Method::PATCH,
-        _ => http::Method::from_bytes(method.as_str().as_bytes()).unwrap(),
-    }
 }
 
 #[cfg(test)]

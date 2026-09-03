@@ -21,7 +21,6 @@ crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true }
-http02 = { workspace = true }
 image = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }

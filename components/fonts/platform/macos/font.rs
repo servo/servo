@@ -475,7 +475,7 @@ impl Font {
         // the value stored in the HTML lang attribute is a BCP 47 language tag. These two
         // formats are generally compatible, but we may need to make refinements here in
         // the future.
-        let language = if !options.language.is_empty() {
+        let language = if !options.language.is_unknown() {
             Some(&*CFString::from_str(options.language.as_str()))
         } else {
             None

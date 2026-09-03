@@ -19,7 +19,7 @@ use embedder_traits::{
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
-use icu_locid::subtags::Language;
+use icu_locale_core::subtags::Language;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, HitTestFlags, HitTestResult,
     IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode,
@@ -1837,7 +1837,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .zero_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '0', None, Language::UND)?
+                    .find_by_codepoint(font_context, '0', None, Language::UNKNOWN)?
                     .metrics
                     .zero_horizontal_advance
             })
@@ -1847,7 +1847,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .ic_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '\u{6C34}', None, Language::UND)?
+                    .find_by_codepoint(font_context, '\u{6C34}', None, Language::UNKNOWN)?
                     .metrics
                     .ic_horizontal_advance
             })
