@@ -26,14 +26,14 @@ use ohos_image_kit_sys::native_image::pixelmap::{
 use serde::{Deserialize, Serialize};
 
 use crate::image_encoder_decoder_factory::{
-    ServoAnimationTrait, ServoImageDecoder, ServoImageEncoderDecoderFactory,
+    ImageEncoderDecoderFactory, ServoAnimation, ServoImageDecoder,
 };
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct OhosImageEncoderDecoderFactory {}
 
 #[typetag::serde]
-impl ServoImageEncoderDecoderFactory for OhosImageEncoderDecoderFactory {
+impl ImageEncoderDecoderFactory for OhosImageEncoderDecoderFactory {
     fn make_from_bytes<'a>(
         &self,
         buffer: &'a [u8],
@@ -62,7 +62,7 @@ impl<'a> ServoImageDecoder<'a> for OhosImageDecoder<'a> {
         frame_count > 1
     }
 
-    fn get_animated_decoder(self: Box<Self>) -> Box<dyn ServoAnimationTrait<'a> + 'a> {
+    fn get_animated_decoder(self: Box<Self>) -> Box<dyn ServoAnimation<'a> + 'a> {
         self
     }
 }
@@ -270,7 +270,7 @@ impl Iterator for OhosAnimationIterator {
     }
 }
 
-impl<'a> ServoAnimationTrait<'a> for OhosImageDecoder<'a> {
+impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
     fn boxed_into_frames(self: Box<Self>) -> Frames<'a> {
         unsafe {
             let (width, height) = self.dimensions();
