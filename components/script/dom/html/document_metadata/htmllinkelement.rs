@@ -541,7 +541,7 @@ impl HTMLLinkElement {
             cryptographic_nonce_metadata: self.upcast::<Element>().nonce_value(),
             cross_origin: cors_setting_for_element(element),
             referrer_policy: referrer_policy_for_element(element),
-            policy_container: document.policy_container().to_owned(),
+            policy_container: document.policy_container().clone(),
             source_set: Some(self.source_set.borrow().clone()),
             origin: document.borrow().origin().immutable().to_owned(),
             base_url: document.borrow().base_url(),

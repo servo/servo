@@ -216,7 +216,8 @@ pub struct RequestClient {
     /// <https://html.spec.whatwg.org/multipage/#map-of-preloaded-resources>
     pub preloaded_resources: PreloadedResources,
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-policy-container>
-    pub policy_container: PolicyContainer,
+    #[conditional_malloc_size_of]
+    pub policy_container: Arc<PolicyContainer>,
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-origin>
     pub origin: Origin,
     /// <https://html.spec.whatwg.org/multipage/#nested-browsing-context>
@@ -697,7 +698,7 @@ impl RequestBuilder {
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
-    pub fn policy_container(mut self, policy_container: PolicyContainer) -> RequestBuilder {
+    pub fn policy_container(mut self, policy_container: Arc<PolicyContainer>) -> RequestBuilder {
         self.policy_container = RequestPolicyContainer::PolicyContainer(policy_container);
         self
     }
@@ -1019,7 +1020,7 @@ impl Request {
             } else {
                 // Step 3.2. Otherwise, set request’s policy container to a new policy container.
                 self.policy_container =
-                    RequestPolicyContainer::PolicyContainer(PolicyContainer::default());
+                    RequestPolicyContainer::PolicyContainer(Arc::new(PolicyContainer::default()));
             }
         }
     }

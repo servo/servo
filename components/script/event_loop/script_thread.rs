@@ -4279,7 +4279,7 @@ impl ScriptThread {
 
         let dummy_request_id = RequestId::default();
         context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
-        context.set_policy_container(policy_container.as_ref());
+        context.set_policy_container(policy_container);
         context.set_about_base_url(about_base_url);
         context.process_response_chunk(cx, dummy_request_id, chunk.into());
         context.process_response_eof(
@@ -4327,7 +4327,7 @@ impl ScriptThread {
         let dummy_request_id = RequestId::default();
 
         context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
-        context.set_policy_container(policy_container.as_ref());
+        context.set_policy_container(policy_container);
         context.set_about_base_url(about_base_url);
         context.process_response_chunk(cx, dummy_request_id, Bytes::copy_from_slice(&chunk));
         context.process_response_eof(

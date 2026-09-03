@@ -383,7 +383,7 @@ impl SharedWorkerGlobalScope {
         constructor_url: ServoUrl,
         storage_key: SharedWorkerStorageKey,
         insecure_requests_policy: InsecureRequestsPolicy,
-        policy_container: PolicyContainer,
+        policy_container: Arc<PolicyContainer>,
         font_context: Arc<FontContext>,
     ) -> io::Result<JoinHandle<()>> {
         let event_loop_id = ScriptEventLoopId::installed()
