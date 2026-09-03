@@ -515,7 +515,7 @@ pub struct Constellation<STF, SWF> {
     /// the relevant `WebView`.
     pub(crate) user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
 
-    /// The [`ImageEncoderDecoder Factory`] to use for image encoding and decoding. 
+    /// The [`ImageEncoderDecoder Factory`] to use for image encoding and decoding.
     pub(crate) image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
 
@@ -582,6 +582,7 @@ pub struct InitialConstellationState {
     /// The wake lock provider for acquiring and releasing OS-level screen wake locks.
     pub wake_lock_provider: Box<dyn WakeLockDelegate>,
 
+    /// The [`ImageEncoderDecoder Factory`] for image encoding and decoding.
     pub image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
 

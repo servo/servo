@@ -1019,7 +1019,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         options: &ImageBitmapOptions,
     ) -> Rc<Promise> {
         ImageBitmap::create_image_bitmap(
-            self.globalscope.image_cache().get_factory(),
+            self.globalscope
+                .image_cache()
+                .image_encoder_decoder_factory(),
             self.upcast(),
             image,
             0,
@@ -1043,7 +1045,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         options: &ImageBitmapOptions,
     ) -> Rc<Promise> {
         ImageBitmap::create_image_bitmap(
-            self.globalscope.image_cache().get_factory(),
+            self.globalscope
+                .image_cache()
+                .image_encoder_decoder_factory(),
             self.upcast(),
             image,
             sx,

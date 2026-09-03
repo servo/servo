@@ -1389,7 +1389,7 @@ impl ImageCache for ImageCacheImpl {
             .clone()
     }
 
-    fn get_factory(&self) -> Arc<dyn ImageEncoderDecoderFactory> {
+    fn image_encoder_decoder_factory(&self) -> Arc<dyn ImageEncoderDecoderFactory> {
         self.encoder_decoder_factory.clone()
     }
 }
