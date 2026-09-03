@@ -31,10 +31,16 @@ bitflags! {
         /// Rebuild this box and all of its ancestors. Do not rebuild any children. This
         /// is used when a box's content (such as text content) changes or a descendant
         /// has box damage ([`Self::BOX_DAMAGE`]).
-        const DescendantHasBoxDamage = 0b0011_1111_1111_0000;
+        const DescendantHasBoxDamage = 0b0011_0000_0000_0000;
+
         /// Rebuild this box, all of its ancestors and all of its descendants. This is the
         /// most a box can be damaged.
-        const BoxDamage = 0b1111_1111_1111_0000;
+        const BoxDamage = 0b1111_1111_0000_0000;
+
+        // Accessibility-specific damage
+        /// A descendant of this node has accessibility damage. This node should be marked as having
+        /// `AccessibilityDamage::DescendantHasDamage`.
+        const DescendantHasAccessibilityDamage = 0b0000_0000_1000_0000;
     }
 }
 
@@ -61,8 +67,10 @@ bitflags! {
     pub struct AccessibilityDamage: u16 {
         const Node = 0b0001;
         const Children = 0b0010;
-        const Subtree = 0b0100;
+        const Layout = 0b1000;
         const Rebuild = 0b1111;
+
+        const DescendantHasDamage = 0b1000_0000;
     }
 }
 malloc_size_of::malloc_size_of_is_0!(AccessibilityDamage);

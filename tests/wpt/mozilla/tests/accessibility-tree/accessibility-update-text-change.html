@@ -23,14 +23,18 @@
       let update = window.ServoTestUtils.forceAccessibilityUpdate();
 
       // Just the text node has changed
-      // But we need to walk all the nodes to make sure we can update bounds.
-      assert_equals(update.nodesUpdatedFromDom, 16, "nodesUpdatedFromDom");
+      // Nodes visited because of subtree layout damage:
+      // - <html>
+      // - <body>
+      // - <section>
+      // - <h1>
+      assert_equals(update.nodesUpdatedFromDom, 4, "nodesUpdatedFromDom");
 
       // The document, <body>, <section>, <h1> and the text node.
       assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
 
-      // Bounds are refreshed for every node in the tree; no nodes were added or removed
-      assert_equals(update.nodesUpdatedBounds, 16, "nodesUpdatedBounds");
+      // Bounds are checked for the <h1> and its ancestors.
+      assert_equals(update.nodesUpdatedBounds, 4, "nodesUpdatedBounds");
 
       //  updated nodes:
       // - <h1>, computed label changed
