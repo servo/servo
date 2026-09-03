@@ -3273,12 +3273,17 @@ impl Window {
             let address = UntrustedNodeAddress(node.0 as *const c_void);
             unsafe { from_untrusted_node_address(address) }
         };
+        let node = from_opaque_node(item.node);
+        let hit_test_cursor = self
+            .Document()
+            .event_handler()
+            .process_hit_test_cursor(&node, &item);
         Some(HitTestResult {
-            node: from_opaque_node(item.node),
+            node,
             dom_position_for_selection: result
                 .dom_position_for_selection
                 .map(|(node, offset)| (from_opaque_node(node), offset)),
-            cursor: item.cursor,
+            cursor: hit_test_cursor,
             point_in_node: item.point_in_target,
             point_in_frame,
             point_relative_to_initial_containing_block,

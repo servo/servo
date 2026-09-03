@@ -35,7 +35,7 @@ use servo_base::Epoch;
 use servo_base::generic_channel::{
     GenericCallback, GenericSender, GenericSharedMemory, SendResult,
 };
-use servo_base::id::{PipelineId, WebViewId};
+use servo_base::id::{CursorId, PipelineId, WebViewId};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use servo_url::ServoUrl;
 use strum::{EnumMessage, IntoStaticStr};
@@ -189,6 +189,19 @@ pub enum ShutdownState {
     FinishedShuttingDown,
 }
 
+/// Metadata for custom cursor images
+/// <https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/cursor>
+#[derive(Clone, Debug, Deserialize, PartialEq, MallocSizeOf, Serialize)]
+pub struct CursorMetadata {
+    /// URL used to retrieve the image.
+    pub url: Url,
+    /// Optional x- and y-coordinates indicating the cursor hotspot;
+    /// the precise position within the cursor that is being pointed to.
+    /// The numbers are in units of image pixels.
+    /// They are relative to the top left corner of the image, which corresponds to (0,0)
+    pub hotspot: Option<DevicePoint>,
+}
+
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
 #[repr(u8)]
@@ -230,6 +243,7 @@ pub enum Cursor {
     AllScroll,
     ZoomIn,
     ZoomOut,
+    Url(CursorId),
 }
 
 /// A way for Servo to request that the embedder wake up the main event loop.
@@ -493,8 +507,12 @@ pub enum EmbedderMsg {
     GetClipboardText(WebViewId, GenericCallback<Result<String, String>>),
     /// Sets system clipboard contents
     SetClipboardText(WebViewId, String),
+    /// Register a new cursor image in the embedder
+    RegisterCursor(WebViewId, CursorId, Image, CursorMetadata),
     /// Changes the cursor.
     SetCursor(WebViewId, Cursor),
+    /// Update the cursor image's metadata
+    UpdateCursorMetadata(WebViewId, CursorId, CursorMetadata),
     /// A favicon was detected
     NewFavicon(WebViewId, Image),
     /// Get the device independent window rectangle.

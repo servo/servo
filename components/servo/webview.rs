@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
 
@@ -12,19 +13,20 @@ use accesskit::{
 };
 use dpi::PhysicalSize;
 use embedder_traits::{
-    ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
-    InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MediaSessionActionType, NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll,
-    Theme, TraversalId, UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
+    ContextMenuAction, ContextMenuItem, Cursor, CursorMetadata, EmbedderControlId,
+    EmbedderControlRequest, Image, InputEvent, InputEventAndId, InputEventId, JSValue,
+    JavaScriptEvaluationError, LoadStatus, MediaSessionActionType, NewWebViewDetails,
+    ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId, UrlRequest,
+    ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
-use log::debug;
+use log::{debug, warn};
 use paint_api::WebViewTrait;
 use paint_api::rendering_context::RenderingContext;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
-use servo_base::id::WebViewId;
+use servo_base::id::{CursorId, WebViewId};
 use servo_config::pref;
 use servo_constellation_traits::{
     EmbedderToConstellationMessage, HistoryTraversalSource, SessionHistoryTraversalRequest,
@@ -41,7 +43,9 @@ use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::gamepad_delegate::{DefaultGamepadDelegate, GamepadDelegate};
 use crate::responders::AutomaticResponder;
 use crate::servo::PendingHandledInputEvent;
-use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
+use crate::webview_delegate::{
+    CreateNewWebViewRequest, CustomCursorImage, DefaultWebViewDelegate, WebViewDelegate,
+};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
     UserContentManager, WebRenderDebugOption,
@@ -133,7 +137,9 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
-
+    /// Registry of decoded cursor images received by the embedder.
+    /// Image data is stored in a Rc and can then be shared by the WebViewDelegate
+    cursor_registry: HashMap<CursorId, CustomCursorImage>,
     /// The back / forward list of this WebView.
     back_forward_list: Vec<Url>,
 
@@ -182,6 +188,7 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            cursor_registry: Default::default(),
             back_forward_list: Default::default(),
             back_forward_list_index: 0,
             user_content_manager: builder.user_content_manager.clone(),
@@ -409,12 +416,45 @@ impl WebView {
         self.inner().cursor
     }
 
-    pub(crate) fn set_cursor(self, new_value: Cursor) {
-        if self.inner().cursor == new_value {
+    /// Registers a new custom cursor in the cursor registry. The embedder can use
+    /// [`WebViewDelegate::nofity_custom_cursor_changed`] to subscribe to changes in the cursor registry.
+    pub(crate) fn register_cursor(
+        self,
+        cursor_id: CursorId,
+        image: Image,
+        metadata: CursorMetadata,
+    ) {
+        let cursor_image = CustomCursorImage::new(image, metadata.hotspot);
+        self.inner_mut()
+            .cursor_registry
+            .insert(cursor_id, cursor_image.clone());
+        self.delegate()
+            .notify_custom_cursor_changed(self, cursor_id, cursor_image);
+    }
+
+    /// Updates the metadata (the hotspot coordinates) for an existing custom cursor in the cursor registry.
+    /// The embedder can use [`WebViewDelegate::notify_custom_cursor_changed`]
+    /// to subscribe to changes in the cursor registry.
+    pub(crate) fn update_cursor_metadata(self, cursor_id: CursorId, metadata: CursorMetadata) {
+        let cursor_image = {
+            let cursor_registry = &mut self.inner_mut().cursor_registry;
+            let Some(current_image) = cursor_registry.get_mut(&cursor_id) else {
+                warn!("No cursor image registered for cursor id {:?}", cursor_id);
+                return;
+            };
+            current_image.set_hotspot(metadata.hotspot);
+            current_image.clone()
+        };
+        self.delegate()
+            .notify_custom_cursor_changed(self, cursor_id, cursor_image);
+    }
+
+    pub(crate) fn set_cursor(self, new_cursor: Cursor) {
+        if self.inner().cursor == new_cursor {
             return;
         }
-        self.inner_mut().cursor = new_value;
-        self.delegate().notify_cursor_changed(self, new_value);
+        self.inner_mut().cursor = new_cursor;
+        self.delegate().notify_cursor_changed(self, new_cursor);
     }
 
     /// Notify Servo that this [`WebView`] has gained keyboard focus.
