@@ -1502,7 +1502,7 @@ impl ServoBuilder {
         self
     }
 
-    pub fn set_image_decoder_encoder_factory(
+    pub fn set_image_encoder_decoder_factory(
         mut self,
         factory: Arc<dyn ImageEncoderDecoderFactory>,
     ) -> Self {

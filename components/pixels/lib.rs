@@ -5,7 +5,7 @@
 mod default_decoding;
 pub mod image_encoder_decoder_factory;
 #[cfg(target_env = "ohos")]
-mod ohos_decoder;
+pub mod ohos_decoder;
 mod snapshot;
 
 use std::borrow::Cow;
@@ -28,11 +28,8 @@ use webrender_api::{
     ImageDescriptor, ImageDescriptorFlags, ImageFormat as WebRenderImageFormat, ImageKey,
 };
 
-#[cfg(not(target_env = "ohos"))]
 pub use crate::default_decoding::DefaultImageEncoderDecoderFactory;
 use crate::image_encoder_decoder_factory::ImageEncoderDecoderFactory;
-#[cfg(target_env = "ohos")]
-pub use crate::ohos_decoder::OhosImageEncoderDecoderFactory as DefaultImageEncoderDecoderFactory;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum FilterQuality {

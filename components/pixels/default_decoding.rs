@@ -25,7 +25,6 @@ use crate::{
     rgba8_premultiply_inplace,
 };
 
-#[cfg_attr(target_env = "ohos", expect(dead_code))]
 enum GenericImageDecoder<'a> {
     Apng(Box<png::ApngDecoder<Cursor<&'a [u8]>>>),
     Png(Box<png::PngDecoder<Cursor<&'a [u8]>>>),
@@ -189,7 +188,6 @@ impl<'a> ServoAnimation<'a> for GenericImageDecoder<'a> {
     }
 }
 
-#[cfg_attr(target_env = "ohos", expect(dead_code))]
 #[derive(Debug)]
 /// Servo Default Image decoder using image-rs for decoding.
 struct DefaultImageDecoder<'a> {
