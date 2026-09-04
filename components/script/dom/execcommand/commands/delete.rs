@@ -241,10 +241,11 @@ pub(crate) fn execute_delete_command(
     }
 
     // Step 12. If start node has a child with index start offset − 1, and that child is a table:
-    if start_node
-        .children_unrooted(cx.no_gc())
-        .nth((start_offset - 1) as usize)
-        .is_some_and(|child| child.is::<HTMLTableElement>())
+    if start_offset > 0 &&
+        start_node
+            .children_unrooted(cx.no_gc())
+            .nth((start_offset - 1) as usize)
+            .is_some_and(|child| child.is::<HTMLTableElement>())
     {
         // Step 12.1. Call collapse(start node, start offset − 1) on the context object's selection.
         let _ = selection.Collapse(cx, Some(&start_node), start_offset - 1);
