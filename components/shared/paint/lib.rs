@@ -36,7 +36,7 @@ use euclid::default::Size2D as UntypedSize2D;
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{
-    self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory,
+    self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory, SendError,
 };
 pub use webrender_api::ExternalImageSource;
 use webrender_api::units::{DevicePixel, LayoutVector2D, TexelRect};
@@ -53,7 +53,7 @@ use crate::viewport_description::ViewportDescription;
 /// Sends messages to `Paint`.
 #[derive(Clone)]
 pub struct PaintProxy {
-    pub sender: Sender<Result<PaintMessage, ipc_channel::IpcError>>,
+    pub sender: Sender<Result<PaintMessage, SendError>>,
     /// Access to [`Self::sender`] that is possible to send across an IPC
     /// channel. These messages are routed via the router thread to
     /// [`Self::sender`].
@@ -76,7 +76,7 @@ impl PaintProxy {
     ///
     /// This method is a temporary solution, and will be removed when migrating
     /// to `GenericChannel`.
-    pub fn route_msg(&self, msg: Result<PaintMessage, ipc_channel::IpcError>) {
+    pub fn route_msg(&self, msg: Result<PaintMessage, SendError>) {
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }

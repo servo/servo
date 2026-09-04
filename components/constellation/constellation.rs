@@ -116,7 +116,6 @@ use embedder_traits::{
 };
 use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
-use ipc_channel::IpcError;
 use ipc_channel::router::ROUTER;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
@@ -304,7 +303,7 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
     script_receiver:
-        Receiver<Result<(WebViewId, PipelineId, ScriptToConstellationMessage), IpcError>>,
+        Receiver<Result<(WebViewId, PipelineId, ScriptToConstellationMessage), SendError>>,
 
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
@@ -961,7 +960,7 @@ where
         parent_pipeline_id: Option<PipelineId>,
         load_data: &LoadData,
         is_private: bool,
-    ) -> Result<Rc<EventLoop>, IpcError> {
+    ) -> Result<Rc<EventLoop>, SendError> {
         let registered_domain_name = if load_data
             .creation_sandboxing_flag_set
             .contains(SandboxingFlagSet::SANDBOXED_ORIGIN_BROWSING_CONTEXT_FLAG)
@@ -1030,7 +1029,7 @@ where
             is_private,
         ) {
             Ok(event_loop) => event_loop,
-            Err(error) => return self.handle_send_error(new_pipeline_id, error.into()),
+            Err(error) => return self.handle_send_error(new_pipeline_id, error),
         };
 
         let user_content_manager_id = self

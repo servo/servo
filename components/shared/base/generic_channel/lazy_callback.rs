@@ -219,10 +219,7 @@ where
     T: Serialize + for<'de> Deserialize<'de> + Send + 'static,
 {
     /// This sets the callback.
-    pub fn set_callback<F: FnMut(Result<T, ipc_channel::IpcError>) + Send + 'static>(
-        self,
-        mut callback: F,
-    ) {
+    pub fn set_callback<F: FnMut(Result<T, SendError>) + Send + 'static>(self, mut callback: F) {
         match self.0 {
             CallbackSetterVariants::InProcess(sender) => {
                 let callback = GenericCallback::new(callback).expect("Could not create callback");

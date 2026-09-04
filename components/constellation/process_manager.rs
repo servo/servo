@@ -7,6 +7,7 @@ use std::process::Child;
 use crossbeam_channel::{Receiver, Select};
 use log::{debug, warn};
 use profile_traits::mem::{ProfilerChan, ProfilerMsg};
+use servo_base::generic_channel::SendError;
 
 pub enum Process {
     Unsandboxed(Child),
@@ -34,7 +35,7 @@ impl Process {
     }
 }
 
-type ProcessReceiver = Receiver<Result<(), ipc_channel::IpcError>>;
+type ProcessReceiver = Receiver<Result<(), SendError>>;
 
 pub(crate) struct ProcessManager {
     processes: Vec<(Process, ProcessReceiver)>,
