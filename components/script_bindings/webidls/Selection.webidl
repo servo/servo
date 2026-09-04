@@ -12,11 +12,13 @@ readonly attribute Node? anchorNode;
   readonly attribute boolean isCollapsed;
   readonly attribute unsigned long rangeCount;
   readonly attribute DOMString type;
+  readonly attribute DOMString direction;
   [Throws] Range getRangeAt(unsigned long index);
   undefined addRange(Range range);
   [Throws] undefined removeRange(Range range);
   undefined removeAllRanges();
   undefined empty();
+  sequence<StaticRange> getComposedRanges(optional GetComposedRangesOptions options = {});
   [Throws] undefined collapse(Node? node, optional unsigned long offset = 0);
   [Throws] undefined setPosition(Node? node, optional unsigned long offset = 0);
   [Throws] undefined collapseToStart();
@@ -29,4 +31,8 @@ readonly attribute Node? anchorNode;
   undefined deleteFromDocument();
   boolean containsNode(Node node, optional boolean allowPartialContainment = false);
   stringifier;
+};
+
+dictionary GetComposedRangesOptions {
+  sequence<ShadowRoot> shadowRoots = [];
 };
