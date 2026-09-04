@@ -955,7 +955,7 @@ impl BoxFragmentWithStyle<'_> {
             if scrolls_via_user_input(overflow.x) || scrolls_via_user_input(overflow.y) {
                 TouchAction::Auto
             } else {
-                touch_action.intersect(TouchAction::from(style.get_box().touch_action))
+                touch_action.intersect(style.used_touch_action(self.base.flags))
             }
         };
 

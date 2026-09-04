@@ -601,7 +601,7 @@ impl TraversalState {
                 TouchAction::Auto
             } else {
                 self.touch_action
-                    .intersect(TouchAction::from(style.get_box().touch_action))
+                    .intersect(style.used_touch_action(box_fragment.base.flags))
             }
         };
 

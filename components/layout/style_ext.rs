@@ -5,6 +5,7 @@
 use app_units::Au;
 use layout_api::{AxesOverflow, LayoutElementType, LayoutNode, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
+use paint_api::display_list::TouchAction;
 use style::Zero;
 use style::color::AbsoluteColor;
 use style::computed_values::direction::T as Direction;
@@ -348,6 +349,7 @@ pub(crate) trait ComputedValuesExt {
     fn z_index_applies(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
     fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow;
+    fn used_touch_action(&self, fragment_flags: FragmentFlags) -> TouchAction;
     fn used_transform_style(&self, fragment_flags: FragmentFlags) -> ComputedTransformStyle;
     fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
@@ -671,6 +673,28 @@ impl ComputedValuesExt for ComputedValues {
         }
 
         overflow
+    }
+
+    /// Get the `touch-action` value that applies to this element. The property
+    /// does not apply to non-replaced inline elements, table rows, table row
+    /// groups, table column groups, and table columns; those elements contribute
+    /// `auto` (no restriction) instead of their computed value.
+    /// <https://w3c.github.io/pointerevents/#the-touch-action-css-property>
+    fn used_touch_action(&self, fragment_flags: FragmentFlags) -> TouchAction {
+        let property_does_not_apply = self.is_inline_box(fragment_flags) ||
+            matches!(
+                self.get_box().display.inside(),
+                stylo::DisplayInside::TableColumn |
+                stylo::DisplayInside::TableColumnGroup |
+                stylo::DisplayInside::TableRow |
+                stylo::DisplayInside::TableRowGroup |
+                stylo::DisplayInside::TableHeaderGroup |
+                stylo::DisplayInside::TableFooterGroup
+            );
+        if property_does_not_apply {
+            return TouchAction::Auto;
+        }
+        TouchAction::from(self.get_box().touch_action)
     }
 
     /// Get the used `transform-style` value according to the the rules in
