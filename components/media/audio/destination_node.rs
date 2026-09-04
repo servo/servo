@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
+
 use crate::audio_node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelCountMode, ChannelInfo};
 use crate::block::Chunk;
 
@@ -40,5 +42,9 @@ impl AudioNodeEngine for DestinationNode {
 
     fn output_count(&self) -> u32 {
         0
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
