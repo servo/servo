@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>clip-path should apply to each fragment individually with box-decoration-break: clone.</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-masking/#the-clip-path">
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6383#issuecomment-960244091">
+<link rel="match" href="box-decoration-break-clone-clip-path-ref.html">
+<meta name="assert" content="clip-path should apply to each fragment individually with box-decoration-break: clone.">
+<style>
+  #fragmented {
+    clip-path: inset(0px 10px 0px 10px);
+    box-decoration-break: clone;
+  }
+  .inner {
+    display: inline-block;
+    background-color: purple;
+    width: 30px;
+    height: 10px;
+  }
+</style>
+<p>This test passes if below there is two purple squares on top of one another.</p>
+<span id="fragmented">
+  <span class="inner"></span>
+  <br>
+  <span class="inner"></span>
+</span>
