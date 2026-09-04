@@ -7,11 +7,13 @@
 //! A memory cache implementing the logic specified in <http://tools.ietf.org/html/rfc7234>
 //! and <http://tools.ietf.org/html/rfc7232>.
 
+use std::io::Cursor;
 use std::ops::Bound;
 use std::sync::Arc as StdArc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime};
 
+use async_compression::tokio::bufread::{BrotliDecoder, GzipDecoder, ZlibDecoder, ZstdDecoder};
 use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
@@ -21,8 +23,8 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{CacheMode, Request};
-use net_traits::response::{Response, ResponseBody};
-use net_traits::{CacheEntryDescriptor, FetchMetadata, Metadata, ResourceFetchTiming};
+use net_traits::response::{DoneResponseBody, Response, ResponseBody};
+use net_traits::{CacheEntryDescriptor, DecoderType, FetchMetadata, Metadata, ResourceFetchTiming};
 use parking_lot::Mutex as ParkingLotMutex;
 use quick_cache::sync::{Cache, PlaceholderGuard};
 use quick_cache::{DefaultHashBuilder, Lifecycle, UnitWeighter};
@@ -30,6 +32,7 @@ use serde::{Deserialize, Serialize};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
+use tokio::io::AsyncReadExt;
 use tokio::sync::mpsc::{UnboundedSender as TokioSender, unbounded_channel as unbounded};
 use tokio::sync::{OwnedRwLockWriteGuard, RwLock as TokioRwLock};
 
@@ -129,7 +132,7 @@ impl CacheKey {
 }
 
 /// A complete cached resource.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct CachedResource {
     #[conditional_malloc_size_of]
     request_headers: Arc<ParkingLotMutex<SerializeableHeaderMap>>,
@@ -138,7 +141,6 @@ pub struct CachedResource {
     #[conditional_malloc_size_of]
     aborted: Arc<AtomicBool>,
     #[conditional_malloc_size_of]
-    #[serde(skip)]
     awaiting_body: Arc<ParkingLotMutex<Vec<TokioSender<Data>>>>,
     metadata: CachedMetadata,
     location_url: Option<Result<ServoUrl, String>>,
@@ -147,9 +149,118 @@ pub struct CachedResource {
     expires: ApproxDuration,
     stale_while_revalidate: ApproxDuration,
     #[conditional_malloc_size_of]
-    #[serde(skip)]
     revalidating: StdArc<AtomicBool>,
     last_validated: SystemTime,
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+/// This is the type of body we cached on the disk.
+pub enum DiskResponseBody {
+    /// The encoded type
+    Encoded(Vec<u8>, DecoderType),
+    /// The decoded type
+    Decoded(Vec<u8>),
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+/// This is CachedResource specified for the disk cache.
+pub struct DiskCachedResource {
+    request_headers: SerializeableHeaderMap,
+    body: DiskResponseBody,
+    aborted: bool,
+    metadata: CachedMetadata,
+    location_url: Option<Result<ServoUrl, String>>,
+    status: HttpStatus,
+    url_list: Vec<ServoUrl>,
+    expires: ApproxDuration,
+    stale_while_revalidate: ApproxDuration,
+    last_validated: SystemTime,
+}
+
+impl From<CachedResource> for DiskCachedResource {
+    fn from(value: CachedResource) -> Self {
+        let body = match &*value.body.lock() {
+            ResponseBody::Empty => unreachable!("Should never happen"),
+            ResponseBody::Receiving(_) => unreachable!("Should never happen"),
+            ResponseBody::Done(DoneResponseBody {
+                decoded_body,
+                encoded_body,
+            }) => {
+                if let Some(encoded_body) = encoded_body {
+                    DiskResponseBody::Encoded(encoded_body.0.to_owned(), encoded_body.1.clone())
+                } else {
+                    DiskResponseBody::Decoded(decoded_body.to_owned())
+                }
+            },
+        };
+        DiskCachedResource {
+            request_headers: value.request_headers.lock().clone().into(),
+            body,
+            aborted: value.aborted.load(std::sync::atomic::Ordering::Relaxed),
+            metadata: value.metadata,
+            location_url: value.location_url,
+            status: value.status,
+            url_list: value.url_list,
+            expires: value.expires,
+            stale_while_revalidate: value.stale_while_revalidate,
+            last_validated: value.last_validated,
+        }
+    }
+}
+
+impl DiskCachedResource {
+    /// Returns from a [`CachedResource`] from a `DiskCachedResource`. Returns None if there was a problem decoding the resource.
+    pub(crate) async fn make_cached_reource(self) -> Option<CachedResource> {
+        let done_body = match self.body {
+            DiskResponseBody::Encoded(items, decoder_type) => {
+                let cursor = Cursor::new(items.clone());
+
+                let mut output = vec![];
+                match decoder_type {
+                    DecoderType::Gzip => GzipDecoder::new(cursor)
+                        .read_to_end(&mut output)
+                        .await
+                        .ok()?,
+                    DecoderType::Brotli => BrotliDecoder::new(cursor)
+                        .read_to_end(&mut output)
+                        .await
+                        .ok()?,
+                    DecoderType::Deflate => ZlibDecoder::new(cursor)
+                        .read_to_end(&mut output)
+                        .await
+                        .ok()?,
+                    DecoderType::Zstd => ZstdDecoder::new(cursor)
+                        .read_to_end(&mut output)
+                        .await
+                        .ok()?,
+                };
+                DoneResponseBody {
+                    decoded_body: output,
+                    encoded_body: Some((items, decoder_type)),
+                }
+            },
+            DiskResponseBody::Decoded(items) => DoneResponseBody {
+                decoded_body: items,
+                encoded_body: None,
+            },
+        };
+
+        let body = ResponseBody::Done(done_body);
+        Some(CachedResource {
+            request_headers: Arc::new(ParkingLotMutex::new(self.request_headers)),
+            body: Arc::new(ParkingLotMutex::new(body)),
+            aborted: Arc::new(AtomicBool::new(self.aborted)),
+            awaiting_body: Arc::new(ParkingLotMutex::new(vec![])),
+            metadata: self.metadata,
+            location_url: self.location_url,
+            status: self.status,
+            url_list: self.url_list,
+            expires: self.expires,
+            stale_while_revalidate: self.stale_while_revalidate,
+            revalidating: std::sync::Arc::new(AtomicBool::new(false)),
+            last_validated: self.last_validated,
+        })
+    }
 }
 
 impl CachedResource {
@@ -619,7 +730,10 @@ fn create_resource_with_bytes_from_resource(
 ) -> CachedResource {
     CachedResource {
         request_headers: resource.request_headers.clone(),
-        body: Arc::new(ParkingLotMutex::new(ResponseBody::Done(bytes.to_owned()))),
+        body: Arc::new(ParkingLotMutex::new(ResponseBody::Done(DoneResponseBody {
+            decoded_body: bytes.to_owned(),
+            encoded_body: None,
+        }))),
         aborted: Arc::new(AtomicBool::new(false)),
         awaiting_body: Arc::new(ParkingLotMutex::new(vec![])),
         metadata: resource.metadata.clone(),
@@ -656,7 +770,7 @@ fn handle_range_request(
         // TODO: add support for complete and partial resources,
         // whose body is in the ResponseBody::Receiving state.
         let body_len = match *complete_resource.body.lock() {
-            ResponseBody::Done(ref body) => body.len(),
+            ResponseBody::Done(ref body) => body.decoded_body.len(),
             _ => 0,
         };
         let bound = range_spec
@@ -672,7 +786,7 @@ fn handle_range_request(
                     }
                     let b = beginning as usize;
                     let e = end as usize + 1;
-                    let requested = body.get(b..e);
+                    let requested = body.decoded_body.get(b..e);
                     if let Some(bytes) = requested {
                         let new_resource =
                             create_resource_with_bytes_from_resource(bytes, complete_resource);
@@ -692,7 +806,7 @@ fn handle_range_request(
             (Bound::Included(beginning), Bound::Unbounded) => {
                 if let ResponseBody::Done(ref body) = *complete_resource.body.lock() {
                     let b = beginning as usize;
-                    let requested = body.get(b..);
+                    let requested = body.decoded_body.get(b..);
                     if let Some(bytes) = requested {
                         let new_resource =
                             create_resource_with_bytes_from_resource(bytes, complete_resource);
@@ -737,7 +851,7 @@ fn handle_range_request(
                             ResponseBody::Done(body) => {
                                 let b = beginning as usize - res_beginning as usize;
                                 let e = end as usize - res_beginning as usize + 1;
-                                body.get(b..e)
+                                body.decoded_body.get(b..e)
                             },
                             _ => continue,
                         };
@@ -773,7 +887,7 @@ fn handle_range_request(
                         let requested = match resource_body {
                             ResponseBody::Done(body) => {
                                 let from_byte = beginning as usize - res_beginning as usize;
-                                body.get(from_byte..)
+                                body.decoded_body.get(from_byte..)
                             },
                             _ => continue,
                         };

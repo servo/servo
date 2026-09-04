@@ -8,7 +8,7 @@ use log::error;
 use net_traits::NetworkError;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
-use net_traits::response::{Response, ResponseBody};
+use net_traits::response::{DoneResponseBody, Response, ResponseBody};
 
 use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::methods::FetchContext;
@@ -74,8 +74,10 @@ impl RequestInterceptor {
                         error!("Received unexpected FinishLoad message");
                         break;
                     };
-                    *response.body.lock() =
-                        ResponseBody::Done(accumulated_body.into_iter().flatten().collect());
+                    *response.body.lock() = ResponseBody::Done(DoneResponseBody {
+                        decoded_body: accumulated_body.into_iter().flatten().collect(),
+                        encoded_body: None,
+                    });
                     break;
                 },
                 WebResourceResponseMsg::CancelLoad => {

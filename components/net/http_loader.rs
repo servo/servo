@@ -50,7 +50,9 @@ use net_traits::request::{
     is_cors_non_wildcard_request_header_name, is_cors_safelisted_method,
     is_cors_safelisted_request_header,
 };
-use net_traits::response::{CacheState, RedirectTaint, Response, ResponseBody, ResponseType};
+use net_traits::response::{
+    CacheState, DoneResponseBody, RedirectTaint, Response, ResponseBody, ResponseType,
+};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DiscardFetch, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTimingContainer,
@@ -2343,12 +2345,17 @@ async fn http_network_fetch(
         let _ = done_sender.send(Data::ContentLength(possible_length));
     }
 
+    let response_body_stream = response_stream.into_body();
+    let encoded_data = response_body_stream.encoded_bytes();
+    let encoded_data2 = response_body_stream.encoded_bytes();
     spawn_task(
-        response_stream
-            .into_body()
+        response_body_stream
             .try_fold(response_body, move |response_body_accumulator, chunk| {
                 if cancellation_listener.cancelled() {
-                    *response_body_accumulator.lock() = ResponseBody::Done(vec![]);
+                    *response_body_accumulator.lock() = ResponseBody::Done(DoneResponseBody {
+                        decoded_body: vec![],
+                        encoded_body: None,
+                    });
                     let _ = done_sender.send(Data::Cancelled);
                     return future::ready(Err(std::io::Error::new(
                         std::io::ErrorKind::Interrupted,
@@ -2362,7 +2369,6 @@ async fn http_network_fetch(
                 future::ready(Ok(response_body_accumulator))
             })
             .and_then(move |complete_response_body| {
-                debug!("successfully finished response for {:?}", url1);
                 let mut body = complete_response_body.lock();
                 let mut completed_body = match *body {
                     ResponseBody::Receiving(ref mut body) => std::mem::take(body),
@@ -2374,7 +2380,13 @@ async fn http_network_fetch(
                 // be unused anyway.
                 let devtools_response_body =
                     devtools_chan.is_some().then(|| completed_body.clone());
-                *body = ResponseBody::Done(completed_body);
+                let encoded_data = encoded_data.lock().unwrap().clone();
+                *body = ResponseBody::Done(DoneResponseBody {
+                    decoded_body: completed_body,
+                    // Sadly this arc is still owned by response_body_stream so we have to clone it like this.
+                    encoded_body: encoded_data
+                        .map(|encoded_data| (encoded_data.0.to_vec(), encoded_data.1)),
+                });
                 send_response_values_to_devtools(
                     Some(headers),
                     status,
@@ -2389,11 +2401,14 @@ async fn http_network_fetch(
             })
             .map_err(move |error| {
                 if let std::io::ErrorKind::InvalidData = error.kind() {
-                    debug!("Content decompression error for {:?}", url2);
+                    debug!("Content decompression error for {:?}", url1);
                     let _ = done_sender3.send(Data::Error(NetworkError::DecompressionError));
                     let mut body = response_body2.lock();
 
-                    *body = ResponseBody::Done(vec![]);
+                    *body = ResponseBody::Done(DoneResponseBody {
+                        decoded_body: vec![],
+                        encoded_body: None,
+                    });
                 }
                 debug!("finished response for {:?}", url2);
                 let mut body = response_body2.lock();
@@ -2401,7 +2416,14 @@ async fn http_network_fetch(
                     ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                     _ => vec![],
                 };
-                *body = ResponseBody::Done(completed_body);
+                *body = ResponseBody::Done(DoneResponseBody {
+                    decoded_body: completed_body,
+                    encoded_body: std::sync::Arc::into_inner(encoded_data2)
+                        .unwrap()
+                        .into_inner()
+                        .unwrap()
+                        .map(|value| (value.0.to_vec(), value.1)),
+                });
                 timing_ptr3.set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender3.send(Data::Done);
             }),

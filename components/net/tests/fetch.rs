@@ -38,7 +38,7 @@ use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     Destination, RedirectMode, Referrer, Request, RequestBuilder, RequestMode,
 };
-use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
+use net_traits::response::{CacheState, DoneResponseBody, Response, ResponseBody, ResponseType};
 use net_traits::{
     FetchTaskTarget, IncludeSubdomains, NetworkError, ReferrerPolicy, ResourceFetchTiming,
     ResourceTimingType, get_current_locale,
@@ -118,7 +118,7 @@ fn test_fetch_response_body_matches_const_message() {
 
     match *fetch_response.body.lock() {
         ResponseBody::Done(ref body) => {
-            assert_eq!(&**body, MESSAGE);
+            assert_eq!(&*body.decoded_body, MESSAGE);
         },
         _ => panic!(),
     };
@@ -149,7 +149,10 @@ fn test_fetch_aboutblank() {
     let actual_response = fetch_response.actual_response();
     assert!(!actual_response.is_network_error());
     let resp_body = actual_response.body.lock();
-    assert_eq!(*resp_body, ResponseBody::Done(vec![]));
+    assert_eq!(
+        *resp_body,
+        ResponseBody::Done(DoneResponseBody::new(vec![]))
+    );
 }
 
 #[test]
@@ -285,7 +288,7 @@ fn test_file() {
 
     match *resp_body {
         ResponseBody::Done(ref val) => {
-            assert_eq!(val, &file);
+            assert_eq!(&val.decoded_body, &file);
         },
         _ => panic!(),
     }
@@ -386,7 +389,7 @@ fn test_cors_preflight_fetch() {
 
     assert!(!fetch_response.is_network_error());
     match *fetch_response.body.lock() {
-        ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
+        ResponseBody::Done(ref body) => assert_eq!(&*body.decoded_body, ACK),
         _ => panic!(),
     };
 }
@@ -459,11 +462,11 @@ fn test_cors_preflight_cache_fetch() {
     assert_eq!(true, cache.match_method(&wrapped_request3, Method::GET));
 
     match *fetch_response0.body.lock() {
-        ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
+        ResponseBody::Done(ref body) => assert_eq!(&*body.decoded_body, ACK),
         _ => panic!(),
     };
     match *fetch_response1.body.lock() {
-        ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
+        ResponseBody::Done(ref body) => assert_eq!(&*body.decoded_body, ACK),
         _ => panic!(),
     };
 }
@@ -1115,7 +1118,7 @@ fn test_fetch_redirect_count_ceiling() {
 
     match *fetch_response.body.lock() {
         ResponseBody::Done(ref body) => {
-            assert_eq!(&**body, MESSAGE);
+            assert_eq!(&*body.decoded_body, MESSAGE);
         },
         _ => panic!(),
     };
@@ -1596,7 +1599,10 @@ fn test_fetch_request_intercepted() {
     let body = response.body.lock();
     match &*body {
         ResponseBody::Done(data) => {
-            assert_eq!(data, &EXPECTED_BODY, "Body content does not match");
+            assert_eq!(
+                &data.decoded_body, &EXPECTED_BODY,
+                "Body content does not match"
+            );
         },
         _ => panic!("Expected ResponseBody::Done, but got {:?}", *body),
     }
