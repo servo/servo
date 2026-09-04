@@ -582,9 +582,9 @@ impl Paint {
                     painter.handle_screenshot_readiness_reply(webview_id, pipelines_and_epochs);
                 }
             },
-            PaintMessage::SendLCPCandidate(lcp_candidate, webview_id, pipeline_id, epoch) => {
+            PaintMessage::SendLCPCandidate((id, area), webview_id, pipeline_id, epoch) => {
                 if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
-                    painter.append_lcp_candidate(lcp_candidate, webview_id, pipeline_id, epoch);
+                    painter.append_lcp_candidate(id, area, webview_id, pipeline_id, epoch);
                 }
             },
         }
