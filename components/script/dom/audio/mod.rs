@@ -18,6 +18,7 @@ pub(crate) mod biquadfilternode;
 pub(crate) mod channelmergernode;
 pub(crate) mod channelsplitternode;
 pub(crate) mod constantsourcenode;
+pub(crate) mod delaynode;
 pub(crate) mod gainnode;
 pub(crate) mod iirfilternode;
 pub(crate) mod mediaelementaudiosourcenode;
