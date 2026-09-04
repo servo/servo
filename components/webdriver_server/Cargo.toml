@@ -32,7 +32,6 @@ servo-geometry = { workspace = true }
 servo-url = { workspace = true }
 stylo_traits = { workspace = true }
 time = { workspace = true }
-url = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }
 

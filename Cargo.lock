@@ -9487,7 +9487,6 @@ dependencies = [
  "servo-url",
  "stylo_traits",
  "time",
- "url",
  "uuid",
  "webdriver",
 ]
