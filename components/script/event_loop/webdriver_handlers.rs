@@ -31,6 +31,7 @@ use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
+use servo_base::Epoch;
 use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_config::pref;
@@ -1405,8 +1406,9 @@ pub(crate) fn handle_get_computed_role(
                 .map(|element| {
                     let document = element.upcast::<Node>().owner_doc();
                     let window = document.window();
-                    let epoch = document.current_rendering_epoch();
-                    window.layout().set_accessibility_active(true, epoch);
+                    window
+                        .layout()
+                        .set_accessibility_active(true, Epoch::default());
                     element.get_computed_role().map(String::from)
                 }),
         )
