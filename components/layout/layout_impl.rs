@@ -524,10 +524,10 @@ impl Layout for LayoutThread {
     }
 
     fn query_accesskit_node(&self, node: TrustedNodeAddress) -> Option<Node> {
-        with_layout_state (|| {
+        with_layout_state(|| {
             let node = unsafe { ServoLayoutNode::new(&node) };
-            let mut accessibility_tree = self.accessibility_tree.borrow_mut();
-            let accessibility_tree = accessibility_tree.as_mut()?;
+            let accessibility_tree = self.accessibility_tree.borrow();
+            let accessibility_tree = accessibility_tree.as_ref()?;
             accessibility_tree.accesskit_node_for_dom_node(&node)
         })
     }

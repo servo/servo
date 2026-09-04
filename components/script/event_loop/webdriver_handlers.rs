@@ -1394,7 +1394,7 @@ pub(crate) fn handle_get_computed_role(
     node_id: String,
     reply: GenericSender<Result<Option<String>, ErrorStatus>>,
 ) {
-    if pref!(accessibility_enabled) {
+    if !pref!(accessibility_enabled) {
         return reply.send(Err(ErrorStatus::UnsupportedOperation)).unwrap();
     }
     reply
