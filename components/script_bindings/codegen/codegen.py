@@ -762,7 +762,8 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
                                 defaultValue: IDLValue | None = None,
                                 exceptionCode: str | None = None,
                                 allowTreatNonObjectAsNull: bool = False,
-                                sourceDescription: str = "value") -> JSToNativeConversionInfo:
+                                sourceDescription: str = "value",
+                                useRcPromise: bool = True) -> JSToNativeConversionInfo:
     """
     Get a template for converting a JS value to a native object based on the
     given type and descriptor.  If failureCode is given, then we're actually
@@ -991,7 +992,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         if isArgument:
             declType = CGGeneric("&D::Promise")
         else:
-            declType = CGGeneric("Rc<D::Promise>")
+            declType = CGGeneric("Rc<D::Promise>") if useRcPromise else CGGeneric("<D::Promise as PromiseHelpers<D>>::StackRoot")
         return handleOptional(templateBody, declType, handleDefault("None"))
 
     if type.isGeckoInterface():
@@ -1616,7 +1617,7 @@ def builtin_return_type(returnType: IDLType) -> CGThing:
 
 
 # Returns a CGThing containing the type of the return value.
-def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: DescriptorProvider, isInnerType: bool =False) -> CGThing:
+def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: DescriptorProvider, isInnerType: bool = False, useRcPromise: bool = True) -> CGThing:
     if returnType is None or returnType.isUndefined():
         # Nothing to declare
         return CGGeneric("()")
@@ -1651,7 +1652,7 @@ def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: 
         return result
     if returnType.isPromise():
         assert not returnType.nullable()
-        return CGGeneric("Rc<D::Promise>")
+        return CGGeneric("Rc<D::Promise>") if useRcPromise else CGGeneric("<D::Promise as PromiseHelpers<D>>::StackRoot")
     if returnType.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(
             # pyrefly: ignore  # missing-attribute
@@ -1685,7 +1686,7 @@ def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: 
         else:
             return objectType
     if returnType.isSequence():
-        result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider, isInnerType=True)
+        result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider, isInnerType=True, useRcPromise=useRcPromise)
         result = wrapInNativeContainerType(returnType, result)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
@@ -1693,7 +1694,7 @@ def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: 
     # FIXME: The branches for isSequence() and isRecord() should be the same, but we don't use out-parameters for
     # records containing unrooted JS types yet.
     if returnType.isRecord():
-        result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider)
+        result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider, useRcPromise=useRcPromise)
         result = wrapInNativeContainerType(returnType, result)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
@@ -3004,15 +3005,15 @@ def DomTypes(descriptors: list[Descriptor],
         if iterableDecl:
             if iterableDecl.isMaplike():
                 keytype = fixupInterfaceTypeReferences(
-                    getRetvalDeclarationForType(iterableDecl.keyType, descriptor).define()
+                    getRetvalDeclarationForType(iterableDecl.keyType, descriptor, useRcPromise=descriptor.useRcPromise).define()
                 )
                 valuetype = fixupInterfaceTypeReferences(
-                    getRetvalDeclarationForType(iterableDecl.valueType, descriptor).define()
+                    getRetvalDeclarationForType(iterableDecl.valueType, descriptor, useRcPromise=descriptor.useRcPromise).define()
                 )
                 traits += [f"crate::like::Maplike<Key={keytype}, Value={valuetype}>"]
             if iterableDecl.isSetlike():
                 keytype = fixupInterfaceTypeReferences(
-                    getRetvalDeclarationForType(iterableDecl.keyType, descriptor).define()
+                    getRetvalDeclarationForType(iterableDecl.keyType, descriptor, useRcPromise=descriptor.useRcPromise).define()
                 )
                 traits += [f"crate::like::Setlike<Key={keytype}>"]
             if iterableDecl.hasKeyType():
@@ -4255,7 +4256,7 @@ class CGCallGenerator(CGThing):
 
         isFallible = errorResult is not None
 
-        result = getRetvalDeclarationForType(returnType, descriptor)
+        result = getRetvalDeclarationForType(returnType, descriptor, useRcPromise=descriptor.useRcPromise)
         if returnType and returnTypeNeedsOutparam(returnType):
             outparamRootType = result
             result = CGGeneric("()")
@@ -7056,7 +7057,8 @@ class CGInterfaceTrait(CGThing):
                                 cx_no_gc: bool = False,
                                 cx: bool = False,
                                 realm: bool = False,
-                                retval: bool = False
+                                retval: bool = False,
+                                useRcPromise: bool = True,
                                 ) -> Iterable[tuple[str, str]]:
             if realm:
                 yield "realm", "&mut CurrentRealm"
@@ -7068,7 +7070,7 @@ class CGInterfaceTrait(CGThing):
                 yield "cx", "&NoGC"
 
             if argument:
-                yield "value", argument_type(descriptor, argument)
+                yield "value", argument_type(descriptor, argument, useRcPromise=useRcPromise)
 
             if retval and returnTypeNeedsOutparam(attribute_type):
                 yield "retval", outparamTypeFromReturnType(attribute_type)
@@ -7094,8 +7096,9 @@ class CGInterfaceTrait(CGThing):
                                                      no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods or descriptor.interface.isIteratorInterface(),
-                                                     realm=name in descriptor.realmMethods)
-                        rettype = return_type(descriptor, rettype, infallible)
+                                                     realm=name in descriptor.realmMethods,
+                                                     useRcPromise=descriptor.useRcPromise)
+                        rettype = return_type(descriptor, rettype, infallible, descriptor.useRcPromise)
                         yield f"{name}{'_' * idx}", arguments, rettype, m.isStatic()
                 elif m.isAttr():
                     name = CGSpecializedGetter.makeNativeName(descriptor, m)
@@ -7114,9 +7117,10 @@ class CGInterfaceTrait(CGThing):
                                cx_no_gc=name in descriptor.cx_no_gcMethods,
                                cx=name in descriptor.cxMethods or isEventHandlerCallback(m),
                                realm=name in descriptor.realmMethods,
-                               retval=True
+                               retval=True,
+                               useRcPromise=descriptor.useRcPromise,
                            ),
-                           return_type(descriptor, m.type, infallible),
+                           return_type(descriptor, m.type, infallible, descriptor.useRcPromise),
                            m.isStatic())
 
                     if not m.readonly:
@@ -7135,6 +7139,7 @@ class CGInterfaceTrait(CGThing):
                                    cx=name in descriptor.cxMethods or descriptor.implicitCxSetters or isEventHandlerCallback(m),
                                    realm=name in descriptor.realmMethods,
                                    retval=False,
+                                   useRcPromise=descriptor.useRcPromise,
                                ),
                                rettype,
                                m.isStatic())
@@ -7155,7 +7160,8 @@ class CGInterfaceTrait(CGThing):
                                                      no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
-                                                     realm=name in descriptor.realmMethods)
+                                                     realm=name in descriptor.realmMethods,
+                                                     useRcPromise=descriptor.useRcPromise)
 
                         # If this interface 'supports named properties', then we
                         # should be able to access 'supported property names'
@@ -7169,8 +7175,9 @@ class CGInterfaceTrait(CGThing):
                                                      no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
-                                                     realm=name in descriptor.realmMethods)
-                    rettype = return_type(descriptor, rettype, infallible)
+                                                     realm=name in descriptor.realmMethods,
+                                                     useRcPromise=descriptor.useRcPromise)
+                    rettype = return_type(descriptor, rettype, infallible, descriptor.useRcPromise)
                     yield name, arguments, rettype, False
 
         def fmt(arguments: list[tuple[str, str]], leadingComma: bool = True) -> str:
@@ -7211,7 +7218,7 @@ class CGInterfaceTrait(CGThing):
             for (i, (rettype, arguments)) in enumerate(ctor.signatures()):
                 name = (baseName or ctor.identifier.name) + ('_' * i)
                 realm = name in descriptor.realmMethods
-                args = list(method_arguments(descriptor, rettype, arguments, cx=True, realm=realm))
+                args = list(method_arguments(descriptor, rettype, arguments, cx=True, realm=realm, useRcPromise=descriptor.useRcPromise))
                 extra = [
                     ("global", f"&D::{exposedGlobal}"),
                     ("proto", "Option<HandleObject>"),
@@ -7219,7 +7226,7 @@ class CGInterfaceTrait(CGThing):
                 args = [args[0]] + extra + args[1:]
                 yield CGGeneric(
                     f"fn {name}({fmt(args, leadingComma=False)}) -> "
-                    f"{return_type(descriptorProvider, rettype, infallible)};\n"
+                    f"{return_type(descriptorProvider, rettype, infallible, descriptor.useRcPromise)};\n"
                 )
 
         ctor = descriptor.interface.ctor()
@@ -8386,11 +8393,13 @@ def argument_type(descriptorProvider: DescriptorProvider,
                   ty: IDLType,
                   optional: bool = False,
                   defaultValue: DefaultValueType | None = None,
-                  variadic: bool = False
+                  variadic: bool = False,
+                  useRcPromise: bool = True,
                   ) -> str:
     info = getJSToNativeConversionInfo(
         ty, descriptorProvider, isArgument=True,
-        isAutoRooted=type_needs_auto_root(ty))
+        isAutoRooted=type_needs_auto_root(ty),
+        useRcPromise=useRcPromise)
     declType = info.declType
     assert declType is not None
     if variadic:
@@ -8419,7 +8428,8 @@ def method_arguments(descriptorProvider: DescriptorProvider,
                      no_gc: bool = False,
                      cx_no_gc: bool = False,
                      cx: bool = False,
-                     realm: bool = False
+                     realm: bool = False,
+                     useRcPromise: bool = True,
                      ) -> Iterator[tuple[str, str]]:
 
     match needCx(returnType, arguments, passJSBits):
@@ -8441,7 +8451,7 @@ def method_arguments(descriptorProvider: DescriptorProvider,
 
     for argument in arguments:
         ty = argument_type(descriptorProvider, argument.type, argument.optional,
-                           argument.defaultValue, argument.variadic)
+                           argument.defaultValue, argument.variadic, useRcPromise)
         yield CGDictionary.makeMemberName(argument.identifier.name), ty
 
     if trailing:
@@ -8451,8 +8461,8 @@ def method_arguments(descriptorProvider: DescriptorProvider,
         yield "rval", outparamTypeFromReturnType(returnType),
 
 
-def return_type(descriptorProvider: DescriptorProvider, rettype: IDLType, infallible: bool) -> str:
-    result = getRetvalDeclarationForType(rettype, descriptorProvider)
+def return_type(descriptorProvider: DescriptorProvider, rettype: IDLType, infallible: bool, useRcPromise: bool) -> str:
+    result = getRetvalDeclarationForType(rettype, descriptorProvider, useRcPromise=useRcPromise)
     if rettype and returnTypeNeedsOutparam(rettype):
         result = CGGeneric("()")
     if not infallible:
@@ -8470,7 +8480,8 @@ class CGNativeMember(ClassMethod):
                  breakAfter: bool = True,
                  passJSBitsAsNeeded: bool = True,
                  visibility: str = "public",
-                 unsafe: bool = False) -> None:
+                 unsafe: bool = False,
+                 useRcPromise: bool = True) -> None:
         """
         If passJSBitsAsNeeded is false, we don't automatically pass in a
         JSContext* or a JSObject* based on the return and argument types.
@@ -8479,6 +8490,7 @@ class CGNativeMember(ClassMethod):
         self.member = member
         self.extendedAttrs = extendedAttrs
         self.passJSBitsAsNeeded = passJSBitsAsNeeded
+        self.useRcPromise = useRcPromise
         breakAfterSelf = "\n" if breakAfter else ""
         ClassMethod.__init__(self, name,
                              self.getReturnType(signature[0]),
@@ -8494,14 +8506,15 @@ class CGNativeMember(ClassMethod):
 
     def getReturnType(self, type: IDLType) -> str:
         infallible = 'infallible' in self.extendedAttrs
-        typeDecl = return_type(self.descriptorProvider, type, infallible)
+        typeDecl = return_type(self.descriptorProvider, type, infallible, self.useRcPromise)
         return typeDecl
 
     def getArgs(self, returnType: IDLType, argList: list[IDLArgument | FakeArgument]) -> list[Argument]:
         return [Argument(arg[1], arg[0]) for arg in method_arguments(self.descriptorProvider,
                                                                      returnType,
                                                                      argList,
-                                                                     self.passJSBitsAsNeeded)]
+                                                                     self.passJSBitsAsNeeded,
+                                                                     useRcPromise=self.useRcPromise)]
 
 
 class CGCallback(CGClass):
@@ -8615,7 +8628,7 @@ class CGCallbackFunction(CGCallback):
     def __init__(self, callback: IDLCallback, descriptorProvider: DescriptorProvider) -> None:
         CGCallback.__init__(self, callback, descriptorProvider,
                             "CallbackFunction<D>",
-                            methods=[CallCallback(callback, descriptorProvider)])
+                            methods=[CallCallback(callback, descriptorProvider, useRcPromise=True)])
 
     def getConstructors(self) -> list[ClassConstructor]:
         return CGCallback.getConstructors(self)
@@ -8675,7 +8688,7 @@ class FakeMember():
 
 
 class CallbackMember(CGNativeMember):
-    def __init__(self, sig: tuple[IDLType, list[IDLArgument | FakeArgument]], name: str, descriptorProvider: DescriptorProvider, needThisHandling: bool) -> None:
+    def __init__(self, sig: tuple[IDLType, list[IDLArgument | FakeArgument]], name: str, descriptorProvider: DescriptorProvider, needThisHandling: bool, useRcPromise: bool) -> None:
         """
         needThisHandling is True if we need to be able to accept a specified
         thisObj, False otherwise.
@@ -8860,9 +8873,9 @@ class CallbackMember(CGNativeMember):
 
 
 class CallbackMethod(CallbackMember):
-    def __init__(self, sig: tuple[IDLType, list[IDLArgument | FakeArgument]], name: str, descriptorProvider: DescriptorProvider, needThisHandling: bool) -> None:
+    def __init__(self, sig: tuple[IDLType, list[IDLArgument | FakeArgument]], name: str, descriptorProvider: DescriptorProvider, needThisHandling: bool, useRcPromise: bool) -> None:
         CallbackMember.__init__(self, sig, name, descriptorProvider,
-                                needThisHandling)
+                                needThisHandling, useRcPromise)
 
     def getRvalDecl(self) -> str:
         if self.usingOutparam:
@@ -8905,10 +8918,10 @@ class CallbackMethod(CallbackMember):
 
 
 class CallCallback(CallbackMethod):
-    def __init__(self, callback: IDLCallback, descriptorProvider: DescriptorProvider) -> None:
+    def __init__(self, callback: IDLCallback, descriptorProvider: DescriptorProvider, useRcPromise: bool) -> None:
         self.callback = callback
         CallbackMethod.__init__(self, callback.signatures()[0], "Call",
-                                descriptorProvider, needThisHandling=True)
+                                descriptorProvider, needThisHandling=True, useRcPromise=useRcPromise)
 
     def getThisObj(self) -> str:
         return "aThisObj.get()"
@@ -8929,7 +8942,7 @@ class CallbackOperationBase(CallbackMethod):
     def __init__(self, signature: tuple[IDLType, list[IDLArgument | FakeArgument]], jsName: str, nativeName: str, descriptor: Descriptor, singleOperation: bool) -> None:
         self.singleOperation = singleOperation
         self.methodName = jsName
-        CallbackMethod.__init__(self, signature, nativeName, descriptor, singleOperation)
+        CallbackMethod.__init__(self, signature, nativeName, descriptor, singleOperation, useRcPromise=descriptor.useRcPromise)
 
     def getThisObj(self) -> str:
         if not self.singleOperation:
