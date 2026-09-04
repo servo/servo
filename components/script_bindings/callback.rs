@@ -61,6 +61,61 @@ pub enum ExceptionHandling {
     Rethrow,
 }
 
+#[derive(JSTraceable)]
+pub struct RootedCallback<T>(Rc<T>);
+
+impl<T> RootedCallback<T> {
+    pub fn to_traced(&self) -> TracedCallback<T> {
+        TracedCallback(self.0.clone())
+    }
+}
+
+impl<T> Clone for RootedCallback<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<T> std::ops::Deref for RootedCallback<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> From<Rc<T>> for RootedCallback<T> {
+    fn from(callback: Rc<T>) -> Self {
+        Self(callback)
+    }
+}
+
+impl<T: js::conversions::ToJSValConvertible> js::conversions::ToJSValConvertible
+    for RootedCallback<T>
+{
+    fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue<'_>) {
+        self.0.to_jsval(cx, rval)
+    }
+}
+
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct TracedCallback<T>(#[conditional_malloc_size_of] Rc<T>);
+
+impl<T: crate::JSTraceable> js::gc::Rootable for TracedCallback<T> {}
+
+impl<T> Clone for TracedCallback<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<T> std::ops::Deref for TracedCallback<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[derive(JSTraceable, MallocSizeOf)]
