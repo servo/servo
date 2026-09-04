@@ -2493,41 +2493,7 @@ pub(crate) fn check_support_for_algorithm(
             else {
                 return false;
             };
-
-            match normalized_algorithm {
-                EncryptAlgorithm::RsaOaep(_) => true,
-                EncryptAlgorithm::AesCtr(normalized_algorithm) => {
-                    normalized_algorithm.counter.len() == 16 &&
-                        normalized_algorithm.length != 0 &&
-                        normalized_algorithm.length <= 128
-                },
-                EncryptAlgorithm::AesCbc(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() == 16
-                },
-                EncryptAlgorithm::AesGcm(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() <= u64::MAX as usize &&
-                        normalized_algorithm
-                            .additional_data
-                            .is_none_or(|additional_data| {
-                                additional_data.len() <= u64::MAX as usize
-                            }) &&
-                        normalized_algorithm.tag_length.is_none_or(|length| {
-                            matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)
-                        })
-                },
-                EncryptAlgorithm::AesOcb(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() <= 15 &&
-                        normalized_algorithm
-                            .tag_length
-                            .is_none_or(|length| matches!(length, 64 | 96 | 128))
-                },
-                EncryptAlgorithm::ChaCha20Poly1305(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() == 12 &&
-                        normalized_algorithm
-                            .tag_length
-                            .is_none_or(|length| length == 128)
-                },
-            }
+            normalized_algorithm.determine_support_from_operation_steps()
         },
         "decrypt" => {
             let Ok(normalized_algorithm) = normalize_algorithm::<DecryptOperation>(cx, algorithm)
@@ -5016,7 +4982,54 @@ trait NormalizedAlgorithm: Sized {
         algorithm_name: CryptoAlgorithm,
         object: HandleObject,
     ) -> Fallible<Self>;
+
+    /// Return the name of the normalized algorithm.
     fn name(&self) -> CryptoAlgorithm;
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-determine-support-from-operation-steps>
+    ///
+    /// The default implemenation is to return false, as placeholder. The actual implementation
+    /// depends on the operation represented by the trait implementor.
+    fn determine_support_from_operation_steps(&self) -> bool {
+        // Step 1. If the specified operation or algorithm (or one of its parameter values) is
+        // expected to fail (for any key and/or data) for an implementation-specific reason (e.g.
+        // known nonconformance to the specification), return false.
+        // Step 2. If op is "generateKey" or "importKey", let usages be the empty list.
+        // Step 3. For each of the steps of the operation specified by op of the algorithm specified
+        // by normalizedAlgorithm:
+        //     If the step says to throw an error:
+        //         Return false.
+        //     If the step says to generate a key:
+        //         Return true.
+        //     If the step relies on an unavailable parameter, such as key, plaintext or ciphertext:
+        //         Return true.
+        //     If the step says to return a value:
+        //         Return true.
+        //     Otherwise:
+        //         Execute the step.
+        //
+        // NOTE:
+        // - Step 3 can be interpreted as executing the specified operation of the specified
+        //   algorithm in "dry-run" mode in which it validates the normalizedAlgorithm, length and
+        //   usages but does not execute the computation-demanding cryptographic calculation.
+        //
+        // - Usually, the parameter validations are executed at the beginning of the operation.
+        //   Therefore, Step 3 can be done by running the operation with the following changes:
+        //   - Replace "throw an DataError/OperationError/NotSupportedError" with "return false".
+        //   - When we reach any step that requires unavailable parameters or does the cryptographic
+        //     calculation, return true, instead of running the step, and skip the remaining steps
+        //     as well.
+        //
+        // - Since usages is an empty list, it should pass the validation described in the specified
+        //   operation of the specified algorithm. So, we simply ignore it here.
+        //
+        // - The implementer of this trait is expected to be an `enum` listing possible
+        //   cryptographic algorithms. In the implementation of this trait, recommend writing a
+        //   `match` block on `self` that explicitly lists all patterns so that the Rust compiler
+        //   can remind you to add the necessary parameter validation here when a new operation of
+        //   an algorithm is added.
+        false
+    }
 }
 
 /// The value of the key "encrypt" in the internal object supportedAlgorithms
@@ -5077,6 +5090,40 @@ impl NormalizedAlgorithm for EncryptAlgorithm {
             EncryptAlgorithm::AesGcm(algorithm) => algorithm.name,
             EncryptAlgorithm::AesOcb(algorithm) => algorithm.name,
             EncryptAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
+        }
+    }
+
+    fn determine_support_from_operation_steps(&self) -> bool {
+        match self {
+            EncryptAlgorithm::RsaOaep(_) => true,
+            EncryptAlgorithm::AesCtr(normalized_algorithm) => {
+                normalized_algorithm.counter.len() == 16 &&
+                    normalized_algorithm.length != 0 &&
+                    normalized_algorithm.length <= 128
+            },
+            EncryptAlgorithm::AesCbc(normalized_algorithm) => normalized_algorithm.iv.len() == 16,
+            EncryptAlgorithm::AesGcm(normalized_algorithm) => {
+                normalized_algorithm.iv.len() <= u64::MAX as usize &&
+                    normalized_algorithm
+                        .additional_data
+                        .as_ref()
+                        .is_none_or(|additional_data| additional_data.len() <= u64::MAX as usize) &&
+                    normalized_algorithm.tag_length.is_none_or(|length| {
+                        matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)
+                    })
+            },
+            EncryptAlgorithm::AesOcb(normalized_algorithm) => {
+                normalized_algorithm.iv.len() <= 15 &&
+                    normalized_algorithm
+                        .tag_length
+                        .is_none_or(|length| matches!(length, 64 | 96 | 128))
+            },
+            EncryptAlgorithm::ChaCha20Poly1305(normalized_algorithm) => {
+                normalized_algorithm.iv.len() == 12 &&
+                    normalized_algorithm
+                        .tag_length
+                        .is_none_or(|length| length == 128)
+            },
         }
     }
 }
