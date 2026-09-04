@@ -167,7 +167,7 @@ fn fetch_with_context(request: Request, mut context: &mut FetchContext) -> Respo
     let mut target = FetchResponseCollector {
         sender: Some(sender),
     };
-    spawn_blocking_task::<_, Response>(async move {
+    spawn_blocking_task::<_>(async move {
         methods::fetch(request, &mut target, &mut context).await;
         receiver.await.unwrap()
     })
@@ -179,7 +179,7 @@ fn fetch_with_cors_cache(request: Request, cache: &mut CorsCache) -> Response {
         sender: Some(sender),
     };
     let mut fetch_context = new_fetch_context(None, None);
-    spawn_blocking_task::<_, Response>(async move {
+    spawn_blocking_task::<_>(async move {
         methods::fetch_with_cors_cache(request, cache, &mut target, &mut fetch_context).await;
         receiver.await.unwrap()
     })
