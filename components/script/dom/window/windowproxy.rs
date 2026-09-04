@@ -661,9 +661,13 @@ impl WindowProxy {
     ) -> (Option<DomRoot<WindowProxy>>, bool) {
         // Step 1. Let chosen be null.
         // Step 2. Let windowType be "existing or none".
+
         // Step 3. Let sandboxingFlagSet be currentNavigable's active document's active
         // sandboxing flag set.
-        // TODO: Implement this.
+        let sandboxing_flag_set = self
+            .document()
+            .map(|document| document.active_sandboxing_flag_set())
+            .unwrap_or_default();
 
         let chosen = if name.is_empty() || name.eq_ignore_ascii_case("_self") {
             // Step 4. If name is the empty string or an ASCII case-insensitive match for
@@ -704,10 +708,29 @@ impl WindowProxy {
         // and what happens depends on the user agent's configuration and abilities — it
         // is determined by the rules given for the first applicable option from the
         // following list:
-        (
-            self.create_auxiliary_browsing_context(cx, name, noopener),
-            true,
-        )
+        //
+        // ↪ If currentNavigable's active window does not have transient
+        //   activation and the user agent has been configured to not show popups
+        //   (i.e., the user agent has a "popup blocker" enabled)
+        //    - The user agent may inform the user that a popup has been blocked.
+        // TODO: Implement this.
+        //
+        // ↪ If sandboxingFlagSet has the sandboxed auxiliary navigation browsing context flag set
+        //   - The user agent may report to a developer console that a popup has been blocked.
+        if sandboxing_flag_set
+            .contains(SandboxingFlagSet::SANDBOXED_AUXILIARY_NAVIGATION_BROWSING_CONTEXT_FLAG)
+        {
+            (None, false)
+        }
+        // ↪ If the user agent has been configured such that in this instance it
+        // will create a new top-level traversable
+        // TODO: Integrate `create_auxiliary_browsing_context` here and have it follow the spec.
+        else {
+            (
+                self.create_auxiliary_browsing_context(cx, name, noopener),
+                true,
+            )
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#find-a-navigable-by-target-name>
