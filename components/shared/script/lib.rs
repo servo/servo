@@ -27,7 +27,6 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
-use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use pixels::PixelFormat;
 use profile_traits::mem;
@@ -37,8 +36,8 @@ use servo_base::Epoch;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
 use servo_base::id::{
-    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, PipelineNamespaceRequest,
-    ScriptEventLoopId, WebViewId,
+    BrowsingContextId, HistoryStateId, LCPCandidateID, PipelineId, PipelineNamespaceId,
+    PipelineNamespaceRequest, ScriptEventLoopId, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
@@ -126,23 +125,9 @@ pub enum ProgressiveWebMetricType {
     LargestContentfulPaint {
         /// The identity of the element, if any.
         id: LCPCandidateID,
-        /// The pixel area of the largest contentful element.
-        area: usize,
-        /// The URL of the largest contentful element, if any.
-        url: Option<ServoUrl>,
     },
     /// Time to interactive
     TimeToInteractive,
-}
-
-impl ProgressiveWebMetricType {
-    /// Returns the area if the metric type is LargestContentfulPaint
-    pub fn area(&self) -> usize {
-        match self {
-            ProgressiveWebMetricType::LargestContentfulPaint { area, .. } => *area,
-            _ => 0,
-        }
-    }
 }
 
 /// The reason why the pipeline id of an iframe is being updated.

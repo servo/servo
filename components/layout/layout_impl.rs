@@ -6,7 +6,6 @@
 
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::HashMap;
-use std::ffi::c_void;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
@@ -1088,18 +1087,11 @@ impl LayoutThread {
         let pending_svg_elements_for_serialization =
             std::mem::take(&mut *image_resolver.pending_svg_elements_for_serialization.lock());
 
-        let (lcp_candidate, lcp_node_address) = self
+        let lcp_candidate = self
             .paint_timing_handler
             .borrow()
             .as_ref()
-            .map(|handler| {
-                (
-                    handler.largest_contentful_paint_candidate(),
-                    handler
-                        .lcp_node()
-                        .map(|node| UntrustedNodeAddress(node.id() as *const c_void)),
-                )
-            })
+            .map(|handler| handler.largest_contentful_paint_candidate())
             .unwrap_or_default();
 
         Some(ReflowResult {
@@ -1111,7 +1103,6 @@ impl LayoutThread {
             reflow_statistics,
             changed_web_fonts,
             lcp_candidate,
-            lcp_node_address,
         })
     }
 
@@ -1553,7 +1544,8 @@ impl LayoutThread {
             let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()
         {
             self.paint_api.send_lcp_candidate(
-                lcp_candidate,
+                lcp_candidate.id,
+                lcp_candidate.area,
                 self.webview_id,
                 self.id,
                 stacking_context_tree.paint_info.epoch,
