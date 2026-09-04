@@ -175,12 +175,16 @@ impl HTMLTrackElement {
             // > given the media element to fire an event named addtrack at the media element's
             // > textTracks attribute's TextTrackList object, using TrackEvent,
             // > with the track attribute initialized to the text track's TextTrack object.
-            parent.TextTracks(cx).add(&parent, &self.track);
+            parent.TextTracks(cx).add(cx, &self.track);
 
             // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks:start-the-track-processing-model
             // > The track element's parent element changes and the new parent is a media element.
             self.start_the_track_processing_model(cx);
         }
+    }
+
+    pub(crate) fn track(&self) -> DomRoot<TextTrack> {
+        self.track.as_rooted()
     }
 }
 
@@ -434,7 +438,7 @@ impl WebVttParserSink<JSContext> for TextTrackCueSink {
         let text_track = &element.track;
 
         let cue = VTTCue::create_from_vtt(cx, cue, global.as_window(), Some(text_track));
-        text_track.get_cues(cx).add(cue.upcast());
+        text_track.get_text_track_cue_list(cx).add(cx, cue.upcast());
     }
 }
 
