@@ -20,6 +20,7 @@ use js::rust::MutableHandleValue;
 use js::typedarray::HeapFloat32Array;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use rustc_hash::FxBuildHasher;
+use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use stylo_atoms::Atom;
@@ -91,9 +92,10 @@ pub(crate) struct XRSession {
 
     next_raf_id: Cell<i32>,
     #[ignore_malloc_size_of = "closures are hard"]
-    raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
+    raf_callback_list: DomRefCell<Vec<(i32, Option<TracedCallback<XRFrameRequestCallback>>)>>,
     #[ignore_malloc_size_of = "closures are hard"]
-    current_raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
+    current_raf_callback_list:
+        DomRefCell<Vec<(i32, Option<TracedCallback<XRFrameRequestCallback>>)>>,
     input_sources: Dom<XRInputSourceArray>,
     // Any promises from calling end()
     #[conditional_malloc_size_of]
@@ -490,8 +492,8 @@ impl XRSession {
         self.outside_raf.set(false);
         let len = self.current_raf_callback_list.borrow().len();
         for i in 0..len {
-            let callback = self.current_raf_callback_list.borrow()[i].1.clone();
-            if let Some(callback) = callback {
+            rooted!(&in(cx) let callback = self.current_raf_callback_list.borrow()[i].1.clone());
+            if let Some(ref callback) = *callback {
                 let _ = callback.Call__(cx, time, &frame, ExceptionHandling::Report);
             }
         }
@@ -796,13 +798,13 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe>
-    fn RequestAnimationFrame(&self, callback: Rc<XRFrameRequestCallback>) -> i32 {
+    fn RequestAnimationFrame(&self, callback: RootedCallback<XRFrameRequestCallback>) -> i32 {
         // queue up RAF callback, obtain ID
         let raf_id = self.next_raf_id.get();
         self.next_raf_id.set(raf_id + 1);
         self.raf_callback_list
             .borrow_mut()
-            .push((raf_id, Some(callback)));
+            .push((raf_id, Some(callback.to_traced())));
 
         raf_id
     }
