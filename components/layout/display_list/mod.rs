@@ -13,7 +13,7 @@ use fonts::ShapedTextSlice;
 use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
 use net_traits::image_cache::Image as CachedImage;
-use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
+use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo, TouchAction};
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use servo_base::text::Utf32CodeUnits;
@@ -1589,10 +1589,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             .effective_overflow(self.fragment.base.flags);
         let scrolls_via_user_input =
             |overflow| matches!(overflow, ComputedOverflow::Scroll | ComputedOverflow::Auto);
-        if (scrolls_via_user_input(overflow.x) || scrolls_via_user_input(overflow.y)) &&
-            self.fragment.style().get_inherited_ui().pointer_events !=
-                style::computed_values::pointer_events::T::None
-        {
+        let can_be_touch_scrolled =
+            scrolls_via_user_input(overflow.x) || scrolls_via_user_input(overflow.y);
+        let accepts_pointer_input = self.fragment.style().get_inherited_ui().pointer_events !=
+            style::computed_values::pointer_events::T::None;
+        if can_be_touch_scrolled && accepts_pointer_input {
             let mut inner_state = state.clone();
             inner_state.spatial_id = self
                 .fragment
@@ -1608,7 +1609,47 @@ impl<'a> BuilderForBoxFragment<'a> {
                     .translate(self.containing_block_origin.to_vector())
                     .to_webrender(),
             );
+        } else if !can_be_touch_scrolled && accepts_pointer_input {
+            // This box cannot be panned by touch itself, so the `touch-action` of
+            // itself and its ancestors (up to the nearest box that can be panned)
+            // restricts which gestures may scroll an ancestor on its behalf. Push a
+            // hit test item that carries the restriction, so that the compositor
+            // can determine the effective touch behavior of touches starting here.
+            let touch_action = state.touch_action.intersect(TouchAction::from(
+                self.fragment.style().get_box().touch_action,
+            ));
+            if touch_action != TouchAction::Auto {
+                self.build_touch_action_hit_test(builder, state, touch_action);
+            }
         }
+    }
+
+    /// Push a hit test item that carries the `touch-action` restriction of this
+    /// fragment, for fragments that cannot be panned by touch themselves. The
+    /// first component of the tag is the external scroll id of the enclosing
+    /// scroll tree node (used to find the node to scroll), while the second
+    /// component is the encoded [`TouchAction`] restriction.
+    fn build_touch_action_hit_test(
+        &self,
+        builder: &mut DisplayListBuilder,
+        state: &TraversalState,
+        touch_action: TouchAction,
+    ) {
+        let external_scroll_node_id = builder
+            .paint_info
+            .external_scroll_id_for_scroll_tree_node(state.spatial_id);
+
+        let mut common = builder.common_properties(state, self.border_rect, self.fragment.style());
+        if let Some(clip_chain_id) = self.border_edge_clip(builder, state, false) {
+            common.clip_chain_id = clip_chain_id;
+        }
+        builder.wr().push_hit_test(
+            common.clip_rect,
+            common.clip_chain_id,
+            common.spatial_id,
+            common.flags,
+            (external_scroll_node_id.0, touch_action.encode()),
+        );
     }
 
     fn build_hit_test(

@@ -15,7 +15,7 @@ use embedder_traits::{
 use euclid::{Scale, Size2D, Vector2D};
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
-use paint_api::display_list::ScrollType;
+use paint_api::display_list::{ScrollType, TouchAction};
 use paint_api::viewport_description::{
     DEFAULT_PAGE_ZOOM, MAX_PAGE_ZOOM, MIN_PAGE_ZOOM, ViewportDescription,
 };
@@ -429,7 +429,11 @@ impl WebViewRenderer {
 
         // For touch-down, capture the hit node's `touch-action` and scrollable
         // axes from the scroll tree so the pan axis-lock policy can be decided
-        // at pan-start.
+        // at pan-start. The effective touch behavior is the intersection of the
+        // `touch-action` of the scroll node (the nearest scroll container, whose
+        // own `touch-action` is stored on the node) with the restriction carried
+        // by the hit test item (the touched element and its ancestors up to that
+        // scroll container).
         if is_touch_down && let Some(hit) = &hit_test_result {
             let policy_input = self
                 .pipelines
@@ -441,7 +445,7 @@ impl WebViewRenderer {
                 })
                 .map(
                     |(touch_action, scrollable_x, scrollable_y)| PanPolicyInput {
-                        touch_action,
+                        touch_action: touch_action.intersect(hit.touch_action),
                         scrollable_x,
                         scrollable_y,
                     },
@@ -1016,6 +1020,9 @@ impl WebViewRenderer {
             // all the way through script and back here.
             point_in_viewport: Default::default(),
             external_scroll_id,
+            // This result does not correspond to a display list hit test item, so
+            // it does not carry any `touch-action` restriction of a touched element.
+            touch_action: TouchAction::Auto,
         };
 
         self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id, external_scroll_id);
