@@ -170,6 +170,13 @@ impl AllPendingLoads {
         }
     }
 
+    fn clear(&mut self) {
+        self.loads.clear();
+        self.loads.shrink_to_fit();
+        self.url_to_load_key.clear();
+        self.url_to_load_key.shrink_to_fit();
+    }
+
     // get a PendingLoad from its LoadKey.
     fn get_by_key_mut(&mut self, key: &LoadKey) -> Option<&mut PendingLoad> {
         self.loads.get_mut(key)
@@ -451,6 +458,14 @@ impl KeyCache {
             evicted_images: HashSet::new(),
         }
     }
+
+    fn clear(&mut self) {
+        self.cache = KeyCacheState::Ready(vec![]);
+        self.images_pending_keys.clear();
+        self.images_pending_keys.shrink_to_fit();
+        self.evicted_images.clear();
+        self.evicted_images.shrink_to_fit();
+    }
 }
 
 #[derive(Debug, Default, MallocSizeOf)]
@@ -458,6 +473,11 @@ impl KeyCache {
 struct SvgRasterizationTaskStore(FxHashSet<(PendingImageId, DeviceIntSize)>);
 
 impl SvgRasterizationTaskStore {
+    fn clear(&mut self) {
+        self.0.clear();
+        self.0.shrink_to_fit();
+    }
+
     /// Returns true if it is already being rasterized, otherwise false and sets it.
     fn is_or_set_being_rasterized(
         &mut self,
@@ -1347,6 +1367,8 @@ impl ImageCache for ImageCacheImpl {
 
     fn clear(&self) {
         self.store.lock().clear();
+        self.svg_id_image_id_map.lock().clear();
+        self.svg_id_image_id_map.lock().shrink_to_fit();
     }
 
     fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>> {
@@ -1400,7 +1422,12 @@ impl ImageCacheStore {
         // explicitly on pipeline close, and again on Drop (as a safeguard,
         // since we could forget to explicitly clear).
         self.completed_loads.clear();
+        self.completed_loads.shrink_to_fit();
         self.rasterized_vector_images.clear();
+        self.rasterized_vector_images.shrink_to_fit();
+        self.svg_rasterization_task_store.clear();
+        self.pending_loads.clear();
+        self.key_cache.clear();
         let _ = self.broken_image_icon_image.take();
     }
 }
