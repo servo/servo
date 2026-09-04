@@ -11,7 +11,7 @@ use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
     InputEvent, InputEventAndId, InputEventId, InputEventResult, PaintHitTestResult,
-    ScreenshotCaptureError, Scroll, ViewportDetails, WebViewPoint, WebViewRect,
+    ScreenshotCaptureError, Scroll, TouchAction, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Rect, Scale, Size2D};
 use gleam::gl::RENDERER;
@@ -584,6 +584,11 @@ impl Painter {
                     pipeline_id,
                     point_in_viewport: Point2D::from_untyped(item.point_in_viewport.to_untyped()),
                     external_scroll_id,
+                    // The second component of the tag carries the `touch-action`
+                    // restriction of the hit item, encoded by the display list
+                    // constructor. Items that do not carry a restriction decode
+                    // to `Auto`.
+                    touch_action: TouchAction::decode(item.tag.1),
                 }
             })
             .collect()
