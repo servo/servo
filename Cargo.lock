@@ -9470,7 +9470,6 @@ name = "servo-webdriver-server"
 version = "0.6.0"
 dependencies = [
  "base64 0.23.1",
- "bytes",
  "cookie 0.18.2",
  "crossbeam-channel",
  "euclid",
@@ -9488,10 +9487,8 @@ dependencies = [
  "servo-url",
  "stylo_traits",
  "time",
- "tokio",
  "url",
  "uuid",
- "warp",
  "webdriver",
 ]
 
@@ -10689,6 +10686,7 @@ dependencies = [
  "libc",
  "mio",
  "pin-project-lite",
+ "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "windows-sys 0.61.2",
@@ -11714,7 +11712,9 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "time",
+ "tokio",
  "url",
+ "warp",
 ]
 
 [[package]]
