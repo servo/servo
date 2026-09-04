@@ -20,9 +20,7 @@ use embedder_traits::{
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
-use log::debug;
-#[cfg(feature = "webgl")]
-use log::warn;
+use log::{debug, warn};
 use paint_api::rendering_context::RenderingContext;
 use paint_api::{
     PaintMessage, PaintProxy, PainterSurfmanDetails, PainterSurfmanDetailsMap,
@@ -272,22 +270,29 @@ impl Paint {
         }
 
         let painter = Painter::new(rendering_context.clone(), self);
-        let connection = rendering_context
-            .connection()
-            .expect("Failed to get connection");
-        let adapter = connection
-            .create_adapter()
-            .expect("Failed to create adapter");
-
-        let painter_surfman_details = PainterSurfmanDetails {
-            connection,
-            adapter,
-        };
-        self.painter_surfman_details_map
-            .insert(painter.painter_id, painter_surfman_details);
-
         let painter_id = painter.painter_id;
         self.painters.push(Rc::new(RefCell::new(painter)));
+
+        // These are only used to serve WebGL external images, which handles their
+        // absence from the map
+        let Some(connection) = rendering_context.connection() else {
+            warn!("The rendering context has no surfman connection, WebGL will be unavailable");
+            return painter_id;
+        };
+        let Ok(adapter) = connection.create_adapter().inspect_err(|error| {
+            warn!("Could not create a surfman adapter, WebGL will be unavailable: {error:?}")
+        }) else {
+            return painter_id;
+        };
+
+        self.painter_surfman_details_map.insert(
+            painter_id,
+            PainterSurfmanDetails {
+                connection,
+                adapter,
+            },
+        );
+
         painter_id
     }
 
