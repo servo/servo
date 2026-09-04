@@ -49,9 +49,9 @@ use script_bindings::codegen::GenericBindings::WindowBinding::{
 };
 use script_bindings::conversions::jsid_to_string;
 use script_bindings::proxyhandler::{
-    self, cross_origin_get_own_property_helper, cross_origin_own_property_keys,
-    cross_origin_property_fallback, cross_origin_set, is_extensible,
-    is_platform_object_same_origin, maybe_cross_origin_get_prototype,
+    self, CrossOriginProperties, cross_origin_get_own_property_helper,
+    cross_origin_own_property_keys, cross_origin_property_fallback, cross_origin_set,
+    is_extensible, is_platform_object_same_origin, maybe_cross_origin_get_prototype,
     maybe_cross_origin_set_prototype_rawcx, prevent_extensions, report_cross_origin_denial,
     set_property_descriptor,
 };
@@ -1191,64 +1191,6 @@ fn parse_open_feature_boolean(tokenized_features: &IndexMap<String, String>, nam
     false
 }
 
-// This is only called from extern functions,
-// there's no use using the lifetimed handles here.
-// https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
-#[expect(unsafe_code)]
-#[expect(non_snake_case)]
-unsafe fn GetSubframeWindowProxy(
-    cx: &mut JSContext,
-    proxy: RawHandleObject,
-    id: RawHandleId,
-) -> Option<(DomRoot<WindowProxy>, u32)> {
-    let index = get_array_index_from_id(unsafe { Handle::from_raw(id) });
-    if let Some(index) = index {
-        let mut slot = UndefinedValue();
-        unsafe { GetProxyPrivate(*proxy, &mut slot) };
-        rooted!(&in(cx) let target = slot.to_object());
-        let script_window_proxies = ScriptThread::window_proxies();
-        if let Ok(win) = root_from_handleobject::<Window>(cx, target.handle()) {
-            let browsing_context_id = win.window_proxy().browsing_context_id();
-            let (result_sender, result_receiver) = generic_channel::channel().unwrap();
-
-            let _ = win.as_global_scope().script_to_constellation_chan().send(
-                ScriptToConstellationMessage::GetChildBrowsingContextId(
-                    browsing_context_id,
-                    index as usize,
-                    result_sender,
-                ),
-            );
-            return result_receiver
-                .recv()
-                .ok()
-                .and_then(|maybe_bcid| maybe_bcid)
-                .and_then(|id| script_window_proxies.find_window_proxy(id))
-                .map(|proxy| (proxy, (JSPROP_ENUMERATE | JSPROP_READONLY) as u32));
-        } else if let Ok(win) =
-            root_from_handleobject::<DissimilarOriginWindow>(cx, target.handle())
-        {
-            let browsing_context_id = win.window_proxy().browsing_context_id();
-            let (result_sender, result_receiver) = generic_channel::channel().unwrap();
-
-            let _ = win.global().script_to_constellation_chan().send(
-                ScriptToConstellationMessage::GetChildBrowsingContextId(
-                    browsing_context_id,
-                    index as usize,
-                    result_sender,
-                ),
-            );
-            return result_receiver
-                .recv()
-                .ok()
-                .and_then(|maybe_bcid| maybe_bcid)
-                .and_then(|id| script_window_proxies.find_window_proxy(id))
-                .map(|proxy| (proxy, JSPROP_READONLY as u32));
-        }
-    }
-
-    None
-}
-
 #[expect(unsafe_code)]
 fn window_proxy_target(proxy: HandleObject) -> *mut JSObject {
     let mut slot = UndefinedValue();
@@ -1278,42 +1220,59 @@ unsafe extern "C" fn get_own_property_descriptor(
     let is_none = unsafe { &mut *is_none };
 
     // Step 1. Let W be the value of the [[Window]] internal slot of this.
-    // Note: This is the `proxy` argument.
+    rooted!(&in(cx) let target = window_proxy_target(proxy));
+    let window = WindowOrDissimilarOriginWindow::new(cx, target.handle());
 
     // Step 2. If P is an array index property name:
-    //
-    // TODO: The rest of Step 2 is handled in `GetSubframeWindowProxy`, though
-    // it does not discriminate between "not an index" and "index out of range"
-    // as the specification says we should.
-    let window = unsafe { GetSubframeWindowProxy(cx, proxy.into(), id.into()) };
-    if let Some((window, attrs)) = window {
-        rooted!(&in(cx) let mut val = UndefinedValue());
-        window.to_jsval(cx, val.handle_mut());
-        set_property_descriptor(property_descriptor, val.handle(), attrs, is_none);
-        return true;
+    // Step 2.1. Let index be ! ToUint32(P).
+    if let Some(index) = get_array_index_from_id(id) {
+        // Step 2.2. Let children be the document-tree child navigables of W's associated Document.
+        // Step 2.3. Let value be undefined.
+        // Step 2.4. If index is less than children's size:
+        if let Some(window_proxy) = window.window_proxy_for_child_navigable_at_index(index) {
+            // Step 2.4.1. Sort children in ascending order, with navigableA being less than
+            // navigableB if navigableA's container was inserted into W's
+            // associated Document earlier than navigableB's container was.
+            // Step 2.4.2. Set value to children[index]'s active WindowProxy.
+            //
+            // Note: These are handled by `window_proxy_for_child_navigable_at_index`.
+            rooted!(&in(cx) let mut window_proxy_jsval = UndefinedValue());
+            window_proxy.to_jsval(cx, window_proxy_jsval.handle_mut());
+
+            // 2.6. Return PropertyDescriptor { [[Value]]: value, [[Writable]]:
+            // false, [[Enumerable]]: true, [[Configurable]]: true }.
+            set_property_descriptor(
+                property_descriptor,
+                window_proxy_jsval.handle(),
+                (JSPROP_ENUMERATE | JSPROP_READONLY) as u32,
+                is_none,
+            );
+            return true;
+        } else {
+            // Step 2.5. If value is undefined:
+            *is_none = true;
+            // Step 2.5.1 If IsPlatformObjectSameOrigin(W) is true, then return
+            // undefined.
+            if is_platform_object_same_origin(cx, proxy) {
+                return true;
+            }
+            // Step 2.5.2 Throw a "SecurityError" DOMException.
+            return report_cross_origin_denial::<DomTypeHolder>(cx, id, "get");
+        }
     }
 
     // Step 3. If IsPlatformObjectSameOrigin(W) is true, then return ! OrdinaryGetOwnProperty(W, P).
-    rooted!(&in(cx) let target = window_proxy_target(proxy));
     if is_platform_object_same_origin(cx, proxy) {
         return unsafe {
             JS_GetOwnPropertyDescriptorById(cx, target.handle(), id, property_descriptor, is_none)
         };
     }
 
-    let cross_origin_properties = if root_from_handleobject::<Window>(cx, target.handle()).is_ok() {
-        unsafe { WindowBinding::CROSS_ORIGIN_PROPERTIES.get() }
-    } else if root_from_handleobject::<DissimilarOriginWindow>(cx, target.handle()).is_ok() {
-        unsafe { DissimilarOriginWindowBinding::CROSS_ORIGIN_PROPERTIES.get() }
-    } else {
-        unreachable!("WindowProxy should always be backed by some kind of window");
-    };
-
     // Step 4. Let property be CrossOriginGetOwnPropertyHelper(W, P).
     if !cross_origin_get_own_property_helper(
         cx,
         proxy,
-        cross_origin_properties,
+        window.cross_origin_properties(),
         id,
         property_descriptor.reborrow(),
         is_none,
@@ -1328,7 +1287,7 @@ unsafe extern "C" fn get_own_property_descriptor(
 
     // Step 6. If property is undefined and P is in W's document-tree child navigable target name
     // property set:
-    if let Some(named_child_navigable) = named_child_navigable(cx, proxy, id) {
+    if let Some(named_child_navigable) = window.named_child_navigable(cx, id) {
         // Step 6.1. Let value be the active WindowProxy of the named object of W with the name P.
         rooted!(&in(cx) let mut window_proxy_value = UndefinedValue());
         named_child_navigable.to_jsval(cx, window_proxy_value.handle_mut());
@@ -1439,14 +1398,19 @@ unsafe fn has_or_has_own(
     let proxy = unsafe { Handle::from_raw(proxy) };
     let id = unsafe { Handle::from_raw(id) };
 
+    rooted!(&in(cx) let target = window_proxy_target(proxy));
+    let window = WindowOrDissimilarOriginWindow::new(cx, target.handle());
+
     let (success, found) = if is_platform_object_same_origin(cx, proxy) {
-        let window = unsafe { GetSubframeWindowProxy(cx, proxy.into(), id.into()) };
-        if window.is_some() {
+        if let Some(array_index) = get_array_index_from_id(id) &&
+            window
+                .window_proxy_for_child_navigable_at_index(array_index)
+                .is_some()
+        {
             unsafe { *bp = true };
             return true;
         }
 
-        rooted!(&in(cx) let target = window_proxy_target(proxy));
         let mut found = false;
         let success = match include_prototypes {
             IncludePrototypes::Yes => unsafe {
@@ -1500,7 +1464,8 @@ unsafe extern "C" fn get(
     let return_value = unsafe { MutableHandle::from_raw(return_value) };
 
     // Step 1. Let W be the value of the [[Window]] internal slot of this.
-    // Note: This is the `proxy` argument.
+    rooted!(&in(cx) let target = window_proxy_target(proxy));
+    let window = WindowOrDissimilarOriginWindow::new(cx, target.handle());
 
     // Step 2. Check if an access between two browsing contexts should be reported, given the
     // current global object's browsing context, W's browsing context, P, and the current settings
@@ -1509,13 +1474,13 @@ unsafe extern "C" fn get(
 
     // Step 3. If IsPlatformObjectSameOrigin(W) is true, then return ? OrdinaryGet(this, P, Receiver).
     if is_platform_object_same_origin(cx, proxy) {
-        let window = unsafe { GetSubframeWindowProxy(cx, proxy.into(), id.into()) };
-        if let Some((window, _attrs)) = window {
-            window.to_jsval(cx, return_value);
+        if let Some(index) = get_array_index_from_id(id) &&
+            let Some(window_proxy) = window.window_proxy_for_child_navigable_at_index(index)
+        {
+            window_proxy.to_jsval(cx, return_value);
             return true;
         }
 
-        rooted!(&in(cx) let target = window_proxy_target(proxy));
         return unsafe { JS_ForwardGetPropertyTo(cx, target.handle(), id, receiver, return_value) };
     }
 
@@ -1636,15 +1601,18 @@ unsafe extern "C" fn delete(
     let id = unsafe { Handle::from_raw(id) };
 
     // Step 1. Let W be the value of the [[Window]] internal slot of this.
-    // Note: This is the `proxy` argument.
+    rooted!(&in(cx) let target = window_proxy_target(proxy));
+    let window = WindowOrDissimilarOriginWindow::new(cx, target.handle());
 
     // Step 2. If IsPlatformObjectSameOrigin(W) is true:
     if is_platform_object_same_origin(cx, proxy) {
         // Step 2.1 If P is an array index property name:
-        if get_array_index_from_id(id).is_some() {
+        if let Some(array_index) = get_array_index_from_id(id) {
             // Step 2.1.1. Let desc be ! this.[[GetOwnProperty]](P).
-            let window = unsafe { GetSubframeWindowProxy(cx, proxy.into(), id.into()) };
-            let code = if window.is_none() {
+            let code = if window
+                .window_proxy_for_child_navigable_at_index(array_index)
+                .is_none()
+            {
                 // Step 2.1.2. If desc is undefined, then return true.
                 0 /* OkCode */
             } else {
@@ -1678,27 +1646,15 @@ unsafe extern "C" fn own_property_keys(
     let proxy = unsafe { Handle::from_raw(proxy) };
 
     // Step 1. Let W be the value of the [[Window]] internal slot of this.
-    // Note: This is the `proxy` argument.
+    rooted!(&in(cx) let target = window_proxy_target(proxy));
+    let window = WindowOrDissimilarOriginWindow::new(cx, target.handle());
 
     // Step 2. Let maxProperties be W's associated Document's document-tree child navigables's
     // size.
-    rooted!(&in(cx) let target = window_proxy_target(proxy));
-    let (max_properties, cross_origin_properties) = if let Ok(window) =
-        root_from_handleobject::<Window>(cx, target.handle())
-    {
-        (window.Length(), unsafe {
-            WindowBinding::CROSS_ORIGIN_PROPERTIES.get()
-        })
-    } else if let Ok(window) = root_from_handleobject::<DissimilarOriginWindow>(cx, target.handle())
-    {
-        // TODO: DissimilarOriginWindow currently always returns 0 for the length, so
-        // this has the effect of not exposing any indexable attributes.
-        (window.Length(), unsafe {
-            DissimilarOriginWindowBinding::CROSS_ORIGIN_PROPERTIES.get()
-        })
-    } else {
-        unreachable!("WindowProxy should always be backed by some kind of window");
-    };
+    //
+    // TODO: DissimilarOriginWindow currently always returns 0 for the length,
+    // so this has the effect of not exposing any indexable attributes.
+    let max_properties = window.iframe_count();
 
     // Step 3. Let keys be the range 0 to maxProperties, exclusive.
     rooted!(&in(cx) let mut rooted_index_jsid: jsid);
@@ -1721,46 +1677,7 @@ unsafe extern "C" fn own_property_keys(
     }
 
     // Step 5. Return the concatenation of keys and ! CrossOriginOwnPropertyKeys(W).
-    cross_origin_own_property_keys(cx, proxy, cross_origin_properties, property_keys)
-}
-
-/// <https://html.spec.whatwg.org/multipage/#document-tree-child-navigable-target-name-property-set>
-///
-/// > The document-tree child navigable target name property set of a Window object window is the
-/// > return value of running these steps:
-///
-/// > Step 1. Let children be the document-tree child navigables of window's associated Document.
-/// > Step 2. Let firstNamedChildren be an empty ordered set.
-/// > Step 3. For each navigable of children:
-/// > Step 3.1. Let name be navigable's target name.
-/// > Step 3.2. If name is the empty string, then continue.
-/// > Step 3.3. If firstNamedChildren contains a navigable whose target name is name, then continue.
-/// > Step 3.4. Append navigable to firstNamedChildren.
-/// > Step 4. Let names be an empty ordered set.
-/// > Step 5. For each navigable of firstNamedChildren:
-/// > Step 5.1. Let name be navigable's target name.
-/// > Step 5.2. If navigable's active document's origin is same origin with window's relevant settings
-/// > object's origin, then append name to names.
-/// > Step 6. Return names.
-///
-/// We don't implement these steps exactly, but we effectively do them using iterators below.
-fn named_child_navigable(
-    cx: &mut CurrentRealm,
-    proxy: HandleObject,
-    id: HandleId,
-) -> Option<DomRoot<WindowProxy>> {
-    let name = jsid_to_string(cx, id)?;
-    if name.is_empty() {
-        return None;
-    }
-    rooted!(&in(cx) let target = window_proxy_target(proxy));
-    let window = root_from_handleobject::<Window>(cx, target.handle()).ok()?;
-    window
-        .Document()
-        .iframes()
-        .iter()
-        .filter_map(|iframe| iframe.GetContentWindow())
-        .find(|window_proxy| window_proxy.get_name() == name)
+    cross_origin_own_property_keys(cx, proxy, window.cross_origin_properties(), property_keys)
 }
 
 static PROXY_TRAPS: ProxyTraps = ProxyTraps {
@@ -1891,4 +1808,120 @@ unsafe extern "C" fn trace(trc: *mut JSTracer, obj: *mut JSObject) {
         return;
     }
     unsafe { (*this).trace(trc) };
+}
+
+/// A wrapper class for either a [`Window`] or [`DissimilarOriginWindow`] that
+/// exposes a consistent interface for both of them.
+enum WindowOrDissimilarOriginWindow {
+    Window(DomRoot<Window>),
+    DissimilarOriginWindow(DomRoot<DissimilarOriginWindow>),
+}
+
+impl WindowOrDissimilarOriginWindow {
+    fn new(cx: &mut JSContext, handle_object: HandleObject) -> Self {
+        if let Ok(window) = root_from_handleobject::<Window>(cx, handle_object) {
+            Self::Window(window)
+        } else if let Ok(window) =
+            root_from_handleobject::<DissimilarOriginWindow>(cx, handle_object)
+        {
+            Self::DissimilarOriginWindow(window)
+        } else {
+            unreachable!("WindowProxy should always be backed by some kind of window");
+        }
+    }
+
+    fn global_scope(&self) -> DomRoot<GlobalScope> {
+        match self {
+            WindowOrDissimilarOriginWindow::Window(window) => window.global(),
+            WindowOrDissimilarOriginWindow::DissimilarOriginWindow(window) => window.global(),
+        }
+    }
+
+    fn window_proxy(&self) -> DomRoot<WindowProxy> {
+        match self {
+            WindowOrDissimilarOriginWindow::Window(window) => window.window_proxy(),
+            WindowOrDissimilarOriginWindow::DissimilarOriginWindow(window) => window.window_proxy(),
+        }
+    }
+
+    #[expect(unsafe_code)]
+    fn cross_origin_properties(&self) -> &'static CrossOriginProperties {
+        match self {
+            WindowOrDissimilarOriginWindow::Window(..) => unsafe {
+                WindowBinding::CROSS_ORIGIN_PROPERTIES.get()
+            },
+            WindowOrDissimilarOriginWindow::DissimilarOriginWindow(..) => unsafe {
+                DissimilarOriginWindowBinding::CROSS_ORIGIN_PROPERTIES.get()
+            },
+        }
+    }
+
+    fn iframe_count(&self) -> u32 {
+        match self {
+            WindowOrDissimilarOriginWindow::Window(window) => window.Length(),
+            WindowOrDissimilarOriginWindow::DissimilarOriginWindow(window) => window.Length(),
+        }
+    }
+
+    fn window_proxy_for_child_navigable_at_index(
+        &self,
+        index: u32,
+    ) -> Option<DomRoot<WindowProxy>> {
+        let browsing_context_id = self.window_proxy().browsing_context_id();
+        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+        let _ = self.global_scope().script_to_constellation_chan().send(
+            ScriptToConstellationMessage::GetChildBrowsingContextId(
+                browsing_context_id,
+                index as usize,
+                result_sender,
+            ),
+        );
+        result_receiver
+            .recv()
+            .ok()
+            .flatten()
+            .and_then(|id| ScriptThread::window_proxies().find_window_proxy(id))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#document-tree-child-navigable-target-name-property-set>
+    ///
+    /// > The document-tree child navigable target name property set of a Window object window is the
+    /// > return value of running these steps:
+    ///
+    /// > Step 1. Let children be the document-tree child navigables of window's associated Document.
+    /// > Step 2. Let firstNamedChildren be an empty ordered set.
+    /// > Step 3. For each navigable of children:
+    /// > Step 3.1. Let name be navigable's target name.
+    /// > Step 3.2. If name is the empty string, then continue.
+    /// > Step 3.3. If firstNamedChildren contains a navigable whose target name is name, then continue.
+    /// > Step 3.4. Append navigable to firstNamedChildren.
+    /// > Step 4. Let names be an empty ordered set.
+    /// > Step 5. For each navigable of firstNamedChildren:
+    /// > Step 5.1. Let name be navigable's target name.
+    /// > Step 5.2. If navigable's active document's origin is same origin with window's relevant settings
+    /// > object's origin, then append name to names.
+    /// > Step 6. Return names.
+    ///
+    /// We don't implement these steps exactly, but we effectively do them using iterators below.
+    fn named_child_navigable(
+        &self,
+        cx: &mut CurrentRealm,
+        id: HandleId,
+    ) -> Option<DomRoot<WindowProxy>> {
+        // TODO: We cannot yet enumerate cross-origin child navigable target names.
+        let Self::Window(window) = &self else {
+            return None;
+        };
+
+        let name = jsid_to_string(cx, id)?;
+        if name.is_empty() {
+            return None;
+        }
+        window
+            .Document()
+            .iframes()
+            .iter()
+            .filter_map(|iframe| iframe.GetContentWindow())
+            .find(|window_proxy| window_proxy.get_name() == name)
+    }
 }
