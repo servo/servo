@@ -9,7 +9,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 
 use dpi::PhysicalSize;
 use embedder_traits::UrlRequest;
@@ -1219,4 +1219,55 @@ fn test_webview_title_updates_when_title_element_is_created_from_javascript() {
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
     assert_eq!(webview.page_title().as_deref(), Some("Success"));
+}
+
+#[test]
+fn test_webview_clear_history() {
+    let session_history_changed = Arc::new(AtomicBool::new(false));
+    struct MyDelegate(Arc<AtomicBool>);
+    impl WebViewDelegate for MyDelegate {
+        fn notify_history_changed(&self, _webview: WebView, _entries: Vec<Url>, _current: usize) {
+            self.0.store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(MyDelegate(session_history_changed.clone()));
+
+    let url_1 = Url::parse("data:text/html,<body><title>Success</title></body>").unwrap();
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url_1)
+        .build();
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success".into()));
+    }
+    webview.load(Url::parse("data:text/html,<script>document.title='Success2';</script>").unwrap());
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success2".into()));
+    }
+
+    webview.load(Url::parse("data:text/html,<script>document.title='Success3';</script>").unwrap());
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success3".into()));
+    }
+
+    assert!(webview.can_go_back());
+
+    webview.go_back(1);
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success2".into()));
+    }
+
+    session_history_changed.store(false, std::sync::atomic::Ordering::SeqCst);
+    webview.clear_session_history();
+
+    servo_test.spin(move || !session_history_changed.load(std::sync::atomic::Ordering::SeqCst));
+
+    assert!(!webview.can_go_back());
+    assert!(!webview.can_go_forward());
 }
