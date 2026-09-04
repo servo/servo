@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::mpsc::Sender;
@@ -102,6 +103,10 @@ impl AudioNodeEngine for MediaElementSourceNode {
 
     fn input_count(&self) -> u32 {
         0
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 
     make_message_handler!(MediaElementSourceNode: handle_message);

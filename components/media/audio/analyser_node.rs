@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::cmp;
 use std::f32::consts::PI;
 use std::sync::{Arc, OnceLock};
@@ -46,6 +47,10 @@ impl AudioNodeEngine for AnalyserNode {
 
         // analyser node doesn't modify the inputs
         inputs
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 

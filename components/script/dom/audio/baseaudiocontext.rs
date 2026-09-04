@@ -16,6 +16,7 @@ use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
+use script_bindings::codegen::GenericBindings::DelayNodeBinding::{DelayNodeMethods, DelayOptions};
 use script_bindings::codegen::GenericBindings::PeriodicWaveBinding::PeriodicWaveMethods;
 use servo_base::id::PipelineId;
 use servo_media::audio::context::{
@@ -368,6 +369,25 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain>
     fn CreateGain(&self, cx: &mut JSContext) -> Fallible<DomRoot<GainNode>> {
         GainNode::new(cx, self.global().as_window(), self, &GainOptions::empty())
+    }
+
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createdelay>
+    fn CreateDelay(
+        &self,
+        cx: &mut JSContext,
+        max_delay_time: Finite<f64>,
+    ) -> Fallible<DomRoot<DelayNode>> {
+        // <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createdelay-maxdelaytime-maxdelaytime>
+        // Specifies the maximum delay time in seconds allowed for the delay line.
+        // If specified, this value MUST be greater than zero and less than three minutes.
+        if *max_delay_time <= 0. || *max_delay_time > 180. {
+            return Err(Error::NotSupported(Some(String::from(
+                "maxDelayTime is not within 0 - 3 minutes",
+            ))));
+        }
+        let mut options = DelayOptions::empty();
+        options.maxDelayTime = max_delay_time;
+        DelayNode::Constructor(cx, self.global().as_window(), None, self, &options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner>
