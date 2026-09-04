@@ -4,30 +4,35 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_webgpu::gpuconvert::WebGPUTryConvert;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUIndexFormat, GPURenderPassEncoderMethods, GPURenderPassEncoderWrap,
+};
+use script_bindings::codegen::GenericUnionTypes::DoubleSequenceOrGPUColorDict as GPUColor;
+use script_bindings::error::Fallible;
+use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
+use script_bindings::root::DomRoot;
 use webgpu_traits::{RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUColor, GPUIndexFormat, GPURenderPassEncoderMethods,
-};
-use crate::dom::bindings::error::Fallible;
+use crate::JSTraceable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::str::USVString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::webgpu::gpubindgroup::GPUBindGroup;
-use crate::dom::webgpu::gpubuffer::GPUBuffer;
-use crate::dom::webgpu::gpucommandencoder::GPUCommandEncoder;
-use crate::dom::webgpu::gpurenderbundle::GPURenderBundle;
-use crate::dom::webgpu::gpurenderpipeline::GPURenderPipeline;
+use crate::gpubindgroup::GPUBindGroup;
+use crate::gpubuffer::GPUBuffer;
+use crate::gpucommandencoder::GPUCommandEncoder;
+use crate::gpuconvert::WebGPUTryConvert;
+use crate::gpurenderbundle::GPURenderBundle;
+use crate::gpurenderpipeline::GPURenderPipeline;
+use crate::traits::{Equivalence, GPUDeviceTrait, GPUExternalTextureTrait, WebGPUGlobalTrait};
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 struct DroppableGPURenderPassEncoder {
-    #[no_trace]
     channel: WebGPU,
-    #[no_trace]
     render_pass: WebGPURenderPass,
 }
 
@@ -43,18 +48,24 @@ impl Drop for DroppableGPURenderPassEncoder {
     }
 }
 #[dom_struct]
-pub(crate) struct GPURenderPassEncoder {
+pub struct GPURenderPassEncoder<D: DomTypes> {
     reflector_: Reflector,
     label: DomRefCell<USVString>,
-    command_encoder: Dom<GPUCommandEncoder>,
+    command_encoder: Dom<GPUCommandEncoder<D>>,
+    #[no_trace]
     droppable: DroppableGPURenderPassEncoder,
 }
 
-impl GPURenderPassEncoder {
+impl<D> GPURenderPassEncoder<D>
+where
+    D: Equivalence,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+{
     fn new_inherited(
         channel: WebGPU,
         render_pass: WebGPURenderPass,
-        parent: &GPUCommandEncoder,
+        parent: &GPUCommandEncoder<D>,
         label: USVString,
     ) -> Self {
         Self {
@@ -70,14 +81,13 @@ impl GPURenderPassEncoder {
 
     pub(crate) fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         channel: WebGPU,
         render_pass: WebGPURenderPass,
-        parent: &GPUCommandEncoder,
+        parent: &GPUCommandEncoder<D>,
         label: USVString,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
-            cx,
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPURenderPassEncoder::new_inherited(
                 channel,
                 render_pass,
@@ -85,6 +95,8 @@ impl GPURenderPassEncoder {
                 label,
             )),
             global,
+            cx,
+            GPURenderPassEncoderWrap::<D>,
         )
     }
 
@@ -104,13 +116,20 @@ impl GPURenderPassEncoder {
     }
 }
 
-impl GPURenderPassEncoder {
+impl<D: DomTypes> GPURenderPassEncoder<D> {
     pub(crate) fn id(&self) -> WebGPURenderPass {
         self.droppable.render_pass
     }
 }
 
-impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder {
+impl<D> GPURenderPassEncoderMethods<D> for GPURenderPassEncoder<D>
+where
+    D: Equivalence,
+    D::Promise: PromiseHelpers<D>,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GPUExternalTexture: GPUExternalTextureTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
@@ -122,7 +141,7 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
-    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, offsets: Vec<u32>) {
+    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup<D>, offsets: Vec<u32>) {
         self.send_render_command(RenderCommand::SetBindGroup {
             index,
             bind_group_id: bind_group.id().0,
@@ -182,14 +201,14 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline>
-    fn SetPipeline(&self, pipeline: &GPURenderPipeline) {
+    fn SetPipeline(&self, pipeline: &GPURenderPipeline<D>) {
         self.send_render_command(RenderCommand::SetPipeline(pipeline.id().0))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurendercommandsmixin-setindexbuffer>
     fn SetIndexBuffer(
         &self,
-        buffer: &GPUBuffer,
+        buffer: &GPUBuffer<D>,
         index_format: GPUIndexFormat,
         offset: u64,
         size: u64,
@@ -206,7 +225,7 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
-    fn SetVertexBuffer(&self, slot: u32, buffer: Option<&GPUBuffer>, offset: u64, size: u64) {
+    fn SetVertexBuffer(&self, slot: u32, buffer: Option<&GPUBuffer<D>>, offset: u64, size: u64) {
         self.send_render_command(RenderCommand::SetVertexBuffer {
             slot,
             buffer_id: buffer.map(|b| b.id().0),
@@ -244,7 +263,7 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindirect>
-    fn DrawIndirect(&self, buffer: &GPUBuffer, offset: u64) {
+    fn DrawIndirect(&self, buffer: &GPUBuffer<D>, offset: u64) {
         self.send_render_command(RenderCommand::DrawIndirect {
             buffer_id: buffer.id().0,
             offset,
@@ -252,7 +271,7 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect>
-    fn DrawIndexedIndirect(&self, buffer: &GPUBuffer, offset: u64) {
+    fn DrawIndexedIndirect(&self, buffer: &GPUBuffer<D>, offset: u64) {
         self.send_render_command(RenderCommand::DrawIndexedIndirect {
             buffer_id: buffer.id().0,
             offset,
@@ -260,7 +279,7 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-executebundles>
-    fn ExecuteBundles(&self, bundles: Vec<DomRoot<GPURenderBundle>>) {
+    fn ExecuteBundles(&self, bundles: Vec<DomRoot<GPURenderBundle<D>>>) {
         let bundle_ids: Vec<_> = bundles.iter().map(|b| b.id().0).collect();
         self.send_render_command(RenderCommand::ExecuteBundles(bundle_ids))
     }

@@ -185,17 +185,14 @@ where
     pub fn channel(&self) -> WebGPU {
         self.droppable.channel.clone()
     }
-
-    fn global(&self) -> DomRoot<D::GlobalScope> {
-        <Self as DomGlobalGeneric<D>>::global_from_reflector(self)
-    }
 }
 
 impl<D> GPUAdapterMethods<D> for GPUAdapter<D>
 where
     D: Equivalence,
     D::Promise: WebGPUPromiseTrait<D> + PromiseHelpers<D>,
-    D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+    Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
     fn RequestDevice(
@@ -242,9 +239,15 @@ where
             trace: wgpu_types::Trace::Off,
             experimental_features: ExperimentalFeatures::disabled(),
         };
-        let device_id = self.global().global_wgpu_id_hub().create_device_id();
-        let queue_id = self.global().global_wgpu_id_hub().create_queue_id();
-        let pipeline_id = self.global().pipeline_id();
+        let device_id = self
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_device_id();
+        let queue_id = self
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_queue_id();
+        let pipeline_id = self.global_from_reflector().pipeline_id();
         if self
             .droppable
             .channel

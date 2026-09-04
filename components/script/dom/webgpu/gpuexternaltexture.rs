@@ -286,7 +286,7 @@ impl GPUExternalTextureMethods<crate::DomTypeHolder> for GPUExternalTexture {
     }
 }
 
-impl GPUExternalTextureTrait for GPUExternalTexture {
+impl GPUExternalTextureTrait<crate::DomTypeHolder> for GPUExternalTexture {
     fn id(&self) -> WebGPUExternalTexture {
         self.id()
     }

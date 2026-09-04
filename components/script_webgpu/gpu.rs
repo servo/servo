@@ -52,10 +52,6 @@ impl<D: Equivalence> GPU<D> {
             GPUWrap::<D>,
         )
     }
-
-    fn global(&self) -> DomRoot<D::GlobalScope> {
-        <D::GPU as DomGlobalGeneric<D>>::global_from_reflector(self)
-    }
 }
 
 impl<D> GPUMethods<D> for GPU<D>
@@ -64,6 +60,7 @@ where
     D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D>,
     D::GPU: DomGlobalGeneric<D>,
     D::GlobalScope: WebGPUGlobalTrait,
+    Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter>
     fn RequestAdapter(
@@ -71,7 +68,7 @@ where
         cx: &mut CurrentRealm,
         options: &GPURequestAdapterOptions,
     ) -> Rc<D::Promise> {
-        let global = &self.global();
+        let global = self.global_from_reflector();
         // 1. Let promise be a new promise.
         let promise = D::Promise::new_in_realm(cx);
         let callback = D::Promise::callback_promise_gpu(&promise, self);
@@ -145,6 +142,6 @@ where
         cx: &mut js::context::JSContext,
     ) -> DomRoot<WGSLLanguageFeatures<D>> {
         self.wgsl_language_features
-            .or_init(|| WGSLLanguageFeatures::new(cx, &*self.global(), None))
+            .or_init(|| WGSLLanguageFeatures::new(cx, &*self.global_from_reflector(), None))
     }
 }

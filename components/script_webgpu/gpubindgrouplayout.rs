@@ -15,7 +15,6 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUBindGroupLayoutDescriptor, GPUBindGroupLayoutMethods, GPUBindGroupLayoutWrap,
 };
-use script_bindings::interfaces::GlobalScopeHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{WebGPU, WebGPUBindGroupLayout, WebGPURequest};
 use wgpu_core::binding_model::BindGroupLayoutDescriptor;
@@ -99,7 +98,7 @@ impl<D> GPUBindGroupLayout<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
 {
     pub fn id(&self) -> WebGPUBindGroupLayout {
         self.droppable.bind_group_layout

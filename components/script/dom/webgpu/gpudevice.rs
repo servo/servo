@@ -14,6 +14,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUAdapterMethods;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
+use script_webgpu::PipelineLayout;
 use script_webgpu::gpuconvert::WebGPUConvert;
 use script_webgpu::traits::GPUDeviceTrait;
 use webgpu_traits::{
@@ -21,7 +22,6 @@ use webgpu_traits::{
     WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
     WebGPURenderPipelineResponse, WebGPURequest,
 };
-use wgpu_core::id::PipelineLayoutId;
 use wgpu_core::pipeline as wgpu_pipe;
 use wgpu_core::pipeline::RenderPipelineDescriptor;
 use wgpu_types::{self, TextureFormat};
@@ -107,20 +107,6 @@ pub(crate) struct GPUDevice {
     lost_promise: DomRefCell<Rc<Promise>>,
     valid: Cell<bool>,
     droppable: DroppableGPUDevice,
-}
-
-pub(crate) enum PipelineLayout {
-    Implicit,
-    Explicit(PipelineLayoutId),
-}
-
-impl PipelineLayout {
-    pub(crate) fn explicit(&self) -> Option<PipelineLayoutId> {
-        match self {
-            PipelineLayout::Explicit(layout_id) => Some(*layout_id),
-            PipelineLayout::Implicit => None,
-        }
-    }
 }
 
 impl GPUDevice {
@@ -798,5 +784,18 @@ impl GPUDeviceTrait<crate::DomTypeHolder> for GPUDevice {
         gpu_texture_format: &GPUTextureFormat,
     ) -> Fallible<TextureFormat> {
         self.validate_texture_format_required_features(gpu_texture_format)
+    }
+
+    fn get_pipeline_layout_data(
+        &self,
+        layout: &script_bindings::codegen::GenericUnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode<
+            crate::DomTypeHolder,
+        >,
+    ) -> PipelineLayout {
+        self.get_pipeline_layout_data(layout)
+    }
+
+    fn queue_id(&self) -> WebGPUQueue {
+        self.queue_id()
     }
 }
