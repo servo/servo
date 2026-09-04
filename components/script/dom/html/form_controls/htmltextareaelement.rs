@@ -272,26 +272,29 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 
     fn maybe_update_shared_selection(&self) {
-        let mut text_input = self.textinput.borrow_mut();
-        let selection_range = text_input.selection_start()..text_input.selection_end();
-        let enabled = self.upcast::<Element>().focus_state();
+        let selection = {
+            let mut text_input = self.textinput.borrow_mut();
+            let selection_range = text_input.selection_start()..text_input.selection_end();
+            let enabled = self.upcast::<Element>().focus_state();
 
-        let range_remained_equal = selection_range == text_input.previous_selection_range;
-        if range_remained_equal && enabled == text_input.selection_for_layout.is_some() {
-            return;
-        }
+            let range_remained_equal = selection_range == text_input.previous_selection_range;
+            if range_remained_equal && enabled == text_input.selection_for_layout.is_some() {
+                return;
+            }
 
-        if !range_remained_equal {
-            // https://w3c.github.io/selection-api/#selectionchange-event
-            // > When an input or textarea element provide a text selection and its selection changes
-            // > (in either extent or direction),
-            // > the user agent must schedule a selectionchange event on the element.
-            self.schedule_a_selection_change_event();
-        }
+            if !range_remained_equal {
+                // https://w3c.github.io/selection-api/#selectionchange-event
+                // > When an input or textarea element provide a text selection and its selection changes
+                // > (in either extent or direction),
+                // > the user agent must schedule a selectionchange event on the element.
+                self.schedule_a_selection_change_event();
+            }
 
-        let selection = enabled.then(|| text_input.sorted_selection_character_offsets_range());
-        text_input.previous_selection_range = selection_range;
-        text_input.selection_for_layout = selection;
+            let selection = enabled.then(|| text_input.sorted_selection_character_offsets_range());
+            text_input.previous_selection_range = selection_range;
+            text_input.selection_for_layout = selection;
+            selection
+        };
 
         if self
             .text_input_widget
