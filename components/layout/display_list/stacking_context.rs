@@ -201,6 +201,7 @@ impl StackingContextTree {
                 // to process it, if it is.
                 StackingContextBuildMode::IncludeHoisted,
                 &text_decorations,
+                TouchAction::Auto,
             );
         }
 
@@ -385,6 +386,10 @@ pub struct StackingContext {
     #[conditional_malloc_size_of]
     pub(crate) text_decorations: Rc<Vec<FragmentTextDecoration>>,
 
+    /// The `touch-action` restriction of the box tree at this stacking context's
+    /// establishing fragment (exclusive), captured while the tree was built.
+    pub(crate) touch_action: TouchAction,
+
     /// If this [`StackingContext`] also created a WebRender reference frame, this field
     /// holds information about that reference frame.
     pub(crate) reference_frame_info: Option<StackingContextReferenceFrameInfo>,
@@ -401,6 +406,7 @@ impl StackingContext {
             clip_id: ClipId::INVALID,
             z_index: 0,
             text_decorations: Default::default(),
+            touch_action: TouchAction::Auto,
             reference_frame_info: None,
         }
     }
@@ -414,6 +420,7 @@ impl StackingContext {
         clip_id: ClipId,
         initializing_fragment: Arc<BoxFragment>,
         text_decorations: Rc<Vec<FragmentTextDecoration>>,
+        touch_action: TouchAction,
         reference_frame_info: Option<StackingContextReferenceFrameInfo>,
     ) -> Self {
         let z_index = initializing_fragment
@@ -428,6 +435,7 @@ impl StackingContext {
             clip_id,
             z_index,
             text_decorations,
+            touch_action,
             reference_frame_info,
         }
     }
@@ -480,6 +488,7 @@ impl Fragment {
         stacking_context: &mut StackingContext,
         mode: StackingContextBuildMode,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        touch_action: TouchAction,
     ) {
         let containing_block = containing_block_info.get_containing_block_for_fragment(self);
         let cumulative_containing_block = containing_block
@@ -515,6 +524,7 @@ impl Fragment {
                     containing_block_info,
                     stacking_context,
                     text_decorations,
+                    touch_action,
                 );
             },
             Fragment::LayoutRoot(..) => {
@@ -534,6 +544,7 @@ impl Fragment {
                     stacking_context,
                     StackingContextBuildMode::IncludeHoisted,
                     &Default::default(),
+                    touch_action,
                 );
             },
             Fragment::Positioning(fragment) => {
@@ -543,6 +554,7 @@ impl Fragment {
                     containing_block_info,
                     stacking_context,
                     text_decorations,
+                    touch_action,
                 );
             },
             Fragment::Text(_) | Fragment::Image(_) | Fragment::IFrame(_) => {},
@@ -589,6 +601,7 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        touch_action: TouchAction,
     ) {
         self.clear_stacking_context_tree_traversal_data();
         self.build_stacking_context_tree_maybe_creating_reference_frame(
@@ -598,6 +611,7 @@ impl BoxFragment {
             containing_block_info,
             parent_stacking_context,
             text_decorations,
+            touch_action,
         );
     }
 
@@ -609,6 +623,7 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        touch_action: TouchAction,
     ) {
         let reference_frame_data =
             match self.reference_frame_data_if_necessary(&containing_block.rect) {
@@ -621,6 +636,7 @@ impl BoxFragment {
                         containing_block_info,
                         parent_stacking_context,
                         text_decorations,
+                        touch_action,
                         None, /* reference_frame_info */
                     );
                 },
@@ -684,6 +700,7 @@ impl BoxFragment {
             &new_containing_block_info,
             parent_stacking_context,
             text_decorations,
+            touch_action,
             Some(reference_frame_info),
         );
     }
@@ -697,6 +714,7 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        touch_action: TouchAction,
         reference_frame_info: Option<StackingContextReferenceFrameInfo>,
     ) {
         let with_style = &self.with_style();
@@ -708,6 +726,7 @@ impl BoxFragment {
                 containing_block_info,
                 parent_stacking_context,
                 text_decorations,
+                touch_action,
             );
             return;
         };
@@ -768,6 +787,7 @@ impl BoxFragment {
             containing_block.clip_id,
             box_fragment,
             text_decorations.clone(),
+            touch_action,
             reference_frame_info,
         );
         with_style.build_stacking_context_tree_for_children(
@@ -776,6 +796,7 @@ impl BoxFragment {
             containing_block_info,
             &mut child_stacking_context,
             text_decorations,
+            touch_action,
         );
 
         let mut stolen_children = vec![];
@@ -803,6 +824,7 @@ impl BoxFragmentWithStyle<'_> {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        touch_action: TouchAction,
     ) {
         let style = self.style();
         let establishes_containing_block_for_all_descendants =
@@ -917,6 +939,19 @@ impl BoxFragmentWithStyle<'_> {
             },
         };
 
+        // The `touch-action` restriction for descendants of this box, reset when this
+        // box can be panned by touch itself.
+        let children_touch_action = {
+            let overflow = style.effective_overflow(self.base.flags);
+            let scrolls_via_user_input =
+                |overflow| matches!(overflow, ComputedOverflow::Scroll | ComputedOverflow::Auto);
+            if scrolls_via_user_input(overflow.x) || scrolls_via_user_input(overflow.y) {
+                TouchAction::Auto
+            } else {
+                touch_action.intersect(TouchAction::from(style.get_box().touch_action))
+            }
+        };
+
         for child in &self.children {
             child.build_stacking_context_tree(
                 stacking_context_tree,
@@ -924,6 +959,7 @@ impl BoxFragmentWithStyle<'_> {
                 stacking_context,
                 StackingContextBuildMode::SkipHoisted,
                 text_decorations,
+                children_touch_action,
             );
         }
     }
@@ -1426,6 +1462,7 @@ impl PositioningFragment {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        touch_action: TouchAction,
     ) {
         let rect = self
             .base
@@ -1442,6 +1479,7 @@ impl PositioningFragment {
                 stacking_context,
                 StackingContextBuildMode::SkipHoisted,
                 text_decorations,
+                touch_action,
             );
         }
     }
