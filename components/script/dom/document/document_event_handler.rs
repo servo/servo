@@ -142,6 +142,13 @@ impl ClickCountingInfo {
     }
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct LegacyMouseCapture {
+    element: Dom<Element>,
+    retarget_to_element: bool,
+}
+
 /// The [`DocumentEventHandler`] is a structure responsible for handling input events for
 /// the [`crate::Document`] and storing data related to event handling. It exists to
 /// decrease the size of the [`crate::Document`] structure.
@@ -213,6 +220,8 @@ pub(crate) struct DocumentEventHandler {
     /// The current drag gesture, if one exists. Events that affect this drag
     /// gesture will be forwarded to it.
     drag_gesture: DomRefCell<Option<DragGesture>>,
+    /// Active legacy mouse capture.
+    legacy_mouse_capture: DomRefCell<Option<LegacyMouseCapture>>,
 }
 
 impl DocumentEventHandler {
@@ -240,6 +249,7 @@ impl DocumentEventHandler {
             pending_pointer_capture: Default::default(),
             pointer_capture_target: Default::default(),
             drag_gesture: Default::default(),
+            legacy_mouse_capture: Default::default(),
         }
     }
 
@@ -763,14 +773,19 @@ impl DocumentEventHandler {
         // If pointer capture is active, retarget the pointer/mouse events to
         // the capture element. Boundary events (pointerover/out/enter/leave)
         // already fired above use the actual hit-test target.
-        let pointer_target = self
-            .get_pointer_capture_target(pointer_id)
-            .map(DomRoot::upcast::<EventTarget>)
-            .unwrap_or_else(|| DomRoot::from_ref(new_target.upcast::<EventTarget>()));
+        let capture_target = self
+            .get_legacy_mouse_capture_target(&new_target)
+            .or_else(|| self.get_pointer_capture_target(pointer_id))
+            .map(DomRoot::upcast::<EventTarget>);
 
         let pointer_event = mouse_event.to_pointer_event(cx, Atom::from("pointermove"));
         pointer_event.upcast::<Event>().set_composed(true);
-        pointer_event.upcast::<Event>().fire(cx, &pointer_target);
+        match &capture_target {
+            Some(target) => pointer_event.upcast::<Event>().fire(cx, target),
+            None => pointer_event
+                .upcast::<Event>()
+                .fire(cx, new_target.upcast()),
+        };
 
         // Process pending pointer capture after firing event, but skip if we just
         // released a disconnected capture to avoid immediately re-capturing.
@@ -779,8 +794,12 @@ impl DocumentEventHandler {
             self.process_pending_pointer_capture(cx, pointer_id, "mouse", true);
         }
 
-        // Send mousemove event. Routed to the capture target when capture is active.
-        mouse_event.upcast::<Event>().fire(cx, &pointer_target);
+        // Send mousemove event, retargeted to the capture target when capture is
+        // active.
+        match &capture_target {
+            Some(target) => mouse_event.upcast::<Event>().fire(cx, target),
+            None => mouse_event.upcast::<Event>().fire(cx, new_target.upcast()),
+        };
 
         self.update_current_hover_target_and_status(cx.no_gc(), Some(new_target));
     }
@@ -1026,17 +1045,19 @@ impl DocumentEventHandler {
                     self.release_disconnected_pointer_capture(cx, pointer_id, "mouse", true);
 
                 // Get the current capture target (before processing pending changes)
-                let pointer_target = self
-                    .get_pointer_capture_target(pointer_id)
-                    .map(DomRoot::upcast::<EventTarget>)
-                    .unwrap_or_else(|| DomRoot::from_ref(node.upcast::<EventTarget>()));
+                let capture_target = self
+                    .get_legacy_mouse_capture_target(&element)
+                    .or_else(|| self.get_pointer_capture_target(pointer_id))
+                    .map(DomRoot::upcast::<EventTarget>);
 
                 // Update button state before firing so setPointerCapture works in handler.
                 self.mouse_button_state
                     .set(input_event.pressed_mouse_buttons);
 
-                let pointer_event_result =
-                    pointer_event.upcast::<Event>().fire(cx, &pointer_target);
+                let pointer_event_result = match &capture_target {
+                    Some(target) => pointer_event.upcast::<Event>().fire(cx, target),
+                    None => pointer_event.upcast::<Event>().fire(cx, node.upcast()),
+                };
 
                 // Process pending pointer capture after firing event, but skip if we just
                 // released a disconnected capture to avoid immediately re-capturing.
@@ -1045,10 +1066,18 @@ impl DocumentEventHandler {
                     self.process_pending_pointer_capture(cx, pointer_id, "mouse", true);
                 }
 
-                // Step 7. Let result = dispatch event at target
-                let result = mouse_event
-                    .upcast::<Event>()
-                    .dispatch(cx, node.upcast(), false);
+                // Step 7. dispatch event at target.
+                // When legacy mouse capture is active, route the event to the legacy target;
+                // otherwise use the hit-test node.
+                let result =
+                    if let Some(legacy_target) = self.get_legacy_mouse_capture_target(&element) {
+                        let target = DomRoot::upcast::<EventTarget>(legacy_target);
+                        mouse_event.upcast::<Event>().dispatch(cx, &target, false)
+                    } else {
+                        mouse_event
+                            .upcast::<Event>()
+                            .dispatch(cx, node.upcast(), false)
+                    };
 
                 // If neither the `mousedown` nor the `pointerdown` event had `preventDefault()`
                 // called on them, call the default mousdown handler on retargeted node
@@ -1109,12 +1138,15 @@ impl DocumentEventHandler {
                     self.release_disconnected_pointer_capture(cx, pointer_id, "mouse", true);
 
                 // Get the current capture target (before any state changes)
-                let pointer_target = self
-                    .get_pointer_capture_target(pointer_id)
-                    .map(DomRoot::upcast::<EventTarget>)
-                    .unwrap_or_else(|| DomRoot::from_ref(node.upcast::<EventTarget>()));
+                let capture_target = self
+                    .get_legacy_mouse_capture_target(&element)
+                    .or_else(|| self.get_pointer_capture_target(pointer_id))
+                    .map(DomRoot::upcast::<EventTarget>);
 
-                pointer_event.upcast::<Event>().fire(cx, &pointer_target);
+                match &capture_target {
+                    Some(target) => pointer_event.upcast::<Event>().fire(cx, target),
+                    None => pointer_event.upcast::<Event>().fire(cx, node.upcast()),
+                };
 
                 // Update button state after firing event, so setPointerCapture/releasePointerCapture
                 // work during the pointerup handler (pointer is still "active").
@@ -1128,15 +1160,28 @@ impl DocumentEventHandler {
                     self.process_pending_pointer_capture(cx, pointer_id, "mouse", true);
                 }
 
-                // Implicitly release pointer capture when last button was released
+                // Implicitly release standard pointer capture when the last button was
+                // released.
                 if exactly_one_button {
                     self.implicit_release_pointer_capture(cx, pointer_id, "mouse", true);
                 }
 
                 // Step 7. dispatch event at target.
-                mouse_event
-                    .upcast::<Event>()
-                    .dispatch(cx, node.upcast(), false);
+                // When legacy mouse capture is active, route the event to the legacy target;
+                // otherwise use the hit-test node.
+                if let Some(legacy_target) = self.get_legacy_mouse_capture_target(&element) {
+                    let target = DomRoot::upcast::<EventTarget>(legacy_target);
+                    mouse_event.upcast::<Event>().dispatch(cx, &target, false);
+                } else {
+                    mouse_event
+                        .upcast::<Event>()
+                        .dispatch(cx, node.upcast(), false);
+                }
+
+                // Implicitly release legacy mouse capture after dispatching mouseup.
+                if exactly_one_button {
+                    self.release_legacy_mouse_capture(None);
+                }
 
                 // Click counts should still work for other buttons even though they
                 // do not trigger "click" and "dblclick" events, so we increment
@@ -2610,6 +2655,68 @@ impl DocumentEventHandler {
         self.pending_pointer_capture
             .borrow_mut()
             .remove(&pointer_id);
+    }
+
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Element/setCapture>
+    pub(crate) fn set_legacy_mouse_capture(&self, element: &Element, retarget_to_element: bool) {
+        *self.legacy_mouse_capture.borrow_mut() = Some(LegacyMouseCapture {
+            element: Dom::from_ref(element),
+            retarget_to_element,
+        });
+    }
+
+    /// When `element` is `None`, any active mouse capture is released.
+    /// When `element` is `Some`, the capture is released only if that
+    /// element currently holds it.
+    pub(crate) fn release_legacy_mouse_capture(&self, element: Option<&Element>) {
+        let mut capture = self.legacy_mouse_capture.borrow_mut();
+        let release = match (&*capture, element) {
+            (None, _) => false,
+            (Some(_), None) => true,
+            (Some(c), Some(element)) => &*c.element == element,
+        };
+        if release {
+            *capture = None;
+        }
+    }
+
+    /// Compute the effective mouse event target while legacy mouse capture is
+    /// active.
+    ///
+    /// When `retarget_to_element` is `false` and `hit_test_target` is the capturing
+    /// element or one of its descendants, that descendant is the target;
+    /// otherwise the capturing element is the target.
+    fn get_legacy_mouse_capture_target(
+        &self,
+        hit_test_target: &Element,
+    ) -> Option<DomRoot<Element>> {
+        let (capture_element, retarget_to_element) = {
+            let capture = self.legacy_mouse_capture.borrow();
+            let capture = capture.as_ref()?;
+            (
+                DomRoot::from_ref(&*capture.element),
+                capture.retarget_to_element,
+            )
+        };
+        if !capture_element.upcast::<Node>().is_connected() {
+            *self.legacy_mouse_capture.borrow_mut() = None;
+            return None;
+        }
+        if retarget_to_element {
+            return Some(capture_element);
+        }
+        // if the hit-test target is an inclusive descendant of capturing element,
+        // keep the deepest target; otherwise retarget to the capturing element.
+        let capture_node = capture_element.upcast::<Node>();
+        let is_descendant_or_self = hit_test_target
+            .upcast::<Node>()
+            .inclusive_ancestors(ShadowIncluding::Yes)
+            .any(|ancestor| &*ancestor == capture_node);
+        if is_descendant_or_self {
+            Some(DomRoot::from_ref(hit_test_target))
+        } else {
+            Some(capture_element)
+        }
     }
 
     /// Check if an element has pointer capture for a given pointer ID.
