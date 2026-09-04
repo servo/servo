@@ -38,17 +38,27 @@
   };
 
   function generateMarkup(isAudioOnly) {
+    // Modern player layout:
+    //   controls-wrapper: fades out entirely (gradient + controls) when idle
+    //   gradient-overlay: soft blurring edge above the controls
+    //   controls-row:     play/pause | time display | spacer | volume | fullscreen
+    //   progress-bar:     thin seek bar at the very bottom (native range input)
     return `
-      <div class="controls">
-        <button id="play-pause-button"></button>
-        <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
-        <span id="position-duration-box" class="hidden">
-          <span id="position-text">#1</span>
-          <span id="duration"> / #2</span>
-        </span>
-        <button id="volume-switch"></button>
-        <input id="volume-level" type="range" value="100" min="0" max="100" step="1"></input>
-        ${isAudioOnly ? "" : '<button id="fullscreen-switch" class="fullscreen"></button>'}
+      <div class="controls-wrapper">
+        <div class="controls-gradient"></div>
+        <div class="controls">
+          <div class="controls-row">
+            <button id="play-pause-button"></button>
+            <span id="time-display" class="time-display">0:00 / 0:00</span>
+            <div class="spacer"></div>
+            <button id="volume-switch"></button>
+            ${isAudioOnly ? "" : '<button id="fullscreen-switch" class="fullscreen"></button>'}
+          </div>
+          <div id="progress-bar" class="progress-bar">
+            <div id="progress-bar-buffered" class="progress-bar-buffered"></div>
+            <input id="progress" type="range" value="0" min="0" max="1000" step="1">
+          </div>
+        </div>
       </div>
     `;
   }
@@ -61,8 +71,8 @@
   }
 
   function formatTime(time, showHours = false) {
-    // Format the duration as "h:mm:ss" or "m:ss"
-    time = Math.round(time / 1000);
+    // Time is in seconds (float). Format as "h:mm:ss" or "m:ss".
+    time = Math.round(time);
 
     const hours = Math.floor(time / 3600);
     const mins = Math.floor((time % 3600) / 60);
@@ -112,6 +122,7 @@
       }
 
       this.isAudioOnly = this.media.localName == "audio";
+      this.hideTimer = null;
 
       // Create root element and load markup.
       this.root = document.createElement("div");
@@ -119,15 +130,14 @@
       this.root.innerHTML = generateMarkup(this.isAudioOnly);
       this.controls.appendChild(this.root);
 
-
+      // Element IDs to import from the shadow DOM.
       const elementNames = [
-        "duration",
         "play-pause-button",
-        "position-duration-box",
-        "position-text",
-        "progress",
+        "time-display",
         "volume-switch",
-        "volume-level"
+        "progress-bar",
+        "progress",
+        "progress-bar-buffered"
       ];
 
       if (!this.isAudioOnly) {
@@ -140,50 +150,7 @@
         this.elements[camelCase(id)] = this.controls.getElementById(id);
       });
 
-      // Init position duration box.
-      const positionTextNode = this.elements.positionText;
-      const durationSpan = this.elements.duration;
-      const durationFormat = durationSpan.textContent;
-      const positionFormat = positionTextNode.textContent;
-
-      durationSpan.classList.add("duration");
-      durationSpan.setAttribute("role", "none");
-
-      Object.defineProperties(this.elements.positionDurationBox, {
-        durationSpan: {
-          value: durationSpan
-        },
-        position: {
-          get: () => {
-            return positionTextNode.textContent;
-          },
-          set: v => {
-            positionTextNode.textContent = positionFormat.replace("#1", v);
-          }
-        },
-        duration: {
-          get: () => {
-            return durationSpan.textContent;
-          },
-          set: v => {
-            durationSpan.textContent = v ? durationFormat.replace("#2", v) : "";
-          }
-        },
-        show: {
-          value: (currentTime, duration) => {
-            const self = this.elements.positionDurationBox;
-            if (self.position != currentTime) {
-              self.position = currentTime;
-            }
-            if (self.duration != duration) {
-              self.duration = duration;
-            }
-            self.classList.remove("hidden");
-          }
-        }
-      });
-
-      // Add event listeners.
+      // Add event listeners for media events.
       this.mediaEvents = [
         "play",
         "pause",
@@ -202,16 +169,18 @@
         "emptied",
         "loadedmetadata",
         "error",
-        "suspend"
+        "suspend",
+        "mousemove"
       ];
       this.mediaEvents.forEach(event => {
         this.media.addEventListener(event, this);
       });
 
+      // Add event listeners for control interactions.
       this.controlEvents = [
         { el: this.elements.playPauseButton, type: "click" },
         { el: this.elements.volumeSwitch, type: "click" },
-        { el: this.elements.volumeLevel, type: "input" }
+        { el: this.elements.progress, type: "input" }
       ];
 
       if (!this.isAudioOnly) {
@@ -274,6 +243,7 @@
     // State change handler
     onStateChange(from) {
       this.render(from);
+      this.manageAutohide();
     }
 
     render(from = this.state) {
@@ -290,33 +260,36 @@
         playPauseButton.classList.add(this.state);
       }
 
-      // Progress.
-      const positionPercent =
-        (this.media.currentTime / this.media.duration) * 100;
-      if (Number.isFinite(positionPercent)) {
-        this.elements.progress.value = positionPercent;
+      // Progress bar (native range input, 0–1000 scale).
+      const positionPermille =
+        (this.media.currentTime / this.media.duration) * 1000;
+      if (Number.isFinite(positionPermille)) {
+        this.elements.progress.value = Math.round(positionPermille);
       } else {
         this.elements.progress.value = 0;
       }
 
-      // Current time and duration.
+      // Buffered progress.
+      if (this.media.buffered && this.media.buffered.length > 0) {
+        const bufferedEnd = this.media.buffered.end(this.media.buffered.length - 1);
+        const bufferedPercent = (bufferedEnd / this.media.duration) * 100;
+        if (Number.isFinite(bufferedPercent)) {
+          this.elements.progressBarBuffered.style.width = bufferedPercent + "%";
+        }
+      }
+
+      // Time display.
       let currentTime = formatTime(0);
       let duration = formatTime(0);
       if (!isNaN(this.media.currentTime) && !isNaN(this.media.duration)) {
-        currentTime = formatTime(Math.round(this.media.currentTime * 1000));
-        duration = formatTime(Math.round(this.media.duration * 1000));
+        currentTime = formatTime(this.media.currentTime);
+        duration = formatTime(this.media.duration);
       }
-      this.elements.positionDurationBox.show(currentTime, duration);
+      this.elements.timeDisplay.textContent = `${currentTime} / ${duration}`;
 
-      // Volume.
+      // Volume button.
       this.elements.volumeSwitch.className =
         this.media.muted || !this.media.volume ? "muted" : "volumeup";
-      const volumeLevelValue = this.media.muted
-        ? 0
-        : Math.round(this.media.volume * 100);
-      if (this.elements.volumeLevel.value != volumeLevelValue) {
-        this.elements.volumeLevel.value = volumeLevelValue;
-      }
     }
 
     handleEvent(event) {
@@ -343,14 +316,14 @@
               this.toggleMuted();
               break;
             case this.elements.fullscreenSwitch:
-                this.toggleFullscreen();
-                break;
+              this.toggleFullscreen();
+              break;
           }
           break;
         case "input":
           switch (event.currentTarget) {
-            case this.elements.volumeLevel:
-              this.changeVolume();
+            case this.elements.progress:
+              this.seekFromSlider(event);
               break;
           }
           break;
@@ -377,10 +350,14 @@
           break;
         case "loadedmetadata":
           break;
+        case "mousemove":
+          this.showControls();
+          this.resetHideTimer();
+          break;
       }
     }
 
-    /* Media actions */
+    /* ── Media actions ── */
 
     playOrPause() {
       switch (this.state) {
@@ -402,29 +379,75 @@
     }
 
     toggleFullscreen() {
-        const { fullscreenEnabled, fullscreenElement } = document;
+      const { fullscreenEnabled, fullscreenElement } = document;
 
-        const isElementFullscreen = fullscreenElement && fullscreenElement === this.media;
+      const isElementFullscreen = fullscreenElement && fullscreenElement === this.media;
 
-        if (fullscreenEnabled && isElementFullscreen) {
-            document.exitFullscreen().then(() => {
-                this.elements.fullscreenSwitch.classList.remove("fullscreen-active");
-            });
-        } else {
-            this.media.requestFullscreen().then(() => {
-                this.elements.fullscreenSwitch.classList.add("fullscreen-active");
-            });
-        }
+      if (fullscreenEnabled && isElementFullscreen) {
+        document.exitFullscreen().then(() => {
+          this.elements.fullscreenSwitch.classList.remove("fullscreen-active");
+        });
+      } else {
+        this.media.requestFullscreen().then(() => {
+          this.elements.fullscreenSwitch.classList.add("fullscreen-active");
+        });
+      }
     }
 
-    changeVolume() {
-      const volume = parseInt(this.elements.volumeLevel.value);
-      if (!isNaN(volume)) {
-        this.media.volume = volume / 100;
+    seekFromSlider(event) {
+      // Range input value is 0–1000, map to currentTime.
+      const value = parseInt(event.target.value);
+      if (!isNaN(value) && this.media.duration) {
+        this.media.currentTime = (value / 1000) * this.media.duration;
+      }
+    }
+
+    /* ── Auto-hide controls during playback ── */
+
+    // Decide whether to show or start hiding controls based on playback state.
+    manageAutohide() {
+      if (this.state === PLAYING) {
+        this.startHideTimer();
+      } else {
+        this.cancelHideTimer();
+        this.showControls();
+      }
+    }
+
+    // Begin countdown to hide controls (3 seconds of no mouse activity).
+    startHideTimer() {
+      this.cancelHideTimer();
+      this.hideTimer = setTimeout(() => {
+        const wrapper = this.controls.querySelector(".controls-wrapper");
+        if (wrapper) {
+          wrapper.classList.add("autohide");
+        }
+      }, 3000);
+    }
+
+    // Cancel the pending hide timer.
+    cancelHideTimer() {
+      if (this.hideTimer) {
+        clearTimeout(this.hideTimer);
+        this.hideTimer = null;
+      }
+    }
+
+    // Restart the hide timer (called on mousemove during playback).
+    resetHideTimer() {
+      if (this.state === PLAYING) {
+        this.startHideTimer();
+      }
+    }
+
+    // Reveal the controls by removing the autohide class.
+    showControls() {
+      const wrapper = this.controls.querySelector(".controls-wrapper");
+      if (wrapper) {
+        wrapper.classList.remove("autohide");
       }
     }
   }
 
   new MediaControls();
 })();
-
