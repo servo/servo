@@ -928,6 +928,87 @@ impl UntrustedNodeAddress {
     }
 }
 
+/// A simplified representation of the CSS `touch-action` property, used by the
+/// compositor to decide how a touch gesture may scroll a given node.
+///
+/// NOTE: Directional variants (`pan-left`/`pan-right`/...) are not supported in Stylo at all.
+/// Firefox also fails the parsing.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum TouchAction {
+    /// `touch-action: auto` (and `manipulation`, `pan-x pan-y`). The compositor
+    /// applies the scroll-chaining axis lock: lock to the dominant axis only
+    /// when the hit node cannot scroll that axis.
+    #[default]
+    Auto,
+    /// `touch-action: pan-x`. The vertical axis is excluded from input-event
+    /// scrolling (chains to ancestor); the gesture locks to its dominant axis.
+    PanX,
+    /// `touch-action: pan-y`. The horizontal axis is excluded from input-event
+    /// scrolling (chains to ancestor); the gesture locks to its dominant axis.
+    PanY,
+    /// `touch-action: none` (and `pinch-zoom` alone). No single-finger direct
+    /// manipulation: do not scroll.
+    None,
+}
+
+impl TouchAction {
+    /// Intersect two values, as specified for determining the effective touch
+    /// behavior of a gesture: a pan direction is only allowed when it is
+    /// allowed by both values.
+    /// <https://w3c.github.io/pointerevents/#determining-supported-direct-manipulation-behavior>
+    pub fn intersect(self, other: Self) -> Self {
+        match (self, other) {
+            (Self::Auto, other) | (other, Self::Auto) => other,
+            (Self::None, _) | (_, Self::None) => Self::None,
+            (Self::PanX, Self::PanX) => Self::PanX,
+            (Self::PanY, Self::PanY) => Self::PanY,
+            (Self::PanX, Self::PanY) | (Self::PanY, Self::PanX) => Self::None,
+        }
+    }
+
+    /// Encode this value into the second component of a WebRender hit test
+    /// tag, so that it can be transported through WebRender hit testing.
+    /// Inverse of [`Self::decode`].
+    pub fn encode(self) -> u16 {
+        match self {
+            Self::Auto => 0,
+            Self::PanX => 1,
+            Self::PanY => 2,
+            Self::None => 3,
+        }
+    }
+
+    /// Decode a value encoded with [`Self::encode`]. Unknown values decode to
+    /// `Auto` (no restriction), which is also the encoding of items that do
+    /// not carry any `touch-action` restriction.
+    pub fn decode(value: u16) -> Self {
+        match value {
+            1 => Self::PanX,
+            2 => Self::PanY,
+            3 => Self::None,
+            _ => Self::Auto,
+        }
+    }
+}
+
+impl From<style::values::specified::TouchAction> for TouchAction {
+    fn from(stylo: style::values::specified::TouchAction) -> Self {
+        use style::values::specified::TouchAction as T;
+        if stylo.contains(T::NONE) {
+            return TouchAction::None;
+        }
+        if stylo.contains(T::AUTO) || stylo.contains(T::MANIPULATION) {
+            return TouchAction::Auto;
+        }
+        match (stylo.contains(T::PAN_X), stylo.contains(T::PAN_Y)) {
+            (true, true) => TouchAction::Auto,
+            (true, false) => TouchAction::PanX,
+            (false, true) => TouchAction::PanY,
+            (false, false) => TouchAction::None,
+        }
+    }
+}
+
 /// The result of a hit test in `Paint`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PaintHitTestResult {
@@ -939,6 +1020,14 @@ pub struct PaintHitTestResult {
 
     /// The [`ExternalScrollId`] of the scroll tree node associated with this hit test item.
     pub external_scroll_id: ExternalScrollId,
+
+    /// The `touch-action` restriction of the hit test item: the intersection of the
+    /// `touch-action` values of the touched element and its ancestors up to (but
+    /// excluding) the nearest ancestor scroll container that can be panned by touch.
+    /// That scroll container's own `touch-action` is stored on its scroll node, so
+    /// the effective behavior of a gesture is this value intersected with the
+    /// `touch-action` of the scroll node in [`Self::external_scroll_id`].
+    pub touch_action: TouchAction,
 }
 
 /// For a given pipeline, whether any animations are currently running
