@@ -5244,7 +5244,6 @@ impl Element {
         let role_string = format!("{role:?}");
         Some(DOMString::from(role_string.to_lowercase()))
     }
-
 }
 
 impl Element {

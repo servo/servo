@@ -33,8 +33,8 @@ use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
 use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId};
-use webdriver::error::ErrorStatus;
 use servo_config::pref;
+use webdriver::error::ErrorStatus;
 
 use crate::DomTypeHolder;
 use crate::dom::Promise;
@@ -521,7 +521,6 @@ fn clone_an_object(
                         JavaScriptEvaluationResultSerializationError::UnknownType,
                     ));
                 },
-
             },
             Err(error) => {
                 throw_dom_exception(cx, global_scope, error);
@@ -1399,7 +1398,6 @@ pub(crate) fn handle_get_computed_role(
     }
     reply
         .send(
-
             get_known_element(documents, pipeline, node_id)
                 // WIP: Actually compute the role instead of using WAI-ARIA role.
                 // <https://github.com/servo/servo/issues/43734>
@@ -1409,7 +1407,7 @@ pub(crate) fn handle_get_computed_role(
                     let window = document.window();
                     let epoch = document.current_rendering_epoch();
                     window.layout().set_accessibility_active(true, epoch);
-                   element.get_computed_role().map(String::from)
+                    element.get_computed_role().map(String::from)
                 }),
         )
         .unwrap();

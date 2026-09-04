@@ -380,10 +380,7 @@ pub trait Layout {
         animation_timeline_value: f64,
     ) -> String;
 
-    fn query_accesskit_node(
-        &self,
-        node: TrustedNodeAddress,
-    ) -> Option<accesskit::Node>;
+    fn query_accesskit_node(&self, node: TrustedNodeAddress) -> Option<accesskit::Node>;
 
     fn query_resolved_font_style(
         &self,
