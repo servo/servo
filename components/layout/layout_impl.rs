@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
+
 use accesskit::Node;
 
 use accesskit::ActionRequest;
@@ -2056,7 +2057,6 @@ impl ReflowPhases {
                 QueryMsg::ScrollParentQuery |
                 QueryMsg::StyleQuery |
                 QueryMsg::AccessKitNodeQuery => Self::empty(),
-
             },
             ReflowGoal::UpdateScrollNode(..) | ReflowGoal::UpdateTheRendering => {
                 Self::StackingContextTreeConstruction | Self::DisplayListConstruction

@@ -1415,7 +1415,7 @@ pub(crate) fn handle_get_computed_role(
                     let window = document.window();
                     let epoch = document.current_rendering_epoch();
                     window.layout().set_accessibility_active(true, epoch);
-                   element.get_computed_role().map(String::from)
+                    element.get_computed_role().map(String::from)
                 }),
         )
         .unwrap();
