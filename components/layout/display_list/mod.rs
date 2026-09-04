@@ -1616,9 +1616,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             // restricts which gestures may scroll an ancestor on its behalf. Push a
             // hit test item that carries the restriction, so that the compositor
             // can determine the effective touch behavior of touches starting here.
-            let touch_action = state.touch_action.intersect(TouchAction::from(
-                self.fragment.style().get_box().touch_action,
-            ));
+            let touch_action = state.touch_action.intersect(
+                self.fragment
+                    .style()
+                    .used_touch_action(self.fragment.base.flags),
+            );
             if touch_action != TouchAction::Auto {
                 self.build_touch_action_hit_test(builder, state, touch_action);
             }
