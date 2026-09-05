@@ -10,6 +10,8 @@ import android.util.Size
 import android.view.KeyEvent
 import android.view.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -31,6 +33,15 @@ fun Servo(
     )
 }
 
+@Stable
+class ServoNavigator {
+    var canGoBackState = mutableStateOf(false)
+        internal set
+
+    var canGoForwardState = mutableStateOf(false)
+        internal set
+}
+
 class Servo(
     args: String?,
     url: String?,
@@ -42,9 +53,10 @@ class Servo(
     client: Client,
     context: Context,
     surface: Surface,
+    navigator: ServoNavigator,
 ) {
     private val jni = JNIServo()
-    private val servoCallbacks = Callbacks(client, jni, runCallback)
+    private val servoCallbacks = Callbacks(client, jni, runCallback, navigator)
 
     init {
         this.runCallback.inGLThread {
@@ -173,8 +185,6 @@ class Servo(
 
         fun onUrlChanged(url: String)
 
-        fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean)
-
         fun onImeShow()
 
         fun onImeHide()
@@ -196,6 +206,7 @@ class Servo(
         private var client: Client,
         private val jni: JNIServo,
         private val runCallback: RunCallback,
+        private val navigator: ServoNavigator,
     ) : JNIServo.Callbacks, Client {
         var suspended: Boolean = false
 
@@ -234,7 +245,8 @@ class Servo(
         }
 
         override fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean) {
-            runCallback.inUIThread { client.onHistoryChanged(canGoBack, canGoForward) }
+            navigator.canGoBackState.value = canGoBack
+            navigator.canGoForwardState.value = canGoForward
         }
 
         override fun onMediaSessionMetadata(title: String, artist: String, album: String) {
