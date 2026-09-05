@@ -50,7 +50,7 @@ use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
-use crate::runtime::microtask::MicrotaskQueue;
+use crate::runtime::job_queue::MicrotaskQueue;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]

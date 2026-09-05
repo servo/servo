@@ -154,7 +154,7 @@ use crate::modules::script_module::{
     ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskRunnable;
+use crate::runtime::job_queue::MicrotaskRunnable;
 use crate::runtime::script_runtime::ThreadSafeJSContext;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::SendableTaskSource;

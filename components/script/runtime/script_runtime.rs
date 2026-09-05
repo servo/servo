@@ -95,7 +95,7 @@ use crate::engine::handle::current_js_engine_handle;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::modules::script_module::EnsureModuleHooksInitialized;
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskQueue;
+use crate::runtime::job_queue::MicrotaskQueue;
 use crate::tasks::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
 
@@ -103,7 +103,7 @@ static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getHostDefinedData: Some(get_host_defined_data),
     getHostDefinedGlobal: Some(get_host_defined_global),
     runJobs: Some(run_jobs),
-    traceNonGCThingMicroTask: Some(crate::runtime::microtask::trace_non_gc_things_micro_task),
+    traceNonGCThingMicroTask: Some(crate::runtime::job_queue::trace_non_gc_things_micro_task),
     pushNewInterruptQueue: Some(push_new_interrupt_queue),
     popInterruptQueue: Some(pop_interrupt_queue),
     dropInterruptQueues: Some(drop_interrupt_queues),

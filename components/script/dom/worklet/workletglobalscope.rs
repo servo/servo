@@ -36,7 +36,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskQueue;
+use crate::runtime::job_queue::MicrotaskQueue;
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
 

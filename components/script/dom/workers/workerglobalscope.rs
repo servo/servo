@@ -102,7 +102,7 @@ use crate::fetch::network_listener::{
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::{MicrotaskQueue, MicrotaskRunnable, UserMicrotask};
+use crate::runtime::job_queue::{MicrotaskQueue, MicrotaskRunnable, UserMicrotask};
 use crate::runtime::script_runtime::{IntroductionType, Runtime, get_reports};
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
@@ -472,7 +472,7 @@ impl WorkerGlobalScope {
     }
 
     pub(crate) fn enqueue_microtask(&self, cx: &JSContext, job: Box<dyn MicrotaskRunnable>) {
-        crate::runtime::microtask::enqueue(cx, job);
+        crate::runtime::job_queue::enqueue(cx, job);
     }
 
     /// Perform a microtask checkpoint.

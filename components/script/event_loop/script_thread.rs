@@ -157,7 +157,7 @@ use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::{MicrotaskQueue, MicrotaskRunnable};
+use crate::runtime::job_queue::{MicrotaskQueue, MicrotaskRunnable};
 use crate::runtime::script_runtime::{
     IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
 };
@@ -571,7 +571,7 @@ impl ScriptThread {
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
     pub(crate) fn await_stable_state(cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
-        crate::runtime::microtask::enqueue(cx, task);
+        crate::runtime::job_queue::enqueue(cx, task);
     }
 
     /// Check that two origins are "similar enough",
@@ -4413,7 +4413,7 @@ impl ScriptThread {
     }
 
     pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {
-        crate::runtime::microtask::enqueue(cx, job);
+        crate::runtime::job_queue::enqueue(cx, job);
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
