@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
+use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
 use style::values::computed::CSSPixelLength;
 use style::values::computed::length_percentage::CalcLengthPercentage;
@@ -25,7 +26,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 use crate::layout_box_base::IndependentFormattingContextLayoutResult;
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
+use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,     relative_adjustement ,};
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
 };
@@ -537,12 +538,21 @@ impl TaffyContainer {
                                 Au::from_f32_px(baseline) - padding.top - border.top
                             }),
                         });
+             
+                        let flags =box_fragment.base.flags;
+                        let style =box_fragment.style();
+                        if style.establishes_containing_block_for_absolute_descendants(flags){
 
                         child.positioning_context.layout_collected_children(
                             container_ctx.layout_context,
                             &mut box_fragment,
                         );
-
+                    }
+          
+                    if style.clone_position()==Position::Relative {box_fragment.base.translate_rect (
+                 relative_adjustement(style,containing_block)
+                 .to_physical_size(containing_block.style.writing_mode),
+                 ); }
                         child
                             .positioning_context
                             .adjust_static_position_of_hoisted_fragments_with_offset(
