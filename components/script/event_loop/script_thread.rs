@@ -100,6 +100,7 @@ use servo_constellation_traits::{
     TargetSnapshotParams, TraversalDirection, WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
+use smallvec::SmallVec;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use style::context::QuirksMode;
@@ -1331,7 +1332,7 @@ impl ScriptThread {
     /// Handle incoming messages from other tasks and the task queue.
     fn handle_msgs(&self, cx: &mut js::context::JSContext) -> bool {
         // Proritize rendering tasks and others, and gather all other events as `sequential`.
-        let mut sequential = vec![];
+        let mut sequential: SmallVec<[MixedMessage; 10]> = SmallVec::new();
 
         // Notify the background-hang-monitor we are waiting for an event.
         self.background_hang_monitor.notify_wait();
@@ -1387,7 +1388,7 @@ impl ScriptThread {
 
         // Process the gathered events.
         debug!("Processing events.");
-        for msg in sequential {
+        for msg in sequential.drain(..) {
             debug!("Processing event {:?}.", msg);
             let category = self.categorize_msg(&msg);
             let pipeline_id = msg.pipeline_id();
@@ -1434,7 +1435,7 @@ impl ScriptThread {
                                 self.handle_msg_from_script(inner_msg, $cx)
                             },
                             MixedMessage::FromDevtools(inner_msg) => {
-                                self.handle_msg_from_devtools(inner_msg, $cx)
+                                self.handle_msg_from_devtools(*inner_msg, $cx)
                             },
                             MixedMessage::FromImageCache(inner_msg) => {
                                 self.handle_msg_from_image_cache(inner_msg, $cx)
