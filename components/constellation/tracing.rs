@@ -83,6 +83,7 @@ mod from_embedder {
                 Self::SetAccessibilityActive(..) => target!("SetAccessibilityActive"),
                 Self::ClearSessionHistory(..) => target!("ClearHistory"),
                 Self::OnlineChanged(..) => target!("OnlineChanged"),
+                Self::SetOnlineStatus(..) => target!("OnlineChanged"),
             }
         }
     }

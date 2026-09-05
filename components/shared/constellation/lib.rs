@@ -118,7 +118,7 @@ pub enum EmbedderToConstellationMessage {
     /// the `WebView` with only the current URL in its session history.
     ClearSessionHistory(WebViewId),
     /// Update the online status
-    OnlineChanged(bool),
+    SetOnlineStatus(bool),
 }
 
 pub enum UserContentManagerAction {

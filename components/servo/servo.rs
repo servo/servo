@@ -1158,7 +1158,7 @@ impl Servo {
     pub fn report_online_changed(&self, online: bool) {
         self.0
             .constellation_proxy
-            .send(EmbedderToConstellationMessage::OnlineChanged(online));
+            .send(EmbedderToConstellationMessage::SetOnlineStatus(online));
     }
 }
 
