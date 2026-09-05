@@ -13,6 +13,7 @@ pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
 use fonts::SystemFontService;
 #[cfg(all(
+    feature = "multiprocess",
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
@@ -23,24 +24,34 @@ use fonts::SystemFontService;
     not(target_env = "ohos"),
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
+#[cfg(feature = "multiprocess")]
 use ipc_channel::ipc::{self, IpcSender};
 use layout::LayoutFactoryImpl;
+#[cfg(feature = "multiprocess")]
 use layout_api::ScriptThreadFactory;
 use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::embedder::NetToEmbedderMsg;
+#[cfg(feature = "multiprocess")]
 use net::image_cache::ImageCacheFactoryImpl;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
-use net_traits::{FetchThread, ResourceThreads};
+#[cfg(feature = "multiprocess")]
+use net_traits::FetchThread;
+use net_traits::ResourceThreads;
 use paint::{InitialPaintState, Paint};
 pub use paint_api::rendering_context::RenderingContext;
 use paint_api::{CrossProcessPaintApi, PaintMessage, PaintProxy};
-use profile::{mem as profile_mem, system_reporter, time as profile_time};
-use profile_traits::mem::{MemoryReportResult, ProfilerMsg, Reporter};
+use profile::{mem as profile_mem, time as profile_time};
+use profile_traits::mem::MemoryReportResult;
+#[cfg(feature = "multiprocess")]
+use profile_traits::mem::{ProfilerMsg, Reporter};
 use profile_traits::{mem, time};
 use rustc_hash::FxHashMap;
-use script::{JSEngineSetup, ServiceWorkerManager};
+use script::JSEngineSetup;
+#[cfg(feature = "multiprocess")]
+use script::ServiceWorkerManager;
+#[cfg(feature = "multiprocess")]
 use servo_background_hang_monitor::HangMonitorRegister;
 use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
 pub use servo_base::id::WebViewId;
@@ -52,7 +63,10 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_config::opts::{DiagnosticsLoggingOption, Opts};
 use servo_config::prefs::{PrefValue, Preferences};
 use servo_config::{opts, pref, prefs};
+#[cfg(feature = "multiprocess")]
+use servo_constellation::UnprivilegedContent;
 #[cfg(all(
+    feature = "multiprocess",
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
@@ -64,10 +78,13 @@ use servo_config::{opts, pref, prefs};
 ))]
 use servo_constellation::content_process_sandbox_profile;
 use servo_constellation::{
-    Constellation, ConstellationToEmbedderMsg, FromEmbedderLogger, FromScriptLogger,
-    InitialConstellationState, NewScriptEventLoopProcessInfo, UnprivilegedContent,
+    Constellation, ConstellationToEmbedderMsg, FromEmbedderLogger, InitialConstellationState,
 };
-use servo_constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
+#[cfg(feature = "multiprocess")]
+use servo_constellation::{FromScriptLogger, NewScriptEventLoopProcessInfo};
+use servo_constellation_traits::EmbedderToConstellationMessage;
+#[cfg(feature = "multiprocess")]
+use servo_constellation_traits::ScriptToConstellationSender;
 use servo_geometry::{
     DeviceIndependentIntRect, convert_rect_to_css_pixel, convert_size_to_css_pixel,
 };
@@ -76,6 +93,7 @@ use servo_media::player::context::GlContext;
 use servo_wakelock::DefaultWakeLockDelegate;
 use storage::new_storage_threads;
 use storage_traits::StorageThreads;
+#[cfg(feature = "multiprocess")]
 use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webxr")]
 use webxr::WebXrRegistry;
@@ -900,8 +918,8 @@ impl Servo {
     #[servo_tracing::instrument(name = "Servo::new", skip(builder))]
     fn new(builder: ServoBuilder) -> Self {
         // Global configuration options, parsed from the command line.
-        let opts = builder.opts.map(|opts| *opts);
-        opts::initialize_options(opts.unwrap_or_default());
+        let opts = builder.opts.map(|opts| *opts).unwrap_or_default();
+        opts::initialize_options(opts);
         let opts = opts::get();
 
         // Set the preferences globally.
@@ -962,6 +980,8 @@ impl Servo {
         } else {
             None
         };
+        #[cfg(not(feature = "multiprocess"))]
+        let js_engine_setup = Some(script::init());
 
         // Create the constellation, which maintains the engine pipelines, including script and
         // layout, as well as the navigation context.
@@ -1019,6 +1039,7 @@ impl Servo {
 
         net::connector::prewarm_tls();
 
+        #[cfg(feature = "multiprocess")]
         if opts::get().multiprocess {
             prefs::add_observer(Box::new(constellation_proxy.clone()));
         }
@@ -1304,6 +1325,7 @@ where
     }
 }
 
+#[cfg(feature = "multiprocess")]
 fn set_logger(script_to_constellation_sender: ScriptToConstellationSender) {
     let con_logger = FromScriptLogger::new(script_to_constellation_sender);
     let env = env_logger::Env::default();
@@ -1317,6 +1339,7 @@ fn set_logger(script_to_constellation_sender: ScriptToConstellationSender) {
 }
 
 /// Content process entry point.
+#[cfg(feature = "multiprocess")]
 pub fn run_content_process(token: String) {
     let (unprivileged_content_sender, unprivileged_content_receiver) =
         ipc::channel::<UnprivilegedContent>().unwrap();
@@ -1386,6 +1409,7 @@ pub fn run_content_process(token: String) {
 }
 
 #[cfg(all(
+    feature = "multiprocess",
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
@@ -1470,6 +1494,7 @@ impl ServoBuilder {
     }
 }
 
+#[cfg(feature = "multiprocess")]
 fn register_system_memory_reporter_for_event_loop(
     new_event_loop_info: &NewScriptEventLoopProcessInfo,
 ) {
@@ -1478,7 +1503,7 @@ fn register_system_memory_reporter_for_event_loop(
     // reporter can make measurements.
     let callback = GenericCallback::new(|message| {
         if let Ok(request) = message {
-            system_reporter::collect_reports(request);
+            profile::system_reporter::collect_reports(request);
         }
     })
     .expect("Could not create memory reporter callback");

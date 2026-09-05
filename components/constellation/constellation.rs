@@ -173,7 +173,6 @@ use storage_traits::cache_storage::CacheStorageThreadMessage;
 use storage_traits::client_storage::ClientStorageThreadMessage;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
-use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WebGpuExternalImageMap;
 #[cfg(feature = "webgpu")]
@@ -188,7 +187,6 @@ use crate::browsingcontext::{
 use crate::constellation_webview::{ConstellationWebView, OngoingHistoryTraversalRequest};
 use crate::event_loop::EventLoop;
 use crate::pipeline::Pipeline;
-use crate::process_manager::ProcessManager;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{NeedsToReload, SessionHistoryChange, SessionHistoryDiff};
 
@@ -319,6 +317,7 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
+    #[cfg_attr(not(feature = "multiprocess"), expect(unused))]
     pub(crate) background_hang_monitor_sender: GenericSender<HangAlert>,
 
     /// A channel for the constellation to receiver messages
@@ -488,10 +487,12 @@ pub struct Constellation<STF, SWF> {
     /// The image bytes associated with the BrokenImageIcon embedder resource.
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
+    #[cfg(feature = "multiprocess")]
     pub(crate) broken_image_icon_data: Vec<u8>,
 
     /// The process manager.
-    pub(crate) process_manager: ProcessManager,
+    #[cfg(feature = "multiprocess")]
+    pub(crate) process_manager: crate::process_manager::ProcessManager,
 
     /// The async runtime.
     async_runtime: Box<dyn AsyncRuntime>,
@@ -627,6 +628,7 @@ where
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
+
                 let (
                     background_monitor_register,
                     background_monitor_register_join_handle,
@@ -723,8 +725,10 @@ where
                     active_media_session: None,
                     screen_wake_lock_count: 0,
                     wake_lock_provider: state.wake_lock_provider,
+                    #[cfg(feature = "multiprocess")]
                     broken_image_icon_data: broken_image_icon_data.clone(),
-                    process_manager: ProcessManager::new(state.mem_profiler_chan),
+                    #[cfg(feature = "multiprocess")]
+                    process_manager: crate::process_manager::ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
                     event_loop_join_handles: Default::default(),
                     privileged_urls: state.privileged_urls,
@@ -774,7 +778,7 @@ where
         self.handle_shutdown();
 
         if !opts::get().multiprocess {
-            StyleThreadPool::shutdown();
+            style::global_style_data::StyleThreadPool::shutdown();
         }
 
         // Shut down the `FetchThread` if it has been started at any time.
@@ -1207,6 +1211,7 @@ where
             Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangAlert),
             Embedder(EmbedderToConstellationMessage),
+            #[cfg_attr(not(feature = "multiprocess"), expect(unused))]
             RemoveProcess(usize),
         }
         // Get one incoming request.
@@ -1226,6 +1231,7 @@ where
         sel.recv(&self.background_hang_monitor_receiver);
         sel.recv(&self.embedder_to_constellation_receiver);
 
+        #[cfg(feature = "multiprocess")]
         self.process_manager.register(&mut sel);
 
         let request = {
@@ -1255,6 +1261,7 @@ where
                 _ => {
                     // This can only be a error reading on a closed lifeline receiver.
                     let process_index = index - 4;
+                    #[cfg(feature = "multiprocess")]
                     let _ = oper.recv(self.process_manager.receiver_at(process_index));
                     Ok(Request::RemoveProcess(process_index))
                 },
@@ -1277,7 +1284,10 @@ where
             Request::BackgroundHangMonitor(message) => {
                 self.handle_request_from_background_hang_monitor(message);
             },
+            #[cfg(feature = "multiprocess")]
             Request::RemoveProcess(index) => self.process_manager.remove(index),
+            #[cfg(not(feature = "multiprocess"))]
+            Request::RemoveProcess(_) => {},
         }
     }
 
@@ -2544,6 +2554,7 @@ where
                     system_font_service_sender: self.system_font_service.to_sender(),
                 };
 
+                #[cfg(feature = "multiprocess")]
                 if opts::get().multiprocess {
                     let (sender, receiver) = generic_channel::channel()
                         .expect("Failed to create lifeline channel for sw");
@@ -2560,6 +2571,12 @@ where
                     let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin, None);
                     content.start::<SWF>();
                 }
+                #[cfg(not(feature = "multiprocess"))]
+                {
+                    let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin, None);
+                    content.start::<SWF>();
+                }
+
                 entry.insert(own_sender)
             },
         };

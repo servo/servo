@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::OsStr;
-use std::{env, process};
 
 #[cfg(any(
     target_os = "macos",
@@ -19,13 +18,11 @@ use std::{env, process};
     )
 ))]
 use gaol::profile::{Operation, PathPattern, Profile};
-use ipc_channel::IpcError;
 use serde::{Deserialize, Serialize};
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 
 use crate::event_loop::NewScriptEventLoopProcessInfo;
-use crate::process_manager::Process;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 
 #[derive(Deserialize, Serialize)]
@@ -162,7 +159,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
     let (server, token) = IpcOneShotServer::<IpcSender<UnprivilegedContent>>::new()
         .expect("Failed to create IPC one-shot server.");
 
-    let path_to_self = env::current_exe().expect("Failed to get current executor.");
+    let path_to_self = std::env::current_exe().expect("Failed to get current executor.");
     let mut child_process = process::Command::new(path_to_self);
     setup_common(&mut child_process, token);
 
@@ -187,7 +184,9 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
     not(target_arch = "riscv32"),
     not(target_arch = "riscv64")
 ))]
-pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcError> {
+pub fn spawn_multiprocess(
+    content: UnprivilegedContent,
+) -> Result<crate::process_manager::Process, ipc_channel::IpcError> {
     use gaol::sandbox::{self, Sandbox, SandboxMethods};
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 
@@ -223,18 +222,18 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
         setup_common(&mut command, token);
 
         let profile = content_process_sandbox_profile();
-        Process::Sandboxed(
+        crate::process_manager::Process::Sandboxed(
             Sandbox::new(profile)
                 .start(&mut command)
                 .expect("Failed to start sandboxed child process!")
                 .pid as u32,
         )
     } else {
-        let path_to_self = env::current_exe().expect("Failed to get current executor.");
-        let mut child_process = process::Command::new(path_to_self);
+        let path_to_self = std::env::current_exe().expect("Failed to get current executor.");
+        let mut child_process = std::process::Command::new(path_to_self);
         setup_common(&mut child_process, token);
 
-        Process::Unsandboxed(
+        crate::process_manager::Process::Unsandboxed(
             child_process
                 .spawn()
                 .expect("Failed to start unsandboxed child process!"),
@@ -257,11 +256,11 @@ fn setup_common<C: CommandMethods>(command: &mut C, token: String) {
     C::arg(command, "--content-process");
     C::arg(command, token);
 
-    if let Ok(value) = env::var("RUST_BACKTRACE") {
+    if let Ok(value) = std::env::var("RUST_BACKTRACE") {
         C::env(command, "RUST_BACKTRACE", value);
     }
 
-    if let Ok(value) = env::var("RUST_LOG") {
+    if let Ok(value) = std::env::var("RUST_LOG") {
         C::env(command, "RUST_LOG", value);
     }
 }
@@ -280,7 +279,7 @@ trait CommandMethods {
         U: AsRef<OsStr>;
 }
 
-impl CommandMethods for process::Command {
+impl CommandMethods for std::process::Command {
     fn arg<T>(&mut self, arg: T)
     where
         T: AsRef<OsStr>,
