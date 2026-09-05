@@ -48,7 +48,7 @@ fn test_set_content_ignores_max_length() {
         DummyClipboardContext::new(""),
     );
 
-    textinput.set_max_length(Some(Utf16CodeUnits::one()));
+    textinput.set_max_length(Some(Utf16CodeUnits(1)));
     textinput.set_content(DOMString::from("mozilla rocks"));
     assert_eq!(textinput.get_content(), DOMString::from("mozilla rocks"));
 }
@@ -97,7 +97,7 @@ fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_s
         DummyClipboardContext::new(""),
     );
 
-    textinput.set_max_length(Some(Utf16CodeUnits::one()));
+    textinput.set_max_length(Some(Utf16CodeUnits(1)));
     textinput.insert('a');
     assert_eq!(textinput.get_content(), "abc");
 }
@@ -201,7 +201,7 @@ fn test_single_line_textinput_with_max_length_inside_char() {
         DummyClipboardContext::new(""),
     );
 
-    textinput.set_max_length(Some(Utf16CodeUnits::one()));
+    textinput.set_max_length(Some(Utf16CodeUnits(1)));
     textinput.insert('x');
     assert_eq!(textinput.get_content(), "\u{10437}");
 }
@@ -215,7 +215,7 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
         DummyClipboardContext::new(""),
     );
 
-    textinput.set_max_length(Some(Utf16CodeUnits::one()));
+    textinput.set_max_length(Some(Utf16CodeUnits(1)));
     textinput.insert('b');
     assert_eq!(textinput.get_content(), "a");
 }

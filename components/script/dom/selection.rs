@@ -13,7 +13,9 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
-use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
+use servo_base::text::{
+    RangeAny, Str32, Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset,
+};
 
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
@@ -272,8 +274,8 @@ impl Selection {
         // so we don’t need HashDoS resistance and can use a faster hasher than `std`’s default
         let mut previously_flagged_nodes: FxHashSet<_> = previously_flagged_nodes.collect();
 
-        let start_offset = range.start.offset as usize;
-        let end_offset = range.end.offset as usize;
+        let start_offset = range.start.offset;
+        let end_offset = range.end.offset;
         let start_container = range.start.container.as_rooted();
         let end_container = range.end.container.as_rooted();
         let start_position =
@@ -292,21 +294,21 @@ impl Selection {
         // But that requires keeping track of the previous range, to compare.
         if let Some(character_data) = start_container.downcast::<CharacterData>() {
             let text = character_data.data();
-            let range = RangeAny {
-                start: Some(Utf16CodeUnits(start_offset).to_utf32_code_units_in(&text)),
-                end: (start_node == end_node)
+            let range = RangeAny::new(
+                Some(Utf16CodeUnits(start_offset).to_utf32_code_units_in(&text)),
+                (start_node == end_node)
                     .then_some(Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text)),
-            };
+            );
             set_text_run_selection(character_data, Some(range))
         }
         if end_container != start_container &&
             let Some(character_data) = end_container.downcast::<CharacterData>()
         {
             let text = character_data.data();
-            let range = RangeAny {
-                start: None,
-                end: Some(Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text)),
-            };
+            let range = RangeAny::new(
+                None,
+                Some(Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text)),
+            );
             set_text_run_selection(character_data, Some(range))
         }
 
@@ -1512,7 +1514,7 @@ impl FlatTreeNodePosition {
 fn position_in_flat_tree_for_selection(
     no_gc: &NoGC,
     container: DomRoot<Node>,
-    offset: usize,
+    offset: u32,
 ) -> FlatTreeNodePosition {
     if container.is::<CharacterData>() {
         return FlatTreeNodePosition::Inside(container);
@@ -1525,7 +1527,7 @@ fn position_in_flat_tree_for_selection(
             .unwrap_or(DomRoot::from_ref(node))
     };
 
-    if let Some(child) = container.children().nth(offset) {
+    if let Some(child) = container.children().nth(offset as usize) {
         if let FlatTreeParent::Parent(_) = child.parent_in_flat_tree(no_gc) {
             return FlatTreeNodePosition::Before(child);
         }
@@ -1545,9 +1547,12 @@ impl Node {
     /// `CharacterData` or else return the offset in the child list.
     fn to_sibling_or_utf16_offset(&self, offset: Utf32CodeUnitsOrNodeOffset) -> u32 {
         if let Some(character_data) = self.downcast::<CharacterData>() {
-            offset.to_utf16_code_units_in(&character_data.data()).0 as u32
+            // TODO: ensure that each `CharacterData` holds no more than 4 GiB?
+            offset
+                .to_utf16_code_units_in(Str32(&character_data.data()))
+                .0
         } else {
-            offset.0 as u32
+            offset.0
         }
     }
 }

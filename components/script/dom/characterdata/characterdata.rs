@@ -9,7 +9,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
-use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
+use servo_base::text::{RangeAny, Str32, Utf16CodeUnits, Utf32CodeUnits};
 
 use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -133,8 +133,9 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         self.content_changed(cx);
 
         let mut utf16_length = None;
+        // TODO: ensure that DOMString’s are under 4 GiB?
         let mut lazy_length = move || {
-            *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(&data.str()).0 as u32)
+            *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(Str32(&data.str())).0)
         };
 
         let node: &Node = self.upcast();
@@ -146,7 +147,8 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
     fn Length(&self) -> u32 {
-        Utf16CodeUnits::length_of(&self.data.borrow()).0 as u32
+        // TODO: ensure that DOMString’s are under 4 GiB?
+        Utf16CodeUnits::length_of(Str32(&self.data.borrow())).0
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-substringdata>
@@ -253,7 +255,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             new_data = String::with_capacity(
                 prefix.len() +
                     replacement_before.len() +
-                    arg.len() +
+                    usize::from(arg.len_utf8()) +
                     replacement_after.len() +
                     suffix.len(),
             );
@@ -269,8 +271,9 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         let node = self.upcast::<Node>();
 
         let mut utf16_length = None;
+        // TODO: ensure that DOMString’s are under 4 GiB?
         let mut lazy_length = move || {
-            *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(&arg.str()).0 as u32)
+            *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(Str32(&arg.str())).0)
         };
 
         if let Some(selection) = node.owner_doc_unrooted(cx.no_gc()).selection() {

@@ -10,7 +10,7 @@ use atomic_refcell::AtomicRefCell;
 use icu_properties::CodePointMapData;
 use icu_properties::props::BidiClass;
 use layout_api::LayoutNode;
-use servo_base::text::{RangeAny, Utf32CodeUnits};
+use servo_base::text::{RangeAny, Str32, Utf8CodeUnits, Utf32CodeUnits};
 use style::computed_values::direction::T as Direction;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::dom::NodeInfo;
@@ -49,12 +49,12 @@ pub(crate) struct InlineFormattingContextBuilder {
 
     /// The current offset in the final text string of this [`InlineFormattingContext`],
     /// used to properly set the text range of new [`InlineItem::TextRun`]s.
-    current_text_offset: usize,
+    current_text_offset: Utf8CodeUnits,
 
     /// The current character offset in the final text string of this [`InlineFormattingContext`],
     /// used to properly set the text range of new [`InlineItem::TextRun`]s. Note that this is
     /// different from the UTF-8 code point offset.
-    current_character_offset: usize,
+    current_character_offset: Utf32CodeUnits,
 
     /// Whether the last processed node ended with whitespace. This is used to
     /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
@@ -146,10 +146,11 @@ impl InlineFormattingContextBuilder {
 
     fn push_control_character_string(&mut self, string_to_push: &str) {
         self.text_segments.push(string_to_push.to_owned());
-        self.current_text_offset += string_to_push.len();
+        let string_to_push = Str32(string_to_push); // string_to_push is always small
+        self.current_text_offset += Utf8CodeUnits::length_of(string_to_push);
 
         let new_characters = Utf32CodeUnits::length_of(string_to_push);
-        self.current_character_offset += new_characters.0;
+        self.current_character_offset += new_characters;
         self.offset_map
             .borrow_mut()
             .push_range(new_characters, new_characters);
@@ -337,16 +338,15 @@ impl InlineFormattingContextBuilder {
 
         // Push any leading white space first.
         let first_letter_range_u32 = LazyCell::new(|| {
-            Utf32CodeUnits::length_of(&text[..first_letter_range.start])..
-                Utf32CodeUnits::length_of(&text[..first_letter_range.end])
+            // TODO: ensure layout doesn’t handle more than 4 GiB at a time?
+            Utf32CodeUnits::length_of(Str32(&text[..first_letter_range.start]))..
+                Utf32CodeUnits::length_of(Str32(&text[..first_letter_range.end]))
         });
         if first_letter_range.start != 0 {
             let leading_whitespace_range = 0..first_letter_range.start;
             let leading_whitespace_selection_range = selection.and_then(|range| {
-                let leading_whitespace_range_u32 = RangeAny {
-                    start: None,
-                    end: Some(first_letter_range_u32.start),
-                };
+                let leading_whitespace_range_u32 =
+                    RangeAny::new(None, Some(first_letter_range_u32.start));
                 range.intersect(leading_whitespace_range_u32)
             });
 
@@ -381,10 +381,8 @@ impl InlineFormattingContextBuilder {
 
         // Now push the non-first-letter text.
         let remaining_selection_range = selection.and_then(|range| {
-            let remaining_text_range_u32 = RangeAny {
-                start: Some(first_letter_range_u32.end),
-                end: range.end,
-            };
+            let remaining_text_range_u32 =
+                RangeAny::new(Some(first_letter_range_u32.end), range.end());
             range
                 .intersect(remaining_text_range_u32)
                 .map(|range| range.map(|offset| offset - first_letter_range_u32.end))
@@ -409,7 +407,7 @@ impl InlineFormattingContextBuilder {
 
         let bidi_class_map = CodePointMapData::<BidiClass>::new();
         let white_space_collapse = info.style.clone_white_space_collapse();
-        let mut character_count = 0;
+        let mut character_count = Utf32CodeUnits(0);
         let mut new_text = String::with_capacity(text.len());
         for iteration in TextTransformationIterator::new(
             &text,
@@ -419,7 +417,7 @@ impl InlineFormattingContextBuilder {
         ) {
             offset_map.push_iteration(&iteration);
             for &character in iteration.characters() {
-                character_count += 1;
+                character_count.0 += 1;
 
                 // If this character has a strong right-to-left class the new inline formatting context will
                 // need to be BiDi-aware. This match is derived from the list of strong right-to-left classes
@@ -457,7 +455,9 @@ impl InlineFormattingContextBuilder {
                 self.on_word_boundary && white_space_collapse != WhiteSpaceCollapse::Preserve;
         }
 
-        let new_utf8_range = self.current_text_offset..self.current_text_offset + new_text.len();
+        // TODO: ensure layout doesn’t handle more than 4 GiB at a time?
+        let new_text_len = Utf8CodeUnits::length_of(Str32(&new_text));
+        let new_utf8_range = self.current_text_offset..self.current_text_offset + new_text_len;
         self.current_text_offset = new_utf8_range.end;
 
         let new_character_range =
@@ -514,7 +514,7 @@ impl InlineFormattingContextBuilder {
 
         assert!(self.inline_box_stack.is_empty());
         debug_assert_eq!(
-            self.offset_map.borrow().total_final_size().0,
+            self.offset_map.borrow().total_final_size(),
             self.current_character_offset
         );
 

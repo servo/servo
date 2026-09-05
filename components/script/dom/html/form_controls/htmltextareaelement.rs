@@ -442,7 +442,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-textlength>
     fn TextLength(&self) -> u32 {
-        self.textinput.borrow().len_utf16().0 as u32
+        self.textinput.borrow().len_utf16().0
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -455,7 +455,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.selection().dom_start().map(|start| start.0 as u32)
+        self.selection().dom_start().map(|start| start.0)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
@@ -466,7 +466,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.selection().dom_end().map(|end| end.0 as u32)
+        self.selection().dom_end().map(|end| end.0)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
@@ -636,7 +636,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(Utf16CodeUnits(value as usize)))
+                        textinput.set_max_length(Some(Utf16CodeUnits(value as u32)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -648,7 +648,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(Utf16CodeUnits(value as usize)))
+                        textinput.set_min_length(Some(Utf16CodeUnits(value as u32)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -933,7 +933,7 @@ impl Validatable for HTMLTextAreaElement {
             // https://html.spec.whatwg.org/multipage/#limiting-user-input-length%3A-the-maxlength-attribute%3Asuffering-from-being-too-long
             if validate_flags.contains(ValidationFlags::TOO_LONG) {
                 let max_length = self.MaxLength();
-                if max_length != DEFAULT_MAX_LENGTH && value_len > (max_length as usize) {
+                if max_length != DEFAULT_MAX_LENGTH && value_len > (max_length as u32) {
                     failed_flags.insert(ValidationFlags::TOO_LONG);
                 }
             }
@@ -942,7 +942,7 @@ impl Validatable for HTMLTextAreaElement {
             // https://html.spec.whatwg.org/multipage/#setting-minimum-input-length-requirements%3A-the-minlength-attribute%3Asuffering-from-being-too-short
             if validate_flags.contains(ValidationFlags::TOO_SHORT) {
                 let min_length = self.MinLength();
-                if min_length != DEFAULT_MIN_LENGTH && value_len < (min_length as usize) {
+                if min_length != DEFAULT_MIN_LENGTH && value_len < (min_length as u32) {
                     failed_flags.insert(ValidationFlags::TOO_SHORT);
                 }
             }

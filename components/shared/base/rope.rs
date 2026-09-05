@@ -9,7 +9,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::Either;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::text::{Utf8CodeUnits, Utf16CodeUnits, Utf32CodeUnits};
+use crate::text::{Str32, Utf8CodeUnits, Utf16CodeUnits, Utf32CodeUnits};
 
 fn contents_vec(contents: impl Into<String>) -> Vec<String> {
     let mut contents: Vec<_> = contents
@@ -158,7 +158,11 @@ impl Rope {
 
     /// The total number of code units required to encode the content in utf16.
     pub fn len_utf16(&self) -> Utf16CodeUnits {
-        Utf16CodeUnits(self.chars().map(char::len_utf16).sum())
+        // TODO: add some check that ropes stay under 4 GiB total?
+        self.lines
+            .iter()
+            .map(|line| Utf16CodeUnits::length_of(Str32(line)))
+            .sum()
     }
 
     fn line(&self, index: usize) -> &str {
@@ -321,14 +325,15 @@ impl Rope {
     /// Convert a [`RopeIndex`] into a byte offset from the start of the content.
     pub fn index_to_utf8_offset(&self, rope_index: RopeIndex) -> Utf8CodeUnits {
         let rope_index = self.normalize_index(rope_index);
-        Utf8CodeUnits(
-            self.lines
-                .iter()
-                .take(rope_index.line)
-                .map(String::len)
-                .sum::<usize>() +
-                rope_index.code_point,
-        )
+        let sum = self
+            .lines
+            .iter()
+            .take(rope_index.line)
+            .map(String::len)
+            .sum::<usize>() +
+            rope_index.code_point;
+        // TODO: add some check that ropes stay under 4 GiB total?
+        Utf8CodeUnits(sum as u32)
     }
 
     pub fn index_to_utf16_offset(&self, rope_index: RopeIndex) -> Utf16CodeUnits {
@@ -336,17 +341,13 @@ impl Rope {
         let final_line = self.line(rope_index.line);
 
         // The offset might be past the end of the line due to being an exclusive offset.
-        let final_line_offset = Utf16CodeUnits(
-            final_line[0..rope_index.code_point]
-                .chars()
-                .map(char::len_utf16)
-                .sum(),
-        );
+        let final_line_offset =
+            Utf16CodeUnits::length_of(Str32(&final_line[..rope_index.code_point]));
 
-        self.lines
+        // TODO: add some check that ropes stay under 4 GiB total?
+        self.lines[..rope_index.line]
             .iter()
-            .take(rope_index.line)
-            .map(|line| Utf16CodeUnits(line.chars().map(char::len_utf16).sum()))
+            .map(|line| Utf16CodeUnits::length_of(Str32(line)))
             .sum::<Utf16CodeUnits>() +
             final_line_offset
     }
@@ -357,18 +358,20 @@ impl Rope {
 
         // The offset might be past the end of the line due to being an exclusive offset.
         let final_line = self.line(rope_index.line);
-        let final_line_offset = Utf32CodeUnits::length_of(&final_line[..rope_index.code_point]);
+        // TODO: add some check that ropes stay under 4 GiB total?
+        let final_line_offset =
+            Utf32CodeUnits::length_of(Str32(&final_line[..rope_index.code_point]));
         self.lines
             .iter()
             .take(rope_index.line)
-            .map(|line| Utf32CodeUnits::length_of(line))
+            .map(|line| Utf32CodeUnits::length_of(Str32(line)))
             .sum::<Utf32CodeUnits>() +
             final_line_offset
     }
 
     /// Convert a byte offset from the start of the content into a [`RopeIndex`].
     pub fn utf8_offset_to_rope_index(&self, utf8_offset: Utf8CodeUnits) -> RopeIndex {
-        let mut current_utf8_offset = utf8_offset.0;
+        let mut current_utf8_offset = usize::from(utf8_offset);
         for (line_index, line) in self.lines.iter().enumerate() {
             if current_utf8_offset == 0 || current_utf8_offset < line.len() {
                 return RopeIndex::new(line_index, current_utf8_offset);
@@ -379,18 +382,8 @@ impl Rope {
     }
 
     pub fn utf16_offset_to_utf8_offset(&self, utf16_offset: Utf16CodeUnits) -> Utf8CodeUnits {
-        let mut current_utf16_offset = Utf16CodeUnits::zero();
-        let mut current_utf8_offset = Utf8CodeUnits::zero();
-
-        for character in self.chars() {
-            let utf16_length = character.len_utf16();
-            if current_utf16_offset + Utf16CodeUnits(utf16_length) > utf16_offset {
-                return current_utf8_offset;
-            }
-            current_utf8_offset += Utf8CodeUnits(character.len_utf8());
-            current_utf16_offset += Utf16CodeUnits(utf16_length);
-        }
-        current_utf8_offset
+        // TODO: add some check that ropes stay under 4 GiB total?
+        utf16_offset.to_utf8_code_units_in_iter(self.lines.iter().map(|line| Str32(line)))
     }
 
     /// Find the boundaries of the word most relevant to the given [`RopeIndex`]. Word
@@ -547,6 +540,12 @@ impl<'a> RopeSlice<'a> {
                 Some(string.unicode_word_indices().next_back()?.0)
             },
         }
+    }
+
+    pub fn len_utf16(self) -> Utf16CodeUnits {
+        // TODO: add some check that ropes stay under 4 GiB total?
+        // TODO: iterate `&str` slices instead and use `Utf16CodeUnits::length_of`
+        self.chars().map(Utf16CodeUnits::length_of_char).sum()
     }
 }
 
