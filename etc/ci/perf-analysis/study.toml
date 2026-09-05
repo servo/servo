@@ -1,0 +1,25 @@
+# Perf-analysis CI study.
+#
+# This is a template: the perf-analysis workflow copies it into the
+# perf-analysis-tools checkout and substitutes `@SERVO_BINARY@` with the
+# absolute path to the servoshell binary built with `tracing-perfetto`.
+#
+# See https://github.com/servo/perf-analysis-tools for the full format.
+
+# How many times to run the browser in each sample.
+sample_size = 5
+
+# Not used for Servo-only studies; kept as a no-op.
+traceconv_command = ["true"]
+
+# No CPU isolation in CI.
+isolate_cpu_command = ["true"]
+
+[cpu_configs]
+"default" = []
+
+[sites]
+"servo.org" = "https://servo.org/"
+
+[engines]
+"servo" = { type = "Servo", path = "@SERVO_BINARY@" }
