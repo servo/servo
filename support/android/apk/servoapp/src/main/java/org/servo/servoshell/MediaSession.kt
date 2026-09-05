@@ -48,11 +48,12 @@ class MediaSession(private val view: ServoView, private val context: Context) {
     }
 
     private fun createMediaNotificationChannel() {
-        val channel = NotificationChannel(
-            MEDIA_CHANNEL_ID,
-            context.getString(R.string.media_channel_name),
-            NotificationManager.IMPORTANCE_LOW,
-        )
+        val channel =
+            NotificationChannel(
+                MEDIA_CHANNEL_ID,
+                context.getString(R.string.media_channel_name),
+                NotificationManager.IMPORTANCE_LOW,
+            )
         channel.description = context.getString(R.string.media_channel_description)
         val notificationManager = context.getSystemService<NotificationManager>()!!
         notificationManager.createNotificationChannel(channel)
@@ -72,27 +73,34 @@ class MediaSession(private val view: ServoView, private val context: Context) {
         if (mediaSessionActionReceiver == null) {
             id = notificationID.next
 
-            mediaSessionActionReceiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context?, intent: Intent) {
-                    if (intent.action == KEY_MEDIA_PAUSE) {
-                        view.mediaSessionAction(ACTION_PAUSE)
-                        Log.d("MediaSession", "PAUSE action")
-                    } else if (intent.action == KEY_MEDIA_PLAY) {
-                        view.mediaSessionAction(ACTION_PLAY)
-                        Log.d("MediaSession", "PLAY action")
+            mediaSessionActionReceiver =
+                object : BroadcastReceiver() {
+                    override fun onReceive(context: Context?, intent: Intent) {
+                        if (intent.action == KEY_MEDIA_PAUSE) {
+                            view.mediaSessionAction(ACTION_PAUSE)
+                            Log.d("MediaSession", "PAUSE action")
+                        } else if (intent.action == KEY_MEDIA_PLAY) {
+                            view.mediaSessionAction(ACTION_PLAY)
+                            Log.d("MediaSession", "PLAY action")
+                        }
                     }
                 }
-            }
         } else {
             id = notificationID.get()
         }
 
-        ContextCompat.registerReceiver(context, mediaSessionActionReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        ContextCompat.registerReceiver(
+            context,
+            mediaSessionActionReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
 
-        val builder = Notification.Builder(context, MEDIA_CHANNEL_ID)
-            .setSmallIcon(R.drawable.media_session_icon)
-            .setContentTitle(title)
-            .setVisibility(Notification.VISIBILITY_PUBLIC)
+        val builder =
+            Notification.Builder(context, MEDIA_CHANNEL_ID)
+                .setSmallIcon(R.drawable.media_session_icon)
+                .setContentTitle(title)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
 
         var contentText = ""
         val artist = artist
@@ -115,20 +123,32 @@ class MediaSession(private val view: ServoView, private val context: Context) {
         if (playbackState == PLAYBACK_STATE_PAUSED) {
             builder.addAction(
                 Notification.Action.Builder(
-                    Icon.createWithResource(context, R.drawable.media_session_play),
-                    "Play",
-                    PendingIntent.getBroadcast(context, 0, Intent(KEY_MEDIA_PLAY), PendingIntent.FLAG_IMMUTABLE),
-                ).build()
+                        Icon.createWithResource(context, R.drawable.media_session_play),
+                        "Play",
+                        PendingIntent.getBroadcast(
+                            context,
+                            0,
+                            Intent(KEY_MEDIA_PLAY),
+                            PendingIntent.FLAG_IMMUTABLE,
+                        ),
+                    )
+                    .build()
             )
         }
 
         if (playbackState == PLAYBACK_STATE_PLAYING) {
             builder.addAction(
                 Notification.Action.Builder(
-                    Icon.createWithResource(context, R.drawable.media_session_pause),
-                    "Pause",
-                    PendingIntent.getBroadcast(context, 0, Intent(KEY_MEDIA_PAUSE), PendingIntent.FLAG_IMMUTABLE),
-                ).build()
+                        Icon.createWithResource(context, R.drawable.media_session_pause),
+                        "Pause",
+                        PendingIntent.getBroadcast(
+                            context,
+                            0,
+                            Intent(KEY_MEDIA_PAUSE),
+                            PendingIntent.FLAG_IMMUTABLE,
+                        ),
+                    )
+                    .build()
             )
         }
 
