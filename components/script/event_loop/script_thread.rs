@@ -157,7 +157,7 @@ use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::{MicrotaskQueue, MicrotaskRunnable};
+use crate::runtime::job_queue::{MicrotaskRunnable, job_queue_microtask_checkpoint};
 use crate::runtime::script_runtime::{
     IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
 };
@@ -327,8 +327,6 @@ pub struct ScriptThread {
     closed_pipelines: DomRefCell<FxHashSet<PipelineId>>,
 
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
-    microtask_queue: Rc<MicrotaskQueue>,
-
     mutation_observers: Rc<ScriptMutationObservers>,
 
     /// A handle to the WebGL thread
@@ -541,10 +539,6 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.mutation_observers.clone())
     }
 
-    pub(crate) fn microtask_queue() -> Rc<MicrotaskQueue> {
-        with_script_thread(|script_thread| script_thread.microtask_queue.clone())
-    }
-
     pub(crate) fn shared_style_locks(&self) -> &SharedRwLocks {
         &self.shared_style_locks
     }
@@ -575,9 +569,7 @@ impl ScriptThread {
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
     pub(crate) fn await_stable_state(cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
-        with_script_thread(|script_thread| {
-            script_thread.microtask_queue.enqueue(cx, task);
-        });
+        crate::runtime::job_queue::enqueue(cx, task);
     }
 
     /// Check that two origins are "similar enough",
@@ -884,7 +876,6 @@ impl ScriptThread {
             devtools_client_to_script_thread_sender: ipc_devtools_sender,
         };
 
-        let microtask_queue = runtime.microtask_queue.clone();
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
@@ -934,7 +925,6 @@ impl ScriptThread {
                     background_hang_monitor,
                     closing,
                     timer_scheduler: Default::default(),
-                    microtask_queue,
                     js_runtime: Rc::new(runtime),
                     closed_pipelines: DomRefCell::new(FxHashSet::default()),
                     mutation_observers: Default::default(),
@@ -4419,9 +4409,7 @@ impl ScriptThread {
     }
 
     pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {
-        with_script_thread(|script_thread| {
-            script_thread.microtask_queue.enqueue(cx, job);
-        });
+        crate::runtime::job_queue::enqueue(cx, job);
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
@@ -4434,7 +4422,7 @@ impl ScriptThread {
                 .map(|(_id, document)| DomRoot::from_ref(document.window().upcast()))
                 .collect();
 
-            self.microtask_queue.checkpoint(cx, globals)
+            job_queue_microtask_checkpoint(cx, globals)
         }
     }
 

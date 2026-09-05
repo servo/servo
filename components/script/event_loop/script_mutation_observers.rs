@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use js::context::JSContext;
 use script_bindings::callback::ExceptionHandling;
@@ -12,7 +11,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 
 use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, MutationRecord};
-use crate::runtime::microtask::{MicrotaskQueue, NotifyMutationObserversMicrotask};
+use crate::runtime::job_queue::NotifyMutationObserversMicrotask;
 
 /// A helper struct for mutation observers used in `ScriptThread`
 /// Since the Rc is always stored in ScriptThread, it's always reachable by the GC.
@@ -85,11 +84,7 @@ impl ScriptMutationObservers {
     }
 
     /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
-    pub(crate) fn queue_mutation_observer_microtask(
-        &self,
-        cx: &JSContext,
-        microtask_queue: Rc<MicrotaskQueue>,
-    ) {
+    pub(crate) fn queue_mutation_observer_microtask(&self, cx: &JSContext) {
         // Step 1. If the surrounding agent’s mutation observer microtask queued is true, then return.
         if self.mutation_observer_microtask_queued.get() {
             return;
@@ -99,7 +94,7 @@ impl ScriptMutationObservers {
         self.mutation_observer_microtask_queued.set(true);
 
         // Step 3. Queue a microtask to notify mutation observers.
-        microtask_queue.enqueue(cx, Box::new(NotifyMutationObserversMicrotask::new()));
+        crate::runtime::job_queue::enqueue(cx, Box::new(NotifyMutationObserversMicrotask::new()));
     }
 
     pub(crate) fn add_signal_slot(&self, observer: &HTMLSlotElement) {

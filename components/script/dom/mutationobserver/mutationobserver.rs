@@ -236,7 +236,7 @@ impl MutationObserver {
 
         // Step 5 Queue a mutation observer microtask.
         let mutation_observers = ScriptThread::mutation_observers();
-        mutation_observers.queue_mutation_observer_microtask(cx, ScriptThread::microtask_queue());
+        mutation_observers.queue_mutation_observer_microtask(cx);
     }
 }
 

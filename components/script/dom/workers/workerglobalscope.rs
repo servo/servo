@@ -102,7 +102,7 @@ use crate::fetch::network_listener::{
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::{MicrotaskQueue, MicrotaskRunnable, UserMicrotask};
+use crate::runtime::job_queue::{MicrotaskRunnable, UserMicrotask, job_queue_microtask_checkpoint};
 use crate::runtime::script_runtime::{IntroductionType, Runtime, get_reports};
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
@@ -298,10 +298,6 @@ impl ResourceTimingListener for ScriptFetchContext {
 pub(crate) struct WorkerGlobalScope {
     globalscope: GlobalScope,
 
-    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
-    #[conditional_malloc_size_of]
-    microtask_queue: Rc<MicrotaskQueue>,
-
     worker_name: DOMString,
     worker_type: WorkerType,
 
@@ -426,7 +422,6 @@ impl WorkerGlobalScope {
                 init.unminify_js,
             ),
             caches: Default::default(),
-            microtask_queue: runtime.microtask_queue.clone(),
             worker_id: init.worker_id,
             worker_name,
             worker_type,
@@ -472,15 +467,14 @@ impl WorkerGlobalScope {
     }
 
     pub(crate) fn enqueue_microtask(&self, cx: &JSContext, job: Box<dyn MicrotaskRunnable>) {
-        self.microtask_queue.enqueue(cx, job);
+        crate::runtime::job_queue::enqueue(cx, job);
     }
 
     /// Perform a microtask checkpoint.
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
         // Only perform the checkpoint if we're not shutting down.
         if !self.is_closing() {
-            self.microtask_queue
-                .checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
+            job_queue_microtask_checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
         }
     }
 

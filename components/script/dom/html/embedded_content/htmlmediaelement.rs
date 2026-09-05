@@ -112,7 +112,7 @@ use crate::fetch::fetch::{
 };
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskRunnable;
+use crate::runtime::job_queue::MicrotaskRunnable;
 use crate::tasks::task_source::SendableTaskSource;
 
 /// A CSS file to style the media controls.
