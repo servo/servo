@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
 use std::sync::Arc;
 
 use script_bindings::DomTypes;
@@ -90,20 +89,17 @@ pub trait Equivalence =  DomTypes<
 
 /// The main trait for creating and using promises in script_webgpu.
 pub trait WebGPUPromiseTrait<D: DomTypes> {
-    fn callback_promise_adapter(
-        self: &Rc<Self>,
-        d: &GPUAdapter<D>,
-    ) -> GenericCallback<WebGPUDeviceResponse>;
+    fn callback_promise_adapter(&self, d: &GPUAdapter<D>) -> GenericCallback<WebGPUDeviceResponse>;
 
     fn callback_promise_gpubuffer(
-        self: &Rc<Self>,
+        &self,
         d: &GPUBuffer<D>,
     ) -> GenericCallback<Result<Mapping, BufferAccessError>>;
 
-    fn callback_promise_gpu(self: &Rc<Self>, d: &GPU<D>) -> GenericCallback<WebGPUAdapterResponse>;
+    fn callback_promise_gpu(&self, d: &GPU<D>) -> GenericCallback<WebGPUAdapterResponse>;
 
     fn callback_promise_gpushadermodule(
-        self: &Rc<Self>,
+        &self,
         d: &GPUShaderModule<D>,
     ) -> GenericCallback<Option<ShaderCompilationInfo>>;
 }

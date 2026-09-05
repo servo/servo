@@ -103,7 +103,8 @@ where
 impl<D> GPUComputePipeline<D>
 where
     D: Equivalence,
-    D::Promise: WebGPUPromiseTrait<D> + PromiseHelpers<D>,
+    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
     D::GPUDevice: GPUDeviceTrait<D>,
 {
@@ -152,7 +153,8 @@ where
     D::GlobalScope: WebGPUGlobalTrait,
     D::GPUDevice: GPUDeviceTrait<D>,
     Self: DomGlobalGeneric<D>,
-    D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D>,
+    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {

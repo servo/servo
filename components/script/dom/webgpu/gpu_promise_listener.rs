@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use js::jsapi::HandleObject;
 use script_bindings::str::DOMString;
 use webgpu_traits::WebGPUAdapterResponse;
@@ -11,7 +9,7 @@ use webgpu_traits::WebGPUAdapterResponse;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::gpu::GPU;
 use crate::dom::gpuadapter::GPUAdapter;
-use crate::dom::promise::Promise;
+use crate::dom::promise::RootedPromise;
 use crate::routed_promise::RoutedPromiseListener;
 
 impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
@@ -19,7 +17,7 @@ impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
         &self,
         cx: &mut js::context::JSContext,
         response: WebGPUAdapterResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             Some(Ok(adapter)) => {

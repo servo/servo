@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
 use std::str::FromStr;
 
 use data_url::mime::Mime;
@@ -26,7 +25,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
@@ -35,10 +34,12 @@ use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 /// The fulfillment handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct RepresentationDataPromiseFulfillmentHandler {
-    #[conditional_malloc_size_of]
-    promise: Rc<Promise>,
+    promise: TracedPromise,
 }
+
+impl js::gc::Rootable for RepresentationDataPromiseFulfillmentHandler {}
 
 impl Callback for RepresentationDataPromiseFulfillmentHandler {
     /// The fulfillment case of Step 3.4.1.1.4.3 of
@@ -60,10 +61,12 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
 /// The rejection handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct RepresentationDataPromiseRejectionHandler {
-    #[conditional_malloc_size_of]
-    promise: Rc<Promise>,
+    promise: TracedPromise,
 }
+
+impl js::gc::Rootable for RepresentationDataPromiseRejectionHandler {}
 
 impl Callback for RepresentationDataPromiseRejectionHandler {
     /// The rejection case of Step 3.4.1.1.4.3 of
@@ -94,12 +97,12 @@ impl Clipboard {
 
 impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>
-    fn ReadText(&self, realm: &mut CurrentRealm) -> Rc<Promise> {
+    fn ReadText(&self, realm: &mut CurrentRealm) -> RootedPromise {
         // Step 1 Let realm be this's relevant realm.
         let global = self.global();
 
         // Step 2 Let p be a new promise in realm.
-        let p = Promise::new_in_realm(realm);
+        let p = Promise::new_in_realm_rooted(realm);
 
         // Step 3 Run the following steps in parallel:
 
@@ -122,11 +125,11 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
     }
 
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-writetext>
-    fn WriteText(&self, realm: &mut CurrentRealm, data: DOMString) -> Rc<Promise> {
+    fn WriteText(&self, realm: &mut CurrentRealm, data: DOMString) -> RootedPromise {
         // Step 1 Let realm be this's relevant realm.
         let global = self.global();
         // Step 2 Let p be a new promise in realm.
-        let p = Promise::new_in_realm(realm);
+        let p = Promise::new_in_realm_rooted(realm);
 
         // Step 3 Run the following steps in parallel:
 
@@ -137,7 +140,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
         // to reject p with "NotAllowedError" DOMException in realm.
         // Step 3.2.2 Abort these steps.
 
-        let trusted_promise = TrustedPromise::new(p.clone());
+        let trusted_promise = TrustedPromise::from(&p);
         let bytes = Vec::from(data);
 
         // Step 3.3 Queue a global task on the clipboard task source,
@@ -182,7 +185,7 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
         &self,
         cx: &mut js::context::JSContext,
         response: Result<String, String>,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         let global = self.global();
         let text = response.unwrap_or_default();
@@ -213,17 +216,21 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
 
         // Step 3.4.1.1.4.2 Let representationDataPromise be the representation’s data.
         // Step 3.4.1.1.4.3 React to representationDataPromise:
-        let fulfillment_handler = Box::new(RepresentationDataPromiseFulfillmentHandler {
-            promise: promise.clone(),
-        });
-        let rejection_handler = Box::new(RepresentationDataPromiseRejectionHandler {
-            promise: promise.clone(),
-        });
+        rooted!(&in(cx) let mut fulfillment_handler = Some(RepresentationDataPromiseFulfillmentHandler {
+            promise: promise.to_traced(),
+        }));
+        rooted!(&in(cx) let mut rejection_handler = Some(RepresentationDataPromiseRejectionHandler {
+            promise: promise.to_traced(),
+        }));
         let handler = PromiseNativeHandler::new(
             cx,
             &global,
-            Some(fulfillment_handler),
-            Some(rejection_handler),
+            fulfillment_handler
+                .take()
+                .map(|handler| Box::new(handler) as Box<dyn Callback>),
+            rejection_handler
+                .take()
+                .map(|handler| Box::new(handler) as Box<dyn Callback>),
         );
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();

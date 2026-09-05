@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
@@ -14,7 +12,9 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUShaderModuleDescriptor, GPUShaderModuleMethods, GPUShaderModuleWrap,
 };
-use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::interfaces::{
+    HeapTracedPromiseHelpers, PromiseHelpers, StackRootPromiseHelpers,
+};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{WebGPU, WebGPURequest, WebGPUShaderModule};
 
@@ -51,8 +51,7 @@ impl Drop for DroppableGPUShaderModule {
 pub struct GPUShaderModule<D: DomTypes> {
     reflector_: Reflector,
     label: DomRefCell<USVString>,
-    #[ignore_malloc_size_of = "promise"]
-    compilation_info_promise: Rc<D::Promise>,
+    compilation_info_promise: <D::Promise as PromiseHelpers<D>>::HeapTraced,
     droppable: DroppableGPUShaderModule,
 }
 
@@ -61,12 +60,12 @@ impl<D: Equivalence> GPUShaderModule<D> {
         channel: WebGPU,
         shader_module: WebGPUShaderModule,
         label: USVString,
-        promise: Rc<D::Promise>,
+        promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
-            compilation_info_promise: promise,
+            compilation_info_promise: promise.to_traced(),
             droppable: DroppableGPUShaderModule {
                 channel,
                 shader_module,
@@ -80,7 +79,7 @@ impl<D: Equivalence> GPUShaderModule<D> {
         channel: WebGPU,
         shader_module: WebGPUShaderModule,
         label: USVString,
-        promise: Rc<D::Promise>,
+        promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPUShaderModule::new_inherited(
@@ -99,7 +98,8 @@ impl<D: Equivalence> GPUShaderModule<D> {
 impl<D> GPUShaderModule<D>
 where
     D: Equivalence,
-    D::Promise: WebGPUPromiseTrait<D> + PromiseHelpers<D>,
+    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait,
     D::GPUDevice: GPUDeviceTrait<D>,
 {
@@ -117,17 +117,16 @@ where
             .global_from_reflector()
             .global_wgpu_id_hub()
             .create_shader_module_id();
-        let promise = D::Promise::new_in_realm(cx);
+        let promise = D::Promise::new_in_realm_rooted(cx);
         let shader_module = GPUShaderModule::new(
             cx,
             &*device.global_from_reflector(),
             device.channel(),
             WebGPUShaderModule(program_id),
             descriptor.parent.label.clone(),
-            promise.clone(),
+            &promise,
         );
-        let callback =
-            WebGPUPromiseTrait::<D>::callback_promise_gpushadermodule(&promise, &*shader_module);
+        let callback = promise.callback_promise_gpushadermodule(&*shader_module);
         device
             .channel()
             .0
@@ -155,7 +154,7 @@ impl<D: DomTypes> GPUShaderModuleMethods<D> for GPUShaderModule<D> {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo>
-    fn GetCompilationInfo(&self) -> Rc<D::Promise> {
-        self.compilation_info_promise.clone()
+    fn GetCompilationInfo(&self) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
+        self.compilation_info_promise.root()
     }
 }

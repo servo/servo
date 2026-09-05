@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use pixels::{SnapshotAlphaMode, SnapshotPixelFormat};
@@ -33,7 +31,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -391,9 +389,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone>
-    fn OnSubmittedWorkDone(&self, cx: &mut JSContext) -> Rc<Promise> {
+    fn OnSubmittedWorkDone(&self, cx: &mut JSContext) -> RootedPromise {
         let global = self.global();
-        let promise = Promise::new(cx, &global);
+        let promise = Promise::new_rooted(cx, &global);
         let task_manager = global.task_manager();
         let task_source = task_manager.dom_manipulation_task_source();
         let callback = callback_promise(&promise, self, task_source);
@@ -417,7 +415,7 @@ impl RoutedPromiseListener<()> for GPUQueue {
         &self,
         cx: &mut js::context::JSContext,
         _response: (),
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         promise.resolve_native(cx, &());
     }
