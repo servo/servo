@@ -26,18 +26,16 @@ use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::hash::Hash;
 use std::marker::PhantomData;
-use std::rc::Rc;
 use std::sync::{Arc, Weak};
 
 use js::jsapi::JSTracer;
 use rustc_hash::FxHashMap;
 
-thread_local!(pub(super) static LIVE_REFERENCES: Rc<RefCell<LiveDOMReferences>> =
-    Rc::new(RefCell::new(
+thread_local!(pub(super) static LIVE_DOM_REFERENCES: LiveDOMReferences =
     LiveDOMReferences {
         reflectable_table: RefCell::new(FxHashMap::default()),
     }
-)));
+);
 
 use crate::root::DomRoot;
 use crate::trace::trace_reflector;
@@ -91,8 +89,7 @@ impl<T: DomObject> Trusted<T> {
         fn add_live_reference(
             ptr: *const libc::c_void,
         ) -> (Arc<TrustedReference>, *const LiveDOMReferences) {
-            LIVE_REFERENCES.with(|r| {
-                let live_references = &*r.borrow();
+            LIVE_DOM_REFERENCES.with(|live_references| {
                 let refcount = unsafe { live_references.addref(ptr) };
                 (refcount, live_references as *const _)
             })
@@ -111,11 +108,9 @@ impl<T: DomObject> Trusted<T> {
     /// obtained.
     pub fn root(&self) -> DomRoot<T> {
         fn validate(owner_thread: *const LiveDOMReferences) {
-            assert!(LIVE_REFERENCES.with(|r| {
-                let r = r.borrow();
-                let live_references = &*r;
-                owner_thread == live_references
-            }));
+            assert!(
+                LIVE_DOM_REFERENCES.with(|live_references| { owner_thread == live_references })
+            );
         }
         validate(self.owner_thread);
         unsafe { DomRoot::from_ref(&*(self.refcount.0 as *const T)) }
@@ -143,8 +138,7 @@ pub struct LiveDOMReferences {
 /// # Safety
 /// tracer must point to a valid, non-null JS tracer.
 pub unsafe fn trace_live_domreferences(tracer: *mut JSTracer) {
-    LIVE_REFERENCES.with(|r| {
-        let live_references = r.borrow();
+    LIVE_DOM_REFERENCES.with(|live_references| {
         let mut table = live_references.reflectable_table.borrow_mut();
         remove_nulls(&mut table);
         for obj in table.keys() {
@@ -157,8 +151,7 @@ pub unsafe fn trace_live_domreferences(tracer: *mut JSTracer) {
 
 impl LiveDOMReferences {
     pub fn destruct() {
-        LIVE_REFERENCES.with(|r| {
-            let live_references = r.borrow_mut();
+        LIVE_DOM_REFERENCES.with(|live_references| {
             let _ = live_references.reflectable_table.take();
         });
     }
