@@ -449,8 +449,8 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     make_labels_getter!(Labels, labels_node_list);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
-    fn Select(&self) {
-        self.selection().dom_select();
+    fn Select(&self, cx: &mut JSContext) {
+        self.selection().dom_select(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
