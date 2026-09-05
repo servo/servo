@@ -6930,6 +6930,19 @@
       {}
      ]
     ],
+    "textarea-select-selection.html": [
+     "8f26be86f98eb5249c897095091199d910fea4f5",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/textarea-select-selection-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "textarea-space-calculation.html": [
      "ef6cb45f70d8e7148322bb35375eba1bea0e4d2d",
      [
@@ -10561,6 +10574,10 @@
     ],
     "text-transform-uppercase-ref.html": [
      "97d2f366ea32246c55b7a8c01a89c1df86c3378c",
+     []
+    ],
+    "textarea-select-selection-ref.html": [
+     "070de600f9433b549733ac7da3dac73e287f2eb4",
      []
     ],
     "textarea-space-calculation-ref.html": [
@@ -15112,6 +15129,13 @@
     ],
     "textcontent.html": [
      "c89bb1b640fba0d36c5e931091b8e9e358afee57",
+     [
+      null,
+      {}
+     ]
+    ],
+    "textcontrol-select-focus.html": [
+     "64b444d228bb48636ce321f87b0a1e0767ef826e",
      [
       null,
       {}

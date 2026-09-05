@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Reftest Reference</title>
+    <style>
+      textarea {
+        font: 16px sans-serif;
+        border: 0 none;
+        margin: 0;
+        padding: 0;
+        color: white;
+        outline: none;
+      }
+      ::selection {
+        color: white;
+        background: rgba(176, 214, 255, 1.0);
+      }
+    </style>
+    <script>
+      function startReference() {
+        var textarea = document.querySelector("textarea");
+        textarea.focus();
+        textarea.setSelectionRange(0, textarea.value.length);
+      }
+    </script>
+  </head>
+  <body onload="startReference();">
+    <textarea rows="1" cols="10">Hello</textarea>
+  </body>
+</html>

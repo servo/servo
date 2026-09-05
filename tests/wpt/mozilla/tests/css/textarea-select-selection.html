@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>textarea select() paints a selection when the element was not focused</title>
+    <link rel="match" href="textarea-select-selection-ref.html">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-textarea/input-select">
+    <style>
+      textarea {
+        font: 16px sans-serif;
+        border: 0 none;
+        margin: 0;
+        padding: 0;
+        color: white;
+        outline: none;
+      }
+      ::selection {
+        color: white;
+        background: rgba(176, 214, 255, 1.0);
+      }
+    </style>
+    <script>
+      function startTest() {
+        // The textarea is not focused, but select() should still make the
+        // selection visible.
+        document.querySelector("textarea").select();
+      }
+    </script>
+  </head>
+  <body onload="startTest();">
+    <textarea rows="1" cols="10">Hello</textarea>
+  </body>
+</html>

@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>select() moves focus to the text control</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-textarea/input-select">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<textarea id="textarea">Gesundheit</textarea>
+<input type="text" id="input" value="Gesundheit">
+
+<script>
+test(() => {
+  const textarea = document.getElementById("textarea");
+  assert_not_equals(document.activeElement, textarea, "the textarea starts out unfocused");
+
+  textarea.select();
+
+  assert_equals(document.activeElement, textarea, "select() focuses the textarea");
+  assert_equals(textarea.selectionStart, 0);
+  assert_equals(textarea.selectionEnd, textarea.value.length);
+}, "textarea.select() moves focus to the textarea");
+
+test(() => {
+  const input = document.getElementById("input");
+  assert_not_equals(document.activeElement, input, "the input starts out unfocused");
+
+  input.select();
+
+  assert_equals(document.activeElement, input, "select() focuses the input");
+  assert_equals(input.selectionStart, 0);
+  assert_equals(input.selectionEnd, input.value.length);
+}, "input.select() moves focus to the input");
+</script>
