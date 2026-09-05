@@ -4002,6 +4002,15 @@ impl ScriptThread {
     /// argument until a notification is received that the fetch is complete.
     #[servo_tracing::instrument(skip_all)]
     fn pre_page_load(&self, cx: &mut js::context::JSContext, mut incomplete: InProgressLoad) {
+        let origin_from_snapshot = || -> Option<MutableOrigin> {
+            match incomplete.load_data.load_origin {
+                LoadOrigin::Script(ref snapshot) => {
+                    Some(MutableOrigin::from_snapshot(snapshot.clone()))
+                },
+                _ => None,
+            }
+        };
+
         let preserved_origin = || -> Option<MutableOrigin> {
             // When loading `about:blank`, `about:srcdoc` and `javascript:`
             // URLs, the specification says that the origin should be aliased
@@ -4020,24 +4029,19 @@ impl ScriptThread {
             )
         };
 
-        if incomplete.load_data.is_for_about_blank() || incomplete.load_data.is_for_javascript_url()
-        {
-            let source_origin = preserved_origin();
+        let url_str = incomplete.load_data.url.as_str();
+        if url_str == "about:blank" || incomplete.load_data.js_eval_result.is_some() {
+            let source_origin = preserved_origin().or(origin_from_snapshot());
             self.start_synchronous_page_load(cx, incomplete, source_origin);
             return;
         }
-        if incomplete.load_data.is_for_about_srcdoc() {
-            let source_origin = preserved_origin();
+        if url_str == "about:srcdoc" {
+            let source_origin = preserved_origin().or(origin_from_snapshot());
             self.page_load_about_srcdoc(cx, incomplete, source_origin);
             return;
         }
 
-        let source_origin = match incomplete.load_data.load_origin {
-            LoadOrigin::Script(ref snapshot) => {
-                Some(MutableOrigin::from_snapshot(snapshot.clone()))
-            },
-            _ => None,
-        };
+        let source_origin = origin_from_snapshot();
         let context = ParserContext::new(
             incomplete.webview_id,
             incomplete.pipeline_id,
