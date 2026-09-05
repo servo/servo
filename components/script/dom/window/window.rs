@@ -2256,9 +2256,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     fn RunningAnimationCount(&self) -> u32 {
-        self.document
-            .get()
-            .map_or(0, |d| d.animation_manager().running_animation_count() as u32)
+        self.document.get().map_or(0, |d| {
+            d.animation_manager().running_animation_count() as u32
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-name>

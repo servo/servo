@@ -117,8 +117,11 @@ impl AnimationManager {
         current_timeline_value: f64,
     ) -> bool {
         if current_timeline_value <= self.timeline_value_at_last_dirty.get() {
-            debug_assert_eq!(current_timeline_value, self.timeline_value_at_last_dirty.get(),
-                            "Not monotonically increasing: https://drafts.csswg.org/web-animations-1/#timelines");
+            debug_assert_eq!(
+                current_timeline_value,
+                self.timeline_value_at_last_dirty.get(),
+                "Not monotonically increasing: https://drafts.csswg.org/web-animations-1/#timelines"
+            );
             return false;
         }
         self.timeline_value_at_last_dirty
@@ -168,14 +171,8 @@ impl AnimationManager {
 
         let animation_keys = vec![
             AnimationSetKey::new_for_non_pseudo(opaque_node),
-            AnimationSetKey::new_for_pseudo(
-                opaque_node,
-                PseudoElement::Before,
-            ),
-            AnimationSetKey::new_for_pseudo(
-                opaque_node,
-                PseudoElement::After,
-            ),
+            AnimationSetKey::new_for_pseudo(opaque_node, PseudoElement::Before),
+            AnimationSetKey::new_for_pseudo(opaque_node, PseudoElement::After),
         ];
 
         let mut animations = self.sets.sets.write();
@@ -186,7 +183,9 @@ impl AnimationManager {
         }
 
         self.animating_images().write().remove(opaque_node);
-        self.rooted_image_nodes.borrow_mut().remove(&NoTrace(opaque_node));
+        self.rooted_image_nodes
+            .borrow_mut()
+            .remove(&NoTrace(opaque_node));
     }
 
     /// This does five things:
@@ -225,13 +224,15 @@ impl AnimationManager {
         self.update_running_animations_presence(window, have_running_animations);
 
         // Cancel animations for any images that are no longer rendering.
-        self.rooted_image_nodes.borrow_mut().retain(|opaque_node, node| {
-            if node.is_being_rendered(None) {
-                return true;
-            }
-            self.animating_images.write().remove(opaque_node.0);
-            false
-        });
+        self.rooted_image_nodes
+            .borrow_mut()
+            .retain(|opaque_node, node| {
+                if node.is_being_rendered(None) {
+                    return true;
+                }
+                self.animating_images.write().remove(opaque_node.0);
+                false
+            });
 
         if self.animating_images().write().clear_dirty() {
             self.root_nodes_with_newly_animating_images();
@@ -633,7 +634,11 @@ impl AnimationManager {
         for event in events.into_iter() {
             // We root the node here to ensure that sending this event doesn't
             // unroot it as a side-effect.
-            let node = match self.rooted_animation_nodes.borrow().get(&NoTrace(event.node)) {
+            let node = match self
+                .rooted_animation_nodes
+                .borrow()
+                .get(&NoTrace(event.node))
+            {
                 Some(node) => DomRoot::from_ref(&**node),
                 None => {
                     warn!("Tried to send an event for an unrooted node");
@@ -763,14 +768,15 @@ pub(crate) struct TransitionOrAnimationEvent {
 
 /// Inserts [opaque_node] into [rooted_nodes], if it isn't already present. This should be
 /// called immediately after a restyle, to ensure that these addresses are still valid.
-fn root_node(rooted_nodes: &mut FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>, opaque_node: OpaqueNode) {
+fn root_node(
+    rooted_nodes: &mut FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>,
+    opaque_node: OpaqueNode,
+) {
     #[expect(unsafe_code)]
-    rooted_nodes
-        .entry(NoTrace(opaque_node))
-        .or_insert_with(|| {
-            // SAFETY: This should be safe as this method is run directly after layout,
-            // which should not remove any nodes.
-            let address = UntrustedNodeAddress(opaque_node.0 as *const c_void);
-            unsafe { Dom::from_ref(&*from_untrusted_node_address(address)) }
-        });
+    rooted_nodes.entry(NoTrace(opaque_node)).or_insert_with(|| {
+        // SAFETY: This should be safe as this method is run directly after layout,
+        // which should not remove any nodes.
+        let address = UntrustedNodeAddress(opaque_node.0 as *const c_void);
+        unsafe { Dom::from_ref(&*from_untrusted_node_address(address)) }
+    });
 }
