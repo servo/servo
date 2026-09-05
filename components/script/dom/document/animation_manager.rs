@@ -51,7 +51,7 @@ use crate::event_loop::script_thread::with_script_thread;
 pub(crate) struct AnimationManager {
     /// The map of nodes to their animation states.
     #[no_trace]
-    pub(crate) sets: DocumentAnimationSet,
+    sets: DocumentAnimationSet,
 
     /// The set of [`AnimatingImages`] which is used to communicate the addition
     /// and removal of animating images from layout.
@@ -98,6 +98,10 @@ impl AnimationManager {
 
     pub(crate) fn animating_images(&self) -> Arc<RwLock<AnimatingImages>> {
         self.animating_images.clone()
+    }
+
+    pub(crate) fn sets(&self) -> DocumentAnimationSet {
+        self.sets.clone()
     }
 
     pub(crate) fn clear(&self) {

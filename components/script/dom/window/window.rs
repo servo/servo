@@ -2731,7 +2731,7 @@ impl Window {
             origin: self.origin().immutable().clone(),
             reflow_goal,
             animation_timeline_value: document.current_animation_timeline_value(),
-            animations: document.animation_manager().sets.clone(),
+            animations: document.animation_manager().sets(),
             animating_images: document.animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
             halt_lcp: self.has_dispatched_scroll_event.get() ||
@@ -2960,7 +2960,7 @@ impl Window {
         self.layout_reflow(QueryMsg::ResolvedFontStyleQuery);
 
         let document = self.Document();
-        let animations = document.animation_manager().sets.clone();
+        let animations = document.animation_manager().sets();
         self.layout.borrow().query_resolved_font_style(
             node.to_trusted_node_address(),
             &value,
@@ -3129,7 +3129,7 @@ impl Window {
         self.layout_reflow(QueryMsg::ResolvedStyleQuery(property.clone()));
 
         let document = self.Document();
-        let animations = document.animation_manager().sets.clone();
+        let animations = document.animation_manager().sets();
         DOMString::from(self.layout.borrow().query_resolved_style(
             element,
             pseudo,
