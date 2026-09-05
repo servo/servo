@@ -115,7 +115,7 @@ pub enum EmbedderToConstellationMessage {
     /// Activate or deactivate accessibility features for the given `WebView`.
     SetAccessibilityActive(WebViewId, bool),
     /// Update the online status
-    OnlineChanged(bool),
+    SetOnlineStatus(bool),
 }
 
 pub enum UserContentManagerAction {
