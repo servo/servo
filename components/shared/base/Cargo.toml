@@ -31,6 +31,7 @@ smallvec = { workspace = true }
 servo-config = { workspace = true }
 time = { workspace = true }
 unicode-segmentation = { workspace = true }
+uuid = { workspace = true, features = ["serde"] }
 webrender_api = { workspace = true }
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]

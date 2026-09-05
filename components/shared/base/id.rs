@@ -420,6 +420,24 @@ namespace_id! {ServiceWorkerId, ServiceWorkerIndex, "ServiceWorker"}
 
 namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex, "ServiceWorkerRegistration"}
 
+/// Identifies a worker instance.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct WorkerId(pub Uuid);
+
+impl fmt::Display for WorkerId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::str::FromStr for WorkerId {
+    type Err = uuid::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
+    }
+}
+
 namespace_id! {BlobId, BlobIndex, "Blob"}
 
 namespace_id! {FileId, FileIndex, "File"}

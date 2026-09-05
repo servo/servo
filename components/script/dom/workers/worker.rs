@@ -7,7 +7,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crossbeam_channel::{Sender, unbounded};
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
+#[cfg(feature = "devtools")]
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
@@ -17,6 +18,7 @@ use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_base::generic_channel;
+use servo_base::id::WorkerId;
 use servo_constellation_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use uuid::Uuid;
 
@@ -219,26 +221,29 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                             .and_then(|w| w.browsing_context())
                     })
             });
-
-        let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
         let worker_id = WorkerId(Uuid::new_v4());
-        if let Some(chan) = global.devtools_chan() {
-            let pipeline_id = global.pipeline_id();
-            let title = format!("Worker for {}", worker_url.url());
-            if let Some(browsing_context) = browsing_context {
-                let page_info = DevtoolsPageInfo {
-                    title,
-                    url: worker_url.url(),
-                    is_top_level_global: false,
-                    is_service_worker: false,
-                };
-                let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                    (browsing_context, pipeline_id, Some(worker_id), webview_id),
-                    devtools_sender.clone(),
-                    page_info,
-                ));
+        #[cfg(feature = "devtools")]
+        let ((devtools_sender, devtools_receiver), worker_id) = {
+            let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
+            if let Some(chan) = global.devtools_chan() {
+                let pipeline_id = global.pipeline_id();
+                let title = format!("Worker for {}", worker_url.url());
+                if let Some(browsing_context) = browsing_context {
+                    let page_info = DevtoolsPageInfo {
+                        title,
+                        url: worker_url.url(),
+                        is_top_level_global: false,
+                        is_service_worker: false,
+                    };
+                    let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+                        (browsing_context, pipeline_id, Some(worker_id), webview_id),
+                        devtools_sender.clone(),
+                        page_info,
+                    ));
+                }
             }
-        }
+            ((devtools_sender, devtools_receiver), worker_id)
+        };
 
         #[cfg(feature = "webgl")]
         let webgl_chan = global
@@ -246,6 +251,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             .and_then(|window| window.webgl_chan_value());
         let init = prepare_workerscope_init(
             global,
+            #[cfg(feature = "devtools")]
             Some(devtools_sender),
             Some(worker_id),
             #[cfg(feature = "webgl")]
@@ -266,6 +272,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             init,
             webview_id,
             worker_url,
+            #[cfg(feature = "devtools")]
             devtools_receiver,
             worker_ref,
             event_loop_sender,

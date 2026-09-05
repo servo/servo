@@ -13,8 +13,6 @@ use std::sync::{Arc, Weak};
 use std::thread;
 
 use cookie::Cookie;
-use crossbeam_channel::Sender;
-use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
@@ -88,7 +86,9 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<Certifica
 /// Returns a tuple of (public, private) senders to the new threads.
 #[expect(clippy::too_many_arguments)]
 pub fn new_resource_threads(
-    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    #[cfg(feature = "devtools")] devtools_sender: Option<
+        crossbeam_channel::Sender<devtools_traits::DevtoolsControlMsg>,
+    >,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -109,6 +109,7 @@ pub fn new_resource_threads(
         .unwrap_or_default();
 
     let (public_core, private_core) = new_core_resource_thread(
+        #[cfg(feature = "devtools")]
         devtools_sender,
         time_profiler_chan,
         mem_profiler_chan,
@@ -128,7 +129,9 @@ pub fn new_resource_threads(
 /// Create a CoreResourceThread
 #[expect(clippy::too_many_arguments)]
 pub fn new_core_resource_thread(
-    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    #[cfg(feature = "devtools")] devtools_sender: Option<
+        crossbeam_channel::Sender<devtools_traits::DevtoolsControlMsg>,
+    >,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -151,6 +154,7 @@ pub fn new_core_resource_thread(
         .name("ResourceManager".to_owned())
         .spawn(move || {
             let resource_manager = CoreResourceManager::new(
+                #[cfg(feature = "devtools")]
                 devtools_sender,
                 time_profiler_chan,
                 embedder_proxy.clone(),
@@ -707,7 +711,8 @@ pub struct AuthCache {
 }
 
 pub struct CoreResourceManager {
-    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    #[cfg(feature = "devtools")]
+    devtools_sender: Option<crossbeam_channel::Sender<devtools_traits::DevtoolsControlMsg>>,
     sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
     request_interceptor: RequestInterceptor,
@@ -720,7 +725,9 @@ pub struct CoreResourceManager {
 
 impl CoreResourceManager {
     pub fn new(
-        devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+        #[cfg(feature = "devtools")] devtools_sender: Option<
+            crossbeam_channel::Sender<devtools_traits::DevtoolsControlMsg>,
+        >,
         _profiler_chan: ProfilerChan,
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
@@ -728,6 +735,7 @@ impl CoreResourceManager {
         blob_token_communicator: Arc<Mutex<BlobTokenCommunicator>>,
     ) -> CoreResourceManager {
         CoreResourceManager {
+            #[cfg(feature = "devtools")]
             devtools_sender,
             sw_managers: Default::default(),
             filemanager: FileManager::new(embedder_proxy.clone(), blob_token_communicator),
@@ -789,6 +797,7 @@ impl CoreResourceManager {
         protocols: Arc<ProtocolRegistry>,
     ) {
         let http_state = http_state.clone();
+        #[cfg(feature = "devtools")]
         let devtools_chan = self.devtools_sender.clone();
         let filemanager = self.filemanager.clone();
         let request_interceptor = self.request_interceptor.clone();
@@ -841,6 +850,7 @@ impl CoreResourceManager {
             let context = FetchContext {
                 state: http_state,
                 user_agent: servo_config::pref!(user_agent),
+                #[cfg(feature = "devtools")]
                 devtools_chan,
                 filemanager,
                 file_token,
@@ -908,6 +918,7 @@ impl CoreResourceManager {
         protocols: Arc<ProtocolRegistry>,
     ) {
         let http_state = http_state.clone();
+        #[cfg(feature = "devtools")]
         let devtools_chan = self.devtools_sender.clone();
         let filemanager = self.filemanager.clone();
         let request_interceptor = self.request_interceptor.clone();
@@ -937,6 +948,7 @@ impl CoreResourceManager {
                     let context = FetchContext {
                         state: http_state,
                         user_agent: servo_config::pref!(user_agent),
+                        #[cfg(feature = "devtools")]
                         devtools_chan,
                         filemanager,
                         file_token: FileTokenCheck::NotRequired,
