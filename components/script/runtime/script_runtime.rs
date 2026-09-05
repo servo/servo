@@ -15,7 +15,7 @@ use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
 use std::ptr::NonNull;
-use std::rc::{Rc, Weak};
+use std::rc::Weak;
 use std::time::Instant;
 use std::{os, ptr};
 
@@ -24,16 +24,15 @@ use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
-    CreateJobQueue, DeleteJobQueue, DispatchablePointer, RUST_js_GetErrorMessage,
-    RegisterScriptEnvironmentPreparer, RunScriptEnvironmentPreparerClosure, SetBuildId,
-    StreamConsumerConsumeChunk, StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd,
-    StreamConsumerStreamError,
+    DispatchablePointer, RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
+    RunScriptEnvironmentPreparerClosure, SetBuildId, StreamConsumerConsumeChunk,
+    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
 use js::jsapi::{
     AsmJSOption, BuildIdCharVector, CompilationType, Dispatchable_MaybeShuttingDown, GCDescription,
     GCOptions, GCProgress, GCReason, Handle as RawHandle, HandleObject, HandleString,
     HandleValue as RawHandleValue, Heap, JSContext as RawJSContext, JSGCParamKey, JSGCStatus,
-    JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSString, JSTracer, JobQueue, MimeType,
+    JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSString, JSTracer, MimeType,
     MutableHandleString, PromiseRejectionHandlingState, RuntimeCode,
     ScriptEnvironmentPreparer_Closure, SetProcessBuildIdOp, StreamConsumer as JSStreamConsumer,
 };
@@ -46,7 +45,7 @@ use js::rust::wrappers2::{
     JS_AddExtraGCRootsTracer, JS_GetPromiseResult, JS_InitDestroyPrincipalsCallback,
     JS_InitReadPrincipalsCallback, JS_NewStringCopyUTF8N, JS_SetGCCallback, JS_SetGCParameter,
     JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetSecurityCallbacks,
-    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    SetDOMCallbacks, SetGCSliceCallback, SetPreserveWrapperCallbacks,
     SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
 };
 use js::rust::{
@@ -95,7 +94,7 @@ use crate::engine::handle::current_js_engine_handle;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::modules::script_module::EnsureModuleHooksInitialized;
 use crate::realms::enter_auto_realm;
-use crate::runtime::job_queue::{JOB_QUEUE_TRAPS, MicrotaskQueue};
+use crate::runtime::job_queue::{JobQueue, job_queue_clear};
 use crate::tasks::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
 
@@ -538,11 +537,7 @@ struct RuntimeCallbackData {
 pub(crate) struct Runtime {
     #[ignore_malloc_size_of = "Type from mozjs"]
     rt: RustRuntime,
-    /// Our actual microtask queue, which is preserved and untouched by the debugger when running debugger scripts.
-    #[conditional_malloc_size_of]
-    pub(crate) microtask_queue: Rc<MicrotaskQueue>,
-    #[ignore_malloc_size_of = "Type from mozjs"]
-    job_queue: *mut JobQueue,
+    job_queue: JobQueue,
     /// The data that is set on the SpiderMonkey runtime callbacks as a pointer.
     runtime_callback_data: Box<RuntimeCallbackData>,
 }
@@ -686,23 +681,12 @@ impl Runtime {
             InitConsumeStreamCallback(cx, Some(consume_stream), Some(report_stream_error));
         }
 
-        let microtask_queue = Rc::new(MicrotaskQueue::default());
-
-        // Extra queues for debugger scripts (“interrupts”) via AutoDebuggerJobQueueInterruption and saveJobQueue().
-        // Moved indefinitely to mozjs via CreateJobQueue(), borrowed from mozjs via JobQueueTraps, and moved back from
-        // mozjs for dropping via DeleteJobQueue().
-        let interrupt_queues: Box<Vec<Rc<MicrotaskQueue>>> = Box::default();
-
         let cx_opts;
         let job_queue;
         unsafe {
             let cx = runtime.cx();
-            job_queue = CreateJobQueue(
-                &JOB_QUEUE_TRAPS,
-                &*microtask_queue as *const _ as *const c_void,
-                Box::into_raw(interrupt_queues) as *mut c_void,
-            );
-            SetJobQueue(cx, job_queue);
+            job_queue = JobQueue::new();
+            job_queue.set_on_context(cx);
             SetPromiseRejectionTrackerCallback(
                 cx,
                 Some(promise_rejection_tracker),
@@ -850,7 +834,6 @@ impl Runtime {
         }
         Runtime {
             rt: runtime,
-            microtask_queue,
             job_queue,
             runtime_callback_data: unsafe { Box::from_raw(runtime_callback_data) },
         }
@@ -868,15 +851,10 @@ impl Runtime {
 }
 
 impl Drop for Runtime {
-    #[expect(unsafe_code)]
     fn drop(&mut self) {
         // Clear our main microtask_queue.
-        self.microtask_queue.clear(self.rt.cx_no_gc());
+        job_queue_clear(self.rt.cx_no_gc());
 
-        // Delete the RustJobQueue in mozjs
-        unsafe {
-            DeleteJobQueue(self.job_queue);
-        }
         LivePromiseReferences::destruct();
         script_bindings::refcounted::LiveDOMReferences::destruct();
         mark_runtime_dead();

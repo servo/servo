@@ -50,7 +50,6 @@ use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
-use crate::runtime::job_queue::MicrotaskQueue;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
@@ -95,7 +94,6 @@ impl PaintWorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         closing: Arc<AtomicBool>,
-        microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<PaintWorkletGlobalScope> {
         debug!(
             "Creating paint worklet global scope for pipeline {}.",
@@ -109,7 +107,6 @@ impl PaintWorkletGlobalScope {
                 executor,
                 init,
                 closing,
-                microtask_queue,
             ),
             image_cache: init.image_cache.clone(),
             paint_definitions: Default::default(),

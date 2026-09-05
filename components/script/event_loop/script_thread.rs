@@ -157,7 +157,7 @@ use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_auto_realm;
-use crate::runtime::job_queue::{MicrotaskQueue, MicrotaskRunnable};
+use crate::runtime::job_queue::{MicrotaskRunnable, job_queue_microtask_checkpoint};
 use crate::runtime::script_runtime::{
     IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
 };
@@ -327,8 +327,6 @@ pub struct ScriptThread {
     closed_pipelines: DomRefCell<FxHashSet<PipelineId>>,
 
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
-    microtask_queue: Rc<MicrotaskQueue>,
-
     mutation_observers: Rc<ScriptMutationObservers>,
 
     /// A handle to the WebGL thread
@@ -878,7 +876,6 @@ impl ScriptThread {
             devtools_client_to_script_thread_sender: ipc_devtools_sender,
         };
 
-        let microtask_queue = runtime.microtask_queue.clone();
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
@@ -928,7 +925,6 @@ impl ScriptThread {
                     background_hang_monitor,
                     closing,
                     timer_scheduler: Default::default(),
-                    microtask_queue,
                     js_runtime: Rc::new(runtime),
                     closed_pipelines: DomRefCell::new(FxHashSet::default()),
                     mutation_observers: Default::default(),
@@ -4426,7 +4422,7 @@ impl ScriptThread {
                 .map(|(_id, document)| DomRoot::from_ref(document.window().upcast()))
                 .collect();
 
-            self.microtask_queue.checkpoint(cx, globals)
+            job_queue_microtask_checkpoint(cx, globals)
         }
     }
 
