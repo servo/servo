@@ -5,13 +5,20 @@
 //! The set of animations for a document.
 
 use std::cell::Cell;
+use std::sync::Arc;
+use std::time::Duration;
 
 use cssparser::ToCss;
 use embedder_traits::{AnimationState as AnimationsPresentState, UntrustedNodeAddress};
 use js::context::NoGC;
+use layout_api::AnimatingImages;
 use libc::c_void;
+use paint_api::ImageUpdate;
+use parking_lot::RwLock;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::refcounted::Trusted;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
 use servo_constellation_traits::ScriptToConstellationMessage;
@@ -21,6 +28,7 @@ use style::animation::{
 };
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
+use timers::TimerId;
 
 use crate::dom::animationevent::AnimationEvent;
 use crate::dom::bindings::codegen::Bindings::AnimationEventBinding::AnimationEventInit;
@@ -35,20 +43,31 @@ use crate::dom::event::Event;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
 use crate::dom::transitionevent::TransitionEvent;
 use crate::dom::window::Window;
+use crate::event_loop::script_thread::with_script_thread;
 
 /// The set of animations for a document.
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct Animations {
+pub(crate) struct AnimationManager {
     /// The map of nodes to their animation states.
     #[no_trace]
     pub(crate) sets: DocumentAnimationSet,
 
+    /// The set of [`AnimatingImages`] which is used to communicate the addition
+    /// and removal of animating images from layout.
+    #[no_trace]
+    #[conditional_malloc_size_of]
+    animating_images: Arc<RwLock<AnimatingImages>>,
+
     /// Whether or not we have animations that are running.
     has_running_animations: Cell<bool>,
 
-    /// A list of nodes with in-progress CSS transitions or pending events.
-    rooted_nodes: DomRefCell<FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>>,
+    /// A map of nodes with in-progress CSS transitions or pending events.
+    rooted_animation_nodes: DomRefCell<FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>>,
+
+    /// A map of nodes with in-progress image animations. This is kept outside
+    /// of [`Self::animating_images`] as that data structure is shared with layout.
+    rooted_image_nodes: DomRefCell<FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>>,
 
     /// A list of pending animation-related events.
     pending_events: DomRefCell<Vec<TransitionOrAnimationEvent>>,
@@ -57,22 +76,35 @@ pub(crate) struct Animations {
     /// This is used to prevent marking animations dirty when the timeline
     /// has not changed.
     timeline_value_at_last_dirty: Cell<f64>,
+
+    /// The [`TimerId`] of the currently scheduled animated image update callback.
+    #[no_trace]
+    image_callback_timer_id: Cell<Option<TimerId>>,
 }
 
-impl Animations {
+impl AnimationManager {
     pub(crate) fn new() -> Self {
-        Animations {
+        AnimationManager {
             sets: Default::default(),
+            animating_images: Default::default(),
             has_running_animations: Cell::new(false),
-            rooted_nodes: Default::default(),
+            rooted_animation_nodes: Default::default(),
+            rooted_image_nodes: Default::default(),
             pending_events: Default::default(),
             timeline_value_at_last_dirty: Cell::new(0.0),
+            image_callback_timer_id: Default::default(),
         }
+    }
+
+    pub(crate) fn animating_images(&self) -> Arc<RwLock<AnimatingImages>> {
+        self.animating_images.clone()
     }
 
     pub(crate) fn clear(&self) {
         self.sets.sets.write().clear();
-        self.rooted_nodes.borrow_mut().clear();
+        self.animating_images.write().node_to_state_map.clear();
+        self.rooted_animation_nodes.borrow_mut().clear();
+        self.rooted_image_nodes.borrow_mut().clear();
         self.pending_events.borrow_mut().clear();
     }
 
@@ -85,13 +117,15 @@ impl Animations {
         current_timeline_value: f64,
     ) -> bool {
         if current_timeline_value <= self.timeline_value_at_last_dirty.get() {
+            debug_assert_eq!(current_timeline_value, self.timeline_value_at_last_dirty.get(),
+                            "Not monotonically increasing: https://drafts.csswg.org/web-animations-1/#timelines");
             return false;
         }
         self.timeline_value_at_last_dirty
             .set(current_timeline_value);
 
         let sets = self.sets.sets.read();
-        let rooted_nodes = self.rooted_nodes.borrow();
+        let rooted_nodes = self.rooted_animation_nodes.borrow();
         for node in sets
             .keys()
             .filter_map(|key| rooted_nodes.get(&NoTrace(key.node)))
@@ -129,34 +163,42 @@ impl Animations {
     }
 
     /// Cancel animations for the given node, if any exist.
-    pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
+    pub(crate) fn cancel_animations_for_node(&mut self, node: &Node) {
+        let opaque_node = node.to_opaque();
+
+        let animation_keys = vec![
+            AnimationSetKey::new_for_non_pseudo(opaque_node),
+            AnimationSetKey::new_for_pseudo(
+                opaque_node,
+                PseudoElement::Before,
+            ),
+            AnimationSetKey::new_for_pseudo(
+                opaque_node,
+                PseudoElement::After,
+            ),
+        ];
+
         let mut animations = self.sets.sets.write();
-        let mut cancel_animations_for = |key| {
+        for key in animation_keys {
             if let Some(set) = animations.get_mut(&key) {
                 set.cancel_all_animations();
             }
-        };
+        }
 
-        let opaque_node = node.to_opaque();
-        cancel_animations_for(AnimationSetKey::new_for_non_pseudo(opaque_node));
-        cancel_animations_for(AnimationSetKey::new_for_pseudo(
-            opaque_node,
-            PseudoElement::Before,
-        ));
-        cancel_animations_for(AnimationSetKey::new_for_pseudo(
-            opaque_node,
-            PseudoElement::After,
-        ));
+        self.animating_images().write().remove(opaque_node);
+        self.rooted_image_nodes.borrow_mut().remove(&NoTrace(opaque_node));
     }
 
-    /// This does three things:
-    ///  - Cancel animations for any nodes that are no longer being rendered or delegating rendering.
+    /// This does five things:
+    ///  - Cancel animations for any nodes that are no longer being rendered or delegating rendering. TODO(derdilla): is this the same as no longer have layout boxes?
     ///  - Process any new animations that were discovered after reflow.
     ///  - Collect pending events for any animations that changed state.
+    ///  - Root any nodes with newly animating images
+    ///  - Schedule an image update for newly animating images
     pub(crate) fn do_post_reflow_update(&self, window: &Window, now: f64) {
         let mut sets = self.sets.sets.write();
         {
-            let rooted_nodes = self.rooted_nodes.borrow();
+            let rooted_nodes = self.rooted_animation_nodes.borrow();
             for (key, set) in sets.iter_mut() {
                 if rooted_nodes.get(&NoTrace(key.node)).is_some_and(|node| {
                     !node.is_being_rendered_or_delegates_rendering(key.pseudo_element)
@@ -181,6 +223,99 @@ impl Animations {
         let have_running_animations = sets.values().any(|state| state.needs_animation_ticks());
 
         self.update_running_animations_presence(window, have_running_animations);
+
+        // Cancel animations for any images that are no longer rendering.
+        self.rooted_image_nodes.borrow_mut().retain(|opaque_node, node| {
+            if node.is_being_rendered(None) {
+                return true;
+            }
+            self.animating_images.write().remove(opaque_node.0);
+            false
+        });
+
+        if self.animating_images().write().clear_dirty() {
+            self.root_nodes_with_newly_animating_images();
+            self.maybe_schedule_update(window, now);
+        }
+    }
+
+    // TODO(derdilla): Signature similar. Can this be merged with another call?
+    pub(crate) fn update_active_frames(&self, window: &Window, now: f64) {
+        if self.animating_images.read().is_empty() {
+            return;
+        }
+
+        let updates = self
+            .animating_images
+            .write()
+            .node_to_state_map
+            .values_mut()
+            .filter_map(|state| {
+                if !state.update_frame_for_animation_timeline_value(now) {
+                    return None;
+                }
+
+                let image = &state.image;
+                let frame = image
+                    .frame_data(state.active_frame)
+                    .expect("No frame found")
+                    .clone();
+                if let Some(mut descriptor) =
+                    image.webrender_image_descriptor_and_offset_for_frame()
+                {
+                    descriptor.offset = frame.byte_range.start as i32;
+                    Some(ImageUpdate::UpdateImageForAnimation(
+                        image.id.unwrap(),
+                        descriptor,
+                    ))
+                } else {
+                    error!("Doing normal image update which will be slow!");
+                    None
+                }
+            })
+            .collect();
+        window
+            .paint_api()
+            .update_images(window.webview_id().into(), updates);
+
+        self.maybe_schedule_update(window, now);
+    }
+
+    fn root_nodes_with_newly_animating_images(&self) {
+        let mut rooted_nodes = self.rooted_image_nodes.borrow_mut();
+        for opaque_node in self.animating_images.read().node_to_state_map.keys() {
+            root_node(&mut rooted_nodes, *opaque_node);
+        }
+    }
+
+    fn maybe_schedule_update(&self, window: &Window, now: f64) {
+        with_script_thread(|script_thread| {
+            if let Some(current_timer_id) = self.image_callback_timer_id.take() {
+                self.image_callback_timer_id.set(None);
+                script_thread.cancel_timer(current_timer_id);
+            }
+
+            if let Some(duration) = self.duration_to_next_frame(now) {
+                let trusted_window = Trusted::new(window);
+                let timer_id = script_thread.schedule_timer(timers::TimerEventRequest {
+                    callback: Box::new(move || {
+                        let window = trusted_window.root();
+                        window.Document().set_has_pending_animated_image_update();
+                    }),
+                    duration,
+                });
+                self.image_callback_timer_id.set(Some(timer_id));
+            }
+        })
+    }
+
+    fn duration_to_next_frame(&self, now: f64) -> Option<Duration> {
+        self.animating_images
+            .read()
+            .node_to_state_map
+            .values()
+            .filter_map(|state| state.duration_to_next_frame(now))
+            .min()
     }
 
     fn update_running_animations_presence(&self, window: &Window, new_value: bool) {
@@ -353,12 +488,11 @@ impl Animations {
 
     /// Ensure that all nodes with new animations are rooted. This should be called
     /// immediately after a restyle, to ensure that these addresses are still valid.
-    #[expect(unsafe_code)]
     fn root_newly_animating_dom_nodes(
         &self,
         sets: &FxHashMap<AnimationSetKey, ElementAnimationSet>,
     ) {
-        let mut rooted_nodes = self.rooted_nodes.borrow_mut();
+        let mut rooted_nodes = self.rooted_animation_nodes.borrow_mut();
         for (key, set) in sets.iter() {
             let opaque_node = key.node;
             if rooted_nodes.contains_key(&NoTrace(opaque_node)) {
@@ -368,13 +502,7 @@ impl Animations {
             if set.animations.iter().any(|animation| animation.is_new) ||
                 set.transitions.iter().any(|transition| transition.is_new)
             {
-                let address = UntrustedNodeAddress(opaque_node.0 as *const c_void);
-                unsafe {
-                    rooted_nodes.insert(
-                        NoTrace(opaque_node),
-                        Dom::from_ref(&*from_untrusted_node_address(address)),
-                    )
-                };
+                root_node(&mut rooted_nodes, opaque_node);
             }
         }
     }
@@ -383,7 +511,7 @@ impl Animations {
     fn unroot_unused_nodes(&self, sets: &FxHashMap<AnimationSetKey, ElementAnimationSet>) {
         let pending_events = self.pending_events.borrow();
         let nodes: FxHashSet<OpaqueNode> = sets.keys().map(|key| key.node).collect();
-        self.rooted_nodes.borrow_mut().retain(|node, _| {
+        self.rooted_animation_nodes.borrow_mut().retain(|node, _| {
             nodes.contains(&node.0) || pending_events.iter().any(|event| event.node == node.0)
         });
     }
@@ -505,7 +633,7 @@ impl Animations {
         for event in events.into_iter() {
             // We root the node here to ensure that sending this event doesn't
             // unroot it as a side-effect.
-            let node = match self.rooted_nodes.borrow().get(&NoTrace(event.node)) {
+            let node = match self.rooted_animation_nodes.borrow().get(&NoTrace(event.node)) {
                 Some(node) => DomRoot::from_ref(&**node),
                 None => {
                     warn!("Tried to send an event for an unrooted node");
@@ -631,4 +759,18 @@ pub(crate) struct TransitionOrAnimationEvent {
     pub(crate) property_or_animation_name: String,
     /// The elapsed time property to send with this transition event.
     pub(crate) elapsed_time: f64,
+}
+
+/// Inserts [opaque_node] into [rooted_nodes], if it isn't already present. This should be
+/// called immediately after a restyle, to ensure that these addresses are still valid.
+fn root_node(rooted_nodes: &mut FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>, opaque_node: OpaqueNode) {
+    #[expect(unsafe_code)]
+    rooted_nodes
+        .entry(NoTrace(opaque_node))
+        .or_insert_with(|| {
+            // SAFETY: This should be safe as this method is run directly after layout,
+            // which should not remove any nodes.
+            let address = UntrustedNodeAddress(opaque_node.0 as *const c_void);
+            unsafe { Dom::from_ref(&*from_untrusted_node_address(address)) }
+        });
 }
