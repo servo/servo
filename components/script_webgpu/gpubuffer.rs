@@ -465,7 +465,7 @@ where
         p: &<D::Promise as PromiseHelpers<D>>::StackRoot,
     ) {
         // Step 1
-        if self.pending_map.borrow().as_deref() != Some(&*p) {
+        if self.pending_map.borrow().as_deref() != Some(p) {
             assert!(p.is_rejected());
             return;
         }
@@ -489,7 +489,7 @@ where
         wgpu_mapping: Mapping,
     ) {
         // Step 1
-        if self.pending_map.borrow().as_deref() != Some(&*p) {
+        if self.pending_map.borrow().as_deref() != Some(p) {
             assert!(p.is_rejected());
             return;
         }
