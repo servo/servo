@@ -4,16 +4,16 @@
 
 //! Enum wrappers to be able to select different channel implementations at runtime.
 
-use std::fmt;
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::panic::Location;
 use std::sync::OnceLock;
 use std::time::Duration;
+use std::{fmt, io};
 
 use crossbeam_channel::RecvTimeoutError;
-use ipc_channel::IpcError;
 use ipc_channel::router::ROUTER;
+use ipc_channel::{IpcError, SerDeError};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::de::VariantAccess;
@@ -95,7 +95,7 @@ enum GenericSenderVariants<T: Serialize> {
     /// The crossbeam channel does not involve serializing, so we can't have this error,
     /// but replicating the API allows us to have one channel type as the receiver
     /// after routing the receiver .
-    Crossbeam(crossbeam_channel::Sender<Result<T, ipc_channel::IpcError>>),
+    Crossbeam(crossbeam_channel::Sender<Result<T, SendError>>),
 }
 
 fn serialize_generic_sender_variants<T: Serialize, S: Serializer>(
@@ -169,7 +169,7 @@ impl<'de, T: Serialize + Deserialize<'de>> serde::de::Visitor<'de> for GenericSe
                     ));
                 }
                 let addr = variant_data.newtype_variant::<usize>()?;
-                let ptr = addr as *mut crossbeam_channel::Sender<Result<T, ipc_channel::IpcError>>;
+                let ptr = addr as *mut crossbeam_channel::Sender<Result<T, SendError>>;
                 // SAFETY: We know we are in the same address space as the sender, so we can safely
                 // reconstruct the Box.
                 #[expect(unsafe_code)]
@@ -284,6 +284,19 @@ impl From<IpcError> for SendError {
     }
 }
 
+impl From<SerDeError> for SendError {
+    fn from(value: SerDeError) -> Self {
+        SendError::SerializationError(value.to_string())
+    }
+}
+
+impl From<io::Error> for SendError {
+    fn from(value: io::Error) -> Self {
+        log::error!("IO Error in IPC {:?}", value);
+        SendError::Disconnected
+    }
+}
+
 impl Display for SendError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{self:?}")
@@ -374,11 +387,11 @@ impl From<crossbeam_channel::TryRecvError> for TryReceiveError {
     }
 }
 
-pub type RoutedReceiver<T> = crossbeam_channel::Receiver<Result<T, ipc_channel::IpcError>>;
+pub type RoutedReceiver<T> = crossbeam_channel::Receiver<Result<T, SendError>>;
 pub type ReceiveResult<T> = Result<T, ReceiveError>;
 pub type TryReceiveResult<T> = Result<T, TryReceiveError>;
 pub type RoutedReceiverReceiveResult<T> =
-    Result<Result<T, ipc_channel::IpcError>, crossbeam_channel::RecvError>;
+    Result<Result<T, SendError>, crossbeam_channel::RecvError>;
 
 pub fn to_receive_result<T>(receive_result: RoutedReceiverReceiveResult<T>) -> ReceiveResult<T> {
     match receive_result {
@@ -474,8 +487,7 @@ where
                 ROUTER.add_typed_route(
                     ipc_receiver,
                     Box::new(move |message| {
-                        let _ = crossbeam_sender_clone
-                            .send(message.map_err(IpcError::SerializationError));
+                        let _ = crossbeam_sender_clone.send(message.map_err(|e| e.into()));
                     }),
                 );
                 crossbeam_receiver

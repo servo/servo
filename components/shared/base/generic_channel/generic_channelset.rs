@@ -5,7 +5,7 @@ use ipc_channel::ipc::{IpcReceiverSet, IpcSelectionResult};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, use_ipc};
+use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, SendError, use_ipc};
 
 /// A GenericReceiverSet. Allows you to wait on multiple GenericReceivers.
 /// Automatically selects either Ipc or crossbeam depending on multiprocess mode.
@@ -37,7 +37,7 @@ impl<T: Serialize + for<'de> Deserialize<'de>> Default for GenericReceiverSet<T>
 }
 enum GenericReceiverSetVariants<T: for<'de> Deserialize<'de>> {
     Ipc(ipc_channel::ipc::IpcReceiverSet),
-    Crossbeam(Vec<crossbeam_channel::Receiver<Result<T, ipc_channel::IpcError>>>),
+    Crossbeam(Vec<crossbeam_channel::Receiver<Result<T, SendError>>>),
 }
 
 #[cfg(test)]
@@ -178,7 +178,7 @@ pub struct Selector<'a, T: Serialize + for<'de> Deserialize<'de>> {
 enum SelectorInner<'a, T: for<'de> Deserialize<'de>> {
     Ipc(&'a mut IpcReceiverSet),
     Crossbeam {
-        receivers: &'a [crossbeam_channel::Receiver<Result<T, ipc_channel::IpcError>>],
+        receivers: &'a [crossbeam_channel::Receiver<Result<T, SendError>>],
         sel: crossbeam_channel::Select<'a>,
     },
 }

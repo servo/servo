@@ -12,7 +12,6 @@ use std::rc::Rc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangAlert};
 use embedder_traits::ScriptToEmbedderChan;
-use ipc_channel::IpcError;
 use layout_api::ScriptThreadFactory;
 use log::error;
 use media::WindowGLContext;
@@ -66,7 +65,7 @@ impl EventLoop {
     pub(crate) fn spawn<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
         constellation: &mut Constellation<STF, SWF>,
         is_private: bool,
-    ) -> Result<Rc<Self>, IpcError> {
+    ) -> Result<Rc<Self>, SendError> {
         let (script_chan, script_port) =
             servo_base::generic_channel::channel().expect("Pipeline script chan");
 
@@ -154,7 +153,7 @@ impl EventLoop {
     fn spawn_in_process<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
         constellation: &mut Constellation<STF, SWF>,
         initial_script_state: InitialScriptState,
-    ) -> Result<Self, IpcError> {
+    ) -> Result<Self, SendError> {
         let script_chan = initial_script_state.constellation_to_script_sender.clone();
         let id = initial_script_state.id;
 
