@@ -12,10 +12,11 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 
 use js::context::JSContext;
+use js::glue::JobQueueTraps;
 use js::jsapi::{
     GetExecutionGlobalFromJSMicroTask, GetPromiseUserInputEventHandlingState, IsJSMicroTask,
-    JSTracer, MaybeGetPromiseFromJSMicroTask, PromiseUserInputEventHandlingState,
-    ToMaybeWrappedJSMicroTask,
+    JSContext as RawJSContext, JSTracer, MaybeGetPromiseFromJSMicroTask, MutableHandleObject,
+    PromiseUserInputEventHandlingState, ToMaybeWrappedJSMicroTask,
 };
 use js::jsval::{JSVal, PrivateValue};
 use js::panic::wrap_panic;
@@ -25,6 +26,7 @@ use js::rust::wrappers2::{
     MaybeGetHostDefinedDataFromJSMicroTask, RunJSMicroTask,
 };
 use malloc_size_of::MallocSizeOf;
+use script_bindings::reflector::DomObject as _;
 use script_bindings::root::Dom;
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 
@@ -36,6 +38,107 @@ use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::notify_about_rejected_promises;
 use crate::{DomTypeHolder, JSTraceable};
+
+pub(crate) static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
+    getHostDefinedData: Some(get_host_defined_data),
+    getHostDefinedGlobal: Some(get_host_defined_global),
+    runJobs: Some(run_jobs),
+    traceNonGCThingMicroTask: Some(trace_non_gc_things_micro_task),
+    pushNewInterruptQueue: Some(push_new_interrupt_queue),
+    popInterruptQueue: Some(pop_interrupt_queue),
+    dropInterruptQueues: Some(drop_interrupt_queues),
+};
+
+/// <https://searchfox.org/firefox-main/rev/446c6e609dbd7c355c2fb27209dfe4833211991f/xpcom/base/CycleCollectedJSContext.cpp#229>
+#[expect(unsafe_code)]
+unsafe extern "C" fn get_host_defined_data(
+    cx: *mut RawJSContext,
+    incumbent_global: MutableHandleObject,
+    data: MutableHandleObject,
+) -> bool {
+    incumbent_global.set(std::ptr::null_mut());
+    data.set(std::ptr::null_mut());
+    if !unsafe { get_host_defined_global(cx, incumbent_global) } {
+        return false;
+    }
+
+    if incumbent_global.is_null() {
+        return true;
+    }
+
+    // we have no schedulingState
+
+    true
+}
+
+#[allow(unsafe_code)]
+/// <https://searchfox.org/firefox-main/rev/446c6e609dbd7c355c2fb27209dfe4833211991f/xpcom/base/CycleCollectedJSContext.cpp#199>
+unsafe extern "C" fn get_host_defined_global(
+    _cx: *mut RawJSContext,
+    out: MutableHandleObject,
+) -> bool {
+    wrap_panic(&mut || {
+        let Some(incumbent_global) = GlobalScope::incumbent() else {
+            return;
+        };
+
+        out.set(incumbent_global.reflector().get_jsobject().get());
+    });
+
+    true
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn run_jobs(microtask_queue: *const c_void, cx: *mut RawJSContext) {
+    let mut cx = unsafe {
+        // SAFETY: We are in SM hook
+        JSContext::from_ptr(NonNull::new(cx).expect("JSContext should not be null in SM hook"))
+    };
+    wrap_panic(&mut || {
+        let microtask_queue = unsafe { &*(microtask_queue as *const MicrotaskQueue) };
+        // TODO: run Promise- and User-variant Microtasks, and do #notify-about-rejected-promises.
+        // Those will require real `globalscopes` values.
+        microtask_queue.checkpoint(&mut cx, vec![]);
+    });
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> *const c_void {
+    let mut result = std::ptr::null();
+    wrap_panic(&mut || {
+        let mut interrupt_queues =
+            unsafe { Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>) };
+        let new_queue = Rc::new(MicrotaskQueue::default());
+        result = Rc::as_ptr(&new_queue) as *const c_void;
+        interrupt_queues.push(new_queue);
+        std::mem::forget(interrupt_queues);
+    });
+    result
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn pop_interrupt_queue(interrupt_queues: *mut c_void) -> *const c_void {
+    let mut result = std::ptr::null();
+    wrap_panic(&mut || {
+        let mut interrupt_queues =
+            unsafe { Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>) };
+        let popped_queue: Rc<MicrotaskQueue> =
+            interrupt_queues.pop().expect("Guaranteed by SpiderMonkey?");
+        // Dangling, but jsglue.cpp will only use this for pointer comparison.
+        result = Rc::as_ptr(&popped_queue) as *const c_void;
+        std::mem::forget(interrupt_queues);
+    });
+    result
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn drop_interrupt_queues(interrupt_queues: *mut c_void) {
+    wrap_panic(&mut || {
+        let interrupt_queues =
+            unsafe { Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>) };
+        drop(interrupt_queues);
+    });
+}
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct MicrotaskQueue {
