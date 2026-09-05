@@ -760,7 +760,8 @@ where
     D: Equivalence,
     D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D>,
+    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
 {
     fn convert(self) -> ProgrammableStageDescriptor<'a> {
         ProgrammableStageDescriptor {

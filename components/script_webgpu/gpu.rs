@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::marker::PhantomData;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -57,7 +56,8 @@ impl<D: Equivalence> GPU<D> {
 impl<D> GPUMethods<D> for GPU<D>
 where
     D: Equivalence,
-    D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D>,
+    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
     D::GPU: DomGlobalGeneric<D>,
     D::GlobalScope: WebGPUGlobalTrait,
     Self: DomGlobalGeneric<D>,
@@ -67,11 +67,11 @@ where
         &self,
         cx: &mut CurrentRealm,
         options: &GPURequestAdapterOptions,
-    ) -> Rc<D::Promise> {
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
         let global = self.global_from_reflector();
         // 1. Let promise be a new promise.
-        let promise = D::Promise::new_in_realm(cx);
-        let callback = D::Promise::callback_promise_gpu(&promise, self);
+        let promise = D::Promise::new_in_realm_rooted(cx);
+        let callback = promise.callback_promise_gpu(self);
 
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,

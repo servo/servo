@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
 use js::realm::CurrentRealm;
@@ -190,7 +188,8 @@ where
 impl<D> GPUAdapterMethods<D> for GPUAdapter<D>
 where
     D: Equivalence,
-    D::Promise: WebGPUPromiseTrait<D> + PromiseHelpers<D>,
+    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait,
     Self: DomGlobalGeneric<D>,
 {
@@ -199,11 +198,11 @@ where
         &self,
         cx: &mut CurrentRealm<'_>,
         descriptor: &GPUDeviceDescriptor,
-    ) -> Rc<D::Promise> {
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
         // Step 2
-        let promise = D::Promise::new_in_realm(cx);
+        let promise = D::Promise::new_in_realm_rooted(cx);
 
-        let callback = WebGPUPromiseTrait::<D>::callback_promise_adapter(&promise, self);
+        let callback = promise.callback_promise_adapter(self);
         let mut required_features = wgpu_types::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {

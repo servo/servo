@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
 use std::sync::Arc;
 
 use script_webgpu::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
 use webgpu_traits::Mapping;
 use wgpu_core::resource::BufferAccessError;
 
+use crate::dom::GlobalScope;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::gpu::GPU;
+use crate::dom::promise::RootedPromise;
 use crate::dom::types::{GPUAdapter, GPUBuffer, GPUShaderModule};
-use crate::dom::{GlobalScope, Promise};
 use crate::routed_promise::callback_promise;
 
 pub(crate) mod gpu_promise_listener;
@@ -150,9 +150,9 @@ pub(crate) mod wgsllanguagefeatures {
         script_webgpu::wgsllanguagefeatures::WGSLLanguageFeatures<crate::DomTypeHolder>;
 }
 
-impl WebGPUPromiseTrait<crate::DomTypeHolder> for Promise {
+impl WebGPUPromiseTrait<crate::DomTypeHolder> for RootedPromise {
     fn callback_promise_adapter(
-        self: &Rc<Self>,
+        &self,
         d: &GPUAdapter,
     ) -> servo_base::generic_channel::GenericCallback<webgpu_traits::WebGPUDeviceResponse> {
         let task_manager = <GPUAdapter as DomGlobal>::global(d).task_manager();
@@ -160,7 +160,7 @@ impl WebGPUPromiseTrait<crate::DomTypeHolder> for Promise {
     }
 
     fn callback_promise_gpubuffer(
-        self: &Rc<Self>,
+        &self,
         d: &GPUBuffer,
     ) -> servo_base::generic_channel::GenericCallback<Result<Mapping, BufferAccessError>> {
         let task_manager = <GPUBuffer as DomGlobal>::global(d).task_manager();
@@ -168,7 +168,7 @@ impl WebGPUPromiseTrait<crate::DomTypeHolder> for Promise {
     }
 
     fn callback_promise_gpu(
-        self: &Rc<Self>,
+        &self,
         d: &GPU,
     ) -> servo_base::generic_channel::GenericCallback<webgpu_traits::WebGPUAdapterResponse> {
         let task_manager = <GPU as DomGlobal>::global(d).task_manager();
@@ -176,7 +176,7 @@ impl WebGPUPromiseTrait<crate::DomTypeHolder> for Promise {
     }
 
     fn callback_promise_gpushadermodule(
-        self: &Rc<Self>,
+        &self,
         d: &script_webgpu::gpushadermodule::GPUShaderModule<crate::DomTypeHolder>,
     ) -> servo_base::generic_channel::GenericCallback<Option<webgpu_traits::ShaderCompilationInfo>>
     {
