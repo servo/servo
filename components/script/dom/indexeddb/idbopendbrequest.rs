@@ -185,7 +185,7 @@ impl IDBOpenDBRequest {
         transaction.set_active_flag(false);
 
         rooted!(&in(cx) let mut connection_val = UndefinedValue());
-        connection.safe_to_jsval(cx, connection_val.handle_mut());
+        connection.to_jsval(cx, connection_val.handle_mut());
 
         // Step 10.1: Set request’s result to connection.
         self.idbrequest.set_result(connection_val.handle());
@@ -301,7 +301,7 @@ impl IDBOpenDBRequest {
         let mut realm = enter_auto_realm(cx, result);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut result_val = UndefinedValue());
-        result.safe_to_jsval(cx, result_val.handle_mut());
+        result.to_jsval(cx, result_val.handle_mut());
         self.set_result(result_val.handle());
 
         let event = Event::new(

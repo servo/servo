@@ -308,6 +308,13 @@ impl CSSRuleMethods<crate::DomTypeHolder> for CSSRule {
         if rule_type > 15 { 0 } else { rule_type }
     }
 
+    /// <https://drafts.csswg.org/cssom/#dom-cssrule-parentrule>
+    fn GetParentRule(&self) -> Option<DomRoot<CSSRule>> {
+        self.parent_rule
+            .as_ref()
+            .map(|rule| DomRoot::from_ref(rule.upcast::<CSSRule>()))
+    }
+
     /// <https://drafts.csswg.org/cssom/#dom-cssrule-parentstylesheet>
     fn GetParentStyleSheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         if self.parent_stylesheet_removed.get() {

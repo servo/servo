@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 use dom_struct::dom_struct;
 use html5ever::{QualName, local_name, ns};
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -49,10 +49,10 @@ impl HTMLOptionsCollection {
         select: &HTMLSelectElement,
         filter: Box<dyn CollectionFilter + 'static>,
     ) -> DomRoot<HTMLOptionsCollection> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(HTMLOptionsCollection::new_inherited(select, filter)),
             window,
-            cx,
         )
     }
 

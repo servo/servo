@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
 use time::Duration;
@@ -65,7 +65,8 @@ impl LargestContentfulPaint {
         url: Option<ServoUrl>,
         element: Option<&Element>,
     ) -> DomRoot<LargestContentfulPaint> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(LargestContentfulPaint::new_inherited(
                 render_time,
                 size,
@@ -73,7 +74,6 @@ impl LargestContentfulPaint {
                 element,
             )),
             global,
-            cx,
         )
     }
 }

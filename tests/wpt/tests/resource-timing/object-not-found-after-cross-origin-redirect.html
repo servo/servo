@@ -18,9 +18,6 @@ redirects.</title>
 const {REMOTE_ORIGIN} = get_host_info();
 const delay = 1;
 const not_found_page = encodeURIComponent("/resource-timing/resources/status-code.py?status=404");
-const load_null_object = async path => {
-  return load.object(path, null);
-}
 const destUrl = `/common/slow-redirect.py?delay=${delay}&location=${REMOTE_ORIGIN}${not_found_page}`;
 
 const timeBefore = performance.now();
@@ -29,7 +26,7 @@ const timeBefore = performance.now();
   // larger than 1 ms, to avoid flakiness in browsers that clamp timestamps to
   // 1 ms.
   await new Promise(r => step_timeout(r, 10));
-  attribute_test(load_null_object, destUrl, entry => {
+  attribute_test(load.null_object, destUrl, entry => {
       assert_equals(entry.startTime, entry.fetchStart, 'startTime and fetchStart should be equal');
       assert_greater_than(entry.startTime, timeBefore, 'startTime and fetchStart should be greater than the time before fetching');
       // See https://github.com/w3c/resource-timing/issues/264

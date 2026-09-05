@@ -205,8 +205,8 @@ pub(crate) fn generate_key(
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-import-key>
 ///
 /// This implementation is based on the specification of the importKey operation of ECDSA. When
-/// format is "jwk", Step 2.2 and Step 2.3 in the specification of the importKey operation of ECDH
-/// are combined into a single step, and Step 2.9.1 to Step 2.9.3. here are skipped for ECDH.
+/// format is "jwk", Step 3.2 and Step 3.3 in the specification of the importKey operation of ECDH
+/// are combined into a single step, and Step 3.9.1 to Step 3.9.3 here are skipped for ECDH.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn import_key(
     ec_algorithm: EcAlgorithm,
@@ -218,14 +218,22 @@ pub(crate) fn import_key(
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
-    // Step 1. Let keyData be the key data to be imported.
+    // Step 1. If the namedCurve member of normalizedAlgorithm is not one of "P-256", "P-384" or
+    // "P-521", and is not a value specified in an applicable specification that specifies the use
+    // of that value with ECDSA, then throw a NotSupportedError.
+    if !SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str()) {
+        return Err(Error::NotSupported(Some("Unsupported namedCurve".into())));
+    }
 
-    // Step 2.
+    // Step 2. Let keyData be the key data to be imported.
+
+    // Step 3.
     let key = match format {
+        // If format is "spki":
         KeyFormat::Spki => {
             match ec_algorithm {
                 EcAlgorithm::Ecdsa => {
-                    // Step 2.1. If usages contains a value which is not "verify" then throw a
+                    // Step 3.1. If usages contains a value which is not "verify" then throw a
                     // SyntaxError.
                     if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
                         return Err(Error::Syntax(Some(
@@ -234,55 +242,55 @@ pub(crate) fn import_key(
                     }
                 },
                 EcAlgorithm::Ecdh => {
-                    // Step 2.1. If usages is not empty then throw a SyntaxError.
+                    // Step 3.1. If usages is not empty then throw a SyntaxError.
                     if !usages.is_empty() {
                         return Err(Error::Syntax(Some("Usages list is not empty".into())));
                     }
                 },
             }
 
-            // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
+            // Step 3.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData
-            // Step 2.3. If an error occurred while parsing, then throw a DataError.
-            // Step 2.4. If the algorithm object identifier field of the algorithm
+            // Step 3.3. If an error occurred while parsing, then throw a DataError.
+            // Step 3.4. If the algorithm object identifier field of the algorithm
             // AlgorithmIdentifier field of spki is not equal to the id-ecPublicKey object
             // identifier defined in [RFC5480], then throw a DataError.
-            // Step 2.5. If the parameters field of the algorithm AlgorithmIdentifier field of spki
+            // Step 3.5. If the parameters field of the algorithm AlgorithmIdentifier field of spki
             // is absent, then throw a DataError.
-            // Step 2.6. Let params be the parameters field of the algorithm AlgorithmIdentifier
+            // Step 3.6. Let params be the parameters field of the algorithm AlgorithmIdentifier
             // field of spki.
-            // Step 2.7. If params is not an instance of the ECParameters ASN.1 type defined in
+            // Step 3.7. If params is not an instance of the ECParameters ASN.1 type defined in
             // [RFC5480] that specifies a namedCurve, then throw a DataError.
-            // Step 2.8. Let namedCurve be a string whose initial value is undefined.
-            // Step 2.9.
+            // Step 3.8. Let namedCurve be a string whose initial value is undefined.
+            // Step 3.9.
             //     If params is equivalent to the secp256r1 object identifier defined in [RFC5480]:
             //         Set namedCurve "P-256".
             //     If params is equivalent to the secp384r1 object identifier defined in [RFC5480]:
             //         Set namedCurve "P-384".
             //     If params is equivalent to the secp521r1 object identifier defined in [RFC5480]:
             //         Set namedCurve "P-521".
-            // Step 2.10.
+            // Step 3.10.
             //     If namedCurve is not undefined:
-            //         Step 2.10.1. Let publicKey be the Elliptic Curve public key identified by
+            //         Step 3.10.1. Let publicKey be the Elliptic Curve public key identified by
             //         performing the conversion steps defined in Section 2.3.4 of [SEC1] using the
-            //         subjectPublicKey field of spki.
-            //         Step 2.10.2. The uncompressed point format MUST be supported.
-            //         Step 2.10.3. If the implementation does not support the compressed point
+            //         subjectPublicKey field of spki. The uncompressed point format MUST be
+            //         supported.
+            //         Step 3.10.2. If the implementation does not support the compressed point
             //         format and a compressed point is provided, throw a DataError.
-            //         Step 2.10.4. If a decode error occurs or an identity point is found, throw a
+            //         Step 3.10.3. If a decode error occurs or an identity point is found, throw a
             //         DataError.
-            //         Step 2.10.5. Let key be a new CryptoKey that represents publicKey.
+            //         Step 3.10.4. Let key be a new CryptoKey that represents publicKey.
             //     Otherwise:
-            //         Step 2.10.1. Perform any key import steps defined by other applicable
+            //         Step 3.10.1. Perform any key import steps defined by other applicable
             //         specifications, passing format, spki and obtaining namedCurve and key.
-            //         Step 2.10.2. If an error occurred or there are no applicable specifications,
+            //         Step 3.10.2. If an error occurred or there are no applicable specifications,
             //         throw a DataError.
-            // Step 2.11. If namedCurve is defined, and not equal to the namedCurve member of
+            // Step 3.11. If namedCurve is defined, and not equal to the namedCurve member of
             // normalizedAlgorithm, throw a DataError.
-            // Step 2.12. If the public key value is not a valid point on the Elliptic Curve
+            // Step 3.12. If the public key value is not a valid point on the Elliptic Curve
             // identified by the namedCurve member of normalizedAlgorithm throw a DataError.
             //
-            // NOTE: The new CryptoKey in Step 2.10.5 is created in Step 2.13 - 2.17.
+            // NOTE: The new CryptoKey in Step 3.10.4 is created in Step 3.13 - 3.17.
             let handle = match normalized_algorithm.named_curve.as_str() {
                 NAMED_CURVE_P256 => Handle::P256PublicKey(
                     PublicKey::<NistP256>::from_public_key_der(key_data).map_err(|_| {
@@ -311,18 +319,18 @@ pub(crate) fn import_key(
                 _ => return Err(Error::Data(Some("Unsupported namedCurve".into()))),
             };
 
-            // Step 2.13. Set the [[type]] internal slot of key to "public"
-            // Step 2.14. Let algorithm be a new EcKeyAlgorithm.
-            // Step 2.16. Set the namedCurve attribute of algorithm to namedCurve.
-            // Step 2.17. Set the [[algorithm]] internal slot of key to algorithm.
+            // Step 3.13. Set the [[type]] internal slot of key to "public"
+            // Step 3.14. Let algorithm be a new EcKeyAlgorithm.
+            // Step 3.16. Set the namedCurve attribute of algorithm to namedCurve.
+            // Step 3.17. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = EcKeyAlgorithm {
                 name: match ec_algorithm {
                     EcAlgorithm::Ecdsa => {
-                        // Step 2.15. Set the name attribute of algorithm to "ECDSA".
+                        // Step 3.15. Set the name attribute of algorithm to "ECDSA".
                         CryptoAlgorithm::Ecdsa
                     },
                     EcAlgorithm::Ecdh => {
-                        // Step 2.15. Set the name attribute of algorithm to "ECDH".
+                        // Step 3.15. Set the name attribute of algorithm to "ECDH".
                         CryptoAlgorithm::Ecdh
                     },
                 },
@@ -338,10 +346,11 @@ pub(crate) fn import_key(
                 handle,
             )
         },
+        // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
             match ec_algorithm {
                 EcAlgorithm::Ecdsa => {
-                    // Step 2.1. If usages contains a value which is not "sign" then throw a
+                    // Step 3.1. If usages contains a value which is not "sign" then throw a
                     // SyntaxError.
                     if usages.iter().any(|usage| *usage != KeyUsage::Sign) {
                         return Err(Error::Syntax(Some(
@@ -350,7 +359,7 @@ pub(crate) fn import_key(
                     }
                 },
                 EcAlgorithm::Ecdh => {
-                    // Step 2.1. If usages contains an entry which is not "deriveKey" or
+                    // Step 3.1. If usages contains an entry which is not "deriveKey" or
                     // "deriveBits" then throw a SyntaxError.
                     if usages
                         .iter()
@@ -364,54 +373,54 @@ pub(crate) fn import_key(
                 },
             }
 
-            // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
+            // Step 3.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
             // algorithm over keyData.
-            // Step 2.3. If an error occurs while parsing, throw a DataError.
-            // Step 2.4. If the algorithm object identifier field of the privateKeyAlgorithm
+            // Step 3.3. If an error occurs while parsing, throw a DataError.
+            // Step 3.4. If the algorithm object identifier field of the privateKeyAlgorithm
             // PrivateKeyAlgorithm field of privateKeyInfo is not equal to the id-ecPublicKey
             // object identifier defined in [RFC5480], throw a DataError.
-            // Step 2.5. If the parameters field of the privateKeyAlgorithm
+            // Step 3.5. If the parameters field of the privateKeyAlgorithm
             // PrivateKeyAlgorithmIdentifier field of privateKeyInfo is not present, throw a
             // DataError.
-            // Step 2.6. Let params be the parameters field of the privateKeyAlgorithm
+            // Step 3.6. Let params be the parameters field of the privateKeyAlgorithm
             // PrivateKeyAlgorithmIdentifier field of privateKeyInfo.
-            // Step 2.7. If params is not an instance of the ECParameters ASN.1 type defined in
+            // Step 3.7. If params is not an instance of the ECParameters ASN.1 type defined in
             // [RFC5480] that specifies a namedCurve, then throw a DataError.
-            // Step 2.8. Let namedCurve be a string whose initial value is undefined.
-            // Step 2.9.
+            // Step 3.8. Let namedCurve be a string whose initial value is undefined.
+            // Step 3.9.
             //     If params is equivalent to the secp256r1 object identifier defined in [RFC5480]:
             //         Set namedCurve to "P-256".
             //     If params is equivalent to the secp384r1 object identifier defined in [RFC5480]:
             //         Set namedCurve to "P-384".
             //     If params is equivalent to the secp521r1 object identifier defined in [RFC5480]:
             //         Set namedCurve to "P-521".
-            // Step 2.10.
+            // Step 3.10.
             //     If namedCurve is not undefined:
-            //         Step 2.10.1. Let ecPrivateKey be the result of performing the parse an ASN.1
+            //         Step 3.10.1. Let ecPrivateKey be the result of performing the parse an ASN.1
             //         structure algorithm, with data as the privateKey field of privateKeyInfo,
             //         structure as the ASN.1 ECPrivateKey structure specified in Section 3 of
             //         [RFC5915], and exactData set to true.
-            //         Step 2.10.2. If an error occurred while parsing, then throw a DataError.
-            //         Step 2.10.3. If the parameters field of ecPrivateKey is present, and is not
+            //         Step 3.10.2. If an error occurred while parsing, then throw a DataError.
+            //         Step 3.10.3. If the parameters field of ecPrivateKey is present, and is not
             //         an instance of the namedCurve ASN.1 type defined in [RFC5480], or does not
             //         contain the same object identifier as the parameters field of the
             //         privateKeyAlgorithm PrivateKeyAlgorithmIdentifier field of privateKeyInfo,
             //         then throw a DataError.
-            //         Step 2.10.4. Let key be a new CryptoKey that represents the Elliptic Curve
+            //         Step 3.10.4. Let key be a new CryptoKey that represents the Elliptic Curve
             //         private key identified by performing the conversion steps defined in Section
             //         3 of [RFC5915] using ecPrivateKey.
             //     Otherwise:
-            //         Step 2.10.1. Perform any key import steps defined by other applicable
+            //         Step 3.10.1. Perform any key import steps defined by other applicable
             //         specifications, passing format, privateKeyInfo and obtaining namedCurve and
             //         key.
-            //         Step 2.10.2. If an error occurred or there are no applicable specifications,
+            //         Step 3.10.2. If an error occurred or there are no applicable specifications,
             //         throw a DataError.
-            // Step 2.11. If namedCurve is defined, and not equal to the namedCurve member of
+            // Step 3.11. If namedCurve is defined, and not equal to the namedCurve member of
             // normalizedAlgorithm, throw a DataError.
-            // Step 2.12. If the private key value is not a valid point on the Elliptic Curve
+            // Step 3.12. If the private key value is not a valid point on the Elliptic Curve
             // identified by the namedCurve member of normalizedAlgorithm throw a DataError.
             //
-            // NOTE: The new CryptoKey in Step 2.10.4 is created in Step 2.13 - 2.17.
+            // NOTE: The new CryptoKey in Step 3.10.4 is created in Step 3.13 - 3.17.
             let handle = match normalized_algorithm.named_curve.as_str() {
                 NAMED_CURVE_P256 => Handle::P256PrivateKey(
                     SecretKey::<NistP256>::from_pkcs8_der(key_data).map_err(|_| {
@@ -440,18 +449,18 @@ pub(crate) fn import_key(
                 _ => return Err(Error::Data(Some("Unsupported namedCurve".into()))),
             };
 
-            // Step 2.13. Set the [[type]] internal slot of key to "private".
-            // Step 2.14. Let algorithm be a new EcKeyAlgorithm.
-            // Step 2.16. Set the namedCurve attribute of algorithm to namedCurve.
-            // Step 2.17. Set the [[algorithm]] internal slot of key to algorithm.
+            // Step 3.13. Set the [[type]] internal slot of key to "private".
+            // Step 3.14. Let algorithm be a new EcKeyAlgorithm.
+            // Step 3.16. Set the namedCurve attribute of algorithm to namedCurve.
+            // Step 3.17. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = EcKeyAlgorithm {
                 name: match ec_algorithm {
                     EcAlgorithm::Ecdsa => {
-                        // Step 2.15. Set the name attribute of algorithm to "ECDSA".
+                        // Step 3.15. Set the name attribute of algorithm to "ECDSA".
                         CryptoAlgorithm::Ecdsa
                     },
                     EcAlgorithm::Ecdh => {
-                        // Step 2.15. Set the name attribute of algorithm to "ECDH".
+                        // Step 3.15. Set the name attribute of algorithm to "ECDH".
                         CryptoAlgorithm::Ecdh
                     },
                 },
@@ -467,8 +476,9 @@ pub(crate) fn import_key(
                 handle,
             )
         },
+        // If format is "jwk":
         KeyFormat::Jwk => {
-            // Step 2.1.
+            // Step 3.1.
             // If keyData is a JsonWebKey dictionary:
             //     Let jwk equal keyData.
             // Otherwise:
@@ -477,7 +487,7 @@ pub(crate) fn import_key(
 
             match ec_algorithm {
                 EcAlgorithm::Ecdsa => {
-                    // Step 2.2. If the d field is present and usages contains a value which is not
+                    // Step 3.2. If the d field is present and usages contains a value which is not
                     // "sign", or, if the d field is not present and usages contains a value which
                     // is not "verify" then throw a SyntaxError.
                     if jwk.d.is_some() && usages.iter().any(|usage| *usage != KeyUsage::Sign) {
@@ -496,7 +506,7 @@ pub(crate) fn import_key(
                     }
                 },
                 EcAlgorithm::Ecdh => {
-                    // Step 2.2. If the d field is present and if usages contains an entry which is
+                    // Step 3.2. If the d field is present and if usages contains an entry which is
                     // not "deriveKey" or "deriveBits" then throw a SyntaxError. If the d field is
                     // not present and if usages is not empty then throw a SyntaxError.
                     if jwk.d.as_ref().is_some() &&
@@ -518,14 +528,14 @@ pub(crate) fn import_key(
                 },
             }
 
-            // Step 2.3. If the kty field of jwk is not "EC", then throw a DataError.
+            // Step 3.3. If the kty field of jwk is not "EC", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "EC") {
                 return Err(Error::Data(Some("JWK `kty` field is not \"EC\"".into())));
             }
 
             match ec_algorithm {
                 EcAlgorithm::Ecdsa => {
-                    // Step 2.4. If usages is non-empty and the use field of jwk is present and is
+                    // Step 3.4. If usages is non-empty and the use field of jwk is present and is
                     // not "sig", then throw a DataError.
                     if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "sig") {
                         return Err(Error::Data(Some(
@@ -536,7 +546,7 @@ pub(crate) fn import_key(
                     }
                 },
                 EcAlgorithm::Ecdh => {
-                    // Step 2.4. If usages is non-empty and the use field of jwk is present and is
+                    // Step 3.4. If usages is non-empty and the use field of jwk is present and is
                     // not equal to "enc" then throw a DataError.
                     if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
                         return Err(Error::Data(Some(
@@ -548,19 +558,19 @@ pub(crate) fn import_key(
                 },
             }
 
-            // Step 2.5. If the key_ops field of jwk is present, and is invalid according to the
+            // Step 3.5. If the key_ops field of jwk is present, and is invalid according to the
             // requirements of JSON Web Key [JWK], or it does not contain all of the specified
             // usages values, then throw a DataError.
             jwk.check_key_ops(&usages)?;
 
-            // Step 2.6. If the ext field of jwk is present and has the value false and extractable
+            // Step 3.6. If the ext field of jwk is present and has the value false and extractable
             // is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
                 return Err(Error::Data(Some("JWK is not extractable".into())));
             }
 
-            // Step 2.7. Let namedCurve be a string whose value is equal to the crv field of jwk.
-            // Step 2.8. If namedCurve is not equal to the namedCurve member of
+            // Step 3.7. Let namedCurve be a string whose value is equal to the crv field of jwk.
+            // Step 3.8. If namedCurve is not equal to the namedCurve member of
             // normalizedAlgorithm, throw a DataError.
             let named_curve = jwk
                 .crv
@@ -571,15 +581,15 @@ pub(crate) fn import_key(
                     "JWK named curve does not match algorithm named curve".into(),
                 )))?;
 
-            // Step 2.9.
+            // Step 3.9.
             // If namedCurve is "P-256", "P-384" or "P-521":
             let (handle, key_type) = if matches!(
                 named_curve.as_str(),
                 NAMED_CURVE_P256 | NAMED_CURVE_P384 | NAMED_CURVE_P521
             ) {
                 if ec_algorithm == EcAlgorithm::Ecdsa {
-                    // Step 2.9.1. Let algNamedCurve be a string whose initial value is undefined.
-                    // Step 2.9.2.
+                    // Step 3.9.1. Let algNamedCurve be a string whose initial value is undefined.
+                    // Step 3.9.2.
                     // If the alg field is not present:
                     //     Let algNamedCurve be undefined.
                     // If the alg field is equal to the string "ES256":
@@ -604,7 +614,7 @@ pub(crate) fn import_key(
                         },
                     };
 
-                    // Step 2.9.3. If algNamedCurve is defined, and is not equal to namedCurve,
+                    // Step 3.9.3. If algNamedCurve is defined, and is not equal to namedCurve,
                     // throw a DataError.
                     if alg_named_curve.is_some_and(|alg_named_curve| alg_named_curve != named_curve)
                     {
@@ -614,19 +624,19 @@ pub(crate) fn import_key(
                     }
                 }
 
-                // Step 2.9.4.
+                // Step 3.9.4.
                 // If the d field is present:
                 if jwk.d.is_some() {
-                    // Step 2.9.4.1. If jwk does not meet the requirements of Section 6.2.2 of JSON
+                    // Step 3.9.4.1. If jwk does not meet the requirements of Section 6.2.2 of JSON
                     // Web Algorithms [JWA], then throw a DataError.
                     let x = jwk.decode_required_string_field(JwkStringField::X)?;
                     let y = jwk.decode_required_string_field(JwkStringField::Y)?;
                     let d = jwk.decode_required_string_field(JwkStringField::D)?;
 
-                    // Step 2.9.4.2. Let key be a new CryptoKey object that represents the Elliptic
+                    // Step 3.9.4.2. Let key be a new CryptoKey object that represents the Elliptic
                     // Curve private key identified by interpreting jwk according to Section 6.2.2
                     // of JSON Web Algorithms [JWA].
-                    // NOTE: CryptoKey is created in Step 2.12 - 2.15.
+                    // NOTE: CryptoKey is created in Step 3.11 - 3.14.
                     let handle = match named_curve.as_str() {
                         NAMED_CURVE_P256 => {
                             let private_key =
@@ -664,23 +674,23 @@ pub(crate) fn import_key(
                         _ => unreachable!(),
                     };
 
-                    // Step 2.9.4.3. Set the [[type]] internal slot of Key to "private".
-                    // NOTE: CryptoKey is created in Step 2.12 - 2.15.
+                    // Step 3.9.4.3. Set the [[type]] internal slot of Key to "private".
+                    // NOTE: CryptoKey is created in Step 3.11 - 3.14.
                     let key_type = KeyType::Private;
 
                     (handle, key_type)
                 }
                 // Otherwise:
                 else {
-                    // Step 2.9.4.1. If jwk does not meet the requirements of Section 6.2.1 of JSON
+                    // Step 3.9.4.1. If jwk does not meet the requirements of Section 6.2.1 of JSON
                     // Web Algorithms [JWA], then throw a DataError.
                     let x = jwk.decode_required_string_field(JwkStringField::X)?;
                     let y = jwk.decode_required_string_field(JwkStringField::Y)?;
 
-                    // Step 2.9.4.2. Let key be a new CryptoKey object that represents the Elliptic
+                    // Step 3.9.4.2. Let key be a new CryptoKey object that represents the Elliptic
                     // Curve public key identified by interpreting jwk according to Section 6.2.1 of
                     // JSON Web Algorithms [JWA].
-                    // NOTE: CryptoKey is created in Step 2.12 - 2.15.
+                    // NOTE: CryptoKey is created in Step 3.11 - 3.14.
                     let handle = match named_curve.as_str() {
                         NAMED_CURVE_P256 => {
                             let sec1_bytes = x_y_to_sec1_bytes(&x, &y);
@@ -709,8 +719,8 @@ pub(crate) fn import_key(
                         _ => unreachable!(),
                     };
 
-                    // Step 2.9.4.4. Set the [[type]] internal slot of Key to "public".
-                    // NOTE: CryptoKey is created in Step 2.12 - 2.15.
+                    // Step 3.9.4.4. Set the [[type]] internal slot of Key to "public".
+                    // NOTE: CryptoKey is created in Step 3.11 - 3.14.
                     let key_type = KeyType::Public;
 
                     (handle, key_type)
@@ -718,29 +728,29 @@ pub(crate) fn import_key(
             }
             // Otherwise
             else {
-                // Step 2.9.1. Perform any key import steps defined by other applicable
+                // Step 3.9.1. Perform any key import steps defined by other applicable
                 // specifications, passing format, jwk and obtaining key.
-                // Step 2.9.2. If an error occurred or there are no applicable specifications, throw
+                // Step 3.9.2. If an error occurred or there are no applicable specifications, throw
                 // a DataError.
                 // NOTE: We currently do not support applicable specifications.
                 return Err(Error::NotSupported(Some("Unsupported namedCurve".into())));
             };
 
-            // Step 2.10. If the key value is not a valid point on the Elliptic Curve identified by
+            // Step 3.10. If the key value is not a valid point on the Elliptic Curve identified by
             // the namedCurve member of normalizedAlgorithm throw a DataError.
-            // NOTE: Done in Step 2.9.
+            // NOTE: Done in Step 3.9.
 
-            // Step 2.11. Let algorithm be a new instance of an EcKeyAlgorithm object.
-            // Step 2.13. Set the namedCurve attribute of algorithm to namedCurve.
-            // Step 2.14. Set the [[algorithm]] internal slot of key to algorithm.
+            // Step 3.11. Let algorithm be a new instance of an EcKeyAlgorithm object.
+            // Step 3.13. Set the namedCurve attribute of algorithm to namedCurve.
+            // Step 3.14. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = EcKeyAlgorithm {
                 name: match ec_algorithm {
                     EcAlgorithm::Ecdsa => {
-                        // Step 2.12. Set the name attribute of algorithm to "ECDSA".
+                        // Step 3.12. Set the name attribute of algorithm to "ECDSA".
                         CryptoAlgorithm::Ecdsa
                     },
                     EcAlgorithm::Ecdh => {
-                        // Step 2.12. Set the name attribute of algorithm to "ECDH".
+                        // Step 3.12. Set the name attribute of algorithm to "ECDH".
                         CryptoAlgorithm::Ecdh
                     },
                 },
@@ -756,8 +766,9 @@ pub(crate) fn import_key(
                 handle,
             )
         },
+        // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
-            // Step 2.1. If the namedCurve member of normalizedAlgorithm is not a named curve, then
+            // Step 3.1. If the namedCurve member of normalizedAlgorithm is not a named curve, then
             // throw a DataError.
             if !SUPPORTED_CURVES
                 .iter()
@@ -768,7 +779,7 @@ pub(crate) fn import_key(
 
             match ec_algorithm {
                 EcAlgorithm::Ecdsa => {
-                    // Step 2.2. If usages contains a value which is not "verify" then throw a
+                    // Step 3.2. If usages contains a value which is not "verify" then throw a
                     // SyntaxError.
                     if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
                         return Err(Error::Syntax(Some(
@@ -777,26 +788,26 @@ pub(crate) fn import_key(
                     }
                 },
                 EcAlgorithm::Ecdh => {
-                    // Step 2.2. If usages is not the empty list, then throw a SyntaxError.
+                    // Step 3.2. If usages is not the empty list, then throw a SyntaxError.
                     if !usages.is_empty() {
                         return Err(Error::Syntax(Some("Usages list is not empty".into())));
                     }
                 },
             }
 
-            // Step 2.3.
+            // Step 3.3.
             // If namedCurve is "P-256", "P-384" or "P-521":
             let handle = if matches!(
                 normalized_algorithm.named_curve.as_str(),
                 NAMED_CURVE_P256 | NAMED_CURVE_P384 | NAMED_CURVE_P521
             ) {
-                // Step 2.3.1. Let Q be the Elliptic Curve public key on the curve identified by
-                // the namedCurve member of normalizedAlgorithm identified by performing the
-                // conversion steps defined in Section 2.3.4 of [SEC1] to keyData.
-                // Step 2.3.1. The uncompressed point format MUST be supported.
-                // Step 2.3.1. If the implementation does not support the compressed point format
+                // Step 3.3.1. Let Q be the Elliptic Curve public key on the curve identified by the
+                // namedCurve member of normalizedAlgorithm identified by performing the conversion
+                // steps defined in Section 2.3.4 of [SEC1] to keyData. The uncompressed point
+                // format MUST be supported.
+                // Step 3.3.2. If the implementation does not support the compressed point format
                 // and a compressed point is provided, throw a DataError.
-                // Step 2.3.1. If a decode error occurs or an identity point is found, throw a
+                // Step 3.3.3. If a decode error occurs or an identity point is found, throw a
                 // DataError.
                 match normalized_algorithm.named_curve.as_str() {
                     NAMED_CURVE_P256 => {
@@ -820,38 +831,38 @@ pub(crate) fn import_key(
                     _ => unreachable!(),
                 }
 
-                // Step 2.3.1. Let key be a new CryptoKey that represents Q.
-                // NOTE: CryptoKey is created in Step 2.7 - 2.8.
+                // Step 3.3.4. Let key be a new CryptoKey that represents Q.
+                // NOTE: CryptoKey is created in Step 3.7 - 3.8.
             }
             // Otherwise:
             else {
-                // Step. 2.3.1. Perform any key import steps defined by other applicable
+                // Step 3.3.1. Perform any key import steps defined by other applicable
                 // specifications, passing format, keyData and obtaining key.
-                // Step. 2.3.2. If an error occurred or there are no applicable specifications,
+                // Step 3.3.2. If an error occurred or there are no applicable specifications,
                 // throw a DataError.
                 // NOTE: We currently do not support applicable specifications.
                 return Err(Error::NotSupported(Some("Unsupported namedCurve".into())));
             };
 
-            // Step 2.4. Let algorithm be a new EcKeyAlgorithm object.
-            // Step 2.6. Set the namedCurve attribute of algorithm to equal the namedCurve member
+            // Step 3.4. Let algorithm be a new EcKeyAlgorithm object.
+            // Step 3.6. Set the namedCurve attribute of algorithm to equal the namedCurve member
             // of normalizedAlgorithm.
             let algorithm = EcKeyAlgorithm {
                 name: match ec_algorithm {
                     EcAlgorithm::Ecdsa => {
-                        // Step 2.5. Set the name attribute of algorithm to "ECDSA".
+                        // Step 3.5. Set the name attribute of algorithm to "ECDSA".
                         CryptoAlgorithm::Ecdsa
                     },
                     EcAlgorithm::Ecdh => {
-                        // Step 2.5. Set the name attribute of algorithm to "ECDH".
+                        // Step 3.5. Set the name attribute of algorithm to "ECDH".
                         CryptoAlgorithm::Ecdh
                     },
                 },
                 named_curve: normalized_algorithm.named_curve.clone(),
             };
 
-            // Step 2.7. Set the [[type]] internal slot of key to "public"
-            // Step 2.8. Set the [[algorithm]] internal slot of key to algorithm.
+            // Step 3.7. Set the [[type]] internal slot of key to "public"
+            // Step 3.8. Set the [[algorithm]] internal slot of key to algorithm.
             CryptoKey::new(
                 cx,
                 global,

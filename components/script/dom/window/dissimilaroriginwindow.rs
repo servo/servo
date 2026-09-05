@@ -12,7 +12,7 @@ use servo_base::id::PipelineId;
 use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, StructuredSerializedData,
 };
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
@@ -59,6 +59,11 @@ impl DissimilarOriginWindow {
         global_to_clone_from: &GlobalScope,
         window_proxy: &WindowProxy,
     ) -> DomRoot<Self> {
+        // TODO: We do not know the origin of this new window at this point in the execution
+        // and we *really* don't want to use the origin of `global_to_clone_from`. The whole
+        // point is that this is a window with a *different* origin. Just use an opaque origin
+        // here which is guaranteed to never be equal to `global_to_clone_from`'s origin.
+        let opaque_origin = MutableOrigin::new(ImmutableOrigin::new_opaque());
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
                 global_to_clone_from.devtools_chan().cloned(),
@@ -78,9 +83,9 @@ impl DissimilarOriginWindow {
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
             pipeline_id: PipelineId::new(),
-            origin: global_to_clone_from.origin(),
+            origin: opaque_origin.clone(),
         });
-        DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, &win.origin(), win)
+        DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, &opaque_origin, win)
     }
 
     pub(crate) fn origin(&self) -> MutableOrigin {

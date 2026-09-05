@@ -28,7 +28,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, TracedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, bytes_from_chunk_jsval};
 use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequest;
@@ -72,21 +72,22 @@ fn read_loop(
     // bytes, successSteps, and failureSteps:
 
     // Step 1 .Let readRequest be a new read request with the following items:
-    let req = ReadRequest::ReadLoop {
+    rooted!(&in(cx) let req = ReadRequest::ReadLoop {
         success_steps,
         failure_steps,
         reader: Dom::from_ref(reader),
         bytes: Rc::new(DomRefCell::new(Vec::new())),
-    };
+    });
     // Step 2 .Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
     reader.read(cx, &req);
 }
 
 /// <https://streams.spec.whatwg.org/#read-request>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum ReadRequest {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
-    Read(#[conditional_malloc_size_of] Rc<Promise>),
+    Read(TracedPromise),
     /// <https://streams.spec.whatwg.org/#ref-for-read-request%E2%91%A2>
     DefaultTee {
         tee_read_request: Dom<DefaultTeeReadRequest>,
@@ -108,6 +109,8 @@ pub(crate) enum ReadRequest {
         byte_tee_read_request: Dom<ByteTeeReadRequest>,
     },
 }
+
+impl js::rust::Rootable for ReadRequest {}
 
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
@@ -401,10 +404,10 @@ impl ReadableStreamDefaultReader {
         self.closed_promise.borrow().resolve_native(cx, &());
         // If reader implements ReadableStreamDefaultReader,
         // Let readRequests be reader.[[readRequests]].
-        let mut read_requests = self.take_read_requests();
+        rooted!(&in(cx) let mut read_requests = self.take_read_requests());
         // Set reader.[[readRequests]] to an empty list.
         // For each readRequest of readRequests,
-        for request in read_requests.drain(0..) {
+        for request in read_requests.iter() {
             // Perform readRequest’s close steps.
             request.close_steps(cx);
         }
@@ -466,10 +469,10 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
     fn error_read_requests(&self, cx: &mut js::context::JSContext, rval: SafeHandleValue) {
         // step 1
-        let mut read_requests = self.take_read_requests();
+        rooted!(&in(cx) let mut read_requests = self.take_read_requests());
 
         // step 2 & 3
-        for request in read_requests.drain(0..) {
+        for request in read_requests.iter() {
             request.error_steps(cx, rval);
         }
     }
@@ -610,7 +613,7 @@ impl ReadableStreamDefaultReader {
 
             // Let readRequest be reader.[[readRequests]][0].
             // Remove entry from controller.[[queue]].
-            let read_request = self.remove_read_request();
+            rooted!(&in(cx) let read_request = self.remove_read_request());
 
             // Perform ! ReadableByteStreamControllerFillReadRequestFromQueue(controller, readRequest).
             controller
@@ -650,7 +653,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
             return Promise::new_rejected(cx, &self.global(), error.handle());
         }
         // Let promise be a new promise.
-        let promise = Promise::new(cx, &self.global());
+        let promise = Promise::new_rooted(cx, &self.global());
 
         // Let readRequest be a new read request with the following items:
         // chunk steps, given chunk
@@ -662,16 +665,13 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
         // error steps, given e
         // Reject promise with e.
 
-        // Rooting(unrooted_must_root): the read request contains only a promise,
-        // which does not need to be rooted,
-        // as it is safely managed natively via an Rc.
-        let read_request = ReadRequest::Read(promise.clone());
+        rooted!(&in(cx) let read_request = ReadRequest::Read(promise.to_traced()));
 
         // Perform ! ReadableStreamDefaultReaderRead(this, readRequest).
         self.read(cx, &read_request);
 
         // Return promise.
-        promise
+        promise.into()
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>

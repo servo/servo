@@ -10,7 +10,7 @@ use std::fmt;
 use atomic_refcell::AtomicRef;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutDataTrait, LayoutElement, LayoutNode,
-    LayoutNodeType, PseudoElementChain, SVGElementData, SharedSelection, TrustedNodeAddress,
+    LayoutNodeType, PseudoElementChain, SVGElementData, TrustedNodeAddress,
 };
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
@@ -247,17 +247,17 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         self.node.text_content()
     }
 
-    fn document_selection_in_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
-        // Pseudo-elements do not ever have document selection.
+    fn text_node_selection(&self) -> Option<RangeAny<Utf32CodeUnits>> {
+        // Pseudo-elements do not ever have a selection.
         if !self.pseudo_element_chain.is_empty() {
             return None;
         }
 
-        self.node.document_selection_in_text_node()
+        self.node.selection_for_text_node()
     }
 
-    fn form_control_selection_in_text_node(&self) -> Option<SharedSelection> {
-        self.node.form_control_selection_in_text_node()
+    fn text_node_paints_caret(&self) -> bool {
+        self.node.text_node_paints_caret()
     }
 
     fn image_url(&self) -> Option<ServoUrl> {

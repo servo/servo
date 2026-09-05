@@ -199,6 +199,7 @@ impl AbortSignal {
             },
             AbortAlgorithm::FetchLater(deferred_fetch_record_id) => {
                 global
+                    .fetch_group()
                     .deferred_fetch_record_for_id(deferred_fetch_record_id)
                     .abort();
             },

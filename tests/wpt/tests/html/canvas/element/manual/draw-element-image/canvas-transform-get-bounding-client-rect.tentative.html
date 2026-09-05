@@ -11,6 +11,7 @@
   <canvas id="canvas" style="position: absolute; left: 10px; top: 20px; width: 400px; height: 400px;" layoutsubtree>
     <div id="target" style="position: absolute; left: 0; top: 0; width: 100px; height: 50px;">
       <span id="nested-inline" drawable style="font: 25px/1 Ahem;">X</span>
+      <span id="nested-inline-fragmented" drawable style="font: 25px/1 Ahem;">X XXX</span>
       <div id="nested-block" drawable style="width: 20px; height: 30px;"></div>
       <div id="nested-non-drawable" style="width: 15px; height: 25px;"></div>
     </div>
@@ -119,6 +120,49 @@
         assert_equals(rect.width, 25);
         assert_equals(rect.height, 25);
       }, 'setCanvasTransform() affects getBoundingClientRect() on an inline nested drawable');
+
+      test(() => {
+        const nestedInlineFragmented = document.getElementById('nested-inline-fragmented');
+        let rect = nestedInlineFragmented.getBoundingClientRect();
+        assert_equals(rect.left, 10);
+        assert_equals(rect.top, 20);
+        assert_equals(rect.width, 75);
+        assert_equals(rect.height, 50);
+
+        // Translate.
+        nestedInlineFragmented.setCanvasTransform(new DOMMatrix().translate(30, 40));
+        rect = nestedInlineFragmented.getBoundingClientRect();
+        assert_equals(rect.left, 10 + 30);
+        assert_equals(rect.top, 20 + 40);
+        assert_equals(rect.width, 75);
+        assert_equals(rect.height, 50);
+
+        // Scale and translate.
+        nestedInlineFragmented.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+        rect = nestedInlineFragmented.getBoundingClientRect();
+        assert_equals(rect.left, 10 + 50);
+        assert_equals(rect.top, 20 + 60);
+        assert_equals(rect.width, 2 * 75);
+        assert_equals(rect.height, 3 * 50);
+
+        // Test that canvas transform is unaffected by CSS margin.
+        nestedInlineFragmented.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+        nestedInlineFragmented.style.marginLeft = '12px';
+        rect = nestedInlineFragmented.getBoundingClientRect();
+        assert_equals(rect.left, 10 + 50);
+        assert_equals(rect.top, 20 + 60);
+        assert_equals(rect.width, 2 * 75);
+        assert_equals(rect.height, 3 * 50);
+
+        // Reset.
+        nestedInlineFragmented.style.marginLeft = '0';
+        nestedInlineFragmented.setCanvasTransform(new DOMMatrix());
+        rect = nestedInlineFragmented.getBoundingClientRect();
+        assert_equals(rect.left, 10);
+        assert_equals(rect.top, 20);
+        assert_equals(rect.width, 75);
+        assert_equals(rect.height, 50);
+      }, 'setCanvasTransform() affects getBoundingClientRect() on a fragmented inline nested drawable');
 
       test(() => {
         const target = document.getElementById('target');

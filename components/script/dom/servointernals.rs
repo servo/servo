@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
@@ -24,17 +22,17 @@ use crate::dom::bindings::codegen::Bindings::ServoInternalsBinding::ServoInterna
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::event_loop::script_thread::ScriptThread;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 
 fn pref_to_jsval(cx: &mut js::context::JSContext, pref: &PrefValue, rval: MutableHandleValue) {
     match pref {
-        PrefValue::Bool(b) => b.safe_to_jsval(cx, rval),
-        PrefValue::Int(i) => i.safe_to_jsval(cx, rval),
-        PrefValue::UInt(u) => u.safe_to_jsval(cx, rval),
-        PrefValue::Str(s) => s.safe_to_jsval(cx, rval),
-        PrefValue::Float(f) => f.safe_to_jsval(cx, rval),
+        PrefValue::Bool(b) => b.to_jsval(cx, rval),
+        PrefValue::Int(i) => i.to_jsval(cx, rval),
+        PrefValue::UInt(u) => u.to_jsval(cx, rval),
+        PrefValue::Str(s) => s.to_jsval(cx, rval),
+        PrefValue::Float(f) => f.to_jsval(cx, rval),
         PrefValue::Array(arr) => {
             rooted_vec!(let mut js_arr);
             for item in arr {
@@ -42,7 +40,7 @@ fn pref_to_jsval(cx: &mut js::context::JSContext, pref: &PrefValue, rval: Mutabl
                 pref_to_jsval(cx, item, js_val.handle_mut());
                 js_arr.push(Heap::boxed(js_val.get()));
             }
-            js_arr.safe_to_jsval(cx, rval);
+            js_arr.to_jsval(cx, rval);
         },
     }
 }
@@ -66,8 +64,8 @@ impl ServoInternals {
 
 impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     /// <https://servo.org/internal-no-spec>
-    fn ReportMemory(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn ReportMemory(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
         let global = self.global();
         let task_manager = global.task_manager();
         let task_source = task_manager.dom_manipulation_task_source();
@@ -199,7 +197,7 @@ impl RoutedPromiseListener<MemoryReportResult> for ServoInternals {
         &self,
         cx: &mut JSContext,
         response: MemoryReportResult,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         let stringified = serde_json::to_string(&response.results)
             .unwrap_or_else(|_| "{ error: \"failed to create memory report\"}".to_owned());

@@ -30,6 +30,12 @@ var testScenarios = [
     {testDescription: "Test offscreen context creation attributes colorSpace: 'display-p3'",
         canvasContextAttributes: {colorSpace: "display-p3"},
         expectedContextAttributes: {colorSpace: "display-p3"}},
+    {testDescription: "Test offscreen context creation attributes colorSpace: 'srgb-linear'",
+        canvasContextAttributes: {colorSpace: "srgb-linear"},
+        expectedContextAttributes: {colorSpace: "srgb-linear"}},
+    {testDescription: "Test offscreen context creation attributes colorSpace: 'display-p3-linear'",
+        canvasContextAttributes: {colorSpace: "display-p3-linear"},
+        expectedContextAttributes: {colorSpace: "display-p3-linear"}},
     // desynchronized
     {testDescription: "Test offscreen context creation attributes desynchronized: true",
         canvasContextAttributes: {desynchronized: true},

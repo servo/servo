@@ -41,6 +41,7 @@ pub mod principals;
 pub mod proxyhandler;
 pub mod realms;
 pub mod record;
+pub mod refcounted;
 pub mod reflector;
 pub mod root;
 pub mod script_runtime;

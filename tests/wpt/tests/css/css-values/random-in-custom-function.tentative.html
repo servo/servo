@@ -6,9 +6,14 @@
 <script src="../support/computed-testcommon.js"></script>
 <div id=container>
   <div id=target></div>
-<div>
+</div>
 <style>
     @property --number {
+        syntax: "<number>";
+        inherits: true;
+        initial-value: 0;
+    }
+    @property --number-2 {
         syntax: "<number>";
         inherits: true;
         initial-value: 0;
@@ -18,252 +23,582 @@
         inherits: true;
         initial-value: 0;
     }
-    @function --f() {
-        result: random(--foo property-index-scoped, 1, 1e6);
-    }
-    @function --g() {
-        result: random(--foo property-index-scoped, 1, 1e6);
-    }
-    @function --locals() {
-        --x: random(--foo property-index-scoped, 1, 1e6);
-        --y: random(--foo property-index-scoped, 1, 1e6);
-        result: var(--x) var(--y);
-    }
-    @function --locals-position-registered() returns <number>+ {
-        --x: random(--foo property-index-scoped, 1, 1e6);
-        result: var(--x) var(--x);
-    }
-    @function --f-locals() {
-        --x: random(--foo property-index-scoped, 1, 1e6);
-        result: var(--x);
-    }
-    @function --g-locals() {
-        --x: random(--foo property-index-scoped, 1, 1e6);
-        result: var(--x);
-    }
-    @function --f-arguments(--x <number>) {
-        result: var(--x);
-    }
-    @function --g-arguments(--x <number>) {
-        result: var(--x);
-    }
-    @function --f-default-arguments(--x <number>: random(--foo property-index-scoped, 1, 1e6)) {
-        result: var(--x);
-    }
-    @function --g-default-arguments(--x <number>: random(--foo property-index-scoped, 1, 1e6)) {
-        result: var(--x);
-    }
-    @function --f-locals-arguments(--x <number>) {
-        --x: random(--foo property-index-scoped, 1, 1e6);
-        result: var(--x);
-    }
-    @function --g-locals-arguments(--x <number>) {
-        --x: random(--foo property-index-scoped, 1, 1e6);
-        result: var(--x);
-    }
-    @function --f-number() returns <number> {
-        result: random(--foo property-index-scoped, 1, 1e6);
-    }
-    @function --g-number() returns <number> {
-        result: random(--foo property-index-scoped, 1, 1e6);
-    }
 </style>
+<style id="function-holder"></style>
 <script>
 // Since actual and expected values are generated randomly, `assert_equals()`
 // does not generate deterministic test failure output. Chrome relies on test
 // failure output to be deterministic and stable for failing test expectations.
-function test_random_equals(actual, expected, message = "Random values should be equal") {
-  assert_true(actual == expected, message);
+function test_random_equals(v1, v2, message = "Random values should be equal") {
+  assert_true(v1 == v2, message);
 }
-function test_random_not_equals(actual, expected, message = "Random values should not be equal") {
-  assert_false(actual == expected, message);
+function test_random_not_equals(v1, v2, message = "Random values should not be equal") {
+  assert_false(v1 == v2, message);
 }
-function test_value_in_range(value, min=1, max=1e6) {
+function test_value_in_range(value, min=1, max=1e9) {
+  assert_false(Number.isNaN(Number(value)), "Value should be a number.");
   assert_true(value >= min);
   assert_true(value <= max);
 }
-test(() => {
+
+
+// Let each set of tests set up unique functions,
+// without having to manually uniquify the names.
+function setup_functions(s) {
+  document.querySelector("#function-holder").textContent = s;
+}
+
+// Helper functions to obtain random values in various combinations.
+
+// Diff element, same property, same index
+function diff_elements(v1, v2) {
   const holder = document.createElement('div');
   document.body.appendChild(holder);
+  let el1ComputedValue, el2ComputedValue;
   try {
     const el1 = document.createElement('div');
-    el1.style.setProperty('--number', '--f()');
+    el1.style.setProperty('--number', v1.trim());
     holder.appendChild(el1);
 
     const el2 = document.createElement('div');
-    el2.style.setProperty('--number', '--g()');
+    el2.style.setProperty('--number', v2.trim());
     holder.appendChild(el2);
 
-    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
-    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
+    el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
+    el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
 
     test_value_in_range(el1ComputedValue);
     test_value_in_range(el2ComputedValue);
-
-    test_random_equals(el1ComputedValue, el2ComputedValue);
   } finally {
     document.body.removeChild(holder);
   }
-}, `random() in function result`);
+  return [el1ComputedValue, el2ComputedValue];
+}
 
-test(() => {
+// Same element, diff property, same index
+function diff_properties(v1, v2) {
   const holder = document.createElement('div');
   document.body.appendChild(holder);
+  let elComputedValue1, elComputedValue2;
   try {
     const el1 = document.createElement('div');
-    el1.style.setProperty('--number', '--f-number()');
+    el1.style.setProperty('--number', v1.trim());
+    el1.style.setProperty('--number-2', v2.trim());
     holder.appendChild(el1);
 
-    const el2 = document.createElement('div');
-    el2.style.setProperty('--number', '--g-number()');
-    holder.appendChild(el2);
-
-    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
-    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
-
-    test_value_in_range(el1ComputedValue);
-    test_value_in_range(el2ComputedValue);
-
-    test_random_not_equals(el1ComputedValue, el2ComputedValue);
-  } finally {
-    document.body.removeChild(holder);
-  }
-}, `random() in function typed result`);
-
-test(() => {
-  const holder = document.createElement('div');
-  document.body.appendChild(holder);
-  try {
-    const el1 = document.createElement('div');
-    el1.style.setProperty('--number', '--f-locals()');
-    holder.appendChild(el1);
-
-    const el2 = document.createElement('div');
-    el2.style.setProperty('--number', '--g-locals()');
-    holder.appendChild(el2);
-
-    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
-    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
-
-    test_value_in_range(el1ComputedValue);
-    test_value_in_range(el2ComputedValue);
-
-    test_random_equals(el1ComputedValue, el2ComputedValue);
-  } finally {
-    document.body.removeChild(holder);
-  }
-}, `random() in different function same local name`);
-
-test(() => {
-  const holder = document.createElement('div');
-  document.body.appendChild(holder);
-  try {
-    const el = document.createElement('div');
-    el.style.setProperty('--numbers', '--locals()');
-    holder.appendChild(el);
-
-    const [elComputedValue1, elComputedValue2] = getComputedStyle(el).getPropertyValue('--numbers').split(' ');
+    elComputedValue1 = getComputedStyle(el1).getPropertyValue('--number');
+    elComputedValue2 = getComputedStyle(el1).getPropertyValue('--number-2');
 
     test_value_in_range(elComputedValue1);
     test_value_in_range(elComputedValue2);
-
-    test_random_not_equals(elComputedValue1, elComputedValue2);
   } finally {
     document.body.removeChild(holder);
   }
-}, `random() in same function different locals`);
+  return [elComputedValue1, elComputedValue2];
+}
 
-test(() => {
+// Same element, same property, diff index
+function diff_indexes(v1, v2) {
   const holder = document.createElement('div');
   document.body.appendChild(holder);
+  let elComputedValue1, elComputedValue2;
   try {
-    const el = document.createElement('div');
-    el.style.setProperty('--numbers', '--locals-position-registered()');
-    holder.appendChild(el);
-
-    const [elComputedValue1, elComputedValue2] = getComputedStyle(el).getPropertyValue('--numbers').split(' ');
-
+    const el1 = document.createElement('div');
+    el1.style.setProperty('--numbers', v1.trim() + " " + v2.trim());
+    holder.appendChild(el1);
+    [elComputedValue1, elComputedValue2] = getComputedStyle(el1).getPropertyValue('--numbers').split(' ');
     test_value_in_range(elComputedValue1);
     test_value_in_range(elComputedValue2);
-
-    test_random_not_equals(elComputedValue1, elComputedValue2);
   } finally {
     document.body.removeChild(holder);
   }
-}, `random() in same registered function same locals different positions`);
+  return [elComputedValue1, elComputedValue2];
+}
 
-test(() => {
+// Same as diff_indexes except both numbers come from a single value
+function multi_values(v1) {
   const holder = document.createElement('div');
   document.body.appendChild(holder);
-
+  let elComputedValue1, elComputedValue2;
   try {
     const el1 = document.createElement('div');
-    el1.style.setProperty('--number', '--f-default-arguments()');
+    el1.style.setProperty('--numbers', v1.trim());
     holder.appendChild(el1);
-
-    const el2 = document.createElement('div');
-    el2.style.setProperty('--number', '--g-default-arguments()');
-    holder.appendChild(el2);
-
-    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
-    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
-
-    test_value_in_range(el1ComputedValue);
-    test_value_in_range(el2ComputedValue);
-
-    test_random_not_equals(el1ComputedValue, el2ComputedValue);
+    [elComputedValue1, elComputedValue2] = getComputedStyle(el1).getPropertyValue('--numbers').split(' ');
+    test_value_in_range(elComputedValue1);
+    test_value_in_range(elComputedValue2);
   } finally {
     document.body.removeChild(holder);
   }
-}, `random() in different function same default locals`);
+  return [elComputedValue1, elComputedValue2];
+}
 
+
+
+
+// Untyped 'result' leaves random() unparsed.
+// It'll assign its ua-random-ident post-substitution
+setup_functions(`
+    @function --f() {
+        result: random(property-index-scoped, 1, 1e9);
+    }
+    @function --g() {
+        result: random(property-index-scoped, 1, 1e9);
+    }
+`);
 test(() => {
-  const holder = document.createElement('div');
-  document.body.appendChild(holder);
-
-  try {
-    const el1 = document.createElement('div');
-    el1.style.setProperty('--number', '--f-locals-arguments(0)');
-    holder.appendChild(el1);
-
-    const el2 = document.createElement('div');
-    el2.style.setProperty('--number', '--g-locals-arguments(0)');
-    holder.appendChild(el2);
-
-    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
-    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
-
-    test_value_in_range(el1ComputedValue);
-    test_value_in_range(el2ComputedValue);
-
-    test_random_not_equals(el1ComputedValue, el2ComputedValue);
-  } finally {
-    document.body.removeChild(holder);
-  }
-}, `random() in function in local overrides argument`);
-
+  const [v1, v2] = diff_elements("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in untyped result, same function on different elements`);
 test(() => {
-  const holder = document.createElement('div');
-  document.body.appendChild(holder);
+  const [v1, v2] = diff_properties("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in untyped result, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in untyped result, same function at different indexes`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--g()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in untyped result, different functions on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in untyped result, different functions in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in untyped result, different functions at different indexes`);
 
-  try {
-    const el1 = document.createElement('div');
-    el1.style.setProperty('--number', '--f-arguments(random(--foo property-index-scoped, 1, 1e6))');
-    holder.appendChild(el1);
 
-    const el2 = document.createElement('div');
-    el2.style.setProperty('--number', '--g-arguments(random(--foo property-index-scoped, 1, 1e6))');
-    holder.appendChild(el2);
 
-    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
-    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
 
-    test_value_in_range(el1ComputedValue);
-    test_value_in_range(el2ComputedValue);
+// Typed result will parse the random() inside the function.
+// ua-random-ident will use function name and 'result'
+setup_functions(`
+    @function --f() returns <number> {
+        result: random(property-index-scoped, 1, 1e9);
+    }
+    @function --g() returns <number> {
+        result: random(property-index-scoped, 1, 1e9);
+    }
+`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in typed result, same function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in typed result, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in typed result, same function at different indexes`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in typed result, different function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in typed result, different function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in typed result, different function at different indexes`);
 
-    test_random_equals(el1ComputedValue, el2ComputedValue);
-  } finally {
-    document.body.removeChild(holder);
-  }
-}, `random() in function argument`);
+
+
+
+// Untyped element-scoped will escape the function before resolving.
+// Will vary based on element it's applied to, only
+setup_functions(`
+    @function --f() {
+        result: random(element-scoped, 1, 1e9);
+    }
+    @function --g() {
+        result: random(element-scoped, 1, 1e9);
+    }
+`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in untyped result, same function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(e-s) in untyped result, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(e-s) in untyped result, same function at different indexes`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in untyped result, different functions on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--g()");
+  test_random_equals(v1, v2);
+}, `random(e-s) in untyped result, different functions in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--g()");
+  test_random_equals(v1, v2);
+}, `random(e-s) in untyped result, different functions at different indexes`);
+
+
+
+
+// element-scoped inside of function refers to the hypothetical element
+// each invocation is thus distinct automatically
+setup_functions(`
+    @function --f() returns <number> {
+        result: random(element-scoped, 1, 1e9);
+    }
+    @function --g() returns <number> {
+        result: random(element-scoped, 1, 1e9);
+    }
+`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed result, same function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed result, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed result, same function at different indexes`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed result, different functions on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed result, different functions in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed result, different functions at different indexes`);
+
+
+
+// Untyped local is same as untyped result
+setup_functions(`
+    @function --f() {
+        --x: random(property-index-scoped, 1, 1e9);
+        result: var(--x);
+    }
+    @function --g() {
+        --x: random(property-index-scoped, 1, 1e9);
+        result: var(--x);
+    }
+`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in untyped local, same function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in untyped local, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in untyped local, same function at different indexes`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--g()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in untyped local, different functions on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in untyped local, different functions in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in untyped local, different functions at different indexes`);
+
+
+
+// Random set on untyped local, but substituted into typed result.
+// Same as setting directly in typed result.
+setup_functions(`
+    @function --f() returns <number> {
+        --x: random(property-index-scoped, 1, 1e9);
+        result: var(--x);
+    }
+    @function --g() returns <number> {
+        --x: random(property-index-scoped, 1, 1e9);
+        result: var(--x);
+    }
+`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) substituted into typed result, same function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) substituted into  typed result, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) substituted into  typed result, same function at different indexes`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) substituted into  typed result, different function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) substituted into  typed result, different function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) substituted into  typed result, different function at different indexes`);
+
+
+
+// Randoms set in multiple untyped locals, substituted into an untyped result
+// Don't evaluate until they hit the actual element
+setup_functions(`
+    @function --f() {
+        --x: random(property-index-scoped, 1, 1e9);
+        --y: random(property-index-scoped, 1, 1e9);
+        result: var(--x) var(--y);
+    }
+`);
+test(() => {
+  const [v1, v2] = multi_values("--f()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in multiple untyped locals, substituted into untyped result`);
+
+
+
+// Randoms set in multiple untyped locals, substituted into an untyped result
+// Don't evaluate until they hit the actual element
+setup_functions(`
+    @function --f() {
+        --x: random(property-scoped, 1, 1e9);
+        --y: random(property-scoped, 1, 1e9);
+        result: var(--x) var(--y);
+    }
+`);
+test(() => {
+  const [v1, v2] = multi_values("--f()");
+  test_random_equals(v1, v2);
+}, `random(p-s) in multiple untyped locals, substituted into untyped result`);
+
+
+
+// Random set in untyped local, substituted into typed result
+// Evaluate against function name and 'result'
+setup_functions(`
+    @function --f() returns <number>+ {
+        --x: random(property-index-scoped, 1, 1e9);
+        result: var(--x) var(--x);
+    }
+`);
+test(() => {
+  const [v1, v2] = multi_values("--f()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in untyped local, substituted multiple times into typed result`);
+
+
+
+// Random set in untyped local, substituted into typed result
+// Evaluate against function name and 'result'
+setup_functions(`
+    @function --f() returns <number>+ {
+        --x: random(property-scoped, 1, 1e9);
+        result: var(--x) var(--x);
+    }
+`);
+test(() => {
+  const [v1, v2] = multi_values("--f()");
+  test_random_equals(v1, v2);
+}, `random(p-s) in untyped local, substituted multiple times into typed result`);
+
+
+
+// Random in typed argument default
+// Evaluate against function name + arg name
+// Essentially same as typed result.
+setup_functions(`
+    @function --f(--x <number>: random(property-index-scoped, 1, 1e9)) {
+        result: var(--x);
+    }
+    @function --g(--y <number>: random(property-index-scoped, 1, 1e9)) {
+        result: var(--y);
+    }
+`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in typed arg default, same function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in typed arg default, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in typed arg default, same function at different indexes`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in typed arg default, different function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in typed arg default, different function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--g()");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in typed arg default, different function at different indexes`);
+
+
+
+// Random set in several typed argument defaults, substituted into untyped result
+// Evaluate against function name and each arg name
+setup_functions(`
+    @function --f(
+      --x <number>: random(property-scoped, 1, 1e9),
+      --y <number>: random(property-scoped, 1, 1e9)
+      ) {
+        result: var(--x) var(--y);
+    }
+`);
+test(() => {
+  const [v1, v2] = multi_values("--f()");
+  test_random_not_equals(v1, v2);
+}, `random(p-s) in typed arg defaults, substituted into untyped result`);
+
+
+
+// Random set in several untyped argument defaults, substituted into typed result
+// Evaluate against function name and each arg name
+setup_functions(`
+    @function --f(
+      --x: random(property-scoped, 1, 1e9),
+      --y: random(property-scoped, 1, 1e9)
+      ) returns <number>+ {
+        result: var(--x) var(--y);
+    }
+`);
+test(() => {
+  const [v1, v2] = multi_values("--f()");
+  test_random_equals(v1, v2);
+}, `random(p-s) in untyped arg defaults, substituted into typed result`);
+
+
+
+// Element-scoped set in typed arg, substituted into untyped result
+// Different per invocation
+setup_functions(`
+    @function --f(--x <number>: random(element-scoped, 1, 1e9)) {
+        result: var(--x);
+    }
+`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed arg defaults, same function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed arg defaults, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed arg defaults, same function at different indexes`);
+
+
+
+// Element-scoped set in untyped arg, substituted into untyped result
+// Doesn't resolve until it hits the element's styles
+setup_functions(`
+    @function --f(--x: random(element-scoped, 1, 1e9)) {
+        result: var(--x);
+    }
+`);
+test(() => {
+  const [v1, v2] = diff_elements("--f()", "--f()");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in untyped arg defaults, same function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(e-s) in untyped arg defaults, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f()", "--f()");
+  test_random_equals(v1, v2);
+}, `random(e-s) in untyped arg defaults, same function at different indexes`);
+
+
+
+// Typed arg, random set in the body.
+// Should be identical to setting in the typed arg defaults.
+setup_functions(`
+    @function --f(--x <number>) {
+        --x: random(property-index-scoped, 1, 1e9);
+        result: var(--x);
+    }
+    @function --g(--x <number>) {
+        --x: random(property-index-scoped, 1, 1e9);
+        result: var(--x);
+    }
+`);
+test(() => {
+  const [v1, v2] = diff_elements("--f(0)", "--f(0)");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in typed arg and set in body, same function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f(0)", "--f(0)");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in typed arg and set in body, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f(0)", "--f(0)");
+  test_random_equals(v1, v2);
+}, `random(p-i-s) in typed arg and set in body, same function at different indexes`);
+test(() => {
+  const [v1, v2] = diff_elements("--f(0)", "--g(0)");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in typed arg and set in body, different function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f(0)", "--g(0)");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in typed arg and set in body, different function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f(0)", "--g(0)");
+  test_random_not_equals(v1, v2);
+}, `random(p-i-s) in typed arg and set in body, different function at different indexes`);
+
+
+
+// Typed arg, element-scoped random set in the body.
+// Again, should be identical to setting in the typed arg defaults.
+setup_functions(`
+    @function --f(--x <number>) {
+        --x: random(element-scoped, 1, 1e9);
+        result: var(--x);
+    }
+`);
+test(() => {
+  const [v1, v2] = diff_elements("--f(0)", "--f(0)");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed arg and set in body, same function on different elements`);
+test(() => {
+  const [v1, v2] = diff_properties("--f(0)", "--f(0)");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed arg and set in body, same function in different properties`);
+test(() => {
+  const [v1, v2] = diff_indexes("--f(0)", "--f(0)");
+  test_random_not_equals(v1, v2);
+}, `random(e-s) in typed arg and set in body, same function at different indexes`);
 </script>

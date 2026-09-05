@@ -33,21 +33,43 @@ pub(crate) fn derive_bits(
         )));
     };
 
-    // Step 2. Let keyDerivationKey be the secret represented by the [[handle]] internal slot of key.
+    // Step 2. Let hashLength be the length in bits of the output of the hash function identified by
+    // the hash member of normalizedAlgorithm.
+    let hash_length = match normalized_algorithm.hash.name() {
+        CryptoAlgorithm::Sha1 => 160,
+        CryptoAlgorithm::Sha256 => 256,
+        CryptoAlgorithm::Sha384 => 384,
+        CryptoAlgorithm::Sha512 => 512,
+        algorithm_name => {
+            return Err(Error::Operation(Some(format!(
+                "Invalid hash algorithm: {}",
+                algorithm_name.as_str()
+            ))));
+        },
+    };
+
+    // Step 3. If length is greater than 255 * hashLength, then throw an OperationError.
+    if length > 255 * hash_length {
+        return Err(Error::Operation(Some(
+            "length is greater than 255 * hashLength".into(),
+        )));
+    }
+
+    // Step 4. Let keyDerivationKey be the secret represented by the [[handle]] internal slot of key.
     let Handle::HkdfSecret(key_derivation_key) = key.handle() else {
         return Err(Error::Operation(Some(
             "The [[handle]] internal slot is not from an HKDF key".into(),
         )));
     };
 
-    // Step 3. Let result be the result of performing the HKDF extract and then the HKDF expand
+    // Step 5. Let result be the result of performing the HKDF extract and then the HKDF expand
     // step described in Section 2 of [RFC5869] using:
     //     * the hash member of normalizedAlgorithm as Hash,
     //     * keyDerivationKey as the input keying material, IKM,
     //     * the salt member of normalizedAlgorithm as salt,
     //     * the info member of normalizedAlgorithm as info,
     //     * length divided by 8 as the value of L,
-    // Step 4. If the key derivation operation fails, then throw an OperationError.
+    // Step 6. If the key derivation operation fails, then throw an OperationError.
     let mut result = vec![0u8; length as usize / 8];
     match normalized_algorithm.hash.name() {
         CryptoAlgorithm::Sha1 => {
@@ -78,7 +100,7 @@ pub(crate) fn derive_bits(
         },
     }
 
-    // Step 5. Return result.
+    // Step 7. Return result.
     Ok(result)
 }
 

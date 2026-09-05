@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_arc::Arc;
 use style::media_queries::{MediaList as StyleMediaList, MediaQuery};
 use style::parser::ParserContext;
@@ -53,10 +53,10 @@ impl MediaList {
         parent_stylesheet: &CSSStyleSheet,
         media_queries: Arc<Locked<StyleMediaList>>,
     ) -> DomRoot<MediaList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(MediaList::new_inherited(parent_stylesheet, media_queries)),
             window,
-            cx,
         )
     }
 
@@ -157,7 +157,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
     fn SetMediaText(&self, no_gc: &NoGC, value: DOMString) {
-        self.parent_stylesheet.will_modify();
+        self.parent_stylesheet.will_modify(no_gc);
         let global = self.global();
         let mut guard = self.shared_lock().write();
         let media_queries_borrowed = self.media_queries.borrow();
@@ -218,7 +218,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
             }
         }
         // Step 4
-        self.parent_stylesheet.will_modify();
+        self.parent_stylesheet.will_modify(no_gc);
         let mut guard = self.shared_lock().write();
         self.media_queries
             .borrow()
@@ -239,7 +239,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
             return;
         }
         // Step 3
-        self.parent_stylesheet.will_modify();
+        self.parent_stylesheet.will_modify(no_gc);
         let m_serialized = m.unwrap().to_css_string();
         let mut guard = self.shared_lock().write();
         let media_queries_borrowed = self.media_queries.borrow();

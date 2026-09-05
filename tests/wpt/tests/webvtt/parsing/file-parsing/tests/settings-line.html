@@ -27,7 +27,7 @@ function trackLoaded(event) {
     var video = track.parentNode;
     var cues = video.textTracks[0].cues;
     {
-assert_equals(cues.length, 46);
+assert_equals(cues.length, 47);
 
 // Test starts with simple valid values
 var valid_values = [
@@ -91,6 +91,12 @@ assert_false(cues[index + 6].snapToLines);
 
 assert_equals(cues[index + 7].line, 0);
 assert_false(cues[index + 7].snapToLines);
+
+// A compound keyword must not prefix-match ("start" then "end"); the whole
+// setting is ignored, leaving the defaults.
+assert_equals(cues[index + 8].line, 'auto');
+assert_true(cues[index + 8].snapToLines);
+assert_equals(cues[index + 8].lineAlign, 'start');
 
     }
     this.done();

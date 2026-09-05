@@ -3,15 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
+use std::ops::Deref;
 use std::rc::Rc;
 use std::thread::LocalKey;
 
 use js::context::JSContext;
-use js::conversions::ToJSValConvertible;
+use js::conversions::{FromJSValConvertible, ToJSValConvertible};
+use js::gc::Traceable;
 use js::glue::JSPrincipalsCallbacks;
 use js::jsapi::{CallArgs, JSObject};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleObject};
+use malloc_size_of::MallocSizeOf;
 use servo_base::id::PipelineId;
 use servo_constellation_traits::ScriptToConstellationChan;
 use servo_url::{MutableOrigin, ServoUrl};
@@ -90,8 +93,27 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
     fn script_to_constellation_chan(&self) -> ScriptToConstellationChan;
 }
 
+pub trait HeapTracedPromiseHelpers<D: DomTypes> {
+    type StackRoot;
+    fn root(&self) -> Self::StackRoot;
+}
+
+pub trait StackRootPromiseHelpers<D: DomTypes> {
+    type HeapTraced;
+    fn to_traced(&self) -> Self::HeapTraced;
+}
+
 pub trait PromiseHelpers<D: DomTypes> {
+    type StackRoot: FromJSValConvertible<Config = ()>
+        + ToJSValConvertible
+        + Deref<Target = D::Promise>
+        + StackRootPromiseHelpers<D, HeapTraced = Self::HeapTraced>;
+    type HeapTraced: Traceable
+        + MallocSizeOf
+        + Deref<Target = D::Promise>
+        + HeapTracedPromiseHelpers<D, StackRoot = Self::StackRoot>;
     fn new_in_realm(cx: &mut CurrentRealm) -> Rc<D::Promise>;
+    fn new_in_realm_rooted(cx: &mut CurrentRealm) -> Self::StackRoot;
     fn reject_error(&self, cx: &mut JSContext, error: Error);
     fn is_rejected(&self) -> bool;
     fn is_pending(&self) -> bool;

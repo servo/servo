@@ -123,23 +123,23 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
                 IteratorType::Keys => {
                     self.iterable
                         .get_key_at_index(cx, index)
-                        .safe_to_jsval(cx, value.handle_mut());
+                        .to_jsval(cx, value.handle_mut());
                     dict_return(cx, return_value, false, value.handle())
                 },
                 IteratorType::Values => {
                     self.iterable
                         .get_value_at_index(cx, index)
-                        .safe_to_jsval(cx, value.handle_mut());
+                        .to_jsval(cx, value.handle_mut());
                     dict_return(cx, return_value, false, value.handle())
                 },
                 IteratorType::Entries => {
                     rooted!(&in(cx) let mut key = UndefinedValue());
                     self.iterable
                         .get_key_at_index(cx, index)
-                        .safe_to_jsval(cx, key.handle_mut());
+                        .to_jsval(cx, key.handle_mut());
                     self.iterable
                         .get_value_at_index(cx, index)
-                        .safe_to_jsval(cx, value.handle_mut());
+                        .to_jsval(cx, value.handle_mut());
                     key_and_value_return(cx, return_value, key.handle(), value.handle())
                 },
             }

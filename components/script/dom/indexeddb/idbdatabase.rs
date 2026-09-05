@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{AsyncSchemaOperation, IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
@@ -44,7 +44,6 @@ pub struct IDBDatabase {
     upgrade_transaction: MutNullableDom<IDBTransaction>,
 
     #[no_trace]
-    #[ignore_malloc_size_of = "Uuid"]
     id: Uuid,
 
     // Flags
@@ -80,7 +79,8 @@ impl IDBDatabase {
         version: u64,
         object_store_names: Vec<String>,
     ) -> DomRoot<IDBDatabase> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(IDBDatabase::new_inherited(
                 name,
                 id,
@@ -88,7 +88,6 @@ impl IDBDatabase {
                 object_store_names,
             )),
             global,
-            cx,
         )
     }
 

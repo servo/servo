@@ -34,3 +34,6 @@ webrender_api = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = { workspace = true }
+
+[lints]
+workspace = true

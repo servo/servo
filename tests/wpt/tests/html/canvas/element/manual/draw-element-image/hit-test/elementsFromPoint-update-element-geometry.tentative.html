@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<title>Elements should appear in elementsFromPoint when updated with updateElementGeometry</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #canvas {
+    width: 200px;
+    height: 200px;
+  }
+  div {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=a></div>
+  <div id=b></div>
+  <div id=pointerEventsNone style="pointer-events: none;"></div>
+</canvas>
+
+<script>
+  promise_test(async function () {
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[canvas, body, html]`');
+  }, 'Canvas descendants are not hit-testable before updateElementGeometry.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, canvas, body, html]`');
+  }, 'Canvas descendants are hittable after updateElementGeometry.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(a);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[a, b, canvas, body, html]`');
+  }, 'Canvas descendants are hit in reverse update order.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, a, canvas, body, html]`');
+  }, 'Re-updating an element moves it to the top of the hit testing list.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    // b is currently on top. Updating a with preserveHitTestOrder: true keeps b on top.
+    canvas.updateElementGeometry(a, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, a, canvas, body, html]`');
+  }, 'preserveHitTestOrder: true preserves existing hit testing order.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    // Explicit preserveHitTestOrder: false moves a to top.
+    canvas.updateElementGeometry(a, { preserveHitTestOrder: false });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[a, b, canvas, body, html]`');
+  }, 'preserveHitTestOrder: false moves element to top of the hit testing list.');
+
+  promise_test(async function (t) {
+    canvas.updateElementGeometry(b, {
+      canvasTransform: new DOMMatrix().translate(50, 50)
+    });
+    t.add_cleanup(() => {
+      canvas.updateElementGeometry(b, { canvasTransform: new DOMMatrix() });
+    });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, canvas, body, html]`');
+  }, 'Canvas transform set via updateElementGeometry should be used for hit testing');
+
+  promise_test(async function (t) {
+    // Both a and b at (50, 50).
+    canvas.updateElementGeometry(b, {
+      canvasTransform: new DOMMatrix().translate(50, 50)
+    });
+    canvas.updateElementGeometry(a, {
+      canvasTransform: new DOMMatrix().translate(50, 50)
+    });
+    t.add_cleanup(() => {
+      canvas.updateElementGeometry(a, { canvasTransform: new DOMMatrix() });
+      canvas.updateElementGeometry(b, { canvasTransform: new DOMMatrix() });
+    });
+
+    // a was updated last, so a is on top of b at (110, 110).
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'a is on top at (110, 110)');
+
+    // Call updateElementGeometry on b with preserveHitTestOrder: true (omitting canvasTransform).
+    // b's transform remains (50, 50), and hit test order is preserved (a stays on top).
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'b transform is preserved and a remains on top');
+
+    // Call updateElementGeometry on b with preserveHitTestOrder: false (omitting canvasTransform).
+    // b's transform remains (50, 50), but b moves to the top of the hit testing stack.
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: false });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'b transform is preserved and b moves to top');
+
+    // Call updateElementGeometry on a with preserveHitTestOrder: true (omitting canvasTransform).
+    // a's transform remains (50, 50), and b remains on top.
+    canvas.updateElementGeometry(a, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'a transform is preserved and b remains on top');
+  }, 'updateElementGeometry preserves canvasTransform when omitted and respects preserveHitTestOrder');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.drawElementImage(a, 0, 0);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'a is on top after drawElementImage(a)');
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'a remains on top after updateElementGeometry(b, {preserveHitTestOrder: true})');
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: false });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'b moves to top after updateElementGeometry(b, {preserveHitTestOrder: false})');
+  }, 'updateElementGeometry interoperates with drawElementImage hit testing order');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(a);
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'Initial order should be [b, a, canvas, body, html]');
+    canvas.clearElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, canvas, document.body, document.documentElement],
+                        'b should be removed from hit test stack after clearElementGeometry(b)');
+    canvas.clearElementGeometry(a);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [canvas, document.body, document.documentElement],
+                        'a should also be removed from hit test stack after clearElementGeometry(a)');
+  }, 'clearElementGeometry removes element from hit testing stack.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(b, {
+      canvasTransform: new DOMMatrix().translate(50, 50)
+    });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, canvas, document.body, document.documentElement],
+                        'b is hit at (110, 110)');
+    canvas.clearElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [canvas, document.body, document.documentElement],
+                        'b is no longer hit at (110, 110) after clearElementGeometry(b)');
+
+    // Re-updating b without canvasTransform should use b without any transform (at (0, 0))
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, canvas, document.body, document.documentElement],
+                        'b is hit at (60, 60)');
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [canvas, document.body, document.documentElement],
+                        'b transform was cleared, so b is not hit at (110, 110)');
+    canvas.clearElementGeometry(b);
+  }, 'clearElementGeometry clears canvasTransform.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+
+    // Add b first so b is at the top of the stack.
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, canvas, document.body, document.documentElement],
+                        'b is the only hit descendant');
+
+    // a is not currently in the hit testing stack. Calling updateElementGeometry with
+    // preserveHitTestOrder: true places it at the top of the stack.
+    canvas.updateElementGeometry(a, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'a is placed at top of stack when not already present, even with preserveHitTestOrder: true');
+
+    // Now that b is already in the stack, updating b with preserveHitTestOrder: true
+    // preserves its order (a remains on top).
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'b is already in stack, so preserveHitTestOrder: true preserves order (a remains on top)');
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+  }, 'preserveHitTestOrder: true adds element to hit testing stack if not already present.');
+
+  promise_test(async function (t) {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+    t.add_cleanup(() => {
+      pointerEventsNone.style.pointerEvents = 'none';
+      canvas.clearElementGeometry(pointerEventsNone);
+    });
+    canvas.updateElementGeometry(pointerEventsNone);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [canvas, document.body, document.documentElement],
+                        'pointerEventsNone should not appear with pointer-events: none');
+    pointerEventsNone.style.pointerEvents = 'auto';
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [pointerEventsNone, canvas, document.body, document.documentElement],
+                        'pointerEventsNone should appear after removing pointer-events: none');
+  }, 'Elements with pointer-events: none are not hit-testable until pointer-events is removed.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+
+    const imageA = canvas.captureElementImage(a);
+    const imageB = canvas.captureElementImage(b);
+
+    canvas.updateElementGeometry(imageA);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, canvas, document.body, document.documentElement],
+                        'a is hit after updateElementGeometry(imageA)');
+
+    canvas.updateElementGeometry(imageB);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'b is on top after updateElementGeometry(imageB)');
+
+    canvas.clearElementGeometry(imageB);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, canvas, document.body, document.documentElement],
+                        'b is cleared after clearElementGeometry(imageB)');
+
+    canvas.clearElementGeometry(imageA);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [canvas, document.body, document.documentElement],
+                        'a is cleared after clearElementGeometry(imageA)');
+  }, 'updateElementGeometry and clearElementGeometry accept ElementImage.');
+</script>
+</html>

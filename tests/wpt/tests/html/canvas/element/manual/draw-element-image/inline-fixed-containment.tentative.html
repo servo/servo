@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Fixed containment on inline drawable element</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="inline-fixed-containment-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #canvas {
+    background: #ccc;
+  }
+  #child {
+    width: 200px;
+    height: 200px;
+    background: lightgreen;
+  }
+  #inline {
+    font: 50px/1 Ahem;
+    color: red;
+  }
+  #fixed {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    width: 30px;
+    height: 30px;
+    background: blue;
+  }
+</style>
+
+<canvas id="canvas" width="300" height="200" layoutsubtree>
+  <div id="child">
+    <span id="inline" drawable>X<span id="fixed"></span></span>
+  </div>
+</canvas>
+
+<script>
+  onload = async () => {
+    await document.fonts.ready;
+    await waitForCanvasPaint(canvas);
+    // Draw the #inline at 100, 50.
+    canvas.getContext('2d').drawElementImage(inline, 100, 50);
+    takeScreenshot();
+  };
+</script>
+</html>

@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use malloc_size_of::MallocSizeOf;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
@@ -35,14 +35,14 @@ impl PromiseNativeHandler {
         resolve: Option<Box<dyn Callback>>,
         reject: Option<Box<dyn Callback>>,
     ) -> DomRoot<PromiseNativeHandler> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(PromiseNativeHandler {
                 reflector: Reflector::new(),
                 resolve,
                 reject,
             }),
             global,
-            cx,
         )
     }
 

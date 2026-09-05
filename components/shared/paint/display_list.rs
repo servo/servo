@@ -628,19 +628,28 @@ impl ScrollTree {
 
     /// Given a set of all scroll offsets coming from the Servo renderer, update all of the offsets
     /// for nodes that actually exist in this tree.
+    ///
+    /// Returns a map of all scroll offsets which were actually set.
     pub fn set_all_scroll_offsets(
         &mut self,
         offsets: &FxHashMap<ExternalScrollId, LayoutVector2D>,
-    ) {
+    ) -> FxHashMap<ExternalScrollId, LayoutVector2D> {
+        let mut result = FxHashMap::default();
         for node in self.nodes.iter_mut() {
             if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info &&
-                let Some(offset) = offsets.get(&scroll_info.external_id)
+                let Some(offset) = offsets.get(&scroll_info.external_id) &&
+                let Some(result_offset) =
+                    scroll_info.scroll_to_offset(*offset, ScrollType::Script)
             {
-                scroll_info.scroll_to_offset(*offset, ScrollType::Script);
+                result.insert(scroll_info.external_id, result_offset);
             }
         }
 
-        self.invalidate_cached_transforms();
+        if !result.is_empty() {
+            self.invalidate_cached_transforms();
+        }
+
+        result
     }
 
     /// Set the offsets of all scrolling nodes in this tree to 0.
@@ -716,6 +725,7 @@ impl ScrollTree {
             .cumulative_sticky_offsets
     }
 
+    #[servo_tracing::instrument(name = "ScrollTree::cumulative_node_transform", skip_all)]
     fn cumulative_node_transform(
         &self,
         node_id: ScrollTreeNodeId,
@@ -731,6 +741,7 @@ impl ScrollTree {
     }
 
     /// Traverse a scroll node to its root to calculate the transform.
+    #[servo_tracing::instrument(name = "ScrollTree::cumulative_node_transform_inner", skip_all)]
     fn cumulative_node_transform_inner(
         &self,
         node: &ScrollTreeNode,
@@ -805,6 +816,7 @@ impl ScrollTree {
         }
     }
 
+    #[servo_tracing::instrument(name = "ScrollTree::invalidate_cached_transforms", skip_all)]
     fn invalidate_cached_transforms(&self) {
         let Some(root_node) = self.nodes.first() else {
             return;

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="orthogonal-writing-mode-with-scrollable-descendant-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-sizing">
+<style>
+.outer {
+  display: flex;
+  writing-mode: vertical-lr;
+}
+.orthogonal {
+  writing-mode: horizontal-tb;
+  background-color: green;
+}
+.parent {
+  height: 79px;
+  overflow: auto;
+}
+.content {
+  width: 10px;
+  height: 80px;
+}
+</style>
+</head>
+<body>
+<div class=outer>
+  <div class=orthogonal>
+    <div class=parent>
+      <div class=content></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

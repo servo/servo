@@ -6,11 +6,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <body>
 <script>
-// Content that is misnested in a table inside a <template for> is foster
-// parented. Because the <template for> is older on the stack of open elements
-// than the <table>, foster parenting resolves to the target (before the table),
-// not to the template's own (empty) contents. The fostered content must
-// therefore end up in the target, not be lost.
+// Content misnested inside a <template for> is foster parented, and must end up
+// in the target rather than in the template's own (empty) contents.
 async function parseToRoot(method, html) {
   switch (method) {
     case "iframe": {
@@ -45,6 +42,8 @@ function processingInstructions(root) {
   return result;
 }
 
+// The template is older on the stack of open elements than the table, so this
+// resolves through the last table, to before it.
 for (const method of ["iframe", "innerHTML", "stream"]) {
   promise_test(async () => {
     const root = await parseToRoot(method,
@@ -67,6 +66,30 @@ for (const method of ["iframe", "innerHTML", "stream"]) {
       Node.DOCUMENT_POSITION_FOLLOWING,
       "fostered content is inserted before the table");
   }, `Foster parenting inside <template for> keeps content in the target (${method})`);
+}
+
+// With no table on the stack of open elements this resolves through the last
+// template instead, which must still honor its insertion target.
+for (const method of ["iframe", "innerHTML", "stream"]) {
+  promise_test(async () => {
+    const root = await parseToRoot(method,
+      `<div id="target"><?start name="p">Old<?end></div>` +
+      `<template for="p"><tr><div id="fostered">X</div></tr></template>`);
+    const target = root.querySelector("#target");
+    const tr = target.querySelector("tr");
+    const fostered = root.querySelector("#fostered");
+
+    assert_equals(processingInstructions(root).length, 0,
+      "markers should be removed");
+    assert_not_equals(tr, null, "the tr should be inserted at the target");
+    assert_equals(tr.parentNode, target);
+    assert_not_equals(fostered, null, "fostered content should not be lost");
+    assert_equals(fostered.parentNode, target,
+      "fostered content should be a child of the target");
+    assert_equals(fostered.textContent, "X");
+    assert_array_equals([...target.children].map(el => el.localName),
+      ["tr", "div"], "fostered content follows the tr in the target");
+  }, `Foster parenting out of a tr inside <template for> keeps content in the target (${method})`);
 }
 </script>
 </body>

@@ -855,7 +855,9 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#the-getresponseheader()-method>
     fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
         let headers = self.filter_response_headers();
-        let headers = headers.get_all(HeaderName::from_str(&name.as_str()?.to_lowercase()).ok()?);
+        // > All custom header names are lower cased upon conversion to a HeaderName value.
+        // https://docs.rs/http/latest/http/header/struct.HeaderName.html#representation
+        let headers = headers.get_all(HeaderName::from_str(name.as_str()?).ok()?);
         let mut first = true;
         let s = headers.iter().fold(Vec::new(), |mut vec, value| {
             if !first {
@@ -964,10 +966,10 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 if ready_state == XMLHttpRequestState::Done ||
                     ready_state == XMLHttpRequestState::Loading
                 {
-                    self.text_response().safe_to_jsval(cx, rval);
+                    self.text_response().to_jsval(cx, rval);
                 } else {
                     // Step 1
-                    "".safe_to_jsval(cx, rval);
+                    "".to_jsval(cx, rval);
                 }
             },
             // Step 1
@@ -975,13 +977,11 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 rval.set(NullValue());
             },
             // Step 2
-            XMLHttpRequestResponseType::Document => {
-                self.document_response(cx).safe_to_jsval(cx, rval)
-            },
+            XMLHttpRequestResponseType::Document => self.document_response(cx).to_jsval(cx, rval),
             XMLHttpRequestResponseType::Json => self.json_response(cx, rval),
-            XMLHttpRequestResponseType::Blob => self.blob_response(cx).safe_to_jsval(cx, rval),
+            XMLHttpRequestResponseType::Blob => self.blob_response(cx).to_jsval(cx, rval),
             XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
-                Some(array_buffer) => array_buffer.safe_to_jsval(cx, rval),
+                Some(array_buffer) => array_buffer.to_jsval(cx, rval),
                 None => rval.set(NullValue()),
             },
         }

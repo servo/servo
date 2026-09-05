@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use script_bindings::error::ErrorResult;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::ServiceWorkerId;
@@ -66,7 +66,8 @@ impl Client {
         frame_type: FrameType,
         worker_id: ServiceWorkerId,
     ) -> DomRoot<Client> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Client::new_inherited(
                 swmanager_sender,
                 url,
@@ -74,7 +75,6 @@ impl Client {
                 worker_id,
             )),
             global,
-            cx,
         )
     }
 

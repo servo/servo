@@ -9,7 +9,6 @@ mod font_identifier;
 mod font_template;
 mod system_font_service_proxy;
 
-use std::ops::{Deref, Range};
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 
@@ -17,117 +16,12 @@ pub use font_descriptor::*;
 pub use font_identifier::*;
 pub use font_template::*;
 use malloc_size_of_derive::MallocSizeOf;
-use num_derive::{NumOps, One, Zero};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSharedMemory;
 use style::font_face::Descriptors;
 use style::stylesheets::LockedFontFaceRule;
 pub use system_font_service_proxy::*;
-use webrender_api::euclid::num::One;
-
-/// An index that refers to a byte offset in a text run. This could
-/// the middle of a glyph.
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Deserialize,
-    Eq,
-    MallocSizeOf,
-    NumOps,
-    Ord,
-    One,
-    PartialEq,
-    PartialOrd,
-    Serialize,
-    Zero,
-)]
-pub struct ByteIndex(pub usize);
-
-impl ByteIndex {
-    pub fn get(&self) -> usize {
-        self.0
-    }
-}
-
-/// A range of UTF-8 bytes in a text run. This is used to identify glyphs in a `GlyphRun`
-/// by their original character byte offsets in the text.
-#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub struct TextByteRange(Range<ByteIndex>);
-
-impl TextByteRange {
-    pub fn len(&self) -> ByteIndex {
-        self.0.end - self.0.start
-    }
-
-    #[inline]
-    pub fn intersect(&self, other: &Self) -> Self {
-        let begin = self.start.max(other.start);
-        let end = self.end.min(other.end);
-
-        if end < begin {
-            Self::default()
-        } else {
-            Self::new(begin, end)
-        }
-    }
-
-    #[inline]
-    pub fn contains_inclusive(&self, index: ByteIndex) -> bool {
-        index >= self.start && index <= self.end
-    }
-}
-
-impl Deref for TextByteRange {
-    type Target = Range<ByteIndex>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Iterator for TextByteRange {
-    type Item = ByteIndex;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.0.start == self.0.end {
-            None
-        } else {
-            let next = self.0.start;
-            self.0.start = self.0.start + ByteIndex::one();
-            Some(next)
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (
-            self.0.end.0 - self.0.start.0,
-            Some(self.0.end.0 - self.0.start.0),
-        )
-    }
-}
-
-impl DoubleEndedIterator for TextByteRange {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if self.0.start == self.0.end {
-            None
-        } else {
-            self.0.end = self.0.end - ByteIndex::one();
-            Some(self.0.end)
-        }
-    }
-}
-
-impl TextByteRange {
-    pub fn new(start: ByteIndex, end: ByteIndex) -> Self {
-        Self(start..end)
-    }
-
-    pub fn iter(&self) -> Range<ByteIndex> {
-        self.0.clone()
-    }
-}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum WebFontLoadEvent {
@@ -149,6 +43,11 @@ impl FontData {
         Self(Arc::new(GenericSharedMemory::from_bytes(bytes)))
     }
 
+    /// This is in single process mode more efficient because we do not have to copy the vector.
+    pub fn from_vec(bytes: Vec<u8>) -> Self {
+        Self(Arc::new(GenericSharedMemory::from_vec(bytes)))
+    }
+
     pub fn as_ipc_shared_memory(&self) -> Arc<GenericSharedMemory> {
         self.0.clone()
     }
@@ -164,7 +63,7 @@ impl AsRef<[u8]> for FontData {
 ///
 /// If the font data is of a TTC (TrueType collection) file, then the index of a specific font within
 /// the collection. If the font data is for is single font then the index will always be 0.
-#[derive(Deserialize, Clone, Serialize)]
+#[derive(Deserialize, Clone, Serialize, MallocSizeOf)]
 pub struct FontDataAndIndex {
     /// The raw font file data (.ttf, .otf, .ttc, etc)
     pub data: FontData,
@@ -205,6 +104,9 @@ pub struct FontFaceRuleInfo {
     /// The descriptors on the `@font-face` rule.
     pub descriptors: Descriptors,
     /// The CSS rule that created this `@font-face`.
+    ///
+    /// This does *not* uniquely identify this struct across updates
+    /// to the set of live `@font-face` rules.
     #[conditional_malloc_size_of]
     pub rule: ServoArc<LockedFontFaceRule>,
 }

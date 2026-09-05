@@ -41,3 +41,6 @@ servo_arc = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 webrender_api = { workspace = true }
+
+[lints]
+workspace = true

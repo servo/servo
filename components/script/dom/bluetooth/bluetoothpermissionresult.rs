@@ -7,7 +7,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 
@@ -51,10 +51,10 @@ impl BluetoothPermissionResult {
         global: &GlobalScope,
         status: &PermissionStatus,
     ) -> DomRoot<BluetoothPermissionResult> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(BluetoothPermissionResult::new_inherited(status)),
             global,
-            cx,
         )
     }
 

@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::HitTestResult;
 
 use crate::dom::bindings::codegen::Bindings::XRHitTestResultBinding::XRHitTestResultMethods;
@@ -38,10 +38,10 @@ impl XRHitTestResult {
         result: HitTestResult,
         frame: &XRFrame,
     ) -> DomRoot<XRHitTestResult> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(XRHitTestResult::new_inherited(result, frame)),
             window,
-            cx,
         )
     }
 }

@@ -18,7 +18,7 @@ use script_bindings::trace::CustomTraceable;
 use script_traits::MouseButtons;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::WebViewId;
-use servo_base::text::{Utf8CodeUnits, Utf16CodeUnits};
+use servo_base::text::{RangeAny, Utf8CodeUnits, Utf16CodeUnits, Utf32CodeUnits};
 use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -163,6 +163,11 @@ pub struct TextInput<T: ClipboardProvider> {
 
     /// Was last change made by set_content?
     was_last_change_by_set_content: bool,
+
+    #[no_trace]
+    pub(crate) previous_selection_range: Range<RopeIndex>,
+    #[no_trace]
+    pub(crate) selection_for_layout: Option<RangeAny<Utf32CodeUnits>>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -298,6 +303,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             min_length: Default::default(),
             selection_direction: SelectionDirection::None,
             was_last_change_by_set_content: true,
+            previous_selection_range: Default::default(),
+            selection_for_layout: None,
         }
     }
 
@@ -399,11 +406,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.rope.index_to_utf16_offset(self.selection_end())
     }
 
-    /// The byte offset of the selection_end()
-    pub fn selection_end_offset(&self) -> Utf8CodeUnits {
-        self.rope.index_to_utf8_offset(self.selection_end())
-    }
-
     /// Whether or not there is an active uncollapsed selection. This means that the
     /// selection origin is set and it differs from the edit point.
     #[inline]
@@ -412,19 +414,23 @@ impl<T: ClipboardProvider> TextInput<T> {
             .is_some_and(|selection_origin| selection_origin != self.edit_point)
     }
 
-    /// Return the selection range as byte offsets from the start of the content.
+    /// Return the selection range as UTF-32 offsets from the start of the content.
     ///
     /// If there is no selection, returns an empty range at the edit point.
-    pub(crate) fn sorted_selection_offsets_range(&self) -> Range<Utf8CodeUnits> {
-        self.selection_start_offset()..self.selection_end_offset()
-    }
-
-    /// Return the selection range as character offsets from the start of the content.
     ///
-    /// If there is no selection, returns an empty range at the edit point.
-    pub(crate) fn sorted_selection_character_offsets_range(&self) -> Range<usize> {
-        self.rope.index_to_character_offset(self.selection_start())..
-            self.rope.index_to_character_offset(self.selection_end())
+    /// If the start or/and end of the range is at the start/end of the text,
+    /// return a `RangeAny` unbounded on that side.
+    pub(crate) fn sorted_selection_character_offsets_range(&self) -> RangeAny<Utf32CodeUnits> {
+        let rope = &self.rope;
+        let start = self.selection_start();
+        let end = self.selection_end();
+        let start = (start != rope.first_index()).then(|| rope.index_to_character_offset(start));
+        // TODO: `TextInputWidgetShadowTree::update` has a hack with a "\u{200B}" to force
+        // the text to be non-empty, so `rope.last_index()` is untrustworthy.
+        // For now, use a bounded end unconditionally instead.
+        // let end = (end != rope.last_index()).then(|| rope.index_to_character_offset(end));
+        let end = Some(rope.index_to_character_offset(end));
+        RangeAny { start, end }
     }
 
     /// The state of the current selection. Can be used to compare whether selection state has changed.

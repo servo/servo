@@ -18,30 +18,44 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
+use crate::dom::html::htmltrackelement::HTMLTrackElement;
+use crate::dom::node::node::Node;
 use crate::dom::texttrack::TextTrack;
+use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::trackevent::TrackEvent;
 use crate::dom::window::Window;
 
 #[dom_struct]
 pub(crate) struct TextTrackList {
     eventtarget: EventTarget,
+    /// <https://html.spec.whatwg.org/multipage/#list-of-text-tracks>
+    media_element: Dom<HTMLMediaElement>,
     dom_tracks: DomRefCell<Vec<Dom<TextTrack>>>,
 }
 
 impl TextTrackList {
-    pub(crate) fn new_inherited(tracks: &[&TextTrack]) -> TextTrackList {
+    pub(crate) fn new_inherited(
+        media_element: &HTMLMediaElement,
+        tracks: &[&TextTrack],
+    ) -> TextTrackList {
         TextTrackList {
             eventtarget: EventTarget::new_inherited(),
+            media_element: Dom::from_ref(media_element),
             dom_tracks: DomRefCell::new(tracks.iter().map(|g| Dom::from_ref(&**g)).collect()),
         }
     }
 
     pub(crate) fn new(
         cx: &mut JSContext,
+        media_element: &HTMLMediaElement,
         window: &Window,
         tracks: &[&TextTrack],
     ) -> DomRoot<TextTrackList> {
-        reflect_dom_object_with_cx(Box::new(TextTrackList::new_inherited(tracks)), window, cx)
+        reflect_dom_object_with_cx(
+            Box::new(TextTrackList::new_inherited(media_element, tracks)),
+            window,
+            cx,
+        )
     }
 
     pub(crate) fn item(&self, idx: usize) -> Option<DomRoot<TextTrack>> {
@@ -72,7 +86,15 @@ impl TextTrackList {
             .collect()
     }
 
-    pub(crate) fn add(&self, media_element: &HTMLMediaElement, track: &TextTrack) {
+    pub(crate) fn notify_media_element_for_added_cue(
+        &self,
+        cx: &mut JSContext,
+        cue: &TextTrackCue,
+    ) {
+        self.media_element.add_newly_added_cue(cx, cue);
+    }
+
+    pub(crate) fn add(&self, cx: &mut JSContext, track: &TextTrack) {
         // Only add a track if it does not exist in the list
         if self.find(track).is_some() {
             return;
@@ -80,7 +102,8 @@ impl TextTrackList {
         self.dom_tracks.borrow_mut().push(Dom::from_ref(track));
 
         track.add_track_list(self);
-        media_element.was_added_to_list_of_text_tracks();
+        self.media_element
+            .was_added_to_list_of_text_tracks(cx, track);
 
         let this = Trusted::new(self);
         let track = Trusted::new(track);
@@ -136,6 +159,18 @@ impl TextTrackList {
                 event.upcast::<Event>().fire(cx, this.upcast::<EventTarget>());
             }));
     }
+
+    pub(crate) fn iter(&self) -> TextTrackListIterator {
+        TextTrackListIterator {
+            track_elements: self
+                .media_element
+                .upcast::<Node>()
+                .children()
+                .filter_map(DomRoot::downcast::<HTMLTrackElement>)
+                .collect(),
+            current_track_element_index: 0,
+        }
+    }
 }
 
 impl TextTrackListMethods<crate::DomTypeHolder> for TextTrackList {
@@ -167,4 +202,31 @@ impl TextTrackListMethods<crate::DomTypeHolder> for TextTrackList {
 
     // https://html.spec.whatwg.org/multipage/#handler-texttracklist-onremovetrack
     event_handler!(removetrack, GetOnremovetrack, SetOnremovetrack);
+}
+
+/// <https://html.spec.whatwg.org/multipage/#list-of-text-tracks>
+pub(crate) struct TextTrackListIterator {
+    track_elements: Vec<DomRoot<HTMLTrackElement>>,
+    current_track_element_index: usize,
+}
+
+impl Iterator for TextTrackListIterator {
+    type Item = DomRoot<TextTrack>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // > The text tracks are sorted as follows:
+        // Step 1. The text tracks corresponding to track element children of the media element, in tree order.
+        if let Some(track_element) = self.track_elements.get(self.current_track_element_index) {
+            self.current_track_element_index += 1;
+            return Some(track_element.track());
+        }
+        // Step 2. Any text tracks added using the addTextTrack() method,
+        // in the order they were added, oldest first.
+        // TODO
+        // Step 3. Any media-resource-specific text tracks
+        // (text tracks corresponding to data in the media resource),
+        // in the order defined by the media resource's format specification.
+        // TODO
+        None
+    }
 }

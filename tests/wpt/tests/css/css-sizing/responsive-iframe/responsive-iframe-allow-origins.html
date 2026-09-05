@@ -2,28 +2,31 @@
 <title>Test allow-origins validation for responsive iframes</title>
 <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#responsive-iframes">
 <link rel="author" href="mailto:kojii@chromium.org">
-<meta name="variant" content="?origin=same,allowed=star,expect=400">
-<meta name="variant" content="?origin=same,allowed=parent,expect=400">
-<meta name="variant" content="?origin=same,allowed=other,expect=150">
-<meta name="variant" content="?origin=same,allowed=wildcard,expect=150">
-<meta name="variant" content="?origin=same,allowed=http,expect=400">
-<meta name="variant" content="?origin=same,allowed=https,expect=150">
-<meta name="variant" content="?origin=same,allowed=self,expect=400">
-<meta name="variant" content="?origin=same,allowed=none,expect=150">
-<meta name="variant" content="?origin=same,allowed=multiple,expect=400">
-<meta name="variant" content="?origin=same,allowed=space,expect=150">
-<meta name="variant" content="?origin=same,allowed=empty,expect=150">
-<meta name="variant" content="?origin=same,allowed=missing,expect=150">
-<meta name="variant" content="?origin=cross,allowed=star,expect=400">
-<meta name="variant" content="?origin=cross,allowed=parent,expect=400">
-<meta name="variant" content="?origin=cross,allowed=child,expect=150">
-<meta name="variant" content="?origin=cross,allowed=self,expect=150">
-<meta name="variant" content="?origin=cross,allowed=other,expect=150">
-<meta name="variant" content="?origin=subdomain,allowed=star,expect=400">
-<meta name="variant" content="?origin=subdomain,allowed=parent,expect=400">
-<meta name="variant" content="?origin=subdomain,allowed=child,expect=150">
-<meta name="variant" content="?container=subdomain,origin=same,allowed=wildcard,expect=400">
-<meta name="variant" content="?container=subdomain,origin=cross,allowed=wildcard,expect=400">
+<meta name="variant" content="?origin=same,allow=star,expect=400">
+<meta name="variant" content="?origin=same,allow=parent,expect=400">
+<meta name="variant" content="?origin=same,allow=other,expect=150">
+<meta name="variant" content="?origin=same,allow=wildcard,expect=150">
+<meta name="variant" content="?origin=same,allow=http,expect=400">
+<meta name="variant" content="?origin=same,allow=https,expect=150">
+<meta name="variant" content="?origin=same,allow=self,expect=400">
+<meta name="variant" content="?origin=same,allow=none,expect=150">
+<meta name="variant" content="?origin=same,allow=multiple,expect=400">
+<meta name="variant" content="?origin=same,allow=no-prefix,expect=150">
+<meta name="variant" content="?origin=same,allow=invalid-prefix,expect=150">
+<meta name="variant" content="?origin=same,allow=uppercase-prefix,expect=150">
+<meta name="variant" content="?origin=same,allow=space,expect=150">
+<meta name="variant" content="?origin=same,allow=empty,expect=150">
+<meta name="variant" content="?origin=same,allow=missing,expect=150">
+<meta name="variant" content="?origin=cross,allow=star,expect=400">
+<meta name="variant" content="?origin=cross,allow=parent,expect=400">
+<meta name="variant" content="?origin=cross,allow=child,expect=150">
+<meta name="variant" content="?origin=cross,allow=self,expect=150">
+<meta name="variant" content="?origin=cross,allow=other,expect=150">
+<meta name="variant" content="?origin=subdomain,allow=star,expect=400">
+<meta name="variant" content="?origin=subdomain,allow=parent,expect=400">
+<meta name="variant" content="?origin=subdomain,allow=child,expect=150">
+<meta name="variant" content="?container=subdomain,origin=same,allow=wildcard,expect=400">
+<meta name="variant" content="?container=subdomain,origin=cross,allow=wildcard,expect=400">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
@@ -41,30 +44,33 @@ const search = location.search.replace(/,/g, '&');
 const params = new URLSearchParams(search);
 const containerType = params.get('container') || 'parent';
 const originType = params.get('origin') || 'same';
-const allowedType = params.get('allowed') || 'other';
+const allowType = params.get('allow') || 'other';
 const expectedHeight = parseInt(params.get('expect') || '150');
-const paramsDesc = `container=${containerType}, origin=${originType}, allowed=${allowedType}`;
+const paramsDesc = `container=${containerType}, origin=${originType}, allow=${allowType}`;
 const currentContainerOrigin = location.origin;
 
-function computeAllowedParam() {
-  switch (allowedType) {
-    case 'star': return '*';
-    case 'parent': return currentContainerOrigin;
+function computeAllowParam() {
+  switch (allowType) {
+    case 'star': return 'allow-origins=*';
+    case 'parent': return 'allow-origins=' + currentContainerOrigin;
     case 'child':
       switch (originType) {
-        case 'cross': return hostInfo.HTTP_NOTSAMESITE_ORIGIN;
-        case 'subdomain': return hostInfo.HTTP_REMOTE_ORIGIN;
+        case 'cross': return 'allow-origins=' + hostInfo.HTTP_NOTSAMESITE_ORIGIN;
+        case 'subdomain': return 'allow-origins=' + hostInfo.HTTP_REMOTE_ORIGIN;
       }
-      return currentContainerOrigin;
-    case 'other': return 'https://invalid-origin.example';
-    case 'wildcard': return 'http://*.' + hostInfo.ORIGINAL_HOST + ':' + hostInfo.HTTP_PORT;
-    case 'http': return 'http:';
-    case 'https': return 'https:';
-    case 'self': return "'self'";
-    case 'none': return "'none'";
-    case 'multiple': return 'https://invalid-origin.example ' + currentContainerOrigin;
-    case 'space': return ' ';
-    case 'empty':
+      return 'allow-origins=' + currentContainerOrigin;
+    case 'other': return 'allow-origins=https://invalid-origin.example';
+    case 'wildcard': return 'allow-origins=http://*.' + hostInfo.ORIGINAL_HOST + ':' + hostInfo.HTTP_PORT;
+    case 'http': return 'allow-origins=http:';
+    case 'https': return 'allow-origins=https:';
+    case 'self': return "allow-origins='self'";
+    case 'none': return "allow-origins='none'";
+    case 'multiple': return 'allow-origins=https://invalid-origin.example ' + currentContainerOrigin;
+    case 'no-prefix': return '*';
+    case 'invalid-prefix': return 'alloworigins=*';
+    case 'uppercase-prefix': return 'ALLOW-ORIGINS=*';
+    case 'space': return 'allow-origins= ';
+    case 'empty': return 'allow-origins=';
     default: return '';
   }
 }
@@ -77,12 +83,12 @@ if (containerType === 'subdomain' && location.origin !== hostInfo.HTTP_REMOTE_OR
     iframe.frameBorder = '0';
     iframe.scrolling = 'no';
 
-    const fileName = (allowedType === 'missing')
+    const fileName = (allowType === 'missing')
         ? 'iframe-contents-allow-origins-missing.html'
         : 'iframe-contents-allow-origins.sub.html';
     const resourcePath = new URL(`resources/${fileName}`, window.location.href).pathname;
-    const allowedParam = computeAllowedParam();
-    const query = (allowedType === 'missing') ? '' : `?allowed=${encodeURIComponent(allowedParam)}`;
+    const allowParam = computeAllowParam();
+    const query = (allowType === 'missing') ? '' : `?allow=${encodeURIComponent(allowParam)}`;
     let iframeSrc = resourcePath + query;
     if (originType === 'cross') {
       iframeSrc = hostInfo.HTTP_NOTSAMESITE_ORIGIN + resourcePath + query;
@@ -108,7 +114,7 @@ if (containerType === 'subdomain' && location.origin !== hostInfo.HTTP_REMOTE_OR
     }));
 
     document.body.appendChild(iframe);
-  }, `Allowed origins check: ${paramsDesc}`);
+  }, `Allow origins check: ${paramsDesc}`);
 }
 </script>
 </body>

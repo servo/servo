@@ -9,7 +9,7 @@
 ./components/script/dom/audio/audionode.rs 18
 ./components/script/dom/audio/audioparam.rs 2
 ./components/script/dom/audio/audioscheduledsourcenode.rs 2
-./components/script/dom/audio/baseaudiocontext.rs 4
+./components/script/dom/audio/baseaudiocontext.rs 3
 ./components/script/dom/audio/channelmergernode.rs 2
 ./components/script/dom/audio/channelsplitternode.rs 2
 ./components/script/dom/audio/iirfilternode.rs 3
@@ -38,10 +38,6 @@
 ./components/script/dom/cookiestore/cookiestore.rs 8
 ./components/script/dom/credentialmanagement/credentialscontainer.rs 8
 ./components/script/dom/credentialmanagement/passwordcredential.rs 1
-./components/script/dom/css/css.rs 2
-./components/script/dom/css/cssrulelist.rs 4
-./components/script/dom/css/cssstyledeclaration.rs 3
-./components/script/dom/css/fontface.rs 4
 ./components/script/dom/datatransfer/datatransferitemlist.rs 1
 ./components/script/dom/document/document.rs 28
 ./components/script/dom/document/documentorshadowroot.rs 1
@@ -76,8 +72,7 @@
 ./components/script/dom/node/customelementregistry.rs 7
 ./components/script/dom/performance/performanceobserver.rs 4
 ./components/script/dom/range/range.rs 20
-./components/script/dom/selection.rs 14
-./components/script/dom/serviceworker/cachestorage.rs 3
+./components/script/dom/selection.rs 11
 ./components/script/dom/serviceworker/extendableevent.rs 1
 ./components/script/dom/serviceworker/serviceworker.rs 1
 ./components/script/dom/serviceworker/serviceworkercontainer.rs 2
@@ -88,9 +83,6 @@
 ./components/script/dom/timeranges.rs 2
 ./components/script/dom/webcrypto/crypto.rs 1
 ./components/script/dom/webgl/webglrenderingcontext.rs 4
-./components/script/dom/webgpu/gpucanvascontext.rs 1
-./components/script/dom/webgpu/gpudevice.rs 1
-./components/script/dom/webgpu/gpuqueue.rs 6
 ./components/script/dom/webrtc/rtcdatachannel.rs 2
 ./components/script/dom/webrtc/rtcpeerconnection.rs 2
 ./components/script/dom/webvtt/texttrack.rs 1
@@ -108,7 +100,6 @@
 ./components/script/dom/window/dissimilaroriginwindow.rs 1
 ./components/script/dom/window/history.rs 9
 ./components/script/dom/window/window.rs 5
-./components/script/dom/window/windowproxy.rs 1
 ./components/script/dom/workers/sharedworker.rs 1
 ./components/script/dom/workers/worker.rs 1
 ./components/script/dom/workers/workerglobalscope.rs 4

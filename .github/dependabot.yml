@@ -6,11 +6,15 @@ updates:
     - "tests/blink_perf/**"
     - "tests/wpt/**"
   schedule:
-    interval: daily
+    interval: "cron"
+    cronjob: "0 1 * * WED,SUN"  # wednesday and sunday at 1am
     # default timezone is UTC
     # CI is usually busiest during european daytime.
-    time: "00:00"
-  open-pull-requests-limit: 7
+    timezone: Europe/Berlin
+  cooldown:
+    default-days: 7
+    include: "*"
+  open-pull-requests-limit: 10
   allow:
   - dependency-type: direct
   - dependency-type: indirect

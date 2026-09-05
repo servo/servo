@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebVTT: parsing of the ::cue and ::cue() pseudo-elements</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#css-extensions">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#pseudo-element-syntax">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+// Only the double-colon forms are valid.
+test_valid_selector('::cue');
+test_valid_selector('::cue(v)');
+test_valid_selector('::cue(*)');
+test_valid_selector('::cue(.loud)');
+test_valid_selector('video::cue');
+
+// ::cue is not one of the CSS Level 2 pseudo-elements, so the legacy
+// single-colon syntax does not apply to it.
+test_invalid_selector(':cue');
+test_invalid_selector(':cue(v)');
+test_invalid_selector(':cue(*)');
+</script>

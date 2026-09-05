@@ -25,7 +25,6 @@ use markup5ever::TokenizerResult;
 use mime::{self, Mime};
 use net_traits::mime_classifier::{ApacheBugFlag, MediaType, MimeClassifier, NoSniffFlag};
 use net_traits::policy_container::PolicyContainer;
-use net_traits::request::RequestId;
 use net_traits::{
     FetchMetadata, LoadContext, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
 };
@@ -34,7 +33,7 @@ use profile_traits::time::{
 };
 use profile_traits::time_profile;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::script_runtime::temp_cx;
 use script_traits::DocumentActivity;
 use servo_base::id::{PipelineId, WebViewId};
@@ -64,7 +63,7 @@ use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
-use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
+use crate::dom::csp::parse_csp_list_from_metadata;
 use crate::dom::customelementregistry::{CustomElementReactionStack, CustomElementRegistry};
 use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
@@ -94,7 +93,6 @@ use crate::dom::text::Text;
 use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
 use crate::event_loop::document_loader::{DocumentLoader, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::network_listener::FetchResponseListener;
 use crate::navigation::determine_the_origin;
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::IntroductionType;
@@ -553,7 +551,8 @@ impl ServoParser {
         encoding_hint_from_content_type: Option<&'static Encoding>,
         encoding_of_container_document: Option<&'static Encoding>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ServoParser::new_inherited(
                 document,
                 tokenizer,
@@ -562,7 +561,6 @@ impl ServoParser {
                 encoding_of_container_document,
             )),
             document.window(),
-            cx,
         )
     }
 
@@ -1324,17 +1322,13 @@ impl ParserContext {
 
         document.notify_embedder_of_load_completion();
     }
-}
-
-impl FetchResponseListener for ParserContext {
-    fn process_request_body(&mut self, _: RequestId) {}
 
     /// Implements parts of
     /// <https://html.spec.whatwg.org/multipage/#attempt-to-populate-the-history-entry's-document>
-    fn process_response(
+    pub(crate) fn process_response(
         &mut self,
+        script_thread: &ScriptThread,
         cx: &mut JSContext,
-        _: RequestId,
         meta_result: Result<FetchMetadata, NetworkError>,
     ) {
         let (metadata, mut error) = match meta_result {
@@ -1408,7 +1402,7 @@ impl FetchResponseListener for ParserContext {
             source_origin,
         );
 
-        let Some(document) = ScriptThread::page_headers_available(
+        let Some(document) = script_thread.handle_page_headers_available(
             self.webview_id,
             self.pipeline_id,
             metadata.as_ref(),
@@ -1559,7 +1553,7 @@ impl FetchResponseListener for ParserContext {
         }
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, payload: Bytes) {
+    pub(crate) fn process_response_chunk(&mut self, cx: &mut JSContext, payload: Bytes) {
         if self.is_synthesized_document {
             return;
         }
@@ -1589,10 +1583,9 @@ impl FetchResponseListener for ParserContext {
     // This method is called via script_thread::handle_fetch_eof, so we must call
     // submit_resource_timing in this function
     // Resource listeners are called via net_traits::Action::process, which handles submission for them
-    fn process_response_eof(
+    pub(crate) fn process_response_eof(
         mut self,
         cx: &mut JSContext,
-        _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
@@ -1646,10 +1639,6 @@ impl FetchResponseListener for ParserContext {
         if document.is_initial_about_blank() {
             self.finish_synchronous_load_for_initial_about_blank(cx, &document);
         }
-    }
-
-    fn process_csp_violations(&mut self, _: &mut JSContext, _: RequestId, _: Vec<Violation>) {
-        unreachable!("Script_thread should handle reporting violations for parser contexts");
     }
 }
 

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<title>CSSMediaRule.matches changes when viewport changes</title>
+
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-3/#dom-cssmediarule-matches">
+
+<script src="/common/rendering-utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #iframe {
+    width: 200px;
+    height: 200px;
+  }
+</style>
+
+<iframe id=iframe src="support/at-media-matches-002-iframe.html"></iframe>
+
+<script>
+  function getMediaMatches() {
+    return new Promise(resolve => {
+      window.addEventListener("message", (event) => {
+        resolve(event.data);
+      }, { "once": true });
+
+      iframe.contentWindow.postMessage("getMediaMatches");
+    });
+  }
+
+  // Wait for the frame to fully load.
+  promise_setup(() => {
+    return new Promise(resolve => {
+      window.addEventListener("message", (event) => {
+        if (event.data === "ready")
+          resolve();
+      }, { "once": true });
+    });
+  });
+
+  promise_test(async () => {
+    const matches = await getMediaMatches();
+    assert_false(matches);
+  }, "Initially, @media (max-height: 100px) doesn't match in an iframe with 200px height");
+
+  promise_test(async () => {
+    iframe.style.height = "90px";
+
+    // Wait a few frames for style resolution.
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    const matches = await getMediaMatches();
+    assert_true(matches);
+  }, "Change iframe height to 90px, @media (max-height: 100px) now matches");
+</script>

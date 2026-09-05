@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::TextMetricsBinding::TextMetricsMethods;
 use crate::dom::bindings::num::Finite;
@@ -80,7 +80,8 @@ impl TextMetrics {
         alphabeticBaseline: f64,
         ideographicBaseline: f64,
     ) -> DomRoot<TextMetrics> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(TextMetrics::new_inherited(
                 width,
                 actualBoundingBoxLeft,
@@ -96,7 +97,6 @@ impl TextMetrics {
                 ideographicBaseline,
             )),
             global,
-            cx,
         )
     }
 }

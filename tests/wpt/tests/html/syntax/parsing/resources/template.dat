@@ -633,6 +633,23 @@ foster-parented /div
 |         <div>
 
 #data
+<table><template><tr><div></div></tr></template>
+#errors
+no doctype
+foster-parented div
+foster-parented /div
+eof in table
+#document
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       <template>
+|         content
+|           <tr>
+|           <div>
+
+#data
 <body><template><tr></tr><td></td></template>
 #errors
 no doctype

@@ -11,7 +11,7 @@ use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::MutableHandleValue;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericCallback;
 
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
@@ -103,13 +103,13 @@ impl GamepadHapticActuator {
         gamepad_index: u32,
         supported_haptic_effects: GamepadSupportedHapticEffects,
     ) -> DomRoot<GamepadHapticActuator> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GamepadHapticActuator::new_inherited(
                 gamepad_index,
                 supported_haptic_effects,
             )),
             window,
-            cx,
         )
     }
 }

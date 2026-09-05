@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>SVG fragment identifier: spaces are allowed around an svgView() attribute separator</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#SVGFragmentIdentifiersDefinitions">
+<link rel="match" href="svgview-teal-100x50-ref.html">
+<meta name="assert" content="SVG 2 states that spaces are allowed in fragment specifications, and that semicolons separate svgView() attributes. A space either side of that semicolon must therefore be permitted, so svgView(viewBox(100,0,100,100) ; preserveAspectRatio(none)) must select the top-right quadrant of support/squares.svg and stretch it to fill the 2:1 img.">
+
+<!--
+  support/squares.svg is 200x200 with four solid quadrants:
+
+        #d46847 terracotta | #2a9d8f teal
+        #264653 indigo     | #e9c46a sand
+
+  Companion to svgview-spaces.html, which puts the space immediately inside the
+  svgView parentheses. This one varies only the space around the semicolon.
+
+  The img is 2:1 and the selected view is square, so preserveAspectRatio(none) is
+  what fills the box edge to edge, and the reference is a flat block of the
+  quadrant's colour. Two distinguishable failure modes, which is the reason for
+  choosing this geometry:
+
+    the whole specification is discarded  -> all four quadrants appear
+    only the semicolon-separated second attribute is lost -> the quadrant appears
+                                             but is letterboxed rather than stretched
+
+  Both differ from the reference, so either failure is caught, and the rendering
+  says which one happened.
+
+  The specification's own example of a multi-attribute specification is
+  #svgView(viewBox(0,0,200,200);preserveAspectRatio(none)), written without
+  spaces. The sentence permitting spaces is general and does not exclude this
+  position.
+
+  A literal space in a fragment is percent-encoded to %20 when the URL is
+  serialised, so an implementation failing this test may be rejecting the space or
+  may never decode %20. Comparing against the same fragment written with explicit
+  %20 separates those two causes.
+-->
+
+<style>
+  body { margin: 0; }
+  img { display: block; border: none; }
+</style>
+
+<img src="support/squares.svg#svgView(viewBox(100,0,100,100) ; preserveAspectRatio(none))" width="100" height="50" alt="">

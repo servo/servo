@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
 use js::realm::CurrentRealm;
@@ -26,7 +24,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::gpuadapterinfo::GPUAdapterInfo;
 use crate::gpusupportedfeatures::{GPUSupportedFeatures, gpu_to_wgt_feature};
 use crate::gpusupportedlimits::{GPUSupportedLimits, set_limit};
-use crate::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUAdapter {
@@ -65,12 +63,7 @@ pub struct GPUAdapter<D: DomTypes> {
 
 impl<D> GPUAdapter<D>
 where
-    D: DomTypes<
-            GPUAdapter = GPUAdapter<D>,
-            GPUAdapterInfo = GPUAdapterInfo<D>,
-            GPUSupportedFeatures = GPUSupportedFeatures<D>,
-            GPUSupportedLimits = GPUSupportedLimits<D>,
-        >,
+    D: Equivalence,
 {
     fn new_inherited(
         channel: WebGPU,
@@ -190,33 +183,26 @@ where
     pub fn channel(&self) -> WebGPU {
         self.droppable.channel.clone()
     }
-
-    fn global(&self) -> DomRoot<D::GlobalScope> {
-        <Self as DomGlobalGeneric<D>>::global_from_reflector(self)
-    }
 }
 
 impl<D> GPUAdapterMethods<D> for GPUAdapter<D>
 where
-    D: DomTypes<
-            GPUAdapter = GPUAdapter<D>,
-            GPUAdapterInfo = GPUAdapterInfo<D>,
-            GPUSupportedFeatures = GPUSupportedFeatures<D>,
-            GPUSupportedLimits = GPUSupportedLimits<D>,
-        >,
-    D::Promise: WebGPUPromiseTrait<D> + PromiseHelpers<D>,
-    D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
+    D: Equivalence,
+    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+    Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
     fn RequestDevice(
         &self,
         cx: &mut CurrentRealm<'_>,
         descriptor: &GPUDeviceDescriptor,
-    ) -> Rc<D::Promise> {
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
         // Step 2
-        let promise = D::Promise::new_in_realm(cx);
+        let promise = D::Promise::new_in_realm_rooted(cx);
 
-        let callback = WebGPUPromiseTrait::<D>::callback_promise_adapter(&promise, self);
+        let callback = promise.callback_promise_adapter(self);
         let mut required_features = wgpu_types::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
@@ -252,9 +238,15 @@ where
             trace: wgpu_types::Trace::Off,
             experimental_features: ExperimentalFeatures::disabled(),
         };
-        let device_id = self.global().global_wgpu_id_hub().create_device_id();
-        let queue_id = self.global().global_wgpu_id_hub().create_queue_id();
-        let pipeline_id = self.global().pipeline_id();
+        let device_id = self
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_device_id();
+        let queue_id = self
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_queue_id();
+        let pipeline_id = self.global_from_reflector().pipeline_id();
         if self
             .droppable
             .channel

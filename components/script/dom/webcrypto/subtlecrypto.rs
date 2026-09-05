@@ -268,7 +268,7 @@ impl SubtleCrypto {
                 match JsonWebKey::parse(cx, stringified_jwk.as_bytes()) {
                     Ok(jwk) => {
                         rooted!(&in(cx) let mut rval = UndefinedValue());
-                        jwk.safe_to_jsval(cx, rval.handle_mut());
+                        jwk.to_jsval(cx, rval.handle_mut());
                         rooted!(&in(cx) let mut object = rval.to_object());
                         promise.resolve_native(cx, &*object);
                     },
@@ -2469,14 +2469,21 @@ pub(crate) fn check_support_for_algorithm(
     //
     // NOTE:
     // - Step 8 can be interpreted as executing the specified operation of the specified algorithm
-    //   in "dry-run" mode in which it validates the algorithm parameters, length, and usages but
-    //   does not execute the computation-demanding cryptographic calculation. It returns true if
-    //   the validation passes, and returns false otherwise.
-    // - In Step 8, we apply all validation to the parameters in normalizedAlgorithms and length,
-    //   as described in the specified operation of the specified algorithm. Since usages is an
-    //   empty list, it should pass the validation described in the specified operation of the
-    //   specified algorithm. So, we sipmly ignore it here.
+    //   in "dry-run" mode in which it validates the normalizedAlgorithm, length and usages but does
+    //   not execute the computation-demanding cryptographic calculation.
+    //
+    // - Usually, the parameter validations are executed at the beginning of the operation.
+    //   Therefore, Step 8 can be done by running the operation with the following changes:
+    //   - Replace "throw an DataError/OperationError/NotSupportedError" with "return false".
+    //   - When we reach any step that requires unavailable parameters or does the cryptographic
+    //     calculation, return true, instead of running the step, and skip the remaining steps as
+    //     well.
+    //
+    // - Since usages is an empty list, it should pass the validation described in the specified
+    //   operation of the specified algorithm. So, we simply ignore it here.
+    //
     // - The "getPublicKey" operation is not included here, since it is handled in Step 3.
+    //
     // - We explicitly list all patterns in the inner `match` blocks so that the Rust compiler will
     //   remind the implementer to add the necessary parameter validation here when a new operation
     //   of an algorithm is added.
@@ -2498,7 +2505,12 @@ pub(crate) fn check_support_for_algorithm(
                     normalized_algorithm.iv.len() == 16
                 },
                 EncryptAlgorithm::AesGcm(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() <= u32::MAX as usize &&
+                    normalized_algorithm.iv.len() <= u64::MAX as usize &&
+                        normalized_algorithm
+                            .additional_data
+                            .is_none_or(|additional_data| {
+                                additional_data.len() <= u64::MAX as usize
+                            }) &&
                         normalized_algorithm.tag_length.is_none_or(|length| {
                             matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)
                         })
@@ -2537,10 +2549,12 @@ pub(crate) fn check_support_for_algorithm(
                     normalized_algorithm
                         .tag_length
                         .is_none_or(|length| matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)) &&
-                        normalized_algorithm.iv.len() <= u32::MAX as usize &&
+                        normalized_algorithm.iv.len() <= u64::MAX as usize &&
                         normalized_algorithm
                             .additional_data
-                            .is_none_or(|data| data.len() <= u32::MAX as usize)
+                            .is_none_or(|additional_data| {
+                                additional_data.len() <= u64::MAX as usize
+                            })
                 },
                 DecryptAlgorithm::AesOcb(normalized_algorithm) => {
                     normalized_algorithm.iv.len() <= 15 &&
@@ -2570,7 +2584,11 @@ pub(crate) fn check_support_for_algorithm(
                 SignAlgorithm::Ed448(normalized_algorithm) => normalized_algorithm
                     .context
                     .is_none_or(|context| context.len() <= 255),
-                SignAlgorithm::Hmac(_) | SignAlgorithm::MlDsa(_) | SignAlgorithm::Kmac(_) => true,
+                SignAlgorithm::Hmac(_) => true,
+                SignAlgorithm::MlDsa(normalized_algorithm) => normalized_algorithm
+                    .context
+                    .is_none_or(|context| context.len() <= 255),
+                SignAlgorithm::Kmac(_) => true,
             }
         },
         "verify" => {
@@ -2587,9 +2605,11 @@ pub(crate) fn check_support_for_algorithm(
                 VerifyAlgorithm::Ed448(normalized_algorithm) => normalized_algorithm
                     .context
                     .is_none_or(|context| context.len() <= 255),
-                VerifyAlgorithm::Hmac(_) | VerifyAlgorithm::MlDsa(_) | VerifyAlgorithm::Kmac(_) => {
-                    true
-                },
+                VerifyAlgorithm::Hmac(_) => true,
+                VerifyAlgorithm::MlDsa(normalized_algorithm) => normalized_algorithm
+                    .context
+                    .is_none_or(|context| context.len() <= 255),
+                VerifyAlgorithm::Kmac(_) => true,
             }
         },
         "digest" => {
@@ -2617,17 +2637,34 @@ pub(crate) fn check_support_for_algorithm(
             };
 
             match normalized_algorithm {
-                DeriveBitsAlgorithm::Ecdh(normalized_algorithm) => length.is_none_or(|length| {
-                    ecdh_operation::secret_length(&normalized_algorithm)
-                        .is_ok_and(|secret_length| secret_length * 8 >= length)
-                }),
-                DeriveBitsAlgorithm::X25519(_) => {
-                    length.is_none_or(|length| x25519_operation::SECRET_LENGTH as u32 * 8 >= length)
+                DeriveBitsAlgorithm::Ecdh(normalized_algorithm) => {
+                    let public_key = normalized_algorithm.public.root();
+                    let Ok(maximum_length) = ecdh_operation::maximum_length(&public_key) else {
+                        return false;
+                    };
+                    public_key.Type() == KeyType::Public &&
+                        public_key.algorithm().name() == normalized_algorithm.name &&
+                        length.is_none_or(|length| length <= maximum_length)
+                },
+                DeriveBitsAlgorithm::X25519(normalized_algorithm) => {
+                    let public_key = normalized_algorithm.public.root();
+                    public_key.Type() == KeyType::Public &&
+                        public_key.algorithm().name() == normalized_algorithm.name &&
+                        length.is_none_or(|length| length <= 256)
                 },
                 DeriveBitsAlgorithm::X448(_) => {
                     length.is_none_or(|length| x448_operation::SECRET_LENGTH as u32 * 8 >= length)
                 },
-                DeriveBitsAlgorithm::Hkdf(_) => length.is_some_and(|length| length % 8 == 0),
+                DeriveBitsAlgorithm::Hkdf(normalized_algorithm) => {
+                    let hash_length = match normalized_algorithm.hash.name() {
+                        CryptoAlgorithm::Sha1 => 160,
+                        CryptoAlgorithm::Sha256 => 256,
+                        CryptoAlgorithm::Sha384 => 384,
+                        CryptoAlgorithm::Sha512 => 512,
+                        _ => return false,
+                    };
+                    length.is_some_and(|length| length % 8 == 0 && length <= 255 * hash_length)
+                },
                 DeriveBitsAlgorithm::Pbkdf2(normalized_algorithm) => {
                     length.is_some_and(|length| length % 8 == 0) &&
                         normalized_algorithm.iterations != 0
@@ -2672,9 +2709,11 @@ pub(crate) fn check_support_for_algorithm(
             };
 
             match normalized_algorithm {
-                GenerateKeyAlgorithm::RsassaPkcs1V1_5(_) |
-                GenerateKeyAlgorithm::RsaPss(_) |
-                GenerateKeyAlgorithm::RsaOaep(_) => true,
+                GenerateKeyAlgorithm::RsassaPkcs1V1_5(normalized_algorithm) |
+                GenerateKeyAlgorithm::RsaPss(normalized_algorithm) |
+                GenerateKeyAlgorithm::RsaOaep(normalized_algorithm) => {
+                    normalized_algorithm.validate_parameters().is_ok()
+                },
                 GenerateKeyAlgorithm::Ecdsa(normalized_algorithm) |
                 GenerateKeyAlgorithm::Ecdh(normalized_algorithm) => {
                     SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str())
@@ -2708,9 +2747,11 @@ pub(crate) fn check_support_for_algorithm(
             match normalized_algorithm {
                 ImportKeyAlgorithm::RsassaPkcs1V1_5(_) |
                 ImportKeyAlgorithm::RsaPss(_) |
-                ImportKeyAlgorithm::RsaOaep(_) |
-                ImportKeyAlgorithm::Ecdsa(_) |
-                ImportKeyAlgorithm::Ecdh(_) |
+                ImportKeyAlgorithm::RsaOaep(_) => true,
+                ImportKeyAlgorithm::Ecdsa(normalized_algorithm) |
+                ImportKeyAlgorithm::Ecdh(normalized_algorithm) => {
+                    SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str())
+                },
                 ImportKeyAlgorithm::Ed25519(_) |
                 ImportKeyAlgorithm::X25519(_) |
                 ImportKeyAlgorithm::Ed448(_) |
@@ -2718,8 +2759,10 @@ pub(crate) fn check_support_for_algorithm(
                 ImportKeyAlgorithm::AesCtr(_) |
                 ImportKeyAlgorithm::AesCbc(_) |
                 ImportKeyAlgorithm::AesGcm(_) |
-                ImportKeyAlgorithm::AesKw(_) |
-                ImportKeyAlgorithm::Hmac(_) |
+                ImportKeyAlgorithm::AesKw(_) => true,
+                ImportKeyAlgorithm::Hmac(normalized_algorithm) => {
+                    normalized_algorithm.length.is_none_or(|length| length != 0)
+                },
                 ImportKeyAlgorithm::Hkdf(_) |
                 ImportKeyAlgorithm::Pbkdf2(_) |
                 ImportKeyAlgorithm::MlKem(_) |
@@ -2853,8 +2896,23 @@ where
     }
 }
 
-// These "subtle" structs are proxies for the codegen'd dicts which don't hold a DOMString
-// so they can be sent safely when running steps in parallel.
+// Custom binding types of WebIDL dictionary for WebCrypto
+//
+// In our implementation of WebCrypto API, we use custom binding types for the following WebIDL
+// dictionaries, instead of the binding types generated by `script_bindings`:
+//
+// - `KeyAlgorithm` and their derivatives
+// - `Algorithm` and their derivatives
+// - `EncapsulatedKey`
+// - `DecapsulatedKey`
+//
+// Based on the design of WebCrypto API, they frequently need to cross thread boundaries, but the
+// generated binding types for these dictionaries are not thread-safe. Therefore, we implement the
+// following thread-safe custom binding type for these dictionaries.
+//
+// There is one exception. The [`normalize_algorithm`] function still uses the generated binding
+// type for the `Algorithm` dictionary, as the custom binding type for `Algorithm` currently does
+// not accept arbitrary string in its `name` field.
 
 /// <https://w3c.github.io/webcrypto/#dfn-Algorithm>
 #[derive(Clone, MallocSizeOf)]
@@ -2904,11 +2962,11 @@ pub(crate) struct KeyAlgorithm {
 
 impl ToJSValConvertible for KeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of KeyAlgorithm");
 
@@ -2981,6 +3039,56 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaHashedKeyGenParams {
     }
 }
 
+impl RsaHashedKeyGenParams {
+    /// <https://w3c.github.io/webcrypto/#dfn-validate-rsa-key-generation-parameters>
+    fn validate_parameters(&self) -> Result<(), Error> {
+        // Step 1. Let modulusLength be the modulusLength member of normalizedAlgorithm.
+        let modulus_length = self.modulus_length;
+
+        // Step 2. Let publicExponent be the result of converting the publicExponent member of
+        // normalizedAlgorithm to a non-negative integer.
+        let public_exponent = &self.public_exponent;
+
+        // Step 3. If modulusLength is less than 4, or if publicExponent is less than 3, is even, or
+        // is greater than or equal to 2^modulusLength - 1, then throw an OperationError.
+        let is_less_than_3 = |public_exponent: &[u8]| {
+            let mut byte_iterator = public_exponent.iter().skip_while(|byte| **byte == 0);
+            byte_iterator.next().is_none_or(|byte| *byte < 3) && byte_iterator.count() == 0
+        };
+        let is_even =
+            |public_exponent: &[u8]| public_exponent.last().is_none_or(|byte| byte % 2 == 0);
+        let upper_bound_first_byte = (1u8 << (modulus_length % 8)).wrapping_sub(1);
+        let upper_bound_length_in_bytes = modulus_length.div_ceil(8) as usize;
+        let is_greater_than_upper_bound = |public_exponent: &[u8]| {
+            let mut byte_iterator = public_exponent.iter().skip_while(|byte| **byte == 0);
+            byte_iterator
+                .next()
+                .is_some_and(|byte| *byte > upper_bound_first_byte) &&
+                byte_iterator.count() + 1 >= upper_bound_length_in_bytes
+        };
+        let is_equal_to_upper_bound = |public_exponent: &[u8]| {
+            let mut byte_iterator = public_exponent.iter().skip_while(|byte| **byte == 0);
+            byte_iterator
+                .next()
+                .is_some_and(|byte| *byte == upper_bound_first_byte) &&
+                byte_iterator.clone().all(|byte| *byte == 255) &&
+                byte_iterator.count() + 1 == upper_bound_length_in_bytes
+        };
+        if modulus_length < 4 ||
+            is_less_than_3(public_exponent) ||
+            is_even(public_exponent) ||
+            is_greater_than_upper_bound(public_exponent) ||
+            is_equal_to_upper_bound(public_exponent)
+        {
+            return Err(Error::Operation(Some(
+                "Invalid RsaHashedKeyGenParams".into(),
+            )));
+        }
+
+        Ok(())
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct RsaHashedKeyAlgorithm {
@@ -2999,17 +3107,17 @@ pub(crate) struct RsaHashedKeyAlgorithm {
 
 impl ToJSValConvertible for RsaHashedKeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of RsaHashedKeyAlgorithm");
 
         rooted!(&in(cx) let mut modulus_length_js = UndefinedValue());
         self.modulus_length
-            .safe_to_jsval(cx, modulus_length_js.handle_mut());
+            .to_jsval(cx, modulus_length_js.handle_mut());
         set_dictionary_property(
             cx,
             object.handle(),
@@ -3026,7 +3134,7 @@ impl ToJSValConvertible for RsaHashedKeyAlgorithm {
             public_exponent_js_object.handle_mut(),
         )
         .expect("Failed to convert publicExponent to Uint8Array");
-        public_exponent.safe_to_jsval(cx, public_exponent_js.handle_mut());
+        public_exponent.to_jsval(cx, public_exponent_js.handle_mut());
         set_dictionary_property(
             cx,
             object.handle(),
@@ -3039,7 +3147,7 @@ impl ToJSValConvertible for RsaHashedKeyAlgorithm {
         let hash = KeyAlgorithm {
             name: self.hash.name(),
         };
-        hash.safe_to_jsval(cx, hash_js.handle_mut());
+        hash.to_jsval(cx, hash_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"hash", hash_js.handle())
             .expect("Failed to set hash property of RsaHashedKeyAlgorithm");
 
@@ -3222,17 +3330,16 @@ pub(crate) struct EcKeyAlgorithm {
 
 impl ToJSValConvertible for EcKeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of EcKeyAlgorithm");
 
         rooted!(&in(cx) let mut named_curve_js = UndefinedValue());
-        self.named_curve
-            .safe_to_jsval(cx, named_curve_js.handle_mut());
+        self.named_curve.to_jsval(cx, named_curve_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"namedCurve", named_curve_js.handle())
             .expect("Failed to set namedCurve property of EcKeyAlgorithm");
 
@@ -3363,16 +3470,16 @@ pub(crate) struct AesKeyAlgorithm {
 
 impl ToJSValConvertible for AesKeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of AesKeyAlgorithm");
 
         rooted!(&in(cx) let mut length_js = UndefinedValue());
-        self.length.safe_to_jsval(cx, length_js.handle_mut());
+        self.length.to_jsval(cx, length_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"length", length_js.handle())
             .expect("Failed to set length property of AesKeyAlgorithm");
 
@@ -3564,11 +3671,11 @@ pub(crate) struct HmacKeyAlgorithm {
 
 impl ToJSValConvertible for HmacKeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of HmacKeyAlgorithm");
 
@@ -3576,12 +3683,12 @@ impl ToJSValConvertible for HmacKeyAlgorithm {
         let hash = KeyAlgorithm {
             name: self.hash.name(),
         };
-        hash.safe_to_jsval(cx, hash_js.handle_mut());
+        hash.to_jsval(cx, hash_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"hash", hash_js.handle())
             .expect("Failed to set hash property of HmacKeyAlgorithm");
 
         rooted!(&in(cx) let mut length_js = UndefinedValue());
-        self.length.safe_to_jsval(cx, length_js.handle_mut());
+        self.length.to_jsval(cx, length_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"length", length_js.handle())
             .expect("Failed to set length property of HmacKeyAlgorithm");
 
@@ -4016,16 +4123,16 @@ pub(crate) struct KmacKeyAlgorithm {
 
 impl ToJSValConvertible for KmacKeyAlgorithm {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
-        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        self.name.as_str().to_jsval(cx, name_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
             .expect("Failed to set name property of KmacKeyAlgorithm");
 
         rooted!(&in(cx) let mut length_js = UndefinedValue());
-        self.length.safe_to_jsval(cx, length_js.handle_mut());
+        self.length.to_jsval(cx, length_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"length", length_js.handle())
             .expect("Failed to set length property of KmacKeyAlgorithm");
 
@@ -4161,14 +4268,14 @@ struct EncapsulatedKey {
 
 impl ToJSValConvertible for EncapsulatedKey {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut shared_key_js = UndefinedValue());
         self.shared_key
             .as_ref()
             .map(|shared_key| shared_key.root())
-            .safe_to_jsval(cx, shared_key_js.handle_mut());
+            .to_jsval(cx, shared_key_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"sharedKey", shared_key_js.handle())
             .expect("Failed to set sharedKey property of EncapsulatedKey");
 
@@ -4184,7 +4291,7 @@ impl ToJSValConvertible for EncapsulatedKey {
                 )
                 .expect("Failed to convert ciphertext to ArrayBufferU8")
             })
-            .safe_to_jsval(cx, ciphertext_js.handle_mut());
+            .to_jsval(cx, ciphertext_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"ciphertext", ciphertext_js.handle())
             .expect("Failed to set ciphertext property of EncapsulatedKey");
 
@@ -4203,7 +4310,7 @@ struct EncapsulatedBits {
 
 impl ToJSValConvertible for EncapsulatedBits {
     #[expect(unsafe_code)]
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
 
         rooted!(&in(cx) let mut shared_key_js = UndefinedValue());
@@ -4218,7 +4325,7 @@ impl ToJSValConvertible for EncapsulatedBits {
                 )
                 .expect("Failed to convert shared_key to ArrayBufferU8")
             })
-            .safe_to_jsval(cx, shared_key_js.handle_mut());
+            .to_jsval(cx, shared_key_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"sharedKey", shared_key_js.handle())
             .expect("Failed to set sharedKey property of EncapsulatedBits");
 
@@ -4234,7 +4341,7 @@ impl ToJSValConvertible for EncapsulatedBits {
                 )
                 .expect("Failed to convert ciphertext to ArrayBufferU8")
             })
-            .safe_to_jsval(cx, ciphertext_js.handle_mut());
+            .to_jsval(cx, ciphertext_js.handle_mut());
         set_dictionary_property(cx, object.handle(), c"ciphertext", ciphertext_js.handle())
             .expect("Failed to set ciphertext property of EncapsulatedBits");
 
@@ -4362,14 +4469,14 @@ impl KeyAlgorithmAndDerivatives {
 }
 
 impl ToJSValConvertible for KeyAlgorithmAndDerivatives {
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         match self {
-            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => algo.to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => algo.to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => algo.to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => algo.to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algo) => algo.to_jsval(cx, rval),
         }
     }
 }
@@ -4537,7 +4644,7 @@ impl JsonWebKeyExt for JsonWebKey {
     /// bytes.
     fn stringify(&self, cx: &mut js::context::JSContext) -> Result<Zeroizing<DOMString>, Error> {
         rooted!(&in(cx) let mut data = UndefinedValue());
-        self.safe_to_jsval(cx, data.handle_mut());
+        self.to_jsval(cx, data.handle_mut());
         serialize_jsval_to_json_utf8(cx, data.handle()).map(Zeroizing::new)
     }
 
@@ -4769,7 +4876,7 @@ fn normalize_algorithm<Op: Operation>(
                 name: name.to_owned(),
             };
             rooted!(&in(cx) let mut algorithm_value = UndefinedValue());
-            algorithm.safe_to_jsval(cx, algorithm_value.handle_mut());
+            algorithm.to_jsval(cx, algorithm_value.handle_mut());
             let algorithm_object = RootedTraceableBox::new(Heap::default());
             algorithm_object.set(algorithm_value.to_object());
             normalize_algorithm::<Op>(cx, &AlgorithmIdentifier::Object(algorithm_object))

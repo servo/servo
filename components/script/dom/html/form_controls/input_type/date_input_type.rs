@@ -18,6 +18,10 @@ pub(crate) struct DateInputType {
 }
 
 impl SpecificInputType for DateInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         if !value.str().is_valid_date_string() {
             value.clear();

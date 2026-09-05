@@ -21,7 +21,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUTextureViewDimension, GPUVertexFormat,
 };
 use script_bindings::codegen::GenericUnionTypes::GPUTextureOrGPUTextureView;
-use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::DomGlobalGeneric;
 use webgpu_traits::WebGPUTextureView;
 use wgpu_core::binding_model::{BindGroupEntry, BindingResource, BufferBinding};
@@ -31,10 +31,8 @@ use wgpu_core::resource::{QuerySetDescriptor, TextureDescriptor};
 use wgpu_types::{self, AstcBlock, AstcChannel, IndexFormat};
 
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::gpubuffer::GPUBuffer;
 use crate::traits::{
-    GPUDeviceTrait, GPUExternalTextureTrait, GPUQuerySetTrait, GPUSamplerTrait,
-    GPUShaderModuleTrait, GPUTextureTrait, GPUTextureViewTrait, WebGPUGlobalTrait,
+    Equivalence, GPUDeviceTrait, GPUExternalTextureTrait, WebGPUGlobalTrait, WebGPUPromiseTrait,
 };
 
 /// A version of the `Into<T>` trait from the standard library that can be used
@@ -521,7 +519,7 @@ impl WebGPUConvert<wgpu_types::StencilOperation> for GPUStencilOperation {
 
 impl<D> WebGPUConvert<wgpu_com::TexelCopyBufferInfo> for &GPUTexelCopyBufferInfo<D>
 where
-    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D: Equivalence,
     D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait,
     D::Promise: PromiseHelpers<D>,
@@ -587,8 +585,9 @@ impl WebGPUTryConvert<wgpu_types::Origin2d> for &GPUOrigin2D {
 
 impl<D> WebGPUTryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUTexelCopyTextureInfo<D>
 where
-    D: DomTypes,
-    D::GPUTexture: GPUTextureTrait,
+    D: Equivalence,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
 {
     type Error = Error;
 
@@ -758,8 +757,11 @@ impl WebGPUTryConvert<wgpu_types::Color> for &GPUColor {
 
 impl<'a, D> WebGPUConvert<ProgrammableStageDescriptor<'a>> for &GPUProgrammableStage<D>
 where
-    D: DomTypes,
-    D::GPUShaderModule: GPUShaderModuleTrait,
+    D: Equivalence,
+    D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
 {
     fn convert(self) -> ProgrammableStageDescriptor<'a> {
         ProgrammableStageDescriptor {
@@ -783,9 +785,9 @@ pub fn convert_texture_for_wgpu_with_cx<D>(
     texture_view: &GPUTextureOrGPUTextureView<D>,
 ) -> WebGPUTextureView
 where
-    D: DomTypes,
-    D::GPUTexture: GPUTextureTrait,
-    D::GPUTextureView: GPUTextureViewTrait,
+    D: Equivalence,
+    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
 {
     match texture_view {
         GPUTextureOrGPUTextureView::GPUTextureView(view) => view.id(),
@@ -798,12 +800,9 @@ pub(crate) fn convert_bind_group_entry<'a, D>(
     bind_group: &GPUBindGroupEntry<D>,
 ) -> BindGroupEntry<'a>
 where
-    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
-    D::GPUTexture: GPUTextureTrait,
-    D::GPUTextureView: GPUTextureViewTrait,
-    D::GPUSampler: GPUSamplerTrait,
-    D::GPUExternalTexture: GPUExternalTextureTrait,
+    D: Equivalence,
     D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
+    D::GPUExternalTexture: GPUExternalTextureTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait,
     D::Promise: PromiseHelpers<D>,
 {
@@ -865,8 +864,9 @@ impl WebGPUConvert<QuerySetDescriptor<'static>> for &GPUQuerySetDescriptor {
 
 impl<D> WebGPUConvert<PassTimestampWrites> for &GPUComputePassTimestampWrites<D>
 where
-    D: DomTypes,
-    D::GPUQuerySet: GPUQuerySetTrait,
+    D: Equivalence,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
 {
     fn convert(self) -> PassTimestampWrites {
         PassTimestampWrites {
@@ -879,8 +879,9 @@ where
 
 impl<D> WebGPUConvert<PassTimestampWrites> for &GPURenderPassTimestampWrites<D>
 where
-    D: DomTypes,
-    D::GPUQuerySet: GPUQuerySetTrait,
+    D: Equivalence,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
 {
     fn convert(self) -> PassTimestampWrites {
         PassTimestampWrites {
@@ -893,8 +894,9 @@ where
 
 impl<D> WebGPUConvert<ComputePassDescriptor<'static>> for &GPUComputePassDescriptor<D>
 where
-    D: DomTypes,
-    D::GPUQuerySet: GPUQuerySetTrait,
+    D: Equivalence,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
 {
     fn convert(self) -> ComputePassDescriptor<'static> {
         ComputePassDescriptor {

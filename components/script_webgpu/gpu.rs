@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::marker::PhantomData;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -24,7 +23,7 @@ use wgpu_types::PowerPreference;
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::error::Error;
 use crate::gpuadapter::GPUAdapter;
-use crate::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[dom_struct]
 pub struct GPU<D: DomTypes> {
@@ -35,10 +34,7 @@ pub struct GPU<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> GPU<D>
-where
-    D: DomTypes<GPU = GPU<D>>,
-{
+impl<D: Equivalence> GPU<D> {
     pub(crate) fn new_inherited() -> GPU<D> {
         GPU {
             reflector_: Reflector::new(),
@@ -55,29 +51,27 @@ where
             GPUWrap::<D>,
         )
     }
-
-    fn global(&self) -> DomRoot<D::GlobalScope> {
-        <D::GPU as DomGlobalGeneric<D>>::global_from_reflector(self)
-    }
 }
 
-impl<D: DomTypes> GPUMethods<D> for GPU<D>
+impl<D> GPUMethods<D> for GPU<D>
 where
-    D: DomTypes<GPU = GPU<D>, WGSLLanguageFeatures = WGSLLanguageFeatures<D>>,
-    D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D>,
+    D: Equivalence,
+    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
     D::GPU: DomGlobalGeneric<D>,
     D::GlobalScope: WebGPUGlobalTrait,
+    Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter>
     fn RequestAdapter(
         &self,
         cx: &mut CurrentRealm,
         options: &GPURequestAdapterOptions,
-    ) -> Rc<D::Promise> {
-        let global = &self.global();
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
+        let global = self.global_from_reflector();
         // 1. Let promise be a new promise.
-        let promise = D::Promise::new_in_realm(cx);
-        let callback = D::Promise::callback_promise_gpu(&promise, self);
+        let promise = D::Promise::new_in_realm_rooted(cx);
+        let callback = promise.callback_promise_gpu(self);
 
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
@@ -123,7 +117,9 @@ where
         {
             promise.reject_error(
                 cx,
-                Error::Operation(Some("Could not request adapter".into())),
+                Error::Operation(Some(
+                    "Could not send `requestAdapter` request from script thread to constellation thread".into(),
+                )),
             );
         }
         // 4. Return promise
@@ -146,6 +142,6 @@ where
         cx: &mut js::context::JSContext,
     ) -> DomRoot<WGSLLanguageFeatures<D>> {
         self.wgsl_language_features
-            .or_init(|| WGSLLanguageFeatures::new(cx, &*self.global(), None))
+            .or_init(|| WGSLLanguageFeatures::new(cx, &*self.global_from_reflector(), None))
     }
 }

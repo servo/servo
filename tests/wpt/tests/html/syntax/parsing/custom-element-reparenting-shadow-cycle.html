@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parser element insertion: a custom element constructor creates a cycle through its own shadow root</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#insert-an-element-at-the-adjusted-insertion-location">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/adoption-agency-reparenting.js"></script>
+<body>
+<script>
+// The constructor runs before the element is inserted. It cannot append the
+// intended parent to itself -- "create an element" rejects a constructed
+// element with children -- but it can move it into a shadow root, which makes
+// the element a host-including inclusive ancestor of the adjusted insertion
+// location. The element is dropped, but stays on the stack of open elements.
+promise_test(async t => {
+  const iframe = await parseInIframe(t, `<script>customElements.define('x-a', class extends HTMLElement { constructor() { super(); if (window.el) return; window.el = this; window.b = document.body; window.root = this.attachShadow({mode: 'open'}); window.root.appendChild(window.b) } })<\/script><body><x-a><p>x</p></x-a>`);
+  const w = iframe.contentWindow, d = iframe.contentDocument;
+  assert_equals(d.body, null, "the html element no longer has a body child");
+  assert_array_equals([...d.documentElement.children].map(e => e.localName), ["head"],
+    "the document element is left with only its head child");
+  assert_equals(w.el.parentNode, null, "the custom element was dropped on the floor");
+  assert_equals(w.root.firstChild, w.b, "body stayed in the custom element's shadow root");
+  assert_equals(tree(w.b), ``, "the custom element was not inserted into body");
+  assert_equals(tree(w.el), `<p>["x"]`, "following content went into the dropped element");
+}, "Custom element constructor moves the intended parent into its own shadow root");
+</script>

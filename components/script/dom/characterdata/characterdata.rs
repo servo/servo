@@ -9,7 +9,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
-use servo_base::text::Utf16CodeUnits;
+use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 
 use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -105,6 +105,18 @@ impl CharacterData {
         });
         MutationObserver::queue_a_mutation_record(cx, self.upcast::<Node>(), mutation);
     }
+
+    /// Returns whether `new_range` was successfully set on an existing text run
+    pub(crate) fn set_text_run_selection(
+        &self,
+        new_range: Option<RangeAny<Utf32CodeUnits>>,
+    ) -> bool {
+        self.upcast::<Node>()
+            .layout_data()
+            .borrow()
+            .as_ref()
+            .is_some_and(|layout_data| layout_data.set_text_run_selection(new_range))
+    }
 }
 
 impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
@@ -117,11 +129,19 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     fn SetData(&self, cx: &mut JSContext, data: DOMString) {
         self.queue_mutation_record(cx);
         let old_length = self.Length();
-        let new_length = Utf16CodeUnits::length_of(&data.str()).0 as u32;
         *self.data.safe_borrow_mut(cx.no_gc()) = String::from(data.str());
         self.content_changed(cx);
 
-        live_range_replace_data_steps(self.upcast(), 0, old_length, new_length);
+        let mut utf16_length = None;
+        let mut lazy_length = move || {
+            *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(&data.str()).0 as u32)
+        };
+
+        let node: &Node = self.upcast();
+        if let Some(selection) = node.owner_doc_unrooted(cx.no_gc()).selection() {
+            selection.replace_data_steps(node, 0, old_length, &mut lazy_length);
+        }
+        live_range_replace_data_steps(node, 0, old_length, &mut lazy_length);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
@@ -247,13 +267,18 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         self.content_changed(cx);
 
         let node = self.upcast::<Node>();
+
+        let mut utf16_length = None;
+        let mut lazy_length = move || {
+            *utf16_length.get_or_insert_with(|| Utf16CodeUnits::length_of(&arg.str()).0 as u32)
+        };
+
+        if let Some(selection) = node.owner_doc_unrooted(cx.no_gc()).selection() {
+            selection.replace_data_steps(node, offset, count, &mut lazy_length);
+        }
+
         if node.has_live_ranges() {
-            live_range_replace_data_steps(
-                node,
-                offset,
-                count,
-                Utf16CodeUnits::length_of(&arg.str()).0 as u32,
-            );
+            live_range_replace_data_steps(node, offset, count, &mut lazy_length);
         }
 
         // Step 12: If node is a ProcessingInstruction node and piAttributesAlreadyUpdated

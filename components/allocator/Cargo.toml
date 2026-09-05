@@ -21,6 +21,9 @@ backtrace = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 rustc-hash = { workspace = true, optional = true }
 
+[lints]
+workspace = true
+
 [target.'cfg(not(any(windows, target_env = "ohos")))'.dependencies]
 libc = { workspace = true }
 tikv-jemalloc-sys = { workspace = true, optional = true, features = ["stats"] }

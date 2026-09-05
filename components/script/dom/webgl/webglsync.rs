@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLSyncId, webgl_channel};
 
@@ -84,10 +84,10 @@ impl WebGLSync {
         context.send_command(WebGLCommand::FenceSync(sender));
         let sync_id = receiver.recv().unwrap();
 
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(WebGLSync::new_inherited(context, sync_id)),
             &*context.global(),
-            cx,
         )
     }
 }

@@ -5,7 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding::WebGLShaderPrecisionFormatMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -36,12 +36,12 @@ impl WebGLShaderPrecisionFormat {
         range_max: i32,
         precision: i32,
     ) -> DomRoot<WebGLShaderPrecisionFormat> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(WebGLShaderPrecisionFormat::new_inherited(
                 range_min, range_max, precision,
             )),
             window,
-            cx,
         )
     }
 }

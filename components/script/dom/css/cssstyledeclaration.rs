@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 use dom_struct::dom_struct;
 use html5ever::local_name;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -126,7 +126,7 @@ impl CSSStyleOwner {
                 result
             },
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
-                rule.parent_stylesheet().will_modify();
+                rule.parent_stylesheet().will_modify(cx.no_gc());
                 let result = {
                     let mut guard = rule.shared_lock().write();
                     f(&mut *pdb.borrow().write_with(&mut guard), &mut changed)
@@ -261,14 +261,14 @@ impl CSSStyleDeclaration {
         pseudo: Option<PseudoElement>,
         modification_access: CSSModificationAccess,
     ) -> DomRoot<CSSStyleDeclaration> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(CSSStyleDeclaration::new_inherited(
                 owner,
                 pseudo,
                 modification_access,
             )),
             global,
-            cx,
         )
     }
 
@@ -344,7 +344,9 @@ impl CSSStyleDeclaration {
     ) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "This CSS style declaration is read-only".into(),
+            )));
         }
 
         let id = match id {
@@ -535,7 +537,9 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     fn RemoveProperty(&self, cx: &mut JSContext, property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "This CSS style declaration is read-only".into(),
+            )));
         }
 
         let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
@@ -551,6 +555,15 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
         // Step 6
         Ok(DOMString::from(string))
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-parentrule>
+    fn GetParentRule(&self) -> Option<DomRoot<CSSRule>> {
+        if let CSSStyleOwner::CSSRule(rule, _) = &self.owner {
+            Some(rule.as_rooted())
+        } else {
+            None
+        }
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
@@ -602,7 +615,9 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     fn SetCssText(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "This CSS style declaration is read-only".into(),
+            )));
         }
 
         let window = self.owner.window();

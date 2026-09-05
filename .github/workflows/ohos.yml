@@ -68,6 +68,11 @@ jobs:
       - name: Bootstrap dependencies
         timeout-minutes: 30
         run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest --ohos
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
       - name: Setup OpenHarmony SDK
         id: setup_sdk
         uses: openharmony-rs/setup-ohos-sdk@v1.0.0
@@ -183,6 +188,11 @@ jobs:
       - name: Bootstrap dependencies
         timeout-minutes: 10
         run: ./mach bootstrap --yes --skip-lints --skip-nextest --skip-platform --ohos
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
       - name: Build for aarch64 HarmonyOS
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

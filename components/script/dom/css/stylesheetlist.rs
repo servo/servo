@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_arc::Arc;
 use style::stylesheets::Stylesheet;
 
@@ -46,11 +46,18 @@ impl StyleSheetListOwner {
         }
     }
 
-    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(
+        &self,
+        no_gc: &NoGC,
+        owner_node: &Element,
+        sheet: Arc<Stylesheet>,
+    ) {
         match *self {
-            StyleSheetListOwner::Document(ref doc) => doc.add_owned_stylesheet(owner_node, sheet),
+            StyleSheetListOwner::Document(ref doc) => {
+                doc.add_owned_stylesheet(no_gc, owner_node, sheet)
+            },
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
-                shadow_root.add_owned_stylesheet(owner_node, sheet)
+                shadow_root.add_owned_stylesheet(no_gc, owner_node, sheet)
             },
         }
     }
@@ -107,10 +114,10 @@ impl StyleSheetList {
         window: &Window,
         doc_or_sr: StyleSheetListOwner,
     ) -> DomRoot<StyleSheetList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(StyleSheetList::new_inherited(doc_or_sr)),
             window,
-            cx,
         )
     }
 }

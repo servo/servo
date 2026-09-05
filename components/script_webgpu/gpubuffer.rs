@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ops::Range;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
@@ -19,7 +18,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUMapModeConstants, GPUMapModeFlags, GPUSize64,
 };
 use script_bindings::error::{Error, Fallible};
-use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::interfaces::{PromiseHelpers, StackRootPromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
@@ -30,7 +29,7 @@ use crate::datablock::DataBlock;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::gpuconvert::WebGPUConvert;
-use crate::traits::{GPUDeviceTrait, WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -102,15 +101,14 @@ pub struct GPUBuffer<D: DomTypes> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-usage>
     usage: GPUFlagsConstant,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-pending_map-slot>
-    #[conditional_malloc_size_of]
-    pending_map: DomRefCell<Option<Rc<D::Promise>>>,
+    pending_map: DomRefCell<Option<<D::Promise as PromiseHelpers<D>>::HeapTraced>>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
     mapping: DomRefCell<Option<ActiveBufferMapping>>,
 }
 
 impl<D> GPUBuffer<D>
 where
-    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D: Equivalence,
     D::Promise: PromiseHelpers<D>,
 {
     fn new_inherited(
@@ -159,7 +157,7 @@ where
 
 impl<D> GPUBuffer<D>
 where
-    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D: Equivalence,
     D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait,
     D::Promise: PromiseHelpers<D>,
@@ -221,8 +219,9 @@ where
 
 impl<D> GPUBufferMethods<D> for GPUBuffer<D>
 where
-    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
-    D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D> + PartialEq,
+    D: Equivalence,
+    D::Promise: PromiseHelpers<D> + PartialEq,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
     D::GPUDevice: GPUDeviceTrait<D>,
     D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait,
@@ -290,8 +289,8 @@ where
         mode: u32,
         offset: GPUSize64,
         size: Option<GPUSize64>,
-    ) -> Rc<D::Promise> {
-        let promise = D::Promise::new_in_realm(cx);
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
+        let promise = D::Promise::new_in_realm_rooted(cx);
         // Step 2
         if self.pending_map.borrow().is_some() {
             promise.reject_error(
@@ -301,7 +300,7 @@ where
             return promise;
         }
         // Step 4
-        *self.pending_map.safe_borrow_mut(cx) = Some(promise.clone());
+        *self.pending_map.safe_borrow_mut(cx) = Some(promise.to_traced());
         // Step 5
         let host_map = match mode {
             GPUMapModeConstants::READ => HostMap::Read,
@@ -316,7 +315,7 @@ where
             },
         };
 
-        let callback = D::Promise::callback_promise_gpubuffer(&promise, self);
+        let callback = promise.callback_promise_gpubuffer(self);
         if let Err(e) = self
             .droppable
             .channel
@@ -361,16 +360,43 @@ where
             .map(RootedTraceableBox::new)
             .ok_or(Error::Operation(Some("No active buffer map".into())))?;
 
-        let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
-            range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
-            offset >= mapping.range.start &&
-            offset + range_size <= mapping.range.end;
-        if !valid {
+        if !(offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT)) {
             self.mapping
                 .safe_borrow_mut(cx)
                 .replace(*mapping.into_box());
+
             return Err(Error::Operation(Some(
-                "Buffer Mapping is not active".into(),
+                "`offset` is not a multiple of 8".into(),
+            )));
+        }
+
+        if !(range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0) {
+            self.mapping
+                .safe_borrow_mut(cx)
+                .replace(*mapping.into_box());
+
+            return Err(Error::Operation(Some(
+                "`rangeSize` is not a multiple of 4".into(),
+            )));
+        }
+
+        if !(offset >= mapping.range.start) {
+            self.mapping
+                .safe_borrow_mut(cx)
+                .replace(*mapping.into_box());
+
+            return Err(Error::Operation(Some(
+                "`offset` is greater than `[[mapping]].range[0]`".into(),
+            )));
+        }
+
+        if !(offset + range_size <= mapping.range.end) {
+            self.mapping
+                .safe_borrow_mut(cx)
+                .replace(*mapping.into_box());
+
+            return Err(Error::Operation(Some(
+                "`offset` + `rangeSize` is less than or equal to `[[mapping]].range[1]`".into(),
             )));
         }
 
@@ -433,9 +459,13 @@ where
     D::Promise: PromiseHelpers<D> + PartialEq,
     D::GPUDevice: GPUDeviceTrait<D>,
 {
-    pub fn map_failure(&self, cx: &mut JSContext, p: &Rc<D::Promise>) {
+    pub fn map_failure(
+        &self,
+        cx: &mut JSContext,
+        p: &<D::Promise as PromiseHelpers<D>>::StackRoot,
+    ) {
         // Step 1
-        if self.pending_map.borrow().as_ref() != Some(p) {
+        if self.pending_map.borrow().as_deref() != Some(p) {
             assert!(p.is_rejected());
             return;
         }
@@ -448,18 +478,18 @@ where
         if is_lost {
             p.reject_error(cx, Error::Abort(Some("GPUDevice is lost".into())));
         } else {
-            p.reject_error(cx, Error::Operation(Some("Mapping failure".into())));
+            p.reject_error(cx, Error::Operation(Some("Failed to map GPUBuffer".into())));
         }
     }
 
     pub fn map_success(
         &self,
         cx: &mut js::context::JSContext,
-        p: &Rc<D::Promise>,
+        p: &<D::Promise as PromiseHelpers<D>>::StackRoot,
         wgpu_mapping: Mapping,
     ) {
         // Step 1
-        if self.pending_map.borrow().as_ref() != Some(p) {
+        if self.pending_map.borrow().as_deref() != Some(p) {
             assert!(p.is_rejected());
             return;
         }

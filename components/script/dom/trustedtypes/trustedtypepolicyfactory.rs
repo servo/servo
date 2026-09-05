@@ -260,10 +260,10 @@ impl TrustedTypePolicyFactory {
         rooted!(&in(cx) let mut trusted_type_name_value = NullValue());
         expected_type
             .as_ref()
-            .safe_to_jsval(cx, trusted_type_name_value.handle_mut());
+            .to_jsval(cx, trusted_type_name_value.handle_mut());
 
         rooted!(&in(cx) let mut sink_value = NullValue());
-        sink.safe_to_jsval(cx, sink_value.handle_mut());
+        sink.to_jsval(cx, sink_value.handle_mut());
 
         let arguments = vec![trusted_type_name_value.handle(), sink_value.handle()];
         let policy_value = default_policy.get_trusted_type_policy_value(

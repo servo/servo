@@ -5,12 +5,11 @@
 use std::borrow::Cow;
 use std::cell::LazyCell;
 use std::ops::Range;
-use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
-use fonts::TextByteRange;
-use icu_properties::BidiClass;
-use layout_api::{LayoutNode, ScriptSelection};
+use icu_properties::CodePointMapData;
+use icu_properties::props::BidiClass;
+use layout_api::LayoutNode;
 use servo_base::text::{RangeAny, Utf32CodeUnits};
 use style::computed_values::direction::T as Direction;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -318,16 +317,16 @@ impl InlineFormattingContextBuilder {
         container_info: &NodeAndStyleInfo<'dom>,
         layout_context: &LayoutContext,
     ) -> bool {
-        let document_selection = info.node.document_selection_in_text_node();
+        let selection = info.node.text_node_selection();
         if self.has_processed_first_letter || !container_info.pseudo_element_chain().is_empty() {
-            self.push_text(text, info, document_selection);
+            self.push_text(text, info, selection);
             return false;
         }
 
         let Some(first_letter_info) =
             container_info.with_pseudo_element(layout_context, PseudoElement::FirstLetter)
         else {
-            self.push_text(text, info, document_selection);
+            self.push_text(text, info, selection);
             return false;
         };
 
@@ -343,14 +342,13 @@ impl InlineFormattingContextBuilder {
         });
         if first_letter_range.start != 0 {
             let leading_whitespace_range = 0..first_letter_range.start;
-            let leading_whitespace_selection_range =
-                document_selection.and_then(|document_selection| {
-                    let leading_whitespace_range_u32 = RangeAny {
-                        start: None,
-                        end: Some(first_letter_range_u32.start),
-                    };
-                    document_selection.intersect(leading_whitespace_range_u32)
-                });
+            let leading_whitespace_selection_range = selection.and_then(|range| {
+                let leading_whitespace_range_u32 = RangeAny {
+                    start: None,
+                    end: Some(first_letter_range_u32.start),
+                };
+                range.intersect(leading_whitespace_range_u32)
+            });
 
             self.push_text(
                 Cow::Borrowed(&text[leading_whitespace_range]).into(),
@@ -368,8 +366,8 @@ impl InlineFormattingContextBuilder {
         box_slot.set(LayoutBox::InlineLevel(inline_item));
 
         let first_letter_text = Cow::Borrowed(&text[first_letter_range.clone()]);
-        let first_letter_selection_range = document_selection.and_then(|document_selection| {
-            document_selection
+        let first_letter_selection_range = selection.and_then(|range| {
+            range
                 .intersect((*first_letter_range_u32).clone().into())
                 .map(|range| range.map(|offset| offset - first_letter_range_u32.start))
         });
@@ -382,12 +380,12 @@ impl InlineFormattingContextBuilder {
         self.has_processed_first_letter = true;
 
         // Now push the non-first-letter text.
-        let remaining_selection_range = document_selection.and_then(|document_selection| {
+        let remaining_selection_range = selection.and_then(|range| {
             let remaining_text_range_u32 = RangeAny {
                 start: Some(first_letter_range_u32.end),
-                end: document_selection.end,
+                end: range.end,
             };
-            document_selection
+            range
                 .intersect(remaining_text_range_u32)
                 .map(|range| range.map(|offset| offset - first_letter_range_u32.end))
         });
@@ -404,12 +402,12 @@ impl InlineFormattingContextBuilder {
         &mut self,
         text: BoxTreeString<'dom>,
         info: &NodeAndStyleInfo<'dom>,
-        document_selection: Option<RangeAny<Utf32CodeUnits>>,
+        selection: Option<RangeAny<Utf32CodeUnits>>,
     ) {
         let mut offset_map = self.offset_map.borrow_mut();
         let original_size_before = offset_map.total_original_size();
 
-        let bidi_class_map = icu_properties::maps::bidi_class();
+        let bidi_class_map = CodePointMapData::<BidiClass>::new();
         let white_space_collapse = info.style.clone_white_space_collapse();
         let mut character_count = 0;
         let mut new_text = String::with_capacity(text.len());
@@ -453,27 +451,6 @@ impl InlineFormattingContextBuilder {
             return;
         }
 
-        let selection = info.node.form_control_selection_in_text_node().or_else(|| {
-            let document_selection = document_selection?;
-            // Range unbounded at the start: the concrete start is offset zero.
-            let start = document_selection.start.unwrap_or(Utf32CodeUnits(0));
-            // Range unbounded at the end: the concrete end is the full length.
-            let end = document_selection
-                .end
-                .unwrap_or(offset_map.total_original_size() - original_size_before);
-
-            if start == end {
-                return None;
-            }
-            debug_assert!(end > start);
-
-            Some(Arc::new(AtomicRefCell::new(ScriptSelection {
-                range: TextByteRange::default(),
-                character_range: start.0..end.0,
-                enabled: true,
-            })))
-        });
-
         if let Some(last_character) = new_text.chars().next_back() {
             self.on_word_boundary = last_character.is_whitespace();
             self.last_inline_box_ended_with_collapsible_white_space =
@@ -497,7 +474,8 @@ impl InlineFormattingContextBuilder {
                 inline_styles: current_inline_styles,
                 character_range_in_ifc_text: new_character_range,
                 original_offset: original_size_before,
-                selection,
+                selection: AtomicRefCell::new(selection),
+                paint_caret: info.node.text_node_paints_caret(),
                 offset_map: self.offset_map.clone(),
             }
             .into(),

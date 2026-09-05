@@ -13,7 +13,7 @@ use js::rust::{HandleValue, MutableHandleValue};
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::dom::UnrootedDom;
 use script_bindings::error::{ErrorResult, Fallible};
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -168,7 +168,8 @@ impl ShadowRoot {
         clonable: bool,
         is_user_agent_widget: IsUserAgentWidget,
     ) -> DomRoot<ShadowRoot> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ShadowRoot::new_inherited(
                 host,
                 document,
@@ -178,7 +179,6 @@ impl ShadowRoot {
                 is_user_agent_widget,
             )),
             document.window(),
-            cx,
         )
     }
 
@@ -214,7 +214,12 @@ impl ShadowRoot {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(
+        &self,
+        no_gc: &NoGC,
+        owner_node: &Element,
+        sheet: Arc<Stylesheet>,
+    ) {
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
 
         // FIXME(stevennovaryo): This is almost identical with the one in Document::add_stylesheet.
@@ -222,9 +227,9 @@ impl ShadowRoot {
             .iter()
             .find(|sheet_in_shadow| {
                 match &sheet_in_shadow.owner {
-                    StylesheetSource::Element(other_node) => {
-                        owner_node.upcast::<Node>().is_before(other_node.upcast())
-                    },
+                    StylesheetSource::Element(other_node) => owner_node
+                        .upcast::<Node>()
+                        .is_before(no_gc, other_node.upcast()),
                     // Non-constructed stylesheet should be ordered before the
                     // constructed ones.
                     StylesheetSource::Constructed(_) => true,

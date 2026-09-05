@@ -6,4 +6,6 @@
 [Pref="dom_serviceworker_enabled", SecureContext, Exposed=(Window,Worker)]
 interface CacheStorage {
   [NewObject] Promise<boolean> has(DOMString cacheName);
+  [NewObject] Promise<Cache> open(DOMString cacheName);
+  [NewObject] Promise<boolean> delete(DOMString cacheName);
 };

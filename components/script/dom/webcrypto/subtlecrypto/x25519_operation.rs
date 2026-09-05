@@ -28,7 +28,6 @@ const X25519_OID_STRING: &str = "1.3.101.110";
 
 const PRIVATE_KEY_LENGTH: usize = 32;
 const PUBLIC_KEY_LENGTH: usize = 32;
-pub(crate) const SECRET_LENGTH: usize = 32;
 
 /// <https://w3c.github.io/webcrypto/#x25519-operations-derive-bits>
 pub(crate) fn derive_bits(
@@ -36,16 +35,10 @@ pub(crate) fn derive_bits(
     key: &CryptoKey,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
-    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
-    // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some("The key is not private".into())));
-    }
-
-    // Step 2. Let publicKey be the public member of normalizedAlgorithm.
+    // Step 1. Let publicKey be the public member of normalizedAlgorithm.
     let public_key = normalized_algorithm.public.root();
 
-    // Step 3. If the [[type]] internal slot of publicKey is not "public", then throw an
+    // Step 2. If the [[type]] internal slot of publicKey is not "public", then throw an
     // InvalidAccessError.
     if public_key.Type() != KeyType::Public {
         return Err(Error::InvalidAccess(Some(
@@ -53,16 +46,39 @@ pub(crate) fn derive_bits(
         )));
     }
 
-    // Step 4. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal
-    // to the name property of the [[algorithm]] internal slot of key, then throw an
-    // InvalidAccessError.
-    if public_key.algorithm().name() != key.algorithm().name() {
+    // Step 3. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal to
+    // the name member of normalizedAlgorithm, then throw an InvalidAccessError.
+    if public_key.algorithm().name() != normalized_algorithm.name {
         return Err(Error::InvalidAccess(Some(
-            "Public key and key names do not match".into(),
+            "The name attribute of the [[algorithm]] internal slot of publicKey does not match \
+                the name member of normalizedAlgorithm"
+                .into(),
         )));
     }
 
-    // Step 5. Let secret be the result of performing the X25519 function specified in [RFC7748]
+    // Step 4. If length is not null and is greater than 256, then throw an OperationError.
+    if length.is_some_and(|length| length > 256) {
+        return Err(Error::Operation(Some(
+            "Required length is greater than 256".into(),
+        )));
+    }
+
+    // Step 5. If the [[type]] internal slot of key is not "private", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Private {
+        return Err(Error::InvalidAccess(Some("The key is not private".into())));
+    }
+
+    // Step 6. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal to
+    // the name property of the [[algorithm]] internal slot of key, then throw an
+    // InvalidAccessError.
+    if public_key.algorithm().name() != key.algorithm().name() {
+        return Err(Error::InvalidAccess(Some(
+            "Public key [[algorithm]] internal slot name does not match that of private key".into(),
+        )));
+    }
+
+    // Step 7. Let secret be the result of performing the X25519 function specified in [RFC7748]
     // Section 5 with key as the X25519 private key k and the X25519 public key represented by the
     // [[handle]] internal slot of publicKey as the X25519 public key u.
     let Handle::X25519PrivateKey(private_key) = key.handle() else {
@@ -77,7 +93,7 @@ pub(crate) fn derive_bits(
     };
     let secret = private_key.diffie_hellman(public_key);
 
-    // Step 6. If secret is the all-zero value, then throw a OperationError. This check must be
+    // Step 8. If secret is the all-zero value, then throw a OperationError. This check must be
     // performed in constant-time, as per [RFC7748] Section 6.1.
     if !secret.was_contributory() {
         return Err(Error::Operation(Some(
@@ -85,7 +101,7 @@ pub(crate) fn derive_bits(
         )));
     }
 
-    // Step 7.
+    // Step 9.
     // If length is null:
     //     Return secret
     // Otherwise:

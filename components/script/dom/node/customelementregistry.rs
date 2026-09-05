@@ -633,7 +633,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             rooted!(&in(cx) let mut constructor = UndefinedValue());
             definition
                 .constructor
-                .safe_to_jsval(cx, constructor.handle_mut());
+                .to_jsval(cx, constructor.handle_mut());
             // Step 19.1: Resolve this's when-defined promise map[name] with constructor.
             promise.resolve_native(cx, &constructor.get());
         }
@@ -643,7 +643,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
     fn Get(&self, cx: &mut JSContext, name: DOMString, mut retval: MutableHandleValue) {
         match self.definitions.borrow().get(&LocalName::from(name)) {
-            Some(definition) => definition.constructor.safe_to_jsval(cx, retval),
+            Some(definition) => definition.constructor.to_jsval(cx, retval),
             None => retval.set(UndefinedValue()),
         }
     }
@@ -679,7 +679,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             rooted!(&in(*realm) let mut constructor = UndefinedValue());
             definition
                 .constructor
-                .safe_to_jsval(realm, constructor.handle_mut());
+                .to_jsval(realm, constructor.handle_mut());
             let promise = Promise::new_in_realm(realm);
             promise.resolve_native(realm, &constructor.get());
             return promise;
@@ -925,7 +925,7 @@ impl CustomElementDefinition {
 
         rooted!(&in(cx) let element_val = ObjectValue(element.get()));
         let element: DomRoot<Element> =
-            match FromJSValConvertible::safe_from_jsval(cx, element_val.handle(), ()) {
+            match FromJSValConvertible::from_jsval(cx, element_val.handle(), ()) {
                 Ok(ConversionResult::Success(element)) => element,
                 Ok(ConversionResult::Failure(..)) => {
                     return Err(Error::Type(
@@ -1105,7 +1105,7 @@ fn run_upgrade_constructor(
     let window = element.owner_window();
     rooted!(&in(cx) let constructor_val = ObjectValue(constructor.callback()));
     rooted!(&in(cx) let mut element_val = UndefinedValue());
-    element.safe_to_jsval(cx, element_val.handle_mut());
+    element.to_jsval(cx, element_val.handle_mut());
     rooted!(&in(cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
         // Step 9.1. If definition's disable shadow is true and element's shadow root is non-null,
@@ -1373,22 +1373,22 @@ impl CustomElementReactionStack {
 
                 let local_name = DOMString::from(&*local_name);
                 rooted!(&in(cx) let mut name_value = UndefinedValue());
-                local_name.safe_to_jsval(cx, name_value.handle_mut());
+                local_name.to_jsval(cx, name_value.handle_mut());
 
                 rooted!(&in(cx) let mut old_value = NullValue());
                 if let Some(old_val) = old_val {
-                    old_val.safe_to_jsval(cx, old_value.handle_mut());
+                    old_val.to_jsval(cx, old_value.handle_mut());
                 }
 
                 rooted!(&in(cx) let mut value = NullValue());
                 if let Some(val) = val {
-                    val.safe_to_jsval(cx, value.handle_mut());
+                    val.to_jsval(cx, value.handle_mut());
                 }
 
                 rooted!(&in(cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
                     let namespace = DOMString::from(&*namespace);
-                    namespace.safe_to_jsval(cx, namespace_value.handle_mut());
+                    namespace.to_jsval(cx, namespace_value.handle_mut());
                 }
 
                 let args = vec![

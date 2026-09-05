@@ -12,7 +12,7 @@ use pixels::Snapshot;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUDeviceMethods as _;
 use script_bindings::error::Fallible;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_webgpu::traits::GPUExternalTextureTrait;
 use webgpu_traits::{
     WebGPU, WebGPUDevice, WebGPUExternalTexture, WebGPUQueue, WebGPURequest, WebGPUTexture,
@@ -178,7 +178,8 @@ impl GPUExternalTexture {
         label: USVString,
         planar_texture: Option<Rc<PlanarTexture>>,
     ) -> DomRoot<GPUExternalTexture> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GPUExternalTexture::new_inherited(
                 channel,
                 external_texture,
@@ -186,7 +187,6 @@ impl GPUExternalTexture {
                 planar_texture,
             )),
             global,
-            cx,
         )
     }
 
@@ -286,7 +286,7 @@ impl GPUExternalTextureMethods<crate::DomTypeHolder> for GPUExternalTexture {
     }
 }
 
-impl GPUExternalTextureTrait for GPUExternalTexture {
+impl GPUExternalTextureTrait<crate::DomTypeHolder> for GPUExternalTexture {
     fn id(&self) -> WebGPUExternalTexture {
         self.id()
     }

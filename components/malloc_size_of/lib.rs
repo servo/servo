@@ -1103,8 +1103,14 @@ impl<'a> MallocSizeOf for usvg::Options<'a> {
         self.font_family.size_of(ops) +
             self.languages.size_of(ops) +
             self.style_sheet.size_of(ops) +
-            self.fontdb.conditional_shallow_size_of(ops) +
+            self.fontdb.conditional_size_of(ops) +
             self.resources_dir.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for usvg::Font {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.families().size_of(ops) + self.variations().size_of(ops)
     }
 }
 
@@ -1214,7 +1220,7 @@ malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFl
 malloc_size_of_is_0!(encoding_rs::Decoder);
 malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(http::Method);
-malloc_size_of_is_0!(icu_locid::subtags::Language);
+malloc_size_of_is_0!(icu_locale_core::subtags::Language);
 malloc_size_of_is_0!(keyboard_types::Code);
 malloc_size_of_is_0!(keyboard_types::Modifiers);
 malloc_size_of_is_0!(mime::Mime);

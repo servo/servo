@@ -707,10 +707,10 @@ impl WebGL2RenderingContext {
         if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
             match fb.attachment(attachment) {
                 Some(Renderbuffer(rb)) => {
-                    rb.safe_to_jsval(cx, rval);
+                    rb.to_jsval(cx, rval);
                 },
                 Some(Texture(texture)) => {
-                    texture.safe_to_jsval(cx, rval);
+                    texture.to_jsval(cx, rval);
                 },
                 _ => rval.set(NullValue()),
             }
@@ -1051,11 +1051,11 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     fn GetParameter(&self, cx: &mut JSContext, parameter: u32, mut rval: MutableHandleValue) {
         match parameter {
             constants::VERSION => {
-                "WebGL 2.0".safe_to_jsval(cx, rval);
+                "WebGL 2.0".to_jsval(cx, rval);
                 return;
             },
             constants::SHADING_LANGUAGE_VERSION => {
-                "WebGL GLSL ES 3.00".safe_to_jsval(cx, rval);
+                "WebGL GLSL ES 3.00".to_jsval(cx, rval);
                 return;
             },
             constants::MAX_CLIENT_WAIT_TIMEOUT_WEBGL => {
@@ -1074,50 +1074,48 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 let idx = (self.base.textures().active_unit_enum() - constants::TEXTURE0) as usize;
                 assert!(idx < self.samplers.len());
                 let sampler = self.samplers[idx].get();
-                sampler.safe_to_jsval(cx, rval);
+                sampler.to_jsval(cx, rval);
                 return;
             },
             constants::COPY_READ_BUFFER_BINDING => {
-                self.bound_copy_read_buffer.get().safe_to_jsval(cx, rval);
+                self.bound_copy_read_buffer.get().to_jsval(cx, rval);
                 return;
             },
             constants::COPY_WRITE_BUFFER_BINDING => {
-                self.bound_copy_write_buffer.get().safe_to_jsval(cx, rval);
+                self.bound_copy_write_buffer.get().to_jsval(cx, rval);
                 return;
             },
             constants::PIXEL_PACK_BUFFER_BINDING => {
-                self.bound_pixel_pack_buffer.get().safe_to_jsval(cx, rval);
+                self.bound_pixel_pack_buffer.get().to_jsval(cx, rval);
                 return;
             },
             constants::PIXEL_UNPACK_BUFFER_BINDING => {
-                self.bound_pixel_unpack_buffer.get().safe_to_jsval(cx, rval);
+                self.bound_pixel_unpack_buffer.get().to_jsval(cx, rval);
                 return;
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_BINDING => {
                 self.bound_transform_feedback_buffer
                     .get()
-                    .safe_to_jsval(cx, rval);
+                    .to_jsval(cx, rval);
                 return;
             },
             constants::UNIFORM_BUFFER_BINDING => {
-                self.bound_uniform_buffer.get().safe_to_jsval(cx, rval);
+                self.bound_uniform_buffer.get().to_jsval(cx, rval);
                 return;
             },
             constants::TRANSFORM_FEEDBACK_BINDING => {
-                self.current_transform_feedback
-                    .get()
-                    .safe_to_jsval(cx, rval);
+                self.current_transform_feedback.get().to_jsval(cx, rval);
                 return;
             },
             constants::ELEMENT_ARRAY_BUFFER_BINDING => {
                 let buffer = self.current_vao(cx).element_array_buffer().get();
-                buffer.safe_to_jsval(cx, rval);
+                buffer.to_jsval(cx, rval);
                 return;
             },
             constants::VERTEX_ARRAY_BINDING => {
                 let vao = self.current_vao(cx);
                 let vao = vao.id().map(|_| &*vao);
-                vao.safe_to_jsval(cx, rval);
+                vao.to_jsval(cx, rval);
                 return;
             },
             // NOTE: DRAW_FRAMEBUFFER_BINDING is the same as FRAMEBUFFER_BINDING, handled on the WebGL1 side
@@ -1125,7 +1123,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 self.base
                     .get_read_framebuffer_slot()
                     .get()
-                    .safe_to_jsval(cx, rval);
+                    .to_jsval(cx, rval);
                 return;
             },
             constants::READ_BUFFER => {
@@ -2111,7 +2109,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         match target {
             constants::TRANSFORM_FEEDBACK_BUFFER_BINDING | constants::UNIFORM_BUFFER_BINDING => {
-                binding.buffer.get().safe_to_jsval(cx, retval)
+                binding.buffer.get().to_jsval(cx, retval)
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_START | constants::UNIFORM_BUFFER_START => {
                 retval.set(Int32Value(binding.start.get() as _))
@@ -4676,11 +4674,11 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             constants::UNIFORM_OFFSET |
             constants::UNIFORM_ARRAY_STRIDE |
             constants::UNIFORM_MATRIX_STRIDE => {
-                values.safe_to_jsval(cx, rval);
+                values.to_jsval(cx, rval);
             },
             constants::UNIFORM_IS_ROW_MAJOR => {
                 let values = values.iter().map(|&v| v != 0).collect::<Vec<_>>();
-                values.safe_to_jsval(cx, rval);
+                values.to_jsval(cx, rval);
             },
             _ => unreachable!(),
         }

@@ -7,32 +7,42 @@
 //! perform checkpoints at appropriate times, as well as enqueue microtasks as required.
 
 use std::cell::Cell;
-use std::mem;
+use std::ffi::c_void;
+use std::ptr::NonNull;
 use std::rc::Rc;
 
 use js::context::JSContext;
-use js::rust::wrappers2::JobQueueMayNotBeEmpty;
+use js::jsapi::{
+    GetExecutionGlobalFromJSMicroTask, GetPromiseUserInputEventHandlingState, IsJSMicroTask,
+    JSTracer, MaybeGetPromiseFromJSMicroTask, PromiseUserInputEventHandlingState,
+    ToMaybeWrappedJSMicroTask,
+};
+use js::jsval::{JSVal, PrivateValue};
+use js::panic::wrap_panic;
+use js::realm::AutoRealm;
+use js::rust::wrappers2::{
+    EnqueueMicroTask, HasAnyMicroTasks, JS_DequeueNextMicroTask,
+    MaybeGetHostDefinedDataFromJSMicroTask, RunJSMicroTask,
+};
 use malloc_size_of::MallocSizeOf;
-use script_bindings::cell::DomRefCell;
 use script_bindings::root::Dom;
+use script_bindings::settings_stack::{run_a_callback, run_a_script};
 
-use crate::JSTraceable;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::notify_about_rejected_promises;
+use crate::{DomTypeHolder, JSTraceable};
 
-/// A collection of microtasks in FIFO order.
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct MicrotaskQueue {
-    /// The list of enqueued microtasks that will be invoked at the next microtask checkpoint.
-    microtask_queue: DomRefCell<Vec<Box<dyn MicrotaskRunnable>>>,
     /// <https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint>
     performing_a_microtask_checkpoint: Cell<bool>,
+    // microtasks are not accounted for in the size of the queue
+    // as they are floating around in the memory and only referenced by the queue
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -70,33 +80,7 @@ pub(crate) trait MicrotaskRunnable: JSTraceable + MallocSizeOf {
     fn handler(&self, _cx: &mut JSContext) {}
 }
 
-/// A promise callback scheduled to run during the next microtask checkpoint (#4283).
-#[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct EnqueuedPromiseCallback {
-    #[conditional_malloc_size_of]
-    pub(crate) callback: Rc<PromiseJobCallback>,
-    pub(crate) global: Dom<GlobalScope>,
-    pub(crate) is_user_interacting: bool,
-}
-
-impl MicrotaskRunnable for EnqueuedPromiseCallback {
-    fn handler(&self, cx: &mut JSContext) {
-        let _maybe_user_interacting_guard = if self.is_user_interacting {
-            Some(ScriptThread::user_interacting_guard())
-        } else {
-            None
-        };
-        let mut realm = enter_auto_realm(cx, &*self.global);
-        let cx = &mut realm;
-        let _ = self
-            .callback
-            .Call_(cx, &*self.global, ExceptionHandling::Report);
-    }
-}
-
-/// A microtask that comes from a queueMicrotask() Javascript call,
-/// identical to EnqueuedPromiseCallback once it's on the queue
+/// A microtask that comes from a queueMicrotask() Javascript call
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct UserMicrotask {
@@ -115,13 +99,20 @@ impl MicrotaskRunnable for UserMicrotask {
     }
 }
 
+fn microtask_from_jsval(val: JSVal) -> *mut Box<dyn MicrotaskRunnable> {
+    val.to_private() as *const Box<dyn MicrotaskRunnable> as *mut Box<dyn MicrotaskRunnable>
+}
+
 impl MicrotaskQueue {
     /// Add a new microtask to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
     #[expect(unsafe_code)]
     pub(crate) fn enqueue(&self, cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
-        self.microtask_queue.borrow_mut().push(task);
-        unsafe { JobQueueMayNotBeEmpty(cx) };
+        let task = Box::new(task);
+        let raw = Box::into_raw(task);
+        unsafe {
+            EnqueueMicroTask(cx, &PrivateValue(raw as *const c_void));
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
@@ -138,18 +129,69 @@ impl MicrotaskQueue {
 
         debug!("Now performing a microtask checkpoint");
 
+        rooted!(&in(cx) let mut generic_task: js::jsapi::GenericMicroTask);
+        rooted!(&in(cx) let mut js_micro_task: *mut js::jsapi::JSMicroTask);
+        rooted!(&in(cx) let mut execution_global: *mut js::jsapi::JSObject);
+        rooted!(&in(cx) let mut incumbent_global: *mut js::jsapi::JSObject);
+        rooted!(&in(cx) let mut data: *mut js::jsapi::JSObject);
+
         // Step 3. While the event loop's microtask queue is not empty:
-        while !self.microtask_queue.borrow().is_empty() {
-            rooted_vec!(let mut pending_queue);
-            mem::swap(&mut *pending_queue, &mut *self.microtask_queue.borrow_mut());
+        // based on https://spidermonkey.dev/blog/2026/01/15/job-responsibility.html#running-micro-tasks
+        // and https://searchfox.org/firefox-main/rev/7ae92e67d094086cd3e09918ec94b6278a948535/xpcom/base/CycleCollectedJSContext.cpp#1176
+        // and its helper functions
+        while unsafe { HasAnyMicroTasks(cx) } {
+            unsafe { JS_DequeueNextMicroTask(cx, generic_task.handle_mut()) };
 
-            for (idx, job) in pending_queue.iter().enumerate() {
-                if idx == pending_queue.len() - 1 && self.microtask_queue.borrow().is_empty() {
-                    unsafe { js::rust::wrappers2::JobQueueIsEmpty(cx) };
-                }
-
-                job.handler(cx);
+            // https://searchfox.org/firefox-main/rev/50691777d300fffc7d1f7844b59769109bc76f3e/xpcom/base/CycleCollectedJSContext.cpp#916
+            if !unsafe { IsJSMicroTask(generic_task.as_ptr()) } {
+                rooted!(&in(cx) let task = unsafe {
+                    Box::from_raw(
+                        microtask_from_jsval(*generic_task),
+                    )
+                });
+                task.handler(cx);
+                continue;
             }
+
+            js_micro_task.set(unsafe { ToMaybeWrappedJSMicroTask(generic_task.as_ptr()) });
+            execution_global.set(unsafe { GetExecutionGlobalFromJSMicroTask(js_micro_task.get()) });
+            if !unsafe {
+                MaybeGetHostDefinedDataFromJSMicroTask(
+                    js_micro_task.get(),
+                    incumbent_global.handle_mut(),
+                    data.handle_mut(),
+                )
+            } {
+                continue;
+            }
+
+            let interaction = if let Some(promise) =
+                NonNull::new(unsafe { MaybeGetPromiseFromJSMicroTask(js_micro_task.get()) })
+            {
+                unsafe { GetPromiseUserInputEventHandlingState(promise.as_ptr()) }
+            } else {
+                PromiseUserInputEventHandlingState::DontCare
+            };
+            let _maybe_user_interacting_guard = if interaction ==
+                PromiseUserInputEventHandlingState::HadUserInteractionAtCreation
+            {
+                Some(ScriptThread::user_interacting_guard())
+            } else {
+                None
+            };
+            let global_scope = unsafe { GlobalScope::from_object(execution_global.get()) };
+            run_a_script::<DomTypeHolder, _, _>(cx, &global_scope, |cx| {
+                let mut r = || {
+                    let mut realm = AutoRealm::new_from_handle(cx, execution_global.handle());
+                    let _ = unsafe { RunJSMicroTask(&mut realm, js_micro_task.handle()) };
+                };
+                if incumbent_global.get().is_null() {
+                    r();
+                } else {
+                    let global_scope = unsafe { GlobalScope::from_object(incumbent_global.get()) };
+                    run_a_callback::<DomTypeHolder, _>(&global_scope, r);
+                }
+            });
         }
 
         // Step 4. For each environment settings object settingsObject whose responsible
@@ -177,11 +219,26 @@ impl MicrotaskQueue {
         // TODO: Step 8. Record timing info for microtask checkpoint.
     }
 
-    pub(crate) fn empty(&self) -> bool {
-        self.microtask_queue.borrow().is_empty()
+    #[expect(unsafe_code)]
+    pub(crate) fn clear(&self, cx: &JSContext) {
+        rooted!(&in(cx) let mut generic_task: js::jsapi::GenericMicroTask);
+        while unsafe { HasAnyMicroTasks(cx) } {
+            unsafe { JS_DequeueNextMicroTask(cx, generic_task.handle_mut()) };
+            if !unsafe { IsJSMicroTask(generic_task.as_ptr()) } {
+                let task = unsafe { Box::from_raw(microtask_from_jsval(*generic_task)) };
+                drop(task);
+            }
+        }
     }
+}
 
-    pub(crate) fn clear(&self) {
-        self.microtask_queue.borrow_mut().clear();
-    }
+#[expect(unsafe_code)]
+pub(crate) unsafe extern "C" fn trace_non_gc_things_micro_task(
+    trc: *mut JSTracer,
+    val: *mut JSVal,
+) {
+    wrap_panic(&mut || {
+        let task = microtask_from_jsval(unsafe { *val });
+        unsafe { (**task).trace(trc) };
+    })
 }

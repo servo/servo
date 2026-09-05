@@ -14,7 +14,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::IDBObjectStoreBinding::IDBIndexParameters;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use script_bindings::error::ErrorResult;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{
     self, AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, AsyncSchemaOperation,
@@ -171,7 +171,8 @@ impl IDBObjectStore {
         abort_state: IDBObjectStoreAbortState,
         transaction: &IDBTransaction,
     ) -> DomRoot<IDBObjectStore> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(IDBObjectStore::new_inherited(
                 db_name,
                 name,
@@ -180,7 +181,6 @@ impl IDBObjectStore {
                 transaction,
             )),
             global,
-            cx,
         )
     }
 
@@ -958,8 +958,8 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-keypath>
     fn KeyPath(&self, cx: &mut JSContext, mut ret_val: MutableHandleValue) {
         match &self.key_path {
-            Some(KeyPath::String(path)) => path.safe_to_jsval(cx, ret_val),
-            Some(KeyPath::StringSequence(paths)) => paths.safe_to_jsval(cx, ret_val),
+            Some(KeyPath::String(path)) => path.to_jsval(cx, ret_val),
+            Some(KeyPath::StringSequence(paths)) => paths.to_jsval(cx, ret_val),
             None => ret_val.set(NullValue()),
         }
     }

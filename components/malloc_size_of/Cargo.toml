@@ -23,7 +23,7 @@ data-url = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true }
-icu_locid = { workspace = true }
+icu_locale_core = { workspace = true }
 indexmap = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
@@ -52,3 +52,6 @@ vello_cpu = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 wr_malloc_size_of = { workspace = true }
+
+[lints]
+workspace = true

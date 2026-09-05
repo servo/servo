@@ -2192,24 +2192,24 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
         match parameter {
             constants::ARRAY_BUFFER_BINDING => {
-                self.bound_buffer_array.get().safe_to_jsval(cx, retval);
+                self.bound_buffer_array.get().to_jsval(cx, retval);
                 return;
             },
             constants::CURRENT_PROGRAM => {
-                self.current_program.get().safe_to_jsval(cx, retval);
+                self.current_program.get().to_jsval(cx, retval);
                 return;
             },
             constants::ELEMENT_ARRAY_BUFFER_BINDING => {
                 let buffer = self.current_vao(cx).element_array_buffer().get();
-                buffer.safe_to_jsval(cx, retval);
+                buffer.to_jsval(cx, retval);
                 return;
             },
             constants::FRAMEBUFFER_BINDING => {
-                self.bound_draw_framebuffer.get().safe_to_jsval(cx, retval);
+                self.bound_draw_framebuffer.get().to_jsval(cx, retval);
                 return;
             },
             constants::RENDERBUFFER_BINDING => {
-                self.bound_renderbuffer.get().safe_to_jsval(cx, retval);
+                self.bound_renderbuffer.get().to_jsval(cx, retval);
                 return;
             },
             constants::TEXTURE_BINDING_2D => {
@@ -2218,7 +2218,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
                     .unwrap()
                     .get();
-                texture.safe_to_jsval(cx, retval);
+                texture.to_jsval(cx, retval);
                 return;
             },
             WebGL2RenderingContextConstants::TEXTURE_BINDING_2D_ARRAY => {
@@ -2230,7 +2230,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     )
                     .unwrap()
                     .get();
-                texture.safe_to_jsval(cx, retval);
+                texture.to_jsval(cx, retval);
                 return;
             },
             WebGL2RenderingContextConstants::TEXTURE_BINDING_3D => {
@@ -2242,7 +2242,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     )
                     .unwrap()
                     .get();
-                texture.safe_to_jsval(cx, retval);
+                texture.to_jsval(cx, retval);
                 return;
             },
             constants::TEXTURE_BINDING_CUBE_MAP => {
@@ -2251,12 +2251,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                     .active_texture_slot(constants::TEXTURE_CUBE_MAP, self.webgl_version())
                     .unwrap()
                     .get();
-                texture.safe_to_jsval(cx, retval);
+                texture.to_jsval(cx, retval);
                 return;
             },
             OESVertexArrayObjectConstants::VERTEX_ARRAY_BINDING_OES => {
                 let vao = self.current_vao.get().filter(|vao| vao.id().is_some());
-                vao.safe_to_jsval(cx, retval);
+                vao.to_jsval(cx, retval);
                 return;
             },
             // In readPixels we currently support RGBA/UBYTE only.  If
@@ -2286,15 +2286,15 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 return retval.set(ObjectValue(rval.get()));
             },
             constants::VERSION => {
-                "WebGL 1.0".safe_to_jsval(cx, retval);
+                "WebGL 1.0".to_jsval(cx, retval);
                 return;
             },
             constants::RENDERER | constants::VENDOR => {
-                "Mozilla/Servo".safe_to_jsval(cx, retval);
+                "Mozilla/Servo".to_jsval(cx, retval);
                 return;
             },
             constants::SHADING_LANGUAGE_VERSION => {
-                "WebGL GLSL ES 1.0".safe_to_jsval(cx, retval);
+                "WebGL GLSL ES 1.0".to_jsval(cx, retval);
                 return;
             },
             constants::UNPACK_FLIP_Y_WEBGL => {
@@ -2375,7 +2375,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             Parameter::Bool4(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterBool4(param, sender));
-                receiver.recv().unwrap().safe_to_jsval(cx, retval);
+                receiver.recv().unwrap().to_jsval(cx, retval);
             },
             Parameter::Int(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
@@ -3441,11 +3441,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             if let Some(webgl_attachment) = fb.attachment(attachment) {
                 match webgl_attachment {
                     WebGLFramebufferAttachmentRoot::Renderbuffer(rb) => {
-                        rb.safe_to_jsval(cx, retval);
+                        rb.to_jsval(cx, retval);
                         return;
                     },
                     WebGLFramebufferAttachmentRoot::Texture(texture) => {
-                        texture.safe_to_jsval(cx, retval);
+                        texture.to_jsval(cx, retval);
                         return;
                     },
                 }
@@ -3724,7 +3724,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 constants::VERTEX_ATTRIB_ARRAY_STRIDE => retval.set(Int32Value(data.stride as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => {
                     if let Some(buffer) = data.buffer() {
-                        buffer.safe_to_jsval(cx, retval.reborrow());
+                        buffer.to_jsval(cx, retval.reborrow());
                     } else {
                         retval.set(NullValue());
                     }
@@ -4348,13 +4348,13 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 WebGLCommand::GetUniformBool,
             ))),
             constants::BOOL_VEC2 => {
-                uniform_get(triple, WebGLCommand::GetUniformBool2).safe_to_jsval(cx, rval)
+                uniform_get(triple, WebGLCommand::GetUniformBool2).to_jsval(cx, rval)
             },
             constants::BOOL_VEC3 => {
-                uniform_get(triple, WebGLCommand::GetUniformBool3).safe_to_jsval(cx, rval)
+                uniform_get(triple, WebGLCommand::GetUniformBool3).to_jsval(cx, rval)
             },
             constants::BOOL_VEC4 => {
-                uniform_get(triple, WebGLCommand::GetUniformBool4).safe_to_jsval(cx, rval)
+                uniform_get(triple, WebGLCommand::GetUniformBool4).to_jsval(cx, rval)
             },
             constants::INT |
             constants::SAMPLER_2D |

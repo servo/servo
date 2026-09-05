@@ -10,6 +10,7 @@ use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFrom};
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::NodeTraits;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -22,6 +23,10 @@ pub(crate) struct ImageInputType {
 pub(crate) struct ImageInputActivation;
 
 impl SpecificInputType for ImageInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
         self.text_value_widget
             .borrow()

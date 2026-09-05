@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<title>This test validates the response status of resources for no-CORS Requests.</title>
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/entry-invariants.js"></script>
+<script src="resources/resource-loaders.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+const {REMOTE_ORIGIN} = get_host_info();
+const status_codes = [
+  200, 203,
+  400, 401, 403, 404,
+  500, 501, 502, 503,
+];
+
+// Response status is 0 when a no-cors request is made for cross origin
+// fonts, images, scripts, stylesheets.
+// Response status is 0 when request's mode is "navigate" and response's
+// URL's origin is not same origin with request's origin. So response
+// status is not exposed for cross origin iframes.
+for(const loader of [
+  load.font,
+  load.image,
+  load.script,
+  load.stylesheet,
+  load.iframe,
+  load.image_object,
+  load.frame_object,
+  load.null_object
+]) {
+  for(const tao of [false, true]) {
+    for(const status of status_codes) {
+      let path = (loader == load.font) ? '/fonts/pass.woff' :
+                                         '/resource-timing/resources/empty.js';
+      path += `?pipe=status(${status})`;
+      if (tao) {
+        path += `|header(timing-allow-origin, *)`;
+      }
+      attribute_test(
+        loader, new URL(path, REMOTE_ORIGIN),
+        entry => {
+          assert_equals(entry.responseStatus, 0,
+            `response status for ${entry.name} should be 0`);
+        }
+      );
+    }
+  }
+}
+</script>
+</body>
+</html>

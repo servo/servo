@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use script_bindings::cell::DomRefCell;
@@ -210,7 +210,7 @@ impl HTMLStyleElement {
 
         // Finally, update our stylesheet, regardless of which scenario we ran into
         self.clean_stylesheet_ownership();
-        self.set_stylesheet(sheet, cache_key);
+        self.set_stylesheet(cx.no_gc(), sheet, cache_key);
     }
 
     // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
@@ -219,23 +219,24 @@ impl HTMLStyleElement {
     // this function has a bit difference with `HTMLLinkElement::set_stylesheet` now.
     pub(crate) fn set_stylesheet(
         &self,
-        s: Arc<Stylesheet>,
+        no_gc: &NoGC,
+        stylesheet: Arc<Stylesheet>,
         cache_key: Option<StylesheetContentsCacheKey>,
     ) {
-        *self.stylesheet.borrow_mut() = Some(s.clone());
+        *self.stylesheet.borrow_mut() = Some(stylesheet.clone());
         *self.stylesheetcontents_cache_key.borrow_mut() = cache_key;
         self.stylesheet_list_owner()
-            .add_owned_stylesheet(self.upcast(), s);
+            .add_owned_stylesheet(no_gc, self.upcast(), stylesheet);
     }
 
-    pub(crate) fn will_modify_stylesheet(&self) {
+    pub(crate) fn will_modify_stylesheet(&self, no_gc: &NoGC) {
         if let Some(stylesheet_with_owned_contents) = self.create_owned_contents_stylesheet() {
             self.remove_stylesheet();
             if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
                 let guard = stylesheet_with_owned_contents.shared_lock.read();
                 cssom_stylesheet.update_style_stylesheet(&stylesheet_with_owned_contents, &guard);
             }
-            self.set_stylesheet(stylesheet_with_owned_contents, None);
+            self.set_stylesheet(no_gc, stylesheet_with_owned_contents, None);
         }
     }
 

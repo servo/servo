@@ -21,6 +21,7 @@
     --some-other-url: attr(data-foo);
     --image-set-valid:  url("https://does-not-exist.test/404.png") type(attr(data-foo));
     --image-set-invalid: attr(data-foo type(<url>)) 1x;
+    --url-after-gradients: linear-gradient(black, white), linear-gradient(black, white), image-set(attr(data-foo));
   }
 </style>
 
@@ -219,6 +220,20 @@
               'none');
     test_attr('background-image',
               `image-set(var(--image-set-invalid))`,
+              url,
+              'none');
+
+    // Verify attr()-tainting is relative to the substituted value.
+    test_attr('background-image',
+              `attr(data-foo type(*))`,
+              `linear-gradient(black, white), url(${url})`,
+              'none');
+    test_attr('background-image',
+              `var(--url-after-gradients)`,
+              url,
+              'none');
+    test_attr('background-image',
+              `var(--undefined, var(--url-after-gradients))`,
               url,
               'none');
 </script>

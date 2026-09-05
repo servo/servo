@@ -71,6 +71,17 @@
   </div>
 </div>
 
+<div style="display: flex; flex-direction: column; width: 100px">
+  <div class="item" style="display: flex; flex: 1 1 0%; flex-direction: row; background: red;"
+       data-expected-width="100" data-expected-height="100">
+    <div class="item" style="flex: 1 1 0%; aspect-ratio: 1 / 1; background: red; position: relative;"
+                      data-expected-width="100" data-expected-height="100">
+      <div class="item" style="position: absolute; inset: 0; background:
+                  green"></div>
+    </div>
+  </div>
+</div>
+
 <div id="log"></div>
 
 <script src="/resources/testharness.js"></script>

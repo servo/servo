@@ -446,7 +446,6 @@ pub(crate) struct Window {
     user_scripts: Rc<Vec<UserScript>>,
 
     /// Window's GL context from application
-    #[ignore_malloc_size_of = "defined in script_thread"]
     #[no_trace]
     player_context: WindowGLContext,
 
@@ -2290,7 +2289,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://dom.spec.whatwg.org/#dom-window-event>
     fn Event(&self, cx: &mut JSContext, rval: MutableHandleValue) {
         if let Some(ref event) = *self.current_event.borrow() {
-            event.reflector().get_jsobject().safe_to_jsval(cx, rval);
+            event.reflector().get_jsobject().to_jsval(cx, rval);
         }
     }
 

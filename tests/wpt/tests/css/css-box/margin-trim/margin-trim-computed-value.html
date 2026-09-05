@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>margin-trim: trimmed margins are still reported as the used value</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim">
+<meta name="assert" content="margin-trim discards margins for layout, just like margin collapsing does, but it does not change the resolved value of the margin properties.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+container {
+    display: block;
+    inline-size: 200px;
+    border: 1px solid blue;
+}
+container.collapsing {
+    border: none;
+}
+item {
+    display: block;
+    block-size: 25px;
+    background-color: green;
+}
+wrapper {
+    display: block;
+}
+self-collapsing {
+    display: block;
+    block-size: 0px;
+    margin-block: 14px;
+}
+.vertical {
+    writing-mode: vertical-lr;
+}
+</style>
+</head>
+<body>
+<container style="margin-trim: block-start">
+    <item id="trimmed-block-start" style="margin-block-start: 20px"></item>
+    <item></item>
+</container>
+
+<container id="trimmed-block-end-container" style="margin-trim: block-end">
+    <item></item>
+    <item id="trimmed-block-end" style="margin-block-end: 20px"></item>
+</container>
+
+<container style="margin-trim: block-start">
+    <item id="trimmed-percentage-block-start" style="margin-block-start: 10%"></item>
+    <item></item>
+</container>
+
+<container id="collapsed-through-container" style="margin-trim: block-start">
+    <wrapper>
+        <item id="trimmed-collapsed-through" style="margin-block-start: 20px"></item>
+    </wrapper>
+    <item></item>
+</container>
+
+<container id="self-collapsing-container" style="margin-trim: block-end; border: none; border-block-start: 1px solid blue">
+    <item></item>
+    <self-collapsing id="trimmed-self-collapsing"></self-collapsing>
+</container>
+
+<container class="vertical" style="margin-trim: block-start">
+    <item id="trimmed-block-start-vertical" style="margin-block-start: 20px"></item>
+    <item></item>
+</container>
+
+<container class="collapsing" id="collapsing-container">
+    <item id="collapsed-block-start" style="margin-block-start: 20px"></item>
+    <item></item>
+</container>
+
+<container id="self-collapsing-block-end-border-container" style="margin-trim: block-end">
+    <item></item>
+    <self-collapsing id="trimmed-self-collapsing-block-end-border"></self-collapsing>
+</container>
+
+<container id="collapsed-through-block-end-container" style="margin-trim: block-end">
+    <item></item>
+    <wrapper>
+        <item id="trimmed-collapsed-through-block-end" style="margin-block-end: 20px"></item>
+    </wrapper>
+</container>
+
+<script>
+function blockStartOffset(element) {
+    const container = element.closest("container");
+    return element.getBoundingClientRect().top - container.getBoundingClientRect().top;
+}
+
+test(() => {
+    const target = document.getElementById("trimmed-block-start");
+    assert_equals(getComputedStyle(target).marginTop, "20px", "resolved value");
+    assert_equals(blockStartOffset(target), 1, "margin is trimmed for layout");
+}, "block-start margin of a trimmed first child is still the used value");
+
+test(() => {
+    const target = document.getElementById("trimmed-block-end");
+    assert_equals(getComputedStyle(target).marginBottom, "20px", "resolved value");
+    assert_equals(document.getElementById("trimmed-block-end-container").offsetHeight, 52, "margin is trimmed for layout");
+}, "block-end margin of a trimmed last child is still the used value");
+
+test(() => {
+    const target = document.getElementById("trimmed-percentage-block-start");
+    assert_equals(getComputedStyle(target).marginTop, "20px", "resolved value");
+    assert_equals(blockStartOffset(target), 1, "margin is trimmed for layout");
+}, "percentage block-start margin of a trimmed first child resolves against the containing block");
+
+test(() => {
+    const target = document.getElementById("trimmed-collapsed-through");
+    assert_equals(getComputedStyle(target).marginTop, "20px", "resolved value");
+    assert_equals(blockStartOffset(target), 1, "margin is trimmed for layout");
+}, "block-start margin that collapses through to a trimmed edge is still the used value");
+
+test(() => {
+    const target = document.getElementById("trimmed-self-collapsing");
+    assert_equals(getComputedStyle(target).marginTop, "14px", "resolved block-start value");
+    assert_equals(getComputedStyle(target).marginBottom, "14px", "resolved block-end value");
+    assert_equals(blockStartOffset(target), 26, "margins are trimmed for layout");
+    assert_equals(document.getElementById("self-collapsing-container").offsetHeight, 26, "margins are trimmed for layout");
+}, "both margins of a trimmed self-collapsing last child are still the used values");
+
+test(() => {
+    const target = document.getElementById("trimmed-block-start-vertical");
+    const container = target.closest("container");
+    assert_equals(getComputedStyle(target).marginLeft, "20px", "resolved value");
+    assert_equals(target.getBoundingClientRect().left - container.getBoundingClientRect().left, 1, "margin is trimmed for layout");
+}, "block-start margin of a trimmed first child in vertical-lr is still the used value");
+
+test(() => {
+    const target = document.getElementById("collapsed-block-start");
+    assert_equals(getComputedStyle(target).marginTop, "20px", "resolved value");
+    assert_equals(blockStartOffset(target), 0, "margin is collapsed with the container");
+}, "collapsed block-start margin is still the used value");
+
+test(() => {
+    const target = document.getElementById("trimmed-self-collapsing-block-end-border");
+    assert_equals(getComputedStyle(target).marginTop, "14px", "resolved block-start value");
+    assert_equals(getComputedStyle(target).marginBottom, "14px", "resolved block-end value");
+    assert_equals(blockStartOffset(target), 26, "margins are trimmed for layout");
+    assert_equals(document.getElementById("self-collapsing-block-end-border-container").offsetHeight, 27, "trimmed margins do not contribute to the container's block size");
+}, "trimmed margins of a self-collapsing last child do not grow a container that cannot collapse with its children");
+
+test(() => {
+    const target = document.getElementById("trimmed-collapsed-through-block-end");
+    assert_equals(getComputedStyle(target).marginBottom, "20px", "resolved value");
+    assert_equals(blockStartOffset(target), 26, "the nested block is placed after the first item");
+    assert_equals(document.getElementById("collapsed-through-block-end-container").offsetHeight, 52, "trimmed margin does not contribute to the container's block size");
+}, "block-end margin that collapses through to a trimmed edge is still the used value");
+</script>
+</body>
+</html>

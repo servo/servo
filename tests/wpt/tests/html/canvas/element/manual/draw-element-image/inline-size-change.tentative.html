@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>drawElementImage after inline size change</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="inline-size-change-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #canvas {
+    background: #ccc;
+  }
+  #child {
+    width: 200px;
+    height: 200px;
+  }
+  #inline {
+    font: 50px/1 Ahem;
+    color: green;
+  }
+</style>
+
+<canvas id="canvas" width="300" height="200" layoutsubtree>
+  <div id="child">
+    <span id="inline" drawable>X</span>
+  </div>
+</canvas>
+
+<script>
+  onload = async () => {
+    await document.fonts.ready;
+    await waitForCanvasPaint(canvas);
+    inline.textContent = 'XX';
+    await waitForCanvasPaint(canvas);
+    canvas.getContext('2d').drawElementImage(inline, 50, 50);
+    takeScreenshot();
+  };
+</script>
+</html>

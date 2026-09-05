@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>Custom Functions: name scoping in parameter defaults</title>
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#evaluate-a-custom-function">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<style>
+  @property --actual { syntax: "<length>"; inherits: false; initial-value: -1px; }
+  @property --expected { syntax: "<length>"; inherits: false; initial-value: -1px; }
+</style>
+
+<div id=parent>
+  <div id=target></div>
+</div>
+<div id=main></div>
+
+<!-- To pass, a test must produce matching computed values for --actual and
+     --expected on #target.
+
+     A parameter shadows the calling element's custom property of the same name,
+     whether or not it has been resolved yet, so a default can reference an
+     earlier parameter but never sees the calling element's value of a later one.
+     https://drafts.csswg.org/css-mixins-1/#evaluating-custom-functions -->
+
+<template data-name="Default referencing an earlier parameter">
+  <style>
+    @function --f(--a <length>, --b <length>: var(--a)) returns <length> {
+      result: var(--b);
+    }
+    #target {
+      --actual: --f(6px);
+      --expected: 6px;
+    }
+  </style>
+</template>
+
+<template data-name="Default referencing a later parameter is guaranteed-invalid">
+  <style>
+    @function --f(--a <length>: var(--b), --b <length>: 3px) returns <length> {
+      result: var(--a);
+    }
+    #target {
+      --actual: --f();
+      --expected: -1px;
+    }
+  </style>
+</template>
+
+<template data-name="Default referencing a later parameter does not see the calling element">
+  <style>
+    @function --f(--a <length>: var(--b), --b <length>: 3px) returns <length> {
+      result: var(--a);
+    }
+    #target {
+      --b: 99px;
+      --actual: --f();
+      --expected: -1px;
+    }
+  </style>
+</template>
+
+<template data-name="Default referencing itself does not see the calling element">
+  <style>
+    @function --f(--a <length>: var(--a)) returns <length> {
+      result: var(--a);
+    }
+    #target {
+      --a: 99px;
+      --actual: --f();
+      --expected: -1px;
+    }
+  </style>
+</template>
+
+<script>
+  test_all_templates();
+</script>

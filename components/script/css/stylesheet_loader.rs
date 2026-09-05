@@ -303,7 +303,7 @@ impl StylesheetContext {
                 //
                 // Note that even in the failure case, we should create an empty stylesheet.
                 // That's why `set_stylesheet` also removes the previous stylesheet
-                link.set_stylesheet(stylesheet);
+                link.set_stylesheet(cx.no_gc(), stylesheet);
             },
             StylesheetContextSource::Import(import_rule) => {
                 let mut guard = document.style_shared_author_lock().write();
@@ -555,7 +555,7 @@ impl ElementStylesheetLoader<'_> {
         .referrer_policy(referrer_policy)
         .integrity_metadata(integrity_metadata);
 
-        document.fetch(LoadType::Stylesheet(url), request, context);
+        document.fetch_blocking(LoadType::Stylesheet(url), request, context);
     }
 
     fn parse(

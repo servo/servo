@@ -41,6 +41,14 @@ function touch(element) {
     .send();
 }
 
+function rightClick(element) {
+  const actions = new test_driver.Actions();
+  return actions.pointerMove(1, 1, {origin: element})
+    .pointerDown({button: actions.ButtonType.RIGHT})
+    .pointerUp({button: actions.ButtonType.RIGHT})
+    .send();
+}
+
 for (const id of ['fallbackbutton', 'custombutton']) {
   const select = document.getElementById(id);
   const optionOne = select.querySelector('option.one');
@@ -60,6 +68,15 @@ for (const id of ['fallbackbutton', 'custombutton']) {
     assert_false(select.matches(':open'),
       'Select should be closed after clicking the button a second time.');
   }, `${id}: Select with appearance:base-select should open and close when clicking the button.`);
+
+  promise_test(async () => {
+    assert_false(select.matches(':open'),
+      'Select should be closed at the start of the test.');
+
+    await rightClick(select);
+    assert_false(select.matches(':open'),
+      'Select should remain closed after right clicking the button.');
+  }, `${id}: Right clicking the button should not open the picker.`);
 
   promise_test(async () => {
     assert_false(select.matches(':open'),

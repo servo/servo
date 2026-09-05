@@ -13,7 +13,7 @@ use backtrace::Backtrace;
 use embedder_traits::JavaScriptErrorInfo;
 use js::context::JSContext;
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
-use js::error::{throw_range_error_safe, throw_type_error_safe};
+use js::error::{throw_range_error, throw_type_error};
 use js::gc::{HandleObject, HandleValue, MutableHandleValue};
 use js::jsapi::ExceptionStackBehavior;
 #[cfg(feature = "js_backtrace")]
@@ -24,7 +24,7 @@ use js::rust::wrappers2::{
     JS_ClearPendingException, JS_ErrorFromException, JS_GetPendingException, JS_GetProperty,
     JS_IsExceptionPending, JS_SetPendingException,
 };
-use js::rust::{describe_scripted_caller_safe, error_info_from_exception_stack_safe};
+use js::rust::{describe_scripted_caller, error_info_from_exception_stack};
 use libc::c_uint;
 #[cfg(feature = "js_backtrace")]
 use script_bindings::cell::DomRefCell;
@@ -73,18 +73,18 @@ pub(crate) fn throw_dom_exception(cx: &mut JSContext, global: &GlobalScope, resu
         Ok(exception) => unsafe {
             assert!(!JS_IsExceptionPending(cx));
             rooted!(&in(cx) let mut thrown = UndefinedValue());
-            exception.safe_to_jsval(cx, thrown.handle_mut());
+            exception.to_jsval(cx, thrown.handle_mut());
             JS_SetPendingException(cx, thrown.handle(), ExceptionStackBehavior::Capture);
         },
 
         Err(JsEngineError::Type(message)) => unsafe {
             assert!(!JS_IsExceptionPending(cx));
-            throw_type_error_safe(cx, &message);
+            throw_type_error(cx, &message);
         },
 
         Err(JsEngineError::Range(message)) => unsafe {
             assert!(!JS_IsExceptionPending(cx));
-            throw_range_error_safe(cx, &message);
+            throw_range_error(cx, &message);
         },
 
         Err(JsEngineError::JSFailed) => unsafe {
@@ -254,48 +254,50 @@ pub(crate) struct ErrorInfo {
 }
 
 impl ErrorInfo {
-    fn from_native_error(cx: &mut JSContext, object: HandleObject) -> Option<ErrorInfo> {
-        let report = unsafe { JS_ErrorFromException(cx, object) };
-        if report.is_null() {
-            return None;
-        }
-
-        let filename = {
-            let filename = unsafe { (*report)._base.filename.data_ as *const u8 };
-            if !filename.is_null() {
-                let filename = unsafe {
-                    let length = (0..).find(|idx| *filename.offset(*idx) == 0).unwrap();
-                    from_raw_parts(filename, length as usize)
-                };
-                String::from_utf8_lossy(filename).into_owned()
-            } else {
-                "none".to_string()
+    fn from_native_error(cx: &JSContext, object: HandleObject) -> Option<ErrorInfo> {
+        js::rust::borrowed_error_report(cx, |cx, report| {
+            let success = unsafe { JS_ErrorFromException(cx, object, report) };
+            if !success {
+                return None;
             }
-        };
-
-        let lineno = unsafe { (*report)._base.lineno };
-        let column = unsafe { (*report)._base.column._base };
-
-        let message = {
-            let message = unsafe { (*report)._base.message_.data_ as *const u8 };
-            let message = unsafe {
-                let length = (0..).find(|idx| *message.offset(*idx) == 0).unwrap();
-                from_raw_parts(message, length as usize)
+            let report = report.report_;
+            let filename = {
+                let filename = unsafe { (*report)._base.filename.data_ as *const u8 };
+                if !filename.is_null() {
+                    let filename = unsafe {
+                        let length = (0..).find(|idx| *filename.offset(*idx) == 0).unwrap();
+                        from_raw_parts(filename, length as usize)
+                    };
+                    String::from_utf8_lossy(filename).into_owned()
+                } else {
+                    "none".to_string()
+                }
             };
-            String::from_utf8_lossy(message).into_owned()
-        };
 
-        Some(ErrorInfo {
-            filename,
-            message,
-            lineno,
-            column,
+            let lineno = unsafe { (*report)._base.lineno };
+            let column = unsafe { (*report)._base.column._base };
+
+            let message = {
+                let message = unsafe { (*report)._base.message_.data_ as *const u8 };
+                let message = unsafe {
+                    let length = (0..).find(|idx| *message.offset(*idx) == 0).unwrap();
+                    from_raw_parts(message, length as usize)
+                };
+                String::from_utf8_lossy(message).into_owned()
+            };
+
+            Some(ErrorInfo {
+                filename,
+                message,
+                lineno,
+                column,
+            })
         })
     }
 
     fn from_dom_exception(cx: &mut JSContext, object: HandleObject) -> Option<ErrorInfo> {
         let exception = root_from_handleobject::<DOMException>(cx, object).ok()?;
-        let scripted_caller = describe_scripted_caller_safe(cx).unwrap_or_default();
+        let scripted_caller = describe_scripted_caller(cx).unwrap_or_default();
         Some(ErrorInfo {
             message: exception.stringifier().into(),
             filename: scripted_caller.filename,
@@ -323,9 +325,9 @@ impl ErrorInfo {
             }
         }
 
-        match USVString::safe_from_jsval(cx, value, ()) {
+        match USVString::from_jsval(cx, value, ()) {
             Ok(ConversionResult::Success(USVString(string))) => {
-                let scripted_caller = describe_scripted_caller_safe(cx).unwrap_or_default();
+                let scripted_caller = describe_scripted_caller(cx).unwrap_or_default();
                 ErrorInfo {
                     message: format!("uncaught exception: {}", string),
                     filename: scripted_caller.filename,
@@ -356,7 +358,7 @@ fn error_info_from_pending_exception(
         return None;
     }
 
-    let error_info = error_info_from_exception_stack_safe(cx, value)?;
+    let error_info = error_info_from_exception_stack(cx, value)?;
 
     Some(ErrorInfo {
         message: error_info.message,

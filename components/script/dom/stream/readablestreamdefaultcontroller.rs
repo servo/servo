@@ -16,7 +16,7 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, MutableHandleValue};
 use js::typedarray::Uint8;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -157,9 +157,9 @@ impl EnqueuedValue {
                 rooted!(&in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
                 create_buffer_source::<Uint8>(cx, chunk, array_buffer_ptr.handle_mut())
                     .expect("failed to create buffer source for native chunk.");
-                array_buffer_ptr.safe_to_jsval(cx, rval);
+                array_buffer_ptr.to_jsval(cx, rval);
             },
-            EnqueuedValue::Js(value_with_size) => value_with_size.value.safe_to_jsval(cx, rval),
+            EnqueuedValue::Js(value_with_size) => value_with_size.value.to_jsval(cx, rval),
             EnqueuedValue::CloseSentinel => {
                 unreachable!("The close sentinel is never made available as a js val.")
             },
@@ -357,14 +357,14 @@ impl ReadableStreamDefaultController {
         strategy_size: Rc<QueuingStrategySize>,
     ) -> DomRoot<ReadableStreamDefaultController> {
         let underlying_source = UnderlyingSourceContainer::new(cx, global, underlying_source);
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ReadableStreamDefaultController::new_inherited(
                 strategy_hwm,
                 strategy_size,
                 &underlying_source,
             )),
             global,
-            cx,
         )
     }
 

@@ -17,7 +17,7 @@ use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
-use js::rust::describe_scripted_caller_safe;
+use js::rust::describe_scripted_caller;
 use log::warn;
 use servo_constellation_traits::{LoadData, LoadOrigin};
 use url::Url;
@@ -382,7 +382,7 @@ pub(crate) trait GlobalCspReporting {
 }
 
 fn compute_scripted_caller_source_position(cx: &mut JSContext) -> SourcePosition {
-    match describe_scripted_caller_safe(cx) {
+    match describe_scripted_caller(cx) {
         Ok(scripted_caller) => SourcePosition {
             source_file: scripted_caller.filename,
             line_number: scripted_caller.line,

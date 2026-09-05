@@ -11,8 +11,9 @@
 //! IFC text and vice-versa.
 
 use arrayvec::ArrayVec;
-use icu_properties::GeneralCategoryGroup;
+use icu_properties::props::{EnumeratedProperty, GeneralCategory, GeneralCategoryGroup};
 use icu_segmenter::WordSegmenter;
+use icu_segmenter::options::WordBreakInvariantOptions;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_base::text::Utf32CodeUnits;
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
@@ -359,7 +360,7 @@ fn simple_case_transform_iterator(
 /// > Appendix E: Characters and Properties for how to determine the Unicode properties of a
 /// > typographic character unit.
 fn is_typographic_letter_unit(character: char) -> bool {
-    let category = icu_properties::maps::general_category().get(character);
+    let category = GeneralCategory::for_char(character);
     GeneralCategoryGroup::Letter.contains(category) ||
         GeneralCategoryGroup::Number.contains(category)
 }
@@ -379,7 +380,7 @@ pub(crate) fn capitalization_iterator(
         string.extend(iteration.characters());
     }
 
-    let word_segmenter = WordSegmenter::new_auto();
+    let word_segmenter = WordSegmenter::new_auto(WordBreakInvariantOptions::default());
     let mut bounds = word_segmenter.segment_str(&string).peekable();
     let mut current_byte_index = 0;
     let mut pending_word_start = false;

@@ -1174,14 +1174,14 @@ impl WorkerGlobalScope {
         rooted!(&in(cx) let mut wrapped_global: Value);
         debugger_global
             .reflector()
-            .safe_to_jsval(cx, wrapped_global.handle_mut());
+            .to_jsval(cx, wrapped_global.handle_mut());
         self.debugger_global.set(*wrapped_global);
     }
 
     pub(crate) fn handle_devtools_message(&self, msg: DevtoolScriptControlMsg, cx: &mut JSContext) {
         match msg {
             DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _wants_updates) => {},
-            DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
+            DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, eager, reply) => {
                 let debugger_global_handle = rooted_heap_handle(self, |this| &this.debugger_global);
                 let debugger_global =
                     root_from_handlevalue::<DebuggerGlobalScope>(cx, debugger_global_handle)
@@ -1193,6 +1193,7 @@ impl WorkerGlobalScope {
                     id,
                     Some(self.worker_id()),
                     frame_actor_id,
+                    eager,
                     reply,
                 );
             },

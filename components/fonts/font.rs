@@ -16,7 +16,8 @@ use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
 use font_types::NameId;
 use fonts_traits::FontDescriptor;
-use icu_locid::subtags::Language;
+use icu_locale_core::subtags::Language;
+use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
@@ -204,7 +205,7 @@ pub(crate) trait FontTableMethods {
     fn buffer(&self) -> &[u8];
     fn parse_as_specific_table<'a, Table>(&'a self) -> Result<Table, ReadError>
     where
-        Table: FontRead<'a>,
+        Table: FontRead<'a, Args = ()>,
     {
         Table::read(read_fonts::FontData::new(self.buffer()))
     }
@@ -485,10 +486,8 @@ impl ShapingOptions {
         // https://drafts.csswg.org/css-text/#letter-spacing-property
         // Letter spacing ignores invisible zero-width formatting characters (such as those from the Unicode Cf category).
         // Spacing must be added as if those characters did not exist in the document.
-        self.letter_spacing.filter(|_| {
-            icu_properties::maps::general_category().get(character) !=
-                icu_properties::GeneralCategory::Format
-        })
+        self.letter_spacing
+            .filter(|_| GeneralCategory::for_char(character) != GeneralCategory::Format)
     }
 }
 

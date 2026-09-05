@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use embedder_traits::InputMethodType;
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::domstring::DOMString;
 use script_bindings::root::DomRoot;
@@ -56,6 +57,7 @@ use crate::dom::html::form_controls::input_type::time_input_type::TimeInputType;
 use crate::dom::html::form_controls::input_type::url_input_type::UrlInputType;
 use crate::dom::html::form_controls::input_type::week_input_type::WeekInputType;
 use crate::dom::htmlformelement::HTMLFormElement;
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{BindContext, UnbindContext};
 
 pub(crate) mod button_input_type;
@@ -362,6 +364,8 @@ impl TryFrom<&InputType> for InputMethodType {
 
 pub(crate) trait SpecificInputType {
     fn sanitize_value(&self, _input: &HTMLInputElement, _value: &mut DOMString) {}
+
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>>;
 
     fn convert_string_to_number(&self, _value: &str) -> Option<f64> {
         None

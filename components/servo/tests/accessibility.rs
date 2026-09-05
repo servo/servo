@@ -5,6 +5,7 @@
 //! WebView API unit tests.
 mod common;
 
+use std::cell::Cell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
@@ -12,8 +13,8 @@ use accesskit::{NodeId, Rect, Role, TreeId, TreeUpdate};
 use accesskit_consumer::TreeChangeHandler;
 use euclid::Scale;
 use servo::{
-    DiagnosticsLoggingOption, LoadStatus, Opts, Preferences, Scroll, WebViewBuilder, WebViewPoint,
-    WebViewVector,
+    DiagnosticsLoggingOption, LoadStatus, Opts, Preferences, Scroll, WebView, WebViewBuilder,
+    WebViewPoint, WebViewVector,
 };
 use url::Url;
 use webrender_api::units::{DevicePoint, DeviceVector2D};
@@ -837,24 +838,15 @@ fn test_accessibility_bounds_updated_after_renderer_scroll() {
     );
 
     let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    let expected = Rect::new(-10.0, 60.0, 90.0, 110.0);
-    let updated_bounds = updates
-        .iter()
-        .flat_map(|update| update.nodes.iter())
-        .filter(|(id, _)| *id == main_id)
-        .filter_map(|(_, node)| node.bounds())
-        .next_back()
-        .expect("The main element should have been re-sent with new bounds");
-    assert_rect_eq(updated_bounds, expected);
-
     for update in updates {
         tree.update_and_process_changes(update, &mut NoOpChangeHandler);
     }
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let main = find_first_matching_node(root, |node| node.role() == Role::Main)
         .expect("Document should contain a main element");
+    let expected = Rect::new(-10.0, 60.0, 90.0, 110.0);
     assert_rect_eq(
-        main.raw_bounds().expect("main should have bounds"),
+        main.bounding_box().expect("main should have bounds"),
         expected,
     );
 }
@@ -881,15 +873,6 @@ fn test_accessibility_bounds_updated_after_script_scroll() {
     let _ = evaluate_javascript(&servo_test, webview.clone(), "window.scrollTo(20, 40);");
 
     let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    let expected = Rect::new(-10.0, 60.0, 90.0, 110.0);
-    let updated_bounds = updates
-        .iter()
-        .flat_map(|update| update.nodes.iter())
-        .filter(|(id, _)| *id == main_id)
-        .filter_map(|(_, node)| node.bounds())
-        .next_back()
-        .expect("The main element should have been re-sent with new bounds");
-    assert_rect_eq(updated_bounds, expected);
 
     for update in updates {
         tree.update_and_process_changes(update, &mut NoOpChangeHandler);
@@ -897,8 +880,44 @@ fn test_accessibility_bounds_updated_after_script_scroll() {
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let main = find_first_matching_node(root, |node| node.role() == Role::Main)
         .expect("Document should contain a main element");
+    let expected = Rect::new(-10.0, 60.0, 90.0, 110.0);
     assert_rect_eq(
-        main.raw_bounds().expect("main should have bounds"),
+        main.bounding_box().expect("main should have bounds"),
+        expected,
+    );
+}
+
+#[test]
+fn test_accessibility_build_initial_tree_after_scroll() {
+    let servo_test = build_test();
+    let url = "data:text/html,<!DOCTYPE html>\
+               <main style='position:absolute;left:10px;top:100px;\
+               width:100px;height:50px'>Target</main>\
+               <div style='width:2000px;height:2000px'></div>";
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse(url).unwrap())
+        .build();
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    webview.notify_scroll_event(
+        Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(20.0, 40.0))),
+        WebViewPoint::Device(DevicePoint::new(250.0, 250.0)),
+    );
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    webview.set_accessibility_active(true);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let tree = build_tree(updates);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let main = find_first_matching_node(root, |node| node.role() == Role::Main)
+        .expect("Document should contain a main element");
+    let expected = Rect::new(-10.0, 60.0, 90.0, 110.0);
+    assert_rect_eq(
+        main.bounding_box().expect("main should have bounds"),
         expected,
     );
 }
@@ -1124,4 +1143,17 @@ fn find_all_matching_nodes(
         }
     }
     result
+}
+
+/// Wait for the WebRender scene to reflect the current state of the WebView
+/// by triggering a screenshot, waiting for it to be ready, and then throwing
+/// away the results.
+fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &WebView) {
+    let waiting = Rc::new(Cell::new(true));
+    let callback_waiting = waiting.clone();
+    webview.take_screenshot(None, move |result| {
+        assert!(result.is_ok());
+        callback_waiting.set(false);
+    });
+    servo_test.spin(move || waiting.get());
 }

@@ -15,7 +15,6 @@ mod layout_node;
 mod pseudo_element_chain;
 
 use std::any::Any;
-use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
@@ -23,12 +22,11 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
 use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
-use fonts::{FontContext, TextByteRange, WebFontDocumentContext, WebFontSetDifference};
+use fonts::{FontContext, WebFontDocumentContext, WebFontSetDifference};
 pub use layout_damage::{AccessibilityDamage, LayoutDamage};
 pub use layout_dom::{
     DangerousStyleElementOf, DangerousStyleNodeOf, LayoutDomTypeBundle, LayoutElementOf,
@@ -55,7 +53,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
-use servo_base::text::{Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
+use servo_base::text::{RangeAny, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::Atom;
 use style::animation::DocumentAnimationSet;
@@ -81,6 +79,9 @@ use webrender_api::{ExternalScrollId, ImageKey};
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
+
+    /// Returns whether `new_range` was successfully set on an existing text run
+    fn set_text_run_selection(&self, new_range: Option<RangeAny<Utf32CodeUnits>>) -> bool;
 }
 
 pub trait LayoutDataTrait: GenericLayoutDataTrait + Default {}
@@ -139,21 +140,6 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
-/// A selection shared between script and layout. This selection is managed by the DOM
-/// node that maintains it, and can be modified from script. Once modified, layout is
-/// expected to reflect the new selection visual on the next display list update.
-#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
-pub struct ScriptSelection {
-    /// The range of this selection in the DOM node that manages it.
-    pub range: TextByteRange,
-    /// The character range of this selection in the DOM node that manages it.
-    pub character_range: Range<usize>,
-    /// Whether or not this selection is enabled. Selections may be disabled
-    /// when their node loses focus.
-    pub enabled: bool,
-}
-
-pub type SharedSelection = Arc<AtomicRefCell<ScriptSelection>>;
 pub struct HTMLCanvasData {
     pub image_key: Option<ImageKey>,
     pub width: u32,

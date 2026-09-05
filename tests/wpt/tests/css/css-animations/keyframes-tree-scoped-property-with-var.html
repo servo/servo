@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>CSS Animations Test: Keyframed animation of tree-scoped position-try-fallbacks name from var() fallback</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/#keyframes">
+<link rel="help" href="https://drafts.csswg.org/css-shadow-1/#shadow-names">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  @position-try --fallback {
+    position-area: right center;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="host">
+  <template shadowrootmode="open">
+    <style>
+      @keyframes --anim {
+        from {
+          position-try-fallbacks: var(--use-fallback,--fallback);
+        }
+      }
+      @position-try --fallback {
+        position-area: center;
+      }
+      #anchor {
+        width: 100px;
+        height: 100px;
+        anchor-name: --a;
+        background: red;
+      }
+      #anchored {
+        position-anchor: --a;
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        position-area: left center;
+        background: green;
+        animation: --anim 1000s step-end;
+      }
+    </style>
+    <div id="anchor"></div>
+    <div id="anchored"></div>
+  </template>
+</div>

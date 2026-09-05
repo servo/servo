@@ -16,7 +16,7 @@ use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader}
 use http::{HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Error as HyperError;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
@@ -541,7 +541,7 @@ impl ResourceThreads {
     }
 
     pub fn clear_cookies(&self) {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let _ = self
             .core_thread
             .send(CoreResourceMsg::DeleteCookies(None, Some(sender)));
@@ -743,7 +743,7 @@ pub enum CoreResourceMsg {
     DeleteCookiesForSites(Vec<String>, GenericSender<()>),
     /// This currently is used by unit tests and WebDriver only.
     /// When url is `None`, this clears cookies across all origins.
-    DeleteCookies(Option<ServoUrl>, Option<IpcSender<()>>),
+    DeleteCookies(Option<ServoUrl>, Option<GenericSender<()>>),
     /// Delete all session cookies (cookies without an expiry or max-age).
     DeleteSessionCookies(GenericSender<()>),
     DeleteCookie(ServoUrl, String),

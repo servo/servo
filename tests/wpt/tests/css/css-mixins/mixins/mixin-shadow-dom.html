@@ -111,5 +111,209 @@
       }, 'Style outside shadow DOM should _not_ have access to inside mixins');
     </script>
 
+    <script>
+      function addMixinHost(name, localColor, sharedSheet) {
+        const host = document.createElement('div');
+        document.body.append(host);
+        const root = host.attachShadow({mode: 'open'});
+        if (localColor) {
+          const localStyle = document.createElement('style');
+          localStyle.textContent = `
+            @mixin ${name}() {
+              @result {
+                color: ${localColor};
+              }
+            }
+          `;
+          root.append(localStyle);
+        }
+        const target = document.createElement('div');
+        target.id = 'target';
+        root.append(target);
+        if (sharedSheet) {
+          root.adoptedStyleSheets = [sharedSheet];
+        } else {
+          const applyStyle = document.createElement('style');
+          applyStyle.textContent = `
+            #target {
+              color: red;
+              @apply ${name};
+            }
+          `;
+          root.prepend(applyStyle);
+        }
+        return target;
+      }
+
+      function testSharedApplySheet(name, localFirst, constructed) {
+        const documentStyle = document.createElement('style');
+        documentStyle.textContent = `
+          @mixin ${name}() {
+            @result {
+              color: green;
+            }
+          }
+        `;
+        document.head.append(documentStyle);
+
+        let sharedSheet = null;
+        if (constructed) {
+          sharedSheet = new CSSStyleSheet();
+          sharedSheet.replaceSync(`
+            #target {
+              color: red;
+              @apply ${name};
+            }
+          `);
+        }
+
+        const first = localFirst
+            ? addMixinHost(name, 'blue', sharedSheet)
+            : addMixinHost(name, null, sharedSheet);
+        const second = localFirst
+            ? addMixinHost(name, null, sharedSheet)
+            : addMixinHost(name, 'blue', sharedSheet);
+        const documentTarget = localFirst ? second : first;
+        const localTarget = localFirst ? first : second;
+
+        assert_equals(getComputedStyle(documentTarget).color,
+                      'rgb(0, 128, 0)');
+        assert_equals(getComputedStyle(localTarget).color, 'rgb(0, 0, 255)');
+      }
+
+      test(() => {
+        testSharedApplySheet('--shared-inline-document-first', false, false);
+      }, 'Shared inline @apply contents use the correct mixin in each scope');
+
+      test(() => {
+        testSharedApplySheet('--shared-inline-local-first', true, false);
+      }, 'Shared inline @apply contents do not depend on scope creation order');
+
+      test(() => {
+        testSharedApplySheet('--shared-constructed-document-first', false,
+                             true);
+      }, 'Shared constructed @apply sheet uses the correct mixin in each scope');
+
+      test(() => {
+        testSharedApplySheet('--shared-constructed-local-first', true, true);
+      }, 'Shared constructed @apply sheet does not depend on scope creation order');
+
+      // A scope where a mixin is undefined must not affect a scope that does
+      // define it (and vice versa).
+      function testUndefinedInOneScope(name, undefinedFirst) {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(`#target { color: red; @apply ${name}; }`);
+
+        function check(target, expected) {
+          assert_equals(getComputedStyle(target).color, expected);
+        }
+
+        if (undefinedFirst) {
+          check(addMixinHost(name, null, sheet), 'rgb(255, 0, 0)');
+          check(addMixinHost(name, 'blue', sheet), 'rgb(0, 0, 255)');
+        } else {
+          check(addMixinHost(name, 'blue', sheet), 'rgb(0, 0, 255)');
+          check(addMixinHost(name, null, sheet), 'rgb(255, 0, 0)');
+        }
+      }
+
+      test(() => {
+        testUndefinedInOneScope('--undefined-scope-first', true);
+      }, 'An @apply of an undefined mixin does not affect a scope that defines it');
+
+      test(() => {
+        testUndefinedInOneScope('--defined-scope-first', false);
+      }, 'An @apply of a defined mixin does not leak into a scope without it');
+    </script>
+
+    <style>
+      @mixin --nearest-scope() {
+        @result {
+          color: green;
+        }
+      }
+    </style>
+    <div id="host5">
+      <template shadowrootmode="open">
+        <style>
+          @mixin --nearest-scope() {
+            @result {
+              color: blue;
+            }
+          }
+          #target {
+            color: red;
+            @apply --nearest-scope;
+          }
+        </style>
+        <div id="target">This text should be blue.</div>
+      </template>
+    </div>
+    <script>
+      test(() => {
+        const localTarget =
+            document.getElementById('host5').shadowRoot.getElementById('target');
+        assert_equals(getComputedStyle(localTarget).color, 'rgb(0, 0, 255)');
+      }, 'A local mixin overrides a document mixin with the same name');
+    </script>
+
+    <div id="host6">
+      <template shadowrootmode="open">
+        <style>
+          @mixin --nearest-scope() {
+            @result {
+              color: yellow;
+            }
+          }
+        </style>
+        <div id="inner-host">
+          <template shadowrootmode="open">
+            <style>
+              #target {
+                color: red;
+                @apply --nearest-scope;
+              }
+            </style>
+            <div id="target">This text should be yellow.</div>
+          </template>
+        </div>
+      </template>
+    </div>
+    <div id="host7">
+      <template shadowrootmode="open">
+        <style>
+          @mixin --nearest-scope() {
+            @result {
+              color: aqua;
+            }
+          }
+        </style>
+        <div id="inner-host">
+          <template shadowrootmode="open">
+            <style>
+              #target {
+                color: red;
+                @apply --nearest-scope;
+              }
+            </style>
+            <div id="target">This text should be aqua.</div>
+          </template>
+        </div>
+      </template>
+    </div>
+    <script>
+      test(() => {
+        const yellowTarget = document.getElementById('host6')
+                                 .shadowRoot.getElementById('inner-host')
+                                 .shadowRoot.getElementById('target');
+        const aquaTarget = document.getElementById('host7')
+                               .shadowRoot.getElementById('inner-host')
+                               .shadowRoot.getElementById('target');
+        assert_equals(getComputedStyle(yellowTarget).color,
+                      'rgb(255, 255, 0)');
+        assert_equals(getComputedStyle(aquaTarget).color, 'rgb(0, 255, 255)');
+      }, 'Nested shadows use the nearest mixin along each tree branch');
+    </script>
+
   </body>
 </html>

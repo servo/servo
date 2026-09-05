@@ -19,7 +19,7 @@ use embedder_traits::{
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
-use icu_locid::subtags::Language;
+use icu_locale_core::subtags::Language;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, HitTestFlags, HitTestResult,
     IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode,
@@ -703,7 +703,7 @@ impl Layout for LayoutThread {
             return;
         };
 
-        stacking_context_tree
+        let offsets = stacking_context_tree
             .paint_info
             .scroll_tree
             .set_all_scroll_offsets(scroll_states);
@@ -714,6 +714,11 @@ impl Layout for LayoutThread {
         // allowing the bounds to be recomputed against the new scroll offsets. See #47161 for a
         // transform-based alternative to recomputing every node.
         if self.accessibility_active() {
+            let mut accessibility_tree = self.accessibility_tree.borrow_mut();
+            if let Some(accessibility_tree) = accessibility_tree.as_mut() {
+                accessibility_tree.add_pending_scroll_updates(offsets);
+            };
+
             self.set_force_accessibility_update();
         }
     }
@@ -1595,11 +1600,13 @@ impl LayoutThread {
                 external_scroll_id,
             );
 
-            // Accessibility node bounds are relative to the viewport origin, so a script scroll
-            // makes every one of them stale even though no layout ran. Requesting an accessibility
-            // update lets the next "update the rendering" reflow recompute them, mirroring how
-            // `set_scroll_offsets_from_renderer()` handles renderer scrolls.
-            if self.accessibility_active() {
+            if self.accessibility_active() &&
+                let Some(accessibility_tree) = self.accessibility_tree.borrow_mut().as_mut()
+            {
+                accessibility_tree.add_pending_scroll_update(external_scroll_id, offset);
+
+                // Ensure the scroll updates are applied in the accessibility tree and sent to the
+                // embedder, even if there are no other changes which affect the accessibility tree.
                 self.set_force_accessibility_update();
             }
             true
@@ -1830,7 +1837,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .zero_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '0', None, Language::UND)?
+                    .find_by_codepoint(font_context, '0', None, Language::UNKNOWN)?
                     .metrics
                     .zero_horizontal_advance
             })
@@ -1840,7 +1847,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .ic_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '\u{6C34}', None, Language::UND)?
+                    .find_by_codepoint(font_context, '\u{6C34}', None, Language::UNKNOWN)?
                     .metrics
                     .ic_horizontal_advance
             })

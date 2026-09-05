@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: marker box reserves the width of the glyphs it paints</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-type-property">
+<link rel="match" href="list-marker-rtl-string-width-ref.html">
+<meta name="assert" content="A list-style-type string of right-to-left text reserves the width of the glyphs actually painted, so the list item's content starts after the marker instead of overlapping it.">
+<style>
+ol {
+  list-style-position: inside;
+  list-style-type: "\627 \644 ";
+  margin: 0;
+  padding: 0;
+}
+</style>
+<!-- The marker text is two separate glyphs. Reversing it into lam-alef order would form a
+     narrower ligature; sizing the marker box from that would let "a" paint over the marker. -->
+<ol>
+  <li>a</li>
+</ol>

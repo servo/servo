@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Foster parenting when the table's parent is a template element</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#appropriate-place-for-inserting-a-node">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/adoption-agency-reparenting.js"></script>
+<body>
+<script>
+// The inline script makes a script-created <template> element the parent of the
+// on-stack <table>, so foster parenting resolves to a template element and must
+// redirect into its contents. There is no insertion target, so the position
+// before the table is dropped and the content appended.
+const SRCDOC = `<table><tr><script>
+  window.tmpl = document.createElement("template");
+  document.body.appendChild(window.tmpl);
+  window.tmpl.appendChild(document.querySelector("table"));
+<\/script><b id="fostered">x</b>FOSTERTEXT`;
+
+promise_test(async t => {
+  const iframe = await parseInIframe(t, SRCDOC);
+  const tmpl = iframe.contentWindow.tmpl;
+  const table = tmpl.querySelector("table");
+
+  assert_equals(tmpl.parentNode, iframe.contentDocument.body,
+    "the template element stayed where the script put it");
+  assert_not_equals(table, null, "the table was moved into the template element");
+  assert_equals(table.parentNode, tmpl,
+    "the table is a child of the template element, not of its contents");
+
+  const where = tmpl.content.querySelector("#fostered") ? "template-contents"
+              : tmpl.querySelector("#fostered") ? "template-element"
+              : iframe.contentDocument.getElementById("fostered") ? "elsewhere"
+              : "dropped";
+  const detail = `tmpl.content=${tree(tmpl.content)}, tmpl=${tree(tmpl)}`;
+  assert_equals(where, "template-contents",
+    `the foster-parented element goes into the template's contents (${detail})`);
+  assert_equals(tree(tmpl.content), `<b#fostered>["x"]"FOSTERTEXT"`,
+    "foster-parented text follows it into the same contents");
+}, "Foster parenting redirects into the template contents when the table's parent is a template element");
+</script>
+</body>
