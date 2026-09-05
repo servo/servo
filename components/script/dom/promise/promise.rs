@@ -34,7 +34,9 @@ use js::rust::wrappers2::{
     SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
-use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::interfaces::{
+    HeapTracedPromiseHelpers, PromiseHelpers, StackRootPromiseHelpers,
+};
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_bindings::settings_stack::run_a_script;
 
@@ -53,10 +55,23 @@ use crate::runtime::microtask::MicrotaskRunnable;
 #[derive(Clone)]
 pub(crate) struct RootedPromise(Rc<Promise>);
 
+impl StackRootPromiseHelpers<crate::DomTypeHolder> for RootedPromise {
+    type HeapTraced = TracedPromise;
+    fn to_traced(&self) -> TracedPromise {
+        RootedPromise::to_traced(self)
+    }
+}
+
 impl Deref for RootedPromise {
     type Target = Promise;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl From<Rc<Promise>> for RootedPromise {
+    fn from(promise: Rc<Promise>) -> Self {
+        RootedPromise(promise)
     }
 }
 
@@ -72,9 +87,9 @@ impl RootedPromise {
     }
 }
 
-impl From<RootedPromise> for TrustedPromise {
-    fn from(promise: RootedPromise) -> Self {
-        TrustedPromise::new(promise.0)
+impl From<&'_ RootedPromise> for TrustedPromise {
+    fn from(promise: &'_ RootedPromise) -> Self {
+        TrustedPromise::new(promise.0.clone())
     }
 }
 
@@ -108,6 +123,13 @@ impl ToJSValConvertible for RootedPromise {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct TracedPromise(#[conditional_malloc_size_of] Rc<Promise>);
 
+impl HeapTracedPromiseHelpers<crate::DomTypeHolder> for TracedPromise {
+    type StackRoot = RootedPromise;
+    fn root(&self) -> RootedPromise {
+        TracedPromise::root(self)
+    }
+}
+
 impl js::rust::Rootable for TracedPromise {}
 
 impl TracedPromise {
@@ -116,8 +138,8 @@ impl TracedPromise {
     }
 }
 
-impl std::ops::Deref for TracedPromise {
-    type Target = Rc<Promise>;
+impl Deref for TracedPromise {
+    type Target = Promise;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -729,11 +751,16 @@ pub(crate) fn wait_for_all_promise(
 
 impl PromiseHelpers<crate::DomTypeHolder> for Promise {
     type StackRoot = RootedPromise;
+    type HeapTraced = TracedPromise;
 
     fn new_in_realm(
         cx: &mut CurrentRealm,
     ) -> Rc<<crate::DomTypeHolder as script_bindings::DomTypes>::Promise> {
         Promise::new_in_realm(cx)
+    }
+
+    fn new_in_realm_rooted(cx: &mut CurrentRealm) -> RootedPromise {
+        Promise::new_in_realm_rooted(cx)
     }
 
     fn reject_error(&self, cx: &mut js::context::JSContext, error: script_bindings::error::Error) {

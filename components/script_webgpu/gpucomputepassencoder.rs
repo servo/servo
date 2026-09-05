@@ -103,7 +103,8 @@ where
     D::GlobalScope: WebGPUGlobalTrait,
     D::GPUDevice: GPUDeviceTrait<D>,
     D::GPUExternalTexture: GPUExternalTextureTrait<D>,
-    D::Promise: WebGPUPromiseTrait<D> + PromiseHelpers<D>,
+    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ops::Range;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
@@ -19,7 +18,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUMapModeConstants, GPUMapModeFlags, GPUSize64,
 };
 use script_bindings::error::{Error, Fallible};
-use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::interfaces::{PromiseHelpers, StackRootPromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
@@ -102,8 +101,7 @@ pub struct GPUBuffer<D: DomTypes> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-usage>
     usage: GPUFlagsConstant,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-pending_map-slot>
-    #[conditional_malloc_size_of]
-    pending_map: DomRefCell<Option<Rc<D::Promise>>>,
+    pending_map: DomRefCell<Option<<D::Promise as PromiseHelpers<D>>::HeapTraced>>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
     mapping: DomRefCell<Option<ActiveBufferMapping>>,
 }
@@ -222,7 +220,8 @@ where
 impl<D> GPUBufferMethods<D> for GPUBuffer<D>
 where
     D: Equivalence,
-    D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D> + PartialEq,
+    D::Promise: PromiseHelpers<D> + PartialEq,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
     D::GPUDevice: GPUDeviceTrait<D>,
     D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait,
@@ -290,8 +289,8 @@ where
         mode: u32,
         offset: GPUSize64,
         size: Option<GPUSize64>,
-    ) -> Rc<D::Promise> {
-        let promise = D::Promise::new_in_realm(cx);
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
+        let promise = D::Promise::new_in_realm_rooted(cx);
         // Step 2
         if self.pending_map.borrow().is_some() {
             promise.reject_error(
@@ -301,7 +300,7 @@ where
             return promise;
         }
         // Step 4
-        *self.pending_map.safe_borrow_mut(cx) = Some(promise.clone());
+        *self.pending_map.safe_borrow_mut(cx) = Some(promise.to_traced());
         // Step 5
         let host_map = match mode {
             GPUMapModeConstants::READ => HostMap::Read,
@@ -316,7 +315,7 @@ where
             },
         };
 
-        let callback = D::Promise::callback_promise_gpubuffer(&promise, self);
+        let callback = promise.callback_promise_gpubuffer(self);
         if let Err(e) = self
             .droppable
             .channel
@@ -460,9 +459,13 @@ where
     D::Promise: PromiseHelpers<D> + PartialEq,
     D::GPUDevice: GPUDeviceTrait<D>,
 {
-    pub fn map_failure(&self, cx: &mut JSContext, p: &Rc<D::Promise>) {
+    pub fn map_failure(
+        &self,
+        cx: &mut JSContext,
+        p: &<D::Promise as PromiseHelpers<D>>::StackRoot,
+    ) {
         // Step 1
-        if self.pending_map.borrow().as_ref() != Some(p) {
+        if self.pending_map.borrow().as_deref() != Some(&*p) {
             assert!(p.is_rejected());
             return;
         }
@@ -482,11 +485,11 @@ where
     pub fn map_success(
         &self,
         cx: &mut js::context::JSContext,
-        p: &Rc<D::Promise>,
+        p: &<D::Promise as PromiseHelpers<D>>::StackRoot,
         wgpu_mapping: Mapping,
     ) {
         // Step 1
-        if self.pending_map.borrow().as_ref() != Some(p) {
+        if self.pending_map.borrow().as_deref() != Some(&*p) {
             assert!(p.is_rejected());
             return;
         }
