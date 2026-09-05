@@ -4,11 +4,13 @@
 
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
+use std::sync::Arc;
 
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
+use pixels::image_encoder_decoder_factory::ImageEncoderDecoderFactory;
 use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
@@ -277,6 +279,7 @@ impl ImageBitmap {
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn create_image_bitmap(
+        factory: Arc<dyn ImageEncoderDecoderFactory>,
         global_scope: &GlobalScope,
         image: ImageBitmapSource,
         sx: i32,
@@ -535,7 +538,9 @@ impl ImageBitmap {
                 // (e.g., a vector graphic with no natural size), then queue
                 // a global task, using the bitmap task source, to reject promise
                 // with an "InvalidStateError" DOMException and abort these steps.
-                let Some(raster_image) = pixels::load_from_memory(&bytes, CorsStatus::Safe) else {
+                let Some(raster_image) =
+                    pixels::load_from_memory(factory, &bytes, CorsStatus::Safe)
+                else {
                     reject_promise_on_bitmap_task_source(&p);
                     return p;
                 };

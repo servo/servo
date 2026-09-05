@@ -1,0 +1,343 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::num::NonZeroU32;
+use std::vec::IntoIter;
+use std::{ptr, slice};
+
+use image::error::ImageFormatHint;
+use image::metadata::LoopCount;
+use image::{Frame, Frames, ImageDecoder, ImageError, ImageResult, RgbaImage};
+use ohos_image_kit_sys::native_image::common::{Image_String, ImageResult as OhosImageResult};
+use ohos_image_kit_sys::native_image::image_source::{
+    OH_DecodingOptions, OH_DecodingOptions_Create, OH_DecodingOptions_Release,
+    OH_DecodingOptions_SetPixelFormat, OH_ImageSource_Info, OH_ImageSourceInfo_Create,
+    OH_ImageSourceInfo_GetHeight, OH_ImageSourceInfo_GetWidth, OH_ImageSourceInfo_Release,
+    OH_ImageSourceNative, OH_ImageSourceNative_CreateFromDataWithUserBuffer,
+    OH_ImageSourceNative_CreatePixelmap, OH_ImageSourceNative_CreatePixelmapList,
+    OH_ImageSourceNative_GetFrameCount, OH_ImageSourceNative_GetImageInfo,
+    OH_ImageSourceNative_GetImageProperty, OH_ImageSourceNative_Release,
+};
+use ohos_image_kit_sys::native_image::pixelmap::{
+    OH_PixelmapNative, OH_PixelmapNative_GetByteCount, OH_PixelmapNative_ReadPixels,
+    OH_PixelmapNative_Release, PIXEL_FORMAT,
+};
+use serde::{Deserialize, Serialize};
+
+use crate::image_encoder_decoder_factory::{
+    ImageEncoderDecoderFactory, ServoAnimation, ServoImageDecoder,
+};
+
+#[derive(Default, Serialize, Deserialize)]
+pub struct OhosImageEncoderDecoderFactory {}
+
+#[typetag::serde]
+impl ImageEncoderDecoderFactory for OhosImageEncoderDecoderFactory {
+    fn make_from_bytes<'a>(
+        &self,
+        buffer: &'a [u8],
+    ) -> ImageResult<Box<dyn ServoImageDecoder<'a> + 'a>> {
+        OhosImageDecoder::new(buffer)
+            .map(|decoder| Box::new(decoder) as Box<dyn ServoImageDecoder>)
+            .map_err(|_| ImageError::Unsupported(ImageFormatHint::Unknown.into()))
+    }
+}
+
+impl<'a> ServoImageDecoder<'a> for OhosImageDecoder<'a> {
+    fn get(self: Box<Self>) -> Box<dyn ImageDecoder + 'a> {
+        self
+    }
+
+    fn is_animated(&self) -> bool {
+        let mut frame_count = 0;
+        unsafe {
+            if OH_ImageSourceNative_GetFrameCount(self.image_source, &mut frame_count) !=
+                OhosImageResult::SUCCESS
+            {
+                log::error!("Frame call failed. Just going to abort");
+                return false;
+            }
+        }
+        frame_count > 1
+    }
+
+    fn get_animated_decoder(self: Box<Self>) -> Box<dyn ServoAnimation<'a> + 'a> {
+        self
+    }
+}
+
+struct OhosImageDecoder<'a> {
+    /// The data needs to be alive according to documentation on `OH_ImageSourceNative_CreateFromDataWithUserBuffer`.
+    _data: &'a [u8],
+    image_source: *mut OH_ImageSourceNative,
+    decoding_option: *mut OH_DecodingOptions,
+    image_info: *mut OH_ImageSource_Info,
+}
+
+impl<'a> OhosImageDecoder<'a> {
+    fn new(data: &'a [u8]) -> Result<Self, ()> {
+        unsafe {
+            let mut image_source_native = ptr::null_mut();
+            let res = OH_ImageSourceNative_CreateFromDataWithUserBuffer(
+                data.as_ptr().cast_mut(),
+                data.len(),
+                &raw mut image_source_native,
+            );
+            if res != OhosImageResult::SUCCESS || image_source_native.is_null() {
+                log::error!("Something wrong with CreateFromData");
+                return Err(());
+            }
+            let mut decoding_options = ptr::null_mut();
+            let res = OH_DecodingOptions_Create(&raw mut decoding_options);
+            OH_DecodingOptions_SetPixelFormat(
+                decoding_options,
+                PIXEL_FORMAT::PIXEL_FORMAT_RGBA_8888.0 as i32,
+            );
+            if res != OhosImageResult::SUCCESS || decoding_options.is_null() {
+                log::error!("Something wrong with doing decoding options");
+                OH_ImageSourceNative_Release(image_source_native);
+                return Err(());
+            }
+
+            let mut image_info = ptr::null_mut();
+            let res = OH_ImageSourceInfo_Create(&raw mut image_info);
+            if res != OhosImageResult::SUCCESS || image_info.is_null() {
+                log::error!("Could not get image info");
+                OH_DecodingOptions_Release(decoding_options);
+                OH_ImageSourceNative_Release(image_source_native);
+                return Err(());
+            }
+
+            if OH_ImageSourceNative_GetImageInfo(image_source_native, 0, image_info) !=
+                OhosImageResult::SUCCESS
+            {
+                log::error!("Could not populate image info");
+                OH_ImageSourceInfo_Release(image_info);
+                OH_DecodingOptions_Release(decoding_options);
+                OH_ImageSourceNative_Release(image_source_native);
+                return Err(());
+            }
+
+            Ok(OhosImageDecoder {
+                _data: data,
+                image_source: image_source_native,
+                decoding_option: decoding_options,
+                image_info,
+            })
+        }
+    }
+}
+
+impl<'a> Drop for OhosImageDecoder<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            if OH_DecodingOptions_Release(self.decoding_option) != OhosImageResult::SUCCESS {
+                log::error!("Cleaning up of decoding options failed");
+            }
+            if OH_ImageSourceNative_Release(self.image_source) != OhosImageResult::SUCCESS {
+                log::error!("Cleaning up of ImageSourceNative failed");
+            }
+            if OH_ImageSourceInfo_Release(self.image_info) != OhosImageResult::SUCCESS {
+                log::error!("Cleaning up of ImageSourceInfo failed");
+            }
+        }
+    }
+}
+
+impl<'a> ImageDecoder for OhosImageDecoder<'a> {
+    fn dimensions(&self) -> (u32, u32) {
+        unsafe {
+            let mut width = 20;
+            if OH_ImageSourceInfo_GetWidth(self.image_info, &raw mut width) !=
+                OhosImageResult::SUCCESS
+            {
+                log::error!("Could not get width");
+            }
+            let mut height = 20;
+            if OH_ImageSourceInfo_GetHeight(self.image_info, &raw mut height) !=
+                OhosImageResult::SUCCESS
+            {
+                log::error!("Could not get height");
+            }
+            (width, height)
+        }
+    }
+
+    fn color_type(&self) -> image::ColorType {
+        // Fixed by setup
+        image::ColorType::Rgba8
+    }
+
+    fn read_image(self, buf: &mut [u8]) -> ImageResult<()>
+    where
+        Self: Sized,
+    {
+        unsafe {
+            let mut pixmap = ptr::null_mut();
+            let res = OH_ImageSourceNative_CreatePixelmap(
+                self.image_source,
+                self.decoding_option,
+                &raw mut pixmap,
+            );
+            if res != OhosImageResult::SUCCESS || pixmap.is_null() {
+                log::error!("Could not create pixmap");
+                return Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()));
+            }
+
+            if write_pixmap_to_buffer(pixmap, buf).is_err() {
+                log::error!("Could not decode pixmap");
+                return Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()));
+            }
+
+            if OH_PixelmapNative_Release(pixmap) != OhosImageResult::SUCCESS {
+                log::error!("Could not release pixmap");
+            }
+        }
+        Ok(())
+    }
+
+    fn read_image_boxed(self: Box<Self>, buf: &mut [u8]) -> ImageResult<()> {
+        // the dereference here is important.
+        (*self).read_image(buf)
+    }
+}
+
+/// We will only write as much data as the pixmap is given.
+/// SAFETY:
+/// The caller is responsible for having the buffer be large enough.
+unsafe fn write_pixmap_to_buffer(
+    pixmap: *mut OH_PixelmapNative,
+    buffer: &mut [u8],
+) -> Result<(), ()> {
+    unsafe {
+        let mut buffer_size = 0;
+        if OH_PixelmapNative_GetByteCount(pixmap, &raw mut buffer_size) != OhosImageResult::SUCCESS
+        {
+            log::error!("Could not get byte count");
+            return Err(());
+        }
+
+        if OH_PixelmapNative_ReadPixels(
+            pixmap,
+            buffer.as_mut_ptr(),
+            &raw mut buffer_size as *mut usize,
+        ) != OhosImageResult::SUCCESS
+        {
+            log::error!("Could not read pixels from pixmap");
+            return Err(());
+        }
+    }
+    Ok(())
+}
+
+/// Wrapper struct for the ptr.
+/// We need to be careful to release all *mut OH_PixelmapNative that are not zero.
+struct OHPixelmapNative(*mut OH_PixelmapNative);
+
+impl Drop for OHPixelmapNative {
+    fn drop(&mut self) {
+        if !self.0.is_null() {
+            unsafe { OH_PixelmapNative_Release(self.0) };
+        }
+    }
+}
+
+struct OhosAnimationIterator {
+    inner_iterator: IntoIter<*mut OH_PixelmapNative>,
+    width: u32,
+    height: u32,
+}
+
+impl Iterator for OhosAnimationIterator {
+    type Item = ImageResult<Frame>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_frame = self.inner_iterator.next().map(OHPixelmapNative)?;
+
+        let mut buffer = vec![0_u8; 4 * (self.width * self.height) as usize];
+        unsafe {
+            if write_pixmap_to_buffer(next_frame.0, &mut buffer).is_err() {
+                log::error!("Could not write pixmap buffer")
+            }
+        };
+
+        let Some(rgba_image) = RgbaImage::from_raw(self.width, self.height, buffer) else {
+            log::error!("failed, aborting");
+            return None;
+        };
+        Some(Ok(Frame::new(rgba_image)))
+    }
+}
+
+impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
+    fn boxed_into_frames(self: Box<Self>) -> Frames<'a> {
+        unsafe {
+            let (width, height) = self.dimensions();
+            let mut frame_count = 0;
+            if OH_ImageSourceNative_GetFrameCount(self.image_source, &mut frame_count) !=
+                OhosImageResult::SUCCESS
+            {
+                log::error!("Could not get frame count");
+            }
+            let mut result_pixmap_vector = vec![ptr::null_mut(); frame_count as usize];
+            let result_pixmap_ptr = result_pixmap_vector.as_mut_ptr();
+            if OH_ImageSourceNative_CreatePixelmapList(
+                self.image_source,
+                self.decoding_option,
+                result_pixmap_ptr,
+                frame_count as usize,
+            ) != OhosImageResult::SUCCESS
+            {
+                log::error!("Something wrong with creating pixmap list");
+            }
+
+            let frame_iterator = Box::new(OhosAnimationIterator {
+                inner_iterator: result_pixmap_vector.into_iter(),
+                width,
+                height,
+            });
+
+            Frames::new(frame_iterator)
+        }
+    }
+
+    fn loop_count(&self) -> LoopCount {
+        let mut loop_count_str = "LoopCount".to_owned();
+        let mut image_string = Image_String {
+            data: loop_count_str.as_mut_ptr(),
+            size: loop_count_str.len(),
+        };
+
+        let mut image_string_target = Image_String {
+            data: ptr::null_mut(),
+            size: 0,
+        };
+
+        let slice = unsafe {
+            if OH_ImageSourceNative_GetImageProperty(
+                self.image_source,
+                &raw mut image_string,
+                &raw mut image_string_target,
+            ) != OhosImageResult::SUCCESS ||
+                image_string_target.data.is_null()
+            {
+                log::info!("Could not decode loop count");
+                return LoopCount::Finite(NonZeroU32::new(1).unwrap());
+            }
+
+            slice::from_raw_parts(image_string_target.data, image_string_target.size)
+        };
+        let string = String::from_utf8_lossy(slice);
+        log::error!("STRING FOUND {:?}", string);
+        if let Ok(loop_count) = string.parse::<u32>() {
+            if loop_count == 0 {
+                LoopCount::Infinite
+            } else {
+                LoopCount::Finite(NonZeroU32::new(loop_count).unwrap())
+            }
+        } else {
+            LoopCount::Finite(NonZeroU32::new(1).unwrap())
+        }
+    }
+}
