@@ -34,6 +34,10 @@ on:
         required: false
         default: false
         type: boolean
+      perf-analysis:
+        required: false
+        default: false
+        type: boolean
       force-github-hosted-runner:
         required: false
         type: boolean
@@ -165,3 +169,11 @@ jobs:
           bencher run --adapter json --file b.json \
             --project ${{ env.BENCHER_PROJECT }} --token ${{ secrets.BENCHER_API_TOKEN }} --testbed "$testbed" \
             $RUN_BENCHER_OPTIONS
+
+  # Runs the page-load benchmark using servo/perf-analysis-tools.
+  # It can also be run as standalone workflow via `./mach try perf-analysis`.
+  perf-analysis:
+    if: ${{ inputs.perf-analysis }}
+    name: Perf analysis
+    uses: ./.github/workflows/perf-analysis.yml
+    secrets: inherit
