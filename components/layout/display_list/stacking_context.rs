@@ -593,6 +593,7 @@ impl BoxFragment {
         None
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build_stacking_context_tree(
         self: &Arc<Self>,
         fragment: Fragment,
@@ -615,6 +616,7 @@ impl BoxFragment {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build_stacking_context_tree_maybe_creating_reference_frame(
         self: &Arc<Self>,
         fragment: Fragment,
