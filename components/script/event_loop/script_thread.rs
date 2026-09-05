@@ -541,10 +541,6 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.mutation_observers.clone())
     }
 
-    pub(crate) fn microtask_queue() -> Rc<MicrotaskQueue> {
-        with_script_thread(|script_thread| script_thread.microtask_queue.clone())
-    }
-
     pub(crate) fn shared_style_locks(&self) -> &SharedRwLocks {
         &self.shared_style_locks
     }
@@ -575,9 +571,7 @@ impl ScriptThread {
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
     pub(crate) fn await_stable_state(cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
-        with_script_thread(|script_thread| {
-            script_thread.microtask_queue.enqueue(cx, task);
-        });
+        crate::runtime::microtask::enqueue(cx, task);
     }
 
     /// Check that two origins are "similar enough",
@@ -4419,9 +4413,7 @@ impl ScriptThread {
     }
 
     pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {
-        with_script_thread(|script_thread| {
-            script_thread.microtask_queue.enqueue(cx, job);
-        });
+        crate::runtime::microtask::enqueue(cx, job);
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {

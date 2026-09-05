@@ -103,18 +103,18 @@ fn microtask_from_jsval(val: JSVal) -> *mut Box<dyn MicrotaskRunnable> {
     val.to_private() as *const Box<dyn MicrotaskRunnable> as *mut Box<dyn MicrotaskRunnable>
 }
 
-impl MicrotaskQueue {
-    /// Add a new microtask to this queue. It will be invoked as part of the next
-    /// microtask checkpoint.
-    #[expect(unsafe_code)]
-    pub(crate) fn enqueue(&self, cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
-        let task = Box::new(task);
-        let raw = Box::into_raw(task);
-        unsafe {
-            EnqueueMicroTask(cx, &PrivateValue(raw as *const c_void));
-        }
+/// Add a new microtask to this queue. It will be invoked as part of the next
+/// microtask checkpoint.
+#[expect(unsafe_code)]
+pub(crate) fn enqueue(cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
+    let task = Box::new(task);
+    let raw = Box::into_raw(task);
+    unsafe {
+        EnqueueMicroTask(cx, &PrivateValue(raw as *const c_void));
     }
+}
 
+impl MicrotaskQueue {
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
     #[expect(unsafe_code)]

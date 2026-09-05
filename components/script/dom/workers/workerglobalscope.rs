@@ -472,7 +472,7 @@ impl WorkerGlobalScope {
     }
 
     pub(crate) fn enqueue_microtask(&self, cx: &JSContext, job: Box<dyn MicrotaskRunnable>) {
-        self.microtask_queue.enqueue(cx, job);
+        crate::runtime::microtask::enqueue(cx, job);
     }
 
     /// Perform a microtask checkpoint.
