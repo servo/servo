@@ -1212,6 +1212,7 @@ impl ParserContext {
         let page = "<html><body></body></html>".into();
         parser.push_string_input_chunk(page);
         parser.parse_sync(cx);
+        // Step 2. Set document's mode to "no-quirks".
         parser.document.set_quirks_mode(ServoQuirksMode::NoQuirks);
 
         let doc = &parser.document;
