@@ -64,45 +64,7 @@ pub struct AxesScrollSensitivity {
     pub y: ScrollType,
 }
 
-/// A simplified representation of the CSS `touch-action` property, used by the
-/// compositor to decide how a touch gesture may scroll a given node.
-///
-/// NOTE: Directional variants (`pan-left`/`pan-right`/...) are not supported in Stylo at all.
-/// Firefox also fails the parsing.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub enum TouchAction {
-    /// `touch-action: auto` (and `manipulation`, `pan-x pan-y`). The compositor
-    /// applies the scroll-chaining axis lock: lock to the dominant axis only
-    /// when the hit node cannot scroll that axis.
-    Auto,
-    /// `touch-action: pan-x`. The vertical axis is excluded from input-event
-    /// scrolling (chains to ancestor); the gesture locks to its dominant axis.
-    PanX,
-    /// `touch-action: pan-y`. The horizontal axis is excluded from input-event
-    /// scrolling (chains to ancestor); the gesture locks to its dominant axis.
-    PanY,
-    /// `touch-action: none` (and `pinch-zoom` alone). No single-finger direct
-    /// manipulation: do not scroll.
-    None,
-}
-
-impl From<style::values::specified::TouchAction> for TouchAction {
-    fn from(stylo: style::values::specified::TouchAction) -> Self {
-        use style::values::specified::TouchAction as T;
-        if stylo.contains(T::NONE) {
-            return TouchAction::None;
-        }
-        if stylo.contains(T::AUTO) || stylo.contains(T::MANIPULATION) {
-            return TouchAction::Auto;
-        }
-        match (stylo.contains(T::PAN_X), stylo.contains(T::PAN_Y)) {
-            (true, true) => TouchAction::Auto,
-            (true, false) => TouchAction::PanX,
-            (false, true) => TouchAction::PanY,
-            (false, false) => TouchAction::None,
-        }
-    }
-}
+pub use embedder_traits::TouchAction;
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum SpatialTreeNodeInfo {

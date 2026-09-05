@@ -6,7 +6,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use app_units::Au;
+use paint_api::display_list::TouchAction;
 use servo_base::id::ScrollTreeNodeId;
+use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::values::computed::TextDecorationLine;
 
 use crate::display_list::{
@@ -17,6 +19,7 @@ use crate::fragment_tree::{
     PositioningFragment, Tag, TextFragment,
 };
 use crate::geom::{PhysicalPoint, PhysicalRect};
+use crate::style_ext::ComputedValuesExt;
 
 pub(crate) struct PaintTraversal<'a, Handler: PaintTraversalHandler> {
     handler: &'a mut Handler,
@@ -539,6 +542,13 @@ pub(crate) struct TraversalState {
     /// Used for text LCP candidate grouping — all text fragments within
     /// a single element are unioned before computing effective visual size.
     pub containing_element_tag: Option<Tag>,
+    /// The `touch-action` restriction that applies to touches starting on this
+    /// fragment or its descendants: the intersection of the `touch-action`
+    /// values of the fragment chain between them and the nearest ancestor that
+    /// can be panned by touch (exclusive). That ancestor's own `touch-action`
+    /// is stored on its scroll node and applied by the compositor instead.
+    /// <https://w3c.github.io/pointerevents/#determining-supported-direct-manipulation-behavior>
+    pub touch_action: TouchAction,
 }
 
 impl TraversalState {
@@ -579,6 +589,20 @@ impl TraversalState {
             },
         };
 
+        let touch_action = {
+            let overflow = style.effective_overflow(box_fragment.base.flags);
+            let scrolls_via_user_input =
+                |overflow| matches!(overflow, ComputedOverflow::Scroll | ComputedOverflow::Auto);
+            if scrolls_via_user_input(overflow.x) || scrolls_via_user_input(overflow.y) {
+                // This box can be panned by touch, so the restriction starts
+                // fresh for its descendants.
+                TouchAction::Auto
+            } else {
+                self.touch_action
+                    .intersect(style.used_touch_action(box_fragment.base.flags))
+            }
+        };
+
         Self {
             origin: self.origin + box_fragment.content_rect().origin.to_vector(),
             spatial_id: box_fragment
@@ -587,6 +611,7 @@ impl TraversalState {
             clip_id: box_fragment.generated_clip_id().unwrap_or(self.clip_id),
             text_decorations,
             containing_element_tag: box_fragment.base.tag.or(self.containing_element_tag),
+            touch_action,
         }
     }
 
@@ -607,6 +632,7 @@ impl TraversalState {
             clip_id: self.clip_id,
             text_decorations: self.text_decorations.clone(),
             containing_element_tag: self.containing_element_tag,
+            touch_action: self.touch_action,
         }
     }
 
@@ -617,6 +643,11 @@ impl TraversalState {
             clip_id: stacking_context.clip_id,
             text_decorations: stacking_context.text_decorations.clone(),
             containing_element_tag: self.containing_element_tag,
+            // The `touch-action` restriction captured on the stacking context when
+            // the stacking context tree was built, which follows the box tree
+            // (unlike the traversal state, which does not descend through hoisted
+            // stacking contexts).
+            touch_action: stacking_context.touch_action,
         }
     }
 }
