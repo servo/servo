@@ -7,11 +7,10 @@
 use std::cell::Ref;
 use std::cmp::Ordering;
 use std::fmt::Debug;
-use std::rc::Rc;
 
 use html5ever::{LocalName, Namespace, Prefix};
 use js::context::JSContext;
-use script_bindings::callback::ExceptionHandling;
+use script_bindings::callback::{ExceptionHandling, RootedCallback};
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use script_bindings::root::Dom;
@@ -45,7 +44,7 @@ pub(crate) struct XPathImplementation;
 impl xpath::Dom for XPathImplementation {
     type Context = JSContext;
     type Node = XPathWrapper<DomRoot<Node>>;
-    type NamespaceResolver = XPathWrapper<Rc<XPathNSResolver>>;
+    type NamespaceResolver = XPathWrapper<RootedCallback<XPathNSResolver>>;
 }
 
 impl xpath::Node for XPathWrapper<DomRoot<Node>> {
@@ -280,7 +279,7 @@ impl xpath::Attribute for XPathWrapper<DomRoot<Attr>> {
     }
 }
 
-impl xpath::NamespaceResolver for XPathWrapper<Rc<XPathNSResolver>> {
+impl xpath::NamespaceResolver for XPathWrapper<RootedCallback<XPathNSResolver>> {
     type Context = JSContext;
 
     fn resolve_namespace_prefix(&self, cx: &mut JSContext, prefix: &str) -> Option<String> {
@@ -307,7 +306,7 @@ impl<T> From<T> for XPathWrapper<T> {
 pub(crate) fn parse_expression(
     cx: &mut JSContext,
     expression: &str,
-    resolver: Option<Rc<XPathNSResolver>>,
+    resolver: Option<RootedCallback<XPathNSResolver>>,
     is_in_html_document: bool,
 ) -> Fallible<xpath::Expression> {
     xpath::parse(
