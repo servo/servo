@@ -1212,6 +1212,7 @@ impl ParserContext {
         let page = "<html><body></body></html>".into();
         parser.push_string_input_chunk(page);
         parser.parse_sync(cx);
+        parser.document.set_quirks_mode(ServoQuirksMode::NoQuirks);
 
         let doc = &parser.document;
         // Step 5. Set the appropriate attribute of the element host element, as described below,
