@@ -163,7 +163,7 @@ impl AnimationManager {
     }
 
     /// Cancel animations for the given node, if any exist.
-    pub(crate) fn cancel_animations_for_node(&mut self, node: &Node) {
+    pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
         let opaque_node = node.to_opaque();
 
         let animation_keys = vec![
