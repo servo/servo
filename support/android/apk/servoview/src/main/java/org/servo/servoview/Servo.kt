@@ -21,9 +21,7 @@ fun Servo(
 ) {
     LifecycleResumeEffect(servoView) {
         servoView.onResume()
-        onPauseOrDispose {
-            servoView.onPause()
-        }
+        onPauseOrDispose { servoView.onPause() }
     }
     AndroidView(
         factory = { _ -> servoView },
@@ -245,8 +243,14 @@ class Servo(
             runCallback.inUIThread { client.onMediaSessionPlaybackStateChange(state) }
         }
 
-        override fun onMediaSessionSetPositionState(duration: Float, position: Float, playbackRate: Float) {
-            runCallback.inUIThread { client.onMediaSessionSetPositionState(duration, position, playbackRate) }
+        override fun onMediaSessionSetPositionState(
+            duration: Float,
+            position: Float,
+            playbackRate: Float,
+        ) {
+            runCallback.inUIThread {
+                client.onMediaSessionSetPositionState(duration, position, playbackRate)
+            }
         }
     }
 }
