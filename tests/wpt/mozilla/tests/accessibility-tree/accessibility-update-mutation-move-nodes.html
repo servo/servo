@@ -30,8 +30,10 @@
       // - div1 (child added)
       // - div2 (child added)
       // - <section> (children removed)
-      // But we need to walk all the nodes to make sure we can update bounds.
-      assert_equals(update.nodesUpdatedFromDom, 23, "nodesUpdatedFromDom");
+      // Nodes visited because of subtree layout damage:
+      // - <html>
+      // - <body>
+      assert_equals(update.nodesUpdatedFromDom, 5, "nodesUpdatedFromDom");
 
       // Nodes checked for changes based on the tree:
       // - the document
@@ -41,8 +43,7 @@
       // - div2
       assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
 
-      // Bounds are refreshed for every node in the tree; moving nodes removes none
-      assert_equals(update.nodesUpdatedBounds, 23, "nodesUpdatedBounds");
+      assert_equals(update.nodesUpdatedBounds, 7, "nodesUpdatedBounds");
 
       //  updated nodes:
       // - <section>, which had 2 children removed

@@ -36,17 +36,16 @@
       // - <section> (div1 removed)
       // - div2 (<p> and <h1> removed)
       // - div3 (new children)
-      // But we need to walk all the nodes to make sure we can update bounds.
-      assert_equals(update.nodesUpdatedFromDom, 24, "nodesUpdatedFromDom");
+      // Nodes visited because of subtree layout damage:
+      // - <html>
+      // - <body>
+      assert_equals(update.nodesUpdatedFromDom, 5, "nodesUpdatedFromDom");
 
       // <html>, <body>, <section>, div3, div2
       assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
 
-      // Bounds are refreshed for every node still in the tree. Gone are div1, the <p> and its
-      // text, plus the two whitespace-only text nodes that were direct children of div1: one
-      // between div1's start tag and div2 (div2 itself moved out, but not its whitespace
-      // siblings), and one between div2 and div1's end tag.
-      assert_equals(update.nodesUpdatedBounds, 24, "nodesUpdatedBounds");
+      // <html>, <body>, <section>, div3, <h1>, div2
+      assert_equals(update.nodesUpdatedBounds, 6, "nodesUpdatedBounds");
 
       // Changed nodes:
       // - <section>, children changed (and it shrank, changing its bounds)
@@ -54,7 +53,8 @@
       // - div3, children changed (and it now wraps more content, changing its bounds)
       // - <h2>, which moved up when the <p> was removed, changing its bounds
       // - <body> and the document, whose heights shrank, changing their bounds
-      assert_equals(update.nodesInTreeUpdate, 6, "nodesInTreeUpdate");
+      // The <h1>'s bounds do NOT change.
+      assert_equals(update.nodesInTreeUpdate, 5, "nodesInTreeUpdate");
     }, "");
 
     done();
