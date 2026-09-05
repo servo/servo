@@ -15,7 +15,7 @@ use icu_properties::props::{EnumeratedProperty, LineBreak};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::{RangeAny, Utf32CodeUnits, is_bidi_control};
+use servo_base::text::{RangeAny, Utf8CodeUnits, Utf32CodeUnits, is_bidi_control};
 use smallvec::SmallVec;
 use style::Zero;
 use style::computed_values::font_kerning::T as FontKerning;
@@ -182,10 +182,10 @@ pub(crate) struct TextRunSegment {
     pub info: FontAndScriptInfo,
 
     /// The range of bytes in the parent [`super::InlineFormattingContext`]'s text content.
-    pub byte_range: Range<usize>,
+    pub byte_range: Range<Utf8CodeUnits>,
 
     /// The range of characters in the parent [`super::InlineFormattingContext`]'s text content.
-    pub character_range: Range<usize>,
+    pub character_range: Range<Utf32CodeUnits>,
 
     /// Whether or not the linebreaker said that we should allow a line break at the start of this
     /// segment.
@@ -204,8 +204,8 @@ pub(crate) struct TextRunSegment {
 impl TextRunSegment {
     fn new(
         info: FontAndScriptInfo,
-        byte_range: Range<usize>,
-        character_range: Range<usize>,
+        byte_range: Range<Utf8CodeUnits>,
+        character_range: Range<Utf32CodeUnits>,
     ) -> Self {
         Self {
             info,
@@ -242,7 +242,12 @@ impl TextRunSegment {
 
     /// Update this segment to end at the given byte and character index. The update will only ever
     /// make the Script specific and will not change it otherwise.
-    fn update(&mut self, next_byte_index: usize, next_character_index: usize, new_script: Script) {
+    fn update(
+        &mut self,
+        next_byte_index: Utf8CodeUnits,
+        next_character_index: Utf32CodeUnits,
+        new_script: Script,
+    ) {
         if !script_is_specific(self.info.script) && script_is_specific(new_script) {
             self.info = FontAndScriptInfo {
                 script: new_script,
@@ -279,8 +284,7 @@ impl TextRunSegment {
                 run.clone(),
                 text_run,
                 &self.info,
-                Utf32CodeUnits(character_range_start - run_start)..
-                    Utf32CodeUnits(new_character_range_end - run_start),
+                character_range_start - run_start..new_character_range_end - run_start,
             );
 
             character_range_start = new_character_range_end;
@@ -301,7 +305,7 @@ pub(crate) struct CaretPlaceholder {
     pub base_fragment_info: BaseFragmentInfo,
     /// Character index of the preserved newline in the IFC's transformed text, relative
     /// to the start of the DOM node.
-    pub character_index: usize,
+    pub character_index: Utf32CodeUnits,
 }
 
 /// A single item in a [`TextRun`].
@@ -327,7 +331,7 @@ pub(crate) struct SharedTextRunData {
     /// The range of characters in this text in `InlineFormattingContext::text_content`
     /// of the `InlineFormattingContext` that owns this `TextRun`. These are counting
     /// `char`s, *not* UTF-8 offsets.
-    pub character_range_in_ifc_text: Range<usize>,
+    pub character_range_in_ifc_text: Range<Utf32CodeUnits>,
     /// The original offset of this `TextRun` in the `InlineFormattingContext`'s input
     /// text (untransformed by white space collapse and `text-transform`).
     pub original_offset: Utf32CodeUnits,
@@ -351,16 +355,16 @@ impl SharedTextRunData {
         dom_range: RangeAny<Utf32CodeUnits>,
     ) -> Range<Utf32CodeUnits> {
         let offset_map = self.offset_map.borrow();
-        let offset_in_ifc_text = Utf32CodeUnits(self.character_range_in_ifc_text.start);
-        let start = if let Some(dom_start) = dom_range.start {
+        let offset_in_ifc_text = self.character_range_in_ifc_text.start;
+        let start = if let Some(dom_start) = dom_range.start() {
             offset_map.map(dom_start + self.original_offset) - offset_in_ifc_text
         } else {
             Utf32CodeUnits(0)
         };
-        let end = if let Some(dom_end) = dom_range.end {
+        let end = if let Some(dom_end) = dom_range.end() {
             offset_map.map(dom_end + self.original_offset) - offset_in_ifc_text
         } else {
-            Utf32CodeUnits(self.character_range_in_ifc_text.len())
+            self.character_range_in_ifc_text.end - self.character_range_in_ifc_text.start
         };
         start..end
     }
@@ -372,7 +376,7 @@ impl SharedTextRunData {
         offset: Utf32CodeUnits,
     ) -> Utf32CodeUnits {
         let offset_map = self.offset_map.borrow();
-        let offset_in_ifc_text = Utf32CodeUnits(self.character_range_in_ifc_text.start);
+        let offset_in_ifc_text = self.character_range_in_ifc_text.start;
         offset_map.reverse_map(offset + offset_in_ifc_text) - self.original_offset
     }
 }
@@ -400,7 +404,7 @@ pub(crate) struct TextRun {
 
     /// The range of text in [`super::InlineFormattingContext::text_content`] of the
     /// [`super::InlineFormattingContext`] that owns this [`TextRun`]. These are UTF-8 offsets.
-    pub text_range: Range<usize>,
+    pub text_range: Range<Utf8CodeUnits>,
 
     /// The [`TextRunItem`]s of this text run. This is produced by segmenting the incoming text
     /// by things such as font and script as well as separating out hard line breaks.
@@ -412,7 +416,7 @@ impl TextRun {
     pub(crate) fn new(
         base_fragment_info: BaseFragmentInfo,
         run_data: Arc<SharedTextRunData>,
-        text_range: Range<usize>,
+        text_range: Range<Utf8CodeUnits>,
         old_text_run: Option<ArcRefCell<TextRun>>,
     ) -> Self {
         // If there was a previous box tree layout of this text run, try to preserve the old shaped text.
@@ -524,17 +528,18 @@ impl TextRun {
                 }
             };
 
-        let text_run_text = &formatting_context_text[self.text_range.clone()];
+        let text_range = usize::from(self.text_range.start)..usize::from(self.text_range.end);
+        let text_run_text = &formatting_context_text[text_range];
         let char_iterator = TwoCharsAtATimeIterator::new(text_run_text.chars());
         // The next bytes index of the character within the entire inline formatting context's text.
         let mut next_byte_index = self.text_range.start;
         for (relative_character_index, (character, next_character)) in char_iterator.enumerate() {
             // The current character index within the entire inline formatting context's text.
-            let current_character_index =
-                self.run_data.character_range_in_ifc_text.start + relative_character_index;
+            let current_character_index = self.run_data.character_range_in_ifc_text.start +
+                Utf32CodeUnits(relative_character_index as u32);
 
             let current_byte_index = next_byte_index;
-            next_byte_index += character.len_utf8();
+            next_byte_index += Utf8CodeUnits::length_of_char(character);
 
             if character == '\n' {
                 finish_current_segment(&mut current, &mut results);
@@ -545,7 +550,7 @@ impl TextRun {
                         base_fragment_info: self.base_fragment_info,
                         // The placeholder that is placed after a newline is for the index after that newline.
                         // The newline itself is at the end of the previous line.
-                        character_index: relative_character_index + 1,
+                        character_index: Utf32CodeUnits((relative_character_index + 1) as u32),
                     }
                 })));
                 continue;
@@ -554,13 +559,17 @@ impl TextRun {
             if character == '\t' {
                 finish_current_segment(&mut current, &mut results);
                 results.push(TextRunItem::Tab {
-                    bidi_level: bidi_levels.level(current_byte_index),
+                    bidi_level: bidi_levels.level(current_byte_index.into()),
                 });
                 continue;
             }
 
             let (font, script, bidi_level) = if character_cannot_change_font(character) {
-                (None, Script::Common, bidi_levels.level(current_byte_index))
+                (
+                    None,
+                    Script::Common,
+                    bidi_levels.level(current_byte_index.into()),
+                )
             } else {
                 (
                     font_group.find_by_codepoint(
@@ -570,7 +579,7 @@ impl TextRun {
                         language,
                     ),
                     Script::from(character),
-                    bidi_levels.level(current_byte_index),
+                    bidi_levels.level(current_byte_index.into()),
                 )
             };
 
@@ -578,7 +587,11 @@ impl TextRun {
             if let Some(current) = current.as_mut() &&
                 current.is_compatible(&font, script, bidi_level)
             {
-                current.update(next_byte_index, current_character_index + 1, script);
+                current.update(
+                    next_byte_index,
+                    current_character_index + Utf32CodeUnits(1),
+                    script,
+                );
                 continue;
             }
 
@@ -618,7 +631,7 @@ impl TextRun {
             current = Some(TextRunSegment::new(
                 info,
                 current_byte_index..next_byte_index,
-                current_character_index..current_character_index + 1,
+                current_character_index..current_character_index + Utf32CodeUnits(1),
             ));
         }
 

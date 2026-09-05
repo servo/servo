@@ -102,7 +102,7 @@ use line::{
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::Utf32CodeUnits;
+use servo_base::text::{Utf8CodeUnits, Utf32CodeUnits};
 use style::Zero;
 use style::computed_values::line_break::T as LineBreak;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
@@ -266,13 +266,13 @@ pub(crate) enum InlineItem {
     TextRun(ArcRefCell<TextRun>),
     OutOfFlowAbsolutelyPositionedBox(
         ArcRefCell<AbsolutelyPositionedBox>,
-        usize, /* offset_in_text */
+        Utf8CodeUnits, /* offset_in_text */
     ),
     OutOfFlowFloatBox(ArcRefCell<FloatBox>),
     Atomic(
         ArcRefCell<IndependentFormattingContext>,
-        usize, /* offset_in_text */
-        Level, /* bidi_level */
+        Utf8CodeUnits, /* offset_in_text */
+        Level,         /* bidi_level */
     ),
     BlockLevel(ArcRefCell<BlockLevelBox>),
 }
@@ -398,13 +398,13 @@ pub(crate) enum WeakInlineItem {
     TextRun(WeakRefCell<TextRun>),
     OutOfFlowAbsolutelyPositionedBox(
         WeakRefCell<AbsolutelyPositionedBox>,
-        usize, /* offset_in_text */
+        Utf8CodeUnits, /* offset_in_text */
     ),
     OutOfFlowFloatBox(WeakRefCell<FloatBox>),
     Atomic(
         WeakRefCell<IndependentFormattingContext>,
-        usize, /* offset_in_text */
-        Level, /* bidi_level */
+        Utf8CodeUnits, /* offset_in_text */
+        Level,         /* bidi_level */
     ),
     BlockLevel(WeakRefCell<BlockLevelBox>),
 }
@@ -1727,8 +1727,8 @@ impl InlineFormattingContextLayout<'_> {
                 text_fragment_run_data: caret_placeholder.run_data,
                 base_fragment_info: caret_placeholder.base_fragment_info,
                 info: FontAndScriptInfo::simple_for_font(font),
-                character_range_in_dom_node: Utf32CodeUnits(caret_placeholder.character_index)..
-                    Utf32CodeUnits(caret_placeholder.character_index + 1),
+                character_range_in_dom_node: caret_placeholder.character_index..
+                    caret_placeholder.character_index + Utf32CodeUnits(1),
                 is_empty_for_text_cursor: true,
             },
         ));
@@ -1996,7 +1996,7 @@ impl InlineFormattingContext {
                 },
                 InlineItem::Atomic(_, index_in_text, bidi_level) => {
                     shaping_queue.flush();
-                    *bidi_level = bidi_levels.level(*index_in_text);
+                    *bidi_level = bidi_levels.level(usize::from(*index_in_text));
                 },
                 InlineItem::EndInlineBox(inline_box) => {
                     if inline_box.borrow().breaks_shaping_at_end {
@@ -2188,15 +2188,16 @@ impl InlineFormattingContext {
             .sum()
     }
 
-    fn next_character_prevents_soft_wrap_opportunity(&self, index: usize) -> bool {
-        let Some(character) = self.text_content[index..].chars().nth(1) else {
+    fn next_character_prevents_soft_wrap_opportunity(&self, index: Utf8CodeUnits) -> bool {
+        // FIXME: `iterator.nth(1)` returns the **second** item. Do we want `.next()` instead?
+        let Some(character) = self.text_content[usize::from(index)..].chars().nth(1) else {
             return false;
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
     }
 
-    fn previous_character_prevents_soft_wrap_opportunity(&self, index: usize) -> bool {
-        let Some(character) = self.text_content[0..index].chars().next_back() else {
+    fn previous_character_prevents_soft_wrap_opportunity(&self, index: Utf8CodeUnits) -> bool {
+        let Some(character) = self.text_content[..usize::from(index)].chars().next_back() else {
             return false;
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
@@ -2545,7 +2546,7 @@ impl IndependentFormattingContext {
     fn layout_into_line_items(
         &self,
         layout: &mut InlineFormattingContextLayout,
-        offset_in_text: usize,
+        offset_in_text: Utf8CodeUnits,
         bidi_level: Level,
     ) {
         // We need to know the inline size of the atomic before deciding whether to do the line break.

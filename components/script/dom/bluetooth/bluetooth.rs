@@ -5,6 +5,7 @@
 use js::gc::HandleValue;
 use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
 use servo_base::generic_channel::{GenericCallback, GenericSender};
+use servo_base::text::Utf8CodeUnits;
 use servo_bluetooth_traits::{BluetoothError, BluetoothRequest, GATTType};
 use servo_bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
 use servo_bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
@@ -55,7 +56,7 @@ const MANUFACTURER_DATA_ERROR: &CStr =
     c"'manufacturerData', if present, must be non-empty to filter devices.";
 const MASK_LENGTH_ERROR: &CStr = c"`mask`, if present, must have the same length as `dataPrefix`.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
-const MAX_DEVICE_NAME_LENGTH: usize = 248;
+const MAX_DEVICE_NAME_LENGTH: Utf8CodeUnits = Utf8CodeUnits(248);
 const NAME_PREFIX_ERROR: &CStr = c"'namePrefix', if present, must be nonempty.";
 const NAME_TOO_LONG_ERROR: &CStr = c"A device name can't be longer than 248 bytes.";
 const SERVICE_DATA_ERROR: &CStr =
@@ -387,8 +388,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
     let name = match filter.name {
         Some(ref name) => {
             // Step 4.1.
-            // Note: DOMString::len() gives back the size in bytes.
-            if name.len() > MAX_DEVICE_NAME_LENGTH {
+            if name.len_utf8() > MAX_DEVICE_NAME_LENGTH {
                 return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
             }
 
@@ -405,7 +405,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
             if name_prefix.is_empty() {
                 return Err(Type(NAME_PREFIX_ERROR.to_owned()));
             }
-            if name_prefix.len() > MAX_DEVICE_NAME_LENGTH {
+            if name_prefix.len_utf8() > MAX_DEVICE_NAME_LENGTH {
                 return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
             }
 

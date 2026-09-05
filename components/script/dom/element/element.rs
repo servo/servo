@@ -3735,7 +3735,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Fast path for when the value is small, doesn't contain any markup and doesn't require
         // extra work to set innerHTML.
         if !self.node.has_weird_parser_insertion_mode() &&
-            value.len() < 100 &&
+            value.len_utf8_or_latin1() < 100 &&
             !value
                 .as_bytes()
                 .iter()
