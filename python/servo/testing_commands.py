@@ -111,6 +111,8 @@ def format_kotlin_files_with_ktfmt(check_only: bool = True) -> int:
         print("Could not find 'git'.")
         return 1
 
+    is_ci = os.getenv("CI") == "true"
+
     output = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True).stdout
 
     kotlin_modified = False
@@ -122,7 +124,7 @@ def format_kotlin_files_with_ktfmt(check_only: bool = True) -> int:
     ktfmt_args = {"cwd": APK_DIR, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
 
     # skip ktfmt when kotlin files are not modified
-    if kotlin_modified:
+    if kotlin_modified or is_ci:
         if check_only:
             return call(["./gradlew", "ktfmtCheck"], **ktfmt_args)
         else:
