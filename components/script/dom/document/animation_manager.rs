@@ -193,7 +193,7 @@ impl AnimationManager {
     }
 
     /// This does five things:
-    ///  - Cancel animations for any nodes that are no longer being rendered or delegating rendering. TODO(derdilla): is this the same as no longer have layout boxes?
+    ///  - Cancel animations for any nodes that are no longer being rendered or delegating rendering.
     ///  - Process any new animations that were discovered after reflow.
     ///  - Collect pending events for any animations that changed state.
     ///  - Root any nodes with newly animating images
@@ -244,7 +244,6 @@ impl AnimationManager {
         }
     }
 
-    // TODO(derdilla): Signature similar. Can this be merged with another call?
     pub(crate) fn update_active_frames(&self, window: &Window, now: f64) {
         if self.animating_images.read().is_empty() {
             return;
