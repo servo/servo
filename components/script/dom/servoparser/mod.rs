@@ -39,7 +39,7 @@ use script_bindings::script_runtime::temp_cx;
 use script_traits::DocumentActivity;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
-use servo_constellation_traits::{LoadOrigin, TargetSnapshotParams};
+use servo_constellation_traits::TargetSnapshotParams;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::context::QuirksMode as ServoQuirksMode;
 use tendril::stream::LossyDecoder;
@@ -938,7 +938,12 @@ pub(crate) struct ParserContext {
     /// To report CSP violations to the global that initiated the navigation
     parent_info: Option<PipelineId>,
     target_snapshot_params: TargetSnapshotParams,
-    load_origin: LoadOrigin,
+    /// The source origin this load if this navigation was initiated by script.
+    /// This is used to ensure that `about:blank` and `about:srcdoc` pages are
+    /// able to inherit the aliased [`MutableOrigin`] of their initiating pages
+    /// properly. In the case that the initiator is in another event loop, this
+    /// will be a non-aliased copy of the origin.
+    source_origin: Option<MutableOrigin>,
     document: Option<Trusted<Document>>,
 }
 
@@ -950,7 +955,7 @@ impl ParserContext {
         creation_sandboxing_flag_set: SandboxingFlagSet,
         parent_info: Option<PipelineId>,
         target_snapshot_params: TargetSnapshotParams,
-        load_origin: LoadOrigin,
+        source_origin: Option<MutableOrigin>,
     ) -> ParserContext {
         ParserContext {
             parser: None,
@@ -971,7 +976,7 @@ impl ParserContext {
                 iframe_element_referrer_policy: Default::default(),
             },
             target_snapshot_params,
-            load_origin,
+            source_origin,
             document: None,
         }
     }
@@ -1396,16 +1401,10 @@ impl FetchResponseListener for ParserContext {
         // Step 21.11. Set responseOrigin to the result of determining the origin
         // given response's URL, finalSandboxFlags, and entry's document state's
         // initiator origin.
-        let source_origin = match self.load_origin {
-            LoadOrigin::Script(ref snapshot) => {
-                Some(MutableOrigin::from_snapshot(snapshot.clone()))
-            },
-            _ => None,
-        };
         let origin = determine_the_origin(
             metadata.as_ref().map(|metadata| &metadata.final_url),
             final_sandboxing_flag_set,
-            source_origin,
+            self.source_origin.clone(),
         );
 
         let Some(document) = ScriptThread::page_headers_available(
