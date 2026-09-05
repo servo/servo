@@ -72,7 +72,12 @@ impl FontFaceSet {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        let promise = Promise::new(cx, global);
+        // The [[ReadyPromise]] lives in a traced `RefCell<Rc<Promise>>` field of
+        // this `#[dom_struct]`, so the generated tracer keeps its JS value alive
+        // while the FontFaceSet is reachable. Registering an independent
+        // permanent root as well would close a Document -> FontFaceSet ->
+        // Rc<Promise> -> JS global -> Document cross-heap retention cycle.
+        let promise = Promise::new_with_traced_owner(cx, global);
         reflect_dom_object_with_proto(
             cx,
             Box::new(FontFaceSet::new_inherited(promise)),
@@ -145,7 +150,7 @@ impl FontFaceSet {
         // Step 3. If font face set’s [[ReadyPromise]] slot currently holds a fulfilled
         // promise, replace it with a fresh pending promise.
         if self.promise.borrow().is_fulfilled() {
-            *self.promise.borrow_mut() = Promise::new(cx, &self.global());
+            *self.promise.borrow_mut() = Promise::new_with_traced_owner(cx, &self.global());
         }
 
         // Step 4. Queue a task to fire a font load event named loading at font face set.
