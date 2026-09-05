@@ -74,6 +74,7 @@ pub mod codegen {
         clippy::missing_safety_doc,
         clippy::result_unit_err
     )]
+    #[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
     pub mod GenericBindings {
         include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));
     }
@@ -85,6 +86,7 @@ pub mod codegen {
         clippy::upper_case_acronyms,
         clippy::enum_variant_names
     )]
+    #[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
     pub mod GenericUnionTypes {
         include!(concat!(env!("OUT_DIR"), "/GenericUnionTypes.rs"));
     }

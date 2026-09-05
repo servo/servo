@@ -12,9 +12,10 @@ publish = false
 compiletest_rs = { version = "0.11", features = ["tmp"] }
 
 [features]
-default = ["unrooted_must_root_lint", "trace_in_no_trace_lint"]
+default = ["unrooted_must_root_lint", "trace_in_no_trace_lint", "rooted_type_inside_traceable_lint"]
 unrooted_must_root_lint = []
 trace_in_no_trace_lint = []
+rooted_type_inside_traceable_lint = []
 
 [package.metadata.rust-analyzer]
 # This crate uses #![feature(rustc_private)]
