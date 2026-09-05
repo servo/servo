@@ -2450,153 +2450,72 @@ pub(crate) fn check_support_for_algorithm(
     //     Step 5.2. If op is "unwrapKey", return the result of checking support for an algorithm
     //     with op set to "decrypt" and alg set to alg.
     //     Step 5.3. Otherwise, return false.
-    // Step 6. If the specified operation or algorithm (or one of its parameter values) is expected
-    // to fail (for any key and/or data) for an implementation-specific reason (e.g. known
-    // nonconformance to the specification), return false.
-    // Step 7. If op is "generateKey" or "importKey", let usages be the empty list.
-    // Step 8. For each of the steps of the operation specified by op of the algorithm specified by
-    // normalizedAlgorithm:
-    //     If the step says to throw an error:
-    //         Return false.
-    //     If the step says to generate a key:
-    //         Return true.
-    //     If the step relies on an unavailable parameter, such as key, plaintext or ciphertext:
-    //         Return true.
-    //     If the step says to return a value:
-    //         Return true.
-    //     Otherwise:
-    //         Execute the step.
-    //
-    // NOTE:
-    // - Step 8 can be interpreted as executing the specified operation of the specified algorithm
-    //   in "dry-run" mode in which it validates the normalizedAlgorithm, length and usages but does
-    //   not execute the computation-demanding cryptographic calculation.
-    //
-    // - Usually, the parameter validations are executed at the beginning of the operation.
-    //   Therefore, Step 8 can be done by running the operation with the following changes:
-    //   - Replace "throw an DataError/OperationError/NotSupportedError" with "return false".
-    //   - When we reach any step that requires unavailable parameters or does the cryptographic
-    //     calculation, return true, instead of running the step, and skip the remaining steps as
-    //     well.
-    //
-    // - Since usages is an empty list, it should pass the validation described in the specified
-    //   operation of the specified algorithm. So, we simply ignore it here.
-    //
-    // - The "getPublicKey" operation is not included here, since it is handled in Step 3.
-    //
-    // - We explicitly list all patterns in the inner `match` blocks so that the Rust compiler will
-    //   remind the implementer to add the necessary parameter validation here when a new operation
-    //   of an algorithm is added.
+    // Step 6. Return the result of determining support from operation steps, with op set to op,
+    // normalizedAlgorithm set to normalizedAlgorithm, and length set to length.
     match operation {
         "encrypt" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<EncryptOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
+            normalize_and_determine_support::<EncryptOperation>(cx, operation, algorithm, length)
         },
         "decrypt" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<DecryptOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
+            normalize_and_determine_support::<DecryptOperation>(cx, operation, algorithm, length)
         },
         "sign" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<SignOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
+            normalize_and_determine_support::<SignOperation>(cx, operation, algorithm, length)
         },
         "verify" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<VerifyOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
+            normalize_and_determine_support::<VerifyOperation>(cx, operation, algorithm, length)
         },
         "digest" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<DigestOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
+            normalize_and_determine_support::<DigestOperation>(cx, operation, algorithm, length)
         },
         "deriveBits" => {
-            let Ok(normalized_algorithm) =
-                normalize_algorithm::<DeriveBitsOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
+            normalize_and_determine_support::<DeriveBitsOperation>(cx, operation, algorithm, length)
         },
         "wrapKey" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<WrapKeyOperation>(cx, algorithm)
-            else {
-                return check_support_for_algorithm(cx, "encrypt", algorithm, length);
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
+            normalize_and_determine_support::<WrapKeyOperation>(cx, operation, algorithm, length)
         },
         "unwrapKey" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<UnwrapKeyOperation>(cx, algorithm)
-            else {
-                return check_support_for_algorithm(cx, "decrypt", algorithm, length);
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
+            normalize_and_determine_support::<UnwrapKeyOperation>(cx, operation, algorithm, length)
         },
-        "generateKey" => {
-            let Ok(normalized_algorithm) =
-                normalize_algorithm::<GenerateKeyOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
-        },
+        "generateKey" => normalize_and_determine_support::<GenerateKeyOperation>(
+            cx, operation, algorithm, length,
+        ),
         "importKey" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<ImportKeyOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
+            normalize_and_determine_support::<ImportKeyOperation>(cx, operation, algorithm, length)
         },
         "exportKey" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<ExportKeyOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
+            normalize_and_determine_support::<ExportKeyOperation>(cx, operation, algorithm, length)
         },
-        "get key length" => {
-            let Ok(normalized_algorithm) =
-                normalize_algorithm::<GetKeyLengthOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
-        },
-        "encapsulate" => {
-            let Ok(normalized_algorithm) =
-                normalize_algorithm::<EncapsulateOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
-        },
-        "decapsulate" => {
-            let Ok(normalized_algorithm) =
-                normalize_algorithm::<DecapsulateOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-            normalized_algorithm.determine_support_from_operation_steps(length)
-        },
+        "get key length" => normalize_and_determine_support::<GetKeyLengthOperation>(
+            cx, operation, algorithm, length,
+        ),
+        "encapsulate" => normalize_and_determine_support::<EncapsulateOperation>(
+            cx, operation, algorithm, length,
+        ),
+        "decapsulate" => normalize_and_determine_support::<DecapsulateOperation>(
+            cx, operation, algorithm, length,
+        ),
         _ => false,
     }
+}
 
-    // Step 9. Assert: this step is never reached, because one of the steps of the operation will
-    // have said to return a value or throw an error, causing us to return true or false,
-    // respectively.
+/// Helper function for Step 4 - 6 of
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-check-support-for-algorithm>
+fn normalize_and_determine_support<T: Operation>(
+    cx: &mut js::context::JSContext,
+    op: &str,
+    algorithm: &AlgorithmIdentifier,
+    length: Option<u32>,
+) -> bool {
+    if let Ok(normalized_algorithm) = normalize_algorithm::<T>(cx, algorithm) {
+        normalized_algorithm.determine_support_from_operation_steps(length)
+    } else {
+        match op {
+            "wrapKey" => check_support_for_algorithm(cx, "encrypt", algorithm, length),
+            "unwrapKey" => check_support_for_algorithm(cx, "decrypt", algorithm, length),
+            _ => false,
+        }
+    }
 }
 
 /// Alternative to std::convert::TryFrom, with `&mut js::context::JSContext`
