@@ -12,7 +12,6 @@ use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Ve
 use fonts::ShapedTextSlice;
 use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
-use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
@@ -1840,34 +1839,22 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let layer =
                         background::layout_layer(self, painter, builder, state, index, intrinsic);
 
-                    let image_wr_key = match image {
-                        CachedImage::Raster(raster_image) => raster_image.id,
-                        CachedImage::Vector(vector_image) => {
-                            let scale = builder.device_pixel_ratio.get();
-                            let default_size: DeviceIntSize =
-                                Size2D::new(size.width * scale, size.height * scale).to_i32();
-                            let layer_size = layer.as_ref().map(|layer| {
-                                Size2D::new(
-                                    layer.tile_size.width * scale,
-                                    layer.tile_size.height * scale,
-                                )
-                                .to_i32()
-                            });
+                    let scale = builder.device_pixel_ratio.get();
+                    let default_size: DeviceIntSize =
+                        Size2D::new(size.width * scale, size.height * scale).to_i32();
+                    let preferred_size = layer.as_ref().map(|layer| {
+                        Size2D::new(
+                            layer.tile_size.width * scale,
+                            layer.tile_size.height * scale,
+                        )
+                        .to_i32()
+                    });
 
-                            node.and_then(|node| {
-                                let size = layer_size.unwrap_or(default_size);
-                                builder.image_resolver.rasterize_vector_image(
-                                    vector_image.id,
-                                    size,
-                                    node,
-                                    vector_image.svg_id,
-                                )
-                            })
-                            .and_then(|rasterized_image| rasterized_image.id)
-                        },
-                    };
-
-                    let Some(image_key) = image_wr_key else {
+                    let Some(image_key) = builder.image_resolver.image_key_from_cached_image(
+                        &image,
+                        preferred_size.unwrap_or(default_size),
+                        node,
+                    ) else {
                         continue;
                     };
 
@@ -2102,24 +2089,13 @@ impl<'a> BuilderForBoxFragment<'a> {
         {
             Err(_) => return false,
             Ok(ResolvedImage::Image { image, size }) => {
-                let image_key = match image {
-                    CachedImage::Raster(raster_image) => raster_image.id,
-                    CachedImage::Vector(vector_image) => {
-                        let scale = builder.device_pixel_ratio.get();
-                        let size = Size2D::new(size.width * scale, size.height * scale).to_i32();
-                        node.and_then(|node| {
-                            builder.image_resolver.rasterize_vector_image(
-                                vector_image.id,
-                                size,
-                                node,
-                                vector_image.svg_id,
-                            )
-                        })
-                        .and_then(|rasterized_image| rasterized_image.id)
-                    },
-                };
-
-                let Some(key) = image_key else {
+                let scale = builder.device_pixel_ratio.get();
+                let raster_size = Size2D::new(size.width * scale, size.height * scale).to_i32();
+                let Some(key) =
+                    builder
+                        .image_resolver
+                        .image_key_from_cached_image(&image, raster_size, node)
+                else {
                     return false;
                 };
 
