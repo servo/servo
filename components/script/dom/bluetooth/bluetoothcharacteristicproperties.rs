@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::BluetoothCharacteristicPropertiesMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -67,7 +67,8 @@ impl BluetoothCharacteristicProperties {
         reliableWrite: bool,
         writableAuxiliaries: bool,
     ) -> DomRoot<BluetoothCharacteristicProperties> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(BluetoothCharacteristicProperties::new_inherited(
                 broadcast,
                 read,
@@ -80,7 +81,6 @@ impl BluetoothCharacteristicProperties {
                 writableAuxiliaries,
             )),
             global,
-            cx,
         )
     }
 }

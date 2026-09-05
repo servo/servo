@@ -15,20 +15,27 @@
 
       assert_equals(initial.nodesUpdatedFromDom, 16, "nodesUpdatedFromDom");
       assert_equals(initial.nodesUpdatedFromTree, 16, "nodesUpdatedFromTree");
+      // Bounds are refreshed for every node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 16, "nodesUpdatedBounds");
       assert_equals(initial.nodesInTreeUpdate, 16, "nodesInTreeUpdate");
 
       h1.firstChild.appendData(", now with more text");
       let update = window.ServoTestUtils.forceAccessibilityUpdate();
 
       // Just the text node has changed
-      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+      // But we need to walk all the nodes to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 16, "nodesUpdatedFromDom");
 
       // The document, <body>, <section>, <h1> and the text node.
       assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
 
+      // Bounds are refreshed for every node in the tree; no nodes were added or removed
+      assert_equals(update.nodesUpdatedBounds, 16, "nodesUpdatedBounds");
+
       //  updated nodes:
       // - <h1>, computed label changed
       // - text child of <h1>, value changed
+      // (the longer text still fits on one line, so no bounds changed)
       assert_equals(update.nodesInTreeUpdate, 2, "nodesInTreeUpdate");
     }, "Append data to text node should update 2 nodes");
 

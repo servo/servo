@@ -4,6 +4,7 @@
 
 use html5ever::local_name;
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::Node;
@@ -38,11 +39,7 @@ pub(crate) fn execute_insert_paragraph_command(
         Default::default(),
     );
     // Step 3. Let node and offset be the active range's start node and offset.
-    let active_range = selection
-        .active_range()
-        .expect("Must always have an active range");
-    let mut node = active_range.start_container();
-    let mut offset = active_range.start_offset();
+    let (mut node, mut offset) = selection.start_boundary(cx);
     // Step 2. If the active range's start node is neither editable
     // nor an editing host, return true.
     if !node.is_editable_or_editing_host() {
@@ -70,7 +67,7 @@ pub(crate) fn execute_insert_paragraph_command(
         node = node.GetParentNode().expect("Must always have a parent");
     }
     // Step 7. Call collapse(node, offset) on the context object's selection.
-    selection.collapse_current_range(&node, offset);
+    let _ = selection.Collapse(cx, Some(&node), offset);
     // Step 8. Let container equal node.
     let mut container = node.clone();
     // Step 9. While container is not a single-line container,
@@ -118,10 +115,10 @@ pub(crate) fn execute_insert_paragraph_command(
         // Step 11.1. Let tag be the default single-line container name.
         let tag = document.default_single_line_container_name();
         // Step 11.2. Block-extend the active range, and let new range be the result.
-        let new_range = active_range.block_extend(cx, document);
+        let new_range = selection.expect_active_range(cx).block_extend(cx, document);
         // Step 11.4. Append to node list the first node in tree order that is contained in new range and is an allowed child of "p", if any.
         let mut node_list = if let Some(eligible_node) = new_range
-            .contained_children()
+            .contained_children(cx.no_gc())
             .ok()
             .and_then(|contained_children| {
                 contained_children
@@ -129,7 +126,7 @@ pub(crate) fn execute_insert_paragraph_command(
                     .into_iter()
                     .find(|node| {
                         is_allowed_child(
-                            NodeOrString::Node(node.clone()),
+                            NodeOrString::from_node(node, cx.no_gc()),
                             NodeOrString::String("p".to_owned()),
                         )
                     })
@@ -141,7 +138,10 @@ pub(crate) fn execute_insert_paragraph_command(
             // Step 11.5.1. If tag is not an allowed child of the active range's start node, return true.
             if !is_allowed_child(
                 NodeOrString::String(tag.str().to_owned()),
-                NodeOrString::Node(active_range.start_container()),
+                NodeOrString::from_node(
+                    &selection.expect_active_range(cx).start_container(),
+                    cx.no_gc(),
+                ),
             ) {
                 return true;
             }
@@ -149,7 +149,11 @@ pub(crate) fn execute_insert_paragraph_command(
             let container = document.create_element(cx, tag.str());
             let container = container.upcast::<Node>();
             // Step 11.5.3. Call insertNode(container) on the active range.
-            if active_range.InsertNode(cx, container).is_err() {
+            if selection
+                .expect_active_range(cx)
+                .InsertNode(cx, container)
+                .is_err()
+            {
                 unreachable!("Must always be able to insert");
             }
             // Step 11.5.4. Call createElement("br") on the context object,
@@ -159,7 +163,7 @@ pub(crate) fn execute_insert_paragraph_command(
                 unreachable!("Must always be able to append");
             }
             // Step 11.5.5. Call collapse(container, 0) on the context object's selection.
-            selection.collapse_current_range(container, 0);
+            let _ = selection.Collapse(cx, Some(container), 0);
             // Step 11.5.6. Return true.
             return true;
         };
@@ -171,7 +175,7 @@ pub(crate) fn execute_insert_paragraph_command(
             .and_then(|node| node.GetNextSibling())
             .filter(|next_of_last| {
                 is_allowed_child(
-                    NodeOrString::Node(DomRoot::from_ref(next_of_last)),
+                    NodeOrString::from_node(next_of_last, cx.no_gc()),
                     NodeOrString::String("p".to_owned()),
                 )
             })
@@ -197,11 +201,15 @@ pub(crate) fn execute_insert_paragraph_command(
         // Step 12.1. Let br be the result of calling createElement("br") on the context object.
         let br = document.create_element(cx, "br");
         // Step 12.2. Call insertNode(br) on the active range.
-        if active_range.InsertNode(cx, br.upcast()).is_err() {
+        if selection
+            .expect_active_range(cx)
+            .InsertNode(cx, br.upcast())
+            .is_err()
+        {
             unreachable!("Must always be able to insert");
         }
         // Step 12.3. Call collapse(node, offset + 1) on the context object's selection.
-        selection.collapse_current_range(&node, offset + 1);
+        let _ = selection.Collapse(cx, Some(&node), offset + 1);
         // Step 12.4. If br is the last descendant of container,
         // let br be the result of calling createElement("br") on the context object,
         // then call insertNode(br) on the active range.
@@ -211,7 +219,11 @@ pub(crate) fn execute_insert_paragraph_command(
             .is_some_and(|child| *child == *br.upcast())
         {
             let br = document.create_element(cx, "br");
-            if active_range.InsertNode(cx, br.upcast()).is_err() {
+            if selection
+                .expect_active_range(cx)
+                .InsertNode(cx, br.upcast())
+                .is_err()
+            {
                 unreachable!("Must always be able to insert");
             }
         }
@@ -245,7 +257,7 @@ pub(crate) fn execute_insert_paragraph_command(
         // and it is not an allowed child of any of its ancestors in the same editing host,
         // set the tag name of container to the default single-line container name and let container be the result.
         if node_matches_local_name!(container, local_name!("dd") | local_name!("dt")) &&
-            container.is_no_allowed_child_in_same_editing_host()
+            container.is_no_allowed_child_in_same_editing_host(cx.no_gc())
         {
             container = container
                 .downcast::<Element>()
@@ -260,8 +272,9 @@ pub(crate) fn execute_insert_paragraph_command(
     // Step 14. Let new line range be a new range whose start is the same as the active range's,
     // and whose end is (container, length of container).
     let new_line_range = document.CreateRange(cx);
-    new_line_range.set_start(&active_range.start_container(), active_range.start_offset());
-    new_line_range.set_end(&container, container.len());
+    let (start_container, start_offset) = selection.start_boundary(cx);
+    let _ = new_line_range.SetStart(cx.no_gc(), &start_container, start_offset);
+    let _ = new_line_range.SetEnd(cx.no_gc(), &container, container.len());
     // Step 15. While new line range's start offset is zero and its start node
     // is not a prohibited paragraph child,
     // set its start to (parent of start node, index of start node).
@@ -271,7 +284,8 @@ pub(crate) fn execute_insert_paragraph_command(
             .is_prohibited_paragraph_child()
     {
         let start = new_line_range.start_container();
-        new_line_range.set_start(
+        let _ = new_line_range.SetStart(
+            cx.no_gc(),
             &start.GetParentNode().expect("Must always have a parent"),
             start.index(),
         );
@@ -285,19 +299,22 @@ pub(crate) fn execute_insert_paragraph_command(
             .is_prohibited_paragraph_child()
     {
         let start = new_line_range.start_container();
-        new_line_range.set_start(
+        let _ = new_line_range.SetStart(
+            cx.no_gc(),
             &start.GetParentNode().expect("Must always have a parent"),
             1 + start.index(),
         );
     }
     // Step 17. Let end of line be true if new line range contains either nothing or a single br, and false otherwise.
-    let end_of_line = new_line_range
-        .contained_children()
-        .is_ok_and(|contained_children| {
-            let contained_children = contained_children.contained_children;
-            contained_children.is_empty() ||
-                (contained_children.len() == 1 && contained_children[0].is::<HTMLBRElement>())
-        });
+    let end_of_line =
+        new_line_range
+            .contained_children(cx.no_gc())
+            .is_ok_and(|contained_children| {
+                let contained_children = contained_children.contained_children;
+                contained_children.is_empty() ||
+                    (contained_children.len() == 1 &&
+                        contained_children[0].is::<HTMLBRElement>())
+            });
     // Step 18. If the local name of container is "h1", "h2", "h3", "h4", "h5", or "h6",
     // and end of line is true, let new container name be the default single-line container name.
     let container_as_element = container
@@ -351,9 +368,10 @@ pub(crate) fn execute_insert_paragraph_command(
         unreachable!("Must always be able to insert");
     }
     // Step 26. Let contained nodes be all nodes contained in new line range.
-    let Ok(contained_nodes) = new_line_range.contained_children() else {
-        unreachable!("Must always have contained children");
-    };
+    let contained_nodes: Vec<DomRoot<Node>> = new_line_range
+        .contained_nodes(cx.no_gc())
+        .map(|node| node.as_rooted())
+        .collect();
     // Step 27. Let frag be the result of calling extractContents() on new line range.
     let Ok(frag) = new_line_range.ExtractContents(cx) else {
         unreachable!("Must always be able to extract");
@@ -362,7 +380,7 @@ pub(crate) fn execute_insert_paragraph_command(
     // Step 28. Unset the id attribute (if any) of each Element descendant of frag
     // that is not in contained nodes.
     for descendant in frag_as_node.traverse_preorder(ShadowIncluding::No) {
-        if !contained_nodes.contained_children.contains(&descendant) &&
+        if !contained_nodes.contains(&descendant) &&
             let Some(descendant) = descendant.downcast::<Element>()
         {
             descendant.remove_attribute_by_name(cx, &local_name!("id"));
@@ -420,7 +438,7 @@ pub(crate) fn execute_insert_paragraph_command(
         }
     }
     // Step 34. Call collapse(new container, 0) on the context object's selection.
-    selection.collapse_current_range(&new_container_node, 0);
+    let _ = selection.Collapse(cx, Some(&new_container_node), 0);
     // Step 35. Return true.
     true
 }

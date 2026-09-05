@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Fetch: chunks stashed before pull() must still be delivered</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+const CHUNK_SIZE = 4096;
+const EXPECTED_TOTAL = 3 * CHUNK_SIZE;
+
+promise_test(async t => {
+    const response = await fetch("../resources/stashed-chunk.py");
+    const reader = response.body.getReader();
+
+    const first = await reader.read();
+    assert_false(first.done, "first read should return data");
+
+    // Give the remaining server chunks time to reach the response body while no read() is pending.
+    await new Promise(resolve => t.step_timeout(resolve, 500));
+
+    // Read chunks up to EXPECTED_TOTAL, server sends it in 0.2s, we expect lower than 1.5s.
+    const buffer = new Uint8Array(EXPECTED_TOTAL);
+    buffer.set(first.value, 0);
+    let received = first.value.byteLength;
+    const deadlineMs = 1500;
+    const deadline = performance.now() + deadlineMs;
+
+    while (received < EXPECTED_TOTAL) {
+        const remaining = deadline - performance.now();
+        if (remaining <= 0)
+            assert_unreached(`only ${received}/${EXPECTED_TOTAL} bytes delivered within ${deadlineMs}ms — a chunk appears stranded in the stash`);
+
+        const result = await Promise.race([
+            reader.read(),
+            new Promise((_, reject) => t.step_timeout(() => reject(new Error("read deadline exceeded")), remaining))
+        ]);
+        assert_false(result.done, `stream ended after ${received}/${EXPECTED_TOTAL} bytes`);
+        buffer.set(result.value, received);
+        received += result.value.byteLength;
+    }
+
+    assert_equals(received, EXPECTED_TOTAL, "should have received exactly the bytes the server wrote");
+
+    const A = "A".charCodeAt(0);
+    const B = "B".charCodeAt(0);
+    const C = "C".charCodeAt(0);
+    for (let i = 0; i < CHUNK_SIZE; ++i)
+        assert_equals(buffer[i], A, `byte ${i} should be 'A'`);
+    for (let i = CHUNK_SIZE; i < 2 * CHUNK_SIZE; ++i)
+        assert_equals(buffer[i], B, `byte ${i} should be 'B'`);
+    for (let i = 2 * CHUNK_SIZE; i < EXPECTED_TOTAL; ++i)
+        assert_equals(buffer[i], C, `byte ${i} should be 'C'`);
+}, "Response body: chunks stashed while the source is not pulling are delivered on the next pull");
+</script>
+</body>
+</html>

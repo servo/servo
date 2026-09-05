@@ -5,10 +5,10 @@ mod layout;
 mod stylo_taffy;
 use std::fmt;
 
-use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc;
+use style::Atom;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use stylo_taffy::TaffyStyloStyle;
@@ -83,6 +83,7 @@ impl TaffyContainer {
 #[derive(MallocSizeOf)]
 pub(crate) struct TaffyItemBox {
     pub(crate) taffy_layout: taffy::Layout,
+    pub(crate) taffy_baselines: taffy::Baselines,
     pub(crate) child_fragments: Vec<Fragment>,
     pub(crate) positioning_context: PositioningContext,
     pub(crate) style: Arc<ComputedValues>,
@@ -100,6 +101,7 @@ impl fmt::Debug for TaffyItemBox {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TaffyItemBox")
             .field("taffy_layout", &self.taffy_layout)
+            .field("taffy_baselines", &self.taffy_baselines)
             .field("child_fragments", &self.child_fragments.len())
             .field("style", &self.style)
             .field("taffy_level_box", &self.taffy_level_box)
@@ -118,6 +120,7 @@ impl TaffyItemBox {
 
         Self {
             taffy_layout: Default::default(),
+            taffy_baselines: taffy::Baselines::NONE,
             child_fragments: Vec::new(),
             positioning_context: PositioningContext::default(),
             style,
@@ -188,34 +191,11 @@ impl TaffyItemBox {
 /// Details from Taffy grid layout that will be stored
 #[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SpecificTaffyGridInfo {
-    pub rows: SpecificTaffyGridTrackInfo,
-    pub columns: SpecificTaffyGridTrackInfo,
+    pub info: taffy::DetailedGridInfo<Atom>,
 }
 
 impl SpecificTaffyGridInfo {
-    fn from_detailed_grid_layout(grid_info: taffy::DetailedGridInfo) -> Self {
-        Self {
-            rows: SpecificTaffyGridTrackInfo {
-                sizes: grid_info
-                    .rows
-                    .sizes
-                    .iter()
-                    .map(|size| Au::from_f32_px(*size))
-                    .collect(),
-            },
-            columns: SpecificTaffyGridTrackInfo {
-                sizes: grid_info
-                    .columns
-                    .sizes
-                    .iter()
-                    .map(|size| Au::from_f32_px(*size))
-                    .collect(),
-            },
-        }
+    fn from_detailed_grid_layout(grid_info: taffy::DetailedGridInfo<Atom>) -> Self {
+        Self { info: grid_info }
     }
-}
-
-#[derive(Clone, Debug, MallocSizeOf)]
-pub(crate) struct SpecificTaffyGridTrackInfo {
-    pub sizes: Box<[Au]>,
 }

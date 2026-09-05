@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw visited colors for before/after</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    a {
+      color: green;
+    }
+    a:visited {
+      color: red;
+    }
+    .wrapper {
+      width: 400px;
+      height: 120px;
+    }
+    .base::before {
+      content: "";
+      width: 100px;
+      height: 100px;
+      background-color: currentColor;
+      display: inline-block;
+    }
+    .base::after {
+      content: "";
+      width: 100px;
+      height: 100px;
+      background-color: currentColor;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <a href="">
+    <canvas id=canvas width="100" height="200" layoutsubtree>
+      <div id=child class=wrapper>
+        <p class=base>Before/After</p>
+      </div>
+    </canvas>
+  </a>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        pixel = _getPixelFromImageData(imgData, 50, 50);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Visited color in ::before should not draw");
+
+        pixel = _getPixelFromImageData(imgData, 250, 50);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Visited color in ::after should not draw");
+      });
+    };
+  </script>
+</body>
+</html>

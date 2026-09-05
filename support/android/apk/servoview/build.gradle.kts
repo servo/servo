@@ -2,6 +2,7 @@ import java.util.regex.Pattern
 
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.compose)
 }
 
 android {
@@ -175,4 +176,8 @@ project.afterEvaluate {
             variant.assembleProvider.get().finalizedBy(copyAndRenameAARTask)
         }
     }
+}
+
+dependencies {
+    implementation(libs.androidx.compose.foundation)
 }

@@ -41,7 +41,6 @@ use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTex
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -75,6 +74,9 @@ use crate::dom::html::htmlobjectelement::HTMLObjectElement;
 use crate::dom::html::htmloutputelement::HTMLOutputElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::links::relations::{
+    LinkRelations, get_element_target, valid_navigable_target_name_or_keyword,
+};
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeFlags, NodeTraits, UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::nodelist::{NodeList, RadioListMode};
@@ -84,7 +86,6 @@ use crate::dom::types::{DocumentFragment, HTMLIFrameElement};
 use crate::dom::window::Window;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::fetch::body::Extractable;
-use crate::links::{LinkRelations, get_element_target, valid_navigable_target_name_or_keyword};
 use crate::navigation::navigate;
 
 /// <https://html.spec.whatwg.org/multipage/#the-form-element>
@@ -527,7 +528,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
-    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
         // Step 1
         #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
         enum SourcedNameSource {
@@ -622,7 +623,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         sourced_names_vec.sort_by(|a, b| {
             if a.element
                 .upcast::<Node>()
-                .CompareDocumentPosition(b.element.upcast::<Node>()) ==
+                .CompareDocumentPosition(no_gc, b.element.upcast::<Node>()) ==
                 0
             {
                 if a.source.is_past() && b.source.is_past() {
@@ -633,7 +634,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
             } else if a
                 .element
                 .upcast::<Node>()
-                .CompareDocumentPosition(b.element.upcast::<Node>()) &
+                .CompareDocumentPosition(no_gc, b.element.upcast::<Node>()) &
                 NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
                 NodeConstants::DOCUMENT_POSITION_FOLLOWING
             {
@@ -847,32 +848,34 @@ impl HTMLFormElement {
             // Step 18. Let formTarget be null.
             None
         };
-        // Step 20. Let target be the result of getting an element's target given submitter's form owner and formTarget.
+        // Step 20. Let target be the result of getting an element's target given
+        // submitter's form owner and formTarget.
         let form_owner = submitter.form_owner();
         let form = form_owner.as_deref().unwrap_or(self);
         let target = get_element_target(form.upcast::<Element>(), form_target);
 
-        // Step 21. Let noopener be the result of getting an element's noopener with form, parsed action, and target.
+        // Step 21. Let noopener be the result of getting an element's noopener with form,
+        // parsed action, and target.
         let noopener = self.relations.get().get_element_noopener(target.as_ref());
 
-        // Step 22. Let targetNavigable be the first return value of applying the rules for choosing a navigable given target,
-        // form's node navigable, and noopener.
-        let source = doc.browsing_context().unwrap();
-        let (maybe_chosen, _new) =
-            source.choose_browsing_context(cx, target.unwrap_or_default(), noopener);
-
-        let Some(chosen) = maybe_chosen else {
+        // Step 22. Let targetNavigable be the first return value of applying the rules
+        // for choosing a navigable given target, form's node navigable, and noopener.
+        let Some(chosen) = doc.browsing_context().and_then(|source| {
+            source
+                .choose_a_navigable(cx, target.unwrap_or_default(), noopener)
+                .0
+        }) else {
             // Step 23. If targetNavigable is null, then return.
             return;
         };
-        let target_document = match chosen.document() {
-            Some(doc) => doc,
-            None => return,
+
+        let Some(target_document) = chosen.document() else {
+            return;
         };
 
         // Step 24. Let historyHandling be "auto".
-        // Step 25. If form document equals targetNavigable's active document, and form document has not yet completely loaded,
-        // then set historyHandling to "replace".
+        // Step 25. If form document equals targetNavigable's active document, and form
+        // document has not yet completely loaded, then set historyHandling to "replace".
         let history_handling = if doc == target_document && !doc.completely_loaded() {
             NavigationHistoryBehavior::Replace
         } else {
@@ -884,7 +887,7 @@ impl HTMLFormElement {
             LoadOrigin::Script(doc.origin().snapshot()),
             action_components,
             target_document.about_base_url(),
-            None,
+            Some(doc.pipeline_id()),
             target_window.as_global_scope().get_referrer(),
             target_document.get_referrer_policy(),
             Some(target_window.as_global_scope().is_secure_context()),
@@ -1063,10 +1066,11 @@ impl HTMLFormElement {
         // 2. If the form element's link types include the noreferrer keyword,
         //    then set referrerPolicy to "no-referrer".
         // Note: both steps done below.
-        let elem = self.upcast::<Element>();
-        let referrer = match elem.get_attribute_string_value(&local_name!("rel")) {
+        let document = self.owner_document();
+        let element = self.upcast::<Element>();
+        let referrer = match element.get_attribute_string_value(&local_name!("rel")) {
             Some(link_types) if link_types.contains("noreferrer") => Referrer::NoReferrer,
-            _ => target.as_global_scope().get_referrer(),
+            _ => document.window().as_global_scope().get_referrer(),
         };
 
         // 3. If the form has a non-null planned navigation, remove it from its task queue.
@@ -1075,9 +1079,8 @@ impl HTMLFormElement {
             .set(self.planned_navigation.get().wrapping_add(1));
         let planned_navigation = self.planned_navigation.get();
 
-        // Note: we start to use
-        // the beginnings of an `ongoing_navigation` concept,
-        // to cancel planned navigations as part of
+        // Note: we start to use the beginnings of an `ongoing_navigation` concept, to
+        // cancel planned navigations as part of
         // <https://html.spec.whatwg.org/multipage/#nav-stop>
         //
         // The concept of ongoing navigation must be separated from the form's
@@ -1092,8 +1095,7 @@ impl HTMLFormElement {
         // in the task). See <https://github.com/whatwg/html/issues/11562>.
         let ongoing_navigation = target.set_ongoing_navigation();
 
-        let referrer_policy = target.Document().get_referrer_policy();
-        load_data.creator_pipeline_id = Some(target.pipeline_id());
+        let referrer_policy = document.get_referrer_policy();
         load_data.referrer = referrer;
         load_data.referrer_policy = referrer_policy;
 
@@ -1289,7 +1291,7 @@ impl HTMLFormElement {
                         let custom = child.downcast::<HTMLElement>().unwrap();
                         if custom.is_form_associated_custom_element() {
                             // https://html.spec.whatwg.org/multipage/#face-entry-construction
-                            let internals = custom.upcast::<Element>().ensure_element_internals(cx);
+                            let internals = custom.ensure_element_internals(cx);
                             internals.perform_entry_construction(&mut data_set);
                             // Otherwise no form value has been set so there is nothing to do.
                         }
@@ -1320,7 +1322,7 @@ impl HTMLFormElement {
 
                 // Step: 5.11.3 Create an entry with dirname and dir, and append it to entry list.
                 data_set.push(FormDatum {
-                    ty: DOMString::from("string"),
+                    ty: DOMString::from_static("string"),
                     name: dirname,
                     value: FormDatumValue::String(dir),
                 });

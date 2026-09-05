@@ -46,9 +46,7 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient,
 };
-use net_traits::{
-    CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads, fetch_async,
-};
+use net_traits::{CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads};
 use profile_traits::{
     generic_channel as profile_generic_channel, ipc as profile_ipc, mem as profile_mem,
     time as profile_time,
@@ -119,9 +117,7 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::globalscope::broadcastchannel::BroadcastChannel;
-use crate::dom::globalscope::script_execution::{
-    ErrorReporting, evaluate_script, fill_compile_options,
-};
+use crate::dom::globalscope::script_execution::{evaluate_script, fill_compile_options};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -129,6 +125,7 @@ use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceentry::EntryType;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
+use crate::dom::script_execution::ScriptOptions;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -145,22 +142,22 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
-use crate::fetch::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord};
-use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
-use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::microtask::MicrotaskRunnable;
-use crate::modules::import_map::ImportMap;
-use crate::modules::script_module::{
-    ModuleRequest, ModuleStatus, ModuleTree, ResolvedModule, ScriptFetchOptions,
-};
-use crate::realms::enter_auto_realm;
-use crate::script_runtime::ThreadSafeJSContext;
-use crate::tasks::task_manager::TaskManager;
-use crate::tasks::task_source::SendableTaskSource;
-use crate::timers::{
+use crate::event_loop::timers::{
     IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
     TimerEventId, TimerSource,
 };
+use crate::fetch::fetch::FetchGroup;
+use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
+use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
+use crate::modules::import_map::ImportMap;
+use crate::modules::script_module::{
+    ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
+};
+use crate::realms::enter_auto_realm;
+use crate::runtime::microtask::MicrotaskRunnable;
+use crate::runtime::script_runtime::ThreadSafeJSContext;
+use crate::tasks::task_manager::TaskManager;
+use crate::tasks::task_source::SendableTaskSource;
 use crate::unminify::unminified_path;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -785,6 +782,7 @@ impl GlobalScope {
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
     ) -> Self {
+        let fetch_group = RefCell::new(FetchGroup::new(resource_threads.sender()));
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
@@ -826,7 +824,7 @@ impl GlobalScope {
             notification_permission_request_callback_map: Default::default(),
             import_map: Default::default(),
             resolved_module_set: Default::default(),
-            fetch_group: Default::default(),
+            fetch_group,
         }
     }
 
@@ -2439,21 +2437,6 @@ impl GlobalScope {
         &self.module_map
     }
 
-    /// Return the [`ModuleTree`] for a given [`ModuleRequest`] or `None` if there is no
-    /// tree for the request or if that tree is still being fetched.
-    pub(crate) fn module_tree_for_request_if_loaded(
-        &self,
-        request: &ModuleRequest,
-    ) -> Option<Rc<ModuleTree>> {
-        self.module_map
-            .borrow()
-            .get(request)
-            .and_then(|status| match status {
-                ModuleStatus::Fetching(_) => None,
-                ModuleStatus::Loaded(module_tree) => Some(module_tree.clone()),
-            })
-    }
-
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
         let mut timers = self.console_timers.borrow_mut();
         if timers.len() >= 10000 {
@@ -2716,7 +2699,7 @@ impl GlobalScope {
             // TODO: is this the right URL to return?
             return worklet.base_url();
         }
-        if let Some(_debugger_global) = self.downcast::<DebuggerGlobalScope>() {
+        if self.is::<DebuggerGlobalScope>() || self.is::<DissimilarOriginWindow>() {
             return self.creation_url();
         }
         unreachable!();
@@ -2968,13 +2951,15 @@ impl GlobalScope {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script();
 
+            let mut script_options = ScriptOptions::empty();
+            script_options.set(ScriptOptions::ReturnsAValue, rval.is_some());
+
             let options = fill_compile_options(
                 cx,
                 filename,
+                script_options,
                 introduction_type,
-                ErrorReporting::Unmuted,
-                rval.is_none(), // noScriptRval
-                1,              // lineno
+                1, // line_number
             );
 
             let mut source = transform_str_to_source_text(&code);
@@ -3396,20 +3381,9 @@ impl GlobalScope {
         context: Listener,
         task_source: SendableTaskSource,
     ) {
-        let network_listener = NetworkListener::new(context, task_source);
-        self.fetch_with_network_listener(request_builder, network_listener);
-    }
-
-    pub(crate) fn fetch_with_network_listener<Listener: FetchResponseListener>(
-        &self,
-        request_builder: RequestBuilder,
-        network_listener: NetworkListener<Listener>,
-    ) {
-        fetch_async(
-            &self.core_resource_thread(),
+        self.fetch_group_mut().fetch(
             request_builder,
-            None,
-            network_listener.into_callback(),
+            NetworkListener::new(context, task_source, self),
         );
     }
 
@@ -3470,46 +3444,12 @@ impl GlobalScope {
             .remove(&callback_id)
     }
 
-    pub(crate) fn append_deferred_fetch(
-        &self,
-        deferred_fetch: QueuedDeferredFetchRecord,
-    ) -> DeferredFetchRecordId {
-        let deferred_record_id = DeferredFetchRecordId::default();
-        self.fetch_group
-            .borrow_mut()
-            .deferred_fetch_records
-            .insert(deferred_record_id, deferred_fetch);
-        deferred_record_id
+    pub(crate) fn fetch_group(&self) -> Ref<'_, FetchGroup> {
+        self.fetch_group.borrow()
     }
 
-    pub(crate) fn deferred_fetches(&self) -> Vec<QueuedDeferredFetchRecord> {
-        self.fetch_group
-            .borrow()
-            .deferred_fetch_records
-            .values()
-            .cloned()
-            .collect()
-    }
-
-    pub(crate) fn deferred_fetch_record_for_id(
-        &self,
-        deferred_fetch_record_id: &DeferredFetchRecordId,
-    ) -> QueuedDeferredFetchRecord {
-        self.fetch_group
-            .borrow()
-            .deferred_fetch_records
-            .get(deferred_fetch_record_id)
-            .expect("Should always use a generated fetch_record_id instead of passing your own")
-            .clone()
-    }
-
-    /// <https://fetch.spec.whatwg.org/#process-deferred-fetches>
-    pub(crate) fn process_deferred_fetches(&self) {
-        // Step 1. For each deferred fetch record deferredRecord of fetchGroup’s
-        // deferred fetch records, process a deferred fetch deferredRecord.
-        for deferred_fetch in self.deferred_fetches() {
-            deferred_fetch.process(self);
-        }
+    pub(crate) fn fetch_group_mut(&self) -> RefMut<'_, FetchGroup> {
+        self.fetch_group.borrow_mut()
     }
 
     pub(crate) fn import_map(&self) -> Ref<'_, ImportMap> {
@@ -3572,7 +3512,7 @@ impl GlobalScope {
 
             // Step 4. Run the following steps in parallel:
             //   (We schedule a oneshot that will enforce the sub-steps when it fires.)
-            let callback = crate::timers::OneshotTimerCallback::RunStepsAfterTimeout {
+            let callback = OneshotTimerCallback::RunStepsAfterTimeout {
                 // Step 1. timerKey
                 timer_key,
                 // Step 4. orderingIdentifier
@@ -3660,6 +3600,10 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
 
     fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id()
+    }
+
+    fn script_to_constellation_chan(&self) -> ScriptToConstellationChan {
+        self.script_to_constellation_chan()
     }
 }
 

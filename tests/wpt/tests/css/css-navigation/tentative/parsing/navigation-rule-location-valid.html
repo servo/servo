@@ -9,8 +9,14 @@
   test(()=> {
     const canonical = "@navigation (at: --foo) {\n}";
     test_valid_rule(canonical);
-    test_valid_rule(" @Navigation  (At:--foo){  \n} ", canonical);
+    test_valid_rule(" @Navigation  (At:--foo ){  \n} ", canonical);
   }, "navigation-location-test");
+
+  test(()=> {
+    const canonical = "@navigation (at: url-pattern(\"/a/\")) {\n}";
+    test_valid_rule(canonical);
+    test_valid_rule(" @Navigation  ( At:url-pattern( \"/a/\") ){ \n } ", canonical);
+  }, "navigation-location-test with url-pattern()");
 
   test(()=> {
     const canonical = "@navigation (between: --a and --b) {\n}";

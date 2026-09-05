@@ -16,7 +16,7 @@ use fonts::{
     FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef, ShapingFlags,
     ShapingOptions,
 };
-use icu_locid::subtags::Language;
+use icu_locale_core::subtags::Language;
 use js::context::{JSContext, NoGC};
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
@@ -217,7 +217,6 @@ pub(super) struct CanvasState {
     #[no_trace]
     current_default_path: DomRefCell<Path>,
     /// Buffered sender for batching canvas commands.
-    #[ignore_malloc_size_of = "GenericBufferedSender"]
     #[no_trace]
     pub(super) buffered_sender: GenericBufferedSender<CanvasMsg, CanvasCommand>,
 }
@@ -2438,7 +2437,7 @@ impl CanvasState {
         // TODO: canvas also has experimental `lang` attribute (https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lang),
         // which Servo doesn't support yet. When this attribute is supported, some changes may be needed here.
         let x_language = self.font_style()._x_lang.clone();
-        let language = x_language.0.parse().unwrap_or(Language::UND);
+        let language = x_language.0.parse().unwrap_or(Language::UNKNOWN);
         let mut current_text_run = UnshapedTextRun::new(language);
         let mut current_text_run_start_index = 0;
 

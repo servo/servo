@@ -31,3 +31,6 @@ regex = { workspace = true }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 libc = { workspace = true }
+
+[lints]
+workspace = true

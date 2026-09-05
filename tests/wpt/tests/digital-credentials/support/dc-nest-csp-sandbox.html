@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8" />
+<!--
+  Served with `Content-Security-Policy: sandbox allow-scripts` (see the .headers file), so THIS
+  document has an opaque origin via CSP-derived sandboxing flags. It embeds a child that calls
+  get(). The child inherits this document's active sandboxing flag set (per "determine the
+  creation sandboxing flags"), so the child is opaque too — this exercises CSP-header sandbox
+  PROPAGATION across a nesting boundary, distinct from the iframe `sandbox` attribute path.
+  With ?child=aso the child requests allow-same-origin, which must NOT let it escape the
+  propagated opacity.
+-->
+<body></body>
+<script>
+  const params = new URL(location.href).searchParams;
+  const id = params.get("id");
+  const frame = document.createElement("iframe");
+  frame.allow = "digital-credentials-get";
+  if (params.get("child") === "aso") frame.sandbox = "allow-scripts allow-same-origin";
+  frame.src =
+    "/digital-credentials/support/dc-report-get.html?id=" + encodeURIComponent(id);
+  document.body.appendChild(frame);
+</script>

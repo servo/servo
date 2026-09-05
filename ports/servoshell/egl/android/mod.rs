@@ -27,12 +27,12 @@ use raw_window_handle::{
 pub use servo::MediaSessionPlaybackState;
 use servo::{
     self, DevicePixel, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType,
-    MouseButton, PrefValue, SelectElement, WebViewId,
+    MouseButton, SelectElement, WebViewId,
 };
 
 use super::app::{App, AppInitOptions};
 use super::host_trait::HostTrait;
-use crate::prefs::{ArgumentParsingResult, EXPERIMENTAL_PREFS, parse_command_line_arguments};
+use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
 thread_local! {
     pub static APP: RefCell<Option<Rc<App>>> = const { RefCell::new(None) };
@@ -93,7 +93,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     size: JObject<'local>,
     density: jfloat,
     logStr: JString<'local>,
-    log: jboolean,
     experimental_mode: jboolean,
     callbacks_obj: JObject<'local>,
     surface: JObject<'local>,
@@ -123,49 +122,47 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
 
         let (display_handle, window_handle) = display_and_window_handle(env, &surface);
 
-        if log {
-            // Note: Android debug logs are stripped from a release build.
-            // debug!() will only show in a debug build. Use info!() if logs
-            // should show up in adb logcat with a release build.
-            let filters = [
-                "servo",
-                "servoshell",
-                "servoshell::egl:gl_glue",
-                // Show redirected stdout / stderr by default
-                "servoshell::egl::log",
-                // Show JS errors by default.
-                "script::dom::bindings::error",
-                // Show GL errors by default.
-                "servo_canvas::webgl_thread",
-                "paint::paint",
-                "servo_constellation::constellation",
-            ];
-            let mut filter_builder = FilterBuilder::new();
-            for &module in &filters {
+        // Note: Android debug logs are stripped from a release build.
+        // debug!() will only show in a debug build. Use info!() if logs
+        // should show up in adb logcat with a release build.
+        let filters = [
+            "servo",
+            "servoshell",
+            "servoshell::egl:gl_glue",
+            // Show redirected stdout / stderr by default
+            "servoshell::egl::log",
+            // Show JS errors by default.
+            "script::dom::bindings::error",
+            // Show GL errors by default.
+            "servo_canvas::webgl_thread",
+            "paint::paint",
+            "servo_constellation::constellation",
+        ];
+        let mut filter_builder = FilterBuilder::new();
+        for &module in &filters {
+            filter_builder.filter_module(module, log::LevelFilter::Debug);
+        }
+        if let Some(log_str) = log_str {
+            for module in log_str.split(',') {
                 filter_builder.filter_module(module, log::LevelFilter::Debug);
             }
-            if let Some(log_str) = log_str {
-                for module in log_str.split(',') {
-                    filter_builder.filter_module(module, log::LevelFilter::Debug);
-                }
-            }
-
-            android_logger::init_once(
-                Config::default()
-                    .with_max_level(log::LevelFilter::Debug)
-                    .with_filter(filter_builder.build())
-                    .with_tag("servoshell"),
-            );
-
-            // In production mode we don't redirect stdout / stderr, so any
-            // panic messages would be lost without this hook.
-            std::panic::set_hook(Box::new(|info| {
-                let current_thread = std::thread::current();
-                let thread_name = current_thread.name().unwrap_or("<unnamed>");
-                error!("Panic in Rust code (thread: {thread_name}):");
-                error!("{info}");
-            }));
         }
+
+        android_logger::init_once(
+            Config::default()
+                .with_max_level(log::LevelFilter::Debug)
+                .with_filter(filter_builder.build())
+                .with_tag("servoshell"),
+        );
+
+        // In production mode we don't redirect stdout / stderr, so any
+        // panic messages would be lost without this hook.
+        std::panic::set_hook(Box::new(|info| {
+            let current_thread = std::thread::current();
+            let thread_name = current_thread.name().unwrap_or("<unnamed>");
+            error!("Panic in Rust code (thread: {thread_name}):");
+            error!("{info}");
+        }));
 
         info!("init");
 
@@ -257,9 +254,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_setExperimentalMode<'local>(
     debug!("setExperimentalMode {enable}");
     env.with_env(|env| -> jni::errors::Result<_> {
         call(env, |s| {
-            for pref in EXPERIMENTAL_PREFS {
-                s.servo().set_preference(pref, PrefValue::Bool(enable));
-            }
+            s.state.set_experimental_preferences_enabled(enable)
         });
         Ok(())
     })

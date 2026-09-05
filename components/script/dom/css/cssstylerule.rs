@@ -8,7 +8,7 @@ use std::mem;
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput, ToCss};
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use selectors::parser::{ParseRelative, SelectorList};
 use servo_arc::Arc;
 use style::selector_parser::SelectorParser;
@@ -56,14 +56,14 @@ impl CSSStyleRule {
         parent_stylesheet: &CSSStyleSheet,
         stylerule: Arc<Locked<StyleRule>>,
     ) -> DomRoot<CSSStyleRule> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(CSSStyleRule::new_inherited(
                 parent_rule,
                 parent_stylesheet,
                 stylerule,
             )),
             window,
-            cx,
         )
     }
 
@@ -183,7 +183,9 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         }) else {
             return;
         };
-        self.css_grouping_rule.parent_stylesheet().will_modify();
+        self.css_grouping_rule
+            .parent_stylesheet()
+            .will_modify(no_gc);
         // This mirrors what we do in CSSStyleOwner::mutate_associated_block.
         let mut guard = self.css_grouping_rule.shared_lock().write();
         mem::swap(

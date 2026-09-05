@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<title>Reordering adopted stylesheets updates cascade order</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#extensions-to-the-document-or-shadow-root-interface">
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="target"></div>
+
+<script>
+function testReorder(root, target) {
+  const red = new CSSStyleSheet();
+  red.replaceSync("#target { color: red; }");
+  const green = new CSSStyleSheet();
+  green.replaceSync("#target { color: green; }");
+
+  root.adoptedStyleSheets = [red, green];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+
+  root.adoptedStyleSheets = [green, red];
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+
+  root.adoptedStyleSheets = [];
+}
+
+function testReorderedSuffixAfterReplacement(root, target) {
+  const removed = new CSSStyleSheet();
+  removed.replaceSync("#unrelated { color: black; }");
+  const blue = new CSSStyleSheet();
+  blue.replaceSync("#target { color: blue; }");
+  const green = new CSSStyleSheet();
+  green.replaceSync("#target { color: green; }");
+  const inserted = new CSSStyleSheet();
+  inserted.replaceSync("#also-unrelated { color: black; }");
+
+  root.adoptedStyleSheets = [removed, blue, green];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+
+  root.adoptedStyleSheets = [inserted, green, blue];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)");
+
+  root.adoptedStyleSheets = [];
+}
+
+function testRotation(root, target) {
+  const red = new CSSStyleSheet();
+  red.replaceSync("#target { color: red; }");
+  const green = new CSSStyleSheet();
+  green.replaceSync("#target { color: green; }");
+  const blue = new CSSStyleSheet();
+  blue.replaceSync("#target { color: blue; }");
+
+  root.adoptedStyleSheets = [red, green, blue];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)");
+
+  // Rotate left, which moves every sheet without adding or removing any.
+  root.adoptedStyleSheets = [green, blue, red];
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+
+  root.adoptedStyleSheets = [];
+}
+
+test(() => {
+  testReorder(document, document.querySelector("#target"));
+}, "Reordering document.adoptedStyleSheets updates cascade order");
+
+test(() => {
+  testReorderedSuffixAfterReplacement(
+      document, document.querySelector("#target"));
+}, "Reordering a document.adoptedStyleSheets suffix after a replacement updates cascade order");
+
+test(() => {
+  testRotation(document, document.querySelector("#target"));
+}, "Rotating document.adoptedStyleSheets updates cascade order");
+
+test(() => {
+  const target = document.querySelector("#target");
+  const unaffected = new CSSStyleSheet();
+  unaffected.replaceSync("#target { font-style: italic; }");
+  const red = new CSSStyleSheet();
+  red.replaceSync("#target { color: red; }");
+  const green = new CSSStyleSheet();
+  green.replaceSync("#target { color: green; }");
+
+  document.adoptedStyleSheets = [unaffected, red, green];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+
+  // The leading sheet is untouched, so only the reordered suffix matters.
+  document.adoptedStyleSheets = [unaffected, green, red];
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+  assert_equals(getComputedStyle(target).fontStyle, "italic");
+
+  document.adoptedStyleSheets = [];
+}, "Reordering after an unchanged leading adopted stylesheet updates cascade order");
+
+test(() => {
+  const target = document.querySelector("#target");
+  const moved = new CSSStyleSheet();
+  moved.replaceSync("#target { color: green; }");
+  const mutated = new CSSStyleSheet();
+  mutated.replaceSync("#target { color: red; }");
+
+  document.adoptedStyleSheets = [moved, mutated];
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+
+  // Mutate one sheet and move the other past it in the same update, so that
+  // the moved sheet wins on account of the new order alone.
+  mutated.replaceSync("#target { color: blue; }");
+  document.adoptedStyleSheets = [mutated, moved];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+
+  // And back, so that the mutated sheet wins on account of the new order.
+  mutated.replaceSync("#target { color: rebeccapurple; }");
+  document.adoptedStyleSheets = [moved, mutated];
+  assert_equals(getComputedStyle(target).color, "rgb(102, 51, 153)");
+
+  document.adoptedStyleSheets = [];
+}, "Reordering around a mutated adopted stylesheet updates cascade order");
+
+test(() => {
+  const target = document.querySelector("#target");
+  const removed = new CSSStyleSheet();
+  removed.replaceSync("#unrelated { color: black; }");
+  const red = new CSSStyleSheet();
+  red.replaceSync("#target { color: red; }");
+  const green = new CSSStyleSheet();
+  green.replaceSync("#target { color: green; }");
+
+  document.adoptedStyleSheets = [removed, red, green];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+
+  document.adoptedStyleSheets = [green, red];
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+
+  document.adoptedStyleSheets = [];
+}, "Reordering adopted stylesheets while removing one updates cascade order");
+
+test(() => {
+  const target = document.querySelector("#target");
+  const inserted = new CSSStyleSheet();
+  inserted.replaceSync("#unrelated { color: black; }");
+  const red = new CSSStyleSheet();
+  red.replaceSync("#target { color: red; }");
+  const green = new CSSStyleSheet();
+  green.replaceSync("#target { color: green; }");
+
+  document.adoptedStyleSheets = [red, green];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+
+  document.adoptedStyleSheets = [green, inserted, red];
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+
+  document.adoptedStyleSheets = [];
+}, "Reordering adopted stylesheets while inserting one updates cascade order");
+
+test(() => {
+  const target = document.querySelector("#target");
+  const red = new CSSStyleSheet();
+  red.replaceSync("@media (min-width: 1px) { #target { color: red; } }");
+  const green = new CSSStyleSheet();
+  green.replaceSync("@media (min-width: 1px) { #target { color: green; } }");
+
+  document.adoptedStyleSheets = [red, green];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+
+  document.adoptedStyleSheets = [green, red];
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+
+  document.adoptedStyleSheets = [];
+}, "Reordering adopted stylesheets with media queries updates cascade order");
+
+test(() => {
+  const target = document.querySelector("#target");
+  const red = new CSSStyleSheet();
+  red.replaceSync("#target { color: red; }");
+  const green = new CSSStyleSheet();
+  green.replaceSync("#target { color: green; }");
+
+  // The same sheet may be adopted more than once; the last one still wins.
+  document.adoptedStyleSheets = [red, green, red];
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+
+  document.adoptedStyleSheets = [green, red, green];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+
+  document.adoptedStyleSheets = [];
+}, "Reordering duplicated adopted stylesheets updates cascade order");
+
+test(t => {
+  const target = document.querySelector("#target");
+  t.add_cleanup(() => { document.adoptedStyleSheets = []; });
+  const duplicated = new CSSStyleSheet();
+  duplicated.replaceSync("#target { color: red; }");
+  const inserted = new CSSStyleSheet();
+  inserted.replaceSync("#unrelated { color: black; }");
+
+  document.adoptedStyleSheets = [duplicated, duplicated];
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+
+  duplicated.replaceSync("#target { color: green; }");
+  document.adoptedStyleSheets = [inserted, duplicated, duplicated];
+  assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+}, "Mutating a duplicated adopted stylesheet while inserting a leading sheet updates cascade order");
+
+test(() => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({mode: "open"});
+  shadow.innerHTML = '<div id="target"></div>';
+
+  testReorder(shadow, shadow.querySelector("#target"));
+  host.remove();
+}, "Reordering shadowRoot.adoptedStyleSheets updates cascade order");
+
+test(() => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({mode: "open"});
+  shadow.innerHTML = '<div id="target"></div>';
+
+  testReorderedSuffixAfterReplacement(
+      shadow, shadow.querySelector("#target"));
+  host.remove();
+}, "Reordering a shadowRoot.adoptedStyleSheets suffix after a replacement updates cascade order");
+
+test(() => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({mode: "open"});
+  shadow.innerHTML = '<div id="target"></div>';
+
+  testRotation(shadow, shadow.querySelector("#target"));
+  host.remove();
+}, "Rotating shadowRoot.adoptedStyleSheets updates cascade order");
+</script>

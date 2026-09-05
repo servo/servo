@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: percentage junction insets resolve against the used gutter in column grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-inset-percentage-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 60px);
+    column-gap: 10px;
+    row-gap: 20px;
+    justify-content: space-between;
+    width: 300px;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+    column-rule-break: intersection;
+    column-rule-inset-junction-start: 50%;
+    column-rule-inset-junction-end: 50%;
+    row-rule-inset-junction-start: 25%;
+    row-rule-inset-junction-end: 25%;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-column: 1; height: 60px; }
+  .b { grid-column: 1; height: 40px; }
+  .c { grid-column: 2; height: 100px; }
+  .d { grid-column: 3; height: 60px; }
+  .e { grid-column: 3; height: 40px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+  <div class="e"></div>
+</div>

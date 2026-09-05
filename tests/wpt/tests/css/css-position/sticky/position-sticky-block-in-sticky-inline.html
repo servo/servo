@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<title>A sticky block in an inline accounts for its sticky inline ancestor</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#stickypos-insets">
+<link rel="help" href="https://drafts.csswg.org/css2/#anonymous-block-level">
+<meta name="assert" content="A sticky block inside an inline includes the sticky
+  translation of that inline ancestor.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#scroller {
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+}
+
+#contents {
+  height: 500px;
+}
+
+#before {
+  height: 100px;
+}
+
+#container {
+  height: 300px;
+}
+
+#outer {
+  display: inline;
+  position: sticky;
+  top: 50px;
+}
+
+#inner {
+  display: block;
+  position: sticky;
+  top: 60px;
+  width: 100px;
+  height: 50px;
+}
+</style>
+
+<div id="scroller">
+  <div id="contents">
+    <div id="before"></div>
+    <div id="container">
+      <span id="outer">
+        <span id="inner"></span>
+      </span>
+    </div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  const scroller = document.getElementById("scroller");
+  const outer = document.getElementById("outer");
+  const inner = document.getElementById("inner");
+  const scrollportTop =
+      scroller.getBoundingClientRect().top + scroller.clientTop;
+  const topRelativeToScrollport = element =>
+      element.getBoundingClientRect().top - scrollportTop;
+
+  assert_equals(topRelativeToScrollport(outer), 100, "initial outer position");
+  assert_equals(topRelativeToScrollport(inner), 100, "initial inner position");
+
+  scroller.scrollTop = 200;
+
+  assert_equals(topRelativeToScrollport(outer), 50, "outer sticky position");
+  assert_equals(topRelativeToScrollport(inner), 60, "inner sticky position");
+  assert_equals(
+      inner.getBoundingClientRect().top - outer.getBoundingClientRect().top,
+      10,
+      "nested sticky delta");
+}, "a sticky block in an inline does not duplicate its sticky inline " +
+   "ancestor's offset");
+</script>

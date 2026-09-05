@@ -10,7 +10,7 @@ use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
     QuotaExceededErrorMethods, QuotaExceededErrorOptions,
 };
 use script_bindings::num::Finite;
-use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 use servo_base::id::{QuotaExceededErrorId, QuotaExceededErrorIndex};
@@ -52,10 +52,10 @@ impl QuotaExceededError {
         quota: Option<Finite<f64>>,
         requested: Option<Finite<f64>>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Self::new_inherited(message, quota, requested)),
             global,
-            cx,
         )
     }
 }

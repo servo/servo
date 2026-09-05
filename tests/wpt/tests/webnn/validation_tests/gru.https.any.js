@@ -251,7 +251,16 @@ const tests = [
       initialHiddenState:
           {dataType: 'uint64', shape: [oneDirection, batchSize, hiddenSize]}
     }
-  }
+  },
+  {
+    name:
+        '[gru] TypeError is expected if the full-sequence output tensor is too large',
+    input: {dataType: 'float16', shape: [21474837, 1, 4]},
+    weight: {dataType: 'float16', shape: [1, 3 * 100, 4]},
+    recurrentWeight: {dataType: 'float16', shape: [1, 3 * 100, 100]},
+    steps: 21474837,
+    hiddenSize: 100,
+  },
 ];
 
 tests.forEach(

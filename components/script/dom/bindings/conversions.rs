@@ -103,7 +103,7 @@ where
         return Ok(None);
     }
 
-    let value = T::safe_from_jsval(cx, result.handle(), option);
+    let value = T::from_jsval(cx, result.handle(), option);
     match value {
         Ok(ConversionResult::Success(value)) => Ok(Some(value)),
         Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),

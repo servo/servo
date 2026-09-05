@@ -6,16 +6,15 @@ use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::str::DOMString;
 use servo_base::generic_channel;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::dom::bindings::trace::HashMapTracedValues;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::NodeTraits;
 use crate::dom::types::{GlobalScope, Window};
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
-use crate::event_loop::document_collection::DocumentCollection;
 use crate::messaging::ScriptThreadSenders;
 
 #[derive(JSTraceable, Default, MallocSizeOf)]
@@ -33,16 +32,13 @@ impl ScriptWindowProxies {
             .map(|context| DomRoot::from_ref(&**context))
     }
 
-    pub(crate) fn find_window_proxy_by_name(
-        &self,
-        name: &DOMString,
-    ) -> Option<DomRoot<WindowProxy>> {
-        for proxy in self.map.borrow().values() {
-            if proxy.get_name() == *name {
-                return Some(DomRoot::from_ref(&**proxy));
-            }
-        }
-        None
+    pub(crate) fn top_level_window_proxies(&self) -> Vec<DomRoot<WindowProxy>> {
+        self.map
+            .borrow()
+            .values()
+            .filter(|proxy| proxy.parent().is_none())
+            .map(|proxy| proxy.as_rooted())
+            .collect()
     }
 
     pub(crate) fn insert(&self, id: BrowsingContextId, proxy: &WindowProxy) {
@@ -109,11 +105,11 @@ impl ScriptWindowProxies {
         &self,
         cx: &mut js::context::JSContext,
         senders: &ScriptThreadSenders,
-        documents: &DomRefCell<DocumentCollection>,
         window: &Window,
         browsing_context_id: BrowsingContextId,
         webview_id: WebViewId,
         parent_info: Option<PipelineId>,
+        iframe: Option<DomRoot<HTMLIFrameElement>>,
         opener: Option<BrowsingContextId>,
     ) -> DomRoot<WindowProxy> {
         if let Some(window_proxy) = self.find_window_proxy(browsing_context_id) {
@@ -121,11 +117,6 @@ impl ScriptWindowProxies {
             // this will be done instead when the script-thread handles the `SetDocumentActivity` msg.
             return window_proxy;
         }
-        let iframe = parent_info.and_then(|parent_id| {
-            documents
-                .borrow()
-                .find_iframe(parent_id, browsing_context_id)
-        });
         let parent_browsing_context = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(iframe.owner_window().window_proxy()),
             (Some(parent_id), _) => self.remote_window_proxy(

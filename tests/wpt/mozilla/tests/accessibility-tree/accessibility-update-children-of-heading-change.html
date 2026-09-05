@@ -13,6 +13,8 @@
 
       assert_equals(initial.nodesUpdatedFromDom, 15, "nodesUpdatedFromDom");
       assert_equals(initial.nodesUpdatedFromTree, 15, "nodesUpdatedFromTree");
+      // Bounds are refreshed for every node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 15, "nodesUpdatedBounds");
       assert_equals(initial.nodesInTreeUpdate, 15, "nodesInTreeUpdate");
 
       document.querySelector("code").remove();
@@ -21,13 +23,17 @@
 
       // Updated nodes:
       // - h2 (<code> removed)
-      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+      // But we need to walk all the nodes to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 13, "nodesUpdatedFromDom");
 
       // <html>, <body>, <h2>
       assert_equals(update.nodesUpdatedFromTree, 3, "nodesUpdatedFromTree");
 
+      // Bounds are refreshed for every node still in the tree (the <code> and its text are gone)
+      assert_equals(update.nodesUpdatedBounds, 13, "nodesUpdatedBounds");
+
       // Changed nodes:
-      // - <h2>, children and label changed
+      // - <h2>, children and label changed (its geometry did not: the text still fits one line)
       assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");
     }, "");
 

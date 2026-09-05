@@ -11,7 +11,7 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::typedarray::ArrayBufferViewU8;
 use script_bindings::error::Fallible;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::byteteeunderlyingsource::ByteTeePullAlgorithm;
 use crate::dom::bindings::buffer_source::HeapBufferSource;
@@ -23,7 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
-use crate::microtask::MicrotaskRunnable;
+use crate::runtime::microtask::MicrotaskRunnable;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -78,7 +78,8 @@ impl ByteTeeReadRequest {
         tee_underlying_source: &ByteTeeUnderlyingSource,
         global: &GlobalScope,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ByteTeeReadRequest {
                 reflector_: Reflector::new(),
                 branch_1: Dom::from_ref(branch_1),
@@ -93,7 +94,6 @@ impl ByteTeeReadRequest {
                 tee_underlying_source: Dom::from_ref(tee_underlying_source),
             }),
             global,
-            cx,
         )
     }
 

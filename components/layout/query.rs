@@ -12,7 +12,6 @@ use std::sync::Arc;
 use app_units::Au;
 use embedder_traits::UntrustedNodeAddress;
 use euclid::{Point2D, Rect, Size2D};
-use itertools::Itertools;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleElementOf, LayoutElement,
     LayoutElementType, LayoutNode, LayoutNodeType, OffsetParentResponse, PhysicalSides,
@@ -60,13 +59,11 @@ use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
-/// Get a scroll node that would represents this [`ServoLayoutNode`]'s transform and
-/// calculate its cumulative transform from its root scroll node to the scroll node.
-fn root_transform_for_layout_node(
+/// Calculate the cumulative transform from the root scroll node for `fragments`.
+fn root_transform_for_fragments(
     scroll_tree: &ScrollTree,
-    node: ServoLayoutNode<'_>,
+    fragments: &[Fragment],
 ) -> Option<FastLayoutTransform> {
-    let fragments = node.fragments_for_pseudo(None);
     let box_fragment = fragments
         .first()
         .and_then(Fragment::retrieve_box_fragment)?;
@@ -100,32 +97,35 @@ pub(crate) fn process_box_area_request(
     area: BoxAreaType,
     exclude_transform_and_inline: bool,
 ) -> Option<Rect<Au, CSSPixel>> {
-    let fragments = node.fragments_for_pseudo(None);
-    let mut rects = fragments
-        .iter()
-        .filter(|fragment| {
-            !exclude_transform_and_inline ||
-                fragment
-                    .retrieve_box_fragment()
-                    .is_none_or(|fragment| !fragment.with_style().is_inline_box())
-        })
-        .filter_map(|node| node.cumulative_box_area_rect(area, layout_thread.into()))
-        .peekable();
+    // Borrow fragments to avoid cloning on this hot path for accessibility and
+    // `getBoundingClientRect()`.
+    node.with_fragments(|fragments| {
+        let mut rects = fragments
+            .iter()
+            .filter(|fragment| {
+                !exclude_transform_and_inline ||
+                    fragment
+                        .retrieve_box_fragment()
+                        .is_none_or(|fragment| !fragment.with_style().is_inline_box())
+            })
+            .filter_map(|node| node.cumulative_box_area_rect(area, layout_thread.into()))
+            .peekable();
 
-    rects.peek()?;
-    let rect_union = rects.fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect));
+        rects.peek()?;
+        let rect_union = rects.fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect));
 
-    if exclude_transform_and_inline {
-        return Some(rect_union);
-    }
+        if exclude_transform_and_inline {
+            return Some(rect_union);
+        }
 
-    let Some(transform) =
-        root_transform_for_layout_node(&stacking_context_tree.paint_info.scroll_tree, node)
-    else {
-        return Some(Rect::new(rect_union.origin, Size2D::zero()));
-    };
+        let Some(transform) =
+            root_transform_for_fragments(&stacking_context_tree.paint_info.scroll_tree, fragments)
+        else {
+            return Some(Rect::new(rect_union.origin, Size2D::zero()));
+        };
 
-    transform_au_rectangle(rect_union, transform)
+        transform_au_rectangle(rect_union, transform)
+    })?
 }
 
 pub(crate) fn process_box_areas_request(
@@ -134,20 +134,21 @@ pub(crate) fn process_box_areas_request(
     node: ServoLayoutNode<'_>,
     area: BoxAreaType,
 ) -> CSSPixelRectVec {
-    let fragments = node
-        .fragments_for_pseudo(None)
+    let fragments = node.fragments_for_pseudo(None);
+    let transform =
+        root_transform_for_fragments(&stacking_context_tree.paint_info.scroll_tree, &fragments);
+
+    let rects = fragments
         .into_iter()
         .filter_map(move |fragment| fragment.cumulative_box_area_rect(area, layout_thread.into()));
 
-    let Some(transform) =
-        root_transform_for_layout_node(&stacking_context_tree.paint_info.scroll_tree, node)
-    else {
-        return fragments
+    let Some(transform) = transform else {
+        return rects
             .map(|rect| Rect::new(rect.origin, Size2D::zero()))
             .collect();
     };
 
-    fragments
+    rects
         .filter_map(move |rect| transform_au_rectangle(rect, transform))
         .collect()
 }
@@ -468,32 +469,13 @@ fn resolve_grid_template(
     style: &ComputedValues,
     longhand_id: LonghandId,
 ) -> Option<String> {
-    /// <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
-    fn serialize_standalone_non_subgrid_track_list(track_sizes: &[Au]) -> Option<String> {
-        match track_sizes.is_empty() {
-            // Standalone non subgrid grids with empty track lists should compute to `none`.
-            // As of current standard, this behaviour should only invoked by `none` computed value,
-            // therefore we can fallback into computed value resolving.
-            true => None,
-            // <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
-            // > - Every track listed individually, whether implicitly or explicitly created,
-            //     without using the repeat() notation.
-            // > - Every track size given as a length in pixels, regardless of sizing function.
-            // > - Adjacent line names collapsed into a single bracketed set.
-            // TODO: implement line names
-            false => Some(
-                track_sizes
-                    .iter()
-                    .map(|size| size.to_css_string())
-                    .join(" "),
-            ),
-        }
-    }
-
     let (track_info, computed_value) = match longhand_id {
-        LonghandId::GridTemplateRows => (&grid_info.rows, &style.get_position().grid_template_rows),
+        LonghandId::GridTemplateRows => (
+            &grid_info.info.rows,
+            &style.get_position().grid_template_rows,
+        ),
         LonghandId::GridTemplateColumns => (
-            &grid_info.columns,
+            &grid_info.info.columns,
             &style.get_position().grid_template_columns,
         ),
         _ => return None,
@@ -506,7 +488,7 @@ fn resolve_grid_template(
         GenericGridTemplateComponent::None |
         GenericGridTemplateComponent::TrackList(_) |
         GenericGridTemplateComponent::Masonry => {
-            serialize_standalone_non_subgrid_track_list(&track_info.sizes)
+            (!track_info.positions.is_empty()).then(|| track_info.to_track_list_string())
         },
 
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-subgrid>
@@ -811,6 +793,8 @@ fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayou
 
     #[expect(unsafe_code)]
     while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
+        current_ancestor = ancestor;
+
         let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
             continue;
         };
@@ -821,7 +805,6 @@ fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayou
         }
 
         current_position_value = ancestor_style.clone_position();
-        current_ancestor = ancestor;
     }
     None
 }

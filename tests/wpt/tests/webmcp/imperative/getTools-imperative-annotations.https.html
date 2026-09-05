@@ -13,6 +13,7 @@ promise_test(async t => {
     annotations: {
       readOnlyHint: true,
       untrustedContentHint: true,
+      consequentialHint: false,
     },
     execute: () => {},
   };
@@ -27,6 +28,7 @@ promise_test(async t => {
   const expectedAnnotations = {
     readOnlyHint: true,
     untrustedContentHint: true,
+    consequentialHint: false,
   };
   assert_object_equals(registeredTool.annotations, expectedAnnotations,
       "annotations object should match exactly the expected IDL properties and values");
@@ -52,6 +54,7 @@ promise_test(async t => {
   const expectedAnnotations = {
     readOnlyHint: true,
     untrustedContentHint: false,
+    consequentialHint: false,
   };
   assert_object_equals(registeredTool.annotations, expectedAnnotations,
       "annotations object should contain default value for omitted untrustedContentHint property");
@@ -75,6 +78,7 @@ promise_test(async t => {
   const expectedAnnotations = {
     readOnlyHint: false,
     untrustedContentHint: false,
+    consequentialHint: false,
   };
   assert_object_equals(registeredTool.annotations, expectedAnnotations,
       "annotations object should match exactly the expected IDL default properties and values");

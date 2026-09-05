@@ -32,6 +32,7 @@ use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits};
 
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
@@ -133,6 +134,10 @@ impl FileInputType {
 }
 
 impl SpecificInputType for FileInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):suffering-from-being-missing>
     fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &DOMString) -> bool {
         input.Required() && self.filelist.get().is_none_or(|files| files.Length() == 0)
@@ -266,7 +271,7 @@ impl FileInputShadowTree {
         selector_button
             .downcast::<HTMLButtonElement>()
             .expect("This should be guaranteed by the element type used above")
-            .SetType(cx, DOMString::from("button"));
+            .SetType(cx, DOMString::from_static("button"));
 
         selector_button
             .downcast::<HTMLElement>()
@@ -303,12 +308,15 @@ impl FileInputShadowTree {
                 .upcast::<Node>()
                 .set_text_content_for_element(
                     cx,
-                    Some(DOMString::from(SELECTOR_BUTTON_MULTIPLE_TEXT)),
+                    Some(DOMString::from_static(SELECTOR_BUTTON_MULTIPLE_TEXT)),
                 );
         } else {
             self.selector_button
                 .upcast::<Node>()
-                .set_text_content_for_element(cx, Some(DOMString::from(SELECTOR_BUTTON_TEXT)));
+                .set_text_content_for_element(
+                    cx,
+                    Some(DOMString::from_static(SELECTOR_BUTTON_TEXT)),
+                );
         }
 
         self.value_container

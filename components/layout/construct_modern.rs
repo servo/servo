@@ -83,7 +83,7 @@ impl<'dom> ModernContainerJob<'dom> {
                     inline_formatting_context_builder.push_text(
                         flex_text_run.text,
                         &flex_text_run.info,
-                        flex_text_run.info.node.document_selection_in_text_node(),
+                        flex_text_run.info.node.text_node_selection(),
                     );
                 }
 

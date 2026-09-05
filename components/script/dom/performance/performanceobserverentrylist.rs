@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::performance::PerformanceEntryList;
 use super::performanceentry::{EntryType, PerformanceEntry};
@@ -33,10 +33,10 @@ impl PerformanceObserverEntryList {
         global: &GlobalScope,
         entries: Vec<DomRoot<PerformanceEntry>>,
     ) -> DomRoot<PerformanceObserverEntryList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(PerformanceObserverEntryList::new_inherited(entries)),
             global,
-            cx,
         )
     }
 }

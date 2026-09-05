@@ -152,7 +152,7 @@ fn new_fetch_context(
 impl FetchTaskTarget for FetchResponseCollector {
     fn process_request_body(&mut self, _: &Request) {}
     fn process_response(&mut self, _: &Request, _: &Response) {}
-    fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
+    fn process_response_chunk(&mut self, _: &Request, _: bytes::Bytes) {}
     /// Fired when the response is fully fetched
     fn process_response_eof(&mut self, _: &Request, response: &Response) {
         let _ = self.sender.take().unwrap().send(response.clone());

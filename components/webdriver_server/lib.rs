@@ -9,7 +9,6 @@
 mod actions;
 mod capabilities;
 mod script_argument_extraction;
-mod server;
 mod session;
 mod timeout;
 mod user_prompt;
@@ -43,7 +42,6 @@ use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use server::{Session, SessionTeardownKind, WebDriverHandler};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_config::prefs::{self, PrefValue, Preferences};
@@ -73,10 +71,11 @@ use webdriver::response::{
     CloseWindowResponse, CookieResponse, CookiesResponse, ElementRectResponse, NewSessionResponse,
     NewWindowResponse, TimeoutsResponse, ValueResponse, WebDriverResponse, WindowRectResponse,
 };
+use webdriver::server::{Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PendingActions, PointerInputState};
 use crate::session::{PageLoadStrategy, WebDriverSession};
-use crate::timeout::{DEFAULT_IMPLICIT_WAIT, DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
+use crate::timeout::{DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
 /// <https://262.ecma-international.org/6.0/#sec-number.max_safe_integer>
 /// 2^53 - 1
@@ -146,7 +145,7 @@ pub fn start_server(
         .name("WebDriverHttpServer".to_owned())
         .spawn(move || {
             let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
-            match server::start(
+            match webdriver::server::start(
                 SocketAddr::V4(address),
                 vec![],
                 vec![],
@@ -910,7 +909,7 @@ impl Handler {
 
         // Step 11. In case the Set Window Rect command is partially supported
         // (i.e. some combinations of arguments are supported but not others),
-        // the implmentation is expected to continue with the remaining steps.
+        // the implementation is expected to continue with the remaining steps.
         // DO NOT return "unsupported operation".
 
         let webview_id = self.webview_id()?;
@@ -1944,14 +1943,10 @@ impl Handler {
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
         let timeouts = self.session()?.session_timeouts();
 
-        // FIXME: The specification says that all of these values can be `null`, but the `webdriver` crate
-        // only supports setting `script` as null. When set to null, report these values as being the
-        // default ones for now.
-        // Waiting for version bump together with geckodriver.
         let timeouts = TimeoutsResponse {
             script: timeouts.script,
-            page_load: timeouts.page_load.unwrap_or(DEFAULT_PAGE_LOAD_TIMEOUT),
-            implicit: timeouts.implicit_wait.unwrap_or(DEFAULT_IMPLICIT_WAIT),
+            page_load: timeouts.page_load,
+            implicit: timeouts.implicit_wait,
         };
 
         Ok(WebDriverResponse::Timeouts(timeouts))
@@ -1968,10 +1963,10 @@ impl Handler {
             session.session_timeouts_mut().script = timeout;
         }
         if let Some(timeout) = parameters.page_load {
-            session.session_timeouts_mut().page_load = Some(timeout);
+            session.session_timeouts_mut().page_load = timeout;
         }
         if let Some(timeout) = parameters.implicit {
-            session.session_timeouts_mut().implicit_wait = Some(timeout);
+            session.session_timeouts_mut().implicit_wait = timeout;
         }
 
         Ok(WebDriverResponse::Void)
@@ -2058,31 +2053,16 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 1. Let body and arguments be the result of trying to extract the script arguments
         // from a request with argument parameters.
-        let (func_body, args_string) = self.extract_script_arguments(parameters)?;
+        let (function_body, arguments_vec) = self.extract_script_arguments(parameters)?;
+        let joined_arguments = arguments_vec.join(", ");
 
-        // This is pretty ugly; we really want something that acts like
-        // new Function() and then takes the resulting function and executes
-        // it with a vec of arguments.
         let script = format!(
-            r#"(async function(__wd_eid) {{
-                try {{
-                    let result = (async function() {{
-                        {func_body}
-                    }})({});
-                    let value = await result;
-                    if (window.__wd_eid === __wd_eid) {{
-                        window.webdriverCallback(value);
-                    }}
-                }} catch (err) {{
-                    if (window.__wd_eid === __wd_eid) {{
-                        window.webdriverException(err);
-                    }}
-                }}
-            }})(window.__wd_eid = (window.__wd_eid || 0) + 1);"#,
-            args_string.join(", ")
+            r#"(async function() {{
+                {function_body}
+               }})({joined_arguments})"#
         );
+        debug!("Executing {script}");
 
-        debug!("{}", script);
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
@@ -2112,31 +2092,21 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 1. Let body and arguments be the result of trying to extract the script arguments
         // from a request with argument parameters.
-        let (function_body, mut args_string) = self.extract_script_arguments(parameters)?;
-        args_string.push("resolve".to_string());
+        let (function_body, mut arguments_vec) = self.extract_script_arguments(parameters)?;
+        arguments_vec.push("(value) => resolve(value)".into());
+        let joined_arguments = arguments_vec.join(", ");
 
-        let joined_args = args_string.join(", ");
         let script = format!(
-            r#"(async function(__wd_eid) {{
-                try {{
-                    let result = new Promise(function(resolve, reject) {{
-                      (async function() {{
-                        {function_body}
-                      }})({joined_args})
-                        .catch(reject)
-                    }});
-                    let value = await result;
-                    if (window.__wd_eid === __wd_eid) {{
-                        window.webdriverCallback(value);
-                    }}
-                }} catch (err) {{
-                    if (window.__wd_eid === __wd_eid) {{
-                        window.webdriverException(err);
-                    }}
-                }}
-            }})(window.__wd_eid = (window.__wd_eid || 0) + 1);"#,
+            r#"(function() {{
+                return new Promise(function(resolve, reject) {{
+                  (async function() {{
+                    {function_body}
+                  }}({joined_arguments}))
+                    .catch(reject)
+                  }});
+              }})()"#,
         );
-        debug!("{}", script);
+        debug!("Executing {script}");
 
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.

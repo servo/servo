@@ -17,6 +17,10 @@ pub(crate) struct NumberInputType {
 }
 
 impl SpecificInputType for NumberInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         if !value.is_valid_floating_point_number_string() {
             value.clear();

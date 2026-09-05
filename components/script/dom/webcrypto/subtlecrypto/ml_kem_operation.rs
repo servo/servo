@@ -20,15 +20,15 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    Algorithm, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
-    KeyAlgorithmAndDerivatives, SubtleEncapsulatedBits,
+    Algorithm, CryptoAlgorithm, EncapsulatedBits, ExportedKey, JsonWebKeyExt, JwkStringField,
+    KeyAlgorithm, KeyAlgorithmAndDerivatives,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-encapsulate>
 pub(crate) fn encapsulate(
     normalized_algorithm: &Algorithm,
     key: &CryptoKey,
-) -> Result<SubtleEncapsulatedBits, Error> {
+) -> Result<EncapsulatedBits, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Public {
@@ -87,7 +87,7 @@ pub(crate) fn encapsulate(
     // containing sharedKey.
     // Step 8. Set the ciphertext attribute of result to the result of creating an ArrayBuffer
     // containing ciphertext.
-    let result = SubtleEncapsulatedBits {
+    let result = EncapsulatedBits {
         shared_key: Some(shared_key.into()),
         ciphertext: Some(ciphertext),
     };
@@ -1187,7 +1187,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 2.3. Set the kty attribute of jwk to "AKP".
-            jwk.kty = Some(DOMString::from("AKP"));
+            jwk.kty = Some(DOMString::from_static("AKP"));
 
             // Step 2.4. Set the alg attribute of jwk to the alg value corresponding to the name
             // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-05]

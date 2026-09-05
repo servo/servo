@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
 use js::context::JSContext;
 use js::typedarray::{Float32, HeapFloat32Array};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::trace::RootedTraceableBox;
 use webxr_api::{ApiSpace, View};
 
@@ -66,7 +66,8 @@ impl XRView {
         let transform: RigidTransform3D<f32, V, BaseSpace> = view.transform.then(to_base);
         let transform = XRRigidTransform::new(cx, window, cast_transform(transform));
 
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(XRView::new_inherited(
                 session,
                 &transform,
@@ -75,7 +76,6 @@ impl XRView {
                 view.cast_unit(),
             )),
             window,
-            cx,
         )
     }
 

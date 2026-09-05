@@ -27,6 +27,7 @@ pub(crate) mod progressevent;
 pub(crate) mod promiserejectionevent;
 pub(crate) mod storageevent;
 pub(crate) mod submitevent;
+pub(crate) mod textevent;
 pub(crate) mod toggleevent;
 pub(crate) mod touchevent;
 pub(crate) mod transitionevent;

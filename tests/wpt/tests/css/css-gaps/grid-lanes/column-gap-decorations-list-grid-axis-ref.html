@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(4, 60px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+  }
+  .lanes > div {
+    height: 40px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.t1 { grid-column: 1; }
+  .lanes > div.t2 { grid-column: 2; }
+  .lanes > div.t3 { grid-column: 3; }
+  .lanes > div.t4 { grid-column: 4; }
+  .col-rule { position: absolute; width: 0; }
+</style>
+<div class="lanes">
+  <div class="t1">1</div>
+  <div class="t2">2</div>
+  <div class="t3">3</div>
+  <div class="t4">4</div>
+</div>
+<div class="col-rule" style="top: 0; left: 63px; height: 40px; border-left: 4px solid blue;"></div>
+<div class="col-rule" style="top: 0; left: 133px; height: 40px; border-left: 4px solid gold;"></div>
+<div class="col-rule" style="top: 0; left: 203px; height: 40px; border-left: 4px solid purple;"></div>

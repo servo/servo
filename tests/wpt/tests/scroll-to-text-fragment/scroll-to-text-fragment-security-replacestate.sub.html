@@ -1,0 +1,58 @@
+<!doctype html>
+<title>Scroll to text fragment security with history.replaceState()</title>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<link rel="help" href="https://wicg.github.io/ScrollToTextFragment/#check-if-a-text-directive-can-be-scrolled">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="stash.js"></script>
+<script>
+const crossOriginTarget = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/scroll-to-text-fragment/scroll-to-text-fragment-security-replacestate-target.html";
+
+// Sanity checks: when noopener is provided, scrolling to text fragment should work as expected.
+for (const testCase of [
+  { action: "none", description: "Sanity check: noopener with no replaceState scrolls to text fragment" },
+  { action: "replaceState-head", description: "Sanity check: noopener with replaceState in head scrolls to text fragment" },
+]) {
+  promise_test(t => new Promise((resolve, reject) => {
+    const key = token();
+    const url = `${crossOriginTarget}?action=${testCase.action}&key=${key}#:~:text=target%20text`;
+
+    test_driver.bless('Open a URL with a text fragment directive with noopener', () => {
+      window.open(url, '_blank', 'noopener');
+    });
+
+    fetchResults(key, resolve, reject);
+  }).then(data => {
+    assert_equals(data.scrollPosition, 'text',
+      `Expected text fragment directive to activate with noopener, but got scrollPosition=${data.scrollPosition} (scrollY=${data.scrollY})`);
+  }), testCase.description);
+}
+
+// Security restrictions: when opened without noopener (opener retained), text fragment directive
+// MUST NOT activate, even if the target document performs same-document navigations like replaceState().
+for (const testCase of [
+  { action: "none", description: "Control: no replaceState, text fragment directive must not activate when opened with window opener" },
+  { action: "replaceState-head", description: "replaceState in head must not bypass security restriction when opened with window opener" },
+  { action: "replaceState-body-start", description: "replaceState at start of body must not bypass security restriction when opened with window opener" },
+  { action: "replaceState-body-end", description: "replaceState at end of body must not bypass security restriction when opened with window opener" },
+  { action: "replaceState-domcontentloaded", description: "replaceState in DOMContentLoaded must not bypass security restriction when opened with window opener" },
+]) {
+  promise_test(t => new Promise((resolve, reject) => {
+    const key = token();
+    const url = `${crossOriginTarget}?action=${testCase.action}&key=${key}#:~:text=target%20text`;
+
+    test_driver.bless('Open a URL with a text fragment directive with opener', () => {
+      window.open(url, '_blank');
+    });
+
+    fetchResults(key, resolve, reject);
+  }).then(data => {
+    assert_equals(data.scrollPosition, 'top',
+      `Expected text fragment directive to not activate when opened with an opener, but got scrollPosition=${data.scrollPosition} (scrollY=${data.scrollY})`);
+  }), testCase.description);
+}
+</script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: with rule-break none a grid-axis rule keeps only its two cap endpoints, so junction insets have no effect</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="match" href="column-gap-decorations-inset-with-break-none-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 80px);
+    gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+    column-rule-break: none;
+    column-rule-inset-cap-start: 12px;
+    column-rule-inset-cap-end: 6px;
+    column-rule-inset-junction-start: 30px;
+    column-rule-inset-junction-end: 30px;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-column: 1; height: 60px; }
+  .b { grid-column: 1; height: 60px; }
+  .c { grid-column: 2; height: 80px; }
+  .d { grid-column: 2; height: 60px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+</div>

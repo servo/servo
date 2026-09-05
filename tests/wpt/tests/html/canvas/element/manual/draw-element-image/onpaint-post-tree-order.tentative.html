@@ -140,4 +140,34 @@
     assert_array_equals(paint_order, ['inner_b_2', 'outer_b', 'inner_a', 'outer_a'],
                         'Simultaneous repaints across branches fire in reverse tree order');
   }, 'Simultaneous repaints across disjoint branches fire in reverse tree order');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+    let innerOnpaintCount = 0;
+    let outerOnpaintCount = 0;
+
+    inner_a.onpaint = () => {
+      innerOnpaintCount++;
+      const inner_ctx = inner_a.getContext('2d');
+      inner_ctx.reset();
+      inner_ctx.drawElementImage(target_a_child, 0, 0);
+    };
+    outer_a.onpaint = () => {
+      outerOnpaintCount++;
+      const outer_ctx = outer_a.getContext('2d');
+      outer_ctx.reset();
+      outer_ctx.drawElementImage(target_a, 0, 0);
+    };
+
+    // Trigger change in inner_a only.
+    target_a_child.style.background = '#00f';
+
+    await waitForOneFrame();
+    assert_equals(innerOnpaintCount, 1, 'inner onpaint should fire once');
+    assert_equals(outerOnpaintCount, 1, 'outer onpaint should fire once');
+
+    await waitForOneFrame();
+    assert_equals(innerOnpaintCount, 1, 'inner onpaint should not fire again');
+    assert_equals(outerOnpaintCount, 1, 'outer onpaint should not fire again');
+  }, 'Drawing operations in nested canvas onpaint should not cause outer onpaint to fire again');
 </script>

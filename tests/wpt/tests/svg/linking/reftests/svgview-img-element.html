@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>SVG fragment identifier: svgView() applies to an img element</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#SVGFragmentIdentifiersDefinitions">
+<link rel="match" href="svgview-img-element-ref.html">
+<meta name="assert" content="An svgView(viewBox(...)) fragment on the src of an img element selects that view of the referenced SVG. support/squares.svg is a 200x200 sprite of four coloured quadrants; viewBox(100,0,100,100) selects the top-right one, so the 100x100 img must be filled by that quadrant's colour alone.">
+
+<!--
+  The reference is a solid block of the top-right quadrant's colour, so the test
+  fails visibly if the fragment is ignored: the whole four-quadrant sprite would
+  be drawn instead, and three of the four colours would be wrong.
+
+  The img is 100x100 and the selected view is 100x100, so the aspect ratios match
+  and the default preserveAspectRatio of xMidYMid meet scales the view to fill the
+  element exactly. No letterboxing, so the comparison is a flat colour and does
+  not depend on scaling quality.
+-->
+
+<style>
+  body { margin: 0; }
+  img { display: block; border: none; }
+</style>
+
+<img src="support/squares.svg#svgView(viewBox(100,0,100,100))" width="100" height="100" alt="">

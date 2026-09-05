@@ -8,6 +8,9 @@ jobs:
   parse-comment:
     name: Trigger Try
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     concurrency:
       group: try-${{ github.event.number }}
     outputs:
@@ -115,6 +118,13 @@ jobs:
     if: ${{ needs.parse-comment.outputs.try_string }}
     needs: ["parse-comment"]
     name: ${{ matrix.name }}
+    permissions:
+      contents: read
+      attestations: read
+      # TODO: This is used by our runner-selection job to delete temporary artifacts.
+      # We should find a nother way to handle that to avoid needing to hand-out this
+      # permission.
+      actions: write
     strategy:
       fail-fast: ${{ fromJson(needs.parse-comment.outputs.configuration).fail_fast }}
       matrix:
@@ -140,6 +150,8 @@ jobs:
     name: Results
     needs: ["parse-comment", "run-try"]
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     if: ${{ always() && needs.parse-comment.outputs.try_string }}
     steps:
       - name: Post PR Comment with results

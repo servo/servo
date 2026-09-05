@@ -113,7 +113,7 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-type>
     fn Type(&self) -> DOMString {
-        DOMString::from("output")
+        DOMString::from_static("output")
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name

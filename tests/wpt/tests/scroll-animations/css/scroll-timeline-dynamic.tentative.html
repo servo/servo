@@ -174,11 +174,12 @@
     // time.
     await element.getAnimations()[0].ready;
 
-    // DocumentTimeline -> none
+    // DocumentTimeline -> unresolved timeline
+    // Produces no effect. See https://github.com/w3c/csswg-drafts/issues/9256
     element.style.animationTimeline = '--none';
     await assert_width(element, '0px');
 
-    // none -> DocumentTimeline
+    // unresolved timeline -> DocumentTimeline
     element.style.animationTimeline = '';
     await assert_width(element, '100px');
 
@@ -186,14 +187,14 @@
     element.style.animationTimeline = '--timeline';
     await assert_width(element, '120px');
 
-    // ScrollTimeline -> none
+    // ScrollTimeline -> unresolved timeline
     element.style.animationTimeline = '--none';
-    await assert_width(element, '120px');
+    await assert_width(element, '0px');
 
-    // none -> ScrollTimeline
+    // unresolved timeline -> ScrollTimeline
     element.style.animationTimeline = '--timeline';
     await assert_width(element, '120px');
-  }, 'Changing to/from animation-timeline:none');
+  }, 'Changing to/from unresolved timeline');
 
 
   dynamic_rule_test(async (t, assert_width) => {

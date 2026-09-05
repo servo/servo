@@ -11,6 +11,11 @@ feature-depth = 1
 # More documentation for the advisories section can be found here:
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
+# Our `mach` integration currently errors on warnings. We should add support
+# for warnings without failing tidy to mach and then change this to `warn`.
+# We don't want to deny yanked crates, since it creates incentives to update
+# quickly, which could be abused by supply-chain attacks that yank old versions.
+yanked = "allow"
 ignore = [
     # The crate `paste` is no longer maintained.
     "RUSTSEC-2024-0436",
@@ -98,28 +103,14 @@ skip = [
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
 
-    # Duplicated by btleplug
-    "jni",
+    # Duplicated by ndk and ndk-sys that are still on 0.3.1
     "jni-sys",
 
     # Duplicated by egui
     "foldhash",
-    "windows-collections",
-    "windows-future",
-    "windows-numerics",
-    "windows-strings",
-    "windows-threading",
-
-    # Duplicated by egui-file-dialog
-    "windows",
-    "windows-link",
-    "windows-result",
 
     # Duplicated by winit.
     "windows-sys",
-
-    # wgpu has the latest and greatest.
-    "windows-core",
 
     # Duplicated by gilrs.
     "core-foundation",
@@ -131,9 +122,6 @@ skip = [
     "thiserror",
     "thiserror-impl",
 
-    # duplicated by webdriver
-    "http",
-
     # duplicated by winit
     "block2",
     "objc2-app-kit",
@@ -143,7 +131,6 @@ skip = [
     # duplicated by tungstenite
     "getrandom",
     "rand",
-    "rand_chacha",
     "rand_core",
     "sha1",
 
@@ -215,6 +202,14 @@ skip = [
     "wgpu-hal",
     "wgpu-naga-bridge",
     "wgpu-types",
+
+    # duplicated by mozjs which brings in new versions
+    "anstream",
+    "anstyle-parse",
+    "syn",
+    "toml",
+    "toml_datetime",
+    "winnow",
 ]
 
 # github.com organizations to allow git sources for

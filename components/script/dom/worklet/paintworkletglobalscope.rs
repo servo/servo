@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::collections::hash_map::Entry;
 use std::ptr::{NonNull, null_mut};
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
@@ -11,17 +10,17 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use crossbeam_channel::{Sender, unbounded};
+use crossbeam_channel::unbounded;
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
 use js::context::JSContext;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSObject, Value};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::AutoRealm;
-use js::rust::HandleValue;
 use js::rust::wrappers2::{
     Call, Construct1, JS_ClearPendingException, JS_IsExceptionPending, NewArrayObject,
 };
+use js::rust::{HandleValue, MutableHandle};
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
 use script_bindings::cell::DomRefCell;
@@ -50,8 +49,8 @@ use crate::dom::css::stylepropertymapreadonly::StylePropertyMapReadOnly;
 use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::worklet::WorkletExecutor;
-use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit, WorkletTask};
-use crate::microtask::MicrotaskQueue;
+use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
+use crate::runtime::microtask::MicrotaskQueue;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
@@ -135,91 +134,6 @@ impl PaintWorkletGlobalScope {
         self.image_cache.clone()
     }
 
-    pub(crate) fn perform_a_worklet_task(&self, cx: &mut JSContext, task: PaintWorkletTask) {
-        match task {
-            PaintWorkletTask::DrawAPaintImage(
-                name,
-                size,
-                device_pixel_ratio,
-                properties,
-                arguments,
-                sender,
-            ) => {
-                let cache_hit = self.has_cached_paint_image(
-                    &name,
-                    size,
-                    device_pixel_ratio,
-                    &properties,
-                    &arguments,
-                );
-
-                let result = if cache_hit {
-                    debug!("Cache hit on paint worklet {}!", name);
-                    self.cached_result.borrow().clone()
-                } else {
-                    debug!("Cache miss on paint worklet {}!", name);
-                    let map = StylePropertyMapReadOnly::from_iter(
-                        cx,
-                        self.upcast(),
-                        properties.iter().cloned(),
-                    );
-                    let result = self.draw_a_paint_image(
-                        cx,
-                        &name,
-                        size,
-                        device_pixel_ratio,
-                        &map,
-                        &arguments,
-                    );
-                    if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
-                        self.set_cached_paint_image(
-                            name,
-                            size,
-                            device_pixel_ratio,
-                            properties,
-                            arguments,
-                            result.clone(),
-                        );
-                    }
-                    result
-                };
-                let _ = sender.send(result);
-            },
-            PaintWorkletTask::SpeculativelyDrawAPaintImage(name, properties, arguments) => {
-                let should_speculate = (*self.cached_name.borrow() != name) ||
-                    (*self.cached_properties.borrow() != properties) ||
-                    (*self.cached_arguments.borrow() != arguments);
-                if should_speculate {
-                    let size = self.cached_size.get();
-                    let device_pixel_ratio = self.cached_device_pixel_ratio.get();
-                    let map = StylePropertyMapReadOnly::from_iter(
-                        cx,
-                        self.upcast(),
-                        properties.iter().cloned(),
-                    );
-                    let result = self.draw_a_paint_image(
-                        cx,
-                        &name,
-                        size,
-                        device_pixel_ratio,
-                        &map,
-                        &arguments,
-                    );
-                    if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
-                        self.set_cached_paint_image(
-                            name,
-                            size,
-                            device_pixel_ratio,
-                            properties,
-                            arguments,
-                            result,
-                        );
-                    }
-                }
-            },
-        }
-    }
-
     fn has_cached_paint_image(
         &self,
         name: &Atom,
@@ -282,6 +196,57 @@ impl PaintWorkletGlobalScope {
         )
     }
 
+    #[expect(unsafe_code)]
+    /// Gets or creates the `self.paint_class_instances` given by `name` and inserts
+    /// the value into the provided `paint_instance` handle. Returns `Err` when this
+    /// fails.
+    fn get_or_create_paint_instance(
+        &self,
+        cx: &mut JSContext,
+        mut paint_instance: MutableHandle<Value>,
+        name: Atom,
+        class_constructor: HandleValue,
+        size_in_dpx: Size2D<u32, DevicePixel>,
+    ) -> Result<(), DrawAPaintImageResult> {
+        if let Some(entry) = self.paint_class_instances.borrow().get(&name) {
+            paint_instance.set(entry.get());
+            return Ok(());
+        }
+
+        // Step of <https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback>
+        // 5.2 Let paintCtor be the class constructor on definition.
+        // 5.3 Let paintInstance be the result of Construct(paintCtor).
+        //     If construct throws an exception, set the definition’s constructor valid flag to false,
+        //     let the image output be an invalid image and abort all these steps.
+        let args = HandleValueArray::empty();
+        rooted!(&in(cx) let mut result = null_mut::<JSObject>());
+        unsafe {
+            Construct1(cx, class_constructor, &args, result.handle_mut());
+        }
+        paint_instance.set(ObjectValue(result.get()));
+        if unsafe { JS_IsExceptionPending(cx) } {
+            debug!("Paint constructor threw an exception {}.", name);
+            unsafe {
+                JS_ClearPendingException(cx);
+            }
+            self.paint_definitions
+                .safe_borrow_mut(cx)
+                .get_mut(&name)
+                .expect("Vanishing paint definition.")
+                .constructor_valid_flag
+                .set(false);
+            // 1.2 Let the image output be an invalid image and abort all these steps.
+            return Err(self.invalid_image(size_in_dpx, vec![]));
+        }
+        // Step 5.4
+        self.paint_class_instances
+            .safe_borrow_mut(cx)
+            .entry(name)
+            .or_default()
+            .set(paint_instance.get());
+        Ok(())
+    }
+
     /// <https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback>
     #[expect(clippy::too_many_arguments)]
     #[expect(unsafe_code)]
@@ -334,35 +299,15 @@ impl PaintWorkletGlobalScope {
         // the primary worklet thread.
         // https://github.com/servo/servo/issues/17377
         rooted!(&in(cx) let mut paint_instance = UndefinedValue());
-        match self.paint_class_instances.borrow_mut().entry(name.clone()) {
-            Entry::Occupied(entry) => paint_instance.set(entry.get().get()),
-            Entry::Vacant(entry) => {
-                // Step 5.2-5.3
-                let args = HandleValueArray::empty();
-                rooted!(&in(cx) let mut result = null_mut::<JSObject>());
-                unsafe {
-                    Construct1(cx, class_constructor.handle(), &args, result.handle_mut());
-                }
-                paint_instance.set(ObjectValue(result.get()));
-                if unsafe { JS_IsExceptionPending(cx) } {
-                    debug!("Paint constructor threw an exception {}.", name);
-                    unsafe {
-                        JS_ClearPendingException(cx);
-                    }
-                    self.paint_definitions
-                        .borrow_mut()
-                        .get_mut(name)
-                        .expect("Vanishing paint definition.")
-                        .constructor_valid_flag
-                        .set(false);
-                    return self.invalid_image(size_in_dpx, vec![]);
-                }
-                // Step 5.4
-                entry
-                    .insert(Box::<Heap<Value>>::default())
-                    .set(paint_instance.get());
-            },
-        };
+        if let Err(early_return) = self.get_or_create_paint_instance(
+            cx,
+            paint_instance.handle_mut(),
+            name.clone(),
+            class_constructor.handle(),
+            size_in_dpx,
+        ) {
+            return early_return;
+        }
 
         // TODO: Steps 6-7
         // Step 8
@@ -442,56 +387,6 @@ impl PaintWorkletGlobalScope {
     }
 
     fn painter(&self, name: Atom) -> Box<dyn Painter> {
-        // Rather annoyingly we have to use a mutex here to make the painter Sync.
-        struct WorkletPainter {
-            name: Atom,
-            executor: Mutex<WorkletExecutor>,
-        }
-        impl SpeculativePainter for WorkletPainter {
-            fn speculatively_draw_a_paint_image(
-                &self,
-                properties: Vec<(Atom, String)>,
-                arguments: Vec<String>,
-            ) {
-                let name = self.name.clone();
-                let task =
-                    PaintWorkletTask::SpeculativelyDrawAPaintImage(name, properties, arguments);
-                self.executor
-                    .lock()
-                    .expect("Locking a painter.")
-                    .schedule_a_worklet_task(WorkletTask::Paint(task));
-            }
-        }
-        impl Painter for WorkletPainter {
-            fn draw_a_paint_image(
-                &self,
-                size: Size2D<f32, CSSPixel>,
-                device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
-                properties: Vec<(Atom, String)>,
-                arguments: Vec<String>,
-            ) -> Result<DrawAPaintImageResult, PaintWorkletError> {
-                let name = self.name.clone();
-                let (sender, receiver) = unbounded();
-                let task = PaintWorkletTask::DrawAPaintImage(
-                    name,
-                    size,
-                    device_pixel_ratio,
-                    properties,
-                    arguments,
-                    sender,
-                );
-                self.executor
-                    .lock()
-                    .expect("Locking a painter.")
-                    .schedule_a_worklet_task(WorkletTask::Paint(task));
-
-                let timeout = pref!(dom_worklet_timeout_ms) as u64;
-
-                receiver
-                    .recv_timeout(Duration::from_millis(timeout))
-                    .map_err(PaintWorkletError::from)
-            }
-        }
         Box::new(WorkletPainter {
             name,
             executor: Mutex::new(self.worklet_global.executor()),
@@ -499,17 +394,134 @@ impl PaintWorkletGlobalScope {
     }
 }
 
-/// Tasks which can be peformed by a paint worklet
-pub(crate) enum PaintWorkletTask {
-    DrawAPaintImage(
-        Atom,
-        Size2D<f32, CSSPixel>,
-        Scale<f32, CSSPixel, DevicePixel>,
-        Vec<(Atom, String)>,
-        Vec<String>,
-        Sender<DrawAPaintImageResult>,
-    ),
-    SpeculativelyDrawAPaintImage(Atom, Vec<(Atom, String)>, Vec<String>),
+// Rather annoyingly we have to use a mutex here to make the painter Sync.
+struct WorkletPainter {
+    name: Atom,
+    executor: Mutex<WorkletExecutor>,
+}
+
+impl SpeculativePainter for WorkletPainter {
+    fn speculatively_draw_a_paint_image(
+        &self,
+        properties: Vec<(Atom, String)>,
+        arguments: Vec<String>,
+    ) {
+        let name = self.name.clone();
+
+        let speculatively_draw_a_paint_image_task =
+            move |cx: &mut JSContext, global_scope: &WorkletGlobalScope| {
+                let paint_worklet_global_scope = global_scope
+                    .downcast::<PaintWorkletGlobalScope>()
+                    .expect("PaintWorklet's task should be run only on PaintWorkletGlobalScope.");
+
+                let should_speculate = (*paint_worklet_global_scope.cached_name.borrow() != name) ||
+                    (*paint_worklet_global_scope.cached_properties.borrow() != properties) ||
+                    (*paint_worklet_global_scope.cached_arguments.borrow() != arguments);
+                if should_speculate {
+                    let size = paint_worklet_global_scope.cached_size.get();
+                    let device_pixel_ratio =
+                        paint_worklet_global_scope.cached_device_pixel_ratio.get();
+                    let map = StylePropertyMapReadOnly::from_iter(
+                        cx,
+                        paint_worklet_global_scope.upcast(),
+                        properties.iter().cloned(),
+                    );
+                    let result = paint_worklet_global_scope.draw_a_paint_image(
+                        cx,
+                        &name,
+                        size,
+                        device_pixel_ratio,
+                        &map,
+                        &arguments,
+                    );
+                    if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
+                        paint_worklet_global_scope.set_cached_paint_image(
+                            name,
+                            size,
+                            device_pixel_ratio,
+                            properties,
+                            arguments,
+                            result,
+                        );
+                    }
+                }
+            };
+
+        self.executor
+            .lock()
+            .expect("Locking a painter.")
+            .schedule_a_worklet_task(Box::new(speculatively_draw_a_paint_image_task));
+    }
+}
+
+impl Painter for WorkletPainter {
+    fn draw_a_paint_image(
+        &self,
+        size: Size2D<f32, CSSPixel>,
+        device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
+        properties: Vec<(Atom, String)>,
+        arguments: Vec<String>,
+    ) -> Result<DrawAPaintImageResult, PaintWorkletError> {
+        let name = self.name.clone();
+        let (sender, receiver) = unbounded();
+
+        let draw_a_paint_image_task =
+            move |cx: &mut JSContext, global_scope: &WorkletGlobalScope| {
+                let paint_worklet_global_scope = global_scope
+                    .downcast::<PaintWorkletGlobalScope>()
+                    .expect("PaintWorklet's task should be run only on PaintWorkletGlobalScope.");
+
+                let cache_hit = paint_worklet_global_scope.has_cached_paint_image(
+                    &name,
+                    size,
+                    device_pixel_ratio,
+                    &properties,
+                    &arguments,
+                );
+                let result = if cache_hit {
+                    debug!("Cache hit on paint worklet {}!", name);
+                    paint_worklet_global_scope.cached_result.borrow().clone()
+                } else {
+                    debug!("Cache miss on paint worklet {}!", name);
+                    let map = StylePropertyMapReadOnly::from_iter(
+                        cx,
+                        paint_worklet_global_scope.upcast(),
+                        properties.iter().cloned(),
+                    );
+                    let result = paint_worklet_global_scope.draw_a_paint_image(
+                        cx,
+                        &name,
+                        size,
+                        device_pixel_ratio,
+                        &map,
+                        &arguments,
+                    );
+                    if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
+                        paint_worklet_global_scope.set_cached_paint_image(
+                            name,
+                            size,
+                            device_pixel_ratio,
+                            properties,
+                            arguments,
+                            result.clone(),
+                        );
+                    }
+                    result
+                };
+                let _ = sender.send(result);
+            };
+
+        self.executor
+            .lock()
+            .expect("Locking a painter.")
+            .schedule_a_worklet_task(Box::new(draw_a_paint_image_task));
+
+        let timeout = pref!(dom_worklet_timeout_ms) as u64;
+
+        receiver
+            .recv_timeout(Duration::from_millis(timeout))
+            .map_err(PaintWorkletError::from)
+    }
 }
 
 /// A paint definition

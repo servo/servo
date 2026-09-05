@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: Try rule name matching is not tree-scoped for anchored() container queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div>
+  <div id="host1">
+    <template shadowrootmode="open">
+      <style>
+        #anchor1 {
+          width: 100px;
+          height: 100px;
+          anchor-name: --a1;
+        }
+        #anchored1 {
+          position: absolute;
+          container-type: anchored;
+          width: 100px;
+          height: 100px;
+          position-anchor: --a1;
+          position-area: left center;
+          position-try-fallbacks: --f1;
+        }
+        #t1 {
+          color: red;
+        }
+        @position-try --f1 {
+          position-area: right center;
+        }
+      </style>
+      <div id="anchor1"></div>
+      <div id="anchored1">
+        <div id="t1" part="p1"></div>
+      </div>
+    </template>
+  </div>
+  <style>
+    @container anchored(fallback: --f1) {
+      #host1::part(p1) {
+        color: green;
+      }
+    }
+  </style>
+</div>
+
+<div>
+  <div id="anchor2">
+  <div id="anchored2">
+    <template shadowrootmode="open">
+      <style>
+        #t2 {
+          color: red;
+        }
+        @container anchored(fallback: --f2) {
+          #t2 {
+            color: green;
+          }
+        }
+      </style>
+      <div id="t2"></div>
+    </template>
+  </div>
+  <style>
+    #anchor2 {
+      width: 100px;
+      height: 100px;
+      anchor-name: --a2;
+    }
+    #anchored2 {
+      position: absolute;
+      container-type: anchored;
+      width: 100px;
+      height: 100px;
+      position-anchor: --a2;
+      position-area: left center;
+      position-try-fallbacks: --f2;
+    }
+    @position-try --f2 {
+      position-area: right center;
+    }
+  </style>
+</div>
+
+<script>
+  const green = "rgb(0, 128, 0)";
+
+  test(() => {
+    assert_equals(getComputedStyle(host1.shadowRoot.querySelector("#t1")).color, green);
+  }, "Outer scope query should match fallback set in inner scope via ::part");
+
+  test(() => {
+    assert_equals(getComputedStyle(anchored2.shadowRoot.querySelector("#t2")).color, green);
+  }, "Inner scope query should match fallback set in outer scope for :host");
+
+</script>

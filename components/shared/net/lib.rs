@@ -8,6 +8,7 @@ use std::fmt::{self, Debug, Display};
 use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
+use bytes::Bytes;
 use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -15,7 +16,7 @@ use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader}
 use http::{HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Error as HyperError;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
@@ -266,32 +267,10 @@ pub enum FetchResponseMsg {
     ProcessRequestBody(RequestId),
     // todo: send more info about the response (or perhaps the entire Response)
     ProcessResponse(RequestId, Result<FetchMetadata, NetworkError>),
-    ProcessResponseChunk(RequestId, DebugVec),
+    ProcessResponseChunk(RequestId, Bytes),
     ProcessResponseEOF(RequestId, Result<(), NetworkError>, ResourceFetchTiming),
     ProcessCspViolations(RequestId, Vec<csp::Violation>),
     ProcessContentLength(RequestId, usize),
-}
-
-#[derive(Deserialize, PartialEq, Serialize, MallocSizeOf)]
-pub struct DebugVec(pub Vec<u8>);
-
-impl From<Vec<u8>> for DebugVec {
-    fn from(v: Vec<u8>) -> Self {
-        Self(v)
-    }
-}
-
-impl std::ops::Deref for DebugVec {
-    type Target = Vec<u8>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl std::fmt::Debug for DebugVec {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("[...; {}]", self.0.len()))
-    }
 }
 
 impl FetchResponseMsg {
@@ -319,7 +298,7 @@ pub trait FetchTaskTarget {
     fn process_response(&mut self, request: &Request, response: &Response);
 
     /// Fired when a chunk of response content is received
-    fn process_response_chunk(&mut self, request: &Request, chunk: Vec<u8>);
+    fn process_response_chunk(&mut self, request: &Request, chunk: bytes::Bytes);
 
     /// <https://fetch.spec.whatwg.org/#process-response-end-of-file>
     ///
@@ -384,11 +363,8 @@ impl FetchTaskTarget for GenericCallback<FetchResponseMsg> {
         ));
     }
 
-    fn process_response_chunk(&mut self, request: &Request, chunk: Vec<u8>) {
-        let _ = self.send(FetchResponseMsg::ProcessResponseChunk(
-            request.id,
-            chunk.into(),
-        ));
+    fn process_response_chunk(&mut self, request: &Request, chunk: bytes::Bytes) {
+        let _ = self.send(FetchResponseMsg::ProcessResponseChunk(request.id, chunk));
     }
 
     fn process_response_eof(&mut self, request: &Request, response: &Response) {
@@ -481,7 +457,7 @@ impl FetchTaskTarget for IpcSender<WebSocketNetworkEvent> {
             let _ = self.send(WebSocketNetworkEvent::Fail);
         }
     }
-    fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
+    fn process_response_chunk(&mut self, _: &Request, _: bytes::Bytes) {}
     fn process_response_eof(&mut self, _: &Request, _: &Response) {}
     fn process_csp_violations(&mut self, _: &Request, violations: Vec<csp::Violation>) {
         let _ = self.send(WebSocketNetworkEvent::ReportCSPViolations(violations));
@@ -497,7 +473,7 @@ pub struct DiscardFetch;
 impl FetchTaskTarget for DiscardFetch {
     fn process_request_body(&mut self, _: &Request) {}
     fn process_response(&mut self, _: &Request, _: &Response) {}
-    fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
+    fn process_response_chunk(&mut self, _: &Request, _: bytes::Bytes) {}
     fn process_response_eof(&mut self, _: &Request, _: &Response) {}
     fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
     fn process_response_length_hint(&mut self, _: &Request, _: usize) {}
@@ -565,7 +541,7 @@ impl ResourceThreads {
     }
 
     pub fn clear_cookies(&self) {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let _ = self
             .core_thread
             .send(CoreResourceMsg::DeleteCookies(None, Some(sender)));
@@ -767,7 +743,7 @@ pub enum CoreResourceMsg {
     DeleteCookiesForSites(Vec<String>, GenericSender<()>),
     /// This currently is used by unit tests and WebDriver only.
     /// When url is `None`, this clears cookies across all origins.
-    DeleteCookies(Option<ServoUrl>, Option<IpcSender<()>>),
+    DeleteCookies(Option<ServoUrl>, Option<GenericSender<()>>),
     /// Delete all session cookies (cookies without an expiry or max-age).
     DeleteSessionCookies(GenericSender<()>),
     DeleteCookie(ServoUrl, String),

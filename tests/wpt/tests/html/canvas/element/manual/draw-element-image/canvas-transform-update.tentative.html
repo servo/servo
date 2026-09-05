@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Canvas Transform: Automatic update via drawElementImage and DrawElementOptions</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+</head>
+<body style="margin: 0;">
+  <canvas id="canvas" style="position: absolute; left: 0; top: 0; width: 400px; height: 400px;" width="400" height="400" layoutsubtree>
+    <div id="target" style="position: absolute; left: 0; top: 0; width: 100px; height: 50px; transform-origin: 0 0;"></div>
+  </canvas>
+
+  <script>
+    'use strict';
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => target.setCanvasTransform(new DOMMatrix()));
+
+      await waitForCanvasPaint(canvas);
+
+      assert_true(target.getCanvasTransform().isIdentity, 'Initial canvas transform is identity');
+      assert_equals(target.getBoundingClientRect().left, 0);
+      assert_equals(target.getBoundingClientRect().top, 0);
+
+      // Default options ({updateGeometry: true}).
+      const transform = ctx.drawElementImage(target, 30, 40);
+      assert_array_equals(target.getCanvasTransform().toFloat64Array(), transform.toFloat64Array(),
+        'target canvas transform matches returned transform');
+      const rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 30);
+      assert_equals(rect.top, 40);
+    }, 'drawElementImage() automatically updates element canvas transform by default');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => target.setCanvasTransform(new DOMMatrix()));
+
+      await waitForCanvasPaint(canvas);
+
+      const transform = ctx.drawElementImage(target, 50, 60, {updateGeometry: true});
+      assert_array_equals(target.getCanvasTransform().toFloat64Array(), transform.toFloat64Array(),
+        'target canvas transform matches returned transform with updateGeometry: true');
+      const rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 50);
+      assert_equals(rect.top, 60);
+    }, 'drawElementImage() updates element canvas transform with explicit {updateGeometry: true}');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => target.setCanvasTransform(new DOMMatrix()));
+
+      await waitForCanvasPaint(canvas);
+
+      target.setCanvasTransform(new DOMMatrix().translate(10, 20));
+      const initialTransform = target.getCanvasTransform();
+      const initialRect = target.getBoundingClientRect();
+
+      ctx.drawElementImage(target, 100, 120, {updateGeometry: false});
+      assert_array_equals(target.getCanvasTransform().toFloat64Array(), initialTransform.toFloat64Array(),
+        'target canvas transform is unchanged when updateGeometry is false');
+      const rect = target.getBoundingClientRect();
+      assert_equals(rect.left, initialRect.left);
+      assert_equals(rect.top, initialRect.top);
+      assert_equals(rect.width, initialRect.width);
+      assert_equals(rect.height, initialRect.height);
+    }, 'drawElementImage() does not update element canvas transform with {updateGeometry: false}');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => target.setCanvasTransform(new DOMMatrix()));
+
+      await waitForCanvasPaint(canvas);
+
+      // Overload: (element, dx, dy, dwidth, dheight, [options])
+      let transform = ctx.drawElementImage(target, 20, 30, 200, 100);
+      assert_array_equals(target.getCanvasTransform().toFloat64Array(), transform.toFloat64Array());
+      let rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 20);
+      assert_equals(rect.top, 30);
+      assert_equals(rect.width, 200);
+      assert_equals(rect.height, 100);
+
+      const prevTransform = target.getCanvasTransform();
+      ctx.drawElementImage(target, 80, 90, 300, 150, {updateGeometry: false});
+      assert_array_equals(target.getCanvasTransform().toFloat64Array(), prevTransform.toFloat64Array());
+      rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 20);
+      assert_equals(rect.top, 30);
+      assert_equals(rect.width, 200);
+      assert_equals(rect.height, 100);
+    }, 'drawElementImage() with destination size overload (4 arguments)');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => target.setCanvasTransform(new DOMMatrix()));
+
+      await waitForCanvasPaint(canvas);
+
+      // Overload: (element, sx, sy, swidth, sheight, dx, dy, [options])
+      let transform = ctx.drawElementImage(target, 0, 0, 100, 50, 40, 50);
+      assert_array_equals(target.getCanvasTransform().toFloat64Array(), transform.toFloat64Array());
+      let rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 40);
+      assert_equals(rect.top, 50);
+
+      const prevTransform = target.getCanvasTransform();
+      ctx.drawElementImage(target, 0, 0, 100, 50, 80, 90, {updateGeometry: false});
+      assert_array_equals(target.getCanvasTransform().toFloat64Array(), prevTransform.toFloat64Array());
+      rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 40);
+      assert_equals(rect.top, 50);
+    }, 'drawElementImage() with source rect overload (6 arguments)');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => target.setCanvasTransform(new DOMMatrix()));
+
+      await waitForCanvasPaint(canvas);
+
+      // Overload: (element, sx, sy, swidth, sheight, dx, dy, dwidth, dheight, [options])
+      let transform = ctx.drawElementImage(target, 0, 0, 100, 50, 15, 25, 200, 100);
+      assert_array_equals(target.getCanvasTransform().toFloat64Array(), transform.toFloat64Array());
+      let rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 15);
+      assert_equals(rect.top, 25);
+      assert_equals(rect.width, 200);
+      assert_equals(rect.height, 100);
+
+      const prevTransform = target.getCanvasTransform();
+      ctx.drawElementImage(target, 0, 0, 100, 50, 70, 80, 300, 150, {updateGeometry: false});
+      assert_array_equals(target.getCanvasTransform().toFloat64Array(), prevTransform.toFloat64Array());
+      rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 15);
+      assert_equals(rect.top, 25);
+      assert_equals(rect.width, 200);
+      assert_equals(rect.height, 100);
+    }, 'drawElementImage() with source and destination rect overload (8 arguments)');
+  </script>
+</body>
+</html>

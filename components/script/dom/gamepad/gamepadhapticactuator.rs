@@ -11,7 +11,7 @@ use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::MutableHandleValue;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericCallback;
 
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
@@ -103,13 +103,13 @@ impl GamepadHapticActuator {
         gamepad_index: u32,
         supported_haptic_effects: GamepadSupportedHapticEffects,
     ) -> DomRoot<GamepadHapticActuator> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GamepadHapticActuator::new_inherited(
                 gamepad_index,
                 supported_haptic_effects,
             )),
             window,
-            cx,
         )
     }
 }
@@ -201,7 +201,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move |cx| {
                     let promise = trusted_promise.root();
-                    let message = DOMString::from("preempted");
+                    let message = DOMString::from_static("preempted");
                     promise.resolve_native(cx, &message);
                 }),
             );
@@ -265,7 +265,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move |cx| {
                     let promise = trusted_promise.root();
-                    let message = DOMString::from("preempted");
+                    let message = DOMString::from_static("preempted");
                     promise.resolve_native(cx, &message);
                 }),
             );
@@ -307,7 +307,7 @@ impl GamepadHapticActuator {
         }
         let playing_effect_promise = self.playing_effect_promise.borrow_mut().take();
         if let Some(promise) = playing_effect_promise {
-            let message = DOMString::from("complete");
+            let message = DOMString::from_static("complete");
             promise.resolve_native(cx, &message);
         }
     }
@@ -332,7 +332,7 @@ impl GamepadHapticActuator {
                         return;
                     }
                     let promise = trusted_promise.root();
-                    let message = DOMString::from("complete");
+                    let message = DOMString::from_static("complete");
                     promise.resolve_native(cx, &message);
                 })
             );
@@ -352,7 +352,7 @@ impl GamepadHapticActuator {
                 let Some(promise) = actuator.playing_effect_promise.borrow_mut().take() else {
                     return;
                 };
-                let message = DOMString::from("preempted");
+                let message = DOMString::from_static("preempted");
                 promise.resolve_native(cx, &message);
             }),
         );

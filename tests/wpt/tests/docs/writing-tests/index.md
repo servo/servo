@@ -8,6 +8,8 @@ testing plan](making-a-testing-plan) will help you decide what to write.
 
 There's also a load of [general guidelines](general-guidelines) that apply to all tests.
 
+Before using an LLM to contribute tests please read the [Policy for LLM Use](ai-policy).
+
 ## Test Types
 
 There are various different ways of writing tests:
@@ -62,6 +64,7 @@ make sure you run the [`lint` script](lint-tool) before opening a pull request!
    :maxdepth: 1
 
    general-guidelines
+   ai-policy
    making-a-testing-plan
    testharness
    testharness-tutorial

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Reference: symbols() marker after a script style change</title>
+<link rel="author" title="Ananya Anand" href="mailto:t-anaanand@microsoft.com">
+<link rel="stylesheet" href="counter-style-at-rule/support/test-common.css">
+<style type="text/css">
+  @counter-style ref {
+    system: symbolic;
+    symbols: '\A7';
+    suffix: ' ';
+  }
+  #list {
+    list-style-type: ref;
+  }
+  #counter {
+    list-style-type: none;
+    counter-reset: a;
+  }
+  #counter li {
+    counter-increment: a;
+  }
+  #counter li::after {
+    content: counter(a, ref);
+  }
+</style>
+<ol id="list">
+  <li><li><li>
+</ol>
+<ol id="counter">
+  <li><li><li>
+</ol>

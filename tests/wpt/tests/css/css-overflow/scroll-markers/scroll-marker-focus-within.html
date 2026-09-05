@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSS Overflow Test: focused ::scroll-marker sets :focus-within on its ::scroll-marker-group, scroller and all the ancestors</title>
+<title>CSS Overflow Test: focused ::scroll-marker sets :focus-within on its ::scroll-marker-group, scroller and all the ancestors in links and tabs modes</title>
 <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#focus-pseudoclasses">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -65,24 +65,31 @@
 </div>
 <script>
   promise_test(async t => {
+    // 1. Links mode (default)
     let actions_promise = new test_driver.Actions()
       .pointerMove(15, 15)
       .pointerDown()
       .pointerUp()
       .send();
     await actions_promise;
-    assert_equals(getComputedStyle(scroller, "::scroll-marker-group").backgroundColor, "rgb(0, 128, 0)", "focused ::scroll-marker sets :focus-within on its ::scroll-marker-group");
-    assert_equals(getComputedStyle(scroller).backgroundColor, "rgb(0, 128, 0)", "focused ::scroll-marker sets :focus-within on its scroller");
-    assert_equals(getComputedStyle(target, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "focused ::scroll-marker sets :focus-within on itself");
-    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 128, 0)", "focused ::scroll-marker doesn't set :focus-within on its originating element");
+    assert_equals(getComputedStyle(scroller, "::scroll-marker-group").backgroundColor, "rgb(255, 0, 0)", "unfocused ::scroll-marker does not set :focus-within on its ::scroll-marker-group in links mode");
+    assert_equals(getComputedStyle(scroller).backgroundColor, "rgb(255, 0, 0)", "unfocused ::scroll-marker does not set :focus-within on its scroller in links mode");
+    assert_equals(getComputedStyle(target, "::scroll-marker").backgroundColor, "rgb(255, 0, 0)", "unfocused ::scroll-marker does not set :focus-within on itself in links mode");
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 128, 0)", "unfocused ::scroll-marker doesn't set :focus-within on its originating element in links mode");
+
+    // 2. Tabs mode
+    document.activeElement.blur();
+    scroller.style.setProperty("scroll-marker-group", "before tabs");
+
     actions_promise = new test_driver.Actions()
-      .pointerMove(500, 300)
+      .pointerMove(15, 15)
       .pointerDown()
       .pointerUp()
       .send();
     await actions_promise;
-    assert_equals(getComputedStyle(scroller, "::scroll-marker-group").backgroundColor, "rgb(255, 0, 0)", "focused ::scroll-marker resets :focus-within on its ::scroll-marker-group");
-    assert_equals(getComputedStyle(scroller).backgroundColor, "rgb(255, 0, 0)", "focused ::scroll-marker resets :focus-within on its scroller");
-    assert_equals(getComputedStyle(target, "::scroll-marker").backgroundColor, "rgb(255, 0, 0)", "focused ::scroll-marker resets :focus-within on itself");
-  });
+    assert_equals(getComputedStyle(scroller, "::scroll-marker-group").backgroundColor, "rgb(0, 128, 0)", "focused ::scroll-marker sets :focus-within on its ::scroll-marker-group in tabs mode");
+    assert_equals(getComputedStyle(scroller).backgroundColor, "rgb(0, 128, 0)", "focused ::scroll-marker sets :focus-within on its scroller in tabs mode");
+    assert_equals(getComputedStyle(target, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "focused ::scroll-marker sets :focus-within on itself in tabs mode");
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 128, 0)", "focused ::scroll-marker doesn't set :focus-within on its originating element in tabs mode");
+  }, "::scroll-marker sets :focus-within on its ancestors in tabs mode, but not in links mode");
 </script>

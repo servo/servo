@@ -307,6 +307,66 @@ const tests = [
       label: label,
     },
   },
+  {
+    name: 'Throw if a stride is larger than the padded input height.',
+    input: {dataType: 'float32', shape: [1, 3, 5, 5]},
+    options: {
+      windowDimensions: [1, 1],
+      strides: [kMaxUnsignedLong, 1],
+      label: label,
+    },
+  },
+  {
+    name: 'Throw if a stride is larger than the padded input width.',
+    input: {dataType: 'float32', shape: [1, 3, 5, 5]},
+    options: {
+      windowDimensions: [1, 1],
+      strides: [1, kMaxUnsignedLong],
+      label: label,
+    },
+  },
+  {
+    name: 'Throw if a dilation is larger than the padded input height.',
+    input: {dataType: 'float32', shape: [1, 3, 5, 5]},
+    options: {
+      windowDimensions: [1, 1],
+      dilations: [kMaxUnsignedLong, 1],
+      label: label,
+    },
+  },
+  {
+    name: 'Throw if a dilation is larger than the padded input width.',
+    input: {dataType: 'float32', shape: [1, 3, 5, 5]},
+    options: {
+      windowDimensions: [1, 1],
+      dilations: [1, kMaxUnsignedLong],
+      label: label,
+    },
+  },
+  {
+    name: 'Throw if the dilated effective window height is larger than the ' +
+        'padded input height.',
+    input: {dataType: 'float32', shape: [1, 3, 5, 5]},
+    // Effective window height = (3 - 1) * 3 + 1 = 7 > padded height 5, while
+    // the dilation itself (3) is not larger than the padded input.
+    options: {
+      windowDimensions: [3, 1],
+      dilations: [3, 1],
+      label: label,
+    },
+  },
+  {
+    name: 'Throw if the dilated effective window width is larger than the ' +
+        'padded input width.',
+    input: {dataType: 'float32', shape: [1, 3, 5, 5]},
+    // Effective window width = (3 - 1) * 3 + 1 = 7 > padded width 5, while the
+    // dilation itself (3) is not larger than the padded input.
+    options: {
+      windowDimensions: [1, 3],
+      dilations: [1, 3],
+      label: label,
+    },
+  },
 ];
 
 tests.forEach(

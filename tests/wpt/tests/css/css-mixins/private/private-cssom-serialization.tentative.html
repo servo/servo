@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>CSS @private: CSSOM serialization</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14243#issuecomment-5180782117">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  function testSerialization(description, input, expected = input) {
+    test(() => {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(`.target { ${input} }`);
+
+      const styleRule = sheet.cssRules[0];
+      assert_equals(styleRule.cssRules.length, 1);
+      const privateRule = styleRule.cssRules[0];
+      assert_true(privateRule instanceof CSSPrivateRule);
+      assert_equals(privateRule.cssText, expected);
+    }, description);
+  }
+
+  // Basic declarations.
+  testSerialization('Empty @private rule', '@private { }');
+  testSerialization('Untyped variable without a default', '@private { --x; }');
+  testSerialization('Untyped variable with a default', '@private { --x: red; }');
+  testSerialization('Multiple variables', '@private { --a: red; --b <color>: green; }');
+  testSerialization('Repeated variable name', '@private { --x: 1px; --x: 2px; }');
+  testSerialization('Trailing whitespace is omitted', '@private { --a    ; --b: 1px    ; --c <length>    ; --d <length>: 2px    ; }',
+                                                      '@private { --a; --b: 1px; --c <length>; --d <length>: 2px; }');
+
+  // Types.
+  testSerialization('Typed variable without a default', '@private { --x <length>; }');
+  testSerialization('Typed variable with a default', '@private { --x <length>: 10px; }');
+  testSerialization('Multi-component type', '@private { --x type(<length> | <color>): 1px; }');
+  testSerialization('Single-component type() is unwrapped', '@private { --x type(<length>): 10px; }', '@private { --x <length>: 10px; }');
+  testSerialization('Universal type is omitted', '@private { --x type(*); }', '@private { --x; }');
+  testSerialization('Custom-ident type() is unwrapped', '@private { --x type(I\\ dent); }', '@private { --x I\\ dent; }');
+
+  // Values and escaping.
+  testSerialization('Structured default value', '@private { --x: var(--fallback, rgb(1, 2, 3)); }');
+  testSerialization('Escaped variable name', '@private { --escaped-\\9 -tab: 1px; }');
+  testSerialization('Escaped custom-ident type', '@private { --x I\\ dent; }');
+
+  // Invalid declarations.
+  testSerialization('An all-invalid block serializes as an empty rule', '@private { color: red; }', '@private { }');
+  testSerialization('Invalid declarations are omitted', '@private { --x: green; background: red; }', '@private { --x: green; }');
+  testSerialization('!important declaration is omitted', '@private { --x: 1px; --y: 2px !important; }', '@private { --x: 1px; }');
+</script>

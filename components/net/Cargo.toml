@@ -61,7 +61,7 @@ parking_lot = { workspace = true }
 pixels = { workspace = true }
 profile_traits = { workspace = true }
 postcard = { workspace = true }
-quick_cache = { workspace = true, features = ["ahash"] }
+quick_cache = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
 resvg = { workspace = true }
@@ -104,6 +104,9 @@ hyper-util = { workspace = true, features = ["server-graceful"] }
 net = { package = "servo-net", path = ".", features = ["test-util"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 servo-default-resources = { workspace = true }
+
+[lints]
+workspace = true
 
 [[test]]
 name = "main"

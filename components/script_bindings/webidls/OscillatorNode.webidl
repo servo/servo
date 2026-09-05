@@ -18,7 +18,7 @@ dictionary OscillatorOptions : AudioNodeOptions {
   OscillatorType type = "sine";
   float frequency = 440;
   float detune = 0;
-  // PeriodicWave periodicWave;
+  PeriodicWave periodicWave;
 };
 
 [Exposed=Window]
@@ -30,5 +30,5 @@ interface OscillatorNode : AudioScheduledSourceNode {
   readonly attribute AudioParam frequency;
   readonly attribute AudioParam detune;
 
-//  void setPeriodicWave (PeriodicWave periodicWave);
+  [Throws] undefined setPeriodicWave (PeriodicWave periodicWave);
 };

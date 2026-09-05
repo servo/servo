@@ -24,6 +24,7 @@ use crate::JSTraceable;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::traits::Equivalence;
 
 #[dom_struct]
 pub struct GPUSupportedFeatures<D: DomTypes> {
@@ -38,10 +39,7 @@ pub struct GPUSupportedFeatures<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> GPUSupportedFeatures<D>
-where
-    D: DomTypes<GPUSupportedFeatures = GPUSupportedFeatures<D>>,
-{
+impl<D: Equivalence> GPUSupportedFeatures<D> {
     fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,

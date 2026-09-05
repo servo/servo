@@ -40,3 +40,6 @@ uuid = { workspace = true }
 
 [build-dependencies]
 chrono = { workspace = true }
+
+[lints]
+workspace = true

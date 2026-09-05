@@ -7,7 +7,7 @@
 // TODO(xiaochengh): This file should better be moved to elsewhere and maintained automatically.
 // Or even better, extend the icu create to provide the data directly.
 
-use icu_locid::Locale;
+use icu_locale_core::Locale;
 use phf::phf_map;
 
 #[derive(Clone, Copy, Debug)]

@@ -155,14 +155,14 @@ impl CryptoKey {
 
         // Create and store a cached object of algorithm
         rooted!(&in(cx) let mut algorithm_object_value: Value);
-        algorithm.safe_to_jsval(cx, algorithm_object_value.handle_mut());
+        algorithm.to_jsval(cx, algorithm_object_value.handle_mut());
         crypto_key
             .algorithm_cached
             .set(algorithm_object_value.to_object());
 
         // Create and store a cached object of usages
         rooted!(&in(cx) let mut usages_object_value: Value);
-        usages.safe_to_jsval(cx, usages_object_value.handle_mut());
+        usages.to_jsval(cx, usages_object_value.handle_mut());
         crypto_key
             .usages_cached
             .set(usages_object_value.to_object());

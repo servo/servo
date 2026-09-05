@@ -8,7 +8,7 @@ use script_bindings::inheritance::Castable;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, UnrootedDom};
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::{
     BoolOrOptionalString, CommandName, RecordedStateOfCommand,
@@ -23,7 +23,7 @@ use crate::dom::text::Text;
 
 impl Range {
     /// <https://w3c.github.io/editing/docs/execCommand/#effectively-contained>
-    fn is_effectively_contained_node(&self, node: &Node) -> bool {
+    fn is_effectively_contained_node(&self, no_gc: &NoGC, node: &Node) -> bool {
         // > A node node is effectively contained in a range range if range is not collapsed,
         if self.collapsed() {
             return false;
@@ -40,11 +40,11 @@ impl Range {
             return true;
         }
         // > node is contained in range.
-        if self.contains(node) {
+        if self.contains(no_gc, node) {
             return true;
         }
         // > node has at least one child; and all its children are effectively contained in range;
-        node.children_count() > 0 && node.children().all(|child| self.is_effectively_contained_node(&child))
+        node.children_count() > 0 && node.children().all(|child| self.is_effectively_contained_node(no_gc, &child))
         // > and either range's start node is not a descendant of node or is not a Text node or range's start offset is zero;
         && (!node.is_ancestor_of(&start_container) || !start_container.is::<Text>() || self.start_offset() == 0)
         // > and either range's end node is not a descendant of node or is not a Text node or range's end offset is its end node's length.
@@ -74,12 +74,16 @@ impl Range {
         }
 
         self.ancestor_for_effectively_contained()
-            .traverse_preorder(ShadowIncluding::No)
-            .find(|child| child.is_formattable(no_gc) && self.is_effectively_contained_node(child))
+            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
+            .find(|child| {
+                child.is_formattable(no_gc) && self.is_effectively_contained_node(no_gc, child)
+            })
+            .map(|node| node.as_rooted())
     }
 
-    pub(crate) fn for_each_effectively_contained_child<Callback: FnMut(&Node)>(
+    pub(crate) fn for_each_effectively_contained_child<Callback: FnMut(&mut JSContext, &Node)>(
         &self,
+        cx: &mut JSContext,
         mut callback: Callback,
     ) {
         if self.collapsed() {
@@ -94,10 +98,19 @@ impl Range {
             .collect::<Vec<DomRoot<Node>>>();
 
         for child in children {
-            if self.is_effectively_contained_node(&child) {
-                callback(&child);
+            if self.is_effectively_contained_node(cx.no_gc(), &child) {
+                callback(cx, &child);
             }
         }
+    }
+
+    pub(crate) fn contained_nodes<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'a, Node>> {
+        self.CommonAncestorContainer()
+            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
+            .filter(|node| self.contains(no_gc, node))
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#block-extend>
@@ -186,8 +199,8 @@ impl Range {
         // Step 8. Let new range be a new range whose start and end nodes and offsets are start node,
         // start offset, end node, and end offset.
         let new_range = document.CreateRange(cx);
-        new_range.set_start(&start_node, start_offset);
-        new_range.set_end(&end_node, end_offset);
+        let _ = new_range.SetStart(cx.no_gc(), &start_node, start_offset);
+        let _ = new_range.SetEnd(cx.no_gc(), &end_node, end_offset);
         // Step 9. Return new range.
         new_range
     }

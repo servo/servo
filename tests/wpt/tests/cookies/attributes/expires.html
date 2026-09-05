@@ -40,6 +40,49 @@
           expected: "",
           name: "Don't set cookie with expires set to the past",
         },
+        // RFC 6265 section 5.1.1 finds the day of the month, the month and the year by matching each
+        // date token independently, so either ordering parses: "10 Apr 1980" and "Apr 10 1980" are
+        // both valid and denote the same date. Month-first is what JavaScript's
+        // Date.prototype.toString() produces, and sites pass that to document.cookie in place of
+        // toUTCString(), so interoperability here is important.
+        //
+        // Note that only the past-expiration cases below actually distinguish a conforming
+        // implementation: if the Expires attribute is ignored, the cookie is stored as a session
+        // cookie and is therefore still present, so a future expiration looks identical either way.
+        {
+          cookie: "test=6; Expires=Fri Jan 01 2038 00:00:00 GMT",
+          expected: "test=6",
+          name: "Set cookie with the month before the day of the month in expires",
+        },
+        {
+          cookie: "test=7; Expires=Thu Apr 10 1980 16:33:12 GMT",
+          expected: "",
+          name: "Don't set cookie with the month before the day of the month in an expires in the past",
+        },
+        {
+          cookie: "test=8; Expires=Apr 10 1980 16:33:12 GMT",
+          expected: "",
+          name: "Don't set cookie with no day name and the month before the day of the month in an expires in the past",
+        },
+        {
+          cookie: "test=9; Expires=Thu Apr 10 1980 16:33:12 GMT-0700 (Pacific Daylight Time)",
+          expected: "",
+          name: "Don't set cookie with an expires in the past in Date.prototype.toString() format",
+        },
+        {
+          cookie: "test=10; Expires=Thu Apr 10 1980 16:33:12 GMT; Max-Age=1000",
+          expected: "test=10",
+          name: "Set cookie whose Max-Age overrides an expires in the past",
+        },
+        // The asctime form is also month-first, but it puts the time where Date.prototype.toString()
+        // puts the year: "Thu Apr 10 16:33:12 1980". It must not be reordered as though the token
+        // after the day of the month were a year, because "Fri 01 Jan 03:14:07 2038" denotes a date in
+        // the past, which would drop the cookie instead of storing it.
+        {
+          cookie: "test=12; Expires=Fri Jan 01 03:14:07 2038",
+          expected: "test=12",
+          name: "Set cookie with an asctime format expires, whose time precedes the year",
+        },
       ];
 
       // These tests evaluate setting cookies with expiration via HTTP headers.
@@ -51,6 +94,15 @@
       for (const test of expiresTests) {
         domCookieTest(test.cookie, test.expected, test.name + " via document.cookie");
       }
+
+      // A timezone name is localized, so it can be non-ASCII. Date.prototype.toString() only reaches
+      // a cookie through script, and sending non-ASCII in a response header would exercise header
+      // encoding at the same time, so this case covers document.cookie only. Same date as test=9,
+      // written with escapes to keep this file ASCII-only.
+      domCookieTest(
+        "test=11; Expires=Thu Apr 10 1980 16:33:12 GMT-0700 (\u0398\u03b5\u03c1\u03b9\u03bd\u03ae \u03ce\u03c1\u03b1 \u0395\u03b9\u03c1\u03b7\u03bd\u03b9\u03ba\u03bf\u03cd)",
+        "",
+        "Don't set cookie with an expires in the past and a non-ASCII timezone comment via document.cookie");
     </script>
   </body>
 </html>

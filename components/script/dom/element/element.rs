@@ -123,7 +123,6 @@ use crate::dom::element::attributes::storage::{
     AttrRef, AttrValueRef, AttributeEntry, AttributeStorage, ContentAttributeData,
 };
 use crate::dom::element::create::create_element;
-use crate::dom::elementinternals::ElementInternals;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
@@ -157,6 +156,7 @@ use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
+use crate::dom::html::internals::elementinternals::ElementInternals;
 use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
@@ -2781,18 +2781,6 @@ impl Element {
             .map(|sr| DomRoot::from_ref(&**sr))
     }
 
-    pub(crate) fn ensure_element_internals(&self, cx: &mut JSContext) -> DomRoot<ElementInternals> {
-        let Some(element_internals) = self.get_element_internals() else {
-            let elem = self
-                .downcast::<HTMLElement>()
-                .expect("ensure_element_internals should only be called for an HTMLElement");
-            let internals = ElementInternals::new(cx, elem);
-            self.ensure_rare_data(cx.no_gc()).element_internals = Some(Dom::from_ref(&*internals));
-            return internals;
-        };
-        element_internals
-    }
-
     pub(crate) fn outer_html(&self, cx: &mut JSContext) -> Fallible<DOMString> {
         match self.GetOuterHTML(cx)? {
             TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(str) => Ok(str),
@@ -5237,16 +5225,13 @@ impl Element {
         self.upcast::<Node>().is_connected()
     }
 
-    // https://html.spec.whatwg.org/multipage/#cannot-navigate
+    /// <https://html.spec.whatwg.org/multipage/#cannot-navigate>
     pub(crate) fn cannot_navigate(&self) -> bool {
+        // > An element element cannot navigate if any of the following are true:
+        // >  - element's node document is not fully active; or
+        // >  - element is not an a element and is not connected.
         let document = self.owner_document();
-
-        // Step 1.
-        !document.is_fully_active() ||
-            (
-                // Step 2.
-                !self.is::<HTMLAnchorElement>() && !self.is_connected()
-            )
+        !document.is_fully_active() || (!self.is::<HTMLAnchorElement>() && !self.is_connected())
     }
 }
 
@@ -5391,12 +5376,12 @@ pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMStr
     element
         .get_attribute_string_value(&local_name!("crossorigin"))
         .map(|value| {
-            let value = value.to_ascii_lowercase();
-            if value == "anonymous" || value == "use-credentials" {
-                DOMString::from(value)
-            } else {
-                DOMString::from("anonymous")
-            }
+            DOMString::from_static(
+                ["anonymous", "use-credentials"]
+                    .into_iter()
+                    .find(|keyword| value.eq_ignore_ascii_case(keyword))
+                    .unwrap_or("anonymous"),
+            )
         })
 }
 
@@ -5418,20 +5403,21 @@ pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString 
     element
         .get_attribute_string_value(&local_name!("referrerpolicy"))
         .map(|value| {
-            let value = value.to_ascii_lowercase();
-            if value == "no-referrer" ||
-                value == "no-referrer-when-downgrade" ||
-                value == "same-origin" ||
-                value == "origin" ||
-                value == "strict-origin" ||
-                value == "origin-when-cross-origin" ||
-                value == "strict-origin-when-cross-origin" ||
-                value == "unsafe-url"
-            {
-                DOMString::from(value)
-            } else {
-                DOMString::new()
-            }
+            DOMString::from(
+                [
+                    "no-referrer",
+                    "no-referrer-when-downgrade",
+                    "same-origin",
+                    "origin",
+                    "strict-origin",
+                    "origin-when-cross-origin",
+                    "strict-origin-when-cross-origin",
+                    "unsafe-url",
+                ]
+                .into_iter()
+                .find(|keyword| value.eq_ignore_ascii_case(keyword))
+                .unwrap_or(""),
+            )
         })
         .unwrap_or_default()
 }

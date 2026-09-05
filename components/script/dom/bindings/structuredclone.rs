@@ -16,7 +16,7 @@ use js::glue::{
 };
 use js::jsapi::{
     CloneDataPolicy, HandleObject as RawHandleObject, Heap, JS_ReadUint32Pair,
-    JS_STRUCTURED_CLONE_VERSION, JS_WriteUint32Pair, JSContext as RawJSContext, JSObject,
+    JS_STRUCTURED_CLONE_VERSION, JS_WriteUint32PairUnchecked, JSContext as RawJSContext, JSObject,
     JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter,
     MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
 };
@@ -221,12 +221,12 @@ unsafe fn write_object<T: Serializable>(
         let storage_key = StorageKey::new(new_id);
 
         unsafe {
-            assert!(JS_WriteUint32Pair(
+            assert!(JS_WriteUint32PairUnchecked(
                 w,
                 StructuredCloneTags::from(interface) as u32,
                 0
             ));
-            assert!(JS_WriteUint32Pair(
+            assert!(JS_WriteUint32PairUnchecked(
                 w,
                 storage_key.name_space,
                 storage_key.index
@@ -744,7 +744,7 @@ pub(crate) fn write(
     unsafe {
         rooted!(&in(cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {
-            transfer.safe_to_jsval(cx, val.handle_mut());
+            transfer.to_jsval(cx, val.handle_mut());
         }
         let mut sc_writer = StructuredDataWriter::default();
         let sc_writer_ptr = &mut sc_writer as *mut _;

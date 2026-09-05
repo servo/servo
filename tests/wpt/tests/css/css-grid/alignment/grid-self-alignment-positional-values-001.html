@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#self-alignment">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#alignment">
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<meta name="assert" content="Each positional self-alignment value places a grid item's margin box within its grid area, and not within the grid container.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  /* Every item is placed in the second track so that a start-aligned item is
+     offset from the grid container's start edge. An offset of 0 therefore
+     cannot be mistaken for correct alignment. */
+  .grid { display: grid; }
+  .three-columns { grid-template: 100px / 100px 100px 100px; }
+  .three-rows    { grid-template: 100px 100px 100px / 100px; }
+
+  .item { width: 40px; height: 40px; background: green; }
+
+  .column2 { grid-area: 1 / 2 / 2 / 3; }
+  .row2    { grid-area: 2 / 1 / 3 / 2; }
+</style>
+<body>
+<div id="log"></div>
+
+<!-- Inline axis. The second column's start edge is at 100px and leaves 60px of
+     free space around the 40px wide item. Both the grid container and the items
+     are horizontal-tb and ltr, so self-start/flex-start/left behave as start and
+     self-end/flex-end/right behave as end. -->
+<div class="grid three-columns"><div class="item column2" style="justify-self: start"      data-expected-left="100" data-expected-top="0"></div></div>
+<div class="grid three-columns"><div class="item column2" style="justify-self: center"     data-expected-left="130" data-expected-top="0"></div></div>
+<div class="grid three-columns"><div class="item column2" style="justify-self: end"        data-expected-left="160" data-expected-top="0"></div></div>
+<div class="grid three-columns"><div class="item column2" style="justify-self: self-start" data-expected-left="100" data-expected-top="0"></div></div>
+<div class="grid three-columns"><div class="item column2" style="justify-self: self-end"   data-expected-left="160" data-expected-top="0"></div></div>
+<div class="grid three-columns"><div class="item column2" style="justify-self: flex-start" data-expected-left="100" data-expected-top="0"></div></div>
+<div class="grid three-columns"><div class="item column2" style="justify-self: flex-end"   data-expected-left="160" data-expected-top="0"></div></div>
+<div class="grid three-columns"><div class="item column2" style="justify-self: left"       data-expected-left="100" data-expected-top="0"></div></div>
+<div class="grid three-columns"><div class="item column2" style="justify-self: right"      data-expected-left="160" data-expected-top="0"></div></div>
+
+<!-- Block axis. The second row's start edge is at 100px and leaves 60px of free
+     space around the 40px tall item. left and right are not valid values for
+     align-self. -->
+<div class="grid three-rows"><div class="item row2" style="align-self: start"      data-expected-left="0" data-expected-top="100"></div></div>
+<div class="grid three-rows"><div class="item row2" style="align-self: center"     data-expected-left="0" data-expected-top="130"></div></div>
+<div class="grid three-rows"><div class="item row2" style="align-self: end"        data-expected-left="0" data-expected-top="160"></div></div>
+<div class="grid three-rows"><div class="item row2" style="align-self: self-start" data-expected-left="0" data-expected-top="100"></div></div>
+<div class="grid three-rows"><div class="item row2" style="align-self: self-end"   data-expected-left="0" data-expected-top="160"></div></div>
+<div class="grid three-rows"><div class="item row2" style="align-self: flex-start" data-expected-left="0" data-expected-top="100"></div></div>
+<div class="grid three-rows"><div class="item row2" style="align-self: flex-end"   data-expected-left="0" data-expected-top="160"></div></div>
+
+<script>
+for (const item of document.querySelectorAll(".item")) {
+    test(() => {
+        const gridRect = item.parentElement.getBoundingClientRect();
+        const itemRect = item.getBoundingClientRect();
+        assert_equals(itemRect.left - gridRect.left, Number(item.dataset.expectedLeft), "offset from the grid container's left edge");
+        assert_equals(itemRect.top - gridRect.top, Number(item.dataset.expectedTop), "offset from the grid container's top edge");
+    }, `${item.getAttribute("style")} places the item's margin box within its grid area`);
+}
+</script>
+</body>

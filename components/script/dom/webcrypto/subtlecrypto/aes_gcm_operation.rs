@@ -27,13 +27,7 @@ pub(crate) fn encrypt(
     key: &CryptoKey,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    // Step 1. If plaintext has a length greater than 2^39 - 256 bytes, then throw an
-    // OperationError.
-    if plaintext.len() as u64 > (1 << 39) - 256 {
-        return Err(Error::Operation(Some("The plaintext is too long".into())));
-    }
-
-    // Step 2. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
+    // Step 1. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
     // then throw an OperationError.
     if normalized_algorithm.iv.len() > u64::MAX as usize {
         return Err(Error::Operation(Some(
@@ -41,7 +35,7 @@ pub(crate) fn encrypt(
         )));
     }
 
-    // Step 3. If the additionalData member of normalizedAlgorithm is present and has a length
+    // Step 2. If the additionalData member of normalizedAlgorithm is present and has a length
     // greater than 2^64 - 1 bytes, then throw an OperationError.
     if normalized_algorithm
         .additional_data
@@ -51,6 +45,12 @@ pub(crate) fn encrypt(
         return Err(Error::Operation(Some(
             "The additional authentication data is too long".into(),
         )));
+    }
+
+    // Step 3. If plaintext has a length greater than 2^39 - 256 bytes, then throw an
+    // OperationError.
+    if plaintext.len() as u64 > (1 << 39) - 256 {
+        return Err(Error::Operation(Some("The plaintext is too long".into())));
     }
 
     // Step 4.
@@ -261,14 +261,6 @@ pub(crate) fn decrypt(
         },
     };
 
-    // Step 2. If ciphertext has a length in bits less than tagLength, then throw an
-    // OperationError.
-    if ciphertext.len() * 8 < tag_length as usize {
-        return Err(Error::Operation(Some(
-            "The ciphertext is shorter than the tag".into(),
-        )));
-    }
-
     // Step 2. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
     // then throw an OperationError.
     if normalized_algorithm.iv.len() > u64::MAX as usize {
@@ -286,6 +278,14 @@ pub(crate) fn decrypt(
     {
         return Err(Error::Operation(Some(
             "The additional authentication data is too long".into(),
+        )));
+    }
+
+    // Step 4. If ciphertext has a length in bits less than tagLength, then throw an
+    // OperationError.
+    if ciphertext.len() * 8 < tag_length as usize {
+        return Err(Error::Operation(Some(
+            "The ciphertext is shorter than the tag".into(),
         )));
     }
 

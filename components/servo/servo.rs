@@ -327,6 +327,7 @@ impl ServoInner {
         }
 
         self.paint.borrow_mut().perform_updates();
+        self.resend_accessibility_root_nodes_for_viewport_changes();
         self.send_new_frame_ready_messages();
         self.handle_delegate_errors();
         self.clean_up_destroyed_webview_handles();
@@ -336,6 +337,27 @@ impl ServoInner {
         }
 
         true
+    }
+
+    /// Resend the root accessibility node for any [`WebView`] whose viewport geometry changed
+    /// post-last-spin (see [`WebView::note_accessibility_viewport_changed()`]). This runs
+    /// after `perform_updates` so the paint `RefCell` is no longer borrowed, and our
+    /// embedder-facing methods calling into the [`WebViewDelegate`] avoid re-entrant
+    /// borrows within the embedder!
+    fn resend_accessibility_root_nodes_for_viewport_changes(&self) {
+        // Collect handles first so the `webviews` borrow is released before we call into the
+        // WebViewDelegate, which the embedder may re-enter.
+        let webviews: Vec<WebView> = self
+            .webviews
+            .borrow()
+            .values()
+            .filter_map(WebView::from_weak_handle)
+            .collect();
+        for webview in webviews {
+            if webview.take_accessibility_viewport_changed() {
+                webview.send_accessibility_root_node();
+            }
+        }
     }
 
     fn send_new_frame_ready_messages(&self) {

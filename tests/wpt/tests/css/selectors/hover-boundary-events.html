@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selectors: :hover is up to date while boundary events are dispatched</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/selectors/#the-hover-pseudo">
+<link rel="help" href="https://w3c.github.io/uievents/#events-mouseevent-event-order">
+<link rel="help" href="https://w3c.github.io/pointerevents/#the-pointerout-event">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+div { width: 100px; height: 100px; }
+</style>
+<div id="a" style="background: green"></div>
+<div id="b" style="background: blue"></div>
+<script>
+const kLeaveEvents = ["mouseout", "mouseleave", "pointerout", "pointerleave"];
+const kEnterEvents = ["mouseover", "mouseenter", "pointerover", "pointerenter"];
+
+function hoverStateOnFirstEvent(target, type) {
+  return new Promise(resolve => {
+    target.addEventListener(type, () => {
+      resolve({ a: a.matches(":hover"), b: b.matches(":hover") });
+    }, { once: true });
+  });
+}
+
+promise_test(async t => {
+  // Move the pointer over #a first, so that the gesture under test below is a
+  // single move from #a to #b.
+  await new test_driver.Actions().pointerMove(10, 10, { origin: a }).send();
+  assert_true(a.matches(":hover"), "#a should be hovered before the gesture");
+  assert_false(b.matches(":hover"), "#b should not be hovered before the gesture");
+
+  const pending = [
+    ...kLeaveEvents.map(type => [type, hoverStateOnFirstEvent(a, type)]),
+    ...kEnterEvents.map(type => [type, hoverStateOnFirstEvent(b, type)]),
+  ];
+
+  await new test_driver.Actions().pointerMove(10, 10, { origin: b }).send();
+
+  for (const [type, promise] of pending) {
+    const state = await promise;
+    assert_false(state.a, `#a should not be hovered during ${type}`);
+    assert_true(state.b, `#b should be hovered during ${type}`);
+  }
+}, "Boundary events for a move from #a to #b observe the new :hover state");
+</script>

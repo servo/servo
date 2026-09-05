@@ -556,7 +556,7 @@ impl Debug for EmbedderMsg {
 }
 
 /// <https://w3c.github.io/mediasession/#mediametadata>
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct MediaMetadata {
     /// Title
     pub title: String,
@@ -570,8 +570,8 @@ impl MediaMetadata {
     pub fn new(title: String) -> Self {
         Self {
             title,
-            artist: "".to_owned(),
-            album: "".to_owned(),
+            artist: String::new(),
+            album: String::new(),
         }
     }
 }

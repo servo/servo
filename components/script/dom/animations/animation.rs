@@ -40,7 +40,7 @@ impl Animation {
         }
     }
 
-    fn new_with_proto_and_cx(
+    fn new_with_proto(
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -49,7 +49,7 @@ impl Animation {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Self> {
-        Self::new_with_proto_and_cx(cx, global, None)
+        Self::new_with_proto(cx, global, None)
     }
 
     /// <https://drafts.csswg.org/web-animations-1/#animation-set-the-timeline-of-an-animation>

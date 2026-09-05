@@ -464,9 +464,10 @@ impl RTCPeerConnection {
                         this.create_offer();
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
-                        for promise in this.offer_promises.borrow_mut().drain(..) {
+                        for promise in this.offer_promises.borrow().iter() {
                             promise.resolve_native(cx, &init);
                         }
+                        this.offer_promises.safe_borrow_mut(cx.no_gc()).clear();
                     }
                 }));
             }));
@@ -493,9 +494,10 @@ impl RTCPeerConnection {
                         this.create_answer();
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
-                        for promise in this.answer_promises.borrow_mut().drain(..) {
+                        for promise in this.answer_promises.borrow().iter() {
                             promise.resolve_native(cx, &init);
                         }
+                        this.answer_promises.safe_borrow_mut(cx.no_gc()).clear();
                     }
                 }));
             }));
@@ -650,7 +652,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             .networking_task_source()
             .to_sendable();
         self.controller
-            .borrow_mut()
+            .borrow()
             .as_ref()
             .unwrap()
             .set_local_description(
@@ -693,7 +695,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             .networking_task_source()
             .to_sendable();
         self.controller
-            .borrow_mut()
+            .borrow()
             .as_ref()
             .unwrap()
             .set_remote_description(

@@ -7,7 +7,7 @@
 use atomic_refcell::AtomicRef;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
-    SVGElementData, SharedSelection,
+    SVGElementData,
 };
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
@@ -15,7 +15,7 @@ use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, SVGElementTypeId, SVGGraphicsElementTypeId,
 };
 use servo_base::id::{BrowsingContextId, PipelineId};
-use servo_base::text::{RangeAny, Utf32CodeUnits};
+use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
@@ -247,7 +247,17 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn document_selection_in_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
+    pub(crate) fn selection_for_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
+        if let Some(shadow_root) = self.containing_shadow_root_for_layout() {
+            let host = shadow_root.get_host_for_layout();
+            if let Some(input) = host.downcast::<HTMLInputElement>() {
+                return input.selection_for_layout();
+            }
+            if let Some(textarea) = host.downcast::<HTMLTextAreaElement>() {
+                return textarea.selection_for_layout();
+            }
+        }
+
         let unsafe_self = self.unsafe_get();
         if !unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
             return None;
@@ -255,41 +265,36 @@ impl<'dom> LayoutDom<'dom, Node> {
 
         let text_node = self.downcast::<Text>()?;
         let text = text_node.upcast().data_for_layout();
-        let range = self
-            .owner_doc_for_layout()
-            .selection_for_layout()?
-            .range_for_layout()?
-            .unsafe_get();
-
-        let range_start = range.start();
-        let range_end = range.end();
+        let selection = self.owner_doc_for_layout().selection_for_layout()?;
+        let range = selection.range_for_layout();
 
         // Text nodes are always the same node when projected into the flat tree, so
         // it is fine to do the following check against the original unprojected nodes.
-        let is_start_node = unsafe { range_start.node().to_layout() } == *self;
-        let is_end_node = unsafe { range_end.node().to_layout() } == *self;
+        let range = range.as_ref()?;
+        let is_start_node = unsafe { range.start.container.to_layout() } == *self;
+        let is_end_node = unsafe { range.end.container.to_layout() } == *self;
 
-        let start = is_start_node.then(|| range_start.offset().to_utf32_code_units_in(&text));
-        let end = is_end_node.then(|| range_end.offset().to_utf32_code_units_in(&text));
+        let start = is_start_node
+            .then(|| Utf16CodeUnits(range.start.offset as usize).to_utf32_code_units_in(&text));
+        let end = is_end_node
+            .then(|| Utf16CodeUnits(range.end.offset as usize).to_utf32_code_units_in(&text));
         Some(RangeAny { start, end })
     }
 
-    /// Get the selection for the given node. This only works for text nodes that are in
-    /// the shadow DOM of user agent widgets for form controls, specifically for `<input>`
-    /// and `<textarea>`.
-    ///
-    /// As we want to expose the selection on the inner text node of the widget's shadow
-    /// DOM, we must find the shadow root and then access the containing element itself.
-    pub(crate) fn form_control_selection_in_text_node(self) -> Option<SharedSelection> {
-        let shadow_root = self
-            .containing_shadow_root_for_layout()?
-            .get_host_for_layout();
-        if let Some(input) = shadow_root.downcast::<HTMLInputElement>() {
-            return input.selection_for_layout();
+    pub(crate) fn text_node_paints_caret(&self) -> bool {
+        if let Some(shadow_root) = self.containing_shadow_root_for_layout() {
+            let host = shadow_root.get_host_for_layout();
+            if host.is::<HTMLInputElement>() || host.is::<HTMLTextAreaElement>() {
+                // This is the cases where, if `selection_for_text_node` returns a selection
+                // it is a `TextInput` selection
+                return true;
+            }
         }
-        shadow_root
-            .downcast::<HTMLTextAreaElement>()
-            .map(|textarea| textarea.selection_for_layout())
+        // This is the cases where, if `selection_for_text_node` returns a selection
+        // it is a document selection.
+        // For now, never paint a caret for document selection.
+        // This will change as we improve `contenteditable` support.
+        false
     }
 
     pub(crate) fn image_url(self) -> Option<ServoUrl> {

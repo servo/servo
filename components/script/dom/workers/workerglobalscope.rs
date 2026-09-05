@@ -3,12 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{OnceCell, RefCell, RefMut};
+use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use bytes::{Bytes, BytesMut};
 use content_security_policy::CspList;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
@@ -71,7 +73,7 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::script_execution::RethrowErrors;
 use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
@@ -79,6 +81,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
+use crate::dom::script_execution::ScriptOptions;
 use crate::dom::serviceworker::cachestorage::CacheStorage;
 use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
@@ -89,6 +92,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
+use crate::event_loop::timers::{IsInterval, OneshotTimers, TimerCallback};
 use crate::fetch::fetch::{
     CspViolationsProcessor, Fetch, RequestWithGlobalScope, load_whole_resource,
 };
@@ -96,13 +100,12 @@ use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::microtask::{MicrotaskQueue, MicrotaskRunnable, UserMicrotask};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{IntroductionType, Runtime, get_reports};
+use crate::runtime::microtask::{MicrotaskQueue, MicrotaskRunnable, UserMicrotask};
+use crate::runtime::script_runtime::{IntroductionType, Runtime, get_reports};
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
-use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 
 /// <https://html.spec.whatwg.org/multipage/#animation-frames>
 pub(crate) fn prepare_workerscope_init(
@@ -146,7 +149,7 @@ pub(crate) fn prepare_workerscope_init(
 pub(crate) struct ScriptFetchContext {
     scope: Trusted<WorkerGlobalScope>,
     response: Option<Metadata>,
-    body_bytes: Vec<u8>,
+    body_bytes: BytesMut,
     url: ServoUrl,
     policy_container: PolicyContainer,
 }
@@ -160,7 +163,7 @@ impl ScriptFetchContext {
         ScriptFetchContext {
             scope,
             response: None,
-            body_bytes: Vec::new(),
+            body_bytes: BytesMut::new(),
             url,
             policy_container,
         }
@@ -182,8 +185,8 @@ impl FetchResponseListener for ScriptFetchContext {
         });
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, mut chunk: Vec<u8>) {
-        self.body_bytes.append(&mut chunk);
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
+        self.body_bytes.extend_from_slice(&chunk);
     }
 
     fn process_response_eof(
@@ -248,11 +251,10 @@ impl FetchResponseListener for ScriptFetchContext {
             cx,
             source,
             scope.worker_url.borrow().clone(),
+            ScriptOptions::External,
             ScriptFetchOptions::default_classic_script(),
-            ErrorReporting::Unmuted,
             Some(IntroductionType::WORKER),
             1,
-            true,
         );
 
         // Step 6 Run onComplete given script.
@@ -687,9 +689,12 @@ impl WorkerGlobalScope {
             self.execution_ready.store(true, Ordering::Relaxed);
             match script {
                 Script::Classic(script) => {
-                    _ = self
-                        .globalscope
-                        .run_a_classic_script(cx, script, RethrowErrors::No);
+                    _ = self.globalscope.run_a_classic_script(
+                        cx,
+                        script,
+                        RethrowErrors::No,
+                        None, // return_value
+                    );
                 },
                 Script::Module(module_tree) => {
                     self.globalscope.run_a_module_script(cx, module_tree, false);
@@ -838,21 +843,25 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
             // Step 10. Let script be the result of creating a classic script
             // given sourceText, settingsObject, response's URL, the default script fetch options, and mutedErrors.
+            let mut script_options = ScriptOptions::External;
+            script_options.set(ScriptOptions::MutedErrors, muted_errors);
             let script = self.globalscope.create_a_classic_script(
                 cx,
                 source,
                 url,
+                script_options,
                 ScriptFetchOptions::default_classic_script(),
-                ErrorReporting::from(muted_errors),
                 Some(IntroductionType::WORKER),
                 1,
-                true,
             );
 
             // Run the classic script script, with rethrow errors set to true.
-            let result = self
-                .globalscope
-                .run_a_classic_script(cx, script, RethrowErrors::Yes);
+            let result = self.globalscope.run_a_classic_script(
+                cx,
+                script,
+                RethrowErrors::Yes,
+                None, // return_value
+            );
 
             if let Err(error) = result {
                 if self.is_closing() {
@@ -1113,7 +1122,8 @@ impl WorkerGlobalScope {
             CommonScriptMsg::Task(_, task, _, _) => task.run_box(cx),
             CommonScriptMsg::CollectReports(reports_chan) => {
                 perform_memory_report(|ops| {
-                    let reports = get_reports(cx, format!("url({})", self.get_url()), ops);
+                    let reports =
+                        get_reports(cx, format!("url({})", self.get_url()), ops, HashSet::new());
                     reports_chan.send(ProcessReports::new(reports));
                 });
             },
@@ -1164,14 +1174,14 @@ impl WorkerGlobalScope {
         rooted!(&in(cx) let mut wrapped_global: Value);
         debugger_global
             .reflector()
-            .safe_to_jsval(cx, wrapped_global.handle_mut());
+            .to_jsval(cx, wrapped_global.handle_mut());
         self.debugger_global.set(*wrapped_global);
     }
 
     pub(crate) fn handle_devtools_message(&self, msg: DevtoolScriptControlMsg, cx: &mut JSContext) {
         match msg {
             DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _wants_updates) => {},
-            DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
+            DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, eager, reply) => {
                 let debugger_global_handle = rooted_heap_handle(self, |this| &this.debugger_global);
                 let debugger_global =
                     root_from_handlevalue::<DebuggerGlobalScope>(cx, debugger_global_handle)
@@ -1183,6 +1193,7 @@ impl WorkerGlobalScope {
                     id,
                     Some(self.worker_id()),
                     frame_actor_id,
+                    eager,
                     reply,
                 );
             },

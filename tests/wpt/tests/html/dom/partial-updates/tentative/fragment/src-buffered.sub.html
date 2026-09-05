@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: buffered template src updates target atomically</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container">
+  <?start name="target">Old<?end>
+</div>
+
+<!-- Buffered template fetch: should not render progressively -->
+<template for="target" buffer src="../resources/chunked-html.py?key={{uuid()}}&chunk1=%3Cspan%20id='c1'%3EC1%3C/span%3E&chunk2=%3Cspan%20id='c2'%3EC2%3C/span%3E" id="tpl"></template>
+
+<script>
+promise_test(async () => {
+  const container = document.getElementById('container');
+  const tpl = document.getElementById('tpl');
+
+  assert_not_equals(tpl, null, "Template should exist initially");
+
+  const url = new URL(tpl.getAttribute('src'), location.href);
+  const key = url.searchParams.get('key');
+
+  // Poll until the server has sent chunk 1
+  while (true) {
+    const res = await fetch(`../resources/chunked-html.py?action=check_chunk1&key=${key}`);
+    const text = await res.text();
+    if (text === 'ready') {
+      break;
+    }
+    await new Promise(resolve => step_timeout(resolve, 20));
+  }
+
+  // Verify nothing has been rendered in container yet (buffered)
+  assert_equals(document.getElementById('c1'), null, "Chunk 1 should not be rendered yet (buffered)");
+  assert_equals(document.getElementById('c2'), null, "Chunk 2 should not be rendered yet (buffered)");
+
+  // Set up observer for chunk 2 (indicating load completed and patch applied)
+  const renderedPromise = new Promise(resolve => {
+    if (document.getElementById('c2')) {
+      resolve();
+      return;
+    }
+    const observer = new MutationObserver((mutations) => {
+      if (document.getElementById('c2')) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+    observer.observe(container, { childList: true, subtree: true });
+  });
+
+  // Signal server to send chunk 2 and complete response
+  await fetch(`../resources/chunked-html.py?action=continue&key=${key}`);
+
+  // Wait for chunk 2 to be rendered
+  await renderedPromise;
+
+  assert_not_equals(document.getElementById('c1'), null, "Chunk 1 should now be rendered");
+  assert_not_equals(document.getElementById('c2'), null, "Chunk 2 should now be rendered");
+
+  // Verify that the template element is removed from the DOM
+  assert_equals(document.getElementById('tpl'), null, "Template element should be removed after patch finalization");
+
+  // Verify target innerHTML
+  assert_equals(container.innerHTML.trim().replace(/\s+/g, ' '), '<span id="c1">C1</span><span id="c2">C2</span>');
+}, "Buffered template src updates target atomically after fetch completes");
+</script>
+</body>

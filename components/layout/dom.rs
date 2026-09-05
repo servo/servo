@@ -12,6 +12,7 @@ use layout_api::{
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use servo_base::text::{RangeAny, Utf32CodeUnits};
 use smallvec::SmallVec;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
@@ -75,11 +76,15 @@ impl InnerDOMLayoutData {
     }
 
     fn fragments(&self) -> Vec<Fragment> {
-        self.self_box
-            .borrow()
-            .as_ref()
-            .and_then(|layout_box| layout_box.with_base(|base| base.fragments().clone()))
+        self.with_fragments(<[Fragment]>::to_vec)
             .unwrap_or_default()
+    }
+
+    /// Run `callback` on the fragments without cloning them. Returns `None` if the node has no box.
+    fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T> {
+        let self_box = self.self_box.borrow();
+        let layout_box = self_box.as_ref()?;
+        layout_box.with_base(|base| callback(&base.fragments()))
     }
 
     fn repair_style(&self, node: &ServoLayoutNode, context: &SharedStyleContext) {
@@ -278,6 +283,25 @@ impl GenericLayoutDataTrait for DOMLayoutData {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
+
+    fn set_text_run_selection(&self, new_range: Option<RangeAny<Utf32CodeUnits>>) -> bool {
+        let inner = self.0.borrow();
+        // When `::first-letter` is used, one DOM text node can generate multiple text runs
+        // so there isn’t a single place to set the new range
+        if inner
+            .pseudo_boxes
+            .iter()
+            .any(|pseudo_box| matches!(pseudo_box.pseudo, PseudoElement::FirstLetter))
+        {
+            return false;
+        }
+        if let Some(LayoutBox::Text(text_run)) = &*inner.self_box.borrow() {
+            *text_run.borrow().run_data.selection.borrow_mut() = new_range;
+            true
+        } else {
+            false
+        }
+    }
 }
 
 pub struct BoxSlot<'dom> {
@@ -360,6 +384,9 @@ pub(crate) trait NodeExt<'dom> {
     fn rendering_type(&self) -> NodeRenderingType;
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
+
+    /// Run `callback` on the fragments without cloning them. Returns `None` if the node has no box.
+    fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T>;
     fn with_layout_box_base(&self, callback: impl FnMut(&LayoutBoxBase));
     fn with_layout_box_base_including_pseudos(&self, callback: impl FnMut(&LayoutBoxBase));
 
@@ -598,6 +625,10 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 .unwrap_or_default(),
             None => layout_data.fragments(),
         }
+    }
+
+    fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T> {
+        self.inner_layout_data()?.with_fragments(callback)
     }
 
     fn repair_style(&self, context: &SharedStyleContext) {

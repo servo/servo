@@ -7,13 +7,11 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
-use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
-use layout_api::{ScriptSelection, SharedSelection};
 use script_bindings::cell::DomRefCell;
-use servo_base::text::Utf16CodeUnits;
+use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
@@ -44,6 +42,7 @@ use crate::dom::html::form_controls::text_input::{
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
@@ -67,19 +66,17 @@ pub(crate) struct HTMLTextAreaElement {
     validity_state: MutNullableDom<ValidityState>,
     /// A [`TextInputWidget`] that manages the shadow DOM for this `<textarea>`.
     text_input_widget: DomRefCell<TextInputWidget>,
-    /// A [`SharedSelection`] that is shared with layout. This can be updated dyanmnically
-    /// and layout should reflect the new value after a display list update.
-    #[no_trace]
-    #[conditional_malloc_size_of]
-    shared_selection: SharedSelection,
 
     /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
     has_scheduled_selectionchange_event: Cell<bool>,
 }
 
 impl LayoutDom<'_, HTMLTextAreaElement> {
-    pub(crate) fn selection_for_layout(self) -> SharedSelection {
-        self.unsafe_get().shared_selection.clone()
+    pub(crate) fn selection_for_layout(self) -> Option<RangeAny<Utf32CodeUnits>> {
+        let element = self.unsafe_get();
+        #[expect(unsafe_code)]
+        let textinput = unsafe { element.textinput.borrow_for_layout() };
+        textinput.selection_for_layout
     }
 
     pub(crate) fn get_cols(self) -> u32 {
@@ -136,7 +133,6 @@ impl HTMLTextAreaElement {
             labels_node_list: Default::default(),
             validity_state: Default::default(),
             text_input_widget: Default::default(),
-            shared_selection: Default::default(),
             has_scheduled_selectionchange_event: Default::default(),
         }
     }
@@ -217,30 +213,6 @@ impl HTMLTextAreaElement {
         self.maybe_update_shared_selection();
     }
 
-    fn handle_mouse_event(&self, mouse_event: &MouseEvent) {
-        let event = mouse_event.upcast::<Event>();
-        if event.DefaultPrevented() {
-            return;
-        }
-
-        // Only respond to mouse events if we are displayed as text input or a password. If the
-        // placeholder is displayed, also don't do any interactive mouse event handling.
-        if self.textinput.borrow().is_empty() {
-            return;
-        }
-        if event.type_() != atom!("mousedown") {
-            return;
-        }
-
-        if self
-            .textinput
-            .borrow_mut()
-            .handle_mousedown_event(self.upcast(), mouse_event)
-        {
-            self.maybe_update_shared_selection();
-        }
-    }
-
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
     fn schedule_a_selection_change_event(&self) {
         // Step 1. If target's has scheduled selectionchange event is true, abort these steps.
@@ -300,34 +272,40 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 
     fn maybe_update_shared_selection(&self) {
-        let offsets = self.textinput.borrow().sorted_selection_offsets_range();
-        let (start, end) = (offsets.start.0, offsets.end.0);
-        let range = TextByteRange::new(ByteIndex(start), ByteIndex(end));
-        let enabled = self.upcast::<Element>().focus_state();
+        let selection = {
+            let mut text_input = self.textinput.borrow_mut();
+            let selection_range = text_input.selection_start()..text_input.selection_end();
+            let enabled = self.upcast::<Element>().focus_state();
 
-        let mut shared_selection = self.shared_selection.borrow_mut();
-        let range_remained_equal = range == shared_selection.range;
-        if range_remained_equal && enabled == shared_selection.enabled {
-            return;
-        }
+            let range_remained_equal = selection_range == text_input.previous_selection_range;
+            if range_remained_equal && enabled == text_input.selection_for_layout.is_some() {
+                return;
+            }
 
-        if !range_remained_equal {
-            // https://w3c.github.io/selection-api/#selectionchange-event
-            // > When an input or textarea element provide a text selection and its selection changes
-            // > (in either extent or direction),
-            // > the user agent must schedule a selectionchange event on the element.
-            self.schedule_a_selection_change_event();
-        }
+            if !range_remained_equal {
+                // https://w3c.github.io/selection-api/#selectionchange-event
+                // > When an input or textarea element provide a text selection and its selection changes
+                // > (in either extent or direction),
+                // > the user agent must schedule a selectionchange event on the element.
+                self.schedule_a_selection_change_event();
+            }
 
-        *shared_selection = ScriptSelection {
-            range,
-            character_range: self
-                .textinput
-                .borrow()
-                .sorted_selection_character_offsets_range(),
-            enabled,
+            let selection = enabled.then(|| text_input.sorted_selection_character_offsets_range());
+            text_input.previous_selection_range = selection_range;
+            text_input.selection_for_layout = selection;
+            selection
         };
-        self.owner_window().layout().set_needs_new_display_list();
+
+        if self
+            .text_input_widget
+            .borrow()
+            .set_text_run_selection(selection)
+        {
+            // Found an already laid out text run to update, so we only need to repaint:
+            self.owner_window().layout().set_needs_new_display_list();
+        } else {
+            // If there isn’t a text run, layout is pending to create it anyway
+        }
     }
 
     fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString> {
@@ -416,7 +394,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-type>
     fn Type(&self) -> DOMString {
-        DOMString::from("textarea")
+        DOMString::from_static("textarea")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue>
@@ -577,7 +555,7 @@ impl HTMLTextAreaElement {
     /// Used by WebDriver to clear the textarea element.
     pub(crate) fn clear(&self) {
         self.value_dirty.set(false);
-        self.textinput.borrow_mut().set_content(DOMString::from(""));
+        self.textinput.borrow_mut().set_content(DOMString::new());
     }
 
     pub(crate) fn reset(&self, cx: &mut JSContext) {
@@ -795,10 +773,7 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     // copied and modified from htmlinputelement.rs
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
-        if let Some(mouse_event) = event.downcast::<MouseEvent>() {
-            self.handle_mouse_event(mouse_event);
-            event.mark_as_handled();
-        } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
+        if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(keyboard_event) = event.downcast::<KeyboardEvent>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
@@ -863,6 +838,30 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);
+        }
+    }
+
+    fn handle_mousedown_event(
+        &self,
+        cx: &mut JSContext,
+        mouse_event: &MouseEvent,
+        hit_test_result: &HitTestResult,
+    ) {
+        // If the placeholder is displayed, don't do any interactive mouse event handling.
+        if self.textinput.borrow().is_empty() {
+            if let Some(super_type) = self.super_type() {
+                super_type.handle_mousedown_event(cx, mouse_event, hit_test_result);
+            }
+            return;
+        }
+
+        if self.textinput.borrow_mut().handle_mousedown_event(
+            self.upcast(),
+            mouse_event,
+            hit_test_result,
+        ) {
+            self.maybe_update_shared_selection();
+            mouse_event.upcast::<Event>().mark_as_handled();
         }
     }
 

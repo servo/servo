@@ -7,6 +7,7 @@ use std::cell::Cell;
 use euclid::Size2D;
 use paint_api::display_list::{
     AxesScrollSensitivity, ScrollTree, ScrollType, ScrollableNodeInfo, SpatialTreeNodeInfo,
+    TouchAction,
 };
 use servo_base::id::ScrollTreeNodeId;
 use webrender_api::units::LayoutVector2D;
@@ -34,6 +35,7 @@ fn add_mock_scroll_node(tree: &mut ScrollTree) -> (ScrollTreeNodeId, ExternalScr
                 x: ScrollType::Script | ScrollType::InputEvents,
                 y: ScrollType::Script | ScrollType::InputEvents,
             },
+            touch_action: TouchAction::Auto,
             offset: LayoutVector2D::zero(),
             offset_changed: Cell::new(false),
         }),
@@ -101,6 +103,7 @@ fn test_scroll_tree_simple_scroll_chaining() {
                 x: ScrollType::Script | ScrollType::InputEvents,
                 y: ScrollType::Script | ScrollType::InputEvents,
             },
+            touch_action: TouchAction::Auto,
             offset: LayoutVector2D::zero(),
             offset_changed: Cell::new(false),
         }),

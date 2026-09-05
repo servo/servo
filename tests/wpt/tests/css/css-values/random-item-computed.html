@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-random-item">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random-caching">
 <link rel="author" title="Joanne Pan" href="https://github.com/J0pan">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -109,6 +110,56 @@ test(() => {
     assert_in_array(getComputedStyle(target).getPropertyValue('--q').trim(), set);
 }, 'Independent auto random-item() instances each resolve to a valid item');
 
+const ITEMS = ['rgb(1, 0, 0)', 'rgb(0, 1, 0)', 'rgb(0, 0, 1)', 'rgb(1, 1, 0)', 'rgb(0, 1, 1)', 'rgb(1, 0, 1)', 'rgb(1, 1, 1)', 'rgb(2, 0, 0)'];
+const ITEM_LIST = ITEMS.join(', ');
+
+function computedColorsForSiblings(key) {
+    const holder = document.createElement('div');
+    document.body.appendChild(holder);
+    try {
+        const colors = [];
+        for (let i = 0; i < 12; ++i) {
+            const element = document.createElement('div');
+            element.style.cssText = `color: random-item(${key}, ${ITEM_LIST})`;
+            holder.appendChild(element);
+            colors.push(getComputedStyle(element).color);
+        }
+        return colors;
+    } finally {
+        document.body.removeChild(holder);
+    }
+}
+
+// An element-scoped key gives each element an independent draw, so 12 elements agreeing across
+// 8 items is about 1 in 10^10.
+test(() => {
+    const colors = computedColorsForSiblings('auto');
+    for (const color of colors)
+        assert_in_array(color, ITEMS);
+    assert_greater_than(new Set(colors).size, 1, 'every element selected the same item');
+}, 'random-item() with an auto <random-key> is element-scoped');
+
+test(() => {
+    const colors = computedColorsForSiblings('element-scoped');
+    for (const color of colors)
+        assert_in_array(color, ITEMS);
+    assert_greater_than(new Set(colors).size, 1, 'every element selected the same item');
+}, 'random-item() with a bare element-scoped <random-key> is not shared between elements');
+
+test(() => {
+    const colors = computedColorsForSiblings('--per-element element-scoped');
+    for (const color of colors)
+        assert_in_array(color, ITEMS);
+    assert_greater_than(new Set(colors).size, 1, 'every element selected the same item');
+}, 'random-item() with a <dashed-ident> element-scoped <random-key> is not shared between elements');
+
+test(() => {
+    const colors = computedColorsForSiblings('--across-elements');
+    for (const color of colors)
+        assert_in_array(color, ITEMS);
+    assert_equals(new Set(colors).size, 1, 'elements selected different items');
+}, 'random-item() with a <dashed-ident> <random-key> is shared between elements');
+
 // Deterministic value-sharing: the same dashed-ident key selects the same item on two properties.
 test(() => {
     const target = document.getElementById('target');
@@ -152,6 +203,41 @@ test(() => {
     const m = parseFloat(getComputedStyle(target).marginLeft);
     assert_equals(m, Math.min(400, Math.floor(w / 100) * 100), 'random() and random-item() share the element-scoped base value');
 }, 'random() and random-item() share the base value for a bare element-scoped key');
+
+// A derived property scope records which function produced it, so an auto random() and an auto
+// random-item() in one value draw independently. With random() scaled to 0-400px and two items
+// 0/1000px, a shared draw would make the item choice track whether random() landed above half;
+// over 40 samples that agreeing every time is about 1 in 10^12.
+function sharedDrawCount(declaration) {
+    let consistentWithSharing = 0;
+    const holder = document.createElement('div');
+    document.body.appendChild(holder);
+    try {
+        for (let i = 0; i < 40; ++i) {
+            const element = document.createElement('div');
+            element.style.cssText = declaration;
+            holder.appendChild(element);
+            const width = parseFloat(getComputedStyle(element).width);
+            const selectedSecondItem = width >= 1000;
+            const randomFraction = (width - (selectedSecondItem ? 1000 : 0)) / 400;
+            if ((randomFraction >= 0.5) === selectedSecondItem)
+                ++consistentWithSharing;
+        }
+    } finally {
+        document.body.removeChild(holder);
+    }
+    return consistentWithSharing;
+}
+
+test(() => {
+    const shared = sharedDrawCount('width: calc(random(auto, 0px, 400px) + random-item(auto, 0px, 1000px))');
+    assert_less_than(shared, 40, 'random() and random-item() drew the same base value');
+}, 'auto random() and auto random-item() in one value do not share a base value');
+
+test(() => {
+    const shared = sharedDrawCount('--n: random(auto, 0, 1); width: calc(var(--n) * 400px + random-item(auto, 0px, 1000px))');
+    assert_less_than(shared, 40, 'random() reached through var() drew the same base value as random-item()');
+}, 'auto random() substituted through var() does not share a base value with random-item()');
 
 // A <dashed-ident> as short as "--" is a valid key (parity with random()); the value resolves rather
 // than becoming guaranteed-invalid.

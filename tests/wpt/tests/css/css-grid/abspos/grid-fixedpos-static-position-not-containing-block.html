@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid: static position of a fixed-positioned child when the grid is not its containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#static-position">
+<link rel="match" href="grid-fixedpos-static-position-not-containing-block-ref.html">
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<style>
+.grid {
+  display: grid;
+  position: relative;
+  grid: 50px 50px / 50px 50px;
+  margin: 40px;
+  border: 10px solid black;
+  padding: 20px;
+}
+.fixed {
+  position: fixed;
+  grid-area: 2 / 2;
+  width: 10px;
+  height: 10px;
+  background-color: green;
+}
+</style>
+
+<div class="grid">
+  <div class="fixed"></div>
+</div>

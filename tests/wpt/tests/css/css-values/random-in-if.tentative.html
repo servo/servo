@@ -75,6 +75,48 @@ test(() => {
   document.body.appendChild(holder);
   try {
     let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(random(0, 1) = random(0, 1)): true; else: false;)');
+      holder.appendChild(el1);
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      if (elComputedValue1 == 'false') {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, false);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing random() in same if() condition`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(random(property-scoped, 0, 1) = random(property-scoped, 0, 1)): true; else: false;)');
+      holder.appendChild(el1);
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      if (elComputedValue1 == 'false') {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, true);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-scoped random() in same if() condition`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
     let allSamePropertyScoped = true;
     let allSamePropertyIndexScoped = true;
     for(let i = 0; i < 30; i++) {
@@ -281,5 +323,67 @@ test(() => {
     document.body.removeChild(holder);
   }
 }, `random() with same property name on different elements in if() declaration value should be equal`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop1 = `--unregistered-${i}`;
+      const prop2 = `--unregistered2-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop1, 'if(style(random(0, 1) > 0.5): true; else: false;)');
+      el1.style.setProperty(prop2, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+
+      const el2 = document.createElement('div');
+      el2.style.setProperty(prop2, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+
+      holder.appendChild(el1);
+      holder.appendChild(el2);
+
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop2);
+      const elComputedValue2 = getComputedStyle(el2).getPropertyValue(prop2);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, true);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-index-scoped random() in if() style() condition across different elements with different property counts`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(calc(random(property-index-scoped, 0, 1) + random(property-index-scoped, 0, 1)) > 0.5): true; else: false;) if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+
+      const el2 = document.createElement('div');
+      el2.style.setProperty(prop, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;) if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+
+      holder.appendChild(el1);
+      holder.appendChild(el2);
+
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      let [, val1_second] = elComputedValue1.split(' ');
+
+      const elComputedValue2 = getComputedStyle(el2).getPropertyValue(prop);
+      let [, val2_second] = elComputedValue2.split(' ');
+
+      if (val1_second != val2_second) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, false);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-index-scoped random() with multiple random() inside calc()`);
 
 </script>

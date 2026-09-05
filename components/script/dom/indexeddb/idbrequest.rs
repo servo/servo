@@ -38,7 +38,7 @@ use crate::dom::indexeddb::idbcursor::{IterationParam, iterate_cursor};
 use crate::dom::indexeddb::idbcursorwithvalue::IDBCursorWithValue;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
-use crate::indexeddb::key_type_to_jsval;
+use crate::dom::indexeddb::key::key_type_to_jsval;
 use crate::realms::enter_auto_realm;
 
 #[derive(Clone)]
@@ -172,7 +172,7 @@ impl RequestListener {
                     for (i, key) in keys.into_iter().enumerate() {
                         key_type_to_jsval(cx, &key, array.handle_mut_at(i));
                     }
-                    array.safe_to_jsval(cx, answer.handle_mut());
+                    array.to_jsval(cx, answer.handle_mut());
                 },
                 IdbResult::Value(serialized_data) => {
                     let result = postcard::from_bytes(&serialized_data)
@@ -206,7 +206,7 @@ impl RequestListener {
                             return;
                         };
                     }
-                    values.safe_to_jsval(cx, answer.handle_mut());
+                    values.to_jsval(cx, answer.handle_mut());
                 },
                 IdbResult::Count(count) => {
                     answer.handle_mut().set(DoubleValue(count as f64));

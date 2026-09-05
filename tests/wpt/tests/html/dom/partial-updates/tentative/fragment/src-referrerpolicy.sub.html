@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: template src Referrer Policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<script>
+async function getStashedReferrer(key) {
+  const response = await fetch(`/preload/resources/stash-referrer.py?key=${key}&operation=take`);
+  return await response.text();
+}
+</script>
+
+<div id="container-no-referrer">
+  <div id="target-no-referrer">
+    <?start name="marker-no-referrer">Original<?end>
+  </div>
+  <template for="marker-no-referrer"
+            referrerpolicy="no-referrer"
+            src="/preload/resources/stash-referrer.py?key=b3f48d2e-279c-4de1-9c6d-afac1e14744a&operation=put"
+            id="tpl-no-referrer"></template>
+</div>
+
+<div id="container-origin">
+  <div id="target-origin">
+    <?start name="marker-origin">Original<?end>
+  </div>
+  <template for="marker-origin"
+            referrerpolicy="origin"
+            src="/preload/resources/stash-referrer.py?key=c3f48d2e-279c-4de1-9c6d-afac1e14744b&operation=put"
+            id="tpl-origin"></template>
+</div>
+
+<script>
+promise_test(async () => {
+  // Wait 500ms to allow parser and fetch to complete and store referrer in stash
+  await new Promise(resolve => step_timeout(resolve, 500));
+
+  const referrer = await getStashedReferrer('b3f48d2e-279c-4de1-9c6d-afac1e14744a');
+  assert_equals(referrer, 'NO-REFERER', "Referrer should be blocked completely when referrerpolicy=no-referrer");
+}, "Template src referrerpolicy=no-referrer blocks Referer header");
+
+promise_test(async () => {
+  // Wait 500ms to allow parser and fetch to complete and store referrer in stash
+  await new Promise(resolve => step_timeout(resolve, 500));
+
+  const referrer = await getStashedReferrer('c3f48d2e-279c-4de1-9c6d-afac1e14744b');
+  const expectedOrigin = window.location.origin + '/';
+  assert_equals(referrer, expectedOrigin, "Referrer should only contain the origin when referrerpolicy=origin");
+}, "Template src referrerpolicy=origin sends only origin in Referer header");
+</script>
+</body>

@@ -56,8 +56,8 @@ impl DataTransfer {
     ) -> DataTransfer {
         DataTransfer {
             reflector_: Reflector::new(),
-            drop_effect: DomRefCell::new(DOMString::from("none")),
-            effect_allowed: DomRefCell::new(DOMString::from("none")),
+            drop_effect: DomRefCell::new(DOMString::from_static("none")),
+            effect_allowed: DomRefCell::new(DOMString::from_static("none")),
             items: Dom::from_ref(item_list),
             data_store,
         }
@@ -191,11 +191,11 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
 
         let type_override = match_domstring_ascii!(format,
             // Step 5 If format equals "text", change it to "text/plain".
-            "text" => Some(DOMString::from("text/plain")),
+            "text" => Some(DOMString::from_static("text/plain")),
             // Step 6 If format equals "url", change it to "text/uri-list" and set convert-to-URL to true.
             "url" => {
                 convert_to_url = true;
-                Some(DOMString::from("text/uri-list"))
+                Some(DOMString::from_static("text/uri-list"))
             },
             _ => None,
         );

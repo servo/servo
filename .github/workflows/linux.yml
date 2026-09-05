@@ -210,10 +210,13 @@ jobs:
           tool-cache: false
           large-packages: false
           swap-storage: false
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        shell: bash
-        if: ${{ runner.environment != 'self-hosted' }}
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+      - name: Set LIBCLANG_PATH env
+        run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
       - name: Setup Python
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
@@ -307,10 +310,6 @@ jobs:
           jackd -d dummy &
           pulseaudio --start
           gst-inspect-1.0 | grep Total
-      - name: Set LIBCLANG_PATH env # needed for bindgen
-        shell: bash
-        if: ${{ runner.environment != 'self-hosted' }}
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Run Examples
         run: |
           ls components/media/examples/examples/*.rs | xargs -I{} basename  {} .rs  | grep -v params_connect | RUST_BACKTRACE=1 GST_DEBUG=3 xargs -I{} cargo run -p servo-media-examples --example {}

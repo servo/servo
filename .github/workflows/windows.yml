@@ -72,10 +72,6 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CARGO_TARGET_DIR: C:\\a\\servo\\servo\\target
-  # clang_sys will search msys path before Program Files\LLVM
-  # so we need to override this behaviour until we update clang-sys
-  # https://github.com/KyleMayes/clang-sys/issues/150
-  LIBCLANG_PATH: C:\Program Files\LLVM\bin
   RUSTUP_WINDOWS_PATH_ADD_BIN: 1
 
 jobs:
@@ -156,6 +152,17 @@ jobs:
       - name: Setup Python
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        if: ${{ runner.environment != 'self-hosted' }}
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+      - name: Set LIBCLANG_PATH env
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: |
+          $llvm_bin = Join-Path $env:LLVM_PATH "bin"
+          echo "LIBCLANG_PATH=$llvm_bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Bootstrap
         if: ${{ runner.environment != 'self-hosted' }}
         run: |
@@ -285,6 +292,17 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ steps.msrv.outputs.rust_version }}
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+      - name: Set LIBCLANG_PATH env
+        run: |
+          $llvm_bin = Join-Path $env:LLVM_PATH "bin"
+          echo "LIBCLANG_PATH=$llvm_bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Passive bootstrap
+        run: .\mach fetch
       - name: Compile libservo with MSRV
         run: |
           cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked
@@ -299,8 +317,23 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-c@0.10.23
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+      - name: Set LIBCLANG_PATH env
+        run: |
+          $llvm_bin = Join-Path $env:LLVM_PATH "bin"
+          echo "LIBCLANG_PATH=$llvm_bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Passive bootstrap
+        run: |
+          .\mach fetch
       - name: Build and test servo-capi-tests
         env:
           CC: "clang-cl.exe"
           CXX: "clang-cl.exe"
+          MOZTOOLS_PATH : "${{ env.CARGO_TARGET_DIR }}\\dependencies\\moztools\\4.0"
         run: cargo test -p servo-capi-tests --locked

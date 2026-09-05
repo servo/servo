@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.container {
+  writing-mode: vertical-rl;
+  background-color: green;
+  inline-size: max-content;
+}
+.parent {
+  block-size: 79px;
+  overflow-x: scroll;
+}
+.content {
+  inline-size: 10px;
+  block-size: 80px;
+}
+</style>
+</head>
+<body>
+<div class=container>
+  <div class=parent>
+    <div class=content></div>
+  </div>
+</div>
+</body>
+</html>

@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::mem;
 use std::time::{Duration, Instant};
 
+use chardetng::{Iso2022JpDetection, Utf8Detection};
 use encoding_rs::{Encoding, UTF_8, UTF_16BE, UTF_16LE, WINDOWS_1252, X_USER_DEFINED};
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
@@ -157,7 +158,8 @@ impl DetectingState {
 
             // Step 8. The user agent may attempt to autodetect the character encoding from applying frequency analysis
             // or other algorithms to the data stream.
-            let mut encoding_detector = chardetng::EncodingDetector::new();
+            // According to the documentatioin `allow_iis_2022_jp` should be set to false.
+            let mut encoding_detector = chardetng::EncodingDetector::new(Iso2022JpDetection::Deny);
             encoding_detector.feed(&self.buffered_bytes, is_at_end_of_file == AtEndOfFile::Yes);
             let url = document.url();
             let tld = url
@@ -165,14 +167,12 @@ impl DetectingState {
                 .domain()
                 .and_then(|domain| domain.rsplit('.').next())
                 .map(|tld| tld.as_bytes());
-            let (guessed_encoding, is_probably_right) = encoding_detector.guess_assess(tld, true);
-            if is_probably_right {
-                log::debug!(
-                    "chardetng determined that the document encoding is {}",
-                    guessed_encoding.name()
-                );
-                return Some(guessed_encoding);
-            }
+            let guessed_encoding = encoding_detector.guess(tld, Utf8Detection::Allow);
+            log::debug!(
+                "chardetng determined that the document encoding is {}",
+                guessed_encoding.name()
+            );
+            return Some(guessed_encoding);
         }
 
         // Step 9. Otherwise, return an implementation-defined or user-specified default character encoding,

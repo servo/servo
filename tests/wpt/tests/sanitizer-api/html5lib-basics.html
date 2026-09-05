@@ -68,6 +68,28 @@ p
 | <p>
 |   "A rather boring parse context."
 
+#data
+<table><b>a</b>bb<tr><td>y
+#document
+| <b>
+|   "a"
+| "bb"
+| <table>
+|   <tbody>
+|     <tr>
+|       <td>
+|         "y"
+
+#data
+<table><div>d</div><td>
+#document
+| <div>
+|   "d"
+| <table>
+|   <tbody>
+|     <tr>
+|       <td>
+
 </script>
 <script>
 // This runs a number of simple test cases that test setHTMLUnsafe, and

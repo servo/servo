@@ -74,7 +74,7 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::IntroductionType;
+use crate::runtime::script_runtime::IntroductionType;
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
 /// Generated from WebIDL definitions of EventHandler attributes on interfaces
@@ -692,8 +692,7 @@ impl EventTarget {
         options.set_introduction_type(IntroductionType::EVENT_HANDLER);
 
         // Step 3.9, subsection Scope steps 1-6
-        let scopechain =
-            js::rust::EnvironmentChain::new(unsafe { cx.raw_cx() }, SupportUnscopables::Yes);
+        let scopechain = js::rust::EnvironmentChain::new(cx, SupportUnscopables::Yes);
 
         if let Some(element) = element {
             scopechain.append(document.reflector().get_jsobject().get());

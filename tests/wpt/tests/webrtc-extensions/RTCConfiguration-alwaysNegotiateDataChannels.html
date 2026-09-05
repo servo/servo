@@ -28,75 +28,67 @@ promise_test(async t => {
 }, 'alwaysNegotiateDataChannels creates a datachannel m-line');
 
 promise_test(async t => {
-  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: false});
-  t.add_cleanup(() => pc.close());
-  const config = pc.getConfiguration();
-  config.alwaysNegotiateDataChannels = true;
-  pc.setConfiguration(config);
-  const offer = await pc.createOffer();
-  const sections = SDPUtils.splitSections(offer.sdp);
-  assert_equals(sections.length, 2);
-}, 'setConfiguration can modify alwaysNegotiateDataChannels from false to true');
-
-promise_test(async t => {
   const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
   t.add_cleanup(() => pc.close());
-  const config = pc.getConfiguration();
-  config.alwaysNegotiateDataChannels = false;
-  pc.setConfiguration(config);
+  pc.addTransceiver('audio');
+  pc.createDataChannel('foo');
   const offer = await pc.createOffer();
   const sections = SDPUtils.splitSections(offer.sdp);
-  assert_equals(sections.length, 1);
-}, 'setConfiguration can modify alwaysNegotiateDataChannels from true to false');
+  assert_equals(sections.length, 3);
+  assert_true(sections[1].startsWith('m=application '), 'first m-line is the datachannel');
+  assert_true(sections[2].startsWith('m=audio '), 'second m-line is the audio transceiver');
+}, 'alwaysNegotiateDataChannels puts the datachannel m-line first when createDataChannel is called after addTransceiver');
 
 promise_test(async t => {
-  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: false});
-  t.add_cleanup(() => pc.close());
-  let offer = await pc.createOffer();
-  let sections = SDPUtils.splitSections(offer.sdp);
-  assert_equals(sections.length, 1);
-
-  const config = pc.getConfiguration();
-  config.alwaysNegotiateDataChannels = true;
-  pc.setConfiguration(config);
-  offer = await pc.createOffer();
-  sections = SDPUtils.splitSections(offer.sdp);
-  assert_equals(sections.length, 2);
-}, 'setConfiguration can modify alwaysNegotiateDataChannels from false to true after createOffer');
-
-promise_test(async t => {
-  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
-  t.add_cleanup(() => pc.close());
-  let offer = await pc.createOffer();
-  let sections = SDPUtils.splitSections(offer.sdp);
-  assert_equals(sections.length, 2);
-
-  const config = pc.getConfiguration();
-  config.alwaysNegotiateDataChannels = false;
-  pc.setConfiguration(config);
-  offer = await pc.createOffer();
-  sections = SDPUtils.splitSections(offer.sdp);
-  assert_equals(sections.length, 1);
-}, 'setConfiguration can modify alwaysNegotiateDataChannels from true to false after createOffer');
-
-promise_test(async t => {
-  const pc1 = new RTCPeerConnection({alwaysNegotiateDataChannels: false});
+  const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
-  const pc2 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
   t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver('audio');
+  const offer = await pc1.createOffer();
 
+  pc2.addEventListener('negotiationneeded',
+                       t.unreached_func('negotiationneeded fired'));
+  await pc2.setRemoteDescription(offer);
+  await pc2.setLocalDescription();
+  assert_equals(SDPUtils.splitSections(pc2.localDescription.sdp).length, 2,
+                'answer only contains the audio m-line');
+
+  const offer2 = await pc2.createOffer();
+  const sections = SDPUtils.splitSections(offer2.sdp);
+  assert_equals(sections.length, 3);
+  assert_true(sections[1].startsWith('m=audio '), 'first m-line is the audio transceiver');
+  assert_true(sections[2].startsWith('m=application '), 'second m-line is the datachannel');
+
+  await new Promise(r => t.step_timeout(r, 0));
+}, 'alwaysNegotiateDataChannels adds the datachannel m-line after an associated m-line without negotiationneeded');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver('audio');
   await pc1.setLocalDescription();
+
+  let negotiationNeeded = 0;
+  pc2.addEventListener('negotiationneeded', () => negotiationNeeded++);
   await pc2.setRemoteDescription(pc1.localDescription);
   await pc2.setLocalDescription();
   await pc1.setRemoteDescription(pc2.localDescription);
+  await new Promise(r => t.step_timeout(r, 0));
+  assert_equals(negotiationNeeded, 0, 'no negotiationneeded from answering');
 
-  const config = pc1.getConfiguration();
-  config.alwaysNegotiateDataChannels = true;
-  pc1.setConfiguration(config);
-  const offer = await pc1.createOffer();
+  pc2.createDataChannel('foo');
+  await new Promise(r => t.step_timeout(r, 0));
+  assert_equals(negotiationNeeded, 1, 'negotiationneeded after creating a datachannel');
+
+  const offer = await pc2.createOffer();
   const sections = SDPUtils.splitSections(offer.sdp);
-  assert_equals(sections.length, 2);
-}, 'setConfiguration can modify alwaysNegotiateDataChannels from false to true after negotiation');
+  assert_equals(sections.length, 3);
+  assert_true(sections[1].startsWith('m=audio '), 'first m-line is the audio transceiver');
+  assert_true(sections[2].startsWith('m=application '), 'second m-line is the datachannel');
+}, 'alwaysNegotiateDataChannels requires negotiation when a datachannel is created after negotiating without one');
 
 promise_test(async t => {
   const pc1 = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
@@ -104,19 +96,80 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
+  let negotiationNeeded = 0;
+  pc1.addEventListener('negotiationneeded', () => negotiationNeeded++);
+  await new Promise(r => t.step_timeout(r, 0));
+  assert_equals(negotiationNeeded, 0, 'no negotiationneeded from the configuration alone');
+
+  pc1.addTransceiver('video');
+  await new Promise(r => t.step_timeout(r, 0));
+  assert_equals(negotiationNeeded, 1, 'negotiationneeded after addTransceiver');
+
   await pc1.setLocalDescription();
   const sections = SDPUtils.splitSections(pc1.localDescription.sdp);
-  assert_equals(sections.length, 2);
+  assert_equals(sections.length, 3);
+  assert_true(sections[1].startsWith('m=application '), 'first m-line is the datachannel');
+  assert_true(sections[2].startsWith('m=video '), 'second m-line is the video transceiver');
+
   await pc2.setRemoteDescription(pc1.localDescription);
   await pc2.setLocalDescription();
   await pc1.setRemoteDescription(pc2.localDescription);
+  await new Promise(r => t.step_timeout(r, 0));
+  assert_equals(negotiationNeeded, 1, 'no negotiationneeded after negotiating');
 
-  // Does not get negotiated away.
-  const config = pc1.getConfiguration();
+  pc1.createDataChannel('first_dc');
+  await new Promise(r => t.step_timeout(r, 0));
+  assert_equals(negotiationNeeded, 1, 'no negotiationneeded when creating a datachannel');
+}, 'alwaysNegotiateDataChannels does not require negotiation when creating a datachannel');
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+  const answerer = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
+  t.add_cleanup(() => answerer.close());
+
+  offerer.addTransceiver('video');
+  await offerer.setLocalDescription();
+  const offerSections = SDPUtils.splitSections(offerer.localDescription.sdp);
+  assert_equals(offerSections.length, 2);
+  assert_true(offerSections[1].startsWith('m=video '), 'offer only contains the video m-line');
+
+  await answerer.setRemoteDescription(offerer.localDescription);
+  await answerer.setLocalDescription();
+  const answerSections = SDPUtils.splitSections(answerer.localDescription.sdp);
+  assert_equals(answerSections.length, 2);
+  assert_true(answerSections[1].startsWith('m=video '), 'answer only contains the video m-line');
+  await offerer.setRemoteDescription(answerer.localDescription);
+
+  answerer.addTransceiver('audio');
+  const reoffer = await answerer.createOffer();
+  const sections = SDPUtils.splitSections(reoffer.sdp);
+  assert_equals(sections.length, 4);
+  assert_true(sections[1].startsWith('m=video '), 'first m-line is the negotiated video transceiver');
+  assert_true(sections[2].startsWith('m=application '), 'second m-line is the datachannel');
+  assert_true(sections[3].startsWith('m=audio '), 'third m-line is the audio transceiver');
+}, 'alwaysNegotiateDataChannels puts the datachannel m-line before other new m-lines in a reoffer');
+
+test(t => {
+  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: false});
+  t.add_cleanup(() => pc.close());
+  const config = pc.getConfiguration();
+  config.alwaysNegotiateDataChannels = true;
+  assert_throws_dom('InvalidModificationError', () => pc.setConfiguration(config));
+}, 'setConfiguration cannot modify alwaysNegotiateDataChannels from false to true');
+
+test(t => {
+  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
+  t.add_cleanup(() => pc.close());
+  const config = pc.getConfiguration();
   config.alwaysNegotiateDataChannels = false;
-  pc1.setConfiguration(config);
-  const offer = await pc1.createOffer();
-  const newSections = SDPUtils.splitSections(offer.sdp);
-  assert_equals(newSections.length, 2);
-}, 'setConfiguration can modify alwaysNegotiateDataChannels from true to false after negotiation');
+  assert_throws_dom('InvalidModificationError', () => pc.setConfiguration(config));
+}, 'setConfiguration cannot modify alwaysNegotiateDataChannels from true to false');
+
+test(t => {
+  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
+  t.add_cleanup(() => pc.close());
+  pc.setConfiguration(pc.getConfiguration());
+  assert_true(pc.getConfiguration().alwaysNegotiateDataChannels);
+}, 'setConfiguration with an unchanged alwaysNegotiateDataChannels is allowed');
 </script>

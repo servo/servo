@@ -10,7 +10,6 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
-use app_units::Au;
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
@@ -58,13 +57,13 @@ use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::FireMouseEventType;
 use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::interactive_element_command::InteractiveElementCommand;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
-use crate::dom::interactive_element_command::InteractiveElementCommand;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::focus::FocusTrigger;
@@ -75,6 +74,7 @@ use crate::dom::types::{
     HTMLAnchorElement, HTMLElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList,
     WheelEvent, Window,
 };
+use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::drag::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::drag::drag_gesture::DragGesture;
@@ -590,15 +590,16 @@ impl DocumentEventHandler {
         let released_disconnected =
             self.release_disconnected_pointer_capture(cx, pointer_id, "mouse", true);
 
-        if let Some(hit_test_result) = input_event.hit_test_result.as_ref() {
-            let point_in_viewport = hit_test_result.point_in_viewport.map(Au::from_f32_px);
-            let mut maybe_drag_gesture = self.drag_gesture.borrow_mut();
-            if maybe_drag_gesture.as_mut().is_some_and(|drag_gesture| {
-                !drag_gesture.handle_mouse_move_event(input_event, point_in_viewport)
-            }) {
-                *maybe_drag_gesture = None;
-            }
-        }
+        let hit_test_flags = if self
+            .drag_gesture
+            .borrow()
+            .as_ref()
+            .is_some_and(DragGesture::need_dom_position_from_hit_test)
+        {
+            HitTestFlags::IncludeDomPosition
+        } else {
+            HitTestFlags::empty()
+        };
 
         // Always do full hit test so we can keep `current_hover_target` in sync
         // with the actual element under the pointer. Boundary events for hover
@@ -606,10 +607,19 @@ impl DocumentEventHandler {
         // pointer events are retargeted to the capture element.
         let Some(hit_test_result) = self
             .window
-            .hit_test_from_input_event(HitTestFlags::empty(), input_event)
+            .hit_test_from_input_event(hit_test_flags, input_event)
         else {
             return;
         };
+
+        {
+            let mut maybe_drag_gesture = self.drag_gesture.borrow_mut();
+            if maybe_drag_gesture.as_mut().is_some_and(|drag_gesture| {
+                !drag_gesture.handle_mouse_move_event(cx, input_event, &hit_test_result)
+            }) {
+                *maybe_drag_gesture = None;
+            }
+        }
 
         let old_mouse_move_point = self
             .most_recent_mousemove_point
@@ -1025,7 +1035,8 @@ impl DocumentEventHandler {
                 self.mouse_button_state
                     .set(input_event.pressed_mouse_buttons);
 
-                pointer_event.upcast::<Event>().fire(cx, &pointer_target);
+                let pointer_event_result =
+                    pointer_event.upcast::<Event>().fire(cx, &pointer_target);
 
                 // Process pending pointer capture after firing event, but skip if we just
                 // released a disconnected capture to avoid immediately re-capturing.
@@ -1038,6 +1049,19 @@ impl DocumentEventHandler {
                 let result = mouse_event
                     .upcast::<Event>()
                     .dispatch(cx, node.upcast(), false);
+
+                // If neither the `mousedown` nor the `pointerdown` event had `preventDefault()`
+                // called on them, call the default mousdown handler on retargeted node
+                // (`mouse_event.target` is mutated by `dispatch` above).
+                if result &&
+                    pointer_event_result &&
+                    let Some(node) = mouse_event
+                        .upcast::<Event>()
+                        .GetTarget()
+                        .and_then(DomRoot::downcast::<Node>)
+                {
+                    vtable_for(&node).handle_mousedown_event(cx, &mouse_event, &hit_test_result);
+                }
 
                 // Step 8. If result is true and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
@@ -1230,22 +1254,22 @@ impl DocumentEventHandler {
             input_event.active_keyboard_modifiers,
             MouseButton::Secondary,
             input_event.pressed_mouse_buttons,
-            None,                     // related_target
-            None,                     // point_in_target
-            PointerId::Mouse as i32,  // pointer_id
-            1,                        // width
-            1,                        // height
-            0.5,                      // pressure
-            0.0,                      // tangential_pressure
-            0,                        // tilt_x
-            0,                        // tilt_y
-            0,                        // twist
-            PI / 2.0,                 // altitude_angle
-            0.0,                      // azimuth_angle
-            DOMString::from("mouse"), // pointer_type
-            true,                     // is_primary
-            vec![],                   // coalesced_events
-            vec![],                   // predicted_events
+            None,                            // related_target
+            None,                            // point_in_target
+            PointerId::Mouse as i32,         // pointer_id
+            1,                               // width
+            1,                               // height
+            0.5,                             // pressure
+            0.0,                             // tangential_pressure
+            0,                               // tilt_x
+            0,                               // tilt_y
+            0,                               // twist
+            PI / 2.0,                        // altitude_angle
+            0.0,                             // azimuth_angle
+            DOMString::from_static("mouse"), // pointer_type
+            true,                            // is_primary
+            vec![],                          // coalesced_events
+            vec![],                          // predicted_events
         );
         menu_event.upcast::<Event>().set_composed(true);
 
@@ -2086,7 +2110,7 @@ impl DocumentEventHandler {
 
                     // Step 7.1.2.1.1 If clipboard-part contains plain text, then
                     let data = DOMString::from(text_contents);
-                    let type_ = DOMString::from("text/plain");
+                    let type_ = DOMString::from_static("text/plain");
                     let _ = drag_data_store.add(Kind::Text { data, type_ });
 
                     // Step 7.1.2.1.2 TODO If clipboard-part represents file references, then for each file reference

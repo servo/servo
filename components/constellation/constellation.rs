@@ -85,7 +85,7 @@
 //! See <https://github.com/servo/servo/issues/14704>
 
 use std::borrow::ToOwned;
-use std::cell::{Cell, OnceCell, RefCell};
+use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
@@ -114,7 +114,6 @@ use embedder_traits::{
     NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WakeLockDelegate, WakeLockType,
     WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
 };
-use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
 use ipc_channel::IpcError;
@@ -141,6 +140,7 @@ use script_traits::{
     NewPipelineInfo, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_background_hang_monitor::HangMonitorRegister;
+use servo_base::generic_channel;
 use servo_base::generic_channel::{
     GenericCallback, GenericSend, GenericSender, RoutedReceiver, SendError,
 };
@@ -151,7 +151,6 @@ use servo_base::id::{
     ScriptEventLoopId, WebViewId,
 };
 use servo_base::threadboost::{BoostAffinity, ThreadPriority};
-use servo_base::{Epoch, generic_channel};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
 use servo_canvas::canvas_paint_thread::CanvasPaintThread;
@@ -509,15 +508,6 @@ pub struct Constellation<STF, SWF> {
     /// [`ImageCacheFactoryImpl`].
     pub(crate) image_cache_factory: Arc<ImageCacheFactoryImpl>,
 
-    /// Pending viewport changes for browsing contexts that are not
-    /// yet known to the constellation.
-    pending_viewport_changes: HashMap<BrowsingContextId, ViewportDetails>,
-
-    /// Pending screenshot readiness requests. These are collected until the screenshot is
-    /// ready to take place, at which point the Constellation informs the renderer that it
-    /// can start the process of taking the screenshot.
-    screenshot_readiness_requests: Vec<ScreenshotReadinessRequest>,
-
     /// A map from `UserContentManagerId` to the `UserContents` for that manager.
     /// Multiple `WebView`s can share the same `UserContentManager` and any mutations
     /// to the `UserContents` need to be forwared to all the `ScriptThread`s that host
@@ -741,8 +731,6 @@ where
                     image_cache_factory: Arc::new(ImageCacheFactoryImpl::new(
                         broken_image_icon_data,
                     )),
-                    pending_viewport_changes: Default::default(),
-                    screenshot_readiness_requests: Vec::new(),
                     user_contents_for_manager_id: Default::default(),
                 };
 
@@ -1077,11 +1065,11 @@ where
         &self,
         browsing_context_id: BrowsingContextId,
     ) -> FullyActiveBrowsingContextsIterator<'_> {
-        FullyActiveBrowsingContextsIterator {
-            stack: vec![browsing_context_id],
-            pipelines: &self.pipelines,
-            browsing_contexts: &self.browsing_contexts,
-        }
+        FullyActiveBrowsingContextsIterator::new(
+            browsing_context_id,
+            &self.browsing_contexts,
+            &self.pipelines,
+        )
     }
 
     /// Get an iterator for the fully active browsing contexts in a tree.
@@ -1155,6 +1143,11 @@ where
         inherited_secure_context: Option<bool>,
         throttled: bool,
     ) {
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            println!("Adding BrowsingContext for unknown WebView: {webview_id:?}");
+            return;
+        };
+
         debug!("{browsing_context_id}: Creating new browsing context");
         let bc_group_id = match self
             .browsing_context_group_set
@@ -1179,9 +1172,8 @@ where
         };
 
         // Override the viewport details if we have a pending change for that browsing context.
-        let viewport_details = self
-            .pending_viewport_changes
-            .remove(&browsing_context_id)
+        let viewport_details = webview
+            .take_pending_viewport_details(&browsing_context_id)
             .unwrap_or(viewport_details);
         let browsing_context = BrowsingContext::new(
             bc_group_id,
@@ -1454,7 +1446,12 @@ where
                 }
             },
             EmbedderToConstellationMessage::RequestScreenshotReadiness(webview_id) => {
-                self.handle_request_screenshot_readiness(webview_id)
+                if let Some(webview) = self.webviews.get_mut(&webview_id) {
+                    webview.handle_screenshot_readiness_request(
+                        &self.browsing_contexts,
+                        &self.pipelines,
+                    );
+                }
             },
             EmbedderToConstellationMessage::EmbedderControlResponse(id, response) => {
                 self.handle_embedder_control_response(id, response);
@@ -1896,11 +1893,31 @@ where
                     );
                 }
             },
+            ScriptToConstellationMessage::IsCurrentlyFullyActive(pipeline_id, response_sender) => {
+                if let Err(error) = response_sender
+                    .send(self.get_activity(pipeline_id) == DocumentActivity::FullyActive)
+                {
+                    warn!("Sending reply to get document activity failed ({error:?}).");
+                }
+            },
             ScriptToConstellationMessage::GetDocumentOrigin(pipeline_id, response_sender) => {
                 self.send_message_to_pipeline(
                     pipeline_id,
                     ScriptThreadMessage::GetDocumentOrigin(pipeline_id, response_sender),
                     "Document origin retrieval after closure",
+                );
+            },
+            ScriptToConstellationMessage::GetInternalAncestorOriginObjectsList(
+                pipeline_id,
+                response_sender,
+            ) => {
+                self.send_message_to_pipeline(
+                    pipeline_id,
+                    ScriptThreadMessage::GetInternalAncestorOriginObjectsList(
+                        pipeline_id,
+                        response_sender,
+                    ),
+                    "Document ancestor origin objects list retrieval after closure",
                 );
             },
             ScriptToConstellationMessage::ServiceWorkerAlgorithm(algorithm) => {
@@ -2008,7 +2025,13 @@ where
                 }
             },
             ScriptToConstellationMessage::RespondToScreenshotReadinessRequest(response) => {
-                self.handle_screenshot_readiness_response(source_pipeline_id, response);
+                if let Some(webview) = self.webviews.get_mut(&webview_id) {
+                    webview.handle_screenshot_readiness_response(
+                        source_pipeline_id,
+                        response,
+                        &self.paint_proxy,
+                    );
+                }
             },
             ScriptToConstellationMessage::TriggerGarbageCollection => {
                 for event_loop in self.event_loops() {
@@ -4237,9 +4260,6 @@ where
                     warn!("Could not find WebView for URL load: ({webview_id:?})");
                 }
 
-                self.paint_proxy
-                    .send(PaintMessage::EnableLCPCalculation(webview_id));
-
                 Some(new_pipeline_id)
             },
         }
@@ -4261,7 +4281,13 @@ where
             DiscardBrowsingContext::No,
             ExitPipelineMode::Normal,
         );
-        self.send_screenshot_readiness_requests_to_pipelines();
+
+        if let Some(webview) = self.webviews.get_mut(&webview_id) {
+            webview.send_screenshot_readiness_requests_to_pipelines(
+                &self.browsing_contexts,
+                &self.pipelines,
+            );
+        };
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -4834,8 +4860,6 @@ where
             ScriptThreadMessage::Reload(pipeline_id),
             "Got reload event after closure",
         );
-        self.paint_proxy
-            .send(PaintMessage::EnableLCPCalculation(webview_id));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
@@ -5638,8 +5662,6 @@ where
             return;
         };
 
-        self.send_screenshot_readiness_requests_to_pipelines();
-
         // Notify the parent (if there is one).
         let parent_pipeline_id = match change.new_browsing_context_info {
             // This will be a new browsing context.
@@ -5669,6 +5691,13 @@ where
         }
 
         self.change_session_history(change);
+
+        if let Some(webview) = self.webviews.get_mut(&webview_id) {
+            webview.send_screenshot_readiness_requests_to_pipelines(
+                &self.browsing_contexts,
+                &self.pipelines,
+            );
+        }
     }
 
     /// Called when the window is resized.
@@ -5698,117 +5727,6 @@ where
     fn handle_exit_fullscreen_msg(&mut self, webview_id: WebViewId) {
         let browsing_context_id = BrowsingContextId::from(webview_id);
         self.switch_fullscreen_mode(browsing_context_id);
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_request_screenshot_readiness(&mut self, webview_id: WebViewId) {
-        self.screenshot_readiness_requests
-            .push(ScreenshotReadinessRequest {
-                webview_id,
-                pipeline_states: Default::default(),
-                state: Default::default(),
-            });
-        self.send_screenshot_readiness_requests_to_pipelines();
-    }
-
-    fn send_screenshot_readiness_requests_to_pipelines(&mut self) {
-        // If there are pending loads, wait for those to complete.
-        if self
-            .webviews
-            .values()
-            .any(ConstellationWebView::has_pending_change)
-        {
-            return;
-        }
-
-        for screenshot_request in &self.screenshot_readiness_requests {
-            // Ignore this request if it is not pending.
-            if screenshot_request.state.get() != ScreenshotRequestState::Pending {
-                return;
-            }
-
-            *screenshot_request.pipeline_states.borrow_mut() =
-                self.fully_active_browsing_contexts_iter(screenshot_request.webview_id)
-                    .filter_map(|browsing_context| {
-                        let pipeline_id = browsing_context.pipeline_id;
-                        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-                            // This can happen while Servo is shutting down, so just ignore it for now.
-                            return None;
-                        };
-                        // If the rectangle for this BrowsingContext is zero, it will never be
-                        // painted. In this case, don't query screenshot readiness as it won't
-                        // contribute to the final output image.
-                        if browsing_context.viewport_details.size == Size2D::zero() {
-                            return None;
-                        }
-                        let _ = pipeline.event_loop.send(
-                            ScriptThreadMessage::RequestScreenshotReadiness(
-                                pipeline.webview_id,
-                                pipeline_id,
-                            ),
-                        );
-                        Some((pipeline_id, None))
-                    })
-                    .collect();
-            screenshot_request
-                .state
-                .set(ScreenshotRequestState::WaitingOnScript);
-        }
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_screenshot_readiness_response(
-        &mut self,
-        updated_pipeline_id: PipelineId,
-        response: ScreenshotReadinessResponse,
-    ) {
-        if self.screenshot_readiness_requests.is_empty() {
-            return;
-        }
-
-        self.screenshot_readiness_requests
-            .retain(|screenshot_request| {
-                if screenshot_request.state.get() != ScreenshotRequestState::WaitingOnScript {
-                    return true;
-                }
-
-                let mut has_pending_pipeline = false;
-                let mut pipeline_states = screenshot_request.pipeline_states.borrow_mut();
-                pipeline_states.retain(|pipeline_id, state| {
-                    if *pipeline_id != updated_pipeline_id {
-                        has_pending_pipeline |= state.is_none();
-                        return true;
-                    }
-                    match response {
-                        ScreenshotReadinessResponse::Ready(epoch) => {
-                            *state = Some(epoch);
-                            true
-                        },
-                        ScreenshotReadinessResponse::NoLongerActive => false,
-                    }
-                });
-
-                if has_pending_pipeline {
-                    return true;
-                }
-
-                let pipelines_and_epochs = pipeline_states
-                    .iter()
-                    .map(|(pipeline_id, epoch)| {
-                        (
-                            *pipeline_id,
-                            epoch.expect("Should have an epoch when pipeline is ready."),
-                        )
-                    })
-                    .collect();
-                self.paint_proxy
-                    .send(PaintMessage::ScreenshotReadinessReponse(
-                        screenshot_request.webview_id,
-                        pipelines_and_epochs,
-                    ));
-
-                false
-            });
     }
 
     /// Get the current activity of a pipeline.
@@ -5871,6 +5789,11 @@ where
         size_type: WindowSizeType,
         browsing_context_id: BrowsingContextId,
     ) {
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            warn!("Resizing browsing context for unkown WebView: {webview_id:?}");
+            return;
+        };
+
         if let Some(browsing_context) = self.browsing_contexts.get_mut(&browsing_context_id) {
             browsing_context.viewport_details = new_viewport_details;
             // Send Resize (or ResizeInactive) messages to each pipeline in the frame tree.
@@ -5898,25 +5821,22 @@ where
                 }
             }
         } else {
-            self.pending_viewport_changes
-                .insert(browsing_context_id, new_viewport_details);
+            webview.add_viewport_details(browsing_context_id, new_viewport_details);
         }
 
         // Send resize message to any pending pipelines that aren't loaded yet.
-        if let Some(webview) = self.webviews.get(&webview_id) {
-            for change in &webview.pending_changes {
-                let pipeline_id = change.new_pipeline_id;
-                let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-                    warn!("Pending pipeline is closed: {pipeline_id}");
-                    continue;
-                };
-                if pipeline.browsing_context_id == browsing_context_id {
-                    let _ = pipeline.event_loop.send(ScriptThreadMessage::Resize(
-                        pipeline.id,
-                        new_viewport_details,
-                        size_type,
-                    ));
-                }
+        for change in &webview.pending_changes {
+            let pipeline_id = change.new_pipeline_id;
+            let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+                warn!("Pending pipeline is closed: {pipeline_id}");
+                continue;
+            };
+            if pipeline.browsing_context_id == browsing_context_id {
+                let _ = pipeline.event_loop.send(ScriptThreadMessage::Resize(
+                    pipeline.id,
+                    new_viewport_details,
+                    size_type,
+                ));
             }
         }
     }
@@ -5979,18 +5899,17 @@ where
             exit_mode,
         );
 
-        let _ = self.pending_viewport_changes.remove(&browsing_context_id);
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            warn!("Closing BrowsingContext in unknown WebView: {webview_id:?}");
+            return self.browsing_contexts.remove(&browsing_context_id);
+        };
+
+        webview.close_browsing_context(browsing_context_id);
 
         let Some(browsing_context) = self.browsing_contexts.remove(&browsing_context_id) else {
             warn!("fn close_browsing_context: {browsing_context_id}: Closing twice");
             return None;
         };
-
-        if let Some(webview) = self.webviews.get_mut(&browsing_context.webview_id) {
-            webview
-                .session_history
-                .remove_entries_for_browsing_context(browsing_context_id);
-        }
 
         if let Some(parent_pipeline_id) = browsing_context.parent_pipeline_id {
             match self.pipelines.get_mut(&parent_pipeline_id) {
@@ -6000,28 +5919,19 @@ where
                 Some(parent_pipeline) => {
                     parent_pipeline.remove_child(browsing_context_id);
 
-                    // If `browsing_context_id` has focus, focus the parent
-                    // browsing context
-                    if let Some(webview) = self.webviews.get_mut(&browsing_context.webview_id) {
-                        if webview.focused_browsing_context_id == browsing_context_id {
-                            trace!(
-                                "About-to-be-closed browsing context {} is currently focused, so \
+                    // If `browsing_context_id` has focus, focus the parent browsing context
+                    if webview.focused_browsing_context_id == browsing_context_id {
+                        trace!(
+                            "About-to-be-closed browsing context {} is currently focused, so \
                                 focusing its parent {}",
-                                browsing_context_id, parent_pipeline.browsing_context_id
-                            );
-                            webview.focused_browsing_context_id =
-                                parent_pipeline.browsing_context_id;
-                        }
-                    } else {
-                        warn!(
-                            "Browsing context {} contains a reference to \
-                                a non-existent top-level browsing context {}",
-                            browsing_context_id, browsing_context.webview_id
+                            browsing_context_id, parent_pipeline.browsing_context_id
                         );
+                        webview.focused_browsing_context_id = parent_pipeline.browsing_context_id;
                     }
                 },
             };
         }
+
         debug!("{}: Closed", browsing_context_id);
         Some(browsing_context)
     }
@@ -6158,19 +6068,22 @@ where
             return warn!("fn close_pipeline: {pipeline_id}: Closing twice");
         };
 
-        // Remove this pipeline from pending changes if it hasn't loaded yet.
-        if let Some(webview) = self.webviews.get_mut(&webview_id) {
-            webview.remove_pending_change_for_pipeline(pipeline_id);
-        }
-
         // Inform script and paint that this pipeline has exited.
         pipeline.send_exit_message_to_script(dbc);
 
-        self.send_screenshot_readiness_requests_to_pipelines();
-        self.handle_screenshot_readiness_response(
-            pipeline_id,
-            ScreenshotReadinessResponse::NoLongerActive,
-        );
+        // Remove this pipeline from pending changes if it hasn't loaded yet.
+        if let Some(webview) = self.webviews.get_mut(&webview_id) {
+            webview.remove_pending_change_for_pipeline(pipeline_id);
+            webview.send_screenshot_readiness_requests_to_pipelines(
+                &self.browsing_contexts,
+                &self.pipelines,
+            );
+            webview.handle_screenshot_readiness_response(
+                pipeline_id,
+                ScreenshotReadinessResponse::NoLongerActive,
+                &self.paint_proxy,
+            );
+        }
 
         debug!("{}: Closed", pipeline_id);
     }
@@ -6443,28 +6356,4 @@ where
             })
             .clone()
     }
-}
-
-/// When a [`ScreenshotReadinessRequest`] is received from the renderer, the [`Constellation`]
-/// go through a variety of states to process them. This data structure represents those states.
-#[derive(Clone, Copy, Default, PartialEq)]
-enum ScreenshotRequestState {
-    /// The [`Constellation`] has received the [`ScreenshotReadinessRequest`], but has not yet
-    /// forwarded it to the [`Pipeline`]'s of the requests's WebView. This is likely because there
-    /// are still pending navigation changes in the [`Constellation`]. Once those changes are resolved
-    /// the request will be forwarded to the [`Pipeline`]s.
-    #[default]
-    Pending,
-    /// The [`Constellation`] has forwarded the [`ScreenshotReadinessRequest`] to the [`Pipeline`]s of
-    /// the corresponding `WebView`. The [`Pipeline`]s are waiting for a variety of things to happen in
-    /// order to report what appropriate display list epoch is for the screenshot. Once they all report
-    /// back, the [`Constellation`] considers that the request is handled, and the renderer is responsible
-    /// for waiting to take the screenshot.
-    WaitingOnScript,
-}
-
-struct ScreenshotReadinessRequest {
-    webview_id: WebViewId,
-    state: Cell<ScreenshotRequestState>,
-    pipeline_states: RefCell<FxHashMap<PipelineId, Option<Epoch>>>,
 }

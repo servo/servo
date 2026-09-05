@@ -12,7 +12,6 @@ use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Ve
 use fonts::ShapedTextSlice;
 use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
-use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
@@ -235,7 +234,6 @@ impl DisplayListBuilder<'_> {
 
         PaintTraversal::traverse(&stacking_context_tree.root_stacking_context, &mut builder);
         builder.paint_dom_inspector_highlight();
-        builder.paint_timing_handler.mark_paint_timing();
 
         webrender_display_list_builder.end().1
     }
@@ -1047,7 +1045,7 @@ impl Fragment {
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
 
-        let include_whitespace = fragment.run_data.selection.is_some() ||
+        let include_whitespace = fragment.run_data.selection.borrow().is_some() ||
             state
                 .text_decorations
                 .iter()
@@ -1312,22 +1310,14 @@ impl Fragment {
         justification_adjustment: Au,
     ) {
         let run_data = &fragment.run_data;
-        let Some(shared_selection) = &run_data.selection else {
+        let Some(selection) = *run_data.selection.borrow() else {
             return;
         };
-
-        let shared_selection = shared_selection.borrow();
-        if !shared_selection.enabled {
-            return;
-        }
 
         // The selection character range is in pre-transformed character offsets, so use the
         // OffsetMap contained within `run_data` to convert it to post-transformed character
         // offsets. This allows updating this selection directly from the DOM (skipping layout).
-        let dom_selection_range = &shared_selection.character_range;
-        let selection_character_range = run_data.map_dom_range_to_transformed_range(
-            Utf32CodeUnits(dom_selection_range.start)..Utf32CodeUnits(dom_selection_range.end),
-        );
+        let selection_character_range = run_data.map_dom_range_to_transformed_range(selection);
 
         if fragment.character_range_in_dom_node.start > selection_character_range.end ||
             fragment.character_range_in_dom_node.end < selection_character_range.start
@@ -1406,6 +1396,10 @@ impl Fragment {
                     .wr()
                     .push_rect(&selection_common, selection_rect, rgba(*selection_color));
             }
+            return;
+        }
+
+        if !fragment.run_data.paint_caret {
             return;
         }
 
@@ -1845,34 +1839,22 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let layer =
                         background::layout_layer(self, painter, builder, state, index, intrinsic);
 
-                    let image_wr_key = match image {
-                        CachedImage::Raster(raster_image) => raster_image.id,
-                        CachedImage::Vector(vector_image) => {
-                            let scale = builder.device_pixel_ratio.get();
-                            let default_size: DeviceIntSize =
-                                Size2D::new(size.width * scale, size.height * scale).to_i32();
-                            let layer_size = layer.as_ref().map(|layer| {
-                                Size2D::new(
-                                    layer.tile_size.width * scale,
-                                    layer.tile_size.height * scale,
-                                )
-                                .to_i32()
-                            });
+                    let scale = builder.device_pixel_ratio.get();
+                    let default_size: DeviceIntSize =
+                        Size2D::new(size.width * scale, size.height * scale).to_i32();
+                    let preferred_size = layer.as_ref().map(|layer| {
+                        Size2D::new(
+                            layer.tile_size.width * scale,
+                            layer.tile_size.height * scale,
+                        )
+                        .to_i32()
+                    });
 
-                            node.and_then(|node| {
-                                let size = layer_size.unwrap_or(default_size);
-                                builder.image_resolver.rasterize_vector_image(
-                                    vector_image.id,
-                                    size,
-                                    node,
-                                    vector_image.svg_id,
-                                )
-                            })
-                            .and_then(|rasterized_image| rasterized_image.id)
-                        },
-                    };
-
-                    let Some(image_key) = image_wr_key else {
+                    let Some(image_key) = builder.image_resolver.image_key_from_cached_image(
+                        &image,
+                        preferred_size.unwrap_or(default_size),
+                        node,
+                    ) else {
                         continue;
                     };
 
@@ -2107,24 +2089,13 @@ impl<'a> BuilderForBoxFragment<'a> {
         {
             Err(_) => return false,
             Ok(ResolvedImage::Image { image, size }) => {
-                let image_key = match image {
-                    CachedImage::Raster(raster_image) => raster_image.id,
-                    CachedImage::Vector(vector_image) => {
-                        let scale = builder.device_pixel_ratio.get();
-                        let size = Size2D::new(size.width * scale, size.height * scale).to_i32();
-                        node.and_then(|node| {
-                            builder.image_resolver.rasterize_vector_image(
-                                vector_image.id,
-                                size,
-                                node,
-                                vector_image.svg_id,
-                            )
-                        })
-                        .and_then(|rasterized_image| rasterized_image.id)
-                    },
-                };
-
-                let Some(key) = image_key else {
+                let scale = builder.device_pixel_ratio.get();
+                let raster_size = Size2D::new(size.width * scale, size.height * scale).to_i32();
+                let Some(key) =
+                    builder
+                        .image_resolver
+                        .image_key_from_cached_image(&image, raster_size, node)
+                else {
                     return false;
                 };
 

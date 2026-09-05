@@ -32,6 +32,9 @@ function toolsAreEqual(actual, expected) {
   if (actual.annotations?.untrustedContentHint !== expected.annotations?.untrustedContentHint) {
     return `untrustedContentHints are unequal: ${actual.annotations?.untrustedContentHint} !== ${expected.annotations?.untrustedContentHint}`;
   }
+  if (actual.annotations?.consequentialHint !== expected.annotations?.consequentialHint) {
+    return `consequentialHints are unequal: ${actual.annotations?.consequentialHint} !== ${expected.annotations?.consequentialHint}`;
+  }
 
   return true;
 }

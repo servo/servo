@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::like::Maplike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use style::stylesheets::font_feature_values_rule::{
     FFVDeclaration, PairValues, SingleValue, VectorValues,
 };
@@ -42,10 +42,10 @@ impl CSSFontFeatureValuesMap {
         global: &GlobalScope,
         map: IndexMap<DOMString, Vec<u32>>,
     ) -> DomRoot<CSSFontFeatureValuesMap> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(CSSFontFeatureValuesMap::new_inherited(map)),
             global,
-            cx,
         )
     }
 

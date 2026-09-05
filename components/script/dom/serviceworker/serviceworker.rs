@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::ServiceWorkerId;
 use servo_constellation_traits::{DOMMessage, ScriptToConstellationMessage};
 use servo_url::ServoUrl;
@@ -66,14 +66,14 @@ impl ServiceWorker {
         scope_url: ServoUrl,
         worker_id: ServiceWorkerId,
     ) -> DomRoot<ServiceWorker> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ServiceWorker::new_inherited(
                 script_url.as_str(),
                 scope_url,
                 worker_id,
             )),
             global,
-            cx,
         )
     }
 

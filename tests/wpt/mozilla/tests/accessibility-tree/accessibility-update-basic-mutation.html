@@ -16,20 +16,27 @@
 
       assert_equals(initial.nodesUpdatedFromDom, 19, "nodesUpdatedFromDom");
       assert_equals(initial.nodesUpdatedFromTree, 19, "nodesUpdatedFromTree");
+      // Bounds are refreshed for every node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 19, "nodesUpdatedBounds");
       assert_equals(initial.nodesInTreeUpdate, 19, "nodesInTreeUpdate");
 
       document.getElementById("h2").remove();
       let update = ServoTestUtils.forceAccessibilityUpdate();
 
       // Only the <section> is updated from the DOM
-      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+      // But we need to walk all the nodes to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 17, "nodesUpdatedFromDom");
 
       // The <section>, its parent <body> and the document are checked for changes as their subtrees
       // changed
       assert_equals(update.nodesUpdatedFromTree, 3, "nodesUpdatedFromTree");
 
-      // The only node in the tree update should be the parent <section> of the removed <h2>
-      assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");
+      // Bounds are refreshed for every node still in the tree (the <h2> and its text are gone)
+      assert_equals(update.nodesUpdatedBounds, 17, "nodesUpdatedBounds");
+
+      // The tree update holds the parent <section> of the removed <h2>, plus the <body> and the
+      // document, whose heights shrank when the <h2> was removed
+      assert_equals(update.nodesInTreeUpdate, 3, "nodesInTreeUpdate");
     }, "Remove h2 should update one node");
 
     done();

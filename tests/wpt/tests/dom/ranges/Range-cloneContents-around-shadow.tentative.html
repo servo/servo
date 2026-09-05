@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Range.cloneContents() should work as in a range in the DOM rather than in the flat tree</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  function innerHTMLOfDocumentFragment(docFlag) {
+    const div = document.createElement("div");
+    div.appendChild(docFlag.cloneNode(true));
+    return div.innerHTML;
+  }
+  const container = document.getElementById("container");
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>UnassignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      p.firstChild, "abc".length,
+      shadowRoot.firstChild.firstChild, "Inner".length
+    );
+    const range = getSelection().getRangeAt(0);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    assert_equals(
+      innerHTMLOfDocumentFragment(docFlag),
+      "",
+      `${t.name}: range.cloneContents() should clone nothing`
+    );
+  }, 'Range.cloneContents() when "<p>abc[def</p><div><shadow-root><span>Inner]Text</span></shadow-root><span>UnassignedText</span></div>"');
+
+  test(t => {
+    container.innerHTML = "<div><span>UnassignedText</span></div><p>abcdef</p>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      shadowRoot.firstChild.firstChild, "Inner".length,
+      p.firstChild, "abc".length
+    );
+    const range = getSelection().getRangeAt(0);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    assert_equals(
+      innerHTMLOfDocumentFragment(docFlag),
+      "",
+      `${t.name}: range.cloneContents() should clone nothing`
+    );
+  }, 'Range.cloneContents() when "<div><shadow-root><span>Inner[Text</span></shadow-root><span>UnassignedText</span></div><p>abc]def</p>"');
+
+  // Clonable shadow root case.
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>UnassignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open", clonable: true});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    const range = document.createRange();
+    range.setStart(p.firstChild, "abc".length);
+    range.setEnd(host, 1);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        innerHTMLOfDocumentFragment(docFlag),
+        "<p>def</p><div><span>UnassignedText</span></div>"
+      );
+    }, `${t.name}: range.cloneContents() should clone a part of the text and the unassigned <span>`);
+    test(() => {
+      assert_true(docFlag.querySelector("div").shadowRoot && docFlag.querySelector("div").shadowRoot != shadowRoot);
+      assert_equals(
+        docFlag.querySelector("div").shadowRoot.innerHTML,
+        shadowRoot.innerHTML
+      );
+    }, `${t.name}: range.cloneContents() should clone the host with the shadow`);
+  }, 'Range.cloneContents() when "<p>abc[def</p><div><shadow-root><span>InnerText</span></shadow-root><span>UnassignedText</span>}</div>" (the shadow is clonable)');
+}, {once: true});
+</script>
+</head>
+<body><div id="container"></div></body>
+</html>

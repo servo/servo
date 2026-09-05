@@ -54,6 +54,10 @@ jobs:
         run: cargo install --path support/crown
       - name: Change Mirror Priorities
         uses: ./.github/actions/apt-mirrors
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
@@ -72,7 +76,7 @@ jobs:
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r28b
+          ndk-version: r29
       - name: Setup Gradle caches
         uses: gradle/actions/setup-gradle@v4
       - name: Trigger initial download of Gradle with retries

@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 
+use bytes::Bytes;
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FilePickerRequest, GenericEmbedderProxy,
     SelectedFile,
@@ -248,7 +249,7 @@ impl FileManager {
                         );
                         let chunk = &buffer[0..offset];
                         body.extend_from_slice(chunk);
-                        let _ = done_sender.send(Data::Payload(chunk.to_vec()));
+                        let _ = done_sender.send(Data::Payload(Bytes::copy_from_slice(chunk)));
                     }
                     buffer_len
                 };
@@ -317,7 +318,7 @@ impl FileManager {
                 let mut bytes = vec![];
                 bytes.extend_from_slice(buf.bytes.index(range));
 
-                let _ = done_sender.send(Data::Payload(bytes));
+                let _ = done_sender.send(Data::Payload(Bytes::copy_from_slice(&bytes)));
                 let _ = done_sender.send(Data::Done);
 
                 Ok(())
@@ -646,7 +647,7 @@ impl FileManagerStore {
         let filename_path = Path::new(file_name);
         let type_string = match mime_guess::from_path(filename_path).first() {
             Some(x) => format!("{}", x),
-            None => "".to_string(),
+            None => String::new(),
         };
 
         Ok(SelectedFile {
@@ -709,7 +710,7 @@ impl FileManagerStore {
                 if seeked_start == (range.start as u64) {
                     let type_string = match mime {
                         Some(x) => format!("{}", x),
-                        None => "".to_string(),
+                        None => String::new(),
                     };
 
                     read_file_in_chunks(sender, file, range.len(), opt_filename, type_string).await;

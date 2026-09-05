@@ -7,6 +7,7 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use bytes::Bytes;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -69,8 +70,8 @@ use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
 use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::microtask::MicrotaskRunnable;
 use crate::realms::enter_auto_realm;
+use crate::runtime::microtask::MicrotaskRunnable;
 
 /// <https://html.spec.whatwg.org/multipage/#img-req-state>
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -225,12 +226,12 @@ impl FetchResponseListener for ImageContext {
         &mut self,
         _: &mut js::context::JSContext,
         request_id: RequestId,
-        payload: Vec<u8>,
+        payload: Bytes,
     ) {
         if self.status.is_ok() {
             self.image_cache.notify_pending_response(
                 self.id,
-                FetchResponseMsg::ProcessResponseChunk(request_id, payload.into()),
+                FetchResponseMsg::ProcessResponseChunk(request_id, payload),
             );
         }
     }
@@ -775,7 +776,7 @@ impl HTMLImageElement {
         self.generation.set(self.generation.get() + 1);
 
         // Step 1. If the element's node document is not fully active, then:
-        if !self.owner_document().is_active() {
+        if !self.owner_document().is_fully_active() {
             // TODO Step 1.1. Continue running this algorithm in parallel.
             // TODO Step 1.2. Wait until the element's node document is fully active.
             // TODO Step 1.3. If another instance of this algorithm for this img element was started after
@@ -925,7 +926,7 @@ impl HTMLImageElement {
         // Step 2. If the img element does not use srcset or picture, its node document is not fully
         // active, it has image data whose resource type is multipart/x-mixed-replace, or its
         // pending request is not null, then return.
-        if !document.is_active() || !self.uses_srcset_or_picture() || has_pending_request {
+        if !document.is_fully_active() || !self.uses_srcset_or_picture() || has_pending_request {
             return;
         }
 
@@ -1112,7 +1113,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(reject_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error(cx, Error::Encoding(Some("Could not decode all image promises".into())));
+                    trusted_promise.root().reject_error(cx, Error::Encoding(Some("Image could not be decoded".into())));
                 }
             }));
     }

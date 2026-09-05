@@ -15,6 +15,8 @@
 
       assert_equals(initial.nodesUpdatedFromDom, 18, "nodesUpdatedFromDom");
       assert_equals(initial.nodesUpdatedFromTree, 18, "nodesUpdatedFromTree");
+      // Bounds are refreshed for every node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 18, "nodesUpdatedBounds");
       assert_equals(initial.nodesInTreeUpdate, 18, "nodesInTreeUpdate");
 
       document.querySelector("strong").remove();
@@ -23,14 +25,18 @@
 
       // Updated nodes:
       // - em (<strong> removed)
-      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+      // But we need to walk all the nodes to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 16, "nodesUpdatedFromDom");
 
       // <html>, <body>, <h2>, <em>
       assert_equals(update.nodesUpdatedFromTree, 4, "nodesUpdatedFromTree");
 
+      // Bounds are refreshed for every node still in the tree (the <strong> and its text are gone)
+      assert_equals(update.nodesUpdatedBounds, 16, "nodesUpdatedBounds");
+
       // Changed nodes:
       // - <h2>, label changed
-      // - <em>, children changed
+      // - <em>, children changed (and its inline box narrowed, changing its bounds)
       assert_equals(update.nodesInTreeUpdate, 2, "nodesInTreeUpdate");
     }, "");
 

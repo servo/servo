@@ -584,7 +584,7 @@ pub(crate) fn export_key(
             let mut jwk = JsonWebKey::default();
 
             // Step 2.2. Set the kty attribute of jwk to the string "oct".
-            jwk.kty = Some(DOMString::from("oct"));
+            jwk.kty = Some(DOMString::from_static("oct"));
 
             // Step 2.3. Set the k attribute of jwk to be a string containing the raw octets of the
             // key represented by [[handle]] internal slot of key, encoded according to Section 6.4

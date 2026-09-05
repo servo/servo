@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 
+use bytes::Bytes;
 use content_security_policy::Destination;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
@@ -45,8 +46,8 @@ use crate::dom::{AttributeMutation, cors_setting_for_element};
 use crate::event_loop::script_thread::ScriptThread;
 use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::microtask::MicrotaskRunnable;
 use crate::realms::enter_auto_realm;
+use crate::runtime::microtask::MicrotaskRunnable;
 
 #[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u16)]
@@ -174,12 +175,16 @@ impl HTMLTrackElement {
             // > given the media element to fire an event named addtrack at the media element's
             // > textTracks attribute's TextTrackList object, using TrackEvent,
             // > with the track attribute initialized to the text track's TextTrack object.
-            parent.TextTracks(cx).add(&parent, &self.track);
+            parent.TextTracks(cx).add(cx, &self.track);
 
             // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks:start-the-track-processing-model
             // > The track element's parent element changes and the new parent is a media element.
             self.start_the_track_processing_model(cx);
         }
+    }
+
+    pub(crate) fn track(&self) -> DomRoot<TextTrack> {
+        self.track.as_rooted()
     }
 }
 
@@ -201,12 +206,12 @@ impl HTMLTrackElementMethods<crate::DomTypeHolder> for HTMLTrackElement {
             _ if kind.is_empty() => {
                 // The default value should be "subtitles". If "kind" has not
                 // been set, the real value for "kind" is "subtitles"
-                DOMString::from("subtitles")
+                DOMString::from_static("subtitles")
             },
             _ => {
                 // If "kind" has been set but it is not one of the valid
                 // values, return the default invalid value of "metadata"
-                DOMString::from("metadata")
+                DOMString::from_static("metadata")
             },
         }
     }
@@ -275,7 +280,7 @@ impl VirtualMethods for HTMLTrackElement {
                     // Step 4. Set the element's track URL to trackURL if it is not failure;
                     // otherwise to the empty string.
                     *self.track_url.borrow_mut() = if !value.is_empty() {
-                        self.owner_document().base_url().join(value).ok()
+                        self.owner_document().encoding_parse_a_url(value).ok()
                     } else {
                         None
                     };
@@ -433,7 +438,7 @@ impl WebVttParserSink<JSContext> for TextTrackCueSink {
         let text_track = &element.track;
 
         let cue = VTTCue::create_from_vtt(cx, cue, global.as_window(), Some(text_track));
-        text_track.get_cues(cx).add(cue.upcast());
+        text_track.get_text_track_cue_list(cx).add(cx, cue.upcast());
     }
 }
 
@@ -457,7 +462,7 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
     ) {
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, payload: Bytes) {
         self.payload.extend_from_slice(&payload);
     }
 

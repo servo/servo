@@ -9,6 +9,27 @@ import android.content.Context
 import android.util.Size
 import android.view.KeyEvent
 import android.view.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.LifecycleResumeEffect
+
+@Composable
+fun Servo(
+    servoView: ServoView,
+    modifier: Modifier = Modifier,
+) {
+    LifecycleResumeEffect(servoView) {
+        servoView.onResume()
+        onPauseOrDispose {
+            servoView.onPause()
+        }
+    }
+    AndroidView(
+        factory = { _ -> servoView },
+        modifier = modifier,
+    )
+}
 
 class Servo(
     args: String?,
@@ -16,7 +37,6 @@ class Servo(
     size: Size,
     density: Float,
     logStr: String?,
-    enableLogs: Boolean,
     experimentalMode: Boolean,
     private val runCallback: RunCallback,
     client: Client,
@@ -35,7 +55,6 @@ class Servo(
                 size,
                 density,
                 logStr,
-                enableLogs,
                 experimentalMode,
                 servoCallbacks,
                 surface,

@@ -14,12 +14,14 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUAdapterMethods;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
+use script_webgpu::PipelineLayout;
+use script_webgpu::gpuconvert::WebGPUConvert;
+use script_webgpu::traits::GPUDeviceTrait;
 use webgpu_traits::{
     PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
     WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
     WebGPURenderPipelineResponse, WebGPURequest,
 };
-use wgpu_core::id::PipelineLayoutId;
 use wgpu_core::pipeline as wgpu_pipe;
 use wgpu_core::pipeline::RenderPipelineDescriptor;
 use wgpu_types::{self, TextureFormat};
@@ -28,7 +30,6 @@ use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpuerror::AsWebGpu;
 use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
-use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
@@ -49,7 +50,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::types::{GPUError, GPUQuerySet};
 use crate::dom::webgpu::gpuadapter::GPUAdapter;
 use crate::dom::webgpu::gpuadapterinfo::GPUAdapterInfo;
@@ -102,24 +103,9 @@ pub(crate) struct GPUDevice {
     label: DomRefCell<USVString>,
     default_queue: Dom<GPUQueue>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
-    #[conditional_malloc_size_of]
-    lost_promise: DomRefCell<Rc<Promise>>,
+    lost_promise: DomRefCell<TracedPromise>,
     valid: Cell<bool>,
     droppable: DroppableGPUDevice,
-}
-
-pub(crate) enum PipelineLayout {
-    Implicit,
-    Explicit(PipelineLayoutId),
-}
-
-impl PipelineLayout {
-    pub(crate) fn explicit(&self) -> Option<PipelineLayoutId> {
-        match self {
-            PipelineLayout::Explicit(layout_id) => Some(*layout_id),
-            PipelineLayout::Implicit => None,
-        }
-    }
 }
 
 impl GPUDevice {
@@ -133,7 +119,7 @@ impl GPUDevice {
         device: WebGPUDevice,
         queue: &GPUQueue,
         label: String,
-        lost_promise: Rc<Promise>,
+        lost_promise: &RootedPromise,
     ) -> Self {
         Self {
             eventtarget: EventTarget::new_inherited(),
@@ -144,7 +130,7 @@ impl GPUDevice {
             adapter_info: Dom::from_ref(adapter_info),
             label: DomRefCell::new(USVString::from(label)),
             default_queue: Dom::from_ref(queue),
-            lost_promise: DomRefCell::new(lost_promise),
+            lost_promise: DomRefCell::new(lost_promise.to_traced()),
             valid: Cell::new(true),
             droppable: DroppableGPUDevice { channel, device },
         }
@@ -167,7 +153,7 @@ impl GPUDevice {
         let limits = GPUSupportedLimits::new(cx, global, limits);
         let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
         let adapter_info = GPUAdapterInfo::clone_from(cx, global, &adapter.Info());
-        let lost_promise = Promise::new(cx, global);
+        let lost_promise = Promise::new_rooted(cx, global);
         let device = reflect_weak_referenceable_dom_object(
             cx,
             Rc::new(GPUDevice::new_inherited(
@@ -179,7 +165,7 @@ impl GPUDevice {
                 device,
                 &queue,
                 label,
-                lost_promise,
+                &lost_promise,
             )),
             global,
         );
@@ -445,8 +431,8 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
-    fn Lost(&self) -> Rc<Promise> {
-        self.lost_promise.borrow().clone()
+    fn Lost(&self) -> RootedPromise {
+        self.lost_promise.borrow().root()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
@@ -515,8 +501,8 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         &self,
         cx: &mut CurrentRealm<'_>,
         descriptor: &GPUComputePipelineDescriptor,
-    ) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    ) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
         let callback = callback_promise(
             &promise,
             self,
@@ -575,9 +561,9 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         &self,
         cx: &mut CurrentRealm<'_>,
         descriptor: &GPURenderPipelineDescriptor,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<RootedPromise> {
         let desc = self.parse_render_pipeline(descriptor)?;
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
         let callback = callback_promise(
             &promise,
             self,
@@ -631,8 +617,8 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
-    fn PopErrorScope(&self, cx: &mut CurrentRealm<'_>) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn PopErrorScope(&self, cx: &mut CurrentRealm<'_>) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
         let callback = callback_promise(
             &promise,
             self,
@@ -678,11 +664,14 @@ impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
         &self,
         cx: &mut js::context::JSContext,
         response: WebGPUPoppedErrorScopeResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             Ok(None) | Err(PopError::Lost) => promise.resolve_native(cx, &None::<Option<GPUError>>),
-            Err(PopError::Empty) => promise.reject_error(cx, Error::Operation(None)),
+            Err(PopError::Empty) => promise.reject_error(
+                cx,
+                Error::Operation(Some("Error scope stack is empty".into())),
+            ),
             Ok(Some(error)) => {
                 let error = GPUError::from_error(cx, &self.global(), error);
                 promise.resolve_native(cx, &error);
@@ -696,7 +685,7 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
         &self,
         cx: &mut js::context::JSContext,
         response: WebGPUComputePipelineResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             Ok(pipeline) => {
@@ -736,7 +725,7 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
         &self,
         cx: &mut js::context::JSContext,
         response: WebGPURenderPipelineResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             Ok(pipeline) => {
@@ -769,5 +758,43 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                 promise.reject_native(cx, &pipeline_error)
             },
         }
+    }
+}
+
+impl GPUDeviceTrait<crate::DomTypeHolder> for GPUDevice {
+    fn is_lost(&self) -> bool {
+        self.is_lost()
+    }
+
+    fn id(&self) -> WebGPUDevice {
+        self.id()
+    }
+
+    fn channel(&self) -> WebGPU {
+        self.channel()
+    }
+
+    fn dispatch_error(&self, error: webgpu_traits::Error) {
+        self.dispatch_error(error);
+    }
+
+    fn validate_texture_format_required_features(
+        &self,
+        gpu_texture_format: &GPUTextureFormat,
+    ) -> Fallible<TextureFormat> {
+        self.validate_texture_format_required_features(gpu_texture_format)
+    }
+
+    fn get_pipeline_layout_data(
+        &self,
+        layout: &script_bindings::codegen::GenericUnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode<
+            crate::DomTypeHolder,
+        >,
+    ) -> PipelineLayout {
+        self.get_pipeline_layout_data(layout)
+    }
+
+    fn queue_id(&self) -> WebGPUQueue {
+        self.queue_id()
     }
 }

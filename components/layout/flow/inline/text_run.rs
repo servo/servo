@@ -7,15 +7,15 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use fonts::font_feature_values::ResolvedFontVariantAlternates;
 use fonts::{FontContext, FontRef, ShapedText, ShapedTextSlice, ShapingFlags, ShapingOptions};
-use icu_locid::subtags::Language;
-use icu_properties::{self, LineBreak};
-use layout_api::SharedSelection;
+use icu_locale_core::subtags::Language;
+use icu_properties::props::{EnumeratedProperty, LineBreak};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::{Utf32CodeUnits, is_bidi_control};
+use servo_base::text::{RangeAny, Utf32CodeUnits, is_bidi_control};
 use smallvec::SmallVec;
 use style::Zero;
 use style::computed_values::font_kerning::T as FontKerning;
@@ -116,7 +116,7 @@ impl FontInfo {
         Self {
             font,
             bidi_level: Level::ltr(),
-            language: Language::UND,
+            language: Language::UNKNOWN,
             letter_spacing: None,
             word_spacing: None,
             text_rendering: TextRendering::Auto,
@@ -333,8 +333,10 @@ pub(crate) struct SharedTextRunData {
     pub original_offset: Utf32CodeUnits,
     /// The selected text in this `TextRun`. This may either be document selection or form control
     /// selection.
-    #[conditional_malloc_size_of]
-    pub selection: Option<SharedSelection>,
+    // TODO: make this more compact with a pair of `AtomicUsize`?
+    pub selection: AtomicRefCell<Option<RangeAny<Utf32CodeUnits>>>,
+    /// Whether a caret should be painted when the selection is an empty range (start == end)
+    pub paint_caret: bool,
     /// The [`OffsetMap`] used when creating this `TextRun`'s `InlineFormattingContext`. This
     /// is used for mapping between DOM text offsets and layout text offsets (and vice-versa).
     pub offset_map: ArcRefCell<OffsetMap>,
@@ -346,12 +348,21 @@ impl SharedTextRunData {
     /// text.
     pub(crate) fn map_dom_range_to_transformed_range(
         &self,
-        range: Range<Utf32CodeUnits>,
+        dom_range: RangeAny<Utf32CodeUnits>,
     ) -> Range<Utf32CodeUnits> {
         let offset_map = self.offset_map.borrow();
         let offset_in_ifc_text = Utf32CodeUnits(self.character_range_in_ifc_text.start);
-        offset_map.map(range.start + self.original_offset) - offset_in_ifc_text..
-            offset_map.map(range.end + self.original_offset) - offset_in_ifc_text
+        let start = if let Some(dom_start) = dom_range.start {
+            offset_map.map(dom_start + self.original_offset) - offset_in_ifc_text
+        } else {
+            Utf32CodeUnits(0)
+        };
+        let end = if let Some(dom_end) = dom_range.end {
+            offset_map.map(dom_end + self.original_offset) - offset_in_ifc_text
+        } else {
+            Utf32CodeUnits(self.character_range_in_ifc_text.len())
+        };
+        start..end
     }
 
     /// Map an offset in the originating `TextRun`s DOM node's transformed text (by white
@@ -466,7 +477,7 @@ impl TextRun {
         parent_style: &ServoArc<ComputedValues>,
     ) -> Vec<TextRunItem> {
         let font_style = parent_style.clone_font();
-        let language = font_style._x_lang.0.parse().unwrap_or(Language::UND);
+        let language = font_style._x_lang.0.parse().unwrap_or(Language::UNKNOWN);
         let language_for_shaping = Some(font_style.font_language_override)
             .filter(|language_override| *language_override != FontLanguageOverride::normal())
             .and_then(|language_override| {
@@ -478,7 +489,7 @@ impl TextRun {
                 // https://www.w3.org/TR/css-fonts-4/#font-language-override-string-value
                 //
                 // For now we need to truncate the language tag ):
-                Language::try_from_bytes(&language_override.0.to_be_bytes()[..3]).ok()
+                Language::try_from_utf8(&language_override.0.to_be_bytes()[..3]).ok()
             })
             .unwrap_or(language);
         let font_size = font_style.font_size.computed_size().into();
@@ -527,15 +538,16 @@ impl TextRun {
 
             if character == '\n' {
                 finish_current_segment(&mut current, &mut results);
-                results.push(TextRunItem::LineBreak(
-                    self.run_data.selection.is_some().then(|| CaretPlaceholder {
+                let paint_caret = self.run_data.paint_caret;
+                results.push(TextRunItem::LineBreak(paint_caret.then(|| {
+                    CaretPlaceholder {
                         run_data: self.run_data.clone(),
                         base_fragment_info: self.base_fragment_info,
                         // The placeholder that is placed after a newline is for the index after that newline.
                         // The newline itself is at the end of the previous line.
                         character_index: relative_character_index + 1,
-                    }),
-                ));
+                    }
+                })));
                 continue;
             }
 
@@ -716,7 +728,7 @@ fn character_cannot_change_font(character: char) -> bool {
     }
 
     matches!(
-        icu_properties::maps::line_break().get(character),
+        LineBreak::for_char(character),
         LineBreak::CombiningMark |
             LineBreak::Glue |
             LineBreak::ZWSpace |

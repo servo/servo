@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup feed navigation</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup-v2.explainer/#feed-focusgroups">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<div focusgroup=feed>
+  <button id=item1>item 1</button>
+  <button id=item2>item 2</button>
+  <button id=item3>item 3</button>
+</div>
+
+<script>
+promise_test(async () => {
+  await focusAndSendDirectionalInput(item1, kUp);
+  assert_equals(document.activeElement, item1, "Feed does not wrap backward");
+
+  await focusAndSendDirectionalInput(item1, kLeft);
+  assert_equals(document.activeElement, item1, "Feed ignores inline navigation");
+  await focusAndSendDirectionalInput(item1, kRight);
+  assert_equals(document.activeElement, item1, "Feed ignores inline navigation");
+
+  await focusAndSendDirectionalInput(item1, kDown);
+  assert_equals(document.activeElement, item2);
+  await focusAndSendDirectionalInput(item2, kDown);
+  assert_equals(document.activeElement, item3);
+  await focusAndSendDirectionalInput(item3, kDown);
+  assert_equals(document.activeElement, item3, "Feed does not wrap forward");
+  await focusAndSendDirectionalInput(item3, kUp);
+  assert_equals(document.activeElement, item2);
+}, "Feed uses block-axis navigation with hard edges");
+</script>
+
+<div focusgroup=feed>
+  <div id=outer1 tabindex=0>
+    <div focusgroup=feed>
+      <button id=inner1>inner 1</button>
+      <button id=inner2>inner 2</button>
+    </div>
+  </div>
+  <div id=outer2 tabindex=0>outer 2</div>
+</div>
+
+<script>
+promise_test(async () => {
+  await focusAndSendDirectionalInput(outer1, kDown);
+  assert_equals(document.activeElement, outer2);
+
+  await focusAndSendDirectionalInput(inner1, kDown);
+  assert_equals(document.activeElement, inner2);
+}, "Nested feeds retain independent navigation scopes");
+</script>
+
+<div id=dynamicFeed focusgroup=feed>
+  <button id=dynamic1>dynamic 1</button>
+  <button id=dynamic3>dynamic 3</button>
+</div>
+
+<script>
+promise_test(async t => {
+  const dynamic2 = document.createElement("button");
+  dynamic2.id = "dynamic2";
+  dynamic2.textContent = "dynamic 2";
+  dynamicFeed.insertBefore(dynamic2, dynamic3);
+  t.add_cleanup(() => dynamic2.remove());
+
+  await focusAndSendDirectionalInput(dynamic1, kDown);
+  assert_equals(document.activeElement, dynamic2);
+  await focusAndSendDirectionalInput(dynamic2, kDown);
+  assert_equals(document.activeElement, dynamic3);
+
+  dynamic2.remove();
+  await focusAndSendDirectionalInput(dynamic1, kDown);
+  assert_equals(document.activeElement, dynamic3);
+}, "Feed recomputes directional items after mutation");
+</script>
+
+<div id=rfeed focusgroup=feed
+     style="display: flex; reading-flow: flex-visual">
+  <button id=rf1 style="reading-order: 1">rf 1</button>
+  <button id=rf2 style="reading-order: -1">rf 2</button>
+  <button id=rf3 style="reading-order: 0">rf 3</button>
+</div>
+
+<script>
+promise_test(async () => {
+  // reading-order: rf2 (-1) < rf3 (0) < rf1 (1)
+  await focusAndSendDirectionalInput(rf2, kDown);
+  assert_equals(document.activeElement, rf3);
+  await focusAndSendDirectionalInput(rf3, kDown);
+  assert_equals(document.activeElement, rf1);
+  await focusAndSendDirectionalInput(rf1, kDown);
+  assert_equals(document.activeElement, rf1, "Feed does not wrap forward");
+  await focusAndSendDirectionalInput(rf2, kUp);
+  assert_equals(document.activeElement, rf2, "Feed does not wrap backward at reading-flow start");
+}, "Feed respects reading-flow ordering for arrow navigation");
+
+promise_test(async () => {
+  const inserted = document.createElement("button");
+  inserted.style.readingOrder = "2";
+  inserted.textContent = "inserted";
+  rfeed.appendChild(inserted);
+
+  await focusAndSendDirectionalInput(rf1, kDown);
+  assert_equals(document.activeElement, inserted,
+    "Dynamically inserted item appears at correct reading-flow position");
+
+  inserted.remove();
+  rf3.remove();
+
+  await focusAndSendDirectionalInput(rf2, kDown);
+  assert_equals(document.activeElement, rf1,
+    "After removal, navigation skips removed item");
+}, "Feed recomputes reading-flow order after dynamic insertion");
+</script>
+
+<div focusgroup="feed noitemcontrols">
+  <div id=nic1 tabindex=0>
+    <div focusgroup=none><button>control a</button></div>
+  </div>
+  <div id=nic2 tabindex=0>
+    <div focusgroup=none><button>control b</button></div>
+  </div>
+</div>
+
+<script>
+promise_test(async () => {
+  await focusAndSendDirectionalInput(nic1, kDown);
+  assert_equals(document.activeElement, nic2);
+  await focusAndSendDirectionalInput(nic2, kUp);
+  assert_equals(document.activeElement, nic1);
+}, "Feed with noitemcontrols retains directional navigation");
+</script>

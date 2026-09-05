@@ -11,7 +11,7 @@ use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
 use js::jsval::ObjectValue;
 use js::rust::HandleValue as SafeHandleValue;
 use js::typedarray::ArrayBufferViewU8;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::byteteereadintorequest::ByteTeeReadIntoRequest;
 use super::readablestream::ReaderType;
@@ -88,7 +88,8 @@ impl ByteTeeUnderlyingSource {
         tee_cancel_algorithm: ByteTeeCancelAlgorithm,
         byte_tee_pull_algorithm: ByteTeePullAlgorithm,
     ) -> DomRoot<ByteTeeUnderlyingSource> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ByteTeeUnderlyingSource {
                 reflector_: Reflector::new(),
                 reader,
@@ -108,7 +109,6 @@ impl ByteTeeUnderlyingSource {
                 byte_tee_pull_algorithm,
             }),
             &*stream.global(),
-            cx,
         )
     }
 
@@ -213,9 +213,9 @@ impl ByteTeeUnderlyingSource {
                         global,
                     );
 
-                    let read_request = ReadRequest::ByteTee {
+                    rooted!(&in(cx) let read_request = ReadRequest::ByteTee {
                         byte_tee_read_request: Dom::from_ref(&byte_tee_read_request),
-                    };
+                    });
 
                     reader
                         .get()

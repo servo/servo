@@ -275,4 +275,7 @@
     test_invalid_attr('width', 'attr(data-foo type(<length> +))', '10px');
 
     test_invalid_attr('--x', 'attr(data-foo type(<url>))', 'url("https://does-not-exist.test/404.png")');
+
+    test_valid_attr("--data-foo", "attr(data-foo type(*))", "attr(data-bar number)", '3')
+    test_valid_attr("--data-foo", "attr(data-foo type(*))", "attr(data-bar %)", '3%')
 </script>

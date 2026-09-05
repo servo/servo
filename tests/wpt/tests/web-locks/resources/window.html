@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Helper window</title>
+<script src="helpers.js"></script>
+<script>
+'use strict';
+
+const worker = new Worker('/web-locks/resources/worker.js');
+
+self.addEventListener('message', async ev => {
+  const data = await postToWorkerAndWait(worker, ev.data.worker);
+  ev.data.port.postMessage(data);
+});
+</script>

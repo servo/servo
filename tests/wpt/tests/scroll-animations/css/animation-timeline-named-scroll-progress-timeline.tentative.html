@@ -144,30 +144,6 @@ promise_test(async t => {
 }, "scroll-timeline-name is referenceable in animation-timeline on that " +
    "element's descendants");
 
-// See https://github.com/w3c/csswg-drafts/issues/7047
-promise_test(async t => {
-  let [sibling, target] = createScrollerAndTarget(t);
-
-  await runAndWaitForFrameUpdate(() => {
-    // <div id='sibling' class='scroller'> ... </div>
-    // <div id='target'></div>
-    document.body.appendChild(sibling);
-    document.body.appendChild(target);
-
-    // Resolvable if using a deferred timeline, but otherwise can only resolve
-    // if an ancestor container of the target element.
-    sibling.style.scrollTimelineName = '--timeline';
-    target.style.animation = "anim 10s linear";
-    target.style.animationTimeline = '--timeline';
-
-    sibling.scrollTop = 50; // 50%
-  });
-
-  assert_equals(getComputedStyle(target).translate, '50px',
-    'Animation with unknown timeline name holds current time at zero');
-}, "scroll-timeline-name is not referenceable in animation-timeline on that " +
-   "element's siblings");
-
 promise_test(async t => {
   let parent = document.createElement('div');
   parent.className = 'square';
@@ -213,9 +189,9 @@ promise_test(async t => {
 
   const anim = target.getAnimations()[0];
   assert_true(!!anim, 'Failed to create animation');
-  assert_equals(anim.timeline, null);
-  // Hold time of animation is zero.
-  assert_equals(getComputedStyle(target).translate, '50px');
+  // https://github.com/w3c/csswg-drafts/issues/9256
+  // Animation with unresolved timeline produces no effect.
+  assert_equals(getComputedStyle(target).translate, 'none');
 
   scroller.style.scrollTimelineName = '--timeline-B';
   await waitForNextFrame();
@@ -251,11 +227,12 @@ promise_test(async t => {
   scroller.style.scrollTimelineName = '--timeline-B';
   await waitForNextFrame();
 
-  // Switching to a null timeline pauses the animation.
+  // Switching to an unknown timeline causes the animation to
+  // stop producing the effect.
   assert_equals(anim.timeline, null, 'Failed to remove timeline');
-  assert_equals(getComputedStyle(target).translate, '75px');
+  assert_equals(getComputedStyle(target).translate, 'none');
   assert_equals(anim.startTime, null);
-  assert_times_equal(anim.currentTime, 2500);
+  assert_equals(anim.currentTime, null);
 }, 'Change in scroll-timeline-name to no longer match animation timeline updates animation.');
 
 promise_test(async t => {
@@ -313,10 +290,10 @@ promise_test(async t => {
     target.style.animationTimeline = '--timeline';
   });
 
-  // Timeline initially cannot be resolved, resulting in a null
-  // timeline. The animation's hold time is zero.
+  // Timeline initially cannot be resolved, resulting in an unknown
+  // timeline. The animation produces no effect.
   // let anim = document.getAnimations()[0];
-  assert_equals(getComputedStyle(target).translate, '50px');
+  assert_equals(getComputedStyle(target).translate, 'none');
 
   await runAndWaitForFrameUpdate(() => {
     // <div id='wrapper' class="scroller"> ...

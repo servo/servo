@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 use dom_struct::dom_struct;
 use html5ever::local_name;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -32,6 +32,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::types::CSSFontFaceDescriptors;
 use crate::dom::window::Window;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -125,7 +126,7 @@ impl CSSStyleOwner {
                 result
             },
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
-                rule.parent_stylesheet().will_modify();
+                rule.parent_stylesheet().will_modify(cx.no_gc());
                 let result = {
                     let mut guard = rule.shared_lock().write();
                     f(&mut *pdb.borrow().write_with(&mut guard), &mut changed)
@@ -260,14 +261,14 @@ impl CSSStyleDeclaration {
         pseudo: Option<PseudoElement>,
         modification_access: CSSModificationAccess,
     ) -> DomRoot<CSSStyleDeclaration> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(CSSStyleDeclaration::new_inherited(
                 owner,
                 pseudo,
                 modification_access,
             )),
             global,
-            cx,
         )
     }
 
@@ -343,7 +344,9 @@ impl CSSStyleDeclaration {
     ) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "This CSS style declaration is read-only".into(),
+            )));
         }
 
         let id = match id {
@@ -477,15 +480,24 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue>
     fn GetPropertyValue(&self, property: DOMString) -> DOMString {
-        let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
-            Ok(id) => id,
-            Err(..) => return DOMString::new(),
-        };
-        self.get_property_value(id)
+        if let Some(css_font_face_descriptors) = self.downcast::<CSSFontFaceDescriptors>() {
+            css_font_face_descriptors.get_property_value(&property.str())
+        } else {
+            let Ok(id) = PropertyId::parse_enabled_for_all_content(&property.str()) else {
+                return DOMString::new();
+            };
+            self.get_property_value(id)
+        }
     }
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority>
     fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
+        if self.is::<CSSFontFaceDescriptors>() {
+            // Font face descriptors do not have priorities.
+            // https://searchfox.org/firefox-main/rev/91c8ca3faa6ccbb72d65d89401fd31fd3313afc4/layout/style/CSSFontFaceRule.cpp#84-89
+            return DOMString::new();
+        }
+
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
             return DOMString::new();
@@ -497,7 +509,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
         self.owner.with_block(|pdb| {
             if pdb.property_priority(&id).important() {
-                DOMString::from("important")
+                DOMString::from_static("important")
             } else {
                 // Step 4
                 DOMString::new()
@@ -525,7 +537,9 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     fn RemoveProperty(&self, cx: &mut JSContext, property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "This CSS style declaration is read-only".into(),
+            )));
         }
 
         let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
@@ -541,6 +555,15 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
         // Step 6
         Ok(DOMString::from(string))
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-parentrule>
+    fn GetParentRule(&self) -> Option<DomRoot<CSSRule>> {
+        if let CSSStyleOwner::CSSRule(rule, _) = &self.owner {
+            Some(rule.as_rooted())
+        } else {
+            None
+        }
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
@@ -590,13 +613,14 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext>
     fn SetCssText(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
-        let window = self.owner.window();
-
-        // Step 1
+        // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "This CSS style declaration is read-only".into(),
+            )));
         }
 
+        let window = self.owner.window();
         let quirks_mode = window.Document().quirks_mode();
         let base_url = UrlExtraData(self.owner.base_url().get_arc());
         self.owner.mutate_associated_block(cx, |pdb, _changed| {

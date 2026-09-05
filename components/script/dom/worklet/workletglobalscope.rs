@@ -28,15 +28,15 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::paintworkletglobalscope::{PaintWorkletGlobalScope, PaintWorkletTask};
+use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 #[cfg(feature = "testbinding")]
-use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask};
+use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
-use crate::microtask::MicrotaskQueue;
 use crate::realms::enter_auto_realm;
+use crate::runtime::microtask::MicrotaskQueue;
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
 
@@ -198,21 +198,6 @@ impl WorkletGlobalScope {
         self.executor.clone()
     }
 
-    /// Perform a worklet task
-    pub(crate) fn perform_a_worklet_task(&self, cx: &mut JSContext, task: WorkletTask) {
-        match task {
-            #[cfg(feature = "testbinding")]
-            WorkletTask::Test(task) => match self.downcast::<TestWorkletGlobalScope>() {
-                Some(global) => global.perform_a_worklet_task(task),
-                None => warn!("This is not a test worklet."),
-            },
-            WorkletTask::Paint(task) => match self.downcast::<PaintWorkletGlobalScope>() {
-                Some(global) => global.perform_a_worklet_task(cx, task),
-                None => warn!("This is not a paint worklet."),
-            },
-        }
-    }
-
     pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
         self.task_manager.clone()
     }
@@ -278,11 +263,4 @@ pub(crate) enum WorkletGlobalScopeType {
     Test,
     /// A paint worklet
     Paint,
-}
-
-/// A task which can be performed in the context of a worklet global.
-pub(crate) enum WorkletTask {
-    #[cfg(feature = "testbinding")]
-    Test(TestWorkletTask),
-    Paint(PaintWorkletTask),
 }

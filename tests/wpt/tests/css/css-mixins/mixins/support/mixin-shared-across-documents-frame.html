@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <title>CSS Mixins: shared stylesheet frame</title>
+    <script>
+      const color = new URL(location.href).searchParams.get("color");
+      const mixin = document.createElement("style");
+      mixin.textContent = `
+        @mixin --frame-mixin() {
+          @result { color: ${color}; }
+        }
+      `;
+      document.head.append(mixin);
+
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "mixin-shared-across-documents.css";
+      document.head.append(link);
+    </script>
+  </head>
+  <body>
+    <div id="target">Target</div>
+  </body>
+</html>

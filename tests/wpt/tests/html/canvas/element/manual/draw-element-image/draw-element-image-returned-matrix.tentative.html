@@ -89,12 +89,9 @@ function runTest() {
     await waitForCanvasPaint(canvas);
     canvas.getContext('2d').rotate(Math.PI / 4);
     let draw_transform = canvas.getContext('2d').drawElementImage(element, 0, 0);
-    let expected = new DOMMatrix()
-      .translateSelf(-5, -5)
-      .rotateSelf(45)
-      .translateSelf(5, 5);
+    let expected = new DOMMatrix().rotateSelf(45);
     assert_array_approx_equals(draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
-  }, 'Draw transform should account for transform-origin');
+  }, 'Draw transform should not account for transform-origin');
 
   promise_test(async function(t) {
     t.add_cleanup(() => {
@@ -123,19 +120,16 @@ function runTest() {
     canvas.getContext('2d').translate(42, 17);
     canvas.getContext('2d').rotate(Math.PI / 4);
     element.style.transformOrigin = '5px 5px';
-    element.style.transformOrigin = '5px 5px';
     await waitForCanvasPaint(canvas);
     let draw_transform = canvas.getContext('2d').drawElementImage(element, 13, -9);
     let expected = new DOMMatrix()
-      .translateSelf(-5, -5)
       .scaleSelf(0.5, 2)
       .translateSelf(42, 17)
       .rotateSelf(45)
       .translateSelf(13, -9)
       .scaleSelf(2, 0.5)
-      .translateSelf(5, 5);
     assert_array_approx_equals(draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
-  }, 'Draw transform should account for canvas pixel scale, zoom, transform-origin, CTM, and x and y');
+  }, 'Draw transform should account for canvas pixel scale, zoom, CTM, and x and y');
 }
 
 window.onload = runTest;

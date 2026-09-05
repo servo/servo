@@ -17,7 +17,7 @@ use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
-use js::rust::describe_scripted_caller_safe;
+use js::rust::describe_scripted_caller;
 use log::warn;
 use servo_constellation_traits::{LoadData, LoadOrigin};
 use url::Url;
@@ -218,6 +218,7 @@ impl CspReporting for Option<CspList> {
                 let Some(parent_origin) = parent_proxy.document_origin() else {
                     break;
                 };
+                let parent_origin = parent_origin.immutable().ascii_serialization();
                 let parent_origin = Url::parse(&parent_origin)
                     .expect("Must always be able to parse document origin");
                 parent_navigable_origins.push(parent_origin);
@@ -381,7 +382,7 @@ pub(crate) trait GlobalCspReporting {
 }
 
 fn compute_scripted_caller_source_position(cx: &mut JSContext) -> SourcePosition {
-    match describe_scripted_caller_safe(cx) {
+    match describe_scripted_caller(cx) {
         Ok(scripted_caller) => SourcePosition {
             source_file: scripted_caller.filename,
             line_number: scripted_caller.line,

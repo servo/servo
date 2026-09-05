@@ -14,7 +14,7 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::TransformStreamDefaultControllerBinding::TransformStreamDefaultControllerMethods;
@@ -147,12 +147,12 @@ impl TransformStreamDefaultController {
         global: &GlobalScope,
         transformer_type: TransformerType,
     ) -> DomRoot<TransformStreamDefaultController> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(TransformStreamDefaultController::new_inherited(
                 transformer_type,
             )),
             global,
-            cx,
         )
     }
 

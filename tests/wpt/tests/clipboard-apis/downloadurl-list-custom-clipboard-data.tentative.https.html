@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>DownloadURL-list is excluded from custom clipboard data</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/user-activation.js"></script>
+<body>
+  <button id="copy-button">Copy test data</button>
+<script>
+'use strict';
+
+const copyButton = document.getElementById('copy-button');
+const downloadUrlListType = 'downloadurl-list';
+const downloadUrlListData = 'test data';
+// Set a custom data type as a control for testing.
+const controlType = 'application/x-downloadurl-list-control';
+const controlData = 'control data';
+
+copyButton.addEventListener('click', () => document.execCommand('copy'));
+document.addEventListener('copy', event => {
+  event.preventDefault();
+  event.clipboardData.setData(downloadUrlListType, downloadUrlListData);
+  event.clipboardData.setData(controlType, controlData);
+});
+
+async function readPasteData() {
+  const pastePromise = new Promise(resolve => {
+    document.addEventListener('paste', event => {
+      event.preventDefault();
+      resolve({
+        types: Array.from(event.clipboardData.types),
+        downloadUrlList: event.clipboardData.getData(downloadUrlListType),
+        control: event.clipboardData.getData(controlType),
+      });
+    }, {once: true});
+  });
+
+  await sendPasteShortcutKey();
+  return pastePromise;
+}
+
+promise_test(async () => {
+  await test_driver.click(copyButton);
+  const pasteData = await readPasteData();
+
+  assert_false(pasteData.types.includes(downloadUrlListType));
+  assert_equals(pasteData.downloadUrlList, '');
+  assert_true(pasteData.types.includes(controlType));
+  assert_equals(pasteData.control, controlData);
+}, 'DownloadURL-list is not exposed as custom clipboard data');
+</script>
+</body>

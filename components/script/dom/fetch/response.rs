@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::str::FromStr;
 
+use bytes::Bytes;
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
 use hyper_serde::Serde;
@@ -36,7 +37,7 @@ use crate::fetch::body::{
     BodyMixin, BodyType, Extractable, ExtractedBody, body_text_stream,
     clone_body_stream_for_dom_body, consume_body,
 };
-use crate::script_runtime::StreamConsumer;
+use crate::runtime::script_runtime::StreamConsumer;
 
 #[dom_struct]
 pub(crate) struct Response {
@@ -534,12 +535,12 @@ impl Response {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub(crate) fn stream_chunk(&self, cx: &mut js::context::JSContext, chunk: Vec<u8>) {
+    pub(crate) fn stream_chunk(&self, cx: &mut js::context::JSContext, chunk: Bytes) {
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
-            stream_consumer.consume_chunk(chunk.as_slice());
+            stream_consumer.consume_chunk(&chunk);
         } else if let Some(body) = self.fetch_body_stream.get() {
-            body.enqueue_native(cx, chunk);
+            body.enqueue_native(cx, chunk.to_vec());
         }
     }
 

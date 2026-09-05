@@ -8,7 +8,6 @@ use std::{f64, ptr};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, RgbColor, SelectedFile};
 use encoding_rs::Encoding;
-use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::jsapi::{ClippedTime, JSObject, RegExpFlag_UnicodeSets, RegExpFlags};
@@ -18,12 +17,11 @@ use js::rust::wrappers2::{
     NewDateObject, NewUCRegExpObject, ObjectIsDate, ObjectIsRegExp,
 };
 use js::rust::{HandleObject, MutableHandleObject};
-use layout_api::{ScriptSelection, SharedSelection};
 use num_traits::ToPrimitive;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
-use servo_base::text::Utf16CodeUnits;
+use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::AttrValue;
 use style::str::split_commas;
 use stylo_atoms::Atom;
@@ -68,6 +66,7 @@ use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, SubmittedFrom,
 };
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
@@ -120,12 +119,6 @@ pub(crate) struct HTMLInputElement {
     textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag>
     value_dirty: Cell<bool>,
-    /// A [`SharedSelection`] that is shared with layout. This can be updated dyanmnically
-    /// and layout should reflect the new value after a display list update.
-    #[no_trace]
-    #[conditional_malloc_size_of]
-    shared_selection: SharedSelection,
-
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
@@ -185,7 +178,6 @@ impl HTMLInputElement {
                 },
             )),
             value_dirty: Cell::new(false),
-            shared_selection: Default::default(),
             form_owner: Default::default(),
             labels_node_list: MutNullableDom::new(None),
             validity_state: Default::default(),
@@ -946,11 +938,14 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         self.unsafe_get().size.get()
     }
 
-    pub(crate) fn selection_for_layout(self) -> Option<SharedSelection> {
-        if !self.unsafe_get().is_textual_or_password.get() {
+    pub(crate) fn selection_for_layout(self) -> Option<RangeAny<Utf32CodeUnits>> {
+        let element = self.unsafe_get();
+        if !element.is_textual_or_password.get() {
             return None;
         }
-        Some(self.unsafe_get().shared_selection.clone())
+        #[expect(unsafe_code)]
+        let textinput = unsafe { element.textinput.borrow_for_layout() };
+        textinput.selection_for_layout
     }
 }
 
@@ -992,34 +987,41 @@ impl TextControlElement for HTMLInputElement {
     }
 
     fn maybe_update_shared_selection(&self) {
-        let offsets = self.textinput.borrow().sorted_selection_offsets_range();
-        let (start, end) = (offsets.start.0, offsets.end.0);
-        let range = TextByteRange::new(ByteIndex(start), ByteIndex(end));
-        let enabled = self.is_textual_or_password() && self.upcast::<Element>().focus_state();
+        let selection = {
+            let mut text_input = self.textinput.borrow_mut();
+            let selection_range = text_input.selection_start()..text_input.selection_end();
+            let enabled = self.is_textual_or_password() && self.upcast::<Element>().focus_state();
 
-        let mut shared_selection = self.shared_selection.borrow_mut();
-        let range_remained_equal = range == shared_selection.range;
-        if range_remained_equal && enabled == shared_selection.enabled {
-            return;
-        }
+            let range_remained_equal = selection_range == text_input.previous_selection_range;
+            if range_remained_equal && enabled == text_input.selection_for_layout.is_some() {
+                return;
+            }
 
-        if !range_remained_equal {
-            // https://w3c.github.io/selection-api/#selectionchange-event
-            // > When an input or textarea element provide a text selection and its selection changes
-            // > (in either extent or direction),
-            // > the user agent must schedule a selectionchange event on the element.
-            self.schedule_a_selection_change_event();
-        }
+            if !range_remained_equal {
+                // https://w3c.github.io/selection-api/#selectionchange-event
+                // > When an input or textarea element provide a text selection and its selection changes
+                // > (in either extent or direction),
+                // > the user agent must schedule a selectionchange event on the element.
+                self.schedule_a_selection_change_event();
+            }
 
-        *shared_selection = ScriptSelection {
-            range,
-            character_range: self
-                .textinput
-                .borrow()
-                .sorted_selection_character_offsets_range(),
-            enabled,
+            let selection = enabled.then(|| text_input.sorted_selection_character_offsets_range());
+            text_input.previous_selection_range = selection_range;
+            text_input.selection_for_layout = selection;
+            selection
         };
-        self.owner_window().layout().set_needs_new_display_list();
+
+        if let Some(text_input_widget) = self.input_type.borrow().as_specific().text_input_widget()
+        {
+            if text_input_widget.borrow().set_text_run_selection(selection) {
+                // Found an already laid out text run to update, so we only need to repaint:
+                self.owner_window().layout().set_needs_new_display_list();
+            } else {
+                // If there isn’t a text run, layout is pending to create it anyway
+            }
+        } else {
+            // Non-text input type. Would this be even called?
+        }
     }
 
     fn is_password_field(&self) -> bool {
@@ -1153,7 +1155,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 .map(|value| value.into())
                 .unwrap_or(DOMString::from("on")),
             ValueMode::Filename => {
-                let mut path = DOMString::from("");
+                let mut path = DOMString::new();
                 match self.input_type().as_specific().get_files() {
                     Some(ref fl) => match fl.Item(0) {
                         Some(ref f) => {
@@ -1211,7 +1213,9 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                     let fl = FileList::new(cx, &window, vec![]);
                     self.input_type().as_specific().set_files(&fl)
                 } else {
-                    return Err(Error::InvalidState(Some("DOM string is not empty".into())));
+                    return Err(Error::InvalidState(Some(
+                        "Non-empty value provided for filename".into(),
+                    )));
                 }
             },
         }
@@ -1263,7 +1267,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             )));
         }
         if value.is_null() {
-            return self.SetValue(cx, DOMString::from(""));
+            return self.SetValue(cx, DOMString::new());
         }
         let mut msecs: f64 = 0.0;
         // We need to go through unsafe code to interrogate jsapi about a Date.
@@ -1281,12 +1285,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 return Err(Error::JSFailed);
             }
             if !msecs.is_finite() {
-                return self.SetValue(cx, DOMString::from(""));
+                return self.SetValue(cx, DOMString::new());
             }
         }
 
         let Ok(date_time) = OffsetDateTime::from_unix_timestamp_nanos((msecs * 1e6) as i128) else {
-            return self.SetValue(cx, DOMString::from(""));
+            return self.SetValue(cx, DOMString::new());
         };
         self.SetValue(
             cx,
@@ -1311,7 +1315,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 "Input element value cannot be treated as a number".into(),
             )))
         } else if value.is_nan() {
-            self.SetValue(cx, DOMString::from(""))
+            self.SetValue(cx, DOMString::new())
         } else if let Some(converted) = self.convert_number_to_string(value) {
             self.SetValue(cx, converted)
         } else {
@@ -1319,7 +1323,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             // overflow is impossible, but just setting an overflow to the empty string
             // matches Firefox's behavior. For example, try input.valueAsNumber=1e30 on
             // a type="date" input.
-            self.SetValue(cx, DOMString::from(""))
+            self.SetValue(cx, DOMString::new())
         }
     }
 
@@ -1623,7 +1627,7 @@ impl HTMLInputElement {
                 // Step 5.7.1: If the field element has a value attribute specified, then let value be the value of that attribute; otherwise, let value be the string "on".
                 let field_value = self.Value();
                 let value = if field_value.is_empty() {
-                    DOMString::from("on")
+                    DOMString::from_static("on")
                 } else {
                     field_value
                 };
@@ -1672,7 +1676,7 @@ impl HTMLInputElement {
             InputType::Hidden(_) if name.eq_ignore_ascii_case("_charset_") => {
                 // Step 5.9.1: Let charset be the name of encoding.
                 let charset = match encoding {
-                    None => DOMString::from("UTF-8"),
+                    None => DOMString::from_static("UTF-8"),
                     Some(enc) => DOMString::from(enc.name()),
                 };
                 // Step 5.9.2: Create an entry with name and charset, and append it to entry list.
@@ -1761,7 +1765,7 @@ impl HTMLInputElement {
         self.value_dirty.set(false);
         self.checked_changed.set(false);
         // Step 2. Set value to empty string.
-        self.textinput.borrow_mut().set_content(DOMString::from(""));
+        self.textinput.borrow_mut().set_content(DOMString::new());
         // Step 3. Set checkedness based on presence of content attribute.
         self.update_checked_state(cx, self.DefaultChecked(), false);
         // Step 4. Empty selected files
@@ -1985,30 +1989,6 @@ impl HTMLInputElement {
                 );
         }
     }
-
-    fn handle_mouse_event(&self, mouse_event: &MouseEvent) {
-        let event = mouse_event.upcast::<Event>();
-        if event.DefaultPrevented() {
-            return;
-        }
-
-        // Only respond to mouse events if we are displayed as text input or a password. If the
-        // placeholder is displayed, also don't do any interactive mouse event handling.
-        if !self.input_type().is_textual_or_password() || self.textinput.borrow().is_empty() {
-            return;
-        }
-        if event.type_() != atom!("mousedown") {
-            return;
-        }
-
-        if self
-            .textinput
-            .borrow_mut()
-            .handle_mousedown_event(self.upcast(), mouse_event)
-        {
-            self.maybe_update_shared_selection();
-        }
-    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -2119,7 +2099,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(cx, DOMString::from(""))
+                                self.SetValue(cx, DOMString::new())
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -2315,10 +2295,7 @@ impl VirtualMethods for HTMLInputElement {
     // https://w3c.github.io/uievents/#default-action
     /// <https://dom.spec.whatwg.org/#action-versus-occurance>
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
-        if let Some(mouse_event) = event.downcast::<MouseEvent>() {
-            self.handle_mouse_event(mouse_event);
-            event.mark_as_handled();
-        } else if event.type_() == atom!("keydown") &&
+        if event.type_() == atom!("keydown") &&
             !event.DefaultPrevented() &&
             self.input_type().is_textual_or_password()
         {
@@ -2390,6 +2367,31 @@ impl VirtualMethods for HTMLInputElement {
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);
+        }
+    }
+
+    fn handle_mousedown_event(
+        &self,
+        cx: &mut JSContext,
+        mouse_event: &MouseEvent,
+        hit_test_result: &HitTestResult,
+    ) {
+        // Only respond to mouse events if we are displayed as text input or a password. If the
+        // placeholder is displayed, also don't do any interactive mouse event handling.
+        if !self.input_type().is_textual_or_password() || self.textinput.borrow().is_empty() {
+            if let Some(super_type) = self.super_type() {
+                super_type.handle_mousedown_event(cx, mouse_event, hit_test_result);
+            }
+            return;
+        }
+
+        if self.textinput.borrow_mut().handle_mousedown_event(
+            self.upcast(),
+            mouse_event,
+            hit_test_result,
+        ) {
+            self.maybe_update_shared_selection();
+            mouse_event.upcast::<Event>().mark_as_handled();
         }
     }
 

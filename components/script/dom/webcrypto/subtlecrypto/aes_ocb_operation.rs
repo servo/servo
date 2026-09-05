@@ -22,12 +22,12 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    AesDerivedKeyParams, AesKeyGenParams, ExportedKey, SubtleAeadParams, aes_common,
+    AeadParams, AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes_common,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-encrypt>
 pub(crate) fn encrypt(
-    normalized_algorithm: &SubtleAeadParams,
+    normalized_algorithm: &AeadParams,
     key: &CryptoKey,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -244,7 +244,7 @@ where
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-decrypt>
 pub(crate) fn decrypt(
-    normalized_algorithm: &SubtleAeadParams,
+    normalized_algorithm: &AeadParams,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {

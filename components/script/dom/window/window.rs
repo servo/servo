@@ -24,9 +24,8 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, JavaScriptEvaluationError, PromptResponse,
-    ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
-    WebDriverJSResult, WebDriverLoadStatus,
+    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, ScriptToEmbedderChan,
+    SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails, WebDriverLoadStatus,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{
@@ -36,7 +35,10 @@ use fonts::{
 use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
-use js::jsapi::{GCReason, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
+use js::jsapi::{
+    GCReason, GetObjectRealmOrNull, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
+    SetRealmPrincipals,
+};
 use js::jsval::{NullValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{JS_DefineProperty, JS_GC};
@@ -71,6 +73,7 @@ use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::interfaces::{HasOrigin, WindowHelpers};
 use script_bindings::like::Setlike;
+use script_bindings::principals::ServoJSPrincipals;
 use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
@@ -98,7 +101,6 @@ use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::PseudoElement;
-use style::shared_lock::StylesheetGuards;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::UrlExtraData;
 use style_traits::CSSPixel;
@@ -107,7 +109,7 @@ use time::Duration as TimeDuration;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
-use crate::dom::WorkletThreadPool;
+use crate::dom::StatelessWorkletThreadPool;
 use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
@@ -128,9 +130,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
 use crate::dom::bindings::codegen::UnionTypes::{
     RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
 };
-use crate::dom::bindings::error::{
-    Error, ErrorInfo, ErrorResult, Fallible, javascript_error_info_from_error_info,
-};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -145,7 +145,7 @@ use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
-use crate::dom::cookiestore::CookieStore;
+use crate::dom::cookiestore::cookiestore::CookieStore;
 use crate::dom::csp::GlobalCspReporting;
 use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
@@ -197,17 +197,17 @@ use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::event_loop::script_window_proxies::ScriptWindowProxies;
+use crate::event_loop::timers::{IsInterval, OneshotTimers, TimerCallback};
+use crate::event_loop::webdriver_handlers::find_node_by_unique_id_in_document;
 use crate::fetch::fetch;
 use crate::fetch::network_listener::{ResourceTimingListener, submit_timing};
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::microtask::UserMicrotask;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::Runtime;
+use crate::runtime::microtask::UserMicrotask;
+use crate::runtime::script_runtime::Runtime;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::SendableTaskSource;
-use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 use crate::unminify::unminified_path;
-use crate::webdriver_handlers::{find_node_by_unique_id_in_document, jsval_to_webdriver};
 use crate::window_named_properties;
 
 /// A callback to call when a response comes back from the `ImageCache`.
@@ -374,10 +374,6 @@ pub(crate) struct Window {
     #[no_trace]
     layout_blocker: Cell<LayoutBlocker>,
 
-    /// A channel for communicating results of async scripts back to the webdriver server
-    #[no_trace]
-    webdriver_script_chan: DomRefCell<Option<GenericSender<WebDriverJSResult>>>,
-
     /// A channel to notify webdriver if there is a navigation
     #[no_trace]
     webdriver_load_status_sender: RefCell<Option<GenericSender<WebDriverLoadStatus>>>,
@@ -450,7 +446,6 @@ pub(crate) struct Window {
     user_scripts: Rc<Vec<UserScript>>,
 
     /// Window's GL context from application
-    #[ignore_malloc_size_of = "defined in script_thread"]
     #[no_trace]
     player_context: WindowGLContext,
 
@@ -502,6 +497,12 @@ pub(crate) struct Window {
     /// A flag to indicate whether the developer tools has requested
     /// live updates from the window.
     devtools_wants_updates: Cell<bool>,
+
+    /// <https://www.w3.org/TR/largest-contentful-paint/#has-dispatched-scroll-event>
+    has_dispatched_scroll_event: Cell<bool>,
+
+    /// <https://wicg.github.io/event-timing/#has-dispatched-input-event>
+    has_dispatched_input_event: Cell<bool>,
 }
 
 impl Window {
@@ -516,6 +517,16 @@ impl Window {
 
     pub(crate) fn as_global_scope(&self) -> &GlobalScope {
         self.upcast::<GlobalScope>()
+    }
+
+    /// <https://www.w3.org/TR/largest-contentful-paint/#has-dispatched-scroll-event>
+    pub(crate) fn mark_has_dispatched_scroll_event(&self) {
+        self.has_dispatched_scroll_event.set(true);
+    }
+
+    /// <https://wicg.github.io/event-timing/#has-dispatched-input-event>
+    pub(crate) fn mark_has_dispatched_input_event(&self) {
+        self.has_dispatched_input_event.set(true);
     }
 
     pub(crate) fn layout(&self) -> Ref<'_, Box<dyn Layout>> {
@@ -551,11 +562,12 @@ impl Window {
     /// A convenience method for
     /// <https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded>
     pub(crate) fn discard_browsing_context(&self) {
-        let proxy = match self.window_proxy.get() {
-            Some(proxy) => proxy,
-            None => panic!("Discarding a BC from a window that has none"),
-        };
+        let proxy = self
+            .window_proxy
+            .get()
+            .expect("Discarding a BC from a window that has none");
         proxy.discard_browsing_context();
+
         // Step 4 of https://html.spec.whatwg.org/multipage/#discard-a-document
         // Other steps performed when the `PipelineExit` message
         // is handled by the ScriptThread.
@@ -715,7 +727,7 @@ impl Window {
             cx,
             self,
             WorkletGlobalScopeType::Paint,
-            Box::new(|| Rc::new(WorkletThreadPool::spawn(worklet_global_scope_init))),
+            Box::new(|| Rc::new(StatelessWorkletThreadPool::spawn(worklet_global_scope_init))),
         )
     }
 
@@ -1356,10 +1368,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         // Step 2. If current is null, then return.
         //
-        // Note: This is equivalent to there being an active `Document` and the WindowProxy
-        // not being discarded due to the parent <iframe> being removed from its `Document`.
+        // Note: This is equivalent to there being an active `Document`.
         let document = self.Document();
-        if !document.is_active() || self.undiscarded_window_proxy().is_none() {
+        if !document.is_active() {
             return;
         }
 
@@ -1900,27 +1911,6 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // This method intentionally does nothing
     }
 
-    // check-tidy: no specs after this line
-    fn WebdriverCallback(&self, realm: &mut CurrentRealm, value: HandleValue) {
-        let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
-        if let Some(webdriver_script_sender) = webdriver_script_sender {
-            let result = jsval_to_webdriver(realm, &self.globalscope, value);
-            let _ = webdriver_script_sender.send(result);
-        }
-    }
-
-    fn WebdriverException(&self, cx: &mut JSContext, value: HandleValue) {
-        let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
-        if let Some(webdriver_script_sender) = webdriver_script_sender {
-            let error_info = ErrorInfo::from_value(cx, value);
-            let _ = webdriver_script_sender.send(Err(
-                JavaScriptEvaluationError::EvaluationFailure(Some(
-                    javascript_error_info_from_error_info(cx, &error_info, value),
-                )),
-            ));
-        }
-    }
-
     fn WebdriverElement(&self, id: DOMString) -> Option<DomRoot<Element>> {
         find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
@@ -2299,7 +2289,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://dom.spec.whatwg.org/#dom-window-event>
     fn Event(&self, cx: &mut JSContext, rval: MutableHandleValue) {
         if let Some(ref event) = *self.current_event.borrow() {
-            event.reflector().get_jsobject().safe_to_jsval(cx, rval);
+            event.reflector().get_jsobject().to_jsval(cx, rval);
         }
     }
 
@@ -2678,7 +2668,7 @@ impl Window {
         };
 
         if let Some(selection) = document.selection() {
-            selection.set_flags_for_visible_selection(cx.no_gc());
+            selection.update_overlaps_document_selection_flags(cx.no_gc());
         }
 
         let restyle_reason = document.restyle_reason(cx.no_gc());
@@ -2744,6 +2734,8 @@ impl Window {
             animations: document.animations().sets.clone(),
             animating_images: document.image_animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
+            halt_lcp: self.has_dispatched_scroll_event.get() ||
+                self.has_dispatched_input_event.get(),
             document_context,
             accessibility_damage,
             rooted_nodes_for_accessibility_integrity_check,
@@ -3310,6 +3302,20 @@ impl Window {
         );
         assert!(document.window() == self);
         self.document.set(Some(document));
+        self.update_jsprincipals_from_document(document);
+    }
+
+    /// The `JSPrincipals` object inside a [`Window`] stores a mutable origin used for
+    /// same-origin checks within SpiderMonkey. When the entire origin of a [`Window`]'s
+    /// [`Document`] object is replaced or the [`Document`] object itself is replaced with a
+    /// [`Document`] with a different origin, the `JSPrincipals` stored inside the [`Window`]
+    /// also needs to change. This ensures that same origin checks are done against the correct
+    /// origin.
+    #[expect(unsafe_code)]
+    pub(crate) fn update_jsprincipals_from_document(&self, document: &Document) {
+        let realm = unsafe { GetObjectRealmOrNull(self.reflector().get_jsobject().get()) };
+        let new_principals = ServoJSPrincipals::new::<crate::DomTypeHolder>(&document.origin());
+        unsafe { SetRealmPrincipals(realm, new_principals.as_raw()) };
     }
 
     pub(crate) fn load_data_for_document(
@@ -3506,10 +3512,6 @@ impl Window {
         if devtools_markers.is_empty() {
             *self.devtools_marker_sender.borrow_mut() = None;
         }
-    }
-
-    pub(crate) fn set_webdriver_script_chan(&self, chan: Option<GenericSender<WebDriverJSResult>>) {
-        *self.webdriver_script_chan.borrow_mut() = chan;
     }
 
     pub(crate) fn set_webdriver_load_status_sender(
@@ -3711,7 +3713,11 @@ impl Window {
         let fonts = document.Fonts(cx);
         if !changed_web_fonts.removed_font_faces.is_empty() {
             fonts.notify_font_face_rules_removed(&changed_web_fonts.removed_font_faces);
+        }
 
+        if !changed_web_fonts.removed_font_faces.is_empty() ||
+            changed_web_fonts.cascade_index_of_any_rule_changed
+        {
             // TODO: This should only dirty nodes that are rendered using any of the removed
             // web fonts!
             document.dirty_all_nodes(cx.no_gc());
@@ -3720,14 +3726,8 @@ impl Window {
         if !changed_web_fonts.added_font_faces.is_empty() {
             fonts.switch_to_loading(cx);
 
-            let shared_locks = document.shared_style_locks();
-            let guards = StylesheetGuards {
-                author: &shared_locks.author.read(),
-                ua_or_user: &shared_locks.ua_or_user.read(),
-            };
             for new_web_font in changed_web_fonts.added_font_faces {
-                if let Some(font_face) =
-                    FontFace::new_for_web_font(cx, self.upcast(), new_web_font, &guards)
+                if let Some(font_face) = FontFace::new_for_web_font(cx, self.upcast(), new_web_font)
                 {
                     fonts.add(cx, font_face);
                 }
@@ -3970,7 +3970,6 @@ impl Window {
             current_state: Cell::new(WindowState::Alive),
             devtools_marker_sender: Default::default(),
             devtools_markers: Default::default(),
-            webdriver_script_chan: Default::default(),
             webdriver_load_status_sender: Default::default(),
             error_reporter,
             media_query_lists: DOMTracker::new(),
@@ -4011,6 +4010,8 @@ impl Window {
             pending_media_query_evaluation: Default::default(),
             last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
             devtools_wants_updates: Default::default(),
+            has_dispatched_scroll_event: Cell::new(false),
+            has_dispatched_input_event: Cell::new(false),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, &origin, win)

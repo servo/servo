@@ -42,19 +42,19 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
 
         let mut phases = Vec::new();
         if phases_run.contains(ReflowPhasesRun::RanLayout) {
-            phases.push(DOMString::from("RanLayout"))
+            phases.push(DOMString::from_static("RanLayout"))
         }
         if phases_run.contains(ReflowPhasesRun::BuiltStackingContextTree) {
-            phases.push(DOMString::from("BuiltStackingContextTree"))
+            phases.push(DOMString::from_static("BuiltStackingContextTree"))
         }
         if phases_run.contains(ReflowPhasesRun::BuiltDisplayList) {
-            phases.push(DOMString::from("BuiltDisplayList"))
+            phases.push(DOMString::from_static("BuiltDisplayList"))
         }
         if phases_run.contains(ReflowPhasesRun::UpdatedScrollNodeOffset) {
-            phases.push(DOMString::from("UpdatedScrollNodeOffset"))
+            phases.push(DOMString::from_static("UpdatedScrollNodeOffset"))
         }
         if phases_run.contains(ReflowPhasesRun::UpdatedImageData) {
-            phases.push(DOMString::from("UpdatedImageData"))
+            phases.push(DOMString::from_static("UpdatedImageData"))
         }
 
         LayoutResult::new(
@@ -89,7 +89,7 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         global: &GlobalScope,
     ) -> DomRoot<AccessibilityUpdateResult> {
         let window = global.as_window();
-        window.layout().set_needs_accessibility_update();
+        window.layout().set_force_accessibility_update();
         let (_, statistics) = window.Document().update_the_rendering(cx);
 
         AccessibilityUpdateResult::new(
@@ -97,6 +97,7 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
             global,
             statistics.nodes_updated_from_dom,
             statistics.nodes_updated_from_tree,
+            statistics.nodes_updated_bounds,
             statistics.nodes_in_tree_update,
         )
     }

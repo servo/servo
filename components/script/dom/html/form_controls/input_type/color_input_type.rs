@@ -28,6 +28,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::HTMLFormElement;
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits, UnbindContext};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -181,6 +182,10 @@ impl ColorInputType {
 }
 
 impl SpecificInputType for ColorInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     fn sanitize_value(&self, input: &HTMLInputElement, value: &mut DOMString) {
         // > The value sanitization algorithm is as follows:
         // > Run update a color well control color for the element.

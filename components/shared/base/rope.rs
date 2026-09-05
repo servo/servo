@@ -9,7 +9,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::Either;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::text::{Utf8CodeUnits, Utf16CodeUnits};
+use crate::text::{Utf8CodeUnits, Utf16CodeUnits, Utf32CodeUnits};
 
 fn contents_vec(contents: impl Into<String>) -> Vec<String> {
     let mut contents: Vec<_> = contents
@@ -54,6 +54,10 @@ impl Rope {
 
     pub fn contents(&self) -> String {
         self.lines.join("")
+    }
+
+    pub fn first_index(&self) -> RopeIndex {
+        RopeIndex::new(0, 0)
     }
 
     pub fn last_index(&self) -> RopeIndex {
@@ -348,17 +352,17 @@ impl Rope {
     }
 
     /// Convert a [`RopeIndex`] into a character offset from the start of the content.
-    pub fn index_to_character_offset(&self, rope_index: RopeIndex) -> usize {
+    pub fn index_to_character_offset(&self, rope_index: RopeIndex) -> Utf32CodeUnits {
         let rope_index = self.normalize_index(rope_index);
 
         // The offset might be past the end of the line due to being an exclusive offset.
         let final_line = self.line(rope_index.line);
-        let final_line_offset = final_line[0..rope_index.code_point].chars().count();
+        let final_line_offset = Utf32CodeUnits::length_of(&final_line[..rope_index.code_point]);
         self.lines
             .iter()
             .take(rope_index.line)
-            .map(|line| line.chars().count())
-            .sum::<usize>() +
+            .map(|line| Utf32CodeUnits::length_of(line))
+            .sum::<Utf32CodeUnits>() +
             final_line_offset
     }
 

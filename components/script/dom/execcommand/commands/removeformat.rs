@@ -4,6 +4,7 @@
 
 use html5ever::local_name;
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::RangeBinding::RangeMethods;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -65,10 +66,10 @@ pub(crate) fn execute_removeformat_command(
 ) -> bool {
     // Step 1. Let elements to remove be a list of every removeFormat candidate effectively contained in the active range.
     let active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
     let mut elements = vec![];
-    active_range.for_each_effectively_contained_child(|node| {
+    active_range.for_each_effectively_contained_child(cx, |_cx, node| {
         if let Some(html_element) = node.downcast::<HTMLElement>() &&
             is_remove_format_candidate(html_element.upcast())
         {
@@ -103,7 +104,7 @@ pub(crate) fn execute_removeformat_command(
         let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
             unreachable!("Must always be able to split");
         };
-        active_range.set_start(start_text.upcast(), 0);
+        let _ = active_range.SetStart(cx.no_gc(), start_text.upcast(), 0);
     }
     // Step 4. If the active range's end node is an editable Text node,
     // and its end offset is neither zero nor its end node's length,
@@ -121,7 +122,7 @@ pub(crate) fn execute_removeformat_command(
     };
     // Step 5. Let node list consist of all editable nodes effectively contained in the active range.
     let mut node_list = vec![];
-    active_range.for_each_effectively_contained_child(|node| {
+    active_range.for_each_effectively_contained_child(cx, |_cx, node| {
         if node.is_editable() {
             node_list.push(DomRoot::from_ref(node));
         }

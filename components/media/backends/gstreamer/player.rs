@@ -124,7 +124,7 @@ enum PlayerSource {
 
 struct PlayerInner {
     player: gstreamer_play::Play,
-    _signal_adapter: gstreamer_play::PlaySignalAdapter,
+    signal_adapter: gstreamer_play::PlaySignalAdapter,
     source: Option<PlayerSource>,
     video_sink: gstreamer_app::AppSink,
     input_size: u64,
@@ -631,7 +631,7 @@ impl GStreamerPlayer {
 
         *self.inner.borrow_mut() = Some(Arc::new(Mutex::new(PlayerInner {
             player,
-            _signal_adapter: signal_adapter.clone(),
+            signal_adapter: signal_adapter.clone(),
             source: None,
             video_sink,
             input_size: 0,
@@ -924,7 +924,10 @@ impl GStreamerPlayer {
         };
 
         let result = receiver.recv().unwrap();
-        glib::signal::signal_handler_disconnect(&inner.lock().unwrap().player, error_handler_id);
+        glib::signal::signal_handler_disconnect(
+            &inner.lock().unwrap().signal_adapter,
+            error_handler_id,
+        );
         result
     }
 }

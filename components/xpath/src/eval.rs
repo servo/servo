@@ -46,35 +46,35 @@ impl Expression {
                 let right_value = right.evaluate(cx, context)?;
 
                 let value = match binary_operator {
-                    BinaryOperator::Equal => (left_value == right_value).into(),
-                    BinaryOperator::NotEqual => (left_value != right_value).into(),
-                    BinaryOperator::LessThan => {
-                        (left_value.convert_to_number() < right_value.convert_to_number()).into()
-                    },
-                    BinaryOperator::GreaterThan => {
-                        (left_value.convert_to_number() > right_value.convert_to_number()).into()
-                    },
-                    BinaryOperator::LessThanOrEqual => {
-                        (left_value.convert_to_number() <= right_value.convert_to_number()).into()
-                    },
-                    BinaryOperator::GreaterThanOrEqual => {
-                        (left_value.convert_to_number() >= right_value.convert_to_number()).into()
-                    },
-                    BinaryOperator::Add => {
-                        (left_value.convert_to_number() + right_value.convert_to_number()).into()
-                    },
-                    BinaryOperator::Subtract => {
-                        (left_value.convert_to_number() - right_value.convert_to_number()).into()
-                    },
-                    BinaryOperator::Multiply => {
-                        (left_value.convert_to_number() * right_value.convert_to_number()).into()
-                    },
-                    BinaryOperator::Divide => {
-                        (left_value.convert_to_number() / right_value.convert_to_number()).into()
-                    },
-                    BinaryOperator::Modulo => {
-                        (left_value.convert_to_number() % right_value.convert_to_number()).into()
-                    },
+                    BinaryOperator::Equal => (left_value.partial_eq(cx, &right_value)).into(),
+                    BinaryOperator::NotEqual => (!left_value.partial_eq(cx, &right_value)).into(),
+                    BinaryOperator::LessThan => (left_value.convert_to_number(cx) <
+                        right_value.convert_to_number(cx))
+                    .into(),
+                    BinaryOperator::GreaterThan => (left_value.convert_to_number(cx) >
+                        right_value.convert_to_number(cx))
+                    .into(),
+                    BinaryOperator::LessThanOrEqual => (left_value.convert_to_number(cx) <=
+                        right_value.convert_to_number(cx))
+                    .into(),
+                    BinaryOperator::GreaterThanOrEqual => (left_value.convert_to_number(cx) >=
+                        right_value.convert_to_number(cx))
+                    .into(),
+                    BinaryOperator::Add => (left_value.convert_to_number(cx) +
+                        right_value.convert_to_number(cx))
+                    .into(),
+                    BinaryOperator::Subtract => (left_value.convert_to_number(cx) -
+                        right_value.convert_to_number(cx))
+                    .into(),
+                    BinaryOperator::Multiply => (left_value.convert_to_number(cx) *
+                        right_value.convert_to_number(cx))
+                    .into(),
+                    BinaryOperator::Divide => (left_value.convert_to_number(cx) /
+                        right_value.convert_to_number(cx))
+                    .into(),
+                    BinaryOperator::Modulo => (left_value.convert_to_number(cx) %
+                        right_value.convert_to_number(cx))
+                    .into(),
                     BinaryOperator::Union => {
                         let as_nodes = |cx: &mut D::Context, e: &Expression| {
                             e.evaluate(cx, context).and_then(try_extract_nodeset)
@@ -83,7 +83,7 @@ impl Expression {
                         let right_nodes = as_nodes(cx, right)?;
 
                         left_nodes.extend(right_nodes);
-                        left_nodes.sort();
+                        left_nodes.sort(cx);
                         Value::NodeSet(left_nodes)
                     },
                     _ => unreachable!("And/Or were handled above"),
@@ -92,7 +92,7 @@ impl Expression {
                 Ok(value)
             },
             Expression::Negate(expr) => {
-                let value = -expr.evaluate(cx, context)?.convert_to_number();
+                let value = -expr.evaluate(cx, context)?.convert_to_number(cx);
                 Ok(value.into())
             },
             Expression::Path(path_expr) => path_expr.evaluate(cx, context),
@@ -134,7 +134,7 @@ impl PathExpression {
         } else {
             current_nodes.push(starting_node);
         }
-        current_nodes.assume_sorted();
+        current_nodes.assume_sorted(cx);
 
         let have_multiple_steps = self.steps.len() > 1;
 
@@ -315,11 +315,11 @@ impl LocationStepExpression {
                 Axis::DescendantOrSelf
         ) {
             // The elements on these axis values are already in tree order
-            filtered_nodes.assume_sorted();
+            filtered_nodes.assume_sorted(cx);
         } else {
             // The elements on these axis values are in inverse tree order
             filtered_nodes.reverse();
-            filtered_nodes.assume_sorted();
+            filtered_nodes.assume_sorted(cx);
         };
 
         Ok(Value::NodeSet(filtered_nodes))

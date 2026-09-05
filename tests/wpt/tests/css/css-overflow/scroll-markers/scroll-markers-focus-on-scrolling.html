@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSS Test: scroll tracking for ::scroll-marker </title>
+<title>CSS Test: scroll tracking for ::scroll-marker in links and tabs modes</title>
 <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-container-scroll">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -62,10 +62,34 @@
                   " but was " + pseudoOpacity.toString());
   }
   promise_test(async () => {
+    // 1. Links mode (default)
     scroller.scrollTop = 150;
     assertPseudoElementProperty(target, "::scroll-marker", "1");
-  }, "active ::scroll-marker doesn't have focus on scroll if previous ::scroll-marker didn't have it");
+  }, "active ::scroll-marker doesn't have focus on scroll if previous ::scroll-marker didn't have it in links mode");
+
   promise_test(async () => {
+    // 1. Links mode (default)
+    /* Click the first ::scroll-marker to attempt to give it focus. */
+    let actions_promise = new test_driver.Actions()
+      .pointerMove(7, 7)
+      .pointerDown()
+      .pointerUp()
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await actions_promise;
+    await waitForAnimationFrames(2);
+    scroller.scrollTop = 150;
+    await waitForAnimationFrames(2);
+    assertPseudoElementProperty(target, "::scroll-marker", "1");
+  }, "active ::scroll-marker does not save focus on scroll in links mode because click does not focus the marker");
+
+  promise_test(async () => {
+    // 2. Tabs mode
+    document.activeElement.blur();
+    scroller.style.setProperty("scroll-marker-group", "before tabs");
+    await waitForAnimationFrames(2);
+
     /* Click the first ::scroll-marker to give it focus. */
     let actions_promise = new test_driver.Actions()
       .pointerMove(7, 7)
@@ -79,5 +103,5 @@
     scroller.scrollTop = 150;
     await waitForAnimationFrames(2);
     assertPseudoElementProperty(target, "::scroll-marker", "0.5");
-  }, "active ::scroll-marker saves focus on scroll if previous ::scroll-marker had it");
+  }, "active ::scroll-marker saves focus on scroll if previous ::scroll-marker had it in tabs mode");
 </script>

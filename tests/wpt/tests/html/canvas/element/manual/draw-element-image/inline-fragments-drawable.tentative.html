@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>drawElementImage with inline fragments drawable</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="inline-fragments-drawable-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #canvas {
+    background: #ccc;
+  }
+  #child {
+    font: 25px/1 Ahem;
+    width: 2em;
+    height: 2em;
+    background: lightblue;
+  }
+  #pre {
+    color: blue;
+  }
+  #inline {
+    color: green;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="child" drawable><span id="pre">X</span><span id="inline" drawable>X XX</span></div>
+</canvas>
+
+<script>
+  onload = async () => {
+    await waitForCanvasPaint(canvas);
+    // Draw the lightblue #child at the origin. This should not include the
+    // drawable #inline, but should include the blue #pre.
+    canvas.getContext('2d').drawElementImage(child, 0, 0);
+    // Draw the green #inline at 100,100. It should render a blank space
+    // followed by a green box on the first line, and two green boxes on the
+    // second line.
+    canvas.getContext('2d').drawElementImage(inline, 100, 100);
+    takeScreenshot();
+  };
+</script>
+</html>

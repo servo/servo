@@ -10,7 +10,7 @@ use js::context::JSContext;
 use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
 use js::jsval::ObjectValue;
 use js::rust::HandleValue as SafeHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -71,7 +71,8 @@ impl DefaultTeeUnderlyingSource {
         cancel_promise: Rc<Promise>,
         tee_cancel_algorithm: DefaultTeeCancelAlgorithm,
     ) -> DomRoot<DefaultTeeUnderlyingSource> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(DefaultTeeUnderlyingSource {
                 reflector_: Reflector::new(),
                 reader: Dom::from_ref(reader),
@@ -89,7 +90,6 @@ impl DefaultTeeUnderlyingSource {
                 tee_cancel_algorithm,
             }),
             &*stream.global(),
-            cx,
         )
     }
 
@@ -131,9 +131,9 @@ impl DefaultTeeUnderlyingSource {
         );
 
         // Rooting: the tee read request is rooted above.
-        let read_request = ReadRequest::DefaultTee {
+        rooted!(&in(cx) let read_request = ReadRequest::DefaultTee {
             tee_read_request: Dom::from_ref(&tee_read_request),
-        };
+        });
 
         // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
         self.reader.read(cx, &read_request);

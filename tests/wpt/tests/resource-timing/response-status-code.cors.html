@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<title>This test validates the response status of resources for CORS Requests.</title>
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/entry-invariants.js"></script>
+<script src="resources/resource-loaders.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+const {ORIGIN, REMOTE_ORIGIN} = get_host_info();
+const status_codes = [
+  200, 203,
+  400, 401, 403, 404,
+  500, 501, 502, 503,
+];
+
+// Response status is exposed for CORS requests for cross-origin resources.
+for(const loader of [
+  load.image_with_attrs,
+  load.script_with_attrs,
+  load.stylesheet_with_attrs
+]) {
+  for(const status of status_codes) {
+    const path = `/resource-timing/resources/empty.js?pipe=status(${status})`
+      + `|header(access-control-allow-origin, ${ORIGIN})`;
+    loader_with_crossOrigin_attr = async url => {
+      return loader(url, {"crossOrigin": "anonymous"});
+    }
+    attribute_test(
+      loader_with_crossOrigin_attr, new URL(path, REMOTE_ORIGIN),
+      entry => {
+        assert_equals(entry.responseStatus, status,
+          `response status for ${entry.name} should be ${status}`);
+      }
+    );
+  }
+}
+</script>
+</body>
+</html>

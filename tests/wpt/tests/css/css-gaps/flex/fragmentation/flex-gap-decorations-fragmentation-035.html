@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: fragmented row-reverse wrap-reverse flex lines retain global column-rule value assignment</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#assigning">
+<link rel="match" href="flex-gap-decorations-fragmentation-035-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-column {
+    columns: 2;
+    column-width: 190px;
+    column-gap: 10px;
+    height: 60px;
+    width: 390px;
+    background: lightgray;
+    column-fill: auto;
+  }
+  #flexbox {
+    display: flex;
+    flex-direction: row-reverse;
+    flex-wrap: wrap-reverse;
+    border: 1px solid black;
+    width: 190px;
+    row-gap: 10px;
+    column-gap: 10px;
+    column-rule-style: solid;
+    column-rule-width: 10px;
+    column-rule-color: red, lime, blue, yellow;
+  }
+  .item {
+    flex: none;
+    width: 40px;
+    background: cornflowerblue;
+  }
+  .tall {
+    height: 70px;
+  }
+  .short {
+    height: 20px;
+  }
+</style>
+<div class="multi-column">
+  <div id="flexbox">
+    <div class="item tall"></div>
+    <div class="item tall"></div>
+    <div class="item tall"></div>
+    <div class="item tall"></div>
+    <div class="item short"></div>
+    <div class="item short"></div>
+  </div>
+</div>

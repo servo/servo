@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw cross-origin images for ::marker</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    canvas {
+      background-color: black;
+    }
+    ::marker {
+      content: url("https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-16x16.png");
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="100" layoutsubtree>
+    <ul id=child>
+      <li>One</li>
+      <li>Two</li>
+    </ul>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        // Platforms differ on where them arker is drawn. So ensure there is no red any place.
+        for (y = 0; y < 80; y++) {
+          y_offset = y * canvas.width;
+          for (x = 0; x < 40; x++) {
+            x_offset = (y_offset + x) * 4;
+            for (channel = 0; channel < 4; channel++) {
+              assert_false(imgData.data[x_offset + channel] > 0, "Cross origin ::marker should not draw");
+            }
+          }
+        }
+      });
+    };
+  </script>
+</body>
+</html>

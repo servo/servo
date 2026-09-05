@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     TextTrackKind, TextTrackMethods, TextTrackMode,
@@ -74,22 +74,36 @@ impl TextTrack {
         mode: TextTrackMode,
         track_list: Option<&TextTrackList>,
     ) -> DomRoot<TextTrack> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(TextTrack::new_inherited(
                 id, kind, label, language, mode, track_list,
             )),
             window,
-            cx,
         )
     }
 
-    pub(crate) fn get_cues(&self, cx: &mut JSContext) -> DomRoot<TextTrackCueList> {
+    pub(crate) fn get_cues(&self) -> Vec<DomRoot<TextTrackCue>> {
         self.cue_list
-            .or_init(|| TextTrackCueList::new(cx, self.global().as_window(), &[]))
+            .get()
+            .map(|list| list.cues())
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn get_text_track_cue_list(&self, cx: &mut JSContext) -> DomRoot<TextTrackCueList> {
+        self.cue_list
+            .or_init(|| TextTrackCueList::new(cx, self, self.global().as_window(), &[]))
     }
 
     pub(crate) fn id(&self) -> &str {
         &self.id
+    }
+
+    pub(crate) fn track_list(&self) -> Option<DomRoot<TextTrackList>> {
+        self.track_list
+            .borrow()
+            .as_ref()
+            .map(|track_list| track_list.as_rooted())
     }
 
     pub(crate) fn add_track_list(&self, track_list: &TextTrackList) {
@@ -165,7 +179,7 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     fn GetCues(&self, cx: &mut JSContext) -> Option<DomRoot<TextTrackCueList>> {
         match self.Mode() {
             TextTrackMode::Disabled => None,
-            _ => Some(self.get_cues(cx)),
+            _ => Some(self.get_text_track_cue_list(cx)),
         }
     }
 
@@ -173,7 +187,12 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     fn GetActiveCues(&self, cx: &mut JSContext) -> Option<DomRoot<TextTrackCueList>> {
         // XXX implement active cues logic
         //      https://github.com/servo/servo/issues/22314
-        Some(TextTrackCueList::new(cx, self.global().as_window(), &[]))
+        Some(TextTrackCueList::new(
+            cx,
+            self,
+            self.global().as_window(),
+            &[],
+        ))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-addcue>
@@ -189,14 +208,14 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
             }
         }
         // Step 4
-        self.get_cues(cx).add(cue);
+        self.get_text_track_cue_list(cx).add(cx, cue);
         Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-removecue>
     fn RemoveCue(&self, cx: &mut JSContext, cue: &TextTrackCue) -> ErrorResult {
         // Step 1
-        let cues = self.get_cues(cx);
+        let cues = self.get_text_track_cue_list(cx);
         let index = match cues.find(cue) {
             Some(i) => Ok(i),
             None => Err(Error::NotFound(None)),

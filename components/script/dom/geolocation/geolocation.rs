@@ -134,7 +134,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
     ) -> Fallible<()> {
         let error_callback = cast_error_callback(cx, error_callback)?;
         // Step 1. If this's relevant global object's associated Document is not fully active:
-        if !self.global().as_window().Document().is_active() {
+        if !self.global().as_window().Document().is_fully_active() {
             // Step 1.1 Call back with error errorCallback and POSITION_UNAVAILABLE.
             if let Some(error_callback) = error_callback {
                 let position_error = GeolocationPositionError::position_unavailable(
@@ -161,7 +161,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
     ) -> Fallible<i32> {
         let error_callback = cast_error_callback(cx, error_callback)?;
         // Step 1. If this's relevant global object's associated Document is not fully active:
-        if !self.global().as_window().Document().is_active() {
+        if !self.global().as_window().Document().is_fully_active() {
             // Step 1.1 Call back with error errorCallback and POSITION_UNAVAILABLE.
             if let Some(error_callback) = error_callback {
                 let position_error = GeolocationPositionError::position_unavailable(

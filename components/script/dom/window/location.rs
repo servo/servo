@@ -5,16 +5,18 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use net_traits::request::Referrer;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::document::Document;
+use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
@@ -43,18 +45,26 @@ pub(crate) enum NavigationType {
 pub(crate) struct Location {
     reflector_: Reflector,
     window: Dom<Window>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-location-empty-domstringlist>
+    empty_dom_string_list: Dom<DOMStringList>,
 }
 
 impl Location {
-    fn new_inherited(window: &Window) -> Location {
+    fn new_inherited(window: &Window, empty_dom_string_list: &DOMStringList) -> Location {
         Location {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
+            empty_dom_string_list: Dom::from_ref(empty_dom_string_list),
         }
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<Location> {
-        reflect_dom_object_with_cx(Box::new(Location::new_inherited(window)), window, cx)
+        let empty_dom_string_list = DOMStringList::new(cx, window.upcast(), vec![]);
+        reflect_dom_object(
+            cx,
+            Box::new(Location::new_inherited(window, &empty_dom_string_list)),
+            window,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#location-object-navigate>
@@ -545,5 +555,29 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
 
             Ok(Some(copy_url))
         })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-location-ancestororigins>
+    fn GetAncestorOrigins(&self) -> Fallible<DomRoot<DOMStringList>> {
+        // Step 1. If this's relevant Document is null, then return this's empty DOMStringList.
+        if !self.has_document() {
+            return Ok(self.empty_dom_string_list.as_rooted());
+        }
+        // Step 2. If this's relevant Document's origin is not same origin-domain
+        // with the entry settings object's origin, then throw a "SecurityError" DOMException.
+        let document = self.window.Document();
+        if !document
+            .origin()
+            .same_origin_domain(&self.entry_settings_object().origin())
+        {
+            return Err(Error::Security("Location's relevant Document is not \
+                                                            same origin-domain with the entry settings object's \
+                                                            origin".to_string().into()));
+        }
+        // Step 3. Assert: this's relevant Document's ancestor origins list is not null.
+        // Step 4. Otherwise, return this's relevant Document's ancestor origins list.
+        Ok(document
+            .ancestor_origins_list()
+            .expect("Must always have ancestor origins initialized"))
     }
 }

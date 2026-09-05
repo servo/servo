@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use bytes::Bytes;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -516,12 +517,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
         }
     }
 
-    fn process_response_chunk(
-        &mut self,
-        _: &mut JSContext,
-        request_id: RequestId,
-        payload: Vec<u8>,
-    ) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, request_id: RequestId, payload: Bytes) {
         if self.cancelled {
             // An error was received previously, skip processing the payload.
             return;
@@ -529,7 +525,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseChunk(request_id, payload.into()),
+            FetchResponseMsg::ProcessResponseChunk(request_id, payload),
         );
     }
 

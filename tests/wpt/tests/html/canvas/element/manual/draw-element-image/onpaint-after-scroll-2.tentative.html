@@ -44,6 +44,7 @@
     canvas.onpaint = (event) => {
       onPaintCount++;
       lastChanged = event.changedElements;
+      ctx.drawElementImage(scroller, 0, 0);
     };
 
     // Request an initial paint.

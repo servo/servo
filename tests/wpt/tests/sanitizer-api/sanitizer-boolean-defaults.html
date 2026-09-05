@@ -92,6 +92,19 @@ test(t => {
   assert_false(try_safe({sanitizer:dataAttributes_is_not_set}));
 }, "data attributes");
 
+// A "data-" prefix with an empty suffix is still covered by dataAttributes.
+test(t => {
+  function try_safe(dataAttributes) {
+    const div = document.createElement("div");
+    div.setHTML(`<div data-="x"></div>`,
+                { sanitizer: { attributes: [], dataAttributes } });
+    return div.firstElementChild.getAttribute("data-");
+  }
+
+  assert_equals(try_safe(true), "x");
+  assert_equals(try_safe(false), null);
+}, "data- with an empty suffix");
+
 </script>
 </body>
 </html>

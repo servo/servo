@@ -35,7 +35,7 @@ use crate::dom::serviceworkerglobalscope::ServiceWorkerScriptMsg;
 use crate::dom::sharedworkerglobalscope::SharedWorkerScriptMsg;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::{WorkletControl, WorkletExecutor};
-use crate::script_runtime::ScriptThreadEventCategory;
+use crate::runtime::script_runtime::ScriptThreadEventCategory;
 use crate::tasks::task::TaskBox;
 use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::tasks::task_source::TaskSourceName;
@@ -70,6 +70,7 @@ impl MixedMessage {
                 ScriptThreadMessage::RefreshCursor(id, ..) => Some(*id),
                 ScriptThreadMessage::GetTitle(id) => Some(*id),
                 ScriptThreadMessage::GetDocumentOrigin(id, _) => Some(*id),
+                ScriptThreadMessage::GetInternalAncestorOriginObjectsList(id, _) => Some(*id),
                 ScriptThreadMessage::SetDocumentActivity(id, ..) => Some(*id),
                 ScriptThreadMessage::SetThrottled(_, id, ..) => Some(*id),
                 ScriptThreadMessage::SetThrottledInContainingIframe(_, id, ..) => Some(*id),
@@ -369,7 +370,9 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
 
 impl OpaqueSender<CommonScriptMsg> for ScriptEventLoopSender {
     fn send(&self, message: CommonScriptMsg) {
-        self.send(message).unwrap()
+        if self.send(message).is_err() {
+            log::warn!("Error communicating with the target thread from the profiler");
+        }
     }
 }
 

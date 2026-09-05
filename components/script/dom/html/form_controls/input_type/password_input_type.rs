@@ -16,6 +16,10 @@ pub(crate) struct PasswordInputType {
 }
 
 impl SpecificInputType for PasswordInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         value.strip_newlines();
     }

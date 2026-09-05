@@ -18,6 +18,8 @@
 
       assert_equals(initial.nodesUpdatedFromDom, 23, "nodesUpdatedFromDom");
       assert_equals(initial.nodesUpdatedFromTree, 23, "nodesUpdatedFromTree");
+      // Bounds are refreshed for every node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 23, "nodesUpdatedBounds");
       assert_equals(initial.nodesInTreeUpdate, 23, "nodesInTreeUpdate");
 
       div1.moveBefore(h1, null);
@@ -28,7 +30,8 @@
       // - div1 (child added)
       // - div2 (child added)
       // - <section> (children removed)
-      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
+      // But we need to walk all the nodes to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 23, "nodesUpdatedFromDom");
 
       // Nodes checked for changes based on the tree:
       // - the document
@@ -38,10 +41,13 @@
       // - div2
       assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
 
+      // Bounds are refreshed for every node in the tree; moving nodes removes none
+      assert_equals(update.nodesUpdatedBounds, 23, "nodesUpdatedBounds");
+
       //  updated nodes:
       // - <section>, which had 2 children removed
-      // - div1, which had 1 node (<h1>) added
-      // - div2, which had 1 node (<h2>) added
+      // - div1, which had 1 node (<h1>) added (and now wraps it, changing its bounds)
+      // - div2, which had 1 node (<h2>) added (and now wraps it, changing its bounds)
       assert_equals(update.nodesInTreeUpdate, 3, "nodesInTreeUpdate");
     }, "Moving two nodes should update 3 nodes");
 

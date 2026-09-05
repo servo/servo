@@ -8,7 +8,7 @@ use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ptr::{self, NonNull};
 
-use js::error::throw_type_error_safe;
+use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::JS::CompartmentIterResult;
 use js::jsapi::{
@@ -410,7 +410,7 @@ pub(crate) fn define_guarded_methods<D: DomTypes>(
     for guard in methods {
         if let Some(specs) = guard.expose::<D>(cx, obj, global) {
             unsafe {
-                define_methods(cx.raw_cx(), obj, specs).unwrap();
+                define_methods(cx, obj, specs).unwrap();
             }
         }
     }
@@ -426,7 +426,7 @@ pub(crate) fn define_guarded_properties<D: DomTypes>(
     for guard in properties {
         if let Some(specs) = guard.expose::<D>(cx, obj, global) {
             unsafe {
-                define_properties(cx.raw_cx(), obj, specs).unwrap();
+                define_properties(cx, obj, specs).unwrap();
             }
         }
     }
@@ -546,7 +546,7 @@ unsafe extern "C" fn invalid_constructor(
 ) -> bool {
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
-    throw_type_error_safe(&mut cx, c"Illegal constructor.");
+    throw_type_error(&mut cx, c"Illegal constructor.");
     false
 }
 
@@ -557,7 +557,7 @@ unsafe extern "C" fn non_new_constructor(
 ) -> bool {
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
-    throw_type_error_safe(&mut cx, c"This constructor needs to be called with `new`.");
+    throw_type_error(&mut cx, c"This constructor needs to be called with `new`.");
     false
 }
 
@@ -723,7 +723,7 @@ pub fn get_desired_proto(
             }
         }
 
-        maybe_wrap_object(cx.raw_cx(), desired_proto);
+        maybe_wrap_object(cx, desired_proto);
         Ok(())
     }
 }

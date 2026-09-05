@@ -20,6 +20,10 @@ pub(crate) struct EmailInputType {
 }
 
 impl SpecificInputType for EmailInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, input: &HTMLInputElement, value: &mut DOMString) {
         if !input.Multiple() {
             value.strip_newlines();

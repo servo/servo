@@ -18,7 +18,6 @@ use encoding_rs::Encoding;
 use euclid::default::Size2D as UntypedSize2D;
 use fonts_traits::SystemFontServiceProxySender;
 use http::{HeaderMap, Method};
-use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
@@ -177,7 +176,7 @@ impl LoadData {
             referrer,
             referrer_policy,
             policy_container: None,
-            srcdoc: "".to_string(),
+            srcdoc: String::new(),
             inherited_secure_context,
             crash: None,
             inherited_insecure_requests_policy,
@@ -724,7 +723,11 @@ pub enum ScriptToConstellationMessage {
         GenericSender<Option<BrowsingContextId>>,
     ),
     /// Get the origin of the document corresponding to the given pipeline
-    GetDocumentOrigin(PipelineId, GenericSender<Option<String>>),
+    GetDocumentOrigin(PipelineId, GenericSender<Option<OriginSnapshot>>),
+    /// If the document corresponding to the given pipeline is fully active
+    IsCurrentlyFullyActive(PipelineId, GenericSender<bool>),
+    /// Get the internal ancestor origin objects list of the document corresponding to the given pipeline
+    GetInternalAncestorOriginObjectsList(PipelineId, GenericSender<Option<Vec<ImmutableOrigin>>>),
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
     LoadComplete,
@@ -759,7 +762,7 @@ pub enum ScriptToConstellationMessage {
     JointSessionHistoryLength(GenericSender<u32>),
     /// Notification that this iframe should be removed.
     /// Returns a list of pipelines which were closed.
-    RemoveIFrame(BrowsingContextId, IpcSender<Vec<PipelineId>>),
+    RemoveIFrame(BrowsingContextId, GenericSender<Vec<PipelineId>>),
     /// Successful response to [crate::ConstellationControlMsg::SetThrottled].
     SetThrottledComplete(bool),
     /// A load has been requested in an IFrame.

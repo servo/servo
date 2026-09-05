@@ -91,7 +91,8 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
             return Ok(());
         };
 
-        valid_name = valid_name.to_lowercase();
+        // Validated tokens are always ASCII.
+        valid_name.make_ascii_lowercase();
 
         // 3. If headers’s guard is "request-no-cors":
         if self.guard.get() == Guard::RequestNoCors {
@@ -142,7 +143,8 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
             return Ok(());
         };
 
-        valid_name = valid_name.to_lowercase();
+        // Validated tokens are always ASCII.
+        valid_name.make_ascii_lowercase();
 
         // Step 2 If this’s guard is "request-no-cors", name is not a no-CORS-safelisted request-header name,
         // and name is not a privileged no-CORS request-header name, then return.
@@ -208,7 +210,8 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         else {
             return Ok(());
         };
-        valid_name = valid_name.to_lowercase();
+        // Validated tokens are always ASCII.
+        valid_name.make_ascii_lowercase();
 
         // 3. If this’s guard is "request-no-cors" and (name, value) is not a
         // no-CORS-safelisted request-header, then return.
@@ -378,14 +381,19 @@ impl Iterable for Headers {
 
     fn get_value_at_index(&self, _cx: &mut JSContext, index: u32) -> ByteString {
         let sorted_header_vec = self.sort_and_combine();
-        let value = sorted_header_vec[index as usize].1.clone();
-        ByteString::new(value)
+        ByteString::new(sorted_header_vec.into_iter().nth(index as usize).unwrap().1)
     }
 
     fn get_key_at_index(&self, _cx: &mut JSContext, index: u32) -> ByteString {
         let sorted_header_vec = self.sort_and_combine();
-        let key = sorted_header_vec[index as usize].0.clone();
-        ByteString::new(key.into_bytes().to_vec())
+        ByteString::new(
+            sorted_header_vec
+                .into_iter()
+                .nth(index as usize)
+                .unwrap()
+                .0
+                .into_bytes(),
+        )
     }
 }
 
@@ -424,9 +432,10 @@ pub(crate) fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
 
     // Step 1: If name is a byte-case-insensitive match for one of (forbidden_header_names), return
     // true
-    let lowercase_name = name.to_lowercase();
-
-    if forbidden_header_names.contains(&lowercase_name.as_str()) {
+    if forbidden_header_names
+        .into_iter()
+        .any(|header| name.eq_ignore_ascii_case(header))
+    {
         return true;
     }
 
@@ -434,8 +443,11 @@ pub(crate) fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
 
     // Step 2: If name when byte-lowercased starts with `proxy-` or `sec-`, then return true.
     if forbidden_header_prefixes
-        .iter()
-        .any(|prefix| lowercase_name.starts_with(prefix))
+        .into_iter()
+        .any(|forbidden_prefix| {
+            name.get(..forbidden_prefix.len())
+                .is_some_and(|name_prefix| name_prefix.eq_ignore_ascii_case(forbidden_prefix))
+        })
     {
         return true;
     }
@@ -448,8 +460,8 @@ pub(crate) fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
 
     // Step 3: If name is a byte-case-insensitive match for one of (potentially_forbidden_header_names)
     if potentially_forbidden_header_names
-        .iter()
-        .any(|header| *header == lowercase_name)
+        .into_iter()
+        .any(|header| name.eq_ignore_ascii_case(header))
     {
         // Step 3.1: Let parsedValues be the result of getting, decoding, and splitting value.
         let parsed_values = get_decode_and_split_header_value(value.to_vec());
@@ -468,8 +480,7 @@ pub(crate) fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
 /// <https://fetch.spec.whatwg.org/#forbidden-response-header-name>
 fn is_forbidden_response_header(name: &str) -> bool {
     // A forbidden response-header name is a header name that is a byte-case-insensitive match for one of
-    let name = name.to_ascii_lowercase();
-    matches!(name.as_str(), "set-cookie" | "set-cookie2")
+    name.eq_ignore_ascii_case("set-cookie") || name.eq_ignore_ascii_case("set-cookie2")
 }
 
 fn validate_name(name: ByteString) -> Fallible<String> {

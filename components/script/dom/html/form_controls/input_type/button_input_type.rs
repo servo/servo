@@ -8,6 +8,7 @@ use script_bindings::cell::DomRefCell;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -21,6 +22,10 @@ pub(crate) struct ButtonInputActivation;
 impl SpecificInputActivationType for ButtonInputActivation {}
 
 impl SpecificInputType for ButtonInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
         self.text_value_widget
             .borrow()

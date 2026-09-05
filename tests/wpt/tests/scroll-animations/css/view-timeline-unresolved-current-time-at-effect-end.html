@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>An animation held at its effect end is not at a progress timeline boundary when the timeline's current time is unresolved</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-2/#at-progress-timeline-boundary">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-timelines">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scroller {
+    position: relative;
+    height: 200px;
+    width: 200px;
+    overflow: auto;
+  }
+  #subject {
+    position: absolute;
+    top: 50px;
+    width: 100px;
+    height: 100px;
+    view-timeline: --view;
+  }
+  #spacer {
+    height: 1000px;
+  }
+
+  @keyframes tinted {
+    0% { background-color: green; }
+    100% { background-color: green; }
+  }
+  #target {
+    width: 25px;
+    height: 25px;
+    background-color: transparent;
+    animation: tinted;
+    animation-timeline: --view;
+  }
+</style>
+</head>
+<body>
+<div id="scroller">
+  <div id="subject"><div id="target"></div></div>
+  <div id="spacer"></div>
+</div>
+<script>
+promise_test(async t => {
+    const scroller = document.getElementById('scroller');
+    const subject = document.getElementById('subject');
+    const target = document.getElementById('target');
+
+    await waitForNextFrame();
+
+    scroller.scrollTop = 200;
+    await waitForNextFrame();
+
+    const animation = target.getAnimations()[0];
+    assert_equals(animation.playState, 'finished', 'animation finished past its cover range');
+    assert_equals(animation.currentTime.toString(), '100%', 'animation holds at its effect end');
+    assert_equals(getComputedStyle(target).backgroundColor, 'rgba(0, 0, 0, 0)',
+        'effect does not apply past its active range');
+
+    scroller.style.height = '0px';
+    subject.style.height = '0px';
+    await waitForNextFrame();
+
+    assert_equals(animation.timeline.currentTime, null, 'timeline current time is unresolved');
+    assert_equals(animation.currentTime.toString(), '100%', 'animation still holds at its effect end');
+    assert_equals(animation.startTime.toString(), '0%', 'animation start time is resolved');
+    assert_equals(getComputedStyle(target).backgroundColor, 'rgba(0, 0, 0, 0)',
+        'an unresolved timeline current time is not a progress timeline boundary');
+}, 'An animation held at its effect end does not apply its effect when the view timeline current time is unresolved');
+</script>
+</body>
+</html>

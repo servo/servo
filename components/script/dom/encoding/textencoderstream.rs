@@ -270,7 +270,7 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     let chunk = create_buffer_source::<Uint8>(cx, output, js_object.handle_mut())
         .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    chunk.safe_to_jsval(cx, rval.handle_mut());
+    chunk.to_jsval(cx, rval.handle_mut());
     // Step 4.2.2.2 Enqueue chunk into encoder’s transform.
     controller.enqueue(cx, global, rval.handle())?;
     Ok(())
@@ -294,7 +294,7 @@ pub(crate) fn encode_and_flush(
                     Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned())
                 })?;
         rooted!(&in(cx) let mut rval = UndefinedValue());
-        chunk.safe_to_jsval(cx, rval.handle_mut());
+        chunk.to_jsval(cx, rval.handle_mut());
         // Step 1.2 Enqueue chunk into encoder’s transform.
         return controller.enqueue(cx, global, rval.handle());
     }
@@ -362,7 +362,7 @@ impl TextEncoderStreamMethods<crate::DomTypeHolder> for TextEncoderStream {
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encoding>
     fn Encoding(&self) -> DOMString {
         // Returns "utf-8".
-        DOMString::from("utf-8")
+        DOMString::from_static("utf-8")
     }
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-readable>

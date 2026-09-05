@@ -8,7 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 #[cfg(feature = "webgl")]
-use js::error::throw_type_error_safe;
+use js::error::throw_type_error;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue};
 use pixels::{EncodedImageType, Snapshot};
@@ -119,7 +119,7 @@ impl OffscreenCanvas {
         match WebGLContextAttributes::new(cx, options) {
             Ok(ConversionResult::Success(attrs)) => Some(attrs.convert()),
             Ok(ConversionResult::Failure(error)) => {
-                throw_type_error_safe(cx, &error);
+                throw_type_error(cx, &error);
                 None
             },
             _ => {

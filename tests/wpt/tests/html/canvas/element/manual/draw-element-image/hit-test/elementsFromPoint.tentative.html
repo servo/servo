@@ -4,6 +4,7 @@
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 <style>
   #canvas {
     width: 200px;
@@ -24,13 +25,50 @@
 </canvas>
 
 <script>
-  test(function () {
+  promise_test(async function () {
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[canvas, body, html]`');
+  }, 'Canvas descendants are not hit-testable before they are drawn.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.drawElementImage(b, 0, 0);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, canvas, body, html]`');
+  }, 'Canvas descendants are hittable after being drawn.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.drawElementImage(a, 0, 0);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[a, b, canvas, body, html]`');
+  }, 'Canvas descendants are hit in reverse drawing order.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.drawElementImage(b, 0, 0);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, a, canvas, body, html]`');
+  }, 'Re-drawing an element moves it to the top of the hit testing list.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.drawElementImage(pointerEventsNone, 0, 0);
+    ctx.drawElementImage(inert, 0, 0);
     assert_array_equals(document.elementsFromPoint(60, 60),
                         [b, a, canvas, document.body, document.documentElement],
                         'Should have returned a sequence with `[b, a, canvas, body, html]`');
   }, 'Pointer-events: none and inert should be excluded from elementsFromPoint');
 
-  test(function (t) {
+  promise_test(async function (t) {
     b.style.transform = 'translate(50px, 50px)';
     t.add_cleanup(() => {
       b.style.transform = '';
@@ -40,7 +78,7 @@
                         'Should have returned a sequence with `[b, canvas, body, html]`');
   }, 'CSS transform should be used for hit testing');
 
-  test(function (t) {
+  promise_test(async function (t) {
     b.setCanvasTransform(new DOMMatrix().translate(50, 50));
     t.add_cleanup(() => {
       b.setCanvasTransform();

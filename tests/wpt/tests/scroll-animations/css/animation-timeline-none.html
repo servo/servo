@@ -33,9 +33,10 @@
     assert_equals(getComputedStyle(element_timeline_none).width, '100px');
   }, 'Animation with animation-timeline:none holds current time at zero');
 
+  // https://github.com/w3c/csswg-drafts/issues/9256
   promise_test(async (t) => {
-    assert_equals(getComputedStyle(element_unknown_timeline).width, '100px');
+    assert_equals(getComputedStyle(element_unknown_timeline).width, '0px');
     await waitForAnimationFrames(3);
-    assert_equals(getComputedStyle(element_unknown_timeline).width, '100px');
-  }, 'Animation with unknown timeline name holds current time at zero');
+    assert_equals(getComputedStyle(element_unknown_timeline).width, '0px');
+  }, 'Animation with unknown timeline name produces no effect');
 </script>

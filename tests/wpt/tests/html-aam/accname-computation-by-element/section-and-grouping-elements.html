@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Accname computation tests for section and grouping elements</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+  <script src="/html-aam/scripts/html-aam-accname-utils.js"></script>
+</head>
+
+<body>
+  <script>
+    const testConfig = {
+      urlSpec: 'https://www.w3.org/TR/html-aam-1.0/#section-and-grouping-element-accessible-name-computation',
+      elements: {
+        'header': {},
+        'nav': {},
+        'search': {},
+        'form': {},
+        'main': {},
+        'section': {},
+        'article': {},
+        'aside': {},
+        'footer': {},
+
+        /*
+          PR #44965 TODO: Where do these elements fit in the spec?
+          They are not explicitly named in HTML-AAM, but their implicit roles
+          support name from author.
+        */
+
+        'hgroup': {},
+        'dialog': {},
+        'address': {},
+        'application': {},
+        'audio': {},
+        'video': {},
+        'ul': {},
+        'ol': {},
+        'dl': {},
+        'meter': {},
+        'progress': {},
+      },
+      nameSources: [
+        'from 2 aria-labelledby refs',
+        'from 1 aria-labelledby ref',
+        'from aria-label',
+        'from title',
+        'to be empty'
+      ]
+    }
+    HtmlAamAccnameUtils.buildNameComputationTests(testConfig);
+    AriaUtils.verifyLabelsBySelector(".ex-label");
+  </script>
+</body>
+
+</html>

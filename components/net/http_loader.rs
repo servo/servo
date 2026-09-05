@@ -2163,7 +2163,7 @@ async fn http_network_fetch(
     // Step 6. Let newConnection be "yes" if forceNewConnection is true; otherwise "no".
 
     // Step 7. Switch on request’s mode:
-    let (res, msg) = match &request.mode {
+    let (response_stream, msg) = match &request.mode {
         // Let connection be the result of obtaining a WebSocket connection, given request’s current URL.
         RequestMode::WebSocket {
             protocols,
@@ -2235,17 +2235,17 @@ async fn http_network_fetch(
             );
 
             // This will only get the headers, the body is read later
-            let (res, msg) = match response_future.await {
+            let (response_stream, msg) = match response_future.await {
                 Ok(wrapped_response) => wrapped_response,
                 Err(error) => return Response::network_error(error),
             };
-            (res, msg)
+            (response_stream, msg)
         },
     };
 
     if log_enabled!(log::Level::Info) {
-        debug!("{:?} response for {}", res.version(), url);
-        for header in res.headers().iter() {
+        debug!("{:?} response for {}", response_stream.version(), url);
+        for header in response_stream.headers().iter() {
             debug!(" - {:?}", header);
         }
     }
@@ -2261,35 +2261,46 @@ async fn http_network_fetch(
     let timing = context.timing.inner().clone();
     let mut response = Response::new(url.clone(), timing);
 
-    if let Some(handshake_info) = res.extensions().get::<TlsHandshakeInfo>() {
+    if let Some(handshake_info) = response_stream.extensions().get::<TlsHandshakeInfo>() {
         let mut hsts_enabled = url
             .host_str()
             .is_some_and(|host| context.state.hsts_list.read().is_host_secure(host));
 
         if url.scheme() == "https" &&
-            let Some(sts) = res.headers().typed_get::<StrictTransportSecurity>()
+            let Some(strict_transport_security) = response_stream
+                .headers()
+                .typed_get::<StrictTransportSecurity>()
         {
             // max-age > 0 enables HSTS, max-age = 0 disables it (RFC 6797 Section 6.1.1)
-            hsts_enabled = sts.max_age().as_secs() > 0;
+            hsts_enabled = strict_transport_security.max_age().as_secs() > 0;
         }
         response.tls_security_info = Some(build_tls_security_info(handshake_info, hsts_enabled));
     }
 
-    let status_text = res
+    let status_text = response_stream
         .extensions()
         .get::<ReasonPhrase>()
         .map(ReasonPhrase::as_bytes)
-        .or_else(|| res.status().canonical_reason().map(str::as_bytes))
+        .or_else(|| {
+            response_stream
+                .status()
+                .canonical_reason()
+                .map(str::as_bytes)
+        })
         .map(Vec::from)
         .unwrap_or_default();
-    response.status = HttpStatus::new(res.status(), status_text);
+    response.status = HttpStatus::new(response_stream.status(), status_text);
 
-    info!("got {:?} response for {:?}", res.status(), request.url());
-    response.headers = res.headers().clone();
+    info!(
+        "got {:?} response for {:?}",
+        response_stream.status(),
+        request.url()
+    );
+    response.headers = response_stream.headers().clone();
     response.referrer = request.referrer.to_url().cloned();
     response.referrer_policy = request.referrer_policy;
 
-    let res_body = response.body.clone();
+    let response_body = response.body.clone();
 
     // We're about to spawn a future to be waited on here
     let (done_sender, done_receiver) = unbounded_channel();
@@ -2301,8 +2312,8 @@ async fn http_network_fetch(
         return Response::network_error(NetworkError::LoadCancelled);
     }
 
-    *res_body.lock() = ResponseBody::Receiving(vec![]);
-    let res_body2 = res_body.clone();
+    *response_body.lock() = ResponseBody::Receiving(vec![]);
+    let response_body2 = response_body.clone();
 
     if let Some(ref sender) = devtools_sender &&
         let Some(m) = msg
@@ -2322,7 +2333,7 @@ async fn http_network_fetch(
     let headers = response.headers.clone();
     let devtools_chan = context.devtools_chan.clone();
 
-    if let Some(possible_length) = res
+    if let Some(possible_length) = response_stream
         .headers()
         .get(http::header::CONTENT_LENGTH)
         .and_then(|header_value| header_value.to_str().ok())
@@ -2333,36 +2344,41 @@ async fn http_network_fetch(
     }
 
     spawn_task(
-        res.into_body()
-            .try_fold(res_body, move |res_body, chunk| {
+        response_stream
+            .into_body()
+            .try_fold(response_body, move |response_body_accumulator, chunk| {
                 if cancellation_listener.cancelled() {
-                    *res_body.lock() = ResponseBody::Done(vec![]);
+                    *response_body_accumulator.lock() = ResponseBody::Done(vec![]);
                     let _ = done_sender.send(Data::Cancelled);
                     return future::ready(Err(std::io::Error::new(
                         std::io::ErrorKind::Interrupted,
                         "Fetch aborted",
                     )));
                 }
-                if let ResponseBody::Receiving(ref mut body) = *res_body.lock() {
-                    let bytes = chunk;
-                    body.extend_from_slice(&bytes);
-                    let _ = done_sender.send(Data::Payload(bytes.to_vec()));
+                if let ResponseBody::Receiving(ref mut body) = *response_body_accumulator.lock() {
+                    body.extend_from_slice(&chunk);
+                    let _ = done_sender.send(Data::Payload(chunk));
                 }
-                future::ready(Ok(res_body))
+                future::ready(Ok(response_body_accumulator))
             })
-            .and_then(move |res_body| {
+            .and_then(move |complete_response_body| {
                 debug!("successfully finished response for {:?}", url1);
-                let mut body = res_body.lock();
-                let completed_body = match *body {
+                let mut body = complete_response_body.lock();
+                let mut completed_body = match *body {
                     ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                     _ => vec![],
                 };
-                let devtools_response_body = completed_body.clone();
+                // This allocation may be retained by the http-cache.
+                completed_body.shrink_to_fit();
+                // If devtools is disabled avoid cloning, since the result would
+                // be unused anyway.
+                let devtools_response_body =
+                    devtools_chan.is_some().then(|| completed_body.clone());
                 *body = ResponseBody::Done(completed_body);
                 send_response_values_to_devtools(
                     Some(headers),
                     status,
-                    Some(devtools_response_body),
+                    devtools_response_body,
                     CacheState::None,
                     &devtools_request,
                     devtools_chan,
@@ -2375,12 +2391,12 @@ async fn http_network_fetch(
                 if let std::io::ErrorKind::InvalidData = error.kind() {
                     debug!("Content decompression error for {:?}", url2);
                     let _ = done_sender3.send(Data::Error(NetworkError::DecompressionError));
-                    let mut body = res_body2.lock();
+                    let mut body = response_body2.lock();
 
                     *body = ResponseBody::Done(vec![]);
                 }
                 debug!("finished response for {:?}", url2);
-                let mut body = res_body2.lock();
+                let mut body = response_body2.lock();
                 let completed_body = match *body {
                     ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                     _ => vec![],
@@ -2575,9 +2591,14 @@ async fn cors_preflight_fetch(
 
         // Step 7.6 If one of request’s header list’s names is a CORS non-wildcard request-header name
         // and is not a byte-case-insensitive match for an item in headerNames, then return a network error.
+        //
+        // Note: This check deviates from the spec. Other browsers (Chrome, Firefox, Safari) all treat a
+        // `*` in headerNames as covering CORS non-wildcard request-header names.
+        let header_names_set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
         if request.headers.iter().any(|(name, _)| {
             is_cors_non_wildcard_request_header_name(name) &&
-                header_names.iter().all(|header_name| header_name != name)
+                !header_names_set.contains(name) &&
+                !header_names_set.contains(&HeaderName::from_static("*"))
         }) {
             return Response::network_error(NetworkError::CorsAuthorization);
         }
@@ -2586,14 +2607,10 @@ async fn cors_preflight_fetch(
         // if unsafeName is not a byte-case-insensitive match for an item in headerNames and request’s credentials
         // mode is "include" or headerNames does not contain `*`, return a network error.
         let unsafe_names = get_cors_unsafe_header_names(&request.headers);
-        let header_names_set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
-        let header_names_contains_star = header_names
-            .iter()
-            .any(|header_name| header_name.as_str() == "*");
         for unsafe_name in unsafe_names.iter() {
             if !header_names_set.contains(unsafe_name) &&
                 (request.credentials_mode == CredentialsMode::Include ||
-                    !header_names_contains_star)
+                    !header_names_set.contains(&HeaderName::from_static("*")))
             {
                 return Response::network_error(NetworkError::CorsHeaders);
             }

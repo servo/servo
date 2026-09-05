@@ -15,19 +15,22 @@
 // https://html.spec.whatwg.org/multipage/#window
 [Global=DissimilarOriginWindow, Exposed=(Window,DissimilarOriginWindow), LegacyNoInterfaceObject]
 interface DissimilarOriginWindow : GlobalScope {
-  [LegacyUnforgeable] readonly attribute WindowProxy window;
-  [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
-  [LegacyUnforgeable] readonly attribute WindowProxy? parent;
-  [LegacyUnforgeable] readonly attribute WindowProxy? top;
-  [Replaceable] readonly attribute WindowProxy frames;
-  [Replaceable] readonly attribute unsigned long length;
-  [LegacyUnforgeable] readonly attribute DissimilarOriginLocation location;
+  [LegacyUnforgeable, CrossOriginReadable] readonly attribute WindowProxy window;
+  [BinaryName="Self_", Replaceable, CrossOriginReadable] readonly attribute WindowProxy self;
+  [Replaceable, CrossOriginReadable] readonly attribute WindowProxy? parent;
+  [LegacyUnforgeable, CrossOriginReadable] readonly attribute WindowProxy? top;
+  [Replaceable, CrossOriginReadable] readonly attribute WindowProxy frames;
+  [Replaceable, CrossOriginReadable] readonly attribute unsigned long length;
+  [PutForwards=href, LegacyUnforgeable, CrossOriginReadable, CrossOriginWritable]
+    readonly attribute DissimilarOriginLocation location;
 
-  undefined close();
-  readonly attribute boolean closed;
-  [Throws] undefined postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
-  [Throws] undefined postMessage(any message, optional WindowPostMessageOptions options = {});
-  attribute any opener;
-  undefined blur();
-  undefined focus();
+  [CrossOriginCallable] undefined close();
+  [CrossOriginReadable] readonly attribute boolean closed;
+  [Throws, CrossOriginCallable]
+  undefined postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
+  [Throws, CrossOriginCallable]
+  undefined postMessage(any message, optional WindowPostMessageOptions options = {});
+  [CrossOriginReadable] attribute any opener;
+  [CrossOriginCallable] undefined focus();
+  [CrossOriginCallable] undefined blur();
 };

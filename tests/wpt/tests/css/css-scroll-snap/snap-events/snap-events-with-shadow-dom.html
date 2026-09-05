@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Scroll Snap 2 Test: Snap Events with shadow DOM target.</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/css/css-scroll-snap/snap-events/resources/common.js"></script>
+    <script src="/css/css-scroll-snap/snap-events/resources/user-scroll-common.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+  </head>
+  <body>
+    <style>
+      .scroller {
+        overflow: scroll;
+        width: 200px;
+        height: 200px;
+        border: solid 1px black;
+        scroll-snap-type: y mandatory;
+        position: absolute;
+      }
+      .space {
+        height: 300vh;
+        width: 300vw;
+        position: absolute;
+      }
+      .snap-point {
+        scroll-snap-align: start;
+        height: 50px;
+        width: 50px;
+      }
+    </style>
+    <div class="scroller" id="scroller">
+      <div class="space"></div>
+      <div class="snap-point" id="initial_target" style="background-color: red;"></div>
+      <div id="host"></div>
+    </div>
+
+    <script>
+      const host = document.getElementById("host");
+      const shadow_root = host.attachShadow({ mode: "closed" });
+      const inner_target = document.createElement("div");
+      inner_target.style.scrollSnapAlign = "start";
+      inner_target.style.height = "50px";
+      inner_target.style.width = "50px";
+      inner_target.style.marginTop = "100px";
+      inner_target.style.backgroundColor = "blue";
+      shadow_root.appendChild(inner_target);
+
+      const start_pos = {
+        x: scroller.clientWidth / 2,
+        y: scroller.clientHeight / 2,
+      };
+      const end_pos = { x: scroller.clientWidth / 2, y: 0 };
+      const inner_target_top = 50 + 100;
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: async () => {
+          await snap_event_touch_scroll_helper(start_pos, end_pos);
+        },
+        expected_snap_targets: { block: host, inline: null },
+        expected_scroll_offsets: {
+          x: 0,
+          y: inner_target_top,
+        }
+      };
+
+      promise_test(async (t) => {
+        await test_scrollsnapchange(t, test_data);
+      }, "snapTarget for scrollsnapchange is the host element when a snap area is inside a closed shadow root");
+
+      promise_test(async (t) => {
+        await test_snap_event(t, test_data, "scrollsnapchanging");
+      }, "snapTarget for scrollsnapchanging is the host element when a snap area is inside a closed shadow root");
+    </script>
+  </body>
+</html>

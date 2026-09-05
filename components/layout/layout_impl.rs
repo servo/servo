@@ -5,7 +5,7 @@
 #![expect(unsafe_code)]
 
 use std::cell::{Cell, OnceCell, RefCell};
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -19,7 +19,7 @@ use embedder_traits::{
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
-use icu_locid::subtags::Language;
+use icu_locale_core::subtags::Language;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, HitTestFlags, HitTestResult,
     IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode,
@@ -82,7 +82,7 @@ use url::Url;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
-use crate::accessibility_tree::AccessibilityTree;
+use crate::accessibility_tree::{AccessibilityContext, AccessibilityDamageMap, AccessibilityTree};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
@@ -226,8 +226,8 @@ pub struct LayoutThread {
     /// This is `None` if accessibility is not active.
     accessibility_tree: RefCell<Option<AccessibilityTree>>,
 
-    /// See [Layout::needs_accessibility_update()].
-    needs_accessibility_update: Cell<bool>,
+    /// See [Layout::force_accessibility_update()].
+    force_accessibility_update: Cell<bool>,
 
     /// A callback to run whenever a web font from a `@font-face` rule finishes loading.
     web_font_finished_loading_callback: StylesheetWebFontLoadFinishedCallback,
@@ -703,10 +703,24 @@ impl Layout for LayoutThread {
             return;
         };
 
-        stacking_context_tree
+        let offsets = stacking_context_tree
             .paint_info
             .scroll_tree
             .set_all_scroll_offsets(scroll_states);
+
+        // Accessibility node bounds are relative to the viewport origin, so a renderer scroll
+        // makes every one of them stale without any reflow occurring. Requesting an accessibility
+        // update schedules a rendering update and prevents that update's reflow from being skipped,
+        // allowing the bounds to be recomputed against the new scroll offsets. See #47161 for a
+        // transform-based alternative to recomputing every node.
+        if self.accessibility_active() {
+            let mut accessibility_tree = self.accessibility_tree.borrow_mut();
+            if let Some(accessibility_tree) = accessibility_tree.as_mut() {
+                accessibility_tree.add_pending_scroll_updates(offsets);
+            };
+
+            self.set_force_accessibility_update();
+        }
     }
 
     fn scroll_offset(&self, id: ExternalScrollId) -> Option<LayoutVector2D> {
@@ -736,7 +750,7 @@ impl Layout for LayoutThread {
             return;
         }
 
-        self.set_needs_accessibility_update();
+        self.set_force_accessibility_update();
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         if accessibility_tree.is_some() {
             return;
@@ -748,12 +762,12 @@ impl Layout for LayoutThread {
         self.accessibility_active.get()
     }
 
-    fn needs_accessibility_update(&self) -> bool {
-        self.needs_accessibility_update.get()
+    fn force_accessibility_update(&self) -> bool {
+        self.force_accessibility_update.get()
     }
 
-    fn set_needs_accessibility_update(&self) {
-        self.needs_accessibility_update.set(true);
+    fn set_force_accessibility_update(&self) {
+        self.force_accessibility_update.set(true);
     }
 
     fn font_context(&self) -> &Arc<FontContext> {
@@ -828,7 +842,7 @@ impl LayoutThread {
             user_stylesheets: config.user_stylesheets,
             accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
-            needs_accessibility_update: Cell::new(false),
+            force_accessibility_update: Cell::new(false),
             web_font_finished_loading_callback: Arc::new(web_font_finished_loading_callback)
                 as StylesheetWebFontLoadFinishedCallback,
         }
@@ -867,8 +881,8 @@ impl LayoutThread {
         if self.fragment_tree.borrow().is_none() {
             return false;
         }
-        // If accessibility was just activated, we need reflow to build the accessibility tree.
-        if self.needs_accessibility_update() {
+        // If the accessibility tree needs an update, we need reflow to build the accessibility tree.
+        if self.force_accessibility_update() || reflow_request.accessibility_damage.is_some() {
             return false;
         }
 
@@ -932,30 +946,52 @@ impl LayoutThread {
         reflow_request: &mut ReflowRequest,
         reflow_statistics: &mut ReflowStatistics,
     ) -> bool {
-        if reflow_request.reflow_goal != ReflowGoal::UpdateTheRendering ||
-            !self.needs_accessibility_update()
-        {
+        let Some(accessibility_damage) = std::mem::take(&mut reflow_request.accessibility_damage)
+        else {
+            return false;
+        };
+        if !self.force_accessibility_update() && accessibility_damage.is_empty() {
             return false;
         }
+
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         let Some(accessibility_tree) = accessibility_tree.as_mut() else {
             return false;
         };
-        let Some(damage) = &reflow_request.accessibility_damage else {
-            return false;
-        };
 
         let accessibility_tree = &mut *accessibility_tree;
+
+        // Check for the stacking context tree before draining any state out of `reflow_request`, so
+        // that we don't discard accessibility damage if it is missing. In practice it is always
+        // present here, since we only reach this method for an `UpdateTheRendering` reflow.
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let Some(stacking_context_tree) = stacking_context_tree.as_ref() else {
+            return false;
+        };
+        debug_assert!(!self.need_new_stacking_context_tree.get());
+
         let rooted_nodes =
             std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
 
-        let damage: VecDeque<_> = damage
-            .iter()
-            .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
+        let damage: AccessibilityDamageMap = accessibility_damage
+            .into_iter()
+            .map(|(address, damage)| {
+                let node = unsafe { ServoLayoutNode::new(&address) };
+                (node.opaque(), (node, damage))
+            })
             .collect();
 
-        let (tree_update, counters) =
-            accessibility_tree.update_tree(root_element, damage, rooted_nodes);
+        let accessibility_context = AccessibilityContext {
+            layout_thread: self,
+            stacking_context_tree,
+        };
+
+        let (tree_update, counters) = accessibility_tree.update_tree(
+            root_element,
+            damage,
+            accessibility_context,
+            rooted_nodes,
+        );
         if let Some(tree_update) = tree_update {
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
@@ -971,9 +1007,10 @@ impl LayoutThread {
 
         reflow_statistics.nodes_updated_from_dom = counters.nodes_updated_from_dom;
         reflow_statistics.nodes_updated_from_tree = counters.nodes_updated_from_tree;
+        reflow_statistics.nodes_updated_bounds = counters.nodes_updated_bounds;
         reflow_statistics.nodes_in_tree_update = counters.nodes_in_tree_update;
 
-        self.needs_accessibility_update.set(false);
+        self.force_accessibility_update.set(false);
         true
     }
 
@@ -1315,6 +1352,11 @@ impl LayoutThread {
                 .iter()
                 .all(|layout_root| layout_root.try_layout(&layout_context))
             {
+                if self.accessibility_active() {
+                    // TODO(#47162) Compute accessibility damage rather than forcing a full update.
+                    self.set_force_accessibility_update();
+                }
+
                 return (
                     ReflowPhasesRun::RanLayout,
                     std::mem::take(&mut *layout_context.iframe_sizes.lock()),
@@ -1360,6 +1402,11 @@ impl LayoutThread {
                 .stylist
                 .rule_tree()
                 .dump_stdout(&layout_context.style_context.guards);
+        }
+
+        if self.accessibility_active() {
+            // TODO(#47162) Compute accessibility damage rather than forcing a full upate.
+            self.set_force_accessibility_update();
         }
 
         // GC the rule tree if some heuristics are met.
@@ -1495,6 +1542,7 @@ impl LayoutThread {
             paint_timing_handler,
             reflow_statistics,
         );
+        paint_timing_handler.mark_paint_timing(reflow_request.halt_lcp);
         self.paint_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.paint_info,
@@ -1551,6 +1599,16 @@ impl LayoutThread {
                 offset,
                 external_scroll_id,
             );
+
+            if self.accessibility_active() &&
+                let Some(accessibility_tree) = self.accessibility_tree.borrow_mut().as_mut()
+            {
+                accessibility_tree.add_pending_scroll_update(external_scroll_id, offset);
+
+                // Ensure the scroll updates are applied in the accessibility tree and sent to the
+                // embedder, even if there are no other changes which affect the accessibility tree.
+                self.set_force_accessibility_update();
+            }
             true
         } else {
             false
@@ -1779,7 +1837,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .zero_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '0', None, Language::UND)?
+                    .find_by_codepoint(font_context, '0', None, Language::UNKNOWN)?
                     .metrics
                     .zero_horizontal_advance
             })
@@ -1789,7 +1847,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .ic_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '\u{6C34}', None, Language::UND)?
+                    .find_by_codepoint(font_context, '\u{6C34}', None, Language::UNKNOWN)?
                     .metrics
                     .ic_horizontal_advance
             })

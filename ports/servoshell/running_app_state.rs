@@ -380,7 +380,7 @@ impl RunningAppState {
         self.experimental_preferences_enabled.get()
     }
 
-    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+    #[cfg_attr(target_env = "ohos", expect(dead_code))]
     pub(crate) fn set_experimental_preferences_enabled(&self, new_value: bool) {
         let old_value = self.experimental_preferences_enabled.replace(new_value);
         if old_value == new_value {

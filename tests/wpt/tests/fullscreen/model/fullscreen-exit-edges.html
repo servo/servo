@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>exit-fullscreen: disconnected element is unfullscreened; fullscreenElement becomes null</title>
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#exit-fullscreen">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<script>
+// If the fullscreen element becomes disconnected while it is the
+// fullscreen element, exit-fullscreen appends (fullscreenchange,
+// fullscreen element) to pending events and unfullscreens the element.
+// After the fullscreenchange fires, fullscreenElement is null.
+
+promise_test(async t => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        if (el.isConnected) el.remove();
+    });
+
+    const enterPromise = new Promise(r => document.addEventListener("fullscreenchange", r, { once: true }));
+    await trusted_request(el);
+    await enterPromise;
+    assert_equals(document.fullscreenElement, el, "fullscreenElement is el after enter");
+
+    const changed = new Promise(r => document.addEventListener("fullscreenchange", r, { once: true }));
+    el.remove();
+    await changed;
+
+    assert_equals(document.fullscreenElement, null,
+        "fullscreenElement is null after disconnected element is unfullscreened");
+}, "exit-fullscreen: disconnected element is unfullscreened; fullscreenElement becomes null");
+</script>

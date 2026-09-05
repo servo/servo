@@ -170,12 +170,14 @@ impl<T> MallocSizeOf for Dom<T> {
     }
 }
 
+/// Compare by pointer address
 impl<T> PartialEq for Dom<T> {
     fn eq(&self, other: &Dom<T>) -> bool {
         self.ptr.as_ptr() == other.ptr.as_ptr()
     }
 }
 
+/// Compare by pointer address
 impl<'a, T: DomObject> PartialEq<&'a T> for Dom<T> {
     fn eq(&self, other: &&'a T) -> bool {
         *self == Dom::from_ref(*other)
@@ -184,6 +186,7 @@ impl<'a, T: DomObject> PartialEq<&'a T> for Dom<T> {
 
 impl<T> Eq for Dom<T> {}
 
+/// Hashes the pointer address
 impl<T> Hash for Dom<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.ptr.as_ptr().hash(state)

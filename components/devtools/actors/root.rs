@@ -258,7 +258,7 @@ impl Actor for RootActor {
                             actor: worker_actor.name().into(),
                             scope,
                             url: url.clone(),
-                            registration_state: "".to_string(),
+                            registration_state: String::new(),
                             last_update_time: 0,
                             traits: HashMap::new(),
                             evaluating_worker: None,

@@ -16,7 +16,8 @@ use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
 use font_types::NameId;
 use fonts_traits::FontDescriptor;
-use icu_locid::subtags::Language;
+use icu_locale_core::subtags::Language;
+use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
@@ -204,7 +205,7 @@ pub(crate) trait FontTableMethods {
     fn buffer(&self) -> &[u8];
     fn parse_as_specific_table<'a, Table>(&'a self) -> Result<Table, ReadError>
     where
-        Table: FontRead<'a>,
+        Table: FontRead<'a, Args = ()>,
     {
         Table::read(read_fonts::FontData::new(self.buffer()))
     }
@@ -485,10 +486,8 @@ impl ShapingOptions {
         // https://drafts.csswg.org/css-text/#letter-spacing-property
         // Letter spacing ignores invisible zero-width formatting characters (such as those from the Unicode Cf category).
         // Spacing must be added as if those characters did not exist in the document.
-        self.letter_spacing.filter(|_| {
-            icu_properties::maps::general_category().get(character) !=
-                icu_properties::GeneralCategory::Format
-        })
+        self.letter_spacing
+            .filter(|_| GeneralCategory::for_char(character) != GeneralCategory::Format)
     }
 }
 
@@ -508,7 +507,7 @@ impl Font {
     #[servo_tracing::instrument(name = "Font::shape_text", skip_all)]
     pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<ShapedText> {
         let font_features =
-            compute_used_font_features(options, self.template.borrow().font_face_rule.as_ref())
+            compute_used_font_features(options, self.template.borrow().font_face_rule.as_deref())
                 .collect();
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
@@ -719,7 +718,7 @@ impl Font {
         self.template
             .font_face_rule()
             .and_then(|font_face_rule| {
-                AtomicRef::filter_map(font_face_rule, |rule| rule.font_family.as_ref())
+                AtomicRef::filter_map(font_face_rule, |rule| rule.descriptors.font_family.as_ref())
             })
             .map(|font_family| font_family.name.clone())
             .or_else(|| {
@@ -1169,7 +1168,9 @@ fn compute_variations(
     if let Some(font_face_rule) = &font_face_rule {
         // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
         // descriptor in the @font-face rule are applied.
-        if let Some(variation_settings) = font_face_rule.font_variation_settings.as_ref() {
+        if let Some(variation_settings) =
+            font_face_rule.descriptors.font_variation_settings.as_ref()
+        {
             variation_settings
                 .0
                 .iter()
@@ -1208,7 +1209,7 @@ fn compute_variations(
     if variation_axes.intersects(VariationAxes::ITAL | VariationAxes::SLNT) {
         let clamped_font_style = font_face_rule
             .as_ref()
-            .and_then(|descriptor| descriptor.font_style.as_ref())
+            .and_then(|font_face_rule| font_face_rule.descriptors.font_style.as_ref())
             .map(|font_style_range| {
                 let computed_font_style_range =
                     font_style_range.compute().expect("never returns None");

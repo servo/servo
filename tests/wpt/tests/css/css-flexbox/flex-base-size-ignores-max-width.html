@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: a flex item's flex base size ignores its own max-width</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<link rel="match" href="flex-base-size-ignores-max-width-ref.html">
+<meta name="assert" content="A flex item's flex base size is its content size and is not clamped by the item's own max-width; the max-width is applied later, when deriving the hypothetical main size. Both items have a 300px base size in a 300px container, so the first shrinks toward 150px, hits its 100px max-width and freezes, leaving 200px for the second.">
+<style>
+.flex {
+    display: flex;
+    width: 300px;
+}
+.item {
+    min-width: 0;
+    height: 50px;
+}
+.capped {
+    max-width: 100px;
+    background: green;
+}
+.uncapped {
+    background: blue;
+}
+.content {
+    width: 300px;
+    height: 50px;
+}
+</style>
+<p>Test passes if the green box is exactly half the width of the adjacent blue box.</p>
+<div class="flex">
+  <div class="item capped"><div class="content"></div></div>
+  <div class="item uncapped"><div class="content"></div></div>
+</div>

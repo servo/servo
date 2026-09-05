@@ -15,7 +15,7 @@ use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMa
 use script_bindings::codegen::GenericBindings::PerformanceMarkBinding::PerformanceMarkMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -170,14 +170,14 @@ impl Performance {
     ) -> DomRoot<Performance> {
         let timing = PerformanceTiming::new(cx, global);
         let navigation = PerformanceNavigation::new(cx, global);
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Performance::new_inherited(
                 navigation_start,
                 &timing,
                 &navigation,
             )),
             global,
-            cx,
         )
     }
 

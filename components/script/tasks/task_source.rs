@@ -13,7 +13,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
 use crate::dom::eventtarget::EventTarget;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
-use crate::script_runtime::ScriptThreadEventCategory;
+use crate::runtime::script_runtime::ScriptThreadEventCategory;
 use crate::tasks::task::{TaskCanceller, TaskOnce};
 use crate::tasks::task_manager::TaskManager;
 

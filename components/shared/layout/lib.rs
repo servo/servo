@@ -15,7 +15,6 @@ mod layout_node;
 mod pseudo_element_chain;
 
 use std::any::Any;
-use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
@@ -23,12 +22,11 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
 use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
-use fonts::{FontContext, TextByteRange, WebFontDocumentContext, WebFontSetDifference};
+use fonts::{FontContext, WebFontDocumentContext, WebFontSetDifference};
 pub use layout_damage::{AccessibilityDamage, LayoutDamage};
 pub use layout_dom::{
     DangerousStyleElementOf, DangerousStyleNodeOf, LayoutDomTypeBundle, LayoutElementOf,
@@ -55,7 +53,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
-use servo_base::text::Utf32CodeUnits;
+use servo_base::text::{RangeAny, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::Atom;
 use style::animation::DocumentAnimationSet;
@@ -81,6 +79,9 @@ use webrender_api::{ExternalScrollId, ImageKey};
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
+
+    /// Returns whether `new_range` was successfully set on an existing text run
+    fn set_text_run_selection(&self, new_range: Option<RangeAny<Utf32CodeUnits>>) -> bool;
 }
 
 pub trait LayoutDataTrait: GenericLayoutDataTrait + Default {}
@@ -139,21 +140,6 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
-/// A selection shared between script and layout. This selection is managed by the DOM
-/// node that maintains it, and can be modified from script. Once modified, layout is
-/// expected to reflect the new selection visual on the next display list update.
-#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
-pub struct ScriptSelection {
-    /// The range of this selection in the DOM node that manages it.
-    pub range: TextByteRange,
-    /// The character range of this selection in the DOM node that manages it.
-    pub character_range: Range<usize>,
-    /// Whether or not this selection is enabled. Selections may be disabled
-    /// when their node loses focus.
-    pub enabled: bool,
-}
-
-pub type SharedSelection = Arc<AtomicRefCell<ScriptSelection>>;
 pub struct HTMLCanvasData {
     pub image_key: Option<ImageKey>,
     pub width: u32,
@@ -269,8 +255,9 @@ pub struct LayoutConfig {
 }
 
 bitflags! {
+    #[derive(Copy, Clone)]
     pub struct HitTestFlags: u8 {
-        /// Whether to populate [`ElementsFromPointResult::dom_position_for_selection`]
+        /// Whether to populate [`HitTestResult::dom_position_for_selection`]
         const IncludeDomPosition = 0b0000_0001;
     }
 }
@@ -419,20 +406,17 @@ pub trait Layout {
     /// Returns whether accessibility is active for this Layout.
     fn accessibility_active(&self) -> bool;
 
-    /// Whether the accessibility tree needs updating. This is set to true when
+    /// Whether the accessibility tree must be updated. This is set to true when
     /// - accessibility is activated; or
     /// - a page is loaded after accesibility is activated.
     ///
-    /// In future, this should be set to true if DOM or style have changed in a way that
-    /// impacts the accessibility tree.
-    ///
     /// Checked in can_skip_reflow_request_entirely(), as a dirty accessibility tree
-    /// should force a reflow, and handle_reflow() to determine whether to update the
-    /// accessibility tree during reflow.
-    fn needs_accessibility_update(&self) -> bool;
+    /// should force a reflow, and handle_accessibility_tree_update() to determine whether to
+    /// update the accessibility tree during reflow.
+    fn force_accessibility_update(&self) -> bool;
 
-    /// See [Self::needs_accessibility_update()].
-    fn set_needs_accessibility_update(&self);
+    /// See [Self::force_accessibility_update()].
+    fn set_force_accessibility_update(&self);
 
     fn font_context(&self) -> &Arc<FontContext>;
 }
@@ -688,6 +672,9 @@ pub struct ReflowStatistics {
     /// A count of the number of accessibility nodes which were checked for changes based on data
     /// already in the accessibility tree (whether the check resulted in changes or not).
     pub nodes_updated_from_tree: u32,
+    /// A count of the number of accessibility nodes which had their bounds recomputed from layout
+    /// geometry (whether the recomputation resulted in changes or not).
+    pub nodes_updated_bounds: u32,
     /// A count of the number of accessibility nodes actually serialized to the TreeUpdate.
     pub nodes_in_tree_update: u32,
 }
@@ -729,6 +716,10 @@ pub struct ReflowRequest {
     pub animating_images: Arc<RwLock<AnimatingImages>>,
     /// The node highlighted by the devtools, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
+    /// Whether LCP computation should be halted for this reflow.
+    /// From <https://www.w3.org/TR/largest-contentful-paint/#limitations>:
+    /// > The LargestContentfulPaint ... algorithm halts ... inputs.
+    pub halt_lcp: bool,
     /// The current font context.
     pub document_context: WebFontDocumentContext,
     /// Damage to the accessibility tree from DOM mutations.
@@ -922,7 +913,7 @@ impl ImageAnimationState {
 #[derive(Debug, Default)]
 pub struct HitTestResult {
     pub items: Vec<HitTestResultItem>,
-    pub dom_position_for_selection: Option<(OpaqueNode, Utf32CodeUnits)>,
+    pub dom_position_for_selection: Option<(OpaqueNode, Utf32CodeUnitsOrNodeOffset)>,
 }
 
 /// Describe an item that matched a hit-test query.

@@ -187,8 +187,6 @@ pub enum PaintMessage {
     ScreenshotReadinessReponse(WebViewId, FxHashMap<PipelineId, Epoch>),
     /// The candidate of largest-contentful-paint
     SendLCPCandidate(LCPCandidate, WebViewId, PipelineId, Epoch),
-    /// Enable LCP calculation for the given WebView.
-    EnableLCPCalculation(WebViewId),
 }
 
 impl Debug for PaintMessage {
@@ -801,6 +799,10 @@ pub trait WebViewTrait {
     fn id(&self) -> WebViewId;
     fn screen_geometry(&self) -> Option<ScreenGeometry>;
     fn set_animating(&self, new_value: bool);
+    /// Notify the embedding layer that this `WebView`'s viewport geometry changed — its size, page
+    /// or pinch zoom, or HiDPI scale — so it can refresh geometry, such as the accessibility root
+    /// node, that the embedder derives from the viewport rather than from a pipeline update.
+    fn notify_viewport_updated(&self);
 }
 
 /// What entity is reporting that a `Pipeline` has exited. Only when all have

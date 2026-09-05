@@ -50,7 +50,42 @@ pub(crate) fn derive_bits(
     key: &CryptoKey,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
-    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
+    // Step 1. Let publicKey be the public member of normalizedAlgorithm.
+    let public_key = normalized_algorithm.public.root();
+
+    // Step 2. If the [[type]] internal slot of publicKey is not "public", then throw an
+    // InvalidAccessError.
+    if public_key.Type() != KeyType::Public {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of publicKey is not \"public\"".into(),
+        )));
+    }
+
+    // Step 3. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal to
+    // the name member of normalizedAlgorithm, then throw an InvalidAccessError.
+    if public_key.algorithm().name() != normalized_algorithm.name {
+        return Err(Error::InvalidAccess(Some(
+            "The name attribute of the [[algorithm]] internal slot of publicKey does not match \
+                the name member of normalizedAlgorithm"
+                .into(),
+        )));
+    }
+
+    // Step 4. Let maximumLength be the length in bits of the output of the field element to octet
+    // string conversion defined in Section 6.2 of [RFC6090] for the EC domain parameters associated
+    // with publicKey.
+    let maximum_length = maximum_length(&public_key)?;
+
+    // Step 5. If length is not null and is greater than maximumLength, then throw an
+    // OperationError.
+    if length.is_some_and(|length| length > maximum_length) {
+        return Err(Error::Operation(Some(
+            "Required length is greater than the maximum length supported by the elliptic curve"
+                .into(),
+        )));
+    }
+
+    // Step 6. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Private {
         return Err(Error::InvalidAccess(Some(
@@ -58,18 +93,7 @@ pub(crate) fn derive_bits(
         )));
     }
 
-    // Step 2. Let publicKey be the public member of normalizedAlgorithm.
-    let public_key = normalized_algorithm.public.root();
-
-    // Step 3. If the [[type]] internal slot of publicKey is not "public", then throw an
-    // InvalidAccessError.
-    if public_key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".to_string(),
-        )));
-    }
-
-    // Step 4. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal
+    // Step 7. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal
     // to the name property of the [[algorithm]] internal slot of key, then throw an
     // InvalidAccessError.
     if public_key.algorithm().name() != key.algorithm().name() {
@@ -79,7 +103,7 @@ pub(crate) fn derive_bits(
         )));
     }
 
-    // Step 5. If the namedCurve attribute of the [[algorithm]] internal slot of publicKey is not
+    // Step 8. If the namedCurve attribute of the [[algorithm]] internal slot of publicKey is not
     // equal to the namedCurve property of the [[algorithm]] internal slot of key, then throw an
     // InvalidAccessError.
     let (
@@ -87,22 +111,24 @@ pub(crate) fn derive_bits(
         KeyAlgorithmAndDerivatives::EcKeyAlgorithm(key_algorithm),
     ) = (public_key.algorithm(), key.algorithm())
     else {
-        return Err(Error::Operation(Some("Public or private key's [[algorithm]] internal slot is not an elliptic curve algorithm".to_string())));
+        return Err(Error::Operation(Some(
+            "Public or private key [[algorithm]] internal slot is not an elliptic curve algorithm"
+                .into(),
+        )));
     };
     if public_key_algorithm.named_curve != key_algorithm.named_curve {
         return Err(Error::InvalidAccess(Some(
-            "Public and private keys' [[algorithm]] internal slots namedCurves do not match"
-                .to_string(),
+            "Public and private keys [[algorithm]] internal slots namedCurves do not match".into(),
         )));
     }
 
-    // Step 6.
+    // Step 9.
     // If the namedCurve property of the [[algorithm]] internal slot of key is "P-256", "P-384" or "P-521":
-    //     Step 6.1. Perform the ECDH primitive specified in [RFC6090] Section 4 with key as the EC
+    //     Step 9.1. Perform the ECDH primitive specified in [RFC6090] Section 4 with key as the EC
     //     private key d and the EC public key represented by the [[handle]] internal slot of
     //     publicKey as the EC public key.
     //
-    //     Step 6.2. Let secret be a byte sequence containing the result of applying the field
+    //     Step 9.2. Let secret be a byte sequence containing the result of applying the field
     //     element to octet string conversion defined in Section 6.2 of [RFC6090] to the output of
     //     the ECDH primitive.
     //
@@ -114,7 +140,7 @@ pub(crate) fn derive_bits(
     // Otherwise:
     //     throw a NotSupportedError
     //
-    // Step 7. If performing the operation results in an error, then throw a OperationError.
+    // Step 10. If performing the operation results in an error, then throw a OperationError.
     let secret = match key_algorithm.named_curve.as_str() {
         NAMED_CURVE_P256 => {
             let Handle::P256PrivateKey(private_key) = key.handle() else {
@@ -169,7 +195,7 @@ pub(crate) fn derive_bits(
         },
     };
 
-    // Step 8.
+    // Step 11.
     // If length is null:
     //     Return secret
     // Otherwise:
@@ -238,18 +264,17 @@ pub(crate) fn get_public_key(
     ec_common::get_public_key(cx, global, key, algorithm, usages)
 }
 
-/// Given a normalizedAlgorithm (an EcdhKeyDeriveParams dictionary), return the length of the secret
-/// derived by the named curve specified by the `named_curve` member of the `[[algorithm]]` slot of
-/// the `public` member of normalizedAlgorithm.
-pub(crate) fn secret_length(normalized_algorithm: &EcdhKeyDeriveParams) -> Result<u32, Error> {
-    let public_key = normalized_algorithm.public.root();
-    let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = public_key.algorithm() else {
+/// Given an elliptic curve key, returns the length in bits of the output of the field element to
+/// octet string conversion defined in Section 6.2 of [RFC6090] for the EC domain parameters
+/// associated with key.
+pub(crate) fn maximum_length(key: &CryptoKey) -> Result<u32, Error> {
+    let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() else {
         return Err(Error::Operation(Some(
             "The key is not an elliptic curve algorithm key".to_string(),
         )));
     };
 
-    let secret_length_in_bits = match algorithm.named_curve.as_str() {
+    let maximum_length_in_bytes = match algorithm.named_curve.as_str() {
         NAMED_CURVE_P256 => <NistP256 as Curve>::FieldBytesSize::to_u32(),
         NAMED_CURVE_P384 => <NistP384 as Curve>::FieldBytesSize::to_u32(),
         NAMED_CURVE_P521 => <NistP521 as Curve>::FieldBytesSize::to_u32(),
@@ -261,5 +286,5 @@ pub(crate) fn secret_length(normalized_algorithm: &EcdhKeyDeriveParams) -> Resul
         },
     };
 
-    Ok(secret_length_in_bits)
+    Ok(maximum_length_in_bytes * 8)
 }

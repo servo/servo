@@ -8,7 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::callback::OwnerWindow;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::callback::ExceptionHandling::Rethrow;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -52,10 +52,10 @@ impl NodeIterator {
         what_to_show: u32,
         filter: Filter,
     ) -> DomRoot<NodeIterator> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(NodeIterator::new_inherited(root_node, what_to_show, filter)),
             document.window(),
-            cx,
         )
     }
 

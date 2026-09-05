@@ -4,6 +4,7 @@
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 <style>
   #canvas {
     width: 200px;
@@ -25,15 +26,14 @@
 </canvas>
 
 <script>
-  test(function () {
-    assert_equals(document.elementFromPoint(60, 60), b);
-  }, 'elementFromPoint should hit the last element in dom order.');
-
-  test(function () {
+  promise_test(async function() {
     a.style.zIndex = 5;
-    assert_equals(document.elementFromPoint(60, 60), a);
     b.style.zIndex = 6;
-    assert_equals(document.elementFromPoint(60, 60), b);
-  }, 'elementFromPoint should hit the highest z-index element.');
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.drawElementImage(b, 0, 0);
+    ctx.drawElementImage(a, 0, 0);
+    assert_equals(document.elementFromPoint(60, 60), a);
+  }, 'Draw order trumps z-index in hit testing.');
 </script>
 </html>
