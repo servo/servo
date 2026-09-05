@@ -129,7 +129,7 @@ impl Selection {
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn set_range(&self, no_gc: &NoGC, new_range: Option<SelectionRange>) -> bool {
+    fn set_range(&self, _no_gc: &NoGC, new_range: Option<SelectionRange>) -> bool {
         let changed;
         {
             let mut range = self.range.borrow_mut();
@@ -146,7 +146,8 @@ impl Selection {
 
         if changed {
             self.selection_boundaries_changed();
-            self.assert_valid_selection(no_gc);
+            #[cfg(debug_assertions)]
+            self.assert_valid_selection(_no_gc);
         }
 
         changed
@@ -425,10 +426,8 @@ impl Selection {
         (range.end_container(), range.end_offset())
     }
 
+    #[cfg(debug_assertions)]
     fn assert_valid_selection(&self, no_gc: &NoGC) {
-        #[cfg(not(debug_assertions))]
-        return;
-
         let range_borrow = self.range.borrow();
         let Some(range) = range_borrow.as_ref() else {
             return;
@@ -448,10 +447,8 @@ impl Selection {
         );
     }
 
+    #[cfg(debug_assertions)]
     fn assert_valid_selection_and_live_range(&self, no_gc: &NoGC) {
-        #[cfg(not(debug_assertions))]
-        return;
-
         self.assert_valid_selection(no_gc);
 
         let Some(active_range) = self.live_range.get() else {
@@ -484,6 +481,7 @@ impl Selection {
     /// > The active range is the range of the selection given by calling
     /// > getSelection() on the context object. (Thus the active range may be null.)
     pub(crate) fn active_range(&self, cx: &mut JSContext) -> Option<DomRoot<Range>> {
+        #[cfg(debug_assertions)]
         self.assert_valid_selection_and_live_range(cx.no_gc());
 
         if let Some(active_range) = self.live_range.get() {
