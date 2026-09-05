@@ -806,13 +806,9 @@ impl HTMLMediaElement {
         };
         type CueVec = Vec<DomRoot<TextTrackCue>>;
         let (current_cues, other_cues): (CueVec, CueVec) = text_tracks_list
-            .iter()
-            .filter_map(|text_track| {
-                // Implicitly `GetCues` already filters for Disabled and returns
-                // None in that case
-                text_track.GetCues(cx)
-            })
-            .flat_map(|text_track| text_track.cues())
+            .iter(cx.no_gc())
+            .filter(|text_track| text_track.Mode() != TextTrackMode::Disabled)
+            .flat_map(|text_track| text_track.get_cues())
             .partition(|cue| {
                 cue.start_time() <= current_playback_position &&
                     cue.end_time() > current_playback_position
@@ -3334,9 +3330,9 @@ impl HTMLMediaElement {
             return;
         };
         let candidates: Vec<DomRoot<TextTrack>> = text_tracks_list
-            .iter()
+            .iter(cx.no_gc())
             .filter(|track| text_track_kinds.contains(&track.Kind()))
-            .map(|track| DomRoot::from_ref(&*track))
+            .map(|track| track.as_rooted())
             .collect();
         // Step 2. If candidates is empty, then return.
         if candidates.is_empty() {

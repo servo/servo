@@ -8,7 +8,7 @@ use bytes::Bytes;
 use content_security_policy::Destination;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use net_traits::request::RequestId;
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
@@ -25,7 +25,7 @@ use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackMethods
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, UnrootedDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::Violation;
 use crate::dom::document::Document;
@@ -183,8 +183,8 @@ impl HTMLTrackElement {
         }
     }
 
-    pub(crate) fn track(&self) -> DomRoot<TextTrack> {
-        self.track.as_rooted()
+    pub(crate) fn track<'a>(&self, no_gc: &'a NoGC) -> UnrootedDom<'a, TextTrack> {
+        UnrootedDom::from_dom(self.track.clone(), no_gc)
     }
 }
 
