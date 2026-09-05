@@ -332,7 +332,7 @@ impl ModuleTree {
     ) -> Self {
         // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 4. Set script's parse error and error to rethrow to null.
-        let module = ModuleTree::default();
+        let script = ModuleTree::default();
 
         // Step 2. Set script's settings object to settings.
         // Step 3. Set script's base URL and fetch options to null.
@@ -354,17 +354,17 @@ impl ModuleTree {
             // and return script.
             let css_error = gen_type_error(cx, global, error);
 
-            let _ = module.parse_error.set(css_error);
-            return module;
+            let _ = script.parse_error.set(css_error);
+            return script;
         }
 
         // Step 7. Set script's record to the result of CreateDefaultExportSyntheticModule(sheet).
         rooted!(&in(cx) let sheet = ObjectValue(sheet.reflector().get_jsobject().get()));
         rooted!(&in(cx) let module_script = unsafe { CreateDefaultExportSyntheticModule(cx, sheet.handle()) });
-        let _ = module.record.set(ModuleObject::new(module_script.handle()));
+        let _ = script.record.set(ModuleObject::new(module_script.handle()));
 
         // Step 8. Return script.
-        module
+        script
     }
 
     /// Execute the provided module, storing the evaluation return value in the provided
