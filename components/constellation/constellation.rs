@@ -1468,6 +1468,9 @@ where
             EmbedderToConstellationMessage::SetAccessibilityActive(webview_id, active) => {
                 self.set_accessibility_active(webview_id, active);
             },
+            EmbedderToConstellationMessage::OnlineChanged(online) => {
+                self.handle_online_changed(online);
+            },
         }
     }
 
@@ -6355,5 +6358,12 @@ where
                 })
             })
             .clone()
+    }
+
+    fn handle_online_changed(&self, _online: bool) {
+        for _pipeline in self.pipelines.iter() {
+            // TODO: send message to each pipeline,
+            // The ScriptMessage variant wait for https://github.com/servo/servo/pull/37076 to be merged
+        }
     }
 }

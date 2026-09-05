@@ -1152,6 +1152,12 @@ impl Servo {
     pub fn register_webxr_registry(&self, registry: Box<dyn WebXrRegistry>) {
         self.0.paint.borrow().register_webxr_registry(registry);
     }
+
+    pub fn report_online_changed(&self, online: bool) {
+        self.0
+            .constellation_proxy
+            .send(EmbedderToConstellationMessage::OnlineChanged(online));
+    }
 }
 
 fn create_embedder_channel(
