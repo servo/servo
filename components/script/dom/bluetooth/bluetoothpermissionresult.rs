@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
@@ -26,7 +24,7 @@ use crate::dom::bluetooth::{AllowedBluetoothDevice, AsyncBluetoothListener, Blue
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
-use crate::dom::promise::Promise;
+use crate::dom::promise::RootedPromise;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothpermissionresult
 #[dom_struct]
@@ -102,7 +100,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
         &self,
         cx: &mut JSContext,
         response: BluetoothResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
