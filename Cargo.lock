@@ -2574,6 +2574,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
+name = "erased-serde"
+version = "0.4.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2add8a07dd6a8d93ff627029c51de145e12686fbc36ecb298ac22e74cf02dec"
+dependencies = [
+ "serde",
+ "serde_core",
+ "typeid",
+]
+
+[[package]]
 name = "errno"
 version = "0.3.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6225,6 +6236,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohos-image-kit-sys"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd17403cafc1c28e512dc94597c5cf4522d978dc0747692994615c4df8e2d8c6"
+dependencies = [
+ "ohos-rawfile-sys",
+ "ohos-sys-opaque-types",
+]
+
+[[package]]
 name = "ohos-ime"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6267,6 +6288,15 @@ name = "ohos-pasteboard-sys"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52a26fed7fe51d995248785dddb53afeb3f862a4094d406e09de7ab36169411c"
+dependencies = [
+ "ohos-sys-opaque-types",
+]
+
+[[package]]
+name = "ohos-rawfile-sys"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5096029eddb1dbf0f216ce61049d2456525eb0373c465a75d366fc05f5a521b5"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
@@ -7996,6 +8026,7 @@ dependencies = [
  "servo-net-traits",
  "servo-paint",
  "servo-paint-api",
+ "servo-pixels",
  "servo-profile",
  "servo-profile-traits",
  "servo-script",
@@ -8236,6 +8267,7 @@ dependencies = [
  "servo-net",
  "servo-net-traits",
  "servo-paint-api",
+ "servo-pixels",
  "servo-profile-traits",
  "servo-script-traits",
  "servo-storage-traits",
@@ -9088,14 +9120,17 @@ dependencies = [
 name = "servo-pixels"
 version = "0.6.0"
 dependencies = [
+ "cfg-if",
  "criterion",
  "euclid",
  "image",
  "log",
  "malloc_size_of_derive",
+ "ohos-image-kit-sys",
  "serde",
  "servo-base",
  "servo-malloc-size-of",
+ "typetag",
  "webrender_api",
 ]
 
@@ -10996,10 +11031,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "typeid"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc7d623258602320d5c55d1bc22793b57daff0ec7efc270ea7d55ce1d5f5471c"
+
+[[package]]
 name = "typenum"
 version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
+
+[[package]]
+name = "typetag"
+version = "0.2.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c5a897b12c6c1151ad0b138b8db50252dc301f93bc3b027db05eec82aeed298c"
+dependencies = [
+ "erased-serde",
+ "inventory",
+ "once_cell",
+ "serde",
+ "typetag-impl",
+]
+
+[[package]]
+name = "typetag-impl"
+version = "0.2.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf808357c6ed7e13ba0f3277ec8d8f21b2d501274895104263985330c726c1c5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
 
 [[package]]
 name = "udmf"
