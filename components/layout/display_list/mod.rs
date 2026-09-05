@@ -17,7 +17,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use servo_base::text::Utf32CodeUnits;
 use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
-use servo_config::{pref, prefs};
+use servo_config::prefs;
 use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -247,11 +247,7 @@ impl DisplayListBuilder<'_> {
     }
 
     fn mark_is_paintable(&mut self) {
-        self.paint_info.is_paintable = true;
-    }
-
-    fn mark_is_contentful(&mut self) {
-        self.paint_info.is_contentful = true;
+        self.paint_timing_handler.mark_document_is_paintable();
     }
 
     fn spatial_id(&self, id: ScrollTreeNodeId) -> SpatialId {
@@ -631,7 +627,7 @@ impl DisplayListBuilder<'_> {
         // An element el is paintable when all of the following apply:
         // > el is being rendered.
         // > el’s used visibility is visible.
-        // Above conditions are met, as we selectively call this API.
+        // Note: Above conditions are met, as we selectively call this API.
 
         // > el and all of its ancestors' used opacity is greater than zero.
         if opacity <= 0.0 {
@@ -643,7 +639,7 @@ impl DisplayListBuilder<'_> {
             .paint_timing_handler
             .check_bounding_rect(bounds, clip_rect)
         {
-            self.mark_is_paintable();
+            self.paint_timing_handler.mark_document_is_paintable();
         }
     }
 
@@ -658,20 +654,11 @@ impl DisplayListBuilder<'_> {
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
-        if !pref!(largest_contentful_paint_enabled) {
-            return;
-        }
-
-        let transform = self
-            .paint_info
-            .scroll_tree
-            .cumulative_node_to_root_transform(state.spatial_id);
-
         self.paint_timing_handler.append_image_record(
             tag,
             bounds,
             clip_rect,
-            transform,
+            state.spatial_id,
             url,
             natural_width,
             natural_height,
@@ -848,8 +835,6 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             // the image request is said to be available.
             // Hence, Skip Broken Images.
             if !fragment.showing_broken_image_icon {
-                self.mark_is_contentful();
-
                 self.collect_image_record(
                     state,
                     rect,
@@ -1168,23 +1153,12 @@ impl Fragment {
 
         builder.check_if_paintable(glyph_bounds, common.clip_rect, parent_style.clone_opacity());
 
-        // From <https://www.w3.org/TR/paint-timing/#contentful>:
-        // An element target is contentful when one or more of the following apply:
-        // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
-        builder.mark_is_contentful();
-
-        // Accumulate this text fragment for LCP by the containing element's tag
-        if let Some(tag) = state.containing_element_tag &&
-            pref!(largest_contentful_paint_enabled)
-        {
-            let transform = builder
-                .paint_info
-                .scroll_tree
-                .cumulative_node_to_root_transform(state.spatial_id);
-            builder
-                .paint_timing_handler
-                .accumulate_text_rect(tag, rect.to_webrender(), transform);
-        }
+        // Accumulate this text fragment for LCP with the containing element's tag.
+        builder.paint_timing_handler.accumulate_text_rect(
+            state.containing_element_tag,
+            rect.to_webrender(),
+            state.spatial_id,
+        );
 
         for text_decoration in state.text_decorations.iter() {
             if text_decoration
@@ -1896,12 +1870,6 @@ impl<'a> BuilderForBoxFragment<'a> {
                             style.clone_opacity(),
                         );
 
-                        // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
-                        // An element target is contentful when one or more of the following apply:
-                        // > target has a background-image which is a contentful image, and its used
-                        // > background-size has non-zero width and height values.
-                        builder.mark_is_contentful();
-
                         let natural_width = Some(Au::from_f32_px(size.width / dppx));
                         let natural_height = Some(Au::from_f32_px(size.height / dppx));
                         builder.collect_image_record(
@@ -2109,7 +2077,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 // An element target is contentful when one or more of the following apply:
                 // > target has a background-image which is a contentful image,
                 // > and its used background-size has non-zero width and height values.
-                builder.mark_is_contentful();
+                builder.paint_timing_handler.mark_document_is_contentful();
 
                 width = size.width;
                 height = size.height;
