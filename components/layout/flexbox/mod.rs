@@ -52,16 +52,18 @@ impl FlexContainerConfig {
         let flex_axis = FlexAxis::from(flex_direction);
         let flex_wrap = container_style.get_position().flex_wrap;
         let container_is_single_line = match flex_wrap {
-            FlexWrap::Nowrap => true,
-            FlexWrap::Wrap | FlexWrap::WrapReverse => false,
+            FlexWrap::NOWRAP => true,
+            FlexWrap::WRAP | FlexWrap::WRAP_REVERSE => false,
+            _ => unreachable!("FlexWrap::BALANCE should be disabled"),
         };
         let flex_direction_is_reversed = match flex_direction {
             FlexDirection::Row | FlexDirection::Column => false,
             FlexDirection::RowReverse | FlexDirection::ColumnReverse => true,
         };
         let flex_wrap_reverse = match flex_wrap {
-            FlexWrap::Nowrap | FlexWrap::Wrap => false,
-            FlexWrap::WrapReverse => true,
+            FlexWrap::NOWRAP | FlexWrap::WRAP => false,
+            FlexWrap::WRAP_REVERSE => true,
+            _ => unreachable!("FlexWrap::BALANCE should be disabled"),
         };
 
         let align_content = container_style.clone_align_content();
