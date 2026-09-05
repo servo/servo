@@ -1967,13 +1967,13 @@ impl Node {
             // and end node does not precede a line break
             // and end node's parent is in the same editing host,
             // set end offset to one plus end node's index, then set end node to its parent.
-            if end_offset == end_node.len() && !end_node.precedes_a_line_break(cx.no_gc()) {
-                if let Some(parent) = end_node.GetParentNode() &&
-                    parent.same_editing_host(&end_node)
-                {
-                    end_offset = 1 + end_node.index();
-                    end_node = parent;
-                }
+            if end_offset == end_node.len() &&
+                !end_node.precedes_a_line_break(cx.no_gc()) &&
+                let Some(parent) = end_node.GetParentNode() &&
+                parent.same_editing_host(&end_node)
+            {
+                end_offset = 1 + end_node.index();
+                end_node = parent;
                 continue;
             }
             // Step 7.3. Otherwise, if end node is a Text node and its parent's resolved value for "white-space"
