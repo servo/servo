@@ -195,6 +195,8 @@ ohos-pasteboard = { workspace = true, optional = true }
 [dev-dependencies]
 accesskit_consumer = { workspace = true }
 content-security-policy = { workspace = true }
+gleam = { workspace = true }
+glow = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }
