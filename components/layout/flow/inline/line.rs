@@ -705,6 +705,7 @@ impl LineItemLayout<'_, '_> {
                     run_data: text_item.text_fragment_run_data,
                     font_metrics: font_metrics.clone(),
                     font_key,
+                    font: Some(text_item.info.font_info.font.clone()),
                     glyphs: text_item.text,
                     justification_adjustment: self.justification_adjustment,
                     character_range_in_dom_node: text_item.character_range_in_dom_node,
