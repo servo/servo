@@ -21,7 +21,7 @@ use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattserver
 #[dom_struct]
@@ -157,7 +157,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
         &self,
         cx: &mut JSContext,
         response: BluetoothResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect

@@ -36,7 +36,7 @@ use crate::dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID, UUID};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{descriptor_permission_state, PermissionAlgorithm};
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::tasks::task::TaskOnce;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
@@ -113,7 +113,12 @@ struct BluetoothContext<T: AsyncBluetoothListener + DomObject> {
 }
 
 pub(crate) trait AsyncBluetoothListener {
-    fn handle_response(&self, cx: &mut JSContext, result: BluetoothResponse, promise: &Rc<Promise>);
+    fn handle_response(
+        &self,
+        cx: &mut JSContext,
+        result: BluetoothResponse,
+        promise: &RootedPromise,
+    );
 }
 
 impl<T> BluetoothContext<T>
@@ -121,7 +126,8 @@ where
     T: AsyncBluetoothListener + DomObject,
 {
     fn response(&mut self, cx: &mut JSContext, response: BluetoothResponseResult) {
-        let promise = self.promise.take().expect("bt promise is missing").root();
+        let promise =
+            RootedPromise::from(self.promise.take().expect("bt promise is missing").root());
 
         // JSAutoRealm needs to be manually made.
         // Otherwise, Servo will crash.
@@ -573,7 +579,7 @@ impl AsyncBluetoothListener for Bluetooth {
         &self,
         cx: &mut JSContext,
         response: BluetoothResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices

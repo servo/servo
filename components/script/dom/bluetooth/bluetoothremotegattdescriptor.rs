@@ -28,7 +28,7 @@ use crate::dom::bluetoothremotegattcharacteristic::{
     BluetoothRemoteGATTCharacteristic, MAXIMUM_ATTRIBUTE_LENGTH,
 };
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 
 // http://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattdescriptor
 #[dom_struct]
@@ -183,7 +183,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
         &self,
         cx: &mut JSContext,
         response: BluetoothResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
