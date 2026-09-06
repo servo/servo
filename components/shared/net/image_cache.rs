@@ -42,13 +42,41 @@ pub trait FontResolver: Sync + Send + MallocSizeOf {
 
 pub type VectorImageId = PendingImageId;
 
-// Represents either a raster image for which the pixel data is available
-// or a vector image for which only the natural dimensions are available
-// and thus requires a further rasterization step to render.
+// Images with available pixels, or validated sources that require a display
+// decode/rasterization at the size selected by layout.
 #[derive(Clone, Debug, MallocSizeOf)]
 pub enum Image {
     Raster(#[conditional_malloc_size_of] Arc<RasterImage>),
     Vector(VectorImage),
+    StaticRaster(#[conditional_malloc_size_of] Arc<StaticRasterImage>),
+}
+
+/// A validated static raster source. Display pixels are owned by the cache, not
+/// by DOM/layout references, so replacing a decode releases its old buffer.
+#[derive(MallocSizeOf)]
+pub struct StaticRasterImage {
+    pub id: PendingImageId,
+    pub metadata: ImageMetadata,
+    pub cors_status: CorsStatus,
+    #[conditional_malloc_size_of]
+    pub bytes: Arc<Vec<u8>>,
+}
+
+impl std::fmt::Debug for StaticRasterImage {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("StaticRasterImage")
+            .field("id", &self.id)
+            .field("metadata", &self.metadata)
+            .finish_non_exhaustive()
+    }
+}
+
+impl StaticRasterImage {
+    /// Obtain original pixels for consumers such as canvas. Do not use for layout.
+    pub fn decode(&self) -> Option<Arc<RasterImage>> {
+        pixels::load_from_memory(&self.bytes, self.cors_status).map(Arc::new)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -64,6 +92,7 @@ impl Image {
         match self {
             Image::Vector(image, ..) => image.metadata,
             Image::Raster(image) => image.metadata,
+            Image::StaticRaster(image) => image.metadata,
         }
     }
 
@@ -71,12 +100,16 @@ impl Image {
         match self {
             Image::Vector(image) => image.cors_status,
             Image::Raster(image) => image.cors_status,
+            Image::StaticRaster(image) => image.cors_status,
         }
     }
 
+    /// Get original pixels, decoding static sources synchronously if necessary.
+    /// Layout must use display-cache lookup instead.
     pub fn as_raster_image(&self) -> Option<Arc<RasterImage>> {
         match self {
             Image::Raster(image) => Some(image.clone()),
+            Image::StaticRaster(image) => image.decode(),
             Image::Vector(..) => None,
         }
     }
@@ -161,6 +194,7 @@ pub struct RasterizationCompleteResponse {
 pub enum ImageCacheResponseMessage {
     NotifyPendingImageLoadStatus(PendingImageResponse),
     VectorImageRasterizationComplete(RasterizationCompleteResponse),
+    StaticRasterImageReady(PipelineId, PendingImageId, u64),
 }
 
 // ======================================================================
@@ -172,6 +206,14 @@ pub enum ImageCacheResult {
     FailedToLoadOrDecode,
     Pending(PendingImageId),
     ReadyForRequest(PendingImageId),
+}
+
+/// Status of an active display demand. The generation distinguishes callbacks
+/// already queued for an obsolete resize from the current request.
+pub struct StaticRasterDemandStatus {
+    pub id: PendingImageId,
+    pub generation: u64,
+    pub pending: bool,
 }
 
 /// A shared [`ImageCacheFactory`] is a per-process data structure used to create an [`ImageCache`]
@@ -216,6 +258,19 @@ pub trait ImageCache: Sync + Send {
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
     ) -> ImageCacheResult;
+
+    /// Current display pixels, if available. This never decodes synchronously.
+    fn static_raster_image_key(&self, image_id: PendingImageId) -> Option<ImageKey>;
+
+    /// Replace the complete set of static raster demands after building a display
+    /// list. Duplicate ids are combined by their largest aspect-preserving scale.
+    /// Completion notifications request another paint, without repeating load events.
+    /// Returns each active generation and whether its completion is still pending.
+    fn set_static_raster_demands(
+        &self,
+        demands: Vec<(PendingImageId, DeviceIntSize)>,
+        callback: ImageCacheResponseCallback,
+    ) -> Vec<StaticRasterDemandStatus>;
 
     /// Returns `Some` if the given `image_id` has already been rasterized at the given `size`.
     /// Otherwise, triggers a new job to perform the rasterization. If a notification

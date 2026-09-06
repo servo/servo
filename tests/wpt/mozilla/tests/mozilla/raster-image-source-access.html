@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Original raster pixels remain available independently of display size</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  function sourceURL() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1200;
+    canvas.height = 800;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "green";
+    context.fillRect(0, 0, 1200, 800);
+    context.fillStyle = "red";
+    context.fillRect(1199, 799, 1, 1);
+    return canvas.toDataURL();
+  }
+
+  function checkOriginalPixels(image) {
+    assert_equals(image.naturalWidth, 1200);
+    assert_equals(image.naturalHeight, 800);
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d");
+    context.drawImage(image, 1199, 799, 1, 1, 0, 0, 1, 1);
+    assert_array_equals([...context.getImageData(0, 0, 1, 1).data], [255, 0, 0, 255]);
+  }
+
+  promise_test(async () => {
+    const image = new Image();
+    const loaded = new Promise(resolve => image.onload = resolve);
+    image.src = sourceURL();
+    await Promise.all([loaded, image.decode()]);
+    assert_true(image.complete);
+    checkOriginalPixels(image);
+  }, "Detached images complete loading and expose original pixels without layout");
+
+  promise_test(async t => {
+    const image = new Image();
+    image.style.cssText = "display:none; width:30px; height:20px";
+    document.body.append(image);
+    t.add_cleanup(() => image.remove());
+    let loads = 0;
+    const loaded = new Promise(resolve => image.onload = () => { loads++; resolve(); });
+    image.src = sourceURL();
+    await Promise.all([loaded, image.decode()]);
+    checkOriginalPixels(image);
+    image.style.display = "block";
+    for (const width of [30, 100, 10, 600]) {
+      image.style.width = `${width}px`;
+      image.style.height = `${width * 2 / 3}px`;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
+    checkOriginalPixels(image);
+    assert_equals(loads, 1);
+  }, "Hidden images load; display resizing preserves source pixels and does not repeat load events");
+</script>
