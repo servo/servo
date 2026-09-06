@@ -6629,10 +6629,16 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
         else:
             cross_origin = "None"
         if self.descriptor.operations['IndexedGetter']:
+            cx_argument = "_cx"
+            length_argument = ""
             if "Length" in self.descriptor.cxMethods or "Length" in self.descriptor.cx_no_gcMethods:
-                length = f"Some(|unwrapped_proxy: &{self.descriptor.concreteType}, cx| unwrapped_proxy.Length(cx))"
-            else:
-                length = f"Some(|unwrapped_proxy: &{self.descriptor.concreteType}, _cx| unwrapped_proxy.Length())"
+                cx_argument = "cx"
+                length_argument = "cx"
+            elif "Length" in self.descriptor.no_gcMethods:
+                cx_argument = "cx"
+                length_argument = "cx.no_gc()"
+
+            length = f"Some(|unwrapped_proxy: &{self.descriptor.concreteType}, {cx_argument}| unwrapped_proxy.Length({length_argument}))"
         else:
             length = "None"
 
