@@ -491,6 +491,7 @@ impl VirtualMethods for HTMLLinkElement {
                 // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
                 if relations.contains(LinkRelations::MODULE_PRELOAD) {
                     let link = DomRoot::from_ref(self);
+                    #[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
                     self.owner_document().add_delayed_task(
                         task!(FetchModulePreload: |cx, link: DomRoot<HTMLLinkElement>| {
                             link.fetch_and_process_modulepreload(cx);
