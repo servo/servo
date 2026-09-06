@@ -67,8 +67,9 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         // Step 1. If name is not a valid doctype name, then throw an
         //      "InvalidCharacterError" DOMException.
         if !is_valid_doctype_name(&qualified_name) {
-            debug!("Not a valid doctype name");
-            return Err(Error::InvalidCharacter(None));
+            return Err(Error::InvalidCharacter(Some(
+                "Name is not a valid doctype name, as it contains ASCII whitespace".into(),
+            )));
         }
 
         Ok(DocumentType::new(
