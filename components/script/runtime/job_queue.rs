@@ -21,8 +21,8 @@ use js::jsval::{JSVal, PrivateValue};
 use js::panic::wrap_panic;
 use js::realm::AutoRealm;
 use js::rust::wrappers2::{
-    EnqueueMicroTask, GetJobQueue, HasAnyMicroTasks, JS_DequeueNextMicroTask,
-    MaybeGetHostDefinedDataFromJSMicroTask, RunJSMicroTask, SetJobQueue,
+    EnqueueMicroTask, GetJobQueue, HasAnyMicroTasks, JS_DequeueNextMicroTask, JobQueueIsEmpty,
+    JobQueueMayNotBeEmpty, MaybeGetHostDefinedDataFromJSMicroTask, RunJSMicroTask, SetJobQueue,
 };
 use malloc_size_of::MallocSizeOf;
 use script_bindings::reflector::DomObject as _;
@@ -198,9 +198,8 @@ fn microtask_from_jsval(val: JSVal) -> *mut Box<dyn MicrotaskRunnable> {
 pub(crate) fn enqueue(cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
     let task = Box::new(task);
     let raw = Box::into_raw(task);
-    unsafe {
-        EnqueueMicroTask(cx, &PrivateValue(raw as *const c_void));
-    }
+    unsafe { JobQueueMayNotBeEmpty(cx) };
+    assert!(unsafe { EnqueueMicroTask(cx, &PrivateValue(raw as *const c_void)) });
 }
 
 /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
@@ -236,6 +235,12 @@ pub(crate) fn job_queue_microtask_checkpoint(
     while unsafe { HasAnyMicroTasks(cx) } {
         unsafe { JS_DequeueNextMicroTask(cx, generic_task.handle_mut()) };
 
+        // Notify the JS engine if the queue is now empty, enabling optimizations
+        // like skipping await microtask creation for resolved promises.
+        if unsafe { HasAnyMicroTasks(cx) } {
+            unsafe { JobQueueIsEmpty(cx) };
+        }
+
         // https://searchfox.org/firefox-main/rev/50691777d300fffc7d1f7844b59769109bc76f3e/xpcom/base/CycleCollectedJSContext.cpp#916
         if !unsafe { IsJSMicroTask(generic_task.as_ptr()) } {
             rooted!(&in(cx) let task = unsafe {
@@ -249,6 +254,9 @@ pub(crate) fn job_queue_microtask_checkpoint(
 
         js_micro_task.set(unsafe { ToMaybeWrappedJSMicroTask(generic_task.as_ptr()) });
         execution_global.set(unsafe { GetExecutionGlobalFromJSMicroTask(js_micro_task.get()) });
+        if execution_global.get().is_null() {
+            continue;
+        }
         if !unsafe {
             MaybeGetHostDefinedDataFromJSMicroTask(
                 js_micro_task.get(),
