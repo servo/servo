@@ -651,10 +651,10 @@ fn fetch_a_single_imported_module_script(
     // Step 3. If the result of running the module type allowed steps given moduleType and settingsObject is false,
     // then run onComplete given null, and return.
     match module_type {
-        ModuleType::Unknown | ModuleType::Bytes | ModuleType::Text => {
+        ModuleType::Unknown | ModuleType::Bytes => {
             return on_complete(cx, None);
         },
-        ModuleType::JavaScript | ModuleType::JSON | ModuleType::CSS => (),
+        ModuleType::JavaScript | ModuleType::JSON | ModuleType::CSS | ModuleType::Text => (),
     }
 
     // Step 4. Fetch a single module script given url, fetchClient, destination, options, settingsObject, referrer,

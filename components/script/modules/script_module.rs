@@ -1187,10 +1187,11 @@ pub(crate) fn fetch_a_modulepreload_module(
     let global_scope = DomRoot::from_ref(global);
 
     // Note: There is a specification inconsistency, `fetch_a_single_module_script` doesn't allow
-    // fetching top level JSON/CSS module scripts, but should be possible when preloading.
+    // fetching top level JSON/CSS/Text module scripts, but should be possible when preloading.
     let module_type = match destination {
         Destination::Json => Some(ModuleType::JSON),
         Destination::Style => Some(ModuleType::CSS),
+        Destination::Text => Some(ModuleType::Text),
         _ => None,
     };
 
@@ -1383,9 +1384,7 @@ pub(crate) fn fetch_a_single_module_script(
     let destination = match module_type {
         ModuleType::JSON => Destination::Json,
         ModuleType::CSS => Destination::Style,
-        ModuleType::Text => {
-            todo!("https://github.com/servo/servo/issues/47149")
-        },
+        ModuleType::Text => Destination::Text,
         ModuleType::Bytes => unreachable!("Not in ESR153"),
         ModuleType::JavaScript | ModuleType::Unknown => destination,
     };

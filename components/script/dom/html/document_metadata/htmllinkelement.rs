@@ -992,9 +992,9 @@ impl HTMLLinkElement {
         let document = self.owner_document();
         let global = document.global();
 
-        // A module preload destination is "json", "style", or a script-like destination.
+        // A module preload destination is "json", "style", "text" or a script-like destination.
         let is_a_modulepreload_destination = match destination {
-            Destination::Json | Destination::Style => true,
+            Destination::Json | Destination::Style | Destination::Text => true,
             // https://fetch.spec.whatwg.org/#ref-for-request-destination-script-like
             // While "xslt" can cause script execution, it is not relevant here.
             Destination::Xslt => false,
