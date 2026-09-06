@@ -106,6 +106,20 @@ struct ImageRequest {
     current_pixel_density: Option<f64>,
 }
 
+impl ImageRequest {
+    /// Removes any data this ImageRequest owns.
+    fn clear(&mut self) {
+        self.state = State::Unavailable;
+        self.parsed_url = None;
+        self.source_url = None;
+        self.blocker.take();
+        self.image = None;
+        self.metadata = None;
+        self.final_url = None;
+        self.current_pixel_density = None;
+    }
+}
+
 #[dom_struct]
 pub(crate) struct HTMLImageElement {
     htmlelement: HTMLElement,
@@ -402,10 +416,16 @@ impl HTMLImageElement {
 
     // Steps common to when an image has been loaded.
     fn handle_loaded_image(&self, image: Image, url: ServoUrl, cx: &mut js::context::JSContext) {
-        self.current_request.borrow_mut().metadata = Some(image.metadata());
-        self.current_request.borrow_mut().final_url = Some(url);
-        self.current_request.borrow_mut().image = Some(image);
-        self.current_request.borrow_mut().state = State::CompletelyAvailable;
+        {
+            let mut current_request = self.current_request.borrow_mut();
+            current_request.metadata = Some(image.metadata());
+            current_request.final_url = Some(url);
+            current_request.image = Some(image);
+            current_request.state = State::CompletelyAvailable;
+        }
+
+        self.pending_request.borrow_mut().clear();
+
         LoadBlocker::terminate(&self.current_request.borrow().blocker, cx);
         // Mark the node dirty
         self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
