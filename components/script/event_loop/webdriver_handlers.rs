@@ -26,6 +26,9 @@ use js::rust::wrappers2::{
 use js::rust::{HandleObject, HandleValue, IdVector};
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{DeleteCookie, DeleteCookies, GetCookiesForUrl, SetCookieForUrl};
+use script_bindings::codegen::GenericBindings::PermissionStatusBinding::{
+    PermissionName, PermissionState,
+};
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;
@@ -33,6 +36,7 @@ use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
 use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId};
+use webdriver::command::SetPermissionState;
 use webdriver::error::ErrorStatus;
 
 use crate::DomTypeHolder;
@@ -2230,5 +2234,44 @@ pub(crate) fn set_protocol_handler_automation_mode(
 ) {
     if let Some(document) = documents.find_document(pipeline) {
         document.set_protocol_handler_automation_mode(mode);
+    }
+}
+
+pub(crate) fn set_permission(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    name: String,
+    state: SetPermissionState,
+    reply: GenericOneshotSender<bool>,
+) {
+    let Ok(name) = name.parse::<PermissionName>() else {
+        if let Err(err) = reply.send(false) {
+            error!("SetPermission Failed to send reply: {err}");
+        }
+        return;
+    };
+    let state = match state {
+        SetPermissionState::Denied => PermissionState::Denied,
+        SetPermissionState::Granted => PermissionState::Granted,
+        SetPermissionState::Prompt => PermissionState::Prompt,
+    };
+
+    let Some(global) = documents.find_global(pipeline) else {
+        if let Err(err) = reply.send(false) {
+            error!("SetPermission Failed to send reply: {err}");
+        }
+        return;
+    };
+
+    global
+        .permission_state_invocation_results()
+        .borrow_mut()
+        .insert(name, state);
+
+    // TODO: dispatch "change" event.
+    // This is currently impossible because eventtarget is not registered.
+
+    if let Err(err) = reply.send(true) {
+        error!("SetPermission Failed to send reply: {err}");
     }
 }
