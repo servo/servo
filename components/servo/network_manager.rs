@@ -84,7 +84,7 @@ impl NetworkManager {
     }
 
     /// Set the network online state.
-    pub fn set_network_online_state(&self, online: bool) {
+    pub fn set_online_state(&self, online: bool) {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::SetNetworkOnlineState(
                 online,
