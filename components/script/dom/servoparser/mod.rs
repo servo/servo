@@ -1191,6 +1191,8 @@ impl ParserContext {
         parser.push_string_input_chunk(page);
         parser.parse_sync(cx);
         parser.tokenizer.set_plaintext_state();
+        // Step 3. Set document's mode to "no-quirks".
+        parser.document.set_quirks_mode(ServoQuirksMode::NoQuirks);
         // The first task that the networking task source places on the task queue while fetching
         // runs must process link headers given document, navigationParams's response, and "media",
         // after the task has been processed by the HTML parser.
@@ -1215,6 +1217,8 @@ impl ParserContext {
         let page = "<html><body></body></html>".into();
         parser.push_string_input_chunk(page);
         parser.parse_sync(cx);
+        // Step 2. Set document's mode to "no-quirks".
+        parser.document.set_quirks_mode(ServoQuirksMode::NoQuirks);
 
         let doc = &parser.document;
         // Step 5. Set the appropriate attribute of the element host element, as described below,
