@@ -1031,6 +1031,7 @@ impl Servo {
             network_manager: Rc::new(RefCell::new(NetworkManager::new(
                 public_resource_threads.clone(),
                 private_resource_threads.clone(),
+                constellation_proxy.clone(),
             ))),
             site_data_manager: SiteDataManager::new(
                 public_resource_threads,
@@ -1153,14 +1154,6 @@ impl Servo {
     /// Registers a [`WebXrRegistry`]
     pub fn register_webxr_registry(&self, registry: Box<dyn WebXrRegistry>) {
         self.0.paint.borrow().register_webxr_registry(registry);
-    }
-
-    pub fn report_online_changed(&self, online: bool) {
-        self.0
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::SetNetworkOnlineState(
-                online,
-            ));
     }
 }
 
