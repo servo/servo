@@ -7,7 +7,6 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_cx;
 
-use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMethods};
 use crate::dom::bindings::codegen::Bindings::TextTrackListBinding::TextTrackListMethods;
 use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
 use crate::dom::bindings::inheritance::Castable;
@@ -58,34 +57,6 @@ impl TextTrackList {
         )
     }
 
-    pub(crate) fn item(&self, idx: usize) -> Option<DomRoot<TextTrack>> {
-        self.dom_tracks
-            .borrow()
-            .get(idx)
-            .map(|t| DomRoot::from_ref(&**t))
-    }
-
-    pub(crate) fn find(&self, track: &TextTrack) -> Option<usize> {
-        self.dom_tracks
-            .borrow()
-            .iter()
-            .enumerate()
-            .find(|(_, t)| **t == track)
-            .map(|(i, _)| i)
-    }
-
-    pub(crate) fn tracks_for_kinds(
-        &self,
-        text_track_kinds: Vec<TextTrackKind>,
-    ) -> Vec<DomRoot<TextTrack>> {
-        self.dom_tracks
-            .borrow()
-            .iter()
-            .filter(|track| text_track_kinds.contains(&track.Kind()))
-            .map(|track| DomRoot::from_ref(&**track))
-            .collect()
-    }
-
     pub(crate) fn notify_media_element_for_added_cue(
         &self,
         cx: &mut JSContext,
@@ -95,11 +66,13 @@ impl TextTrackList {
     }
 
     pub(crate) fn add(&self, cx: &mut JSContext, track: &TextTrack) {
-        // Only add a track if it does not exist in the list
-        if self.find(track).is_some() {
-            return;
+        // We should only store the tracks created by `addTextTrack`
+        // since the iterator already traverses children of a media
+        // element for <track> elements. Otherwise, we would be double
+        // counting.
+        if track.associated_track().is_none() {
+            self.dom_tracks.borrow_mut().push(Dom::from_ref(track));
         }
-        self.dom_tracks.borrow_mut().push(Dom::from_ref(track));
 
         track.add_track_list(self);
         self.media_element
@@ -130,10 +103,14 @@ impl TextTrackList {
     }
 
     pub(crate) fn remove(&self, track: &TextTrack) {
-        let Some(idx) = self.find(track) else {
-            return;
+        if let Some(idx) = self
+            .dom_tracks
+            .borrow()
+            .iter()
+            .position(|dom_track| &**dom_track == track)
+        {
+            self.dom_tracks.borrow_mut().remove(idx);
         };
-        self.dom_tracks.borrow_mut().remove(idx);
         track.remove_track_list();
 
         let this = Trusted::new(self);
@@ -160,15 +137,21 @@ impl TextTrackList {
             }));
     }
 
-    pub(crate) fn iter(&self) -> TextTrackListIterator {
+    pub(crate) fn iter<'a>(&'a self) -> TextTrackListIterator<'a> {
         TextTrackListIterator {
-            track_elements: self
-                .media_element
-                .upcast::<Node>()
-                .children()
-                .filter_map(DomRoot::downcast::<HTMLTrackElement>)
-                .collect(),
-            current_track_element_index: 0,
+            track_elements: Box::new(
+                self.media_element
+                    .upcast::<Node>()
+                    .children()
+                    .filter_map(DomRoot::downcast::<HTMLTrackElement>),
+            ),
+            dom_tracks: Box::new(
+                self.dom_tracks
+                    .borrow()
+                    .clone()
+                    .into_iter()
+                    .map(|track| track.as_rooted()),
+            ),
         }
     }
 }
@@ -176,22 +159,27 @@ impl TextTrackList {
 impl TextTrackListMethods<crate::DomTypeHolder> for TextTrackList {
     /// <https://html.spec.whatwg.org/multipage/#dom-texttracklist-length>
     fn Length(&self) -> u32 {
-        self.dom_tracks.borrow().len() as u32
+        // > The length attribute of a TextTrackList object must return
+        // > the number of text tracks in the list represented by the TextTrackList object.
+        self.iter().count() as u32
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttracklist-item>
     fn IndexedGetter(&self, idx: u32) -> Option<DomRoot<TextTrack>> {
-        self.item(idx as usize)
+        // > To determine the value of an indexed property of a TextTrackList object
+        // > for a given index index, the user agent must return the indexth
+        // > text track in the list represented by the TextTrackList object.
+        self.iter().nth(idx as usize)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttracklist-gettrackbyid>
     fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<TextTrack>> {
+        // > The getTrackById(id) method must return the first TextTrack in
+        // > the TextTrackList object whose id IDL attribute would return
+        // > a value equal to the value of the id argument.
+        // > When no tracks match the given argument, the method must return null.
         let id_str = String::from(id);
-        self.dom_tracks
-            .borrow()
-            .iter()
-            .find(|track| track.id() == id_str)
-            .map(|t| DomRoot::from_ref(&**t))
+        self.iter().find(|track| track.id() == id_str)
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-texttracklist-onchange
@@ -205,24 +193,25 @@ impl TextTrackListMethods<crate::DomTypeHolder> for TextTrackList {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#list-of-text-tracks>
-pub(crate) struct TextTrackListIterator {
-    track_elements: Vec<DomRoot<HTMLTrackElement>>,
-    current_track_element_index: usize,
+pub(crate) struct TextTrackListIterator<'a> {
+    track_elements: Box<dyn Iterator<Item = DomRoot<HTMLTrackElement>> + 'a>,
+    dom_tracks: Box<dyn Iterator<Item = DomRoot<TextTrack>> + 'a>,
 }
 
-impl Iterator for TextTrackListIterator {
+impl<'a> Iterator for TextTrackListIterator<'a> {
     type Item = DomRoot<TextTrack>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // > The text tracks are sorted as follows:
         // Step 1. The text tracks corresponding to track element children of the media element, in tree order.
-        if let Some(track_element) = self.track_elements.get(self.current_track_element_index) {
-            self.current_track_element_index += 1;
+        if let Some(track_element) = self.track_elements.next() {
             return Some(track_element.track());
         }
         // Step 2. Any text tracks added using the addTextTrack() method,
         // in the order they were added, oldest first.
-        // TODO
+        if let Some(dom_track) = self.dom_tracks.next() {
+            return Some(dom_track);
+        }
         // Step 3. Any media-resource-specific text tracks
         // (text tracks corresponding to data in the media resource),
         // in the order defined by the media resource's format specification.

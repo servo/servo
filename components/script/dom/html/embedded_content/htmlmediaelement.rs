@@ -622,11 +622,6 @@ pub(crate) struct HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
     /// was last invoked (if any)
     position_when_time_marches_on_ran: Cell<Option<f64>>,
-    /// Used to track whether the only reason
-    /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
-    /// was called, because it was called as a normal monotic increase.
-    #[no_trace]
-    playback_was_moved: Cell<PlaybackPositionWasMoved>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-newly-introduced-cues>
     newly_introduced_cues: DomRefCell<Vec<Dom<TextTrackCue>>>,
 }
@@ -724,7 +719,6 @@ impl HTMLMediaElement {
             media_controls_id: DomRefCell::new(None),
             did_perform_automatic_track_selection: Default::default(),
             position_when_time_marches_on_ran: Default::default(),
-            playback_was_moved: Default::default(),
             newly_introduced_cues: Default::default(),
         }
     }
@@ -797,8 +791,7 @@ impl HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
     fn time_marches_on(&self, cx: &mut JSContext, playback_was_moved: PlaybackPositionWasMoved) {
         let playback_was_moved_monotonic_increase =
-            self.playback_was_moved.get() == PlaybackPositionWasMoved::NormalPlayback;
-        self.playback_was_moved.set(playback_was_moved);
+            playback_was_moved == PlaybackPositionWasMoved::NormalPlayback;
         // Step 1. Let current cues be a list of cues,
         // initialized to contain all the cues of all the hidden or
         // showing text tracks of the media element (not the disabled ones)
@@ -916,9 +909,7 @@ impl HTMLMediaElement {
         let mut prepare_an_event =
             |time: f64, event: Atom, text_track_cue: DomRoot<TextTrackCue>| {
                 // Step 1. Let track be the text track with which the text track cue target is associated.
-                let track = text_track_cue
-                    .get_track()
-                    .expect("Must always have a corresponding track element");
+                let track = text_track_cue.get_track();
                 // Step 2. Create a task to fire an event named event at target.
                 //
                 // We create the task in the for-loops below
@@ -927,7 +918,9 @@ impl HTMLMediaElement {
                 // the text track track, and the text track cue target.
                 events.push((time, (event, text_track_cue)));
                 // Step 4. Add track to affected tracks.
-                affected_tracks.push(track);
+                if let Some(track) = track {
+                    affected_tracks.push(track);
+                }
             };
 
         // Step 10. For each text track cue in missed cues,
@@ -1059,7 +1052,7 @@ impl HTMLMediaElement {
             // false and run the time marches on steps.
             if self.show_poster.get() {
                 self.show_poster.set(false);
-                self.time_marches_on(cx, PlaybackPositionWasMoved::ExplicitMove);
+                self.time_marches_on(cx, PlaybackPositionWasMoved::NormalPlayback);
             }
 
             // Step 3.3. Queue a media element task given the media element to fire an event named
@@ -1293,7 +1286,7 @@ impl HTMLMediaElement {
                 // time marches on steps.
                 if self.show_poster.get() {
                     self.show_poster.set(false);
-                    self.time_marches_on(cx, PlaybackPositionWasMoved::ExplicitMove);
+                    self.time_marches_on(cx, PlaybackPositionWasMoved::NormalPlayback);
                 }
 
                 // Step 3. Queue a media element task given the element to fire an event named play
@@ -3340,7 +3333,11 @@ impl HTMLMediaElement {
         let Some(text_tracks_list) = self.text_tracks_list.get() else {
             return;
         };
-        let candidates = text_tracks_list.tracks_for_kinds(text_track_kinds);
+        let candidates: Vec<DomRoot<TextTrack>> = text_tracks_list
+            .iter()
+            .filter(|track| text_track_kinds.contains(&track.Kind()))
+            .map(|track| DomRoot::from_ref(&*track))
+            .collect();
         // Step 2. If candidates is empty, then return.
         if candidates.is_empty() {
             return;
