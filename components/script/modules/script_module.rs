@@ -367,6 +367,29 @@ impl ModuleTree {
         script
     }
 
+    #[expect(unsafe_code)]
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-text-module-script>
+    fn create_a_text_module_script(cx: &mut CurrentRealm, source: &str) -> Self {
+        // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
+        // Step 4. Set script's parse error and error to rethrow to null.
+        let script = ModuleTree::default();
+
+        // Step 2. Set script's settings object to settings.
+        // Step 3. Set script's base URL and fetch options to null.
+        // Note: We don't need to call `SetModulePrivate` for text modules.
+
+        // Step 5. Let result be CreateTextModule(text).
+        rooted!(&in(cx) let mut text = UndefinedValue());
+        source.to_jsval(cx, text.handle_mut());
+        rooted!(&in(cx) let result = unsafe { CreateDefaultExportSyntheticModule(cx, text.handle()) });
+
+        // Step 6. Set script's record to result.
+        let _ = script.record.set(ModuleObject::new(result.handle()));
+
+        // Step 7. Return script.
+        script
+    }
+
     /// Execute the provided module, storing the evaluation return value in the provided
     /// mutable handle.
     #[expect(unsafe_code)]
@@ -692,10 +715,14 @@ impl FetchResponseListener for ModuleContext {
             // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
             let (mut source_text, _) = UTF_8.decode_with_bom_removal(&self.data);
 
-            // TODO Step 7.2. If moduleType is "text", then set moduleScript to the result of
-            // creating a text module script given sourceText and settingsObject.
-
             match module_type {
+                // Step 7.2. If moduleType is "text", then set moduleScript to the result of
+                // creating a text module script given sourceText and settingsObject.
+                ModuleType::Text => {
+                    let module_tree =
+                        Rc::new(ModuleTree::create_a_text_module_script(cx, &source_text));
+                    module_script = Some(module_tree);
+                },
                 // Step 7.3. If mimeType is a JavaScript MIME type and moduleType is
                 // "javascript-or-wasm", then set moduleScript to the result of creating a JavaScript
                 // module script given sourceText, settingsObject, response's URL, and options.
