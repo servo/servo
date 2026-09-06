@@ -84,6 +84,7 @@ mod from_embedder {
                 Self::ClearSessionHistory(..) => target!("ClearHistory"),
                 Self::OnlineChanged(..) => target!("OnlineChanged"),
                 Self::SetOnlineStatus(..) => target!("OnlineChanged"),
+                Self::SetNetworkOnlineState(..) => target!("OnlineChanged"),
             }
         }
     }

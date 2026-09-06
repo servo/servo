@@ -1958,7 +1958,7 @@ impl ScriptThread {
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(cx, GCReason::API);
             },
-            ScriptThreadMessage::SetNetworkOnlineStatus(is_online) => {
+            ScriptThreadMessage::SetNetworkOnlineState(is_online) => {
                 self.handle_network_status(is_online, cx);
             },
         }
