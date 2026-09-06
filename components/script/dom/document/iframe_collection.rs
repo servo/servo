@@ -84,6 +84,10 @@ impl IFrameCollection {
             .and_then(|index| self.iframes.remove(index).size)
     }
 
+    pub(crate) fn at_index(&self, index: usize) -> Option<&IFrame> {
+        self.iframes.get(index)
+    }
+
     pub(crate) fn get(&self, browsing_context_id: BrowsingContextId) -> Option<&IFrame> {
         self.iframes
             .iter()
