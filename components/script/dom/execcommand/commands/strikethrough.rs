@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
+use script_bindings::str::DOMString;
 
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
@@ -17,8 +18,8 @@ pub(crate) fn execute_strikethrough_command(
 ) -> bool {
     // > If queryCommandState("strikethrough") returns true, set the selection's value to null.
     // > Otherwise set the selection's value to "line-through". Either way, return true.
-    let value = (!document.command_state_for_command(cx, "strikethrough".into()))
-        .then_some("line-through".into());
+    let value = (!document.command_state_for_command(cx, DOMString::from_static("strikethrough")))
+        .then_some(DOMString::from_static("line-through"));
     selection.set_the_selection_value(cx, value, CommandName::Strikethrough, document);
 
     true

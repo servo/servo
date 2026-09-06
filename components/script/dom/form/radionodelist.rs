@@ -105,7 +105,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
                 })
             })
             // Step 2
-            .unwrap_or(DOMString::from(""))
+            .unwrap_or(DOMString::new())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-radionodelist-value>

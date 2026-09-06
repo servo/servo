@@ -572,7 +572,7 @@ impl HTMLScriptElement {
     fn has_render_blocking_attribute(&self) -> bool {
         self.blocking
             .get()
-            .is_some_and(|list| list.Contains("render".into()))
+            .is_some_and(|list| list.Contains(DOMString::from_static("render")))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
