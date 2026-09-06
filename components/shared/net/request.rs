@@ -964,11 +964,15 @@ impl Request {
         matches!(
             self.destination,
             Destination::Audio |
+                Destination::AudioWorklet |
                 Destination::Font |
                 Destination::Image |
+                Destination::Json |
                 Destination::Manifest |
+                Destination::PaintWorklet |
                 Destination::Script |
                 Destination::Style |
+                Destination::Text |
                 Destination::Track |
                 Destination::Video |
                 Destination::Xslt |

@@ -69,6 +69,7 @@ enum RequestDestination {
   "script",
   "sharedworker",
   "style",
+  "text",
   "track",
   "video",
   "worker",

@@ -193,6 +193,7 @@ pub(crate) fn set_default_accept(request: &mut Request) {
             },
             Destination::Json => HeaderValue::from_static("application/json,*/*;q=0.5"),
             Destination::Style => HeaderValue::from_static("text/css,*/*;q=0.1"),
+            Destination::Text => HeaderValue::from_static("text/plain,*/*;q=0.5"),
             // Step 11.1. Let value be `*/*`.
             _ => HeaderValue::from_static("*/*"),
         }
