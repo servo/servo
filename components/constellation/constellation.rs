@@ -129,6 +129,7 @@ use paint_api::{
     PaintMessage, PaintProxy, PinchZoomInfos, PipelineExitSource, SendableFrameTree,
     WebRenderExternalImageIdManager,
 };
+use pixels::image_encoder_decoder_factory::ImageEncoderDecoderFactory;
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use rand::rngs::SmallRng;
@@ -513,6 +514,9 @@ pub struct Constellation<STF, SWF> {
     /// to the `UserContents` need to be forwared to all the `ScriptThread`s that host
     /// the relevant `WebView`.
     pub(crate) user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
+
+    /// The [`ImageEncoderDecoder Factory`] to use for image encoding and decoding.
+    pub(crate) image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
 
 /// State needed to construct a constellation.
@@ -577,6 +581,9 @@ pub struct InitialConstellationState {
 
     /// The wake lock provider for acquiring and releasing OS-level screen wake locks.
     pub wake_lock_provider: Box<dyn WakeLockDelegate>,
+
+    /// The [`ImageEncoderDecoder Factory`] for image encoding and decoding.
+    pub image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
 
 /// When we are exiting a pipeline, we can either force exiting or not. A normal exit
@@ -730,8 +737,10 @@ where
                     privileged_urls: state.privileged_urls,
                     image_cache_factory: Arc::new(ImageCacheFactoryImpl::new(
                         broken_image_icon_data,
+                        state.image_encoder_decoder_factory.clone(),
                     )),
                     user_contents_for_manager_id: Default::default(),
+                    image_encoder_decoder_factory: state.image_encoder_decoder_factory,
                 };
 
                 constellation.run();
