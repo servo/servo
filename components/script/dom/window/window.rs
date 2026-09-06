@@ -2256,9 +2256,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     fn RunningAnimationCount(&self) -> u32 {
-        self.document
-            .get()
-            .map_or(0, |d| d.animations().running_animation_count() as u32)
+        self.document.get().map_or(0, |d| {
+            d.animation_manager().running_animation_count() as u32
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-name>
@@ -2731,8 +2731,8 @@ impl Window {
             origin: self.origin().immutable().clone(),
             reflow_goal,
             animation_timeline_value: document.current_animation_timeline_value(),
-            animations: document.animations().sets.clone(),
-            animating_images: document.image_animation_manager().animating_images(),
+            animations: document.animation_manager().sets(),
+            animating_images: document.animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
             halt_lcp: self.has_dispatched_scroll_event.get() ||
                 self.has_dispatched_input_event.get(),
@@ -2960,7 +2960,7 @@ impl Window {
         self.layout_reflow(QueryMsg::ResolvedFontStyleQuery);
 
         let document = self.Document();
-        let animations = document.animations().sets.clone();
+        let animations = document.animation_manager().sets();
         self.layout.borrow().query_resolved_font_style(
             node.to_trusted_node_address(),
             &value,
@@ -3129,7 +3129,7 @@ impl Window {
         self.layout_reflow(QueryMsg::ResolvedStyleQuery(property.clone()));
 
         let document = self.Document();
-        let animations = document.animations().sets.clone();
+        let animations = document.animation_manager().sets();
         DOMString::from(self.layout.borrow().query_resolved_style(
             element,
             pseudo,

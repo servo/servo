@@ -1246,7 +1246,7 @@ impl ScriptThread {
         let running_animations = self.documents.borrow().iter().any(|(_, document)| {
             document.is_fully_active() &&
                 !document.window().throttled() &&
-                (document.animations().running_animation_count() != 0 ||
+                (document.animation_manager().running_animation_count() != 0 ||
                     document.has_active_request_animation_frame_callbacks())
         });
 
@@ -3188,7 +3188,7 @@ impl ScriptThread {
 
             // Clear any active animations and unroot all of the associated DOM objects.
             debug!("{pipeline_id}: Clearing animations");
-            document.animations().clear();
+            document.animation_manager().clear();
 
             if !document.window_detached() {
                 // We discard the browsing context after requesting layout shut down,
