@@ -787,3 +787,268 @@ fn test_svg_not_rasterize_zero_size() {
             .is_none()
     );
 }
+
+/// A generated 1000 x 500 BMP keeps the tests independent of external resources.
+fn large_static_bmp() -> Vec<u8> {
+    let width = 1000u32;
+    let height = 500u32;
+    let length = 54 + width * height * 3;
+    let mut bytes = vec![0; length as usize];
+    bytes[..2].copy_from_slice(b"BM");
+    bytes[2..6].copy_from_slice(&length.to_le_bytes());
+    bytes[10..14].copy_from_slice(&54u32.to_le_bytes());
+    bytes[14..18].copy_from_slice(&40u32.to_le_bytes());
+    bytes[18..22].copy_from_slice(&width.to_le_bytes());
+    bytes[22..26].copy_from_slice(&height.to_le_bytes());
+    bytes[26..28].copy_from_slice(&1u16.to_le_bytes());
+    bytes[28..30].copy_from_slice(&24u16.to_le_bytes());
+    for pixel in bytes[54..].chunks_exact_mut(3) {
+        pixel.copy_from_slice(&[0, 0, 255]);
+    }
+    bytes
+}
+
+fn static_test_cache() -> (Arc<dyn ImageCache>, Receiver<PaintMessage>) {
+    let (sender, receiver) = unbounded();
+    let paint_api = CrossProcessPaintApi::dummy_with_callback(Some(Box::new(move |message| {
+        let _ = sender.send(message);
+    })));
+    let cache = ImageCacheFactoryImpl::new(vec![]).create(
+        TEST_WEBVIEW_ID,
+        TEST_PIPELINE_ID,
+        &paint_api,
+        Arc::new(DummyFontResolver),
+    );
+    (cache, receiver)
+}
+
+fn load_static_test_image(
+    cache: &Arc<dyn ImageCache>,
+) -> (PendingImageId, net_traits::image_cache::Image) {
+    let url = ServoUrl::parse("http://example.com/static.bmp").unwrap();
+    let ImageCacheResult::ReadyForRequest(id) =
+        cache.get_cached_image_status(url, mock_origin(), None)
+    else {
+        panic!("expected a new load");
+    };
+    let (sender, receiver) = unbounded();
+    cache.add_listener(create_test_listener(id, sender));
+    cache.notify_pending_response(
+        id,
+        FetchResponseMsg::ProcessResponse(create_request_id(), Ok(create_test_metadata(None))),
+    );
+    cache.notify_pending_response(
+        id,
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), large_static_bmp().into()),
+    );
+    cache.notify_pending_response(
+        id,
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
+    );
+    loop {
+        match receiver.recv_timeout(Duration::from_secs(10)).unwrap() {
+            ImageResponse::MetadataLoaded(_) => {},
+            ImageResponse::Loaded(image, _) => return (id, image),
+            ImageResponse::FailedToLoadOrDecode => panic!("valid BMP failed to load"),
+        }
+    }
+}
+
+fn supply_static_test_keys(cache: &Arc<dyn ImageCache>) {
+    cache.dispatch_fill_key_cache_with_batch_of_keys(
+        (0..10)
+            .map(|id| ImageKey::new(webrender_api::IdNamespace(123), id))
+            .collect(),
+    );
+}
+
+fn set_static_test_sizes(cache: &Arc<dyn ImageCache>, id: PendingImageId, widths: &[i32]) {
+    cache.set_static_raster_demands(
+        widths
+            .iter()
+            .map(|width| {
+                (
+                    id,
+                    webrender_api::units::DeviceIntSize::new(*width, *width / 2),
+                )
+            })
+            .collect(),
+        Box::new(|_| {}),
+    );
+}
+
+fn next_static_upload(receiver: &Receiver<PaintMessage>) -> (ImageKey, i32, i32, bool) {
+    use paint_api::ImageUpdate;
+    loop {
+        if let PaintMessage::UpdateImages(_, updates) =
+            receiver.recv_timeout(Duration::from_secs(10)).unwrap()
+        {
+            for update in updates {
+                match update {
+                    ImageUpdate::AddImage(key, descriptor, _, _) => {
+                        return (key, descriptor.size.width, descriptor.size.height, true);
+                    },
+                    ImageUpdate::UpdateImage(key, descriptor, _, _) => {
+                        return (key, descriptor.size.width, descriptor.size.height, false);
+                    },
+                    _ => panic!("unexpected image update"),
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn static_display_waits_for_layout_and_preserves_source_pixels() {
+    let (cache, receiver) = static_test_cache();
+    let (id, image) = load_static_test_image(&cache);
+    assert!(matches!(
+        image,
+        net_traits::image_cache::Image::StaticRaster(_)
+    ));
+    assert!(
+        receiver.try_recv().is_err(),
+        "loading alone must not request a WebRender key"
+    );
+    assert!(cache.static_raster_image_key(id).is_none());
+    let original = image.as_raster_image().unwrap();
+    assert_eq!(
+        original.metadata,
+        pixels::ImageMetadata {
+            width: 1000,
+            height: 500
+        }
+    );
+    assert_eq!(original.bytes.len(), 1000 * 500 * 4);
+    assert!(original.id.is_none());
+
+    supply_static_test_keys(&cache);
+    set_static_test_sizes(&cache, id, &[300]);
+    let (key, width, height, added) = next_static_upload(&receiver);
+    assert_eq!((width, height, added), (300, 150, true));
+    assert_eq!(cache.static_raster_image_key(id), Some(key));
+    assert_eq!(image.metadata(), original.metadata);
+    cache.clear();
+}
+
+#[test]
+fn static_display_shares_largest_use_and_applies_resize_thresholds() {
+    let (cache, receiver) = static_test_cache();
+    let (id, _) = load_static_test_image(&cache);
+    supply_static_test_keys(&cache);
+    set_static_test_sizes(&cache, id, &[100, 300]);
+    let (key, width, height, _) = next_static_upload(&receiver);
+    assert_eq!((width, height), (300, 150));
+
+    // Exactly 120% and exactly 50% reuse the existing decode.
+    for width in [360, 150] {
+        set_static_test_sizes(&cache, id, &[width]);
+        assert!(receiver.recv_timeout(Duration::from_millis(100)).is_err());
+    }
+    set_static_test_sizes(&cache, id, &[362]);
+    assert_eq!(next_static_upload(&receiver), (key, 600, 300, false));
+    set_static_test_sizes(&cache, id, &[100, 298]);
+    assert_eq!(next_static_upload(&receiver), (key, 298, 149, false));
+    // Removing the largest use permits a further shrink.
+    set_static_test_sizes(&cache, id, &[100]);
+    assert_eq!(next_static_upload(&receiver), (key, 100, 50, false));
+    // A large jump is satisfied directly, capped at the original size.
+    set_static_test_sizes(&cache, id, &[1500]);
+    assert_eq!(next_static_upload(&receiver), (key, 1000, 500, false));
+
+    set_static_test_sizes(&cache, id, &[]);
+    assert!(cache.static_raster_image_key(id).is_none());
+    let PaintMessage::UpdateImages(_, updates) =
+        receiver.recv_timeout(Duration::from_secs(10)).unwrap()
+    else {
+        panic!("expected resource deletion");
+    };
+    assert!(
+        matches!(&updates[..], [paint_api::ImageUpdate::DeleteImage(deleted)] if *deleted == key)
+    );
+    cache.clear();
+}
+
+#[test]
+fn static_display_discards_obsolete_results_waiting_for_keys() {
+    let (cache, receiver) = static_test_cache();
+    let (id, _) = load_static_test_image(&cache);
+    set_static_test_sizes(&cache, id, &[100]);
+    assert!(matches!(
+        receiver.recv_timeout(Duration::from_secs(10)).unwrap(),
+        PaintMessage::GenerateImageKeysForPipeline(_, _)
+    ));
+    // The 100px decode is now queued, with no WebRender key. Replace the demand
+    // before allowing either result to be uploaded.
+    set_static_test_sizes(&cache, id, &[400]);
+    supply_static_test_keys(&cache);
+    let (_, width, height, _) = next_static_upload(&receiver);
+    assert_eq!((width, height), (400, 200));
+    cache.clear();
+}
+
+#[test]
+fn static_display_clear_cancels_results_waiting_for_keys() {
+    let (cache, receiver) = static_test_cache();
+    let (id, _) = load_static_test_image(&cache);
+    set_static_test_sizes(&cache, id, &[100]);
+    assert!(matches!(
+        receiver.recv_timeout(Duration::from_secs(10)).unwrap(),
+        PaintMessage::GenerateImageKeysForPipeline(_, _)
+    ));
+    cache.clear();
+    supply_static_test_keys(&cache);
+    assert!(cache.static_raster_image_key(id).is_none());
+    assert!(receiver.recv_timeout(Duration::from_millis(100)).is_err());
+}
+
+#[test]
+fn static_display_completion_tracks_the_current_generation() {
+    let (cache, paint_receiver) = static_test_cache();
+    let (id, _) = load_static_test_image(&cache);
+    let (sender, receiver) = unbounded();
+    let demand = vec![(id, webrender_api::units::DeviceIntSize::new(300, 150))];
+    let callback_sender = sender.clone();
+    let statuses = cache.set_static_raster_demands(
+        demand.clone(),
+        Box::new(move |message| {
+            let _ = callback_sender.send(message);
+        }),
+    );
+    assert_eq!(statuses.len(), 1);
+    assert_eq!(statuses[0].id, id);
+    assert!(statuses[0].pending);
+    let generation = statuses[0].generation;
+    assert!(matches!(
+        paint_receiver
+            .recv_timeout(Duration::from_secs(10))
+            .unwrap(),
+        PaintMessage::GenerateImageKeysForPipeline(_, _)
+    ));
+    // Register a fresh callback while the decoded result waits for a key.
+    let statuses = cache.set_static_raster_demands(
+        demand.clone(),
+        Box::new(move |message| {
+            let _ = sender.send(message);
+        }),
+    );
+    assert_eq!(statuses[0].generation, generation);
+    assert!(statuses[0].pending);
+    supply_static_test_keys(&cache);
+    assert!(
+        matches!(receiver.recv_timeout(Duration::from_secs(10)).unwrap(),
+        ImageCacheResponseMessage::StaticRasterImageReady(TEST_PIPELINE_ID, completed_id, completed_generation)
+        if completed_id == id && completed_generation == generation)
+    );
+    let statuses = cache.set_static_raster_demands(demand, Box::new(|_| {}));
+    assert_eq!(statuses[0].generation, generation);
+    assert!(!statuses[0].pending);
+    // Zero-sized uses release the display decode and have no pending callback.
+    let statuses = cache.set_static_raster_demands(
+        vec![(id, webrender_api::units::DeviceIntSize::zero())],
+        Box::new(|_| {}),
+    );
+    assert!(statuses.is_empty());
+    assert!(cache.static_raster_image_key(id).is_none());
+    cache.clear();
+}
