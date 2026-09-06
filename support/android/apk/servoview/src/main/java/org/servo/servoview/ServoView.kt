@@ -35,12 +35,13 @@ class ServoView(
         isClickable = true
         addTouchables(arrayListOf(this))
         glThread = GLThread()
-        val surfaceHolderCallback = SurfaceHolderCallback(
-            servoView = this,
-            client = client,
-            servoArgs = servoArgs,
-            servoLog = servoLog,
-        )
+        val surfaceHolderCallback =
+            SurfaceHolderCallback(
+                servoView = this,
+                client = client,
+                servoArgs = servoArgs,
+                servoLog = servoLog,
+            )
         holder.addCallback(surfaceHolderCallback)
         glThread.start()
     }
@@ -79,9 +80,11 @@ class ServoView(
         val y = motionEvent.getY(pointerIndex)
 
         when (action) {
-            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> servo!!.touchDown(x, y, pointerId)
+            MotionEvent.ACTION_DOWN,
+            MotionEvent.ACTION_POINTER_DOWN -> servo!!.touchDown(x, y, pointerId)
             MotionEvent.ACTION_MOVE -> servo!!.touchMove(x, y, pointerId)
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> servo!!.touchUp(x, y, pointerId)
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_POINTER_UP -> servo!!.touchUp(x, y, pointerId)
             MotionEvent.ACTION_CANCEL -> servo!!.touchCancel(x, y, pointerId)
         }
 
@@ -162,18 +165,19 @@ class ServoView(
             val surface = holder.surface
 
             if (servoView.servo == null && !paused) {
-                servoView.servo = Servo(
-                    servoArgs,
-                    servoView.initialUri,
-                    size,
-                    servoView.resources.displayMetrics.density,
-                    servoLog,
-                    servoView.experimentalMode,
-                    servoView,
-                    client,
-                    servoView.context,
-                    surface,
-                )
+                servoView.servo =
+                    Servo(
+                        servoArgs,
+                        servoView.initialUri,
+                        size,
+                        servoView.resources.displayMetrics.density,
+                        servoLog,
+                        servoView.experimentalMode,
+                        servoView,
+                        client,
+                        servoView.context,
+                        surface,
+                    )
             } else {
                 paused = false
                 servoView.servo!!.resumePainting(surface, size)

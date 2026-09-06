@@ -9,9 +9,7 @@ import android.content.Context
 import android.util.Size
 import android.view.Surface
 
-/**
- * Maps /ports/servoshell API
- */
+/** Maps /ports/servoshell API */
 internal class JNIServo {
     init {
         System.loadLibrary("c++_shared")

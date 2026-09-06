@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import os.path as path
+import re
 import shutil
 import subprocess
 import sys
@@ -46,6 +47,7 @@ SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
+APK_DIR = os.path.join(PROJECT_TOPLEVEL_PATH, "support", "android", "apk")
 
 # Servo depends on several `rustfmt` options that are unstable. These are still
 # supported by stable `rustfmt` if they are passed as these command-line arguments.
@@ -101,6 +103,34 @@ def format_python_files_with_ruff(check_only: bool = True) -> int:
         return call([ruff, "format", "--check", "--quiet"])
     else:
         return call([ruff, "format", "--quiet"])
+
+
+def format_kotlin_files_with_ktfmt(check_only: bool = True) -> int:
+    git = shutil.which("git")
+    if git is None:
+        print("Could not find 'git'.")
+        return 1
+
+    is_ci = os.getenv("CI") == "true"
+
+    output = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True).stdout
+
+    kotlin_modified = False
+    for line in output.splitlines():
+        if re.search(r"\.kts?$", line):
+            kotlin_modified = True
+            break
+
+    ktfmt_args = {"cwd": APK_DIR, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+
+    # skip ktfmt when kotlin files are not modified
+    if kotlin_modified or is_ci:
+        if check_only:
+            return call(["./gradlew", "ktfmtCheck"], **ktfmt_args)
+        else:
+            return call(["./gradlew", "ktfmtFormat"], **ktfmt_args)
+    else:
+        return 0
 
 
 def format_with_rustfmt(check_only: bool = True) -> int:
@@ -328,7 +358,10 @@ class MachCommands(CommandBase):
         print("\r ➤  Checking formatting of toml files...")
         taplo_failed = format_toml_files_with_taplo()
 
-        format_failed = rustfmt_failed or ruff_format_failed or taplo_failed
+        print("\r ➤  Checking formatting of kotlin files...")
+        ktfmt_failed = format_kotlin_files_with_ktfmt()
+
+        format_failed = rustfmt_failed or ruff_format_failed or taplo_failed or ktfmt_failed
         tidy_failed = format_failed or tidy_failed or coauthors_failed
         print()
         if tidy_failed:
@@ -522,6 +555,10 @@ class MachCommands(CommandBase):
                 return result
 
             result = format_toml_files_with_taplo(check_only=False)
+            if result != 0:
+                return result
+
+            result = format_kotlin_files_with_ktfmt(check_only=False)
             if result != 0:
                 return result
 
