@@ -30,7 +30,7 @@ impl PerformancePaintTiming {
             ProgressiveWebMetricType::FirstContentfulPaint => {
                 DOMString::from_static("first-contentful-paint")
             },
-            _ => DOMString::from(""),
+            _ => DOMString::new(),
         };
         PerformancePaintTiming {
             entry: PerformanceEntry::new_inherited(

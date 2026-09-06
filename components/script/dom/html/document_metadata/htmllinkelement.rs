@@ -211,7 +211,7 @@ impl HTMLLinkElement {
                     cx,
                     &self.owner_window(),
                     Some(self.upcast::<Element>()),
-                    "text/css".into(),
+                    DOMString::from_static("text/css"),
                     Some(self.Href().into()),
                     None, // todo handle title
                     sheet,
@@ -1112,11 +1112,14 @@ impl StylesheetOwner for HTMLLinkElement {
         self.parser_inserted() ||
             self.blocking
                 .get()
-                .is_some_and(|list| list.Contains("render".into()))
+                .is_some_and(|list| list.Contains(DOMString::from_static("render")))
     }
 
     fn referrer_policy(&self, cx: &mut js::context::JSContext) -> ReferrerPolicy {
-        if self.RelList(cx).Contains("noreferrer".into()) {
+        if self
+            .RelList(cx)
+            .Contains(DOMString::from_static("noreferrer"))
+        {
             return ReferrerPolicy::NoReferrer;
         }
 

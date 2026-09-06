@@ -390,7 +390,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             window,
             proto,
             None, // owner
-            "text/css".into(),
+            DOMString::from_static("text/css"),
             None, // href
             None, // title
             stylesheet,

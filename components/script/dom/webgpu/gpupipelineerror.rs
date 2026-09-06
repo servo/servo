@@ -25,7 +25,10 @@ pub(crate) struct GPUPipelineError {
 impl GPUPipelineError {
     fn new_inherited(message: DOMString, reason: GPUPipelineErrorReason) -> Self {
         Self {
-            exception: DOMException::new_inherited(message, "GPUPipelineError".into()),
+            exception: DOMException::new_inherited(
+                message,
+                DOMString::from_static("GPUPipelineError"),
+            ),
             reason,
         }
     }

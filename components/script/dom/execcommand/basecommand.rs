@@ -308,7 +308,7 @@ impl CssPropertyName {
     ) {
         let style = element.Style(cx);
 
-        let _ = style.SetProperty(cx, self.property_name(), new_value, "".into());
+        let _ = style.SetProperty(cx, self.property_name(), new_value, DOMString::new());
     }
 
     pub(crate) fn remove_from_element(&self, cx: &mut JSContext, element: &HTMLElement) {

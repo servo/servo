@@ -39,7 +39,10 @@ impl QuotaExceededError {
         requested: Option<Finite<f64>>,
     ) -> Self {
         Self {
-            dom_exception: DOMException::new_inherited(message, "QuotaExceededError".into()),
+            dom_exception: DOMException::new_inherited(
+                message,
+                DOMString::from_static("QuotaExceededError"),
+            ),
             quota,
             requested,
         }
