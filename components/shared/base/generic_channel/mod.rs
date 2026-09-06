@@ -8,6 +8,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::panic::Location;
+#[cfg(feature = "multiprocess")]
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -18,7 +19,6 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use servo_config::opts;
 
 mod callback;
 pub use callback::GenericCallback;
@@ -34,13 +34,20 @@ mod buffered;
 pub use buffered::GenericBufferedSender;
 
 /// Cache for being in Ipc Mode
+#[cfg(feature = "multiprocess")]
 static USE_IPC: OnceLock<bool> = OnceLock::new();
 
 /// Return if we should be in IPC Mode
+#[cfg(feature = "multiprocess")]
 fn use_ipc() -> bool {
     *USE_IPC.get_or_init(|| {
         servo_config::opts::get().multiprocess || servo_config::opts::get().force_ipc
     })
+}
+
+#[cfg(not(feature = "multiprocess"))]
+fn use_ipc() -> bool {
+    false
 }
 
 /// Abstraction of the ability to send a particular type of message cross-process.
@@ -117,7 +124,7 @@ fn serialize_generic_sender_variants<T: Serialize, S: Serializer>(
         // Long-term we can remove this branch in the code again and replace it with
         // unreachable, since likely all IPC channels would be GenericChannels.
         GenericSenderVariants::Crossbeam(sender) => {
-            if opts::get().multiprocess {
+            if use_ipc() {
                 return Err(serde::ser::Error::custom(
                     "Crossbeam channel found in multiprocess mode!",
                 ));
@@ -163,7 +170,7 @@ impl<'de, T: Serialize + Deserialize<'de>> serde::de::Visitor<'de> for GenericSe
                 .newtype_variant::<ipc_channel::ipc::IpcSender<T>>()
                 .map(|sender| GenericSenderVariants::Ipc(sender)),
             GenericSenderVariantNames::Crossbeam => {
-                if opts::get().multiprocess {
+                if use_ipc() {
                     return Err(serde::de::Error::custom(
                         "Crossbeam channel found in multiprocess mode!",
                     ));
@@ -495,7 +502,7 @@ where
                 s.serialize_newtype_variant("GenericReceiver", 0, "Ipc", receiver)
             },
             GenericReceiverVariants::Crossbeam(receiver) => {
-                if opts::get().multiprocess {
+                if use_ipc() {
                     return Err(serde::ser::Error::custom(
                         "Crossbeam channel found in multiprocess mode!",
                     ));

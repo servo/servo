@@ -735,6 +735,11 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         return ArgumentParsingResult::ErrorParsing;
     };
 
+    #[cfg(not(feature = "multiprocess"))]
+    if cmd_args.multiprocess || cmd_args.force_ipc {
+        log::error!("IPC was disabled at compile time. IPC and multiprocess modes are disabled");
+    }
+
     let opts = Opts {
         debug: debug_options,
         time_profiling: cmd_args.profile,

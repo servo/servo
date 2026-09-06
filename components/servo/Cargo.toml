@@ -18,7 +18,7 @@ crate-type = ["rlib"]
 [features]
 # Note: Servoshell does not use the default features of servo, so you also
 # need to add feature-groups that should be default to ports/servoshell/Cargo.toml
-default = ["bundled", "clipboard", "js_jit"]
+default = ["bundled", "clipboard", "js_jit", "multiprocess"]
 ## Convenience feature groups, to select multiple related features for a sensible
 #  configuration with `--no-default-features` build
 #
@@ -58,6 +58,10 @@ jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
+
+# Allows multiprocess and ipc mode. If enabled this still needs the correct preference flags to use multi process mode.
+multiprocess = ["servo-base/multiprocess", "servo-constellation/multiprocess"]
+
 native-bluetooth = ["servo-bluetooth/native-bluetooth"]
 no-wgl = ["dep:mozangle", "mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "paint_api/no-wgl"]
 profilemozjs = ["script/profilemozjs"]
