@@ -5439,9 +5439,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs"
-version = "0.25.0"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c666e4b78b1ab5cbfa68cca37fe4de68a12cb40fb48b2807a0d14fe84890ca81"
+checksum = "38aa58e8a393778d92a1330a831bdde8af766ef2e39fb61b3c670fe6e60f259e"
 dependencies = [
  "bindgen",
  "cc",
@@ -5570,9 +5570,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "153.0.0-0"
+version = "153.0.0-1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91c6ba1cfb2d9fa0cb144d9cbd721664e73518df054c79404be44c9d25bc31ab"
+checksum = "04127e43d8b292e7d5739963d9787e30ecac27e054c75f153f553b5c4c2d3ede"
 dependencies = [
  "bindgen",
  "cc",
