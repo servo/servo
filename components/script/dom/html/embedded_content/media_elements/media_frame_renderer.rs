@@ -7,8 +7,8 @@ use std::sync::{Arc, Mutex, RwLock, Weak};
 use euclid::default::Size2D;
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
+use net_traits::image_cache::{Image, StaticRasterImage};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
-use pixels::RasterImage;
 use servo_base::generic_channel::{GenericCallback, GenericSharedMemory};
 use servo_base::id::WebViewId;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
@@ -82,6 +82,8 @@ pub(crate) struct MediaFrameRenderer {
     current_frame_holder: Option<FrameHolder>,
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     poster_frame: Option<MediaFrame>,
+    #[conditional_malloc_size_of]
+    static_poster: Option<Arc<StaticRasterImage>>,
 }
 
 impl MediaFrameRenderer {
@@ -101,6 +103,7 @@ impl MediaFrameRenderer {
             very_old_frame: None,
             current_frame_holder: None,
             poster_frame: None,
+            static_poster: None,
         }
     }
 
@@ -110,6 +113,10 @@ impl MediaFrameRenderer {
 
     pub(crate) fn poster_frame(&self) -> Option<MediaFrame> {
         self.poster_frame
+    }
+
+    pub(crate) fn static_poster(&self) -> Option<Arc<StaticRasterImage>> {
+        self.static_poster.clone()
     }
 
     pub(crate) fn current_frame_holder(&self) -> Option<&FrameHolder> {
@@ -203,8 +210,15 @@ impl MediaFrameRenderer {
         }
     }
 
-    pub(crate) fn set_poster_frame(&mut self, image: Option<Arc<RasterImage>>) {
+    pub(crate) fn set_poster_frame(&mut self, image: Option<Image>) {
+        self.static_poster = match &image {
+            Some(Image::StaticRaster(source)) => Some(source.clone()),
+            _ => None,
+        };
         self.poster_frame = image.and_then(|image| {
+            let Image::Raster(image) = image else {
+                return None;
+            };
             image.id.map(|image_key| MediaFrame {
                 image_key,
                 width: image.metadata.width as i32,

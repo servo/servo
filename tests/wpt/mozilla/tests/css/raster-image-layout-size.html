@@ -1,0 +1,37 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Static raster images paint after layout chooses their decode size</title>
+<link rel="match" href="raster-image-layout-size-ref.html">
+<style>
+  body { margin: 0; }
+  #small { position: absolute; left: 0; top: 0; width: 100px; height: 50px; }
+  #large { position: absolute; left: 220px; top: 0; width: 200px; height: 100px; }
+  #background { position: absolute; left: 0; top: 110px; width: 100px; height: 50px; background-size: 100% 100%; }
+  #cover { position: absolute; left: 220px; top: 110px; width: 100px; height: 100px; object-fit: cover; }
+</style>
+<img id="small" alt="">
+<img id="large" alt="">
+<div id="background"></div>
+<img id="cover" alt="">
+<script>
+  const canvas = document.createElement("canvas");
+  canvas.width = 2048;
+  canvas.height = 1024;
+  const context = canvas.getContext("2d");
+  context.fillStyle = "green";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const source = canvas.toDataURL();
+  const images = [...document.images];
+  for (const image of images) image.src = source;
+  document.getElementById("background").style.backgroundImage = `url(${source})`;
+  Promise.all(images.map(image => image.decode())).then(() => {
+    // Exercise a rebuild with retained fragments and a changed image size.
+    document.getElementById("small").style.width = "400px";
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.getElementById("small").style.width = "100px";
+      document.documentElement.classList.remove("reftest-wait");
+    }));
+  });
+</script>
+</html>

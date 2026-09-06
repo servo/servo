@@ -22,9 +22,9 @@ use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
 use net_traits::fetch::fetch_controller::FetchController;
+use net_traits::image_cache::{Image, StaticRasterImage};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{CoreResourceThread, FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
-use pixels::RasterImage;
 use script_bindings::assert::assert_in_script;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::InheritTypes::{
@@ -2180,7 +2180,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    pub(crate) fn set_poster_frame(&self, no_gc: &NoGC, image: Option<Arc<RasterImage>>) {
+    pub(crate) fn set_poster_frame(&self, no_gc: &NoGC, image: Option<Image>) {
         if pref!(media_testing_enabled) && image.is_some() {
             self.queue_media_element_task_to_fire_event(atom!("postershown"));
         }
@@ -2998,6 +2998,15 @@ impl HTMLMediaElement {
             .unwrap()
             .current_frame_holder()
             .map(|holder| holder.get_frame())
+    }
+
+    pub(crate) fn get_static_poster_to_present(&self) -> Option<Arc<StaticRasterImage>> {
+        let renderer = self.video_renderer.lock().unwrap();
+        if self.show_poster.get() || renderer.current_frame().is_none() {
+            renderer.static_poster()
+        } else {
+            None
+        }
     }
 
     /// Gets the current frame of the video element to present, if any.
