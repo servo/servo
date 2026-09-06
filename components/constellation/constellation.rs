@@ -1468,8 +1468,8 @@ where
             EmbedderToConstellationMessage::SetAccessibilityActive(webview_id, active) => {
                 self.set_accessibility_active(webview_id, active);
             },
-            EmbedderToConstellationMessage::SetOnlineStatus(online) => {
-                self.handle_set_online_status(online);
+            EmbedderToConstellationMessage::SetNetworkOnlineState(online) => {
+                self.handle_set_network_online_state(online);
             },
         }
     }
@@ -6360,12 +6360,12 @@ where
             .clone()
     }
 
-    fn handle_set_online_status(&mut self, online: bool) {
+    fn handle_set_network_online_state(&mut self, online: bool) {
         let pipelines: Vec<_> = self.pipelines.keys().copied().collect();
         for pipeline in pipelines {
             self.send_message_to_pipeline(
                 pipeline,
-                ScriptThreadMessage::SetNetworkOnlineStatus(online),
+                ScriptThreadMessage::SetNetworkOnlineState(online),
                 "Set network online status after closure",
             );
         }

@@ -344,7 +344,7 @@ pub enum ScriptThreadMessage {
     /// Force a garbage collection in this script thread.
     TriggerGarbageCollection,
     /// Parameter indicates if online (true) or offline (false)
-    SetNetworkOnlineStatus(bool),
+    SetNetworkOnlineState(bool),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
