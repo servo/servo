@@ -47,7 +47,7 @@ pub use layout_node::{DangerousStyleNode, LayoutNode};
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
+use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId, StaticRasterImage};
 use net_traits::request::InternalRequest;
 use paint_api::CrossProcessPaintApi;
 use paint_api::display_list::PaintTimingInfo;
@@ -257,6 +257,7 @@ pub struct MediaMetadata {
 }
 
 pub struct HTMLMediaData {
+    pub static_poster: Option<Arc<StaticRasterImage>>,
     pub current_frame: Option<MediaFrame>,
     pub metadata: Option<MediaMetadata>,
     pub poster_or_src_url: Option<ServoUrl>,
@@ -670,6 +671,8 @@ pub struct ReflowResult {
     pub reflow_statistics: ReflowStatistics,
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
+    /// None if no display list was rebuilt; an empty list releases display pixels.
+    pub static_raster_demands: Option<Vec<(PendingImageId, DeviceIntSize)>>,
     /// The list of vector images that were encountered that still need to be rasterized.
     pub pending_rasterization_images: Vec<PendingRasterizationImage>,
     /// The list of `SVGSVGElement`s encountered in the DOM that need to be serialized.
