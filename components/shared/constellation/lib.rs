@@ -114,6 +114,8 @@ pub enum EmbedderToConstellationMessage {
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
     /// Activate or deactivate accessibility features for the given `WebView`.
     SetAccessibilityActive(WebViewId, bool),
+    /// Update the online status
+    SetNetworkOnlineState(bool),
 }
 
 pub enum UserContentManagerAction {

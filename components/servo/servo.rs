@@ -1029,6 +1029,7 @@ impl Servo {
             network_manager: Rc::new(RefCell::new(NetworkManager::new(
                 public_resource_threads.clone(),
                 private_resource_threads.clone(),
+                constellation_proxy.clone(),
             ))),
             site_data_manager: SiteDataManager::new(
                 public_resource_threads,

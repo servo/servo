@@ -343,6 +343,8 @@ pub enum ScriptThreadMessage {
     SetAccessibilityActive(PipelineId, bool, Epoch),
     /// Force a garbage collection in this script thread.
     TriggerGarbageCollection,
+    /// Parameter indicates if online (true) or offline (false)
+    SetNetworkOnlineState(bool),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

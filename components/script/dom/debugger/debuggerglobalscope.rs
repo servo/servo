@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 
 use devtools_traits::{
     BlackboxCoverage, DebuggerValue, DevtoolScriptControlMsg, EvaluateJSReply,
@@ -116,6 +117,7 @@ impl DebuggerGlobalScope {
                 gpu_id_hub,
                 None,
                 false,
+                Rc::new(Cell::new(true)),
             ),
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),

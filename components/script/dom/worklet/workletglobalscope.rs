@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -145,6 +146,7 @@ impl WorkletGlobalScope {
                 init.gpu_id_hub.clone(),
                 inherited_secure_context,
                 false,
+                Rc::new(Cell::new(true)),
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
