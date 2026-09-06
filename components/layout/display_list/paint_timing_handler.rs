@@ -6,7 +6,8 @@ use std::collections::{HashMap, HashSet};
 
 use app_units::Au;
 use euclid::Rect;
-use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
+use layout_api::LCPCandidate;
+use servo_base::id::LCPCandidateID;
 use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
@@ -63,8 +64,6 @@ pub(crate) struct PaintTimingHandler {
     lcp_next_uuid: u64,
     /// The LCP candidate, it may be a image or text.
     lcp_candidate: Option<LCPCandidate>,
-    /// The DOM node for the LCP candidate. Only used in ReflowResult
-    lcp_node: Option<OpaqueNode>,
     /// Flag to indicate if there is an update to LCP candidate.
     /// This is used to avoid sending duplicate LCP candidates to `Paint`.
     lcp_candidate_updated: bool,
@@ -83,7 +82,6 @@ impl PaintTimingHandler {
         Self {
             lcp_size: 0.0,
             lcp_next_uuid: 0,
-            lcp_node: None,
             lcp_candidate: None,
             lcp_candidate_updated: false,
             viewport_rect: LayoutRect::from_size(viewport_size),
@@ -258,7 +256,6 @@ impl PaintTimingHandler {
 
         // Step 3. Let newCandidate be null.
         let mut new_candidate = None;
-        let mut new_candidate_tag = None;
 
         // Step 4. For each record of paintedImages:
         for record in std::mem::take(&mut self.painted_images) {
@@ -301,8 +298,8 @@ impl PaintTimingHandler {
                 LCPCandidateID(uuid),
                 result as usize,
                 record.url,
+                record.tag.map(|tag| tag.node),
             ));
-            new_candidate_tag = record.tag;
         }
 
         // Step 5. For each textNode of paintedTextNodes,
@@ -345,8 +342,8 @@ impl PaintTimingHandler {
                 LCPCandidateID(uuid),
                 result as usize,
                 None,
+                Some(record.tag.node),
             ));
-            new_candidate_tag = Some(record.tag);
         }
 
         // Step 6. If newCandidate is not null and currentSize is greater than 0:
@@ -356,7 +353,6 @@ impl PaintTimingHandler {
         if new_candidate.is_some() {
             self.lcp_size = largest_size;
             self.lcp_candidate = new_candidate;
-            self.lcp_node = new_candidate_tag.map(|tag| tag.node);
             self.lcp_candidate_updated = true;
         }
 
@@ -423,9 +419,5 @@ impl PaintTimingHandler {
 
     pub(crate) fn largest_contentful_paint_candidate(&self) -> Option<LCPCandidate> {
         self.lcp_candidate.clone()
-    }
-
-    pub(crate) fn lcp_node(&self) -> Option<OpaqueNode> {
-        self.lcp_node
     }
 }

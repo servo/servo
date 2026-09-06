@@ -47,7 +47,7 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType, HitTestFlags, Layout,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType, HitTestFlags, LCPCandidate, Layout,
     LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
     PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
     ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
@@ -62,7 +62,6 @@ use net_traits::image_cache::{
 use net_traits::request::{Origin, Referrer, RequestClient};
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
-use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
@@ -2759,10 +2758,8 @@ impl Window {
             reflow_result.pending_svg_elements_for_serialization,
         );
 
-        if let Some(candidate) = &reflow_result.lcp_candidate &&
-            let Some(node_address) = reflow_result.lcp_node_address
-        {
-            self.process_lcp_candidate_post_reflow(candidate, node_address, &document);
+        if let Some(candidate) = &reflow_result.lcp_candidate {
+            self.process_lcp_candidate_post_reflow(candidate, &document);
         }
 
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
@@ -3737,15 +3734,14 @@ impl Window {
 
     /// Resolve the LCP candidate OpaqueNode to a DOM Element and store it on the document.
     #[expect(unsafe_code)]
-    fn process_lcp_candidate_post_reflow(
-        &self,
-        candidate: &LCPCandidate,
-        node_address: UntrustedNodeAddress,
-        document: &Document,
-    ) {
+    fn process_lcp_candidate_post_reflow(&self, candidate: &LCPCandidate, document: &Document) {
+        let Some(node) = candidate.node else {
+            return;
+        };
+        let node_address = UntrustedNodeAddress(node.id() as *const c_void);
         let node = unsafe { from_untrusted_node_address(node_address) };
         if let Some(element) = DomRoot::downcast::<Element>(node) {
-            document.store_lcp_candidate(candidate.id, &element);
+            document.store_lcp_candidate(candidate, &element);
         }
     }
 

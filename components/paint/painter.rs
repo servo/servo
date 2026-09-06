@@ -19,7 +19,6 @@ use image::RgbaImage;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
 use paint_api::display_list::{PaintDisplayListInfo, ScrollType};
-use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
@@ -32,7 +31,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::Epoch;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericReceiver, GenericSharedMemory};
-use servo_base::id::{PainterId, PipelineId, WebViewId};
+use servo_base::id::{LCPCandidateID, PainterId, PipelineId, WebViewId};
 use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 use servo_config::{opts, pref};
 use servo_constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
@@ -525,9 +524,9 @@ impl Painter {
                 }
 
                 let pending_lcp_candidates = &mut pipeline.lcp_candidates;
-                while let Some((epoch, candidate)) = pending_lcp_candidates.pop_front() {
+                while let Some((epoch, (id, area))) = pending_lcp_candidates.pop_front() {
                     if epoch > current_epoch {
-                        pending_lcp_candidates.push_front((epoch, candidate));
+                        pending_lcp_candidates.push_front((epoch, (id, area)));
                         break;
                     }
                     #[cfg(feature = "tracing")]
@@ -535,17 +534,12 @@ impl Painter {
                         name: "LargestContentfulPaint",
                         servo_profiling = true,
                         paint_time = ?paint_time,
-                        area = ?candidate.area,
+                        area = ?area,
                         pipeline_id = ?pipeline_id,
                     );
                     paint_metric_events.push((
                         *pipeline_id,
-                        PaintMetricEvent::LargestContentfulPaint(
-                            paint_time,
-                            candidate.area,
-                            candidate.url.clone(),
-                            candidate.id,
-                        ),
+                        PaintMetricEvent::LargestContentfulPaint(paint_time, id),
                     ));
                 }
             }
@@ -1493,7 +1487,8 @@ impl Painter {
 
     pub(crate) fn append_lcp_candidate(
         &mut self,
-        lcp_candidate: LCPCandidate,
+        id: LCPCandidateID,
+        area: usize,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         epoch: Epoch,
@@ -1502,7 +1497,7 @@ impl Painter {
             webview_renderer
                 .ensure_pipeline_details(pipeline_id)
                 .lcp_candidates
-                .push_back((epoch.into(), lcp_candidate));
+                .push_back((epoch.into(), (id, area)));
         }
     }
 }
