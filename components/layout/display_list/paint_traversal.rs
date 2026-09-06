@@ -84,6 +84,22 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             self.traverse_stacking_context_inner(&state, root_fragment);
         }
 
+        // > Step 11: If the UA uses out-of-band outlines, draw all of root’s outlines
+        // > (those that it skipped drawing due to not using in-band outlines during the
+        // > current invocation of this algorithm) into canvas.
+        //
+        // Unlike in the specification, this is done before painting positioned descendants
+        // (steps 9 and 10). The specification allows painting outlines either in-band
+        // (under all in-flow content) or out-of-band (over everything), but other browsers
+        // paint outlines above in-flow content and negative `z-index` descendants, yet
+        // below positioned descendants with `z-index: auto` or higher.
+        // See <https://github.com/servo/servo/issues/46686>.
+        if old_outlines_length < self.outlines.len() {
+            for (state, outline_fragment) in &self.outlines.split_off(old_outlines_length) {
+                self.handler.visit_box_for_outline(state, outline_fragment);
+            }
+        }
+
         // > Step 9: For each of root’s positioned descendants with z-index: auto or
         // > z-index: 0, in tree order:
         // >   ↪ descendant has z-index: auto
@@ -97,15 +113,6 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         for child in children {
             assert!(child.z_index >= 0);
             self.traverse_stacking_context(&state, child);
-        }
-
-        // > Step 11: If the UA uses out-of-band outlines, draw all of root’s outlines
-        // > (those that it skipped drawing due to not using in-band outlines during the
-        // > current invocation of this algorithm) into canvas.
-        if old_outlines_length < self.outlines.len() {
-            for (state, outline_fragment) in &self.outlines.split_off(old_outlines_length) {
-                self.handler.visit_box_for_outline(state, outline_fragment);
-            }
         }
 
         self.handler

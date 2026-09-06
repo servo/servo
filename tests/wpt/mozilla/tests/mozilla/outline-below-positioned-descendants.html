@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Borders and outlines are painted below positioned descendants with non-negative z-index</title>
+<link rel="help" href="https://github.com/servo/servo/issues/46686">
+<link rel="match" href="outline-below-positioned-descendants-ref.html">
+<style>
+body {
+  margin: 0;
+}
+.box {
+  width: 100px;
+  height: 100px;
+  border: 10px solid red;
+  outline: 20px solid red;
+  outline-offset: -30px;
+}
+.child {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 200px;
+  background: blue;
+}
+</style>
+<div class="box"><div class="child"></div></div>
