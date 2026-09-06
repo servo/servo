@@ -6360,10 +6360,14 @@ where
             .clone()
     }
 
-    fn handle_set_online_status(&self, _online: bool) {
-        for _pipeline in self.pipelines.iter() {
-            // TODO: send message to each pipeline,
-            // The ScriptMessage variant wait for https://github.com/servo/servo/pull/37076 to be merged
+    fn handle_set_online_status(&mut self, online: bool) {
+        let pipelines: Vec<_> = self.pipelines.keys().copied().collect();
+        for pipeline in pipelines {
+            self.send_message_to_pipeline(
+                pipeline,
+                ScriptThreadMessage::SetNetworkOnlineStatus(online),
+                "Set network online status after closure",
+            );
         }
     }
 }
