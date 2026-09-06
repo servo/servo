@@ -1017,6 +1017,7 @@ class MachCommands(CommandBase):
             webgpu              WebGPU CTS (linux, production)
             webdriver/wd        WebDriver classic tests (linux)
             vello               Vello canvas WPT subsuite (linux)
+            perf-analysis       Page load benchmarks via perf-analysis-tools (linux, release)
 
           Meta keywords:
             full                Run all jobs (default)
