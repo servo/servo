@@ -201,29 +201,29 @@ pub(crate) fn load_requested_modules(
     rooted!(&in(cx) let host_defined = PrivateValue(Box::into_raw(load_state) as *const _ as *const c_void));
 
     unsafe {
-        let on_resolved = NewFunctionWithReserved(
+        rooted!(&in(cx) let on_resolved = NewFunctionWithReserved(
             cx,
             Some(on_load_requested_modules_resolved),
             0,
             0,
             ptr::null(),
-        );
-        let on_rejected = NewFunctionWithReserved(
+        ));
+        rooted!(&in(cx) let on_rejected = NewFunctionWithReserved(
             cx,
             Some(on_load_requested_modules_rejected),
             1,
             0,
             ptr::null(),
-        );
+        ));
 
-        rooted!(&in(cx) let resolved_function_object = JS_GetFunctionObject(on_resolved));
+        rooted!(&in(cx) let resolved_function_object = JS_GetFunctionObject(on_resolved.get()));
         SetFunctionNativeReserved(
             resolved_function_object.get(),
             LOAD_REACTION_HOST_DEFINED_SLOT,
             host_defined.handle().as_ref(cx),
         );
 
-        rooted!(&in(cx) let rejected_function_object = JS_GetFunctionObject(on_rejected));
+        rooted!(&in(cx) let rejected_function_object = JS_GetFunctionObject(on_rejected.get()));
         SetFunctionNativeReserved(
             rejected_function_object.get(),
             LOAD_REACTION_HOST_DEFINED_SLOT,
