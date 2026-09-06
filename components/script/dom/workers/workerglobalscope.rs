@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{OnceCell, RefCell, RefMut};
+use std::cell::{Cell, OnceCell, RefCell, RefMut};
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
@@ -424,6 +424,7 @@ impl WorkerGlobalScope {
                 gpu_id_hub,
                 init.inherited_secure_context,
                 init.unminify_js,
+                Rc::new(Cell::new(true)),
             ),
             caches: Default::default(),
             microtask_queue: runtime.microtask_queue.clone(),
