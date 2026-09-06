@@ -326,7 +326,6 @@ pub struct ScriptThread {
     #[no_trace]
     closed_pipelines: DomRefCell<FxHashSet<PipelineId>>,
 
-    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     mutation_observers: Rc<ScriptMutationObservers>,
 
     /// A handle to the WebGL thread

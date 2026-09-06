@@ -854,7 +854,7 @@ dependencies = [
  "bitflags 2.13.1",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "regex",
@@ -2580,7 +2580,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3148,7 +3148,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5263,7 +5263,8 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.26.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38aa58e8a393778d92a1330a831bdde8af766ef2e39fb61b3c670fe6e60f259e"
 dependencies = [
  "bindgen",
  "cc",
@@ -5277,7 +5278,8 @@ dependencies = [
 [[package]]
 name = "mozjs_collator_glue"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9d330b59a436d446124fae0115c677f786b182b3cfbbb9e1460dfd789b6220e"
 dependencies = [
  "arraystring",
  "arrayvec",
@@ -5291,7 +5293,8 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_collator"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e20d3cd19d06337756e27bbe58e8f6136fd9371af02351854c74ff3b0cd6354"
 dependencies = [
  "displaydoc",
  "icu_locale",
@@ -5311,12 +5314,14 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_collator_data"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e869ba6b2f8960fb52ef18ae81b0160d7e72c461ced73681dfad916ac94e5fba"
 
 [[package]]
 name = "mozjs_icu_collections"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15f85e375edb763fd03de1dcc357b6d7b325afee7895764415a1e73bc8371ffe"
 dependencies = [
  "displaydoc",
  "icu_casemap",
@@ -5330,7 +5335,8 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_normalizer"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ae4065b463408fadb3548e58594b85b10031ccb863252ad39da0343e587e09e"
 dependencies = [
  "displaydoc",
  "icu_properties",
@@ -5347,12 +5353,14 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_normalizer_data"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba0b6737962931cc55247972cc17d84132faf2aaa9a9c0d5eb3f6d892e5593e4"
 
 [[package]]
 name = "mozjs_locale_glue"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e7677a58f7cbca8d77fb3833fac679d3c7ceaffd06f54a52e6508fd16263f30"
 dependencies = [
  "cbindgen",
  "icu_locale",
@@ -5361,7 +5369,8 @@ dependencies = [
 [[package]]
 name = "mozjs_normalizer_glue"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb267434ba58d999f3749e9a156d5fcdfd3633a45e1bd4ba92b802cb07358727"
 dependencies = [
  "cbindgen",
  "encoding_rs",
@@ -5373,7 +5382,8 @@ dependencies = [
 [[package]]
 name = "mozjs_properties_glue"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc5a22e3a1daf87de3f3e625d7652d102124850cf7e18828f4615fb9ddafed14"
 dependencies = [
  "cbindgen",
  "icu_casemap",
@@ -5384,7 +5394,8 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "153.0.0-1"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04127e43d8b292e7d5739963d9787e30ecac27e054c75f153f553b5c4c2d3ede"
 dependencies = [
  "bindgen",
  "cc",
@@ -5406,7 +5417,8 @@ dependencies = [
 [[package]]
 name = "mozjs_unicode_bidi_ffi"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b863d108fb1ac889545ba03e4fcea54cbe94c120d9b40080a3309b7ecd3fede"
 dependencies = [
  "cbindgen",
  "icu_properties",
@@ -5416,7 +5428,8 @@ dependencies = [
 [[package]]
 name = "mozjs_utf16_iter"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dea6d470af028bd441a9cfd0a604b9a7c7ca64a606c584698a279a34f5ec3c90"
 dependencies = [
  "mozjs_icu_collections",
 ]
@@ -5424,7 +5437,8 @@ dependencies = [
 [[package]]
 name = "mozjs_utf8_iter"
 version = "153.0.0"
-source = "git+https://github.com/sagudev/mozjs.git?branch=no-inter-queue#9c12a398516301b680f509a7dda5b665a387a4c3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be78a1690af5a65b4f0df6e3f6d52dbcdfec1fbc546634bea9678b64c1d9125d"
 dependencies = [
  "mozjs_icu_collections",
 ]
@@ -6401,7 +6415,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7561,7 +7575,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7618,7 +7632,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -10400,7 +10414,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -12128,7 +12142,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
