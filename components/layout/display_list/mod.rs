@@ -247,11 +247,11 @@ impl DisplayListBuilder<'_> {
     }
 
     fn mark_is_paintable(&mut self) {
-        self.paint_info.is_paintable = true;
+        self.paint_timing_handler.mark_document_is_paintable();
     }
 
     fn mark_is_contentful(&mut self) {
-        self.paint_info.is_contentful = true;
+        self.paint_timing_handler.mark_document_is_contentful();
     }
 
     fn spatial_id(&self, id: ScrollTreeNodeId) -> SpatialId {
@@ -631,7 +631,7 @@ impl DisplayListBuilder<'_> {
         // An element el is paintable when all of the following apply:
         // > el is being rendered.
         // > el’s used visibility is visible.
-        // Above conditions are met, as we selectively call this API.
+        // Note: Above conditions are met, as we selectively call this API.
 
         // > el and all of its ancestors' used opacity is greater than zero.
         if opacity <= 0.0 {
