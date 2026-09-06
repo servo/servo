@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
   #canvas {
     width: 200px;
@@ -15,12 +16,18 @@
     height: 100px;
     background: green;
   }
+  span {
+    font: 25px/1 Ahem;
+  }
 </style>
 
 <canvas id=canvas width="200" height="200" layoutsubtree>
-  <div id=a></div>
-  <div id=b></div>
-  <div id=pointerEventsNone style="pointer-events: none;"></div>
+  <div id="a" drawable></div>
+  <div id="b" drawable></div>
+  <div id="pointerEventsNone" drawable style="pointer-events: none;"></div>
+  <div id="inlineContainer" drawable style="padding-left: 100px;">
+    <span id="inlineA">X</span><span id="inlineB" drawable>X</span>
+  </div>
 </canvas>
 
 <script>
@@ -83,6 +90,18 @@
                         [b, canvas, document.body, document.documentElement],
                         'Should have returned a sequence with `[b, canvas, body, html]`');
   }, 'Canvas transform set via updateElementGeometry should be used for hit testing');
+
+  promise_test(async function (t) {
+    canvas.updateElementGeometry(inlineB, {
+      canvasTransform: new DOMMatrix().translate(125, 0)
+    });
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(inlineB);
+    });
+    assert_array_equals(document.elementsFromPoint(135, 10),
+                        [inlineB, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[inlineB, canvas, body, html]`');
+  }, 'Inline canvas transform set via updateElementGeometry should be used for hit testing');
 
   promise_test(async function (t) {
     // Both a and b at (50, 50).

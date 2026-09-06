@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<title>Element.matchContainer: change event</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/13551">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  .size-container {
+    container-type: inline-size;
+  }
+  .style-container {
+    container-name: style-container;
+  }
+</style>
+<div id="root"></div>
+<script>
+function createTestElement(html) {
+  document.getElementById("root").innerHTML = html;
+  return document.getElementById("root").firstElementChild;
+}
+
+function createChangeWatcher(t, list) {
+  return new EventWatcher(t, list, ["change"], waitForAtLeastOneFrame);
+}
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  let watcher = createChangeWatcher(t, list);
+  let eventPromise = watcher.wait_for("change");
+  container.style.width = "50px";
+  let event = await eventPromise;
+  assert_equals(event.type, "change", "Event type is 'change'.");
+  assert_equals(event.target, list,
+    "Event targets the ContainerQueryList.");
+  assert_false(event.bubbles, "Event does not bubble.");
+  assert_false(event.cancelable, "Event is not cancelable.");
+  assert_false(list.matches,
+    "matches reflects the new state when the event fires.");
+}, "change event fires when the container size crosses the query boundary.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  let received = new Promise((resolve, reject) => {
+    list.onchange = resolve;
+    waitForAtLeastOneFrame().then(
+        () => reject(new Error("Timed out waiting for onchange")));
+  });
+  container.style.width = "50px";
+  let event = await received;
+  assert_equals(event.target, list,
+    "onchange handler receives the change event.");
+}, "onchange event handler attribute receives change events.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  assert_true(list.matches, "Query matches from the start.");
+  createChangeWatcher(t, list);
+  await waitForAtLeastOneFrame();
+}, "No change event fires for the initial evaluation.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  createChangeWatcher(t, list);
+  container.style.width = "300px";
+  await waitForAtLeastOneFrame();
+  assert_true(list.matches, "Still matches after the container grows.");
+}, "No change event fires when the match state does not change.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  createChangeWatcher(t, list);
+  container.style.width = "50px";
+  container.style.width = "200px";
+  await waitForAtLeastOneFrame();
+  assert_true(list.matches, "Matches state is unchanged after the revert.");
+}, "No change event fires when the state reverts within the same rendering opportunity.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  let watcher = createChangeWatcher(t, list);
+  let eventPromise = watcher.wait_for("change");
+  container.style.width = "50px";
+  await eventPromise;
+  await waitForAtLeastOneFrame();
+}, "Exactly one change event fires per state transition.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  let watcher = createChangeWatcher(t, list);
+  let eventPromise = watcher.wait_for("change");
+  container.style.width = "50px";
+  list.matches;
+  await eventPromise;
+}, "Reading matches before the rendering steps does not suppress the change event.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="style-container" style="--my-prop: foo">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("style(--my-prop: foo)");
+  await waitForAtLeastOneFrame();
+  let watcher = createChangeWatcher(t, list);
+  let eventPromise = watcher.wait_for("change");
+  container.style.setProperty("--my-prop", "bar");
+  await eventPromise;
+  assert_false(list.matches,
+    "matches reflects the custom property change.");
+}, "change event fires when a style query result changes.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  let watcher = createChangeWatcher(t, list);
+  let eventPromise = watcher.wait_for("change");
+  target.remove();
+  await eventPromise;
+  assert_false(list.matches,
+    "Removed target has no container; matches becomes false.");
+  eventPromise = watcher.wait_for("change");
+  container.appendChild(target);
+  await eventPromise;
+  assert_true(list.matches,
+    "Re-inserted target matches its container again.");
+}, "change event fires when the target is removed from and re-inserted into the tree.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let listWide = target.matchContainer("(width > 100px)");
+  let listNarrow = target.matchContainer("(width < 100px)");
+  await waitForAtLeastOneFrame();
+  let wideWatcher = createChangeWatcher(t, listWide);
+  let narrowWatcher = createChangeWatcher(t, listNarrow);
+  let widePromise = wideWatcher.wait_for("change");
+  let narrowPromise = narrowWatcher.wait_for("change");
+  container.style.width = "50px";
+  await Promise.all([widePromise, narrowPromise]);
+  assert_false(listWide.matches, "First list flipped to false.");
+  assert_true(listNarrow.matches, "Second list flipped to true.");
+}, "Multiple lists on the same element each receive their own change event.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="middle" style="width: 50px">
+        <div id="target"></div>
+      </div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let middle = container.querySelector("#middle");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  let watcher = createChangeWatcher(t, list);
+  let eventPromise = watcher.wait_for("change");
+  middle.classList.add("size-container");
+  await eventPromise;
+  assert_false(list.matches,
+    "The nearest container is now the 50px middle element.");
+}, "change event fires when a closer ancestor becomes the query container.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="wrapper">
+        <div id="middle" style="width: 50px">
+          <div id="target"></div>
+        </div>
+      </div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let wrapper = container.querySelector("#wrapper");
+  let middle = container.querySelector("#middle");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  assert_true(list.matches, "Initially matches the 200px outer container.");
+  let watcher = createChangeWatcher(t, list);
+  wrapper.style.display = "none";
+  await waitForAtLeastOneFrame();
+  middle.classList.add("size-container");
+  await waitForAtLeastOneFrame();
+  let eventPromise = watcher.wait_for("change");
+  wrapper.style.display = "";
+  await eventPromise;
+  assert_false(list.matches,
+    "The container gained while hidden is the nearest container on reveal.");
+}, "change event fires for a container change made inside a hidden subtree once revealed.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="middle" class="size-container" style="width: 50px; display: none">
+        <div id="target"></div>
+      </div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let middle = container.querySelector("#middle");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  assert_true(list.matches,
+    "While hidden, the query resolves past the styleless ancestor to the 200px container.");
+  let watcher = createChangeWatcher(t, list);
+  let eventPromise = watcher.wait_for("change");
+  middle.style.display = "block";
+  await eventPromise;
+  assert_false(list.matches,
+    "The revealed 50px ancestor is now the nearest container.");
+}, "change event fires when a hidden ancestor container becomes rendered.");
+
+promise_test(async t => {
+  let host = createTestElement(`
+    <div>
+      <div slot="wide"><div id="target"></div></div>
+    </div>
+  `);
+  let shadow = host.attachShadow({ mode: "open" });
+  shadow.innerHTML = `
+    <div style="container-type: inline-size; width: 200px">
+      <slot name="wide"></slot>
+    </div>
+    <div style="container-type: inline-size; width: 50px">
+      <slot name="narrow"></slot>
+    </div>
+  `;
+  let slotted = host.querySelector("[slot=wide]");
+  let target = host.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  assert_true(list.matches, "Initially slotted under the 200px container.");
+  let watcher = createChangeWatcher(t, list);
+  let eventPromise = watcher.wait_for("change");
+  slotted.slot = "narrow";
+  await eventPromise;
+  assert_false(list.matches,
+    "Reassigned into the 50px container's slot.");
+}, "change event fires when slot reassignment changes the flat-tree container.");
+</script>

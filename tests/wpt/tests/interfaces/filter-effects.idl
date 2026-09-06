@@ -13,8 +13,6 @@ interface SVGFilterElement : SVGElement {
   readonly attribute SVGAnimatedLength height;
 };
 
-SVGFilterElement includes SVGURIReference;
-
 interface mixin SVGFilterPrimitiveStandardAttributes {
   readonly attribute SVGAnimatedLength x;
   readonly attribute SVGAnimatedLength y;

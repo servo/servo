@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<style>
+  #button {
+    interest-delay: 100ms;
+    position: absolute;
+    top: 50px;
+    left: 50px;
+  }
+  #p {
+    position-area: bottom;
+  }
+  #unrelated {
+    position: absolute;
+    top: 300px;
+    left: 50px;
+  }
+  #button2_interest {
+    interest-delay: 100ms;
+    position: absolute;
+    top: 150px;
+    left: 50px;
+  }
+  #button2_cmd {
+    position: absolute;
+    top: 200px;
+    left: 50px;
+  }
+  #p2 {
+    position-area: bottom;
+  }
+</style>
+
+<button id=button command=toggle-popover commandfor=p interestfor=p>
+  Toggle Popover
+</button>
+<div popover id=p>Popover</div>
+<button id=button2_cmd command=toggle-popover commandfor=p2>
+  Command Invoker
+</button>
+<button id=button2_interest interestfor=p2>
+  Interest Invoker
+</button>
+<div popover id=p2>Popover 2</div>
+<button id=unrelated>Unrelated</button>
+
+<script>
+const hoverWaitTime = 200; // How long to wait to cover the 100ms delay for sure.
+
+promise_test(async (t) => {
+  t.add_cleanup(async () => hoverOver(unrelated));
+  await hoverOver(unrelated);
+  assert_false(p.matches(':popover-open'), 'Popover starts closed');
+
+  // Popover should open via command invoker.
+  await clickOn(button);
+  assert_true(p.matches(':popover-open'), 'Popover should open after clicking command invoker');
+
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(p.matches(':popover-open'), 'Popover should stay open while hovering button');
+
+  await hoverOver(p);
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(p.matches(':popover-open'), 'Popover should stay open while hovering popover');
+
+  await hoverOver(unrelated);
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(p.matches(':popover-open'), 'The popover should not close on loss of interest');
+  p.hidePopover(); // Cleanup
+}, 'A combined interest/command invoker should not close the popover on loss of interest if opened via command');
+
+promise_test(async (t) => {
+  t.add_cleanup(async () => hoverOver(unrelated));
+  await hoverOver(unrelated);
+  assert_false(p2.matches(':popover-open'), 'Popover starts closed');
+
+  // Popover should open via command invoker.
+  await clickOn(button2_cmd);
+  assert_true(p2.matches(':popover-open'), 'Popover should open after clicking command invoker');
+
+  // Hover something that triggers the same target popover via a different invoker.
+  await hoverOver(button2_interest);
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(p2.matches(':popover-open'), 'Popover should stay open while hovering interest invoker');
+
+  await hoverOver(unrelated);
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(p2.matches(':popover-open'), 'The popover should not close on loss of interest from a different invoker');
+  p2.hidePopover(); // Cleanup
+}, 'Hovering a different interest invoker for an already-open popover should not change the invoker or close on loss of interest');
+</script>
+

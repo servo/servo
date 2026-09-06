@@ -1,0 +1,13 @@
+<!doctype html>
+<title>:host in document stylesheet doesn't match all elements</title>
+<link rel="match" href="/css/reference/green.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2068042">
+<link rel="help" href="https://drafts.csswg.org/css-shadow-1/#host-selector">
+<style>
+body {
+  background: green;
+}
+:root :host {
+  background: red !important;
+}
+</style>

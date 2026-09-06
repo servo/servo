@@ -1065,6 +1065,15 @@ class VirtualAuthenticatorProtocolPart(ProtocolPart):
         :param bool uv: the user verified flag"""
         pass
 
+    @abstractmethod
+    def set_credential_properties(self, authenticator_id, credential_id, props):
+        """Sets credential properties on an authenticator
+
+        :param str authenticator_id: The ID of the authenticator
+        :param str credential_id: The ID of the credential
+        :param props: The credential properties to set"""
+        pass
+
 
 class SPCTransactionsProtocolPart(ProtocolPart):
     """Protocol part for Secure Payment Confirmation transactions"""

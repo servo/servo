@@ -47,7 +47,7 @@
 
 <div class="container">
   <div class="rotatetoback" >
-    <div class="hideback rotatetofront" style="background: blue">
+    <div id="frontface" class="hideback rotatetofront" style="background: blue">
     </div>
     <div class="hideback" style="background: green;">
       <div id="target" class="yellow100"></div>
@@ -59,8 +59,10 @@
 
 <script>
 
+  // The green face is turned away, so neither it nor #target inside it is hit.
+  // The blue face is rotated back to the front, so it is what gets hit.
   test(t => {
-    const expectedElemId = "target";
+    const expectedElemId = "frontface";
     const expectedElem = document.getElementById(expectedElemId);
     const x = 150;
     const y = 150;

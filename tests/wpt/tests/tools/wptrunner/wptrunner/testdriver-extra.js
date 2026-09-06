@@ -615,6 +615,10 @@
         return create_context_action("set_user_verified", context, {authenticator_id, uv});
     };
 
+    window.test_driver_internal.set_credential_properties = function(authenticator_id, credential_id, props, context=null) {
+        return create_context_action("set_credential_properties", context, {authenticator_id, credential_id, props});
+    };
+
     window.test_driver_internal.set_spc_transaction_mode = function(mode, context = null) {
         return create_context_action("set_spc_transaction_mode", context, {mode});
     };

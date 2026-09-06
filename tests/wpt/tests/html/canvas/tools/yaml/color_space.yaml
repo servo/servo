@@ -1,193 +1,303 @@
-- name: 2d.color.space.p3.to.p3
-  desc: test getImageData with display-p3 and uint8 from display p3 uint8 canvas
-  attributes: '{colorSpace: "display-p3"}'
+- name: 2d.color.space.getImageData.convert
+  desc: Test getImageData color conversions from a {{ canvas_cs }} canvas
+  attributes: '{colorSpace: "{{ canvas_cs }}"}'
+  variants_layout: [single_file]
   code: |
-    var color_style = 'rgb(50, 100, 150)';
-    // [0.24304, 0.38818, 0.57227, 1.0] * 255 = [62, 99, 146, 255]
-    var pixel_expected = [62, 99, 146, 255];
-    var epsilon = 2;
-    ctx.fillStyle = color_style;
-    ctx.fillRect(0, 0, 10, 10);
+    const color_style_1 = '{{ color_style_1 }}';
+    const color_style_2 = '{{ color_style_2 }}';
+    const color_spaces = ['srgb', 'srgb-linear', 'display-p3', 'display-p3-linear'];
+    const expected_pixels_1 = {{ expected_pixels_1 }};
+    const expected_pixels_2 = {{ expected_pixels_2 }};
+    const epsilon = 2;
 
-    var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: "display-p3"}).data;
-    @assert pixel.length === pixel_expected.length;
-    assert_approx_equals(pixel[0], pixel_expected[0], 2);
-    assert_approx_equals(pixel[1], pixel_expected[1], 2);
-    assert_approx_equals(pixel[2], pixel_expected[2], 2);
-    assert_approx_equals(pixel[3], pixel_expected[3], 2);
-
-- name: 2d.color.space.p3.to.srgb
-  desc: test getImageData with srgb and uint8 from display p3 uint8 canvas
-  attributes: '{colorSpace: "display-p3"}'
-  code: |
-    var color_style = 'rgb(50, 100, 150)';
-    var pixel_expected = [50, 100, 150, 255];
-    var epsilon = 2;
-    ctx.fillStyle = color_style;
-    ctx.fillRect(0, 0, 10, 10);
-
-    var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: "srgb"}).data;
-    @assert pixel.length === pixel_expected.length;
-    assert_approx_equals(pixel[0], pixel_expected[0], 2);
-    assert_approx_equals(pixel[1], pixel_expected[1], 2);
-    assert_approx_equals(pixel[2], pixel_expected[2], 2);
-    assert_approx_equals(pixel[3], pixel_expected[3], 2);
-
-- name: 2d.color.space.p3.toBlob.p3.canvas
-  desc: test if toblob returns p3 data from p3 color space canvas
-  attributes: '{colorSpace: "display-p3"}'
-  canvas_types: ['HtmlCanvas']
-  code: |
-    ctx.fillStyle = "rgba(155, 27, 27, 1)";
+    ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, 1, 1);
-    ctx.fillStyle = "rgba(27, 155, 27, 0)";
+    ctx.fillStyle = color_style_1;
     ctx.fillRect(1, 0, 1, 1);
-    ctx.fillStyle = "rgba(27, 27, 155, 0.5)";
+    ctx.fillStyle = color_style_2;
     ctx.fillRect(0, 1, 1, 1);
-    ctx.fillStyle = "rgba(27, 27, 27, 0.5)";
+    ctx.fillStyle = 'white';
     ctx.fillRect(1, 1, 1, 1);
-    expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
 
-    var image = new Image();
-    image.onload = t.step_func_done(function() {
-        var dstCanvas = document.createElement("canvas");
-        dstCanvas.width = 2;
-        dstCanvas.height = 2;
-        var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
-        ctx.drawImage(image, 0, 0);
-        var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
-        assert_array_approx_equals(actualPixels, expectedPixels, 2);
-    });
-
-    canvas.toBlob(function(blob) {
-        var urlCreator = window.URL || window.webkitURL;
-        image.src = urlCreator.createObjectURL(blob);
-    }, 'image/png', 1);
-
-- name: 2d.color.space.p3.toDataURL.p3.canvas
-  desc: test if toDataURL returns p3 data from canvas with p3 color space
-  attributes: '{colorSpace: "display-p3"}'
-  canvas_types: ['HtmlCanvas']
-  code: |
-    ctx.fillStyle = "rgba(155, 27, 27, 1)";
-    ctx.fillRect(0, 0, 1, 1);
-    ctx.fillStyle = "rgba(27, 155, 27, 0)";
-    ctx.fillRect(1, 0, 1, 1);
-    ctx.fillStyle = "rgba(27, 27, 155, 0.5)";
-    ctx.fillRect(0, 1, 1, 1);
-    ctx.fillStyle = "rgba(27, 27, 27, 0.5)";
-    ctx.fillRect(1, 1, 1, 1);
-    expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
-
-    var image = new Image();
-    image.onload = t.step_func_done(function() {
-        var dstCanvas = document.createElement("canvas");
-        dstCanvas.width = 2;
-        dstCanvas.height = 2;
-        var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
-        ctx.drawImage(image, 0, 0);
-        var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
-        assert_array_approx_equals(actualPixels, expectedPixels, 2);
-    });
-    image.src = canvas.toDataURL();
-
-- name: 2d.color.space.p3.toDataURL.jpeg.p3.canvas
-  desc: test if toDataURL('image/jpeg') returns p3 data from canvas with p3 color space
-  attributes: '{colorSpace: "display-p3"}'
-  canvas_types: ['HtmlCanvas']
-  code: |
-    ctx.fillStyle = "rgba(155, 27, 27, 1)";
-    ctx.fillRect(0, 0, 1, 1);
-    ctx.fillStyle = "rgba(27, 155, 27, 0)";
-    ctx.fillRect(1, 0, 1, 1);
-    ctx.fillStyle = "rgba(27, 27, 155, 0.5)";
-    ctx.fillRect(0, 1, 1, 1);
-    ctx.fillStyle = "rgba(27, 27, 27, 0.5)";
-    ctx.fillRect(1, 1, 1, 1);
-    expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
-
-    var image = new Image();
-    image.onload = t.step_func_done(function() {
-        var dstCanvas = document.createElement("canvas");
-        dstCanvas.width = 2;
-        dstCanvas.height = 2;
-        var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
-        ctx.drawImage(image, 0, 0);
-        var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
-        assert_array_approx_equals(actualPixels, expectedPixels, 2);
-    });
-    image.src = canvas.toDataURL("image/jpeg");
-
-- name: 2d.color.space.p3.toBlob.with.putImageData
-  desc: Use putImageData to put some p3 data in canvas and test if toBlob returns the same data
-  attributes: '{colorSpace: "display-p3"}'
-  canvas_types: ['HtmlCanvas']
-  code: |
-    canvas.width = 2;
-    canvas.height = 2;
-
-    // Create an ImageData using createImageData and populate its data array.
-    var image_data = ctx.createImageData(canvas.width, canvas.height, {colorSpace: "display-p3"});
-    var color_data = [[255, 100, 150, 1.0], [255, 100, 150, 0.5],
-                     [255, 100, 150, 0.5], [255, 100, 150, 0]];
-    var data = image_data.data;
-    for (var i = 0; i < data.length / 4; ++i) {
-      data[4*i + 0] = color_data[i][0];
-      data[4*i + 1] = color_data[i][1];
-      data[4*i + 2] = color_data[i][2];
-      data[4*i + 3] = color_data[i][3];
+    for (const img_cs of color_spaces) {
+      const image_data = ctx.getImageData(0, 0, 2, 2, {colorSpace: img_cs});
+      @assert image_data.colorSpace === img_cs;
+      const pixels = image_data.data;
+      const expected = [
+        [0, 0, 0, 255],
+        expected_pixels_1[img_cs],
+        expected_pixels_2[img_cs],
+        [255, 255, 255, 255]
+      ];
+      for (let i = 0; i < 4; ++i) {
+        for (let c = 0; c < 4; ++c) {
+          assert_approx_equals(pixels[4 * i + c], expected[i][c], epsilon,
+              `Pixel ${i} component ${c} mismatch for img: ${img_cs}`);
+        }
+      }
     }
-    ctx.putImageData(image_data, 0, 0);
-    expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
 
-    var image = new Image();
-    image.onload = t.step_func_done(function() {
-        var dstCanvas = document.createElement("canvas");
-        dstCanvas.width = 2;
-        dstCanvas.height = 2;
-        var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
-        ctx.drawImage(image, 0, 0);
-        var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
-        assert_array_approx_equals(actualPixels, expectedPixels, 2);
-    });
-    canvas.toBlob(function(blob) {
-        var urlCreator = window.URL || window.webkitURL;
-        image.src = urlCreator.createObjectURL(blob);
-    }, 'image/png', 1);
+  variants: &color-space-convert-variants
+    - srgb:
+        canvas_cs: "srgb"
+        color_style_1: &srgb-color-1 "color(srgb 0 1 1)"
+        color_style_2: &srgb-color-2 "color(srgb 0.8 0.2 0.8)"
+        expected_pixels_1: &srgb-expected-1 {
+          'srgb': [0, 255, 255, 255],
+          'srgb-linear': [0, 255, 255, 255],
+          'display-p3': [117, 251, 253, 255],
+          'display-p3-linear': [45, 247, 251, 255]
+        }
+        expected_pixels_2: &srgb-expected-2 {
+          'srgb': [204, 51, 204, 255],
+          'srgb-linear': [154, 8, 154, 255],
+          'display-p3': [188, 64, 198, 255],
+          'display-p3-linear': [128, 13, 143, 255]
+        }
+      srgb-linear:
+        canvas_cs: "srgb-linear"
+        color_style_1: *srgb-color-1
+        color_style_2: *srgb-color-2
+        expected_pixels_1: *srgb-expected-1
+        expected_pixels_2: *srgb-expected-2
+      display-p3:
+        canvas_cs: "display-p3"
+        color_style_1: &p3-color-1 "color(display-p3 1 0 0)"
+        color_style_2: &p3-color-2 "color(display-p3 0.2 0.8 0.2)"
+        expected_pixels_1: &p3-expected-1 {
+          'srgb': [255, 0, 0, 255],
+          'srgb-linear': [255, 0, 0, 255],
+          'display-p3': [255, 0, 0, 255],
+          'display-p3-linear': [255, 0, 0, 255]
+        }
+        expected_pixels_2: &p3-expected-2 {
+          'srgb': [0, 208, 0, 255],
+          'srgb-linear': [0, 160, 0, 255],
+          'display-p3': [51, 204, 51, 255],
+          'display-p3-linear': [8, 154, 8, 255]
+        }
+      display-p3-linear:
+        canvas_cs: "display-p3-linear"
+        color_style_1: *p3-color-1
+        color_style_2: *p3-color-2
+        expected_pixels_1: *p3-expected-1
+        expected_pixels_2: *p3-expected-2
 
-- name: 2d.color.space.p3.toDataURL.with.putImageData
-  desc: Use putImageData to put some p3 data in canvas and test if toDataURL returns the same data
-  attributes: '{colorSpace: "display-p3"}'
+- name: 2d.color.space.toBlob.convert
+  desc: Test toBlob color space preservation and conversion from a {{ canvas_cs }} canvas
+  attributes: '{colorSpace: "{{ canvas_cs }}"}'
   canvas_types: ['HtmlCanvas']
+  test_type: promise
+  variants_layout: [single_file]
   code: |
-    canvas.width = 2;
-    canvas.height = 2;
+    const color_style_1 = '{{ color_style_1 }}';
+    const color_style_2 = '{{ color_style_2 }}';
+    const color_spaces = ['srgb', 'srgb-linear', 'display-p3', 'display-p3-linear'];
+    const expected_pixels_1 = {{ expected_pixels_1 }};
+    const expected_pixels_2 = {{ expected_pixels_2 }};
+    const epsilon = 2;
 
-    // Create an ImageData using createImageData and populate its data array.
-    var image_data = ctx.createImageData(canvas.width, canvas.height, {colorSpace: "display-p3"});
-    var color_data = [[255, 100, 150, 1.0], [255, 100, 150, 0.5],
-                     [255, 100, 150, 0.5], [255, 100, 150, 0]];
-    var data = image_data.data;
-    for (var i = 0; i < data.length / 4; ++i) {
-      data[4*i + 0] = color_data[i][0];
-      data[4*i + 1] = color_data[i][1];
-      data[4*i + 2] = color_data[i][2];
-      data[4*i + 3] = color_data[i][3];
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = color_style_1;
+    ctx.fillRect(1, 0, 1, 1);
+    ctx.fillStyle = color_style_2;
+    ctx.fillRect(0, 1, 1, 1);
+    ctx.fillStyle = 'white';
+    ctx.fillRect(1, 1, 1, 1);
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1));
+    const img = await createImageBitmap(blob);
+
+    for (const dst_cs of color_spaces) {
+      const dst_canvas = document.createElement('canvas');
+      dst_canvas.width = 2;
+      dst_canvas.height = 2;
+      const dst_ctx = dst_canvas.getContext('2d', {colorSpace: dst_cs});
+      dst_ctx.drawImage(img, 0, 0);
+
+      const image_data = dst_ctx.getImageData(0, 0, 2, 2, {colorSpace: dst_cs});
+      @assert image_data.colorSpace === dst_cs;
+      const pixels = image_data.data;
+      const expected = [
+        [0, 0, 0, 255],
+        expected_pixels_1[dst_cs],
+        expected_pixels_2[dst_cs],
+        [255, 255, 255, 255]
+      ];
+      for (let i = 0; i < 4; ++i) {
+        for (let c = 0; c < 4; ++c) {
+          assert_approx_equals(pixels[4 * i + c], expected[i][c], epsilon,
+              `Pixel ${i} component ${c} mismatch for dst: ${dst_cs}`);
+        }
+      }
     }
-    ctx.putImageData(image_data, 0, 0);
-    expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
 
-    var image = new Image();
-    image.onload = t.step_func_done(function() {
-        var dstCanvas = document.createElement("canvas");
-        dstCanvas.width = 2;
-        dstCanvas.height = 2;
-        var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
-        ctx.drawImage(image, 0, 0);
-        var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
-        assert_array_approx_equals(actualPixels, expectedPixels, 2);
+  variants: *color-space-convert-variants
+
+- name: 2d.color.space.toDataURL.convert
+  desc: Test toDataURL color space preservation and conversion from a {{ canvas_cs }} canvas
+  attributes: '{colorSpace: "{{ canvas_cs }}"}'
+  canvas_types: ['HtmlCanvas']
+  test_type: promise
+  variants_layout: [single_file]
+  code: |
+    const color_style_1 = '{{ color_style_1 }}';
+    const color_style_2 = '{{ color_style_2 }}';
+    const color_spaces = ['srgb', 'srgb-linear', 'display-p3', 'display-p3-linear'];
+    const expected_pixels_1 = {{ expected_pixels_1 }};
+    const expected_pixels_2 = {{ expected_pixels_2 }};
+    const epsilon = 2;
+
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = color_style_1;
+    ctx.fillRect(1, 0, 1, 1);
+    ctx.fillStyle = color_style_2;
+    ctx.fillRect(0, 1, 1, 1);
+    ctx.fillStyle = 'white';
+    ctx.fillRect(1, 1, 1, 1);
+
+    const img = new Image();
+    await new Promise(resolve => {
+      img.onload = resolve;
+      img.src = canvas.toDataURL();
     });
-    image.src = canvas.toDataURL();
+
+    for (const dst_cs of color_spaces) {
+      const dst_canvas = document.createElement('canvas');
+      dst_canvas.width = 2;
+      dst_canvas.height = 2;
+      const dst_ctx = dst_canvas.getContext('2d', {colorSpace: dst_cs});
+      dst_ctx.drawImage(img, 0, 0);
+
+      const image_data = dst_ctx.getImageData(0, 0, 2, 2, {colorSpace: dst_cs});
+      @assert image_data.colorSpace === dst_cs;
+      const pixels = image_data.data;
+      const expected = [
+        [0, 0, 0, 255],
+        expected_pixels_1[dst_cs],
+        expected_pixels_2[dst_cs],
+        [255, 255, 255, 255]
+      ];
+      for (let i = 0; i < 4; ++i) {
+        for (let c = 0; c < 4; ++c) {
+          assert_approx_equals(pixels[4 * i + c], expected[i][c], epsilon,
+              `Pixel ${i} component ${c} mismatch for dst: ${dst_cs}`);
+        }
+      }
+    }
+
+  variants: *color-space-convert-variants
+
+- name: 2d.color.space.toBlob.toDataURL.{{ format }}.linear.float
+  desc: >-
+    Test {{ method }} creates a {{ format }} image using an appropriate
+    encoding to not lose precision from a {{ canvas_cs }} float16 canvas
+  size: [256, 1]
+  attributes: '{colorSpace: "{{ canvas_cs }}", colorType: "float16"}'
+  test_type: promise
+  append_variants_to_name: false
+  variants_layout: [multi_files, single_file, single_file]
+  code: |
+    // Draw a grayscale ramp across the canvas.
+    for (let i = 0; i < {{ num_inputs }}; ++i) {
+      const v = i / ({{ num_inputs }} - 1);
+      ctx.fillStyle = `color(srgb ${v} ${v} ${v})`;
+      ctx.fillRect(i, 0, 1, 1);
+    }
+
+    // Decodes a Blob into an Image. Note that this is not used by the
+    // toDataURL variant, which decodes directly from the data URL string.
+    const decodeBlob = async (blob) => {
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      await new Promise(resolve => {
+        img.onload = resolve;
+        img.src = url;
+      });
+      URL.revokeObjectURL(url);
+      return img;
+    };
+
+    const getImage = async (type, quality) => {
+      {{ get_image | indent(2) }}
+    };
+
+    // Encode the canvas and decode it back to an Image.
+    const img = await getImage(
+        '{{ mime_type }}'{% if quality %}, {{ quality }}{% endif %});
+
+    // Draw into a float16 canvas to read back values without 8-bit clamping.
+    const dst_canvas = canvas instanceof OffscreenCanvas
+        ? new OffscreenCanvas({{ num_inputs }}, 1)
+        : document.createElement('canvas');
+    dst_canvas.width = {{ num_inputs }};
+    dst_canvas.height = 1;
+    const dst_ctx = dst_canvas.getContext(
+        '2d', {colorSpace: 'srgb', colorType: 'float16'});
+    dst_ctx.drawImage(img, 0, 0);
+
+    // Verify that enough distinct values were preserved.
+    const pixels = dst_ctx.getImageData(
+        0, 0, {{ num_inputs }}, 1, {pixelFormat: 'rgba-float16'}).data;
+    const unique_values = new Set();
+    for (let i = 0; i < {{ num_inputs }}; ++i) {
+      unique_values.add(pixels[4 * i]);
+    }
+    assert_greater_than(
+        unique_values.size, {{ min_unique }},
+        '{{ mime_type }} encoding should produce >{{ min_unique }} unique ' +
+        'values ({{ assertion_comment }})');
+
+  variants:
+    - jpeg:
+        format: "jpeg"
+        mime_type: "image/jpeg"
+        quality: 1.0
+        num_inputs: 256
+        min_unique: 220
+        size: [256, 1]
+        assertion_comment: "naive linear encoding would return 183"
+      png:
+        format: "png"
+        mime_type: "image/png"
+        quality: null
+        num_inputs: 1024
+        min_unique: 1000
+        size: [1024, 1]
+        assertion_comment: >-
+          this guarantees 16-bit encoding, but does not guarantee that the
+          encoding was linear
+    - srgb-linear:
+        canvas_cs: "srgb-linear"
+      display-p3-linear:
+        canvas_cs: "display-p3-linear"
+    - toBlob:
+        canvas_types: ['HtmlCanvas']
+        method: "toBlob"
+        get_image: |-
+          const blob = await new Promise(
+              resolve => canvas.toBlob(resolve, type, quality));
+          return await decodeBlob(blob);
+      toDataURL:
+        canvas_types: ['HtmlCanvas']
+        method: "toDataURL"
+        get_image: |-
+          const dataUrl = canvas.toDataURL(type, quality);
+          const img = new Image();
+          await new Promise(resolve => {
+            img.onload = resolve;
+            img.src = dataUrl;
+          });
+          return img;
+      convertToBlob:
+        canvas_types: ['OffscreenCanvas']
+        method: "convertToBlob"
+        get_image: |-
+          const blob = await canvas.convertToBlob(
+              {type{% if quality %}, quality: {{ quality }}{% endif %}});
+          return await decodeBlob(blob);
 
 - name: 2d.color.space.p3.fillText
   desc: Test if fillText can be used with a solid display-p3 color
@@ -310,64 +420,4 @@
             t.done();
         });
     });
-
-- name: 2d.color.space.srgb-linear
-  desc: test getImageData color conversion with a srgb-linear uint8 canvas
-  attributes: '{colorSpace: "srgb-linear"}'
-  code: |
-    const color_style = 'color(srgb-linear 0.0392 0.3922 0.7843)';
-    // [0.0392, 0.3922, 0.7843, 1.0] * 255 = [10, 100, 200, 255]
-    const epsilon = 2;
-    ctx.fillStyle = color_style;
-    ctx.fillRect(0, 0, 10, 10);
-
-    // Read without specifying a color space. The result should be the specified
-    // color.
-    let pixel_expected = [10, 100, 200, 255];
-    let image_data = ctx.getImageData(5, 5, 1, 1);
-    @assert image_data.colorSpace === "srgb-linear";
-    assert_approx_equals(image_data.data[0], pixel_expected[0], 2);
-    assert_approx_equals(image_data.data[1], pixel_expected[1], 2);
-    assert_approx_equals(image_data.data[2], pixel_expected[2], 2);
-    assert_approx_equals(image_data.data[3], pixel_expected[3], 2);
-
-    // Read back to srgb. This will convert from linear to sRGB transfer
-    // function.
-    pixel_expected = [58, 168, 229, 255];
-    image_data = ctx.getImageData(5, 5, 1, 1, {colorSpace:"srgb"});
-    @assert image_data.colorSpace === "srgb";
-    assert_approx_equals(image_data.data[0], pixel_expected[0], 2);
-    assert_approx_equals(image_data.data[1], pixel_expected[1], 2);
-    assert_approx_equals(image_data.data[2], pixel_expected[2], 2);
-    assert_approx_equals(image_data.data[3], pixel_expected[3], 2);
-
-- name: 2d.color.space.display-p3-linear
-  desc: test getImageData color conversion with a display-p3-linear uint8 canvas
-  attributes: '{colorSpace: "display-p3-linear"}'
-  code: |
-    const color_style = 'color(display-p3-linear 0.0392 0.3922 0.7843)';
-    // [0.0392, 0.3922, 0.7843, 1.0] * 255 = [10, 100, 200, 255]
-    const epsilon = 2;
-    ctx.fillStyle = color_style;
-    ctx.fillRect(0, 0, 10, 10);
-
-    // Read without specifying a color space. The result should be the specified
-    // color.
-    let pixel_expected = [10, 100, 200, 255];
-    let image_data = ctx.getImageData(5, 5, 1, 1);
-    @assert image_data.colorSpace === "display-p3-linear";
-    assert_approx_equals(image_data.data[0], pixel_expected[0], 2);
-    assert_approx_equals(image_data.data[1], pixel_expected[1], 2);
-    assert_approx_equals(image_data.data[2], pixel_expected[2], 2);
-    assert_approx_equals(image_data.data[3], pixel_expected[3], 2);
-
-    // Read back to display-p3. This will convert from linear to sRGB transfer
-    // function.
-    pixel_expected = [58, 168, 229, 255];
-    image_data = ctx.getImageData(5, 5, 1, 1, {colorSpace:"display-p3"});
-    @assert image_data.colorSpace === "display-p3";
-    assert_approx_equals(image_data.data[0], pixel_expected[0], 2);
-    assert_approx_equals(image_data.data[1], pixel_expected[1], 2);
-    assert_approx_equals(image_data.data[2], pixel_expected[2], 2);
-    assert_approx_equals(image_data.data[3], pixel_expected[3], 2);
 

@@ -126,6 +126,72 @@
   </menubar>
 </menulist>
 
+<menubar id="global-propagation-outer">
+  <submenu>
+    <menuitem>Open Sub 1</menuitem>
+    <menulist id="global-sub1">
+      <menuitem>Item 1</menuitem>
+    </menulist>
+  </submenu>
+  <submenu>
+    <menuitem>Open Sub 2</menuitem>
+    <menulist id="global-sub2">
+      <submenu>
+        <menuitem>Open Sub 4</menuitem>
+        <menulist id="global-sub4">
+          <menuitem>Item 4</menuitem>
+        </menulist>
+      </submenu>
+    </menulist>
+  </submenu>
+  <submenu>
+    <menuitem>Open Sub 3</menuitem>
+    <menulist id="global-sub3">
+      <button>Invalid Button</button>
+      <submenu>
+        <menuitem>Open Sub 5</menuitem>
+        <menulist id="global-sub5">
+          <menuitem>Item 5</menuitem>
+        </menulist>
+      </submenu>
+    </menulist>
+  </submenu>
+</menubar>
+
+<menubar id="dynamic-removal-outer">
+  <submenu>
+    <menuitem>Sub 1</menuitem>
+    <menulist id="dynamic-removal-sub1">
+      <menuitem>Item 1</menuitem>
+    </menulist>
+  </submenu>
+</menubar>
+
+<menubar id="multiple-violations-outer">
+  <submenu>
+    <menuitem>Sub 1</menuitem>
+    <menulist id="multiple-violations-sub1">
+      <button id="multi-btn1">Bad</button>
+    </menulist>
+  </submenu>
+  <submenu>
+    <menuitem>Sub 2</menuitem>
+    <menulist id="multiple-violations-sub2">
+      <button id="multi-btn2">Bad</button>
+    </menulist>
+  </submenu>
+</menubar>
+
+<menubar id="detach-outer">
+  <menuitem>Outer</menuitem>
+  <submenu id="detach-submenu">
+    <menuitem>Inner</menuitem>
+    <menulist id="detach-inner">
+      <button>Bad</button>
+    </menulist>
+  </submenu>
+</menubar>
+
 <style>
   #pseudo-menulist::before { content: "pseudo wayward"; }
 </style>
@@ -243,8 +309,8 @@ promise_test(async () => {
   assert_equals(outerRole, 'dialog', 'Invalid outer menubar forces dialog');
 
   const innerRole = await test_driver.get_computed_role(validInner);
-  assert_equals(innerRole, 'menu', 'Valid inner menulist should retain menu role even if outer is invalid');
-}, 'Invalid outer menubar forces dialog on itself but not on valid inner menulist');
+  assert_equals(innerRole, 'dialog', 'Valid inner menulist should fallback to dialog role if outer is invalid');
+}, 'Invalid outer menubar forces dialog on itself and on valid inner menulist');
 
 promise_test(async () => {
   const dynamicList = document.createElement('menulist');
@@ -475,4 +541,170 @@ promise_test(async () => {
   const role = await test_driver.get_computed_role(menu);
   assert_equals(role, 'menu');
 }, 'Removing a node from a detached valid subtree should not crash');
+
+promise_test(async () => {
+  const outer = document.getElementById('global-propagation-outer');
+  const sub1 = document.getElementById('global-sub1');
+  const sub2 = document.getElementById('global-sub2');
+  const sub3 = document.getElementById('global-sub3');
+  const sub4 = document.getElementById('global-sub4');
+  const sub5 = document.getElementById('global-sub5');
+
+  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Outer menu becomes dialog');
+
+  sub1.showPopover();
+  assert_equals(await test_driver.get_computed_role(sub1), 'dialog', 'Lateral sibling sub1 becomes dialog');
+  sub1.hidePopover();
+
+  sub2.showPopover();
+  assert_equals(await test_driver.get_computed_role(sub2), 'dialog', 'Lateral sibling sub2 becomes dialog');
+  sub4.showPopover();
+  assert_equals(await test_driver.get_computed_role(sub4), 'dialog', 'Descendant of lateral sibling sub4 becomes dialog');
+  sub4.hidePopover();
+  sub2.hidePopover();
+
+  sub3.showPopover();
+  assert_equals(await test_driver.get_computed_role(sub3), 'dialog', 'Invalid sub3 becomes dialog');
+  sub5.showPopover();
+  assert_equals(await test_driver.get_computed_role(sub5), 'dialog', 'Descendant of invalid sub5 becomes dialog');
+  sub5.hidePopover();
+  sub3.hidePopover();
+}, 'A single violation forces the entire menu tree (ancestors, siblings, descendants) into dialog mode');
+
+promise_test(async () => {
+  const outer = document.getElementById('dynamic-removal-outer');
+  const sub1 = document.getElementById('dynamic-removal-sub1');
+
+  sub1.showPopover();
+
+  const button = document.createElement('button');
+  sub1.appendChild(button);
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Tree is dialog');
+
+  button.remove();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'menubar', 'Tree reverts to menu');
+  assert_equals(await test_driver.get_computed_role(sub1), 'menu', 'Sub1 reverts to menu');
+}, 'Dynamic removal of the only violation restores the entire tree');
+
+promise_test(async () => {
+  const outer = document.getElementById('multiple-violations-outer');
+  const sub1 = document.getElementById('multiple-violations-sub1');
+  const sub2 = document.getElementById('multiple-violations-sub2');
+  const btn1 = document.getElementById('multi-btn1');
+  const btn2 = document.getElementById('multi-btn2');
+
+  sub1.showPopover();
+  sub2.showPopover();
+
+  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Tree is dialog initially');
+
+  btn1.remove();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Tree remains dialog because btn2 exists');
+
+  btn2.remove();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'menubar', 'Tree reverts to menu when all violations are gone');
+}, 'Multiple violations across different branches require all to be removed before restoring');
+
+promise_test(async () => {
+  const outer = document.getElementById('detach-outer');
+  const submenu = document.getElementById('detach-submenu');
+  const inner = document.getElementById('detach-inner');
+
+  inner.showPopover();
+
+  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Outer is dialog initially');
+
+  submenu.remove();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'menubar', 'Outer reverts to menu after invalid subtree is detached');
+  // assert_equals(await test_driver.get_computed_role(inner), 'dialog', 'Detached inner remains dialog because it still has the violation');
+}, 'Detaching an invalid subtree restores the outer menu, but the detached subtree remains a dialog');
+
+promise_test(async () => {
+  const outer = document.createElement('menubar');
+  const wrapper = document.createElement('div');
+  const inner = document.createElement('menulist');
+  const btn = document.createElement('button');
+
+  inner.appendChild(btn);
+  wrapper.appendChild(inner);
+  outer.appendChild(wrapper);
+  document.body.appendChild(outer);
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Outer is dialog initially');
+
+  wrapper.remove();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'menubar', 'Outer reverts to menubar after wrapper is removed');
+
+  outer.remove();
+}, 'Removing a wrapper element containing an invalid menu correctly restores the outer menu');
+
+promise_test(async () => {
+  const outer = document.createElement('menubar');
+  document.body.appendChild(outer);
+
+  const inner = document.createElement('menulist');
+  const btn = document.createElement('button');
+  inner.appendChild(btn);
+
+  // Wait for the mutation observer on 'inner' to process the button.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'menubar', 'Outer is menubar initially');
+
+  // Synchronous block: Attach the pre-violated subtree (increments outer), then immediately detach it (fails to decrement).
+  outer.appendChild(inner);
+  inner.remove();
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  assert_equals(await test_driver.get_computed_role(outer), 'menubar', 'Outer should remain menubar because the violating subtree was removed');
+
+  outer.remove();
+}, 'Inserting and immediately removing a violating subtree correctly maintains the outer menu state');
+
+promise_test(async () => {
+  const outer = document.createElement('menubar');
+  document.body.appendChild(outer);
+
+  const inner = document.createElement('menulist');
+  const btn = document.createElement('button');
+  inner.appendChild(btn);
+  document.body.appendChild(inner);
+  inner.showPopover();
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'menubar', 'Outer is menubar initially');
+  assert_equals(await test_driver.get_computed_role(inner), 'dialog', 'Inner standalone menulist is dialog initially');
+
+  outer.appendChild(inner);
+  inner.showPopover();
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Outer correctly inherited dialog state after subsuming standalone menulist');
+  assert_equals(await test_driver.get_computed_role(inner), 'dialog', 'Inner remains dialog');
+
+  // Verify the top-level observer correctly processes new mutations in the subsumed tree.
+  btn.remove();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(outer), 'menubar', 'Outer correctly reverted after mutation inside subsumed menulist');
+
+  outer.remove();
+}, 'Reparenting a standalone violating menulist into a menubar correctly transfers violations to the top-level observer');
+
 </script>

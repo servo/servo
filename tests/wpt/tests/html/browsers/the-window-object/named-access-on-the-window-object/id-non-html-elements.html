@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Named access on the window object - id on non-HTML elements</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#named-access-on-the-window-object">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-id">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<svg id="parsed-svg"></svg>
+<math id="parsed-math"></math>
+<script>
+"use strict";
+
+const svgNamespace = "http://www.w3.org/2000/svg";
+const mathmlNamespace = "http://www.w3.org/1998/Math/MathML";
+const xmlNamespace = "http://www.w3.org/XML/1998/namespace";
+const otherNamespace = "urn:example:namespace";
+
+// [slug used to form unique names, description, namespace, local name]
+const nonHTMLNamespaces = [
+  ["null-namespace", "the null namespace", null, "element"],
+  ["svg", "the SVG namespace", svgNamespace, "svg"],
+  ["mathml", "the MathML namespace", mathmlNamespace, "math"],
+  ["other-namespace", "a namespace other than HTML, SVG, and MathML", otherNamespace, "element"],
+];
+
+test(() => {
+  assert_equals(window["parsed-svg"], document.querySelector("svg"));
+  assert_equals(window["parsed-math"], document.querySelector("math"));
+}, "Parsed svg and math elements with an id are exposed");
+
+for (const [slug, description, namespace, localName] of nonHTMLNamespaces) {
+  test(t => {
+    const element = document.createElementNS(namespace, localName);
+    const id = `${slug}-id`;
+    element.setAttribute("id", id);
+    document.body.append(element);
+    t.add_cleanup(() => element.remove());
+
+    assert_equals(window[id], element);
+  }, `An element in ${description} with an id is exposed`);
+}
+
+test(t => {
+  const element = document.createElementNS(svgNamespace, "img");
+  element.setAttribute("id", "svg-img-id");
+  document.body.append(element);
+  t.add_cleanup(() => element.remove());
+
+  assert_equals(window["svg-img-id"], element);
+}, "An element in the SVG namespace whose local name is img is exposed by its id");
+
+test(t => {
+  const div = document.createElement("div");
+  div.setAttribute("id", "multiple-matches");
+  const svg = document.createElementNS(svgNamespace, "svg");
+  svg.setAttribute("id", "multiple-matches");
+  document.body.append(div, svg);
+  t.add_cleanup(() => {
+    div.remove();
+    svg.remove();
+  });
+
+  assert_true(window["multiple-matches"] instanceof HTMLCollection);
+  assert_array_equals(window["multiple-matches"], [div, svg]);
+}, "Non-HTML elements are included in the HTMLCollection returned for multiple matches");
+
+test(t => {
+  const svg = document.createElementNS(svgNamespace, "svg");
+  svg.setAttribute("id", "dynamic-svg-one");
+  t.add_cleanup(() => svg.remove());
+
+  assert_false("dynamic-svg-one" in window, "before insertion");
+
+  document.body.append(svg);
+  assert_equals(window["dynamic-svg-one"], svg, "after insertion");
+
+  svg.setAttribute("id", "dynamic-svg-two");
+  assert_false("dynamic-svg-one" in window, "old id after changing the id");
+  assert_equals(window["dynamic-svg-two"], svg, "new id after changing the id");
+
+  svg.remove();
+  assert_false("dynamic-svg-two" in window, "after removal");
+}, "Named access for a non-HTML element is updated as it is inserted, changed, and removed");
+
+for (const [slug, description, namespace] of nonHTMLNamespaces) {
+  for (const localName of ["embed", "form", "img", "object"]) {
+    test(t => {
+      const element = document.createElementNS(namespace, localName);
+      const name = `${slug}-${localName}-name`;
+      element.setAttribute("name", name);
+      document.body.append(element);
+      t.add_cleanup(() => element.remove());
+
+      assert_false(name in window);
+    }, `An element in ${description} whose local name is ${localName} is not exposed by its name attribute`);
+  }
+}
+
+test(t => {
+  const element = document.createElementNS(svgNamespace, "img");
+  element.setAttribute("id", "svg-img-id-and-name");
+  element.setAttribute("name", "svg-img-id-and-name");
+  document.body.append(element);
+  t.add_cleanup(() => element.remove());
+
+  assert_equals(window["svg-img-id-and-name"], element, "before changing the id");
+
+  element.setAttribute("id", "svg-img-other-id");
+  assert_false("svg-img-id-and-name" in window, "after changing the id");
+}, "An element in the SVG namespace whose local name is img is not kept exposed by its name attribute");
+
+// Named access uses DOM's ID concept, which only takes an id attribute in the
+// null namespace into account, and the name content attribute, which is also in
+// the null namespace. Note that a prefixed attribute is never in the null
+// namespace.
+for (const [slug, description, localName, namespace, qualifiedName] of [
+  ["unprefixed-id", "An id attribute in a namespace other than null", "div", otherNamespace, "id"],
+  ["prefixed-id", "A prefixed id attribute", "div", otherNamespace, "example:id"],
+  ["xml-id", "An xml:id attribute", "div", xmlNamespace, "xml:id"],
+  ["unprefixed-name", "A name attribute in a namespace other than null on an img element", "img", otherNamespace, "name"],
+  ["prefixed-name", "A prefixed name attribute on an img element", "img", otherNamespace, "example:name"],
+]) {
+  test(t => {
+    const element = document.createElement(localName);
+    const value = `${slug}-attribute`;
+    element.setAttributeNS(namespace, qualifiedName, value);
+    document.body.append(element);
+    t.add_cleanup(() => element.remove());
+
+    assert_false(value in window);
+  }, `${description} is not exposed`);
+}
+</script>

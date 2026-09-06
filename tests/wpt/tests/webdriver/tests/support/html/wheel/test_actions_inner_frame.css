@@ -1,0 +1,27 @@
+div {
+  margin: 0;
+  padding: 0;
+}
+
+#inner-not-scrollable {
+  width: 100px;
+  height: 25px;
+}
+
+#inner-not-scrollable-content {
+  width: 200px;
+  height: 50px;
+  background-color: #ccc;
+}
+
+#inner-scrollable {
+  width: 100px;
+  height: 50px;
+  overflow: scroll;
+}
+
+#inner-scrollable-content {
+  width: 600px;
+  height: 1000px;
+  background-color: blue;
+}

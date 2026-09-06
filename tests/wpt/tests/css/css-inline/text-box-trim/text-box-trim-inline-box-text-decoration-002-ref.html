@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Test of text-decoration position on nested inline boxes with text-box-trim</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-line-property">
+<script src="support/variant-class.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="variant" content="?class=cap">
+<meta name="variant" content="?class=ex">
+<meta name="variant" content="?class=text">
+<meta name="variant" content="?class=ideographic">
+<meta name="variant" content="?class=ideographic-ink">
+<meta name="variant" content="?class=vrl,cap">
+<meta name="variant" content="?class=vrl,ideographic">
+<meta name="variant" content="?class=vlr,alphabetic">
+<meta name="variant" content="?class=vlr,ideographic">
+<meta name="variant" content="?class=vlr,ideographic-ink">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+<style>
+.container {
+  font: 100px/1.5 BaselineDiagnosticAlphabeticZero;
+  position: relative;
+  z-index: 0;
+}
+
+.target { position: relative; }
+
+.target::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: yellow;
+}
+
+.decorated {
+  text-decoration-line: underline;
+  text-decoration-color: green;
+}
+
+:root.vrl { writing-mode: vertical-rl; }
+:root.vlr { writing-mode: vertical-lr; }
+
+:root:not(.vrl, .vlr) .target::before { top: var(--block-start-inset, 0); }
+:root.vrl .target::before { right: var(--block-start-inset, 0); }
+:root.vlr .target::before { left: var(--block-start-inset, 0); }
+
+.cap .target::before { --block-start-inset: calc(var(--baseline-diagnostic-alphabetic-zero-cap-height) * 1em); }
+.ex  .target::before { --block-start-inset: calc(var(--baseline-diagnostic-alphabetic-zero-x-height) * 1em); }
+
+:root:not(.vlr).ideographic     .target::before { --block-start-inset: calc(var(--baseline-diagnostic-alphabetic-zero-ideographic-over) * 1em); }
+:root:not(.vlr).ideographic-ink .target::before { --block-start-inset: calc(var(--baseline-diagnostic-alphabetic-zero-ideographic-face-over) * 1em); }
+
+:root.vlr.alphabetic      .target::before { --block-start-inset: calc((1 - var(--baseline-diagnostic-alphabetic-zero-alphabetic)) * 1em); }
+:root.vlr.ideographic     .target::before { --block-start-inset: calc((1 - var(--baseline-diagnostic-alphabetic-zero-ideographic-under)) * 1em); }
+:root.vlr.ideographic-ink .target::before { --block-start-inset: calc((1 - var(--baseline-diagnostic-alphabetic-zero-ideographic-face-under)) * 1em); }
+</style>
+<div class="container">
+  <div><span class="decorated"><span class="target">█BxIF</span></span></div>
+  <div><span class="target decorated"><span>█BxIF</span></span></div>
+  <div><span class="decorated">█<span class="target">BxIF</span></span></div>
+</div>

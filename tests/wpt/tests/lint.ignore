@@ -211,6 +211,7 @@ SET TIMEOUT: focus/support/iframe-focuses-parent-same-site-inner.html
 SET TIMEOUT: generic-sensor/resources/iframe_sensor_handler.html
 SET TIMEOUT: html/browsers/browsing-the-web/back-forward-cache/resources/inflight-fetch-helper.js
 SET TIMEOUT: html/browsers/browsing-the-web/history-traversal/*
+SET TIMEOUT: html/browsers/browsing-the-web/resources/navigates-to-blank.html
 SET TIMEOUT: html/browsers/browsing-the-web/navigating-across-documents/*
 SET TIMEOUT: html/browsers/browsing-the-web/scroll-to-fragid/*
 SET TIMEOUT: html/browsers/browsing-the-web/unloading-documents/*

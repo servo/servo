@@ -57,6 +57,19 @@ promise_test(async t => {
 }, "Can get the credentials");
 
 promise_test(async t => {
+  await test_driver.set_credential_properties(authenticator_id, credential_id, {
+    backupEligibility: true,
+    backupState: true,
+    signCount: 10,
+  });
+  let credentials = await test_driver.get_credentials(authenticator_id);
+  assert_equals(credentials.length, 1);
+  assert_equals(credentials[0].backupEligibility, true);
+  assert_equals(credentials[0].backupState, true);
+  assert_equals(credentials[0].signCount, 10);
+}, "Can set credential properties");
+
+promise_test(async t => {
   await test_driver.remove_credential(authenticator_id, credential_id);
   let credentials = await test_driver.get_credentials(authenticator_id);
   assert_equals(credentials.length, 0);

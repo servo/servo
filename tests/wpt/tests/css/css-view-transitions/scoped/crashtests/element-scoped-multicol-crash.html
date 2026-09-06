@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<style>
+body {
+  max-height: 5px;
+  columns: 5px;
+}
+#scope {
+  contain: strict;
+  position: relative;
+  view-transition-name: container;
+}
+</style>
+aa<span id="scope"></span>
+<script>
+onload = async () => {
+  try {
+    const vt = scope.startViewTransition();
+    await vt.finished;
+  } catch (e) {
+  } finally {
+    document.documentElement.classList.remove('test-wait');
+  }
+}
+</script>
+</html>

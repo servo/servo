@@ -1,0 +1,257 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Media Capture and Streams Extensions (https://w3c.github.io/mediacapture-extensions/)
+
+partial interface MediaDevices {
+  readonly attribute GetUserMediaSemantics defaultSemantics;
+};
+
+partial dictionary MediaStreamConstraints {
+  GetUserMediaSemantics semantics;
+};
+
+enum GetUserMediaSemantics {
+  "browser-chooses",
+  "user-chooses"
+};
+
+[Exposed=(Window,DedicatedWorker), Transferable]
+partial interface MediaStreamTrack {
+};
+
+partial interface MediaStreamTrack {
+  [SameObject] readonly attribute
+      (MediaStreamTrackAudioStats or MediaStreamTrackVideoStats)? stats;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface MediaStreamTrackAudioStats {
+  readonly attribute DOMHighResTimeStamp latency;
+  readonly attribute DOMHighResTimeStamp averageLatency;
+  readonly attribute DOMHighResTimeStamp minimumLatency;
+  readonly attribute DOMHighResTimeStamp maximumLatency;
+  undefined resetLatency();
+  [Default] object toJSON();
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface MediaStreamTrackVideoStats {
+  readonly attribute unsigned long long deliveredFrames;
+  readonly attribute unsigned long long discardedFrames;
+  readonly attribute unsigned long long totalFrames;
+  [Default] object toJSON();
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean powerEfficient = true;
+};
+
+partial dictionary MediaTrackCapabilities {
+  sequence<boolean> powerEfficient;
+};
+
+partial dictionary MediaTrackSettings {
+  boolean powerEfficient;
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean powerEfficientPixelFormat = true;
+};
+
+partial dictionary MediaTrackCapabilities {
+  sequence<boolean> powerEfficientPixelFormat;
+};
+
+partial dictionary MediaTrackSettings {
+  boolean powerEfficientPixelFormat;
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean gestureReactions = true;
+};
+
+partial dictionary MediaTrackConstraintSet {
+  ConstrainBoolean gestureReactions;
+};
+
+partial dictionary MediaTrackSettings {
+  boolean gestureReactions;
+};
+
+partial dictionary MediaTrackCapabilities {
+  sequence<boolean> gestureReactions;
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean faceFraming = true;
+};
+
+partial dictionary MediaTrackCapabilities {
+  sequence<boolean> faceFraming;
+};
+
+partial dictionary MediaTrackConstraintSet {
+  ConstrainBoolean faceFraming;
+};
+
+partial dictionary MediaTrackSettings {
+  boolean faceFraming;
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean eyeGazeCorrection = true;
+};
+
+partial dictionary MediaTrackCapabilities {
+  sequence<boolean> eyeGazeCorrection;
+};
+
+partial dictionary MediaTrackConstraintSet {
+  ConstrainBoolean eyeGazeCorrection;
+};
+
+partial dictionary MediaTrackSettings {
+  boolean eyeGazeCorrection;
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean voiceIsolation = true;
+};
+
+partial dictionary MediaTrackConstraintSet {
+  ConstrainBoolean voiceIsolation;
+};
+
+partial dictionary MediaTrackSettings {
+  boolean voiceIsolation;
+};
+
+partial dictionary MediaTrackCapabilities {
+  sequence<boolean> voiceIsolation;
+};
+
+partial interface MediaStreamTrack {
+  attribute EventHandler onconfigurationchange;
+};
+
+partial dictionary VideoFrameMetadata {
+  sequence<Segment> segments;
+};
+
+dictionary Segment {
+  required SegmentType type;
+  required long        id;
+  long                 partOf;
+  required float       probability;
+  Point2D              centerPoint;
+  DOMRectInit          boundingBox;
+};
+
+enum SegmentType {
+  "human-face",
+  "left-eye",
+  "right-eye",
+  "eye",
+  "mouth",
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean humanFaceDetectionMode = true;
+};
+
+partial dictionary MediaTrackCapabilities {
+  sequence<DOMString> humanFaceDetectionMode;
+};
+
+partial dictionary MediaTrackConstraintSet {
+  ConstrainDOMString humanFaceDetectionMode;
+};
+
+partial dictionary MediaTrackSettings {
+  DOMString humanFaceDetectionMode;
+};
+
+enum HumanFaceDetectionModeEnum {
+  "none",
+  "bounding-box",
+  "bounding-box-with-landmark-center-point",
+};
+
+partial dictionary VideoFrameMetadata {
+  BackgroundBlur backgroundBlur;
+};
+
+dictionary BackgroundBlur: MediaEffectInfo {};
+
+dictionary MediaEffectInfo {
+  required boolean enabled;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+partial interface MediaStream {
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean backgroundSegmentationMask = true;
+};
+
+partial dictionary MediaTrackConstraintSet {
+  ConstrainBoolean backgroundSegmentationMask;
+};
+
+partial dictionary MediaTrackSettings {
+  boolean backgroundSegmentationMask;
+};
+
+partial dictionary MediaTrackCapabilities {
+  sequence<boolean> backgroundSegmentationMask;
+};
+
+partial dictionary VideoFrameMetadata {
+  ImageBitmap backgroundSegmentationMask;
+};
+
+[Exposed=Window]
+interface HTMLCameraElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  readonly attribute MediaStreamTrack? track;
+  readonly attribute DOMException? error;
+  undefined setConstraints(optional MediaTrackConstraintSet constraints = {});
+
+  attribute EventHandler ontrack;
+  attribute EventHandler onerror;
+  attribute EventHandler oncancel;
+};
+
+[Exposed=Window]
+interface HTMLMicrophoneElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  readonly attribute MediaStreamTrack? track;
+  readonly attribute DOMException? error;
+  undefined setConstraints(optional MediaTrackConstraintSet constraints = {});
+
+  attribute EventHandler ontrack;
+  attribute EventHandler onerror;
+  attribute EventHandler oncancel;
+};
+
+dictionary HTMLMediaStreamConstraints {
+  MediaTrackConstraintSet video;
+  MediaTrackConstraintSet audio;
+};
+
+[Exposed=Window]
+interface HTMLUserMediaElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  readonly attribute MediaStream? stream;
+  readonly attribute DOMException? error;
+  undefined setConstraints(optional HTMLMediaStreamConstraints constraints = {});
+
+  attribute EventHandler onstream;
+  attribute EventHandler onerror;
+  attribute EventHandler oncancel;
+};

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>link-parameters: none overrides an earlier declaration and passes no parameters</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#propdef-link-parameters">
+<link rel="match" href="link-parameters-none-ref.html">
+<style>
+  body { margin: 0; }
+  img { display: block; width: 100px; height: 100px; link-parameters: param(--bg, #0a5c2e); }
+  #target { link-parameters: none; }
+</style>
+<img id="target" src="resources/solid.svg">

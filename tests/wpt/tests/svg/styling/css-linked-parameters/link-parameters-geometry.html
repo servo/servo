@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>link-parameters: a parameter can drive geometry inside the referenced SVG</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#propdef-link-parameters">
+<link rel="match" href="link-parameters-geometry-ref.html">
+<style>
+  body { margin: 0; }
+  img { display: block; width: 100px; height: 100px; }
+  #target { link-parameters: param(--x, 50); }
+</style>
+<img id="target" src="resources/geometry.svg">

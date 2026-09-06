@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<title>Menu reparenting with pending dialog microtask</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const outer = document.createElement('menubar');
+  document.body.appendChild(outer);
+
+  const inner = document.createElement('menulist');
+  const btn = document.createElement('button');
+  inner.appendChild(btn); // inner is disconnected, no observer logic runs
+
+  // Append inner to the document. As a top-level menu, its InsertedInto will
+  // run synchronously, instantiate an observer, traverse the tree, find the
+  // button, and call ScheduleDialogModeUpdate(), queueing a microtask.
+  document.body.appendChild(inner);
+
+  // Synchronously reparent inner into outer. inner's RemovedFrom runs, disconnecting
+  // its observer. Then inner's InsertedInto runs, finding outer as the root.
+  // The microtask previously scheduled by inner is still in the queue!
+  outer.appendChild(inner);
+
+  // Yield to allow microtasks (like UpdateDialogModeForAllMenusInTree) to execute.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  inner.showPopover();
+
+  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Outer menu should assume dialog mode because the violation was reparented into it');
+  assert_equals(await test_driver.get_computed_role(inner), 'dialog', 'Inner menu should assume dialog mode via synchronous inheritance during the reparent');
+}, 'Synchronous reparenting correctly delegates dialog role updates to the new root');
+</script>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Module scripts with scripting disabled</title>
+<meta name="author" title="Mozilla" href="mailto:yhuang@mozilla.com">
+<meta name="help" href="https://html.spec.whatwg.org/#creating-a-javascript-module-script">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  // Test that when scripting is disabled, a module script with a syntax error
+  // doesn't cause errors to be reported, per:
+  // https://html.spec.whatwg.org/#creating-a-javascript-module-script
+  // Step 1: If scripting is disabled, set source to empty string
+
+  async_test((t) => {
+    window.addEventListener('load', t.step_func(() => {
+      const iframe = document.createElement('iframe');
+      // sandbox attribute without "allow-scripts" disables scripting in the frame
+      iframe.sandbox.value = '';
+
+      let errorOccurred = false;
+      iframe.onerror = () => {
+        errorOccurred = true;
+      };
+
+      iframe.onload = t.step_func_done(() => {
+        // The module should load without reporting errors even though it has a syntax error
+        // because scripting is disabled in this frame
+        assert_false(errorOccurred, 'No error should be reported when loading module with syntax error when scripting is disabled');
+      });
+
+      // Create an HTML document with a module script that has a syntax error
+      const html = '<!DOCTYPE html>' +
+        '<html>' +
+        '<head>' +
+        '  <script type="module">' +
+        '    // This would normally be a syntax error, but when scripting is disabled,' +
+        '    // the source is replaced with an empty string, so no error occurs' +
+        '    this is invalid javascript syntax )(' +
+        '  <\/script>' +
+        '<\/head>' +
+        '<body>' +
+        '  Frame loaded' +
+        '<\/body>' +
+        '<\/html>';
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      iframe.src = url;
+      document.body.appendChild(iframe);
+    }));
+  }, 'Module script with syntax error should not report error when scripting is disabled');
+</script>

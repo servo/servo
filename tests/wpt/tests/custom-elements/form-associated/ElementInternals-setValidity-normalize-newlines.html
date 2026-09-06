@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>ElementInternals: setValidity() normalizes newlines in the given message</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+class MyControl extends HTMLElement {
+  static get formAssociated() { return true; }
+
+  constructor() {
+    super();
+    this.internals_ = this.attachInternals();
+  }
+  get i() { return this.internals_; }
+}
+customElements.define('my-control', MyControl);
+
+const message = 'First line\rSecond line\r\nThird line\nFourth line';
+const normalized = 'First line\nSecond line\nThird line\nFourth line';
+
+test(() => {
+  const control = new MyControl();
+  control.i.setValidity({customError: true}, message);
+  assert_equals(control.i.validationMessage, normalized);
+}, 'setValidity() should normalize newlines with the customError flag set');
+
+test(() => {
+  const control = new MyControl();
+  control.i.setValidity({valueMissing: true}, message);
+  assert_equals(control.i.validationMessage, normalized);
+}, 'setValidity() should normalize newlines with another validity flag set');
+</script>

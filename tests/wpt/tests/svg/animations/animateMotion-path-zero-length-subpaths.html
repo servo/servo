@@ -58,6 +58,9 @@ function assertTransform(rect, x, y, angle, description) {
   assert_approx_equals(degrees, angle, epsilon, `${description}: rotation angle`);
 }
 
+promise_setup(() => new Promise(
+  resolve => window.addEventListener('load', resolve, {once: true})));
+
 promise_test(async t => {
   const svg = document.getElementById('svg-line');
   const rect = document.getElementById('rect-line');

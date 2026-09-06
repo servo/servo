@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:wpt@keithcirkel.co.uk">
+<link rel=help href="https://html.spec.whatwg.org/#placeholder-label-option">
+<link rel=help href="https://github.com/whatwg/html/issues/12892">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select id=wrapped required>
+  <div>
+    <option value="">placeholder</option>
+    <option value="a">a</option>
+  </div>
+</select>
+
+<select id=grouped required>
+  <optgroup>
+    <option value="">not a placeholder</option>
+  </optgroup>
+</select>
+
+<select id=wrappedGroup required>
+  <div>
+    <optgroup>
+      <option value="">not a placeholder</option>
+    </optgroup>
+  </div>
+</select>
+
+<select id=multiple required multiple>
+  <div>
+    <option value="" selected>not a placeholder</option>
+  </div>
+</select>
+
+<script>
+test(() => {
+  const select = document.getElementById('wrapped');
+  assert_equals(select.value, '', 'the placeholder is selected');
+  assert_false(select.checkValidity(),
+    'a selected placeholder label option inside a wrapper invalidates the select');
+  assert_true(select.matches(':invalid'), ':invalid matches');
+}, 'An option inside a wrapper element can be the placeholder label option.');
+
+test(() => {
+  const select = document.getElementById('wrapped');
+  select.value = 'a';
+  assert_true(select.checkValidity(),
+    'selecting a non-placeholder option makes the select valid');
+  select.value = '';
+  assert_false(select.checkValidity(),
+    're-selecting the placeholder invalidates the select again');
+}, 'Selecting past the wrapped placeholder label option validates the select.');
+
+test(() => {
+  const select = document.getElementById('grouped');
+  assert_true(select.checkValidity(),
+    'an option grouped by an optgroup is never the placeholder label option');
+}, 'An option inside an optgroup is not the placeholder label option.');
+
+test(() => {
+  const select = document.getElementById('wrappedGroup');
+  assert_true(select.checkValidity(),
+    'a wrapper does not stop the optgroup from grouping the option');
+}, 'An option inside a wrapped optgroup is not the placeholder label option.');
+
+test(() => {
+  const select = document.getElementById('multiple');
+  assert_true(select.checkValidity(),
+    'a multiple select has no placeholder label option, so its selected empty ' +
+    'option satisfies required');
+}, 'A multiple select has no placeholder label option.');
+</script>

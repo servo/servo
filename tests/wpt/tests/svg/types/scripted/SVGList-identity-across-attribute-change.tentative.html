@@ -1,0 +1,147 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>SVG list interfaces: a held item survives an attribute change that keeps the item count (tentative)</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#TermSynchronizeList">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#TermDetach">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1169">
+<!--
+  TENTATIVE, for the same reason as the sibling identity file: the requirement follows from
+  the algorithm rather than from a sentence, so w3c/svgwg#1169 asks for it to be stated.
+
+  Synchronizing a list interface object runs whenever the reflected content attribute's
+  base value changes. For an object element type, step 4.1 detaches items ONLY when the new
+  value has fewer of them. When the count is unchanged, steps 4.1 and 4.2 are both skipped
+  and step 4.4 runs over every index: "Let item be the object in the list at index index.
+  Let v be the value in value at index index. Set item's value to v."
+
+  So an item held across a same-count attribute change must survive AND report the new
+  value. This file asserts both halves separately, because they fail independently: an
+  engine can hand back a fresh object per getItem call (an identity difference) while still
+  routing values correctly, and another can lose the value while keeping the object.
+
+  The shrink case is deliberately included with the OPPOSITE expectation. Truncated items
+  ARE detached, and a detached item keeps its old value, so a test that expected the new
+  value there would be asserting a violation. Getting that backwards is easy: a
+  WebKit-local test from 2010 asserts that all three items of a 3-to-2 shrink keep their
+  old values, which is right for the truncated one and wrong for the two survivors.
+
+  The text elements below carry no content on purpose. WebKit's test harness dumps the
+  rendered text of the page before the harness output, so any content would land in the
+  baseline, and in a file that builds one element per subtest the number of those lines
+  would track the subtest count. Measured: an empty text element gives the same item
+  counts, values and identity behaviour, so nothing is lost.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg" width="200" height="200"></svg>
+<script>
+const SVGNS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("svg");
+
+function make(tag, attrs) {
+  const el = document.createElementNS(SVGNS, tag);
+  for (const k in attrs)
+    el.setAttribute(k, attrs[k]);
+  svg.appendChild(el);
+  return el;
+}
+
+// name, attribute, starting value, a same-count replacement, the expected new value at
+// index 0, a shorter replacement, and how to read an item's value.
+const subjects = [
+  {
+    name: "SVGNumberList (text rotate)",
+    build: () => make("text", { rotate: "1 2 3", x: "5", y: "20" }),
+    list: el => el.rotate.baseVal,
+    same: "40 50 60", shorter: "40 50", expect0: 40,
+    read: item => item.value,
+  },
+  {
+    name: "SVGLengthList (text x)",
+    build: () => make("text", { x: "10 20 30", y: "40" }),
+    list: el => el.x.baseVal,
+    same: "40 50 60", shorter: "40 50", expect0: 40,
+    read: item => item.value,
+  },
+  {
+    name: "SVGPointList (polyline points)",
+    build: () => make("polyline", { points: "1,2 3,4 5,6" }),
+    list: el => el.points,
+    same: "40,41 42,43 44,45", shorter: "40,41 42,43", expect0: 40,
+    read: item => item.x,
+  },
+  {
+    name: "SVGTransformList (rect transform)",
+    build: () => make("rect", { width: "10", height: "10",
+                                transform: "translate(1) translate(2) translate(3)" }),
+    list: el => el.transform.baseVal,
+    same: "translate(40) translate(41) translate(42)",
+    shorter: "translate(40) translate(41)", expect0: 40,
+    read: item => item.matrix.e,
+  },
+];
+
+for (const s of subjects) {
+  const attr = s.name.match(/\(([a-z]+) ([a-zA-Z]+)\)/)[2];
+
+  // Control. Nothing is held, and a freshly read item must report the new value. If this
+  // fails, the attribute change never took effect and the rest of this file means nothing.
+  test(function() {
+    const el = s.build();
+    const list = s.list(el);
+    el.setAttribute(attr, s.same);
+    assert_equals(list.numberOfItems, 3, "the item count should be unchanged");
+    assert_equals(s.read(list.getItem(0)), s.expect0,
+                  "a freshly read item should report the new value");
+  }, s.name + ": a freshly read item reports the new value after the attribute changes");
+
+  test(function() {
+    const el = s.build();
+    const list = s.list(el);
+    const held = list.getItem(0);
+    el.setAttribute(attr, s.same);
+    assert_equals(list.numberOfItems, 3, "the item count should be unchanged");
+    assert_equals(s.read(held), s.expect0,
+                  "the held item should report the new value, per step 4.4");
+  }, s.name + ": a held item reports the new value when the count is unchanged");
+
+  test(function() {
+    const el = s.build();
+    const list = s.list(el);
+    const held = list.getItem(0);
+    el.setAttribute(attr, s.same);
+    assert_equals(list.getItem(0), held,
+                  "the held object should still be the very same object at index 0");
+  }, s.name + ": a held item is still the element at its index when the count is unchanged");
+
+  // The shrink, with the opposite expectation for the truncated item.
+  test(function() {
+    const el = s.build();
+    const list = s.list(el);
+    const survivor = list.getItem(0);
+    const truncated = list.getItem(2);
+    const before = s.read(truncated);
+    el.setAttribute(attr, s.shorter);
+    assert_equals(list.numberOfItems, 2, "the list should have been truncated");
+    assert_equals(s.read(survivor), s.expect0,
+                  "an item below the new length survives and takes the new value");
+    assert_equals(s.read(truncated), before,
+                  "the truncated item is detached, so it keeps its old value");
+  }, s.name + ": a shrink detaches only the items at or above the new length");
+}
+
+// The DOMString branch is the deliberate opposite, and step 5 states it directly:
+// "Replace the list with a new list consisting of the values in value." So a string read
+// before the change is simply the old string, and the list reports the new ones.
+test(function() {
+  const el = make("rect", { width: "10", height: "10",
+                            requiredExtensions: "alpha beta gamma" });
+  const list = el.requiredExtensions;
+  const before = list.getItem(0);
+  assert_equals(before, "alpha");
+  el.setAttribute("requiredExtensions", "delta epsilon zeta");
+  assert_equals(list.numberOfItems, 3, "the item count should be unchanged");
+  assert_equals(list.getItem(0), "delta", "the list should report the new strings");
+  assert_equals(before, "alpha", "the string read earlier is unaffected, being a value");
+}, "SVGStringList: the list is replaced on an attribute change, per step 5");
+</script>

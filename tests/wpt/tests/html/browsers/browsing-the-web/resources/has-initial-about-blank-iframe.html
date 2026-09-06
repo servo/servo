@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script>
+window._subframeloaded = false;
+</script>
+<iframe onload="window._subframeloaded = true"></iframe>
+<script>
+window.initialAboutBlankWasSync = window._subframeloaded;
+</script>
+
+<script>
+window.onload = () => {
+  window.opener.postMessage("top ready", "*");
+};
+</script>

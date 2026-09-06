@@ -143,6 +143,14 @@ function assertNotAPopover(nonPopover) {
   assertPopoverVisibility(nonPopover, /*isPopover*/false, expectVisible, 'Calling togglePopover on a non-popover should leave it visible');
 }
 
+function shadowIncludingActiveElement() {
+  let element = document.activeElement;
+  while (element.shadowRoot?.activeElement) {
+    element = element.shadowRoot.activeElement;
+  }
+  return element;
+}
+
 async function verifyFocusOrder(order,description) {
   order[0].focus();
   for(let i=0;i<order.length;++i) {
@@ -152,11 +160,11 @@ async function verifyFocusOrder(order,description) {
       await sendTab();
     }
     const control = order[i];
-    assert_equals(document.activeElement,control,`${description}: Step ${i+1}`);
+    assert_equals(shadowIncludingActiveElement(),control,`${description}: Step ${i+1}`);
   }
   for(let i=order.length-1;i>=0;--i) {
     const control = order[i];
-    assert_equals(document.activeElement,control,`${description}: Step ${i+1} (backwards)`);
+    assert_equals(shadowIncludingActiveElement(),control,`${description}: Step ${i+1} (backwards)`);
     // Press shift+tab between each check, excluding last (because it should already be focused)
     // and the first (because shift+tabbing after the last element may send focus into browser chrome).
     if (i != 0) {

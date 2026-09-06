@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Andrew Martinez" href="https://github.com/AndrewJMart">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // size is a property and a descriptor. test_invalid_value() specifies
+  // @page size's descriptor values on a property, which should be invalid.
+  test_invalid_value("size", "a4");
+  test_invalid_value("size", "jis-b5");
+  test_invalid_value("size", "landscape");
+  test_invalid_value("size", "letter");
+  test_invalid_value("size", "legal landscape");
+  // size accepts at most two values.
+  test_invalid_value("size", "100px 200px 300px");
+</script>

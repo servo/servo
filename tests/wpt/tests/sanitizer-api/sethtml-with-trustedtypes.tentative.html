@@ -271,20 +271,24 @@
 
         test((t) => {
           const node = createTarget(target, t);
+          let createHTMLCalled = false;
           createParserOptions = (options) => ({
             ...options,
             sanitizer: new Sanitizer({ removeElements: ["span"] }),
           });
-          createHTML = (html) =>
-            html.replaceAll("cat", "<span id=forbidden2></span><p>dog</p>");
+          createHTML = (html) => {
+            createHTMLCalled = true;
+            return html.replaceAll("cat", "<span id=forbidden2></span><p>dog</p>");
+          };
           node.setHTMLUnsafe(
             "<div id=allowed><span id=forbidden></span><div>cat</div></div>",
           );
           assert_equals(node.querySelector("#forbidden"), null);
           assert_equals(node.querySelector("#forbidden2"), null);
-          assert_equals(node.textContent, "dog", node.innerHTML);
+          assert_equals(node.textContent, "cat", node.innerHTML);
           assert_not_equals(node.querySelector("#allowed"), null);
-        }, `${target}.setHTMLUnsafe: createParserOptions works after createHTML`);
+          assert_false(createHTMLCalled, "createHTML should not be called when createParserOptions provides a sanitizer");
+        }, `${target}.setHTMLUnsafe: createParserOptions with sanitizer prevents createHTML from running`);
 
         test((t) => {
           const node = createTarget(target, t);
@@ -319,20 +323,26 @@
           }
           test((t) => {
             const node = createTarget(target, t);
+            let createHTMLCalled = false;
             createParserOptions = (options) => {
               throw new Error("createParserOptions oops");
+            };
+            createHTML = (html) => {
+              createHTMLCalled = true;
+              return html;
             };
             assert_throws_js(Error, () => {
               run_method(node, method, "test string");
             });
-          }, `${target}.${method}: exception in createParserOptions is rethrown`);
+            assert_false(createHTMLCalled, "createHTML should not have been called");
+          }, `${target}.${method}: exception in createParserOptions is rethrown and prevents createHTML`);
 
           test((t) => {
             const node = createTarget(target, t);
             let createParserOptionsCalled = false;
             createParserOptions = (options) => {
               createParserOptionsCalled = true;
-              return options;
+              return null;
             };
             createHTML = (html) => {
               throw new Error("createHTML oops");
@@ -340,8 +350,8 @@
             assert_throws_js(Error, () => {
               run_method(node, method, "test string");
             });
-            assert_false(createParserOptionsCalled, "createParserOptions should not have been called");
-          }, `${target}.${method}: exception in createHTML prevents createParserOptions from running`);
+            assert_true(createParserOptionsCalled, "createParserOptions should have been called before createHTML");
+          }, `${target}.${method}: exception in createHTML happens after createParserOptions runs`);
         }
       }
     </script>

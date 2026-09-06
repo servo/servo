@@ -1,0 +1,122 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>SVG list interfaces: a mutating method returns the element it placed in the list (tentative)</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGNameList__initialize">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGNameList__insertItemBefore">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGNameList__replaceItem">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGNameList__appendItem">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1169">
+<!--
+  TENTATIVE, and for a narrower reason than the getItem identity file.
+
+  initialize, insertItemBefore, replaceItem and appendItem each end with the normative
+  step "Return newItem", after newItem has been attached and placed in the list. So the
+  value returned IS the element at that position, and getItem for that index has to return
+  the same object. The step is normative; what is unstated is that item identity is
+  observable at all, which is what this test relies on. So it stays .tentative alongside
+  w3c/svgwg#1169.
+
+  ONE SUBTLETY THAT WOULD OTHERWISE MAKE THIS TEST WRONG. Each of these methods begins:
+  "If newItem is an object type, and newItem is not a detached object, then set newItem to
+  be a newly created object of the same type as newItem and which has the same value."
+  Passing an item that is already in a list therefore makes a COPY, and the return value
+  is correctly NOT the object passed in. Every item passed below is freshly created by a
+  createSVG* factory and so is detached, which is the only case where the object handed in
+  is the object placed in the list. The last subtest pins the copying rule itself, so that
+  a future edit cannot quietly reintroduce the mistake.
+
+  The text elements below carry no content on purpose. WebKit's test harness dumps the
+  rendered text of the page before the harness output, so any content would land in the
+  baseline, and in a file that builds one element per subtest the number of those lines
+  would track the subtest count. Measured: an empty text element gives the same item
+  counts, values and identity behaviour, so nothing is lost.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg" width="200" height="200">
+  <text id="text" x="10 20 30" y="20" rotate="1 2 3" dx="1 2 3" dy="4 5 6"/>
+  <polyline id="polyline" points="1,2 3,4 5,6"/>
+  <rect id="rect" width="10" height="10" transform="translate(1) translate(2) translate(3)"/>
+  <rect id="rect2" width="10" height="10" transform="translate(9)"/>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+const svg = $("svg");
+
+// A fresh, detached item per list type, so no copy is made on insertion.
+const subjects = [
+  ["SVGNumberList (text rotate)", () => $("text").rotate.baseVal,
+   () => { const n = svg.createSVGNumber(); n.value = 42; return n; }],
+  ["SVGLengthList (text dx)", () => $("text").dx.baseVal,
+   () => { const l = svg.createSVGLength(); l.value = 42; return l; }],
+  ["SVGPointList (polyline points)", () => $("polyline").points,
+   () => { const p = svg.createSVGPoint(); p.x = 42; p.y = 43; return p; }],
+  ["SVGTransformList (rect transform)", () => $("rect").transform.baseVal,
+   () => { const t = svg.createSVGTransform(); t.setTranslate(42, 0); return t; }],
+];
+
+for (const [name, getList, makeItem] of subjects) {
+  test(function() {
+    const list = getList();
+    const item = makeItem();
+    const returned = list.appendItem(item);
+    assert_equals(returned, item, "appendItem should return the item it was given");
+    assert_equals(returned, list.getItem(list.numberOfItems - 1),
+                  "the returned object should be the very same object as the last element");
+  }, name + ": appendItem returns the element it appended");
+
+  test(function() {
+    const list = getList();
+    const item = makeItem();
+    const returned = list.insertItemBefore(item, 1);
+    assert_equals(returned, item, "insertItemBefore should return the item it was given");
+    assert_equals(returned, list.getItem(1),
+                  "the returned object should be the very same object as the element at index 1");
+  }, name + ": insertItemBefore returns the element it inserted");
+
+  test(function() {
+    const list = getList();
+    const item = makeItem();
+    const returned = list.replaceItem(item, 0);
+    assert_equals(returned, item, "replaceItem should return the item it was given");
+    assert_equals(returned, list.getItem(0),
+                  "the returned object should be the very same object as the element at index 0");
+  }, name + ": replaceItem returns the element it placed");
+
+  test(function() {
+    const list = getList();
+    const item = makeItem();
+    const returned = list.initialize(item);
+    assert_equals(returned, item, "initialize should return the item it was given");
+    assert_equals(list.numberOfItems, 1, "initialize should clear the list first");
+    assert_equals(returned, list.getItem(0),
+                  "the returned object should be the very same object as the only element");
+  }, name + ": initialize returns the element it placed");
+}
+
+// SVGStringList holds DOMString, so the return value compares by value. Worth asserting
+// because nothing upstream covers SVGStringList's methods at all.
+test(function() {
+  const list = $("rect").requiredExtensions;
+  const returned = list.appendItem("delta");
+  assert_equals(returned, "delta", "appendItem should return the string it was given");
+  assert_equals(list.getItem(list.numberOfItems - 1), "delta",
+                "and that string should be the last element");
+}, "SVGStringList: appendItem returns the string it appended");
+
+// The copying rule, pinned so the reasoning above cannot be lost. Passing an item that is
+// already in a list is required to insert a copy, so the return value is a different
+// object from the one passed in, and the original list is untouched.
+test(function() {
+  const source = $("rect").transform.baseVal;
+  const target = $("rect2").transform.baseVal;
+  const held = source.getItem(0);
+  const returned = target.appendItem(held);
+  assert_not_equals(returned, held,
+                    "an item already in a list must be copied, so a different object comes back");
+  assert_equals(returned, target.getItem(target.numberOfItems - 1),
+                "the copy, not the original, is the element that was appended");
+  assert_equals(source.getItem(0), held,
+                "the source list should be unchanged");
+}, "An item that is already in a list is copied on insertion, not moved");
+</script>

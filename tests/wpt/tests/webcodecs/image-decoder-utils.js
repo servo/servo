@@ -3,12 +3,19 @@ const kRed = 0xFF0000FF;
 const kBlue = 0x0000FFFF;
 const kGreen = 0x00FF00FF;
 
-const colorsAndNames = [
-  { value: kYellow, name: "Yellow" },
-  { value: kRed, name: "Red" },
-  { value: kBlue, name: "Blue" },
-  { value: kGreen, name: "Green" }
-];
+function getColorName(color) {
+  switch (color) {
+    case kYellow:
+      return "Yellow";
+    case kRed:
+      return "Red";
+    case kBlue:
+      return "Blue";
+    case kGreen:
+      return "Green";
+  }
+  return "#" + color.toString(16);
+}
 
 function toUInt32(pixelArray, roundForYuv) {
   let p = pixelArray.data;
@@ -25,27 +32,6 @@ function toUInt32(pixelArray, roundForYuv) {
   }
 
   return ((p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3]) >>> 0;
-}
-
-function toByteArray(num) {
-  return [
-    (num >> 24) & 255,
-    (num >> 16) & 255,
-    (num >> 8) & 255,
-    num & 255
-  ];
-}
-
-function getColorName(color) {
-  const colorChannels = toByteArray(color);
-  for (const colorAndName of colorsAndNames) {
-    const value = colorAndName.value;
-    const valueChannels = toByteArray(value);
-    const areEssentiallyEqual = colorChannels.every((val, index) => Math.abs(val - valueChannels[index]) <= 1);
-    if (areEssentiallyEqual)
-      return colorAndName.name;
-  }
-  return "#" + color.toString(16);
 }
 
 function flipMatrix(m) {
@@ -131,13 +117,22 @@ function testFourColorDecodeWithExifOrientation(orientation, canvas, useYuv) {
           return decoder.decode();
         })
         .then(result => {
+          let respectOrientation = true;
+          if (canvas)
+            respectOrientation = canvas.style.imageOrientation != 'none';
+
           let expectedWidth = 320;
           let expectedHeight = 240;
-          if (orientation > 4)
+          if (orientation > 4 && respectOrientation)
             [expectedWidth, expectedHeight] = [expectedHeight, expectedWidth];
 
-          assert_equals(result.image.displayWidth, expectedWidth);
-          assert_equals(result.image.displayHeight, expectedHeight);
+          if (respectOrientation) {
+            assert_equals(result.image.displayWidth, expectedWidth);
+            assert_equals(result.image.displayHeight, expectedHeight);
+          } else if (orientation > 4) {
+            assert_equals(result.image.displayHeight, expectedWidth);
+            assert_equals(result.image.displayWidth, expectedHeight);
+          }
 
           if (!canvas) {
             canvas = new OffscreenCanvas(
@@ -154,38 +149,39 @@ function testFourColorDecodeWithExifOrientation(orientation, canvas, useYuv) {
             [kYellow, kRed],
             [kBlue, kGreen],
           ];
-
-          switch (orientation) {
-            case 1:  // kOriginTopLeft, default
-              break;
-            case 2:  // kOriginTopRight, mirror along y-axis
-              matrix = flipMatrix(matrix);
-              break;
-            case 3:  // kOriginBottomRight, 180 degree rotation
-              matrix = rotateMatrix(matrix, 2);
-              break;
-            case 4:  // kOriginBottomLeft, mirror along the x-axis
-              matrix = flipMatrix(rotateMatrix(matrix, 2));
-              break;
-            case 5:  // kOriginLeftTop, mirror along x-axis + 270 degree CW
-                     // rotation
-              matrix = flipMatrix(rotateMatrix(matrix, 1));
-              break;
-            case 6:  // kOriginRightTop, 90 degree CW rotation
-              matrix = rotateMatrix(matrix, 1);
-              break;
-            case 7:  // kOriginRightBottom, mirror along x-axis + 90 degree CW
-                     // rotation
-              matrix = flipMatrix(rotateMatrix(matrix, 3));
-              break;
-            case 8:  // kOriginLeftBottom, 270 degree CW rotation
-              matrix = rotateMatrix(matrix, 3);
-              break;
-            default:
-              assert_between_inclusive(
-                  orientation, 1, 8, 'unknown image orientation');
-              break;
-          };
+          if (respectOrientation) {
+            switch (orientation) {
+              case 1:  // kOriginTopLeft, default
+                break;
+              case 2:  // kOriginTopRight, mirror along y-axis
+                matrix = flipMatrix(matrix);
+                break;
+              case 3:  // kOriginBottomRight, 180 degree rotation
+                matrix = rotateMatrix(matrix, 2);
+                break;
+              case 4:  // kOriginBottomLeft, mirror along the x-axis
+                matrix = flipMatrix(rotateMatrix(matrix, 2));
+                break;
+              case 5:  // kOriginLeftTop, mirror along x-axis + 270 degree CW
+                       // rotation
+                matrix = flipMatrix(rotateMatrix(matrix, 1));
+                break;
+              case 6:  // kOriginRightTop, 90 degree CW rotation
+                matrix = rotateMatrix(matrix, 1);
+                break;
+              case 7:  // kOriginRightBottom, mirror along x-axis + 90 degree CW
+                       // rotation
+                matrix = flipMatrix(rotateMatrix(matrix, 3));
+                break;
+              case 8:  // kOriginLeftBottom, 270 degree CW rotation
+                matrix = rotateMatrix(matrix, 3);
+                break;
+              default:
+                assert_between_inclusive(
+                    orientation, 1, 8, 'unknown image orientation');
+                break;
+            };
+          }
 
           verifyFourColorsImage(
               expectedWidth, expectedHeight, ctx, matrix, useYuv);

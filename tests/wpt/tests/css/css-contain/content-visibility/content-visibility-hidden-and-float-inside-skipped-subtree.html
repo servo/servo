@@ -1,0 +1,43 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: hidden float box</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-hidden-and-float-inside-skipped-subtree-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#hideThis {
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+
+.floatBox {
+  float: left;
+  width: 50px;
+  height: 50px;
+  background-color: red;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<div>Test passes if the red float box is not visible.</div>
+<div id=hideThis><div class=floatBox></div></div>
+
+<script>
+async function runTest() {
+  hideThis.classList.add("hidden");
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(runTest);
+  });
+};
+</script>
+</html>

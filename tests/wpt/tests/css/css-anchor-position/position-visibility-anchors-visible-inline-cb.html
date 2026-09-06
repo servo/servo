@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Test: position-visibility: anchors-visible when the containing block is an inline with anchor in its block child</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2066154">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+#cb {
+  position: relative;
+}
+
+#anchor {
+  anchor-name: --a;
+  width: 50px;
+  height: 100px;
+  background: green;
+}
+
+#positioned {
+  position: absolute;
+  position-anchor: --a;
+  left: anchor(right);
+  top: anchor(top);
+  width: 50px;
+  height: 100px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="width: 100px; height: 100px; background: red">
+  <!-- The anchor is deliberately nested one level below the anonymous block,
+       so that its parent is not part of the inline's IB split. -->
+  <span id="cb">
+    <div><div id="anchor"></div></div>
+    <div id="positioned"></div>
+  </span>
+</div>

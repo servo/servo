@@ -21,10 +21,12 @@
 </div>
 <div class=example>
   <img src=/images/blue.png usemap=#map1 width=40 height=40>
-  <span class=before>::before</span>
-  <map id=map1><area href=/ shape=default class=invoker></map>
-  <span class=after>::after</span>
-  <span class=fake-interest-button>::interest-button</span>
+  <span class=invoker>
+    <span class=before>::before</span>
+    <span class=after>::after</span>
+    <span class=fake-interest-button>::interest-button</span>
+  </span>
+  <map id=map1><area href=/ shape=default></map>
 </div>
 
 <div class="example defaultcontent">
@@ -38,15 +40,19 @@
 </div>
 
 <style>
-  .fake-interest-button {
-    display: inline-block;
-  }
-  .example:not(.defaultcontent) span:not(.fake-interest-button) {
-    border: 1px solid lime;
-  }
   .example {
+    anchor-scope: --anchor;
     width: 400px;
     height: 50px;
+  }
+  .invoker {
+    anchor-name: --anchor;
+  }
+  .fake-interest-button {
+    position-anchor: --anchor;
+  }
+  .example:not(.defaultcontent) span:not(.fake-interest-button, .invoker) {
+    border: 1px solid lime;
   }
 </style>
 

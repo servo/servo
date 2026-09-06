@@ -1,0 +1,11 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CPU Performance API (https://wicg.github.io/cpu-performance/)
+
+[
+    SecureContext,
+    Exposed=Window
+] partial interface Navigator {
+    readonly attribute unsigned short cpuPerformance;
+};

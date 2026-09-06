@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Reset updates file inputs sharing a FileList</title>
+<link rel="match" href="file-input-reset-shared-file-list-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<form>
+  <input type="file">
+  <input type="file">
+</form>
+<script>
+const inputs = document.querySelectorAll("input");
+const dataTransfer = new DataTransfer();
+dataTransfer.items.add(new File([], "hello.txt"));
+inputs[0].files = dataTransfer.files;
+inputs[1].files = dataTransfer.files;
+
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.querySelector("form").reset();
+  takeScreenshot();
+}));
+</script>

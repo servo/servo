@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: font-relative units on inline child in ::first-line</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-text-line">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#font-relative-lengths">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=79526">
+<link rel="match" href="first-line-font-relative-units-001-ref.html">
+<meta name="assert" content="Font-relative length units (such as 'em') on an inline child inside ::first-line resolve against the ::first-line font size.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+p {
+  font: 100px Ahem;
+}
+p::first-line {
+  font-size: 10px;
+}
+span {
+  border-left: solid 1em green;
+}
+</style>
+<p>A green 10px border on the left of <span>this,<br>
+is a pass.</span></p>

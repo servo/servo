@@ -26,9 +26,9 @@ dictionary SVGBoundingBoxOptions {
 interface SVGGraphicsElement : SVGElement {
   [SameObject] readonly attribute SVGAnimatedTransformList transform;
 
-  DOMRect getBBox(optional SVGBoundingBoxOptions options = {});
-  DOMMatrix? getCTM();
-  DOMMatrix? getScreenCTM();
+  SVGRect getBBox(optional SVGBoundingBoxOptions options = {});
+  SVGMatrix? getCTM();
+  SVGMatrix? getScreenCTM();
 };
 
 SVGGraphicsElement includes SVGTests;
@@ -40,7 +40,7 @@ interface SVGGeometryElement : SVGGraphicsElement {
   boolean isPointInFill(optional DOMPointInit point = {});
   boolean isPointInStroke(optional DOMPointInit point = {});
   float getTotalLength();
-  DOMPoint getPointAtLength(float distance);
+  SVGPoint getPointAtLength(float distance);
 };
 
 [Exposed=Window]
@@ -184,8 +184,8 @@ interface SVGAnimatedString {
 
 [Exposed=Window]
 interface SVGAnimatedRect {
-  [SameObject] readonly attribute DOMRect baseVal;
-  [SameObject] readonly attribute DOMRectReadOnly animVal;
+  [SameObject] readonly attribute SVGRect baseVal;
+  [SameObject] readonly attribute SVGRect animVal;
 };
 
 [Exposed=Window]
@@ -235,21 +235,21 @@ interface SVGSVGElement : SVGGraphicsElement {
   [SameObject] readonly attribute SVGAnimatedLength height;
 
   attribute float currentScale;
-  [SameObject] readonly attribute DOMPointReadOnly currentTranslate;
+  [SameObject] readonly attribute SVGPoint currentTranslate;
 
-  NodeList getIntersectionList(DOMRectReadOnly rect, SVGElement? referenceElement);
-  NodeList getEnclosureList(DOMRectReadOnly rect, SVGElement? referenceElement);
-  boolean checkIntersection(SVGElement element, DOMRectReadOnly rect);
-  boolean checkEnclosure(SVGElement element, DOMRectReadOnly rect);
+  NodeList getIntersectionList(SVGRect rect, SVGElement? referenceElement);
+  NodeList getEnclosureList(SVGRect rect, SVGElement? referenceElement);
+  boolean checkIntersection(SVGElement element, SVGRect rect);
+  boolean checkEnclosure(SVGElement element, SVGRect rect);
 
   undefined deselectAll();
 
   [NewObject] SVGNumber createSVGNumber();
   [NewObject] SVGLength createSVGLength();
   [NewObject] SVGAngle createSVGAngle();
-  [NewObject] DOMPoint createSVGPoint();
-  [NewObject] DOMMatrix createSVGMatrix();
-  [NewObject] DOMRect createSVGRect();
+  [NewObject] SVGPoint createSVGPoint();
+  [NewObject] SVGMatrix createSVGMatrix();
+  [NewObject] SVGRect createSVGRect();
   [NewObject] SVGTransform createSVGTransform();
   [NewObject] SVGTransform createSVGTransformFromMatrix(optional DOMMatrix2DInit matrix = {});
 
@@ -298,8 +298,6 @@ interface SVGUseElement : SVGGraphicsElement {
   [SameObject] readonly attribute SVGAnimatedLength y;
   [SameObject] readonly attribute SVGAnimatedLength width;
   [SameObject] readonly attribute SVGAnimatedLength height;
-  [SameObject] readonly attribute SVGElement? instanceRoot;
-  [SameObject] readonly attribute SVGElement? animatedInstanceRoot;
 };
 
 SVGUseElement includes SVGURIReference;
@@ -345,7 +343,7 @@ interface SVGTransform {
   const unsigned short SVG_TRANSFORM_SKEWY = 6;
 
   readonly attribute unsigned short type;
-  [SameObject] readonly attribute DOMMatrix matrix;
+  [SameObject] readonly attribute SVGMatrix matrix;
   readonly attribute float angle;
 
   undefined setMatrix(optional DOMMatrix2DInit matrix = {});
@@ -458,13 +456,13 @@ interface SVGPointList {
   readonly attribute unsigned long numberOfItems;
 
   undefined clear();
-  DOMPoint initialize(DOMPoint newItem);
-  getter DOMPoint getItem(unsigned long index);
-  DOMPoint insertItemBefore(DOMPoint newItem, unsigned long index);
-  DOMPoint replaceItem(DOMPoint newItem, unsigned long index);
-  DOMPoint removeItem(unsigned long index);
-  DOMPoint appendItem(DOMPoint newItem);
-  setter undefined (unsigned long index, DOMPoint newItem);
+  SVGPoint initialize(SVGPoint newItem);
+  getter SVGPoint getItem(unsigned long index);
+  SVGPoint insertItemBefore(SVGPoint newItem, unsigned long index);
+  SVGPoint replaceItem(SVGPoint newItem, unsigned long index);
+  SVGPoint removeItem(unsigned long index);
+  SVGPoint appendItem(SVGPoint newItem);
+  setter undefined (unsigned long index, SVGPoint newItem);
 };
 
 [Exposed=Window]
@@ -493,9 +491,9 @@ interface SVGTextContentElement : SVGGraphicsElement {
   long getNumberOfChars();
   float getComputedTextLength();
   float getSubStringLength(unsigned long charnum, unsigned long nchars);
-  DOMPoint getStartPositionOfChar(unsigned long charnum);
-  DOMPoint getEndPositionOfChar(unsigned long charnum);
-  DOMRect getExtentOfChar(unsigned long charnum);
+  SVGPoint getStartPositionOfChar(unsigned long charnum);
+  SVGPoint getEndPositionOfChar(unsigned long charnum);
+  SVGRect getExtentOfChar(unsigned long charnum);
   float getRotationOfChar(unsigned long charnum);
   long getCharNumAtPosition(optional DOMPointInit point = {});
   undefined selectSubString(unsigned long charnum, unsigned long nchars);

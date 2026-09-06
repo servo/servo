@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>
+  Row grid-lanes OOF static position and alignment in vertical writing mode.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .grid-lanes {
+    display: grid-lanes;
+    block-size: 200px;
+    position: relative;
+    align-items: end;
+    grid-template-rows: 200px;
+  }
+  .grid-lanes > div {
+    block-size: 100px;
+    inline-size: 100px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="writing-mode: vertical-rl;">
+  <div style="margin-top: -50px; inline-size: 100px; block-size: 100px; columns: 2; column-fill: auto; column-gap: 0;">
+    <div class="grid-lanes">
+      <div style="position: absolute; background: green;"></div>
+      <div style="background: red;"></div>
+    </div>
+  </div>
+</div>

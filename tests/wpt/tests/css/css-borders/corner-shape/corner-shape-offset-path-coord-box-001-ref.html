@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Motion Path test reference: &lt;coord-box&gt; &lt;border-box&gt; follows 'corner-shape: bevel'</title>
+
+<style>
+#outer {
+  top: 100px;
+  left: 100px;
+  position: relative;
+  border-radius: 105px;
+  corner-shape: bevel;
+  border: 10px solid black;
+  width: 400px;
+  height: 400px;
+}
+#box {
+  background-color: green;
+  border-radius: 50%;
+  top: 100px;
+  left: 100px;
+  position: relative;
+  transform: translate(200px, -115px);
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<div id="outer">
+  <div id="box"></div>
+</div>

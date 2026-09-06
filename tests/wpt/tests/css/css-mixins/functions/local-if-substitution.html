@@ -299,6 +299,66 @@
   </style>
 </template>
 
+<!-- A local or parameter shadows a registration of the same name.
+     https://drafts.csswg.org/css-mixins-1/#resolve-function-styles -->
+
+<template data-name="Local shadows a registered custom property in if() condition">
+  <style>
+    @property --reg-local { syntax: "<integer>"; inherits: true; initial-value: 0; }
+    @function --f() {
+      --reg-local: 1;
+      result: if(style(--reg-local: 1): PASS; else: FAIL);
+    }
+    #target {
+      --reg-local: 0;
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Parameter shadows a registered custom property in if() condition">
+  <style>
+    @property --reg-param { syntax: "<integer>"; inherits: true; initial-value: 0; }
+    @function --f(--reg-param) {
+      result: if(style(--reg-param: 1): PASS; else: FAIL);
+    }
+    #target {
+      --reg-param: 0;
+      --actual: --f(1);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local shadows a registered custom property left at its initial value">
+  <style>
+    @property --reg-initial { syntax: "<integer>"; inherits: true; initial-value: 0; }
+    @function --f() {
+      --reg-initial: 1;
+      result: if(style(--reg-initial: 1): PASS; else: FAIL);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="A name the function does not declare keeps the registration">
+  <style>
+    @property --reg-unbound { syntax: "<integer>"; inherits: true; initial-value: 0; }
+    @function --f() {
+      result: if(style(--reg-unbound: 7): PASS; else: FAIL);
+    }
+    #target {
+      --reg-unbound: 7;
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
 <script>
   test_all_templates();
 </script>

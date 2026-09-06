@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Collapsed borders in the block direction are painted on a table fragment that is continued</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#border-collapse-property">
+<link rel="help" href="https://drafts.csswg.org/css-break/#fragmentation-model">
+<link rel="match" href="collapsed-border-fragmentation-001-print-ref.html">
+<meta name="flags" content="paged">
+<meta name="assert" content="This test checks that the block-direction segments of a collapsed border are painted on a fragment of a table that is continued on a later page. Only the first page is compared, so that the fragment under test is one that has a next-in-flow.">
+<meta name="reftest-pages" content="1">
+<style>
+@page {
+  size: 5in 3in;
+  margin: 0.5in;
+}
+
+:root {
+  print-color-adjust: exact;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: white;
+}
+
+p {
+  margin: 0 0 12px;
+  height: 36px;
+  font: 12px/1.5 sans-serif;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 0;
+}
+
+/* Keep the fragmentation deterministic: exactly two rows fit below the
+   description, the remaining three are pushed to a page that is not
+   compared. */
+tr {
+  break-inside: avoid;
+}
+
+/* Only an interior border: the table must have no collapsed outer border,
+   since a table continuation currently doesn't know about it (bug 1881157). */
+td {
+  width: 100px;
+  height: 60px;
+  padding: 0;
+  border: none;
+}
+
+td + td {
+  border-inline-start: 8px solid black;
+}
+</style>
+<p>Test passes if a vertical black line separates the two columns of the table below.</p>
+<table>
+  <tr><td></td><td></td></tr>
+  <tr><td></td><td></td></tr>
+  <tr><td></td><td></td></tr>
+  <tr><td></td><td></td></tr>
+  <tr><td></td><td></td></tr>
+</table>

@@ -73,6 +73,16 @@
 
   test_invalid_prelude('@function --foo(--x: 10px !important)');
 
+  // A comma inside a block in a default does not separate parameters.
+  test_valid_prelude('@function --foo(--x: var(--y, 10px))');
+  test_valid_prelude('@function --foo(--x <color>: rgb(1, 2, 3))');
+  test_valid_prelude('@function --foo(--x: var(--y, 10px), --z: 2px)');
+  test_valid_prelude('@function --foo(--x <length>: clamp(1px, 2px, 3px))');
+  test_valid_prelude('@function --foo(--x: {1px, 2px})');
+  test_valid_prelude('@function --foo(--x: --bar(1px, 2px))');
+  // An unmatched block in a default is still invalid.
+  test_invalid_prelude('@function --foo(--x: var(--y, 10px)');
+
   // Default type mismatch.
   test_invalid_prelude('@function --foo(--x <length>: 10deg)');
   test_invalid_prelude('@function --foo(--x <angle>: 10px)');

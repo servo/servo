@@ -1,0 +1,123 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Credential Management: PasswordCredential and opaque origins
+</title>
+<link
+  rel="help"
+  href="https://w3c.github.io/webappsec-credential-management/#algorithm-request"
+/>
+<link
+  rel="help"
+  href="https://w3c.github.io/webappsec-credential-management/#algorithm-create"
+/>
+<link
+  rel="help"
+  href="https://w3c.github.io/webappsec-credential-management/#algorithm-store"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+  const SUPPORT = "/credential-management/support/";
+
+  // PasswordCredential is origin bound, so get(), create() and store() must all
+  // reject with SecurityError when the calling document has an opaque origin.
+  // Each subtest gets its own frame running only the operation it asserts on, so
+  // no subtest depends on another operation settling first.
+
+  function runInFrame(test, id, operation, configure) {
+    const frame = document.createElement("iframe");
+    configure(frame, new URLSearchParams({ id, op: operation }).toString());
+    const report = new Promise((resolve) => {
+      addEventListener("message", function handler(event) {
+        if (event.data && event.data.id === id) {
+          removeEventListener("message", handler);
+          resolve(event.data);
+        }
+      });
+    });
+    test.add_cleanup(() => frame.remove());
+    document.body.appendChild(frame);
+    return report;
+  }
+
+  // The support frame reports its own failures rather than the result of an
+  // operation. Treating those as results would let a subtest pass without ever
+  // exercising the check under test.
+  function assertReported(report) {
+    assert_implements_optional(
+      report.supported,
+      "PasswordCredential is not supported, so nothing was exercised"
+    );
+    assert_false(
+      report.result.startsWith("construction-failed:") ||
+        report.result.startsWith("harness-error:") ||
+        report.result === "unknown-op",
+      `the support frame failed before the operation ran: ${report.result}`
+    );
+  }
+
+  const OPAQUE = [
+    [
+      "sandboxed iframe",
+      (frame, query) => {
+        frame.sandbox = "allow-scripts";
+        frame.src = `${SUPPORT}origin-bound-report.html?${query}`;
+      },
+    ],
+    [
+      "iframe whose document has a Content-Security-Policy: sandbox header",
+      (frame, query) => {
+        frame.src = `${SUPPORT}origin-bound-report-csp-sandbox.html?${query}`;
+      },
+    ],
+  ];
+
+  for (const [label, configure] of OPAQUE) {
+    for (const operation of ["get", "create", "store"]) {
+      promise_test(async (t) => {
+        const report = await runInFrame(
+          t,
+          `opaque-${operation}-${label}`,
+          operation,
+          configure
+        );
+        assertReported(report);
+        assert_equals(report.origin, "null", "expected an opaque origin");
+        assert_equals(
+          report.result,
+          "SecurityError",
+          `${operation}() from an opaque origin must reject with SecurityError`
+        );
+      }, `${operation}() with a PasswordCredential from an opaque origin (${label}) rejects with SecurityError`);
+    }
+  }
+
+  // A document that is sandboxed but keeps its origin must not be caught by the
+  // opaque-origin check.
+  for (const operation of ["get", "create", "store"]) {
+    promise_test(async (t) => {
+      const report = await runInFrame(
+        t,
+        `nonopaque-${operation}`,
+        operation,
+        (frame, query) => {
+          frame.sandbox = "allow-scripts allow-same-origin";
+          frame.src = `${SUPPORT}origin-bound-report.html?${query}`;
+        }
+      );
+      assertReported(report);
+      assert_not_equals(
+        report.origin,
+        "null",
+        "expected a normal (non-opaque) origin"
+      );
+      assert_not_equals(
+        report.result,
+        "SecurityError",
+        `${operation}() from a non-opaque origin must not be rejected as opaque`
+      );
+    }, `${operation}() with a PasswordCredential from a non-opaque origin (sandboxed iframe with allow-same-origin) is not rejected as opaque`);
+  }
+</script>

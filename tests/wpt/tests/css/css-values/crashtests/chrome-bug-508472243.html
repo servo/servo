@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>No crash on long flat math expression chains during parsing</title>
+<link rel="help" href="https://issues.chromium.org/issues/508472243">
+<div id="target"></div>
+<script>
+  target.style.width = "calc(1px * 1px" + " * 2".repeat(200) + ")";
+  getComputedStyle(target).width;
+  target.style.width = "calc(1px + 1em" + " + 1em".repeat(200) + ")";
+  getComputedStyle(target).width;
+</script>

@@ -13,7 +13,8 @@ var testScenarios = [
             desynchronized: false,
             willReadFrequently: false,
             colorSpace: "srgb",
-            colorType:"unorm8"}},
+            colorType:"unorm8",
+            toneMapping: {mode: "standard"}}},
     // alpha
     {testDescription: "Test context creation attributes alpha: true",
         canvasContextAttributes: {alpha: true},
@@ -55,6 +56,16 @@ var testScenarios = [
     {testDescription: "Test context creation attributes colorType: float16",
         canvasContextAttributes: {colorType: "float16"},
         expectedContextAttributes: {colorType: "float16"}},
+    // toneMapping
+    {testDescription: "Test context creation attributes toneMapping: {}",
+        canvasContextAttributes: {toneMapping: {}},
+        expectedContextAttributes: {toneMapping: {mode: "standard"}}},
+    {testDescription: "Test context creation attributes toneMapping: {mode: 'standard'}",
+        canvasContextAttributes: {toneMapping: {mode: "standard"}},
+        expectedContextAttributes: {toneMapping: {mode: "standard"}}},
+    {testDescription: "Test context creation attributes toneMapping: {mode: 'extended'}",
+        canvasContextAttributes: {toneMapping: {mode: "extended"}},
+        expectedContextAttributes: {toneMapping: {mode: "extended"}}},
 ];
 
 function runTestScenario(canvas, testScenario) {
@@ -80,6 +91,10 @@ function runTestScenario(canvas, testScenario) {
         if (testScenario.expectedContextAttributes.colorType !== undefined) {
             assert_equals(contextAttributes.colorType,
                 testScenario.expectedContextAttributes.colorType);
+        }
+        if (testScenario.expectedContextAttributes.toneMapping !== undefined) {
+            assert_equals(contextAttributes.toneMapping.mode,
+                testScenario.expectedContextAttributes.toneMapping.mode);
         }
     }, testScenario.testDescription);
 }

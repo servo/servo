@@ -20,28 +20,26 @@
 
   // Basic declarations.
   testSerialization('Empty @private rule', '@private { }');
-  testSerialization('Untyped variable without a default', '@private { --x; }');
   testSerialization('Untyped variable with a default', '@private { --x: red; }');
   testSerialization('Multiple variables', '@private { --a: red; --b <color>: green; }');
   testSerialization('Repeated variable name', '@private { --x: 1px; --x: 2px; }');
   testSerialization('Trailing whitespace is omitted', '@private { --a    ; --b: 1px    ; --c <length>    ; --d <length>: 2px    ; }',
-                                                      '@private { --a; --b: 1px; --c <length>; --d <length>: 2px; }');
+                                                      '@private { --b: 1px; --d <length>: 2px; }');
 
   // Types.
-  testSerialization('Typed variable without a default', '@private { --x <length>; }');
   testSerialization('Typed variable with a default', '@private { --x <length>: 10px; }');
   testSerialization('Multi-component type', '@private { --x type(<length> | <color>): 1px; }');
   testSerialization('Single-component type() is unwrapped', '@private { --x type(<length>): 10px; }', '@private { --x <length>: 10px; }');
-  testSerialization('Universal type is omitted', '@private { --x type(*); }', '@private { --x; }');
-  testSerialization('Custom-ident type() is unwrapped', '@private { --x type(I\\ dent); }', '@private { --x I\\ dent; }');
 
   // Values and escaping.
   testSerialization('Structured default value', '@private { --x: var(--fallback, rgb(1, 2, 3)); }');
   testSerialization('Escaped variable name', '@private { --escaped-\\9 -tab: 1px; }');
-  testSerialization('Escaped custom-ident type', '@private { --x I\\ dent; }');
+  testSerialization('Escaped custom-ident type', '@private { --x I\\ dent: I\\ dent; }');
 
   // Invalid declarations.
   testSerialization('An all-invalid block serializes as an empty rule', '@private { color: red; }', '@private { }');
   testSerialization('Invalid declarations are omitted', '@private { --x: green; background: red; }', '@private { --x: green; }');
+  testSerialization('A variable without a value is omitted', '@private { --x; }', '@private { }');
+  testSerialization('A typed variable without a value is omitted', '@private { --x <length>; }', '@private { }');
   testSerialization('!important declaration is omitted', '@private { --x: 1px; --y: 2px !important; }', '@private { --x: 1px; }');
 </script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Background Sync: Accessing sync and periodicSync on detached frame</title>
+<link rel="help" href="https://wicg.github.io/background-sync/spec/">
+<link rel="help" href="https://wicg.github.io/periodic-background-sync/">
+<body>
+<script>
+(async () => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/service-workers/service-worker/resources/blank.html';
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+    document.body.appendChild(iframe);
+  });
+
+  const reg = await iframe.contentWindow.navigator.serviceWorker.register(
+      '/service-workers/service-worker/resources/empty-worker.js',
+      { scope: '/service-workers/service-worker/resources/scope/detached-sync' });
+
+  iframe.remove();
+
+  // Access `sync` and `periodicSync` after frame is detached.
+  const sync = reg.sync;
+  const periodicSync = reg.periodicSync;
+
+  try {
+    await reg.unregister();
+  } catch (e) { }
+
+  document.documentElement.classList.remove('test-wait');
+})();
+</script>
+</body>
+</html>
