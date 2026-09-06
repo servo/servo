@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 
 use app_units::Au;
 use euclid::Rect;
+use paint_api::display_list::PaintTimingReport;
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
 use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
@@ -59,6 +60,12 @@ pub(crate) struct PaintTimingHandler {
     viewport_rect: LayoutRect,
     /// The document’s largest contentful paint size
     lcp_size: f32,
+    /// Whether the current display list contains paintable items.
+    is_document_paintable: bool,
+    /// Whether the current display list contains contentful items.
+    is_document_contentful: bool,
+    /// <https://www.w3.org/TR/paint-timing/#set-of-previously-reported-paints>
+    reported_paints: PaintTimingReport,
     /// Counter for generating unique LCP candidate UUIDs.
     lcp_next_uuid: u64,
     /// The LCP candidate, it may be a image or text.
@@ -82,6 +89,9 @@ impl PaintTimingHandler {
     pub(crate) fn new(viewport_size: LayoutSize) -> Self {
         Self {
             lcp_size: 0.0,
+            is_document_paintable: false,
+            is_document_contentful: false,
+            reported_paints: PaintTimingReport::default(),
             lcp_next_uuid: 0,
             lcp_node: None,
             lcp_candidate: None,
@@ -92,6 +102,16 @@ impl PaintTimingHandler {
             reported_text_nodes: HashSet::new(),
             painted_text_nodes: HashMap::new(),
         }
+    }
+
+    /// Marks the current display list as containing a paintable item.
+    pub(crate) fn mark_document_is_paintable(&mut self) {
+        self.is_document_paintable = true;
+    }
+
+    /// Marks the current display list as containing a contentful item.
+    pub(crate) fn mark_document_is_contentful(&mut self) {
+        self.is_document_contentful = true;
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -389,28 +409,97 @@ impl PaintTimingHandler {
         // Note: Step 6-7 are handled in script.
     }
 
+    /// <https://www.w3.org/TR/paint-timing/#first-paint>
+    fn should_report_first_paint(&self) -> bool {
+        // Step 1. If document's set of previously reported paints contains
+        // "first-paint", then return false.
+        if self.reported_paints.first_paint {
+            return false;
+        }
+        // Step 2. If document contains at least one element that is
+        // paintable, then return true.
+        // Step 3. Otherwise, return false.
+        self.is_document_paintable
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#first-contentful-paint>
+    fn should_report_first_contentful_paint(&self) -> bool {
+        // Step 1. If document's set of previously reported paints contains
+        // "first-contentful-paint", then return false.
+        if self.reported_paints.first_contentful_paint {
+            return false;
+        }
+        // Step 2. If document contains at least one element that is both
+        // paintable and contentful, then return true.
+        // Step 3. Otherwise, return false.
+        self.is_document_paintable && self.is_document_contentful
+    }
+
     /// <https://www.w3.org/TR/paint-timing/#mark-paint-timing>
     #[servo_tracing::instrument(name = "Mark Paint Timing", skip_all, fields(halt_lcp = halt_lcp))]
-    pub(crate) fn mark_paint_timing(&mut self, halt_lcp: bool) {
-        // > From: <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
-        // > Note: Each pending image record in paintedImages and text
-        // > element in paintedTextNodes will only be reported exactly
-        // > once, from mark paint timing, for the first paint where the
-        // > element is considered paintable (i.e. has opacity and
-        // > visibility) and contentful (i.e. image resource or blocking
-        // > fonts are sufficiently loaded).
+    pub(crate) fn mark_paint_timing(&mut self, halt_lcp: bool) -> PaintTimingReport {
+        // TODO Step 1. If the document's browsing context is not paint-timing
+        // eligible, return.
+
+        // TODO Step 2. Let paintTimingInfo be a new paint timing info, whose
+        // rendering update end time is the current high resolution time given
+        // document's relevant global object.
+
+        // Step 3. Let paintedImages be a new ordered set.
+        // Step 4. Let paintedTextNodes be a new ordered set.
+
+        // Step 5. For each record in doc's images pending rendering list:
+        // Step 5.1. If record's request is available and ready to be painted,
+        // then run the following steps:
+        // Note: Only available images are accumulated, hence it is fulfilled.
+        // Step 5.1.1. Append record to paintedImages.
+        // Step 5.1.2. Remove record from doc's images pending rendering list.
         self.painted_images.retain(|record| {
             record
                 .tag
                 .is_none_or(|tag| self.reported_image_nodes.insert(tag.node))
         });
+
+        // Step 6. For each Element element in doc's descendants:
+        // Step 6.1. If element is contained in doc's set of elements with
+        // rendered text, continue.
+        // Step 6.2. If element's set of owned text nodes is empty, continue.
+        // Step 6.3. Append element to doc's set of elements with rendered text.
+        // Step 6.4. Append element to paintedTextNodes.
         self.painted_text_nodes
             .retain(|node, _record| self.reported_text_nodes.insert(*node));
 
+        // Step 7. Let reportedPaints be the document’s set of previously
+        // reported paints. (Directly accessing)
+
+        // TODO Step 8. Let frameTimingInfo be document’s current frame timing info.
+        // TODO Step 9. Set document’s current frame timing info to null.
+
         // Step 10. Let flushPaintTimings be the following steps:
+        // Step 10.1. If document should report first paint, then:
+        let first_paint = self.should_report_first_paint();
+        // Step 10.2.1. Report paint timing given document, "first-paint",
+        // and paintTimingInfo.
+        if first_paint {
+            self.reported_paints.first_paint = true;
+        }
+
+        // Step 10.2. If document should report first contentful paint, then:
+        let first_contentful_paint = self.should_report_first_contentful_paint();
+        // Step 10.2.1. Report paint timing given document,
+        // "first-contentful-paint", and paintTimingInfo.
+        if first_contentful_paint {
+            self.reported_paints.first_contentful_paint = true;
+        }
+
         // Step 10.3. Report largest contentful paint given document,
         // paintTimingInfo, paintedImages and paintedTextNodes.
         self.report_largest_contentful_paint(halt_lcp);
+
+        PaintTimingReport {
+            first_paint,
+            first_contentful_paint,
+        }
     }
 
     pub(crate) fn did_lcp_candidate_update(&self) -> bool {
