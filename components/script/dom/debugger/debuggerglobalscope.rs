@@ -6,7 +6,7 @@ use std::cell::RefCell;
 
 use devtools_traits::{
     BlackboxCoverage, DebuggerValue, DevtoolScriptControlMsg, EvaluateJSReply,
-    GetEnvironmentRequest, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    GetEnvironmentRequest, ScriptToDevtoolsControlMsg, SourceInfo,
 };
 use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
@@ -18,7 +18,7 @@ use profile_traits::{mem, time};
 use script_bindings::interfaces::HasOrigin;
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
-use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
+use servo_base::id::{Index, PipelineId, PipelineNamespaceId, WorkerId};
 use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;

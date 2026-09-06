@@ -66,6 +66,7 @@ impl DissimilarOriginWindow {
         let opaque_origin = MutableOrigin::new(ImmutableOrigin::new_opaque());
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
+                #[cfg(feature = "devtools")]
                 global_to_clone_from.devtools_chan().cloned(),
                 global_to_clone_from.mem_profiler_chan().clone(),
                 global_to_clone_from.time_profiler_chan().clone(),

@@ -18,12 +18,13 @@ crate-type = ["rlib"]
 [features]
 # Note: Servoshell does not use the default features of servo, so you also
 # need to add feature-groups that should be default to ports/servoshell/Cargo.toml
-default = ["bundled", "clipboard", "js_jit"]
+default = ["bundled", "clipboard", "default_tooling", "js_jit"]
 ## Convenience feature groups, to select multiple related features for a sensible
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
 default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webxr"]
+default_tooling = ["devtools"]
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
 
@@ -48,6 +49,13 @@ bundled_freetype = ["fonts/bundled_freetype"]
 clipboard = ["dep:arboard", "dep:ohos-pasteboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
+devtools = [
+    "dep:devtools",
+    "dep:devtools_traits",
+    "net/devtools",
+    "script/devtools",
+    "servo-constellation/devtools",
+]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 gamepad = [
     "script/gamepad",
@@ -112,8 +120,8 @@ accesskit = { workspace = true }
 bitflags = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
-devtools = { workspace = true }
-devtools_traits = { workspace = true }
+devtools = { workspace = true, optional = true }
+devtools_traits = { workspace = true, optional = true }
 dpi = { workspace = true }
 embedder_traits = { workspace = true }
 env_logger = { workspace = true }

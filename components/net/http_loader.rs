@@ -11,7 +11,6 @@ use std::time::{Duration, SystemTime};
 
 use async_recursion::async_recursion;
 use content_security_policy::percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
-use devtools_traits::ChromeToDevtoolsControlMsg;
 use embedder_traits::{AuthenticationResponse, GenericEmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
@@ -82,6 +81,7 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
+#[cfg(feature = "devtools")]
 use crate::devtools::{
     prepare_devtools_request, send_request_to_devtools, send_response_values_to_devtools,
 };
@@ -97,6 +97,12 @@ use crate::http_cache::{
 };
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::start_websocket;
+
+#[cfg(feature = "devtools")]
+type DevtoolsResponse = Option<devtools_traits::ChromeToDevtoolsControlMsg>;
+
+#[cfg(not(feature = "devtools"))]
+type DevtoolsResponse = Option<()>;
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -531,9 +537,13 @@ async fn obtain_response(
     context: &FetchContext,
     fetch_terminated: UnboundedSender<bool>,
     browsing_context_id: Option<BrowsingContextId>,
-) -> Result<(HyperResponse<Decoder>, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
+) -> Result<(HyperResponse<Decoder>, DevtoolsResponse), NetworkError> {
+    #[cfg(not(feature = "devtools"))]
+    let _ = (destination, is_xhr, browsing_context_id);
+
     let mut headers = request_headers.clone();
 
+    #[cfg(feature = "devtools")]
     let devtools_bytes = StdArc::new(Mutex::new(vec![]));
 
     // https://url.spec.whatwg.org/#percent-encoded-bytes
@@ -558,12 +568,16 @@ async fn obtain_response(
             (BodySink::Buffered(sender), BodyStream::Buffered(receiver))
         };
 
+        #[cfg(feature = "devtools")]
         obtain_response_setup_router_callback(
-            devtools_bytes.clone(),
+            Some(devtools_bytes.clone()),
             chunk_requester,
             sink,
             fetch_terminated,
         )?;
+
+        #[cfg(not(feature = "devtools"))]
+        obtain_response_setup_router_callback(None, chunk_requester, sink, fetch_terminated)?;
 
         let body = match stream {
             BodyStream::Chunked(receiver) => {
@@ -628,15 +642,17 @@ async fn obtain_response(
         .timing
         .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
-    let request_id = request_id.map(|v| v.to_owned());
-    let pipeline_id = *pipeline_id;
-    let closure_url = url.clone();
-    let method = method.clone();
-    let send_start = CrossProcessInstant::now();
-
     let host = request.uri().host().unwrap_or("").to_owned();
     let override_manager = context.state.override_manager.clone();
-    let headers = headers.clone();
+    #[cfg(feature = "devtools")]
+    let (request_id, pipeline_id, closure_url, method, send_start, headers) = (
+        request_id.map(|value| value.to_owned()),
+        *pipeline_id,
+        url.clone(),
+        method.clone(),
+        CrossProcessInstant::now(),
+        headers.clone(),
+    );
     let is_secure_scheme = url.is_secure_scheme();
 
     // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
@@ -649,11 +665,10 @@ async fn obtain_response(
     let client_future = client
         .request(request)
         .and_then(move |res| {
-            let send_end = CrossProcessInstant::now();
-
             // TODO(#21271) response_start: immediately after receiving first byte of response
-
+            #[cfg(feature = "devtools")]
             let msg = if let Some(request_id) = request_id {
+                let send_end = CrossProcessInstant::now();
                 if let Some(pipeline_id) = pipeline_id {
                     if let Some(browsing_context_id) = browsing_context_id {
                         Some(prepare_devtools_request(
@@ -688,7 +703,10 @@ async fn obtain_response(
 
             future::ready(Ok((
                 Decoder::detect(res.map(|r| r.boxed()), is_secure_scheme),
+                #[cfg(feature = "devtools")]
                 msg,
+                #[cfg(not(feature = "devtools"))]
+                None,
             )))
         })
         .map_err(move |error| {
@@ -712,7 +730,7 @@ async fn obtain_response(
 
 /// Setup the callback mechanism to forward chunks from the request received to the `chunk_requester`.
 fn obtain_response_setup_router_callback(
-    devtools_bytes: StdArc<Mutex<Vec<u8>>>,
+    devtools_bytes: Option<StdArc<Mutex<Vec<u8>>>>,
     chunk_requester: StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
     sink: BodySink,
     fetch_terminated: UnboundedSender<bool>,
@@ -789,7 +807,10 @@ fn obtain_response_setup_router_callback(
                 },
             };
 
-            devtools_bytes.lock().extend_from_slice(&bytes);
+            #[cfg(feature = "devtools")]
+            if let Some(devtools_bytes) = &devtools_bytes {
+                devtools_bytes.lock().extend_from_slice(&bytes);
+            }
 
             // Step 5.1.2.2, transmit chunk over the network,
             // currently implemented by sending the bytes to the fetch worker.
@@ -2306,7 +2327,6 @@ async fn http_network_fetch(
     let (done_sender, done_receiver) = unbounded_channel();
     *done_chan = Some((done_sender.clone(), done_receiver));
 
-    let devtools_sender = context.devtools_chan.clone();
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.cancelled() {
         return Response::network_error(NetworkError::LoadCancelled);
@@ -2315,23 +2335,27 @@ async fn http_network_fetch(
     *response_body.lock() = ResponseBody::Receiving(vec![]);
     let response_body2 = response_body.clone();
 
-    if let Some(ref sender) = devtools_sender &&
-        let Some(m) = msg
-    {
-        send_request_to_devtools(m, sender);
-    }
+    #[cfg(feature = "devtools")]
+    let (devtools_request, status, headers, devtools_chan) = {
+        if let Some(ref sender) = context.devtools_chan &&
+            let Some(msg) = msg
+        {
+            send_request_to_devtools(msg, sender);
+        }
+        (
+            request.clone(),
+            response.status.clone(),
+            response.headers.clone(),
+            context.devtools_chan.clone(),
+        )
+    };
 
     let done_sender2 = done_sender.clone();
     let done_sender3 = done_sender.clone();
     let timing_ptr2 = context.timing.clone();
     let timing_ptr3 = context.timing.clone();
-    let devtools_request = request.clone();
-    let url1 = devtools_request.url();
+    let url1 = request.url();
     let url2 = url1.clone();
-
-    let status = response.status.clone();
-    let headers = response.headers.clone();
-    let devtools_chan = context.devtools_chan.clone();
 
     if let Some(possible_length) = response_stream
         .headers()
@@ -2372,9 +2396,11 @@ async fn http_network_fetch(
                 completed_body.shrink_to_fit();
                 // If devtools is disabled avoid cloning, since the result would
                 // be unused anyway.
+                #[cfg(feature = "devtools")]
                 let devtools_response_body =
                     devtools_chan.is_some().then(|| completed_body.clone());
                 *body = ResponseBody::Done(completed_body);
+                #[cfg(feature = "devtools")]
                 send_response_values_to_devtools(
                     Some(headers),
                     status,

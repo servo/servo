@@ -10,8 +10,6 @@ use base64::Engine as _;
 use base64::engine::general_purpose;
 use bytes::Bytes;
 use content_security_policy as csp;
-use crossbeam_channel::Sender;
-use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName, RANGE};
@@ -100,7 +98,8 @@ pub type SharedInflightKeepAliveRecords =
 pub struct FetchContext {
     pub state: Arc<HttpState>,
     pub user_agent: String,
-    pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    #[cfg(feature = "devtools")]
+    pub devtools_chan: Option<crossbeam_channel::Sender<devtools_traits::DevtoolsControlMsg>>,
     pub filemanager: FileManager,
     pub file_token: FileTokenCheck,
     pub request_interceptor: Arc<TokioMutex<RequestInterceptor>>,
@@ -899,6 +898,7 @@ async fn wait_for_response(
     context: &FetchContext,
 ) {
     if let Some(ref mut ch) = *done_chan {
+        #[cfg(feature = "devtools")]
         let mut devtools_body = context.devtools_chan.as_ref().map(|_| Vec::new());
         loop {
             match ch.1.recv().await {
@@ -906,6 +906,7 @@ async fn wait_for_response(
                     target.process_response_length_hint(request, length);
                 },
                 Some(Data::Payload(bytes)) => {
+                    #[cfg(feature = "devtools")]
                     if let Some(body) = devtools_body.as_mut() {
                         body.extend(&bytes);
                     }
@@ -920,6 +921,7 @@ async fn wait_for_response(
                     break;
                 },
                 Some(Data::Done) => {
+                    #[cfg(feature = "devtools")]
                     send_response_to_devtools(request, context, response, devtools_body);
                     break;
                 },
@@ -940,6 +942,7 @@ async fn wait_for_response(
                 // obtained synchronously via scheme_fetch for data/file/about/etc
                 // We should still send the body across as a chunk
                 target.process_response_chunk(request, Bytes::copy_from_slice(vec));
+                #[cfg(feature = "devtools")]
                 if context.devtools_chan.is_some() {
                     // Now that we've replayed the entire cached body,
                     // notify the DevTools server with the full Response.

@@ -17,6 +17,7 @@ test = false
 doctest = false
 
 [features]
+devtools = ["dep:devtools_traits"]
 test-util = ["hyper-util/server-graceful", "dep:servo-default-resources", "net_traits/test-util"]
 tracing = ["dep:tracing"]
 
@@ -32,7 +33,7 @@ content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 data-url = { workspace = true }
-devtools_traits = { workspace = true }
+devtools_traits = { workspace = true, optional = true }
 embedder_traits = { workspace = true }
 fst = { workspace = true }
 fonts = { workspace = true }
@@ -101,7 +102,7 @@ hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
 # This must always be a path dependency, we don't want to add a dependency on a
 # crates.io version of ourselves - we want to enable a feature of ourselves.
-net = { package = "servo-net", path = ".", features = ["test-util"] }
+net = { package = "servo-net", path = ".", features = ["devtools", "test-util"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 servo-default-resources = { workspace = true }
 
