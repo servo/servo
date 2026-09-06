@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<title>Menu dynamic valid submenu attachment</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const outer = document.createElement('menubar');
+  const btn = document.createElement('button');
+  outer.appendChild(btn); // outer is invalid
+  document.body.appendChild(outer);
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Outer is dialog initially');
+
+  const inner = document.createElement('menulist');
+  const item = document.createElement('menuitem');
+  inner.appendChild(item); // inner is valid
+
+  // Attach the valid submenu to the invalid root
+  outer.appendChild(inner);
+  inner.showPopover();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(inner), 'dialog', 'Inner should inherit dialog state from outer');
+}, 'Attaching a valid submenu to an invalid root correctly propagates dialog state');
+</script>

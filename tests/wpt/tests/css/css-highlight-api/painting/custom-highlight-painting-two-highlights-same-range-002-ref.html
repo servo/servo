@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Reference: re-registering a highlight whose range moved while it was unregistered</title>
+<style>
+  ::highlight(highlight-a) {
+    background-color: red;
+  }
+  ::highlight(highlight-b) {
+    background-color: lime;
+    text-decoration-line: underline;
+  }
+</style>
+<body><p id="text">ABCDE0123456789</p>
+<script>
+  const node = document.getElementById("text").firstChild;
+  const range = new Range();
+  range.setStart(node, 10);
+  range.setEnd(node, 15);
+
+  CSS.highlights.set("highlight-a", new Highlight(range));
+  CSS.highlights.set("highlight-b", new Highlight(range));
+</script>

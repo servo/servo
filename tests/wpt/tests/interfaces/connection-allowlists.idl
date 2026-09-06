@@ -11,3 +11,7 @@ dictionary ConnectionAllowlistViolationReport : ReportBody {
   sequence<DOMString> allowlist;
   ConnectionAllowlistDisposition disposition;
 };
+
+partial interface HTMLIFrameElement {
+  [CEReactions] attribute DOMString connectionAllowlist;
+};

@@ -11,6 +11,32 @@ dictionary GPUObjectDescriptorBase {
     USVString label = "";
 };
 
+enum GPUFeatureName {
+    "core-features-and-limits",
+    "depth-clip-control",
+    "depth32float-stencil8",
+    "texture-compression-bc",
+    "texture-compression-bc-sliced-3d",
+    "texture-compression-etc2",
+    "texture-compression-astc",
+    "texture-compression-astc-sliced-3d",
+    "timestamp-query",
+    "indirect-first-instance",
+    "shader-f16",
+    "rg11b10ufloat-renderable",
+    "bgra8unorm-storage",
+    "float32-filterable",
+    "float32-blendable",
+    "clip-distances",
+    "dual-source-blending",
+    "subgroups",
+    "texture-formats-tier1",
+    "texture-formats-tier2",
+    "primitive-index",
+    "texture-component-swizzle",
+    "subgroup-size-control",
+};
+
 [Exposed=(Window, Worker), SecureContext]
 interface GPUSupportedLimits {
     readonly attribute unsigned long maxTextureDimension1D;
@@ -111,31 +137,6 @@ dictionary GPUDeviceDescriptor
     sequence<GPUFeatureName> requiredFeatures = [];
     record<DOMString, (GPUSize64 or undefined)> requiredLimits = {};
     GPUQueueDescriptor defaultQueue = {};
-};
-
-enum GPUFeatureName {
-    "core-features-and-limits",
-    "depth-clip-control",
-    "depth32float-stencil8",
-    "texture-compression-bc",
-    "texture-compression-bc-sliced-3d",
-    "texture-compression-etc2",
-    "texture-compression-astc",
-    "texture-compression-astc-sliced-3d",
-    "timestamp-query",
-    "indirect-first-instance",
-    "shader-f16",
-    "rg11b10ufloat-renderable",
-    "bgra8unorm-storage",
-    "float32-filterable",
-    "float32-blendable",
-    "clip-distances",
-    "dual-source-blending",
-    "subgroups",
-    "texture-formats-tier1",
-    "texture-formats-tier2",
-    "primitive-index",
-    "texture-component-swizzle",
 };
 
 [Exposed=(Window, Worker), SecureContext]
@@ -884,6 +885,7 @@ enum GPUVertexFormat {
     "sint32x4",
     "unorm10-10-10-2",
     "unorm8x4-bgra",
+    "snorm10-10-10-2",
 };
 
 enum GPUVertexStepMode {

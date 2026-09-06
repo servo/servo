@@ -148,7 +148,7 @@ promise_test(async t => {
   const writer = writable.getWriter();
 
   await writer.ready;
-  assert_equals(writer.desiredSize, 5, 'writer is ready to write');
+  assert_equals(writer.desiredSize, 1, 'writer is ready to write');
 }, 'WebTransportDatagramsWritable writer.ready works correctly');
 
 promise_test(async t => {

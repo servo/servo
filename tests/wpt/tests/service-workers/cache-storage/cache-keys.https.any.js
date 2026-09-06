@@ -209,4 +209,13 @@ prepopulated_cache_test(simple_entries, function(cache, entries) {
         });
   }, 'Cache.keys with a HEAD Request');
 
+cache_test(function(cache, test) {
+    return promise_rejects_js(
+      test,
+      TypeError,
+      cache.keys('https://user:password@example.com/'),
+      'Cache.keys should reject with the exception thrown when constructing ' +
+      'a Request from the given URL string fails.');
+  }, 'Cache.keys with a string that cannot construct a Request');
+
 done();

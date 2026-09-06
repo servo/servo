@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/menu.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../interestfor/resources/invoker-utils.js"></script>
+
+<style>
+  #menuitem, #menuitem2 {
+    interest-delay: 100ms;
+  }
+  #unrelated {
+    position: absolute;
+    top: 300px;
+    left: 50px;
+  }
+</style>
+
+<menubar>
+  <submenu>
+    <menuitem id="menuitem">Menu</menuitem>
+    <menulist id="menulist">
+      <menuitem>Item 1</menuitem>
+      <menuitem>Item 2</menuitem>
+    </menulist>
+  </submenu>
+  <menuitem id="menuitem2" command="toggle-popover" commandfor="menulist2" interestfor="menulist2">
+    Menu 2
+  </menuitem>
+</menubar>
+<menulist id="menulist2">
+  <menuitem>Item 1</menuitem>
+  <menuitem>Item 2</menuitem>
+</menulist>
+<button id="unrelated">Unrelated</button>
+
+<script>
+const hoverWaitTime = 200; // How long to wait to cover the 100ms delay for sure.
+
+promise_test(async (t) => {
+  t.add_cleanup(async () => hoverOver(unrelated));
+  await hoverOver(unrelated);
+  assert_false(menulist.matches(':popover-open'), 'Menulist starts closed');
+
+  // Menulist should open via command invoker.
+  await clickOn(menuitem);
+  assert_true(menulist.matches(':popover-open'), 'Menulist should open after clicking menuitem');
+
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(menulist.matches(':popover-open'), 'Menulist should stay open while hovering menuitem');
+
+  await hoverOver(menulist);
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(menulist.matches(':popover-open'), 'Menulist should stay open while hovering menulist');
+
+  await hoverOver(unrelated);
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(menulist.matches(':popover-open'), 'The menulist should not close on loss of interest');
+  menulist.hidePopover(); // Cleanup
+}, 'A menuitem invoking a menulist in a menubar should not close the menulist on loss of interest if opened via command (submenu)');
+
+promise_test(async (t) => {
+  t.add_cleanup(async () => hoverOver(unrelated));
+  await hoverOver(unrelated);
+  assert_false(menulist2.matches(':popover-open'), 'Menulist starts closed');
+
+  // Menulist should open via command invoker.
+  await clickOn(menuitem2);
+  assert_true(menulist2.matches(':popover-open'), 'Menulist should open after clicking menuitem');
+
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(menulist2.matches(':popover-open'), 'Menulist should stay open while hovering menuitem');
+
+  await hoverOver(menulist2);
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(menulist2.matches(':popover-open'), 'Menulist should stay open while hovering menulist');
+
+  await hoverOver(unrelated);
+  await waitForHoverTime(hoverWaitTime);
+  assert_true(menulist2.matches(':popover-open'), 'The menulist should not close on loss of interest');
+  menulist2.hidePopover(); // Cleanup
+}, 'A menuitem with explicit command/interestfor in a menubar should not close the menulist on loss of interest if opened via command');
+</script>

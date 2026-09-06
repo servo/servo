@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>
+  OOF in fragmented column grid-lanes container with viewport CB.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 2;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: 50px;
+    height: 200px;
+    width: 50px;
+  }
+  .abs {
+    background: green;
+    height: 100px;
+    position: absolute;
+    width: 100px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div class="abs"></div>
+  </div>
+</div>

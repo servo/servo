@@ -10,6 +10,8 @@ partial interface Document {
 [Exposed=Window, SecureContext]
 interface ModelContext : EventTarget {
   Promise<undefined> registerTool(ModelContextTool tool, optional ModelContextRegisterToolOptions options = {});
+  Promise<sequence<RegisteredTool>> getTools(optional ModelContextGetToolOptions options = {});
+  Promise<DOMString> executeTool(RegisteredTool tool, optional object inputObject = {}, optional ModelContextExecuteToolOptions options = {});
 
   attribute EventHandler ontoolchange;
 };
@@ -28,12 +30,36 @@ dictionary ModelContextTool {
 dictionary ToolAnnotations {
   boolean readOnlyHint = false;
   boolean untrustedContentHint = false;
-  boolean consequentialHint = false;
 };
 
-callback ToolExecuteCallback = Promise<any> (object input);
+dictionary ToolExecuteCallbackOptions {
+  required AbortSignal signal;
+};
+
+callback ToolExecuteCallback = Promise<any> (object inputObject, ToolExecuteCallbackOptions options);
 
 dictionary ModelContextRegisterToolOptions {
-  AbortSignal signal;
   sequence<USVString> exposedTo;
+  AbortSignal signal;
+};
+
+dictionary ModelContextGetToolOptions {
+  sequence<USVString> fromOrigins;
+};
+
+dictionary ModelContextExecuteToolOptions {
+  AbortSignal signal;
+};
+
+dictionary RegisteredTool {
+  required DOMString name;
+  // `title` can be exposed as a `DOMString` since it was taken in by a
+  // `USVString`, meaning all unmatched surrogate processing has already been
+  // done, and there's no need to do it again on tool exposure.
+  DOMString title;
+  required DOMString description;
+  object inputSchema;
+  required Window window;
+  required USVString origin;
+  ToolAnnotations annotations;
 };

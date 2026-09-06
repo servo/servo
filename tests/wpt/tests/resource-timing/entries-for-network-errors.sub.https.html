@@ -30,6 +30,12 @@ network_error_entry_test('/common/dummy.xml', {cache: 'only-if-cached', mode: 's
 network_error_entry_test(
     `/element-timing/resources/multiple-redirects.py?redirect_count=22&final_resource=${validXmlUrl}`,
     null, "too many redirects");
+network_error_entry_test(
+    `/element-timing/resources/multiple-redirects.py?redirect_count=22&final_resource=${validXmlUrl}&tao1=*&tao2=*`,
+    null, "too many redirects with TAO");
+network_error_entry_test(
+    `/common/redirect.py?location=https://{{hosts[][nonexistent]}}/common/dummy.xml`,
+    null, "same-origin redirect to DNS failure");
 
 // ORB (https://github.com/whatwg/fetch/pull/1442) will return network errors
 // for certain cross-origin fetches. This tests that the same rules apply to

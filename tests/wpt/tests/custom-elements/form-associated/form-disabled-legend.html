@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>Form-associated custom elements inside a legend of a disabled fieldset</title>
+<link rel="help" href="https://html.spec.whatwg.org/#concept-fe-disabled">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+class MyControl extends HTMLElement {
+  static get formAssociated() { return true; }
+
+  constructor() {
+    super();
+    this.internals_ = this.attachInternals();
+    this.disabledHistory_ = [];
+  }
+
+  formDisabledCallback(isDisabled) {
+    this.disabledHistory_.push(isDisabled);
+  }
+  disabledHistory() {
+    return this.disabledHistory_;
+  }
+}
+customElements.define('my-control', MyControl);
+
+function setup(html) {
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  document.body.appendChild(container);
+  return container;
+}
+
+test(() => {
+  const container = setup('<fieldset disabled><legend><my-control></my-control></legend><my-control></my-control></fieldset>');
+  const [inLegend, outsideLegend] = container.querySelectorAll('my-control');
+  assert_true(inLegend.matches(':enabled'), 'in legend :enabled');
+  assert_false(inLegend.matches(':disabled'), 'in legend :disabled');
+  assert_array_equals(inLegend.disabledHistory(), []);
+
+  assert_false(outsideLegend.matches(':enabled'), 'outside legend :enabled');
+  assert_true(outsideLegend.matches(':disabled'), 'outside legend :disabled');
+  assert_array_equals(outsideLegend.disabledHistory(), [true]);
+}, 'Custom element inside the first legend of a disabled fieldset is not disabled');
+
+test(() => {
+  const container = setup('<fieldset disabled><legend></legend><legend><my-control></my-control></legend></fieldset>');
+  const control = container.querySelector('my-control');
+  assert_true(control.matches(':disabled'));
+  assert_array_equals(control.disabledHistory(), [true]);
+}, 'Custom element inside a legend other than the first one is disabled');
+
+test(() => {
+  const container = setup('<fieldset disabled><fieldset><legend><my-control></my-control></legend></fieldset></fieldset>');
+  const control = container.querySelector('my-control');
+  assert_true(control.matches(':disabled'));
+  assert_array_equals(control.disabledHistory(), [true]);
+}, 'Legend of an inner fieldset does not shield from an outer disabled fieldset');
+
+test(() => {
+  const container = setup('<fieldset disabled><legend><my-control></my-control></legend></fieldset>');
+  const fieldset = container.firstElementChild;
+  const control = container.querySelector('my-control');
+
+  fieldset.disabled = false;
+  fieldset.disabled = true;
+  assert_true(control.matches(':enabled'));
+  assert_array_equals(control.disabledHistory(), []);
+}, 'Toggling disabled on the fieldset does not affect a custom element inside its first legend');
+
+test(() => {
+  const container = setup('<fieldset disabled><legend><my-control></my-control></legend></fieldset>');
+  const fieldset = container.firstElementChild;
+  const legend = fieldset.firstElementChild;
+  const control = container.querySelector('my-control');
+
+  const newLegend = document.createElement('legend');
+  fieldset.prepend(newLegend);
+  assert_true(control.matches(':disabled'), 'after inserting a new first legend');
+  assert_array_equals(control.disabledHistory(), [true]);
+
+  newLegend.remove();
+  assert_true(control.matches(':enabled'), 'after removing the new first legend');
+  assert_array_equals(control.disabledHistory(), [true, false]);
+}, 'Changing the first legend updates the disabled state of a custom element');
+
+test(() => {
+  const container = setup('<fieldset><legend><my-control></my-control></legend><my-control></my-control></fieldset>');
+  const fieldset = container.firstElementChild;
+  assert_equals(fieldset.elements.length, 2);
+}, 'fieldset.elements includes custom elements inside the legend');
+</script>

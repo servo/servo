@@ -111,8 +111,8 @@ jobs:
             --total-chunks "$TOTAL_CHUNKS" \
             --chunk-type hash \
             ${TEST_TYPE:+--test-types "$TEST_TYPE"} \
-            --log-wptreport ${{ runner.temp }}/wpt_report_"$CURRENT_CHUNK".json \
-            --log-wptscreenshot ${{ runner.temp }}/wpt_screenshot_"$CURRENT_CHUNK".txt \
+            --log-wptreport ${{ runner.temp }}/wpt_report_"${TEST_TYPE:+${TEST_TYPE}_}$CURRENT_CHUNK".json \
+            --log-wptscreenshot ${{ runner.temp }}/wpt_screenshot_"${TEST_TYPE:+${TEST_TYPE}_}$CURRENT_CHUNK".txt \
             --log-mach - \
             --log-mach-level info \
             --channel ${{ inputs.safari-technology-preview && 'preview' || 'stable' }} \
@@ -122,7 +122,7 @@ jobs:
             safari
       - name: Publish results
         if: "!cancelled()"
-        uses: actions/upload-artifact@v4.1.0
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact-name }}${{ matrix['test-type'] && '-' || '' }}${{ matrix['test-type'] }}-${{ env.CURRENT_CHUNK }}
           path: |
@@ -131,7 +131,7 @@ jobs:
           if-no-files-found: error
       - name: Publish safaridriver logs
         if: inputs.safaridriver-diagnose && !cancelled()
-        uses: actions/upload-artifact@v4.1.0
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact-name }}-safaridriver-logs-${{ env.CURRENT_CHUNK }}
           path: ~/Library/Logs/com.apple.WebDriver/
@@ -162,7 +162,7 @@ jobs:
     if: inputs.merged-artifact-name
     steps:
       - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: ${{ inputs.merged-artifact-name }}
           pattern: ${{ inputs.artifact-name }}-*

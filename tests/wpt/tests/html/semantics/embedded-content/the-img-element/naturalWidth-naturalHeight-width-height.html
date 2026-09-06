@@ -44,6 +44,13 @@ img {
      not correct, we provide the actual expected value in the
      "data-{width,height}" attributes (as distinguished from
      data-natural-{width,height}).
+     * The "data-not-rendered-{width,height}" attributes are the same thing,
+     but for when the img is not being rendered. These and "data-{width,height}"
+     both default to "data-natural-{width,height}", so an expectation that only
+     applies while rendered, such as an img stretched by its containing block, is
+     encoded by specifying "data-{width,height}" and leaving
+     "data-not-rendered-{width,height}" out. A width/height content attribute is
+     reported either way, so those cases specify the same value twice.
      * The "data-density" attribute indicates which natural dimensions are
      SVG-intrinsic (and thus should be density-corrected): "both" (default for
      raster), "width", "height", or "none". Default dimensions (300x150) and
@@ -327,12 +334,6 @@ function cloneTemplateWithDensity(density) {
     // Scale our 'data-natural-{width,height}' expectations by the density,
     // but only for dimensions that are density-corrected (i.e., derived from
     // the image's own intrinsic dimensions, not from the default object size).
-    // Also:
-    // * Preserve the original 'data-natural-{width,height}' as the
-    // 'data-not-rendered-{width,height}' expectation (if we don't already have
-    // one) since browsers don't do density-correction on .width and .height when
-    // the image is not being rendered, as discussed in
-    // https://github.com/whatwg/html/issues/11287#issuecomment-2923467541
     for (let name in img.dataset) {
       if (name.startsWith("natural")) {
         let origExpectation = img.dataset[name];
@@ -343,15 +344,6 @@ function cloneTemplateWithDensity(density) {
         // Scale our img.natural{Width,Height} expectation:
         if (shouldScale) {
           img.dataset[name] = origExpectation / density;
-        }
-
-        // Construct a string for "data-not-rendered-{width,height}" for
-        // whichever axis we're currently handling, and stash the
-        // origExpectation in there if we don't already have some expectation
-        // set there:
-        let notRenderedName = name.replace("natural", "notRendered");
-        if (!(notRenderedName in img.dataset)) {
-          img.dataset[notRenderedName] = origExpectation;
         }
       }
     }
@@ -406,8 +398,9 @@ onload = function() {
       // Now test what we get when the img is not rendered.
       // * naturalWidth and naturalHeight shouldn't change.
       // * width and height should generally match naturalWidth and
-      // naturalHeight. (Exceptions are indicated via the
-      // 'data-not-rendered-{width/height} attributes).
+      // naturalHeight, except that the width and height content attributes
+      // (if present and parseable) take precedence, per axis. Those cases are
+      // indicated via the 'data-not-rendered-{width,height}' attributes.
       this.add_cleanup(function() {
         img.style.display = "";
       });

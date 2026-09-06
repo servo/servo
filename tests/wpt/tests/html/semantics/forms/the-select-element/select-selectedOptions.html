@@ -138,6 +138,53 @@ test(() => {
   assert_equals(after.length, 2);
 
 }, ".selectedOptions should return the same object after selection changes - [SameObject]");
+
+test(t => {
+  const form = document.createElement("form");
+  const select = document.createElement("select");
+  const a = new Option("a");
+  const b = new Option("b");
+  select.append(a, b);
+  form.append(select);
+  document.body.append(form);
+  t.add_cleanup(() => form.remove());
+
+  const options = select.selectedOptions;
+  assert_array_equals([...options], [a], "'a' selected initially");
+
+  select.selectedIndex = -1;
+  assert_array_equals([...options], [], "nothing selected");
+
+  // The reset algorithm ends by running the selectedness setting algorithm,
+  // which selects 'a'.
+  form.reset();
+  assert_true(a.selected, "'a' re-selected");
+  assert_array_equals([...options], [a],
+                      "selectedOptions reflects the re-selected option");
+}, ".selectedOptions should not go stale when a form reset runs the " +
+   "selectedness setting algorithm on a script-created select");
+
+test(t => {
+  const select = document.createElement("select");
+  const a = new Option("a", "a", true, true);
+  const b = new Option("b");
+  select.append(a, b);
+  document.body.append(select);
+  t.add_cleanup(() => select.remove());
+
+  const options = select.selectedOptions;
+  assert_array_equals([...options], [a], "'a' selected initially");
+
+  select.selectedIndex = -1;
+  assert_array_equals([...options], [], "nothing selected");
+
+  // Removing 'b' re-runs the selectedness setting algorithm, which selects 'a'.
+  b.remove();
+  assert_true(a.selected, "'a' re-selected");
+  assert_array_equals([...options], [a],
+                      "selectedOptions reflects the re-selected option");
+}, ".selectedOptions should not go stale when the selectedness setting " +
+   "algorithm runs on a script-created select");
 </script>
 </body>
 </html>

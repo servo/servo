@@ -24,7 +24,7 @@ body { margin: 0 }
     text-decoration: none;
     text-shadow: none;
     outline: none;
-    font: 9px Ahem, sans-serif; /* Use Ahem because it improves test reliability. */
+    font: 9px/1 Ahem, sans-serif;
     bottom: 0;
     left: 0;
     right: 0;

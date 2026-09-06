@@ -18,8 +18,9 @@
   const image_dictionary = "image-001.png";
   const image_compressed = `self-compressed-image-001.png.${format}`;
   compression_dictionary_promise_test(async t => {
+    const test_id = token();
     // Load the non-compressed image to register it as a dictionary for itself.
-    await fetchStaticResourceWithUseAsDictionaryHeader(image_dictionary, image_compressed, "image");
+    await fetchStaticResourceWithUseAsDictionaryHeader(`${image_dictionary}?id=${test_id}`, `${image_compressed}?id=${test_id}`, "image");
 
     // Wait for another dictionary to register to give a chance for the
     // previous registration to complete. That registration was not done via
@@ -32,7 +33,7 @@
 
     // Append the compressed image.
     const img = document.createElement("img");
-    img.src = `./resources/static/${image_compressed}`;
+    img.src = `./resources/static/${image_compressed}?id=${test_id}`;
     t.add_cleanup(_ => img.remove());
     await new Promise((resolve, reject) => {
       img.onload = resolve;
@@ -49,8 +50,9 @@
   const script_dictionary = "script-001.js";
   const script_compressed = `self-compressed-script-001.js.${format}`;
   compression_dictionary_promise_test(async t => {
+    const test_id = token();
     // Load the non-compressed script to register it as a dictionary for itself.
-    await fetchStaticResourceWithUseAsDictionaryHeader(script_dictionary, script_compressed, "script");
+    await fetchStaticResourceWithUseAsDictionaryHeader(`${script_dictionary}?id=${test_id}`, `${script_compressed}?id=${test_id}`, "script");
 
     // Wait for another dictionary to register to give a chance for the
     // previous registration to complete. See comment above about why we can't
@@ -59,7 +61,7 @@
 
     // Append the compressed script.
     const script = document.createElement("script");
-    script.src = `./resources/static/${script_compressed}`;
+    script.src = `./resources/static/${script_compressed}?id=${test_id}`;
     window.compressionDictionaryScriptLoaded = false;
     t.add_cleanup(_ => {
       script.remove();
@@ -78,8 +80,9 @@
   const style_dictionary = "style-001.css";
   const style_compressed = `self-compressed-style-001.css.${format}`;
   compression_dictionary_promise_test(async t => {
+    const test_id = token();
     // Load the non-compressed style to register it as a dictionary for itself.
-    await fetchStaticResourceWithUseAsDictionaryHeader(style_dictionary, style_compressed, "style");
+    await fetchStaticResourceWithUseAsDictionaryHeader(`${style_dictionary}?id=${test_id}`, `${style_compressed}?id=${test_id}`, "style");
 
     // Wait for another dictionary to register to give a chance for the
     // previous registration to complete. See comment above about why we can't
@@ -89,7 +92,7 @@
     // Append the compressed style and test div.
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = `./resources/static/${style_compressed}`;
+    link.href = `./resources/static/${style_compressed}?id=${test_id}`;
     const div = document.createElement("div");
     div.className = "green_square";
     t.add_cleanup(_ => {

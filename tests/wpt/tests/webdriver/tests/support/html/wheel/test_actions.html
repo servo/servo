@@ -1,0 +1,92 @@
+<!doctype html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test Wheel Actions</title>
+  <link rel="stylesheet" href="test_actions.css">
+  <script src="test_actions.js"></script>
+</head>
+
+<body>
+  <div id="container">
+    <div>
+      <h3>Element</h3>
+      <p class="detail">not scrollable</p>
+      <div id="not-scrollable">
+        <div id="not-scrollable-content"></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Element</h3>
+      <p class="detail">scrollable</p>
+      <div id="scrollable">
+        <div id="scrollable-content"></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Shadow DOM</h3>
+      <p class="detail">scrollable</p>
+      <custom-scroll-element id="custom-element"></custom-scroll-element>
+    </div>
+
+    <div>
+      <h3>iframe</h3>
+      <p class="detail">with inner elements</p>
+      <iframe id="iframe"></iframe>
+    </div>
+
+  </div>
+
+  <div id="filterControls">
+    <label>
+      <input type="checkbox" id="showWheelEvents" checked>
+      <span>Wheel Events</span>
+    </label>
+    <label>
+      <input type="checkbox" id="showScrollEvents" checked>
+      <span>Scroll Events</span>
+    </label>
+  </div>
+
+  <h2>Legend</h2>
+  <div id="legend">
+    <div class="legend-item">
+      <div class="legend-color event-wheel"></div>
+      <span>wheel</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color event-scroll"></div>
+      <span>scroll</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color event-scrollend"></div>
+      <span>scrollend</span>
+    </div>
+  </div>
+
+  <h2>Events</h2>
+  <div id="tableContainer">
+    <table id="eventsTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Type</th>
+          <th>Coordinates</th>
+          <th>Delta (X, Y, Z)</th>
+          <th>Delta Mode</th>
+          <th>Target</th>
+          <th>scrollLeft</th>
+          <th>scrollTop</th>
+          <th>Modifiers</th>
+        </tr>
+      </thead>
+      <tbody id="eventsTableBody">
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

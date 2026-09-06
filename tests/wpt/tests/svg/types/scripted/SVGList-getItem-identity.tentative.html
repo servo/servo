@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>SVG list interfaces: getItem returns the same object for the same index (tentative)</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGNameList__getItem">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#ListInterfaces">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1169">
+<!--
+  TENTATIVE. SVG 2 does not state this requirement in one sentence; it follows from the
+  getItem algorithm's step 2 ("Return the element in the list at position index") together
+  with the note immediately after it ("if the list's element type is an object type, such
+  as SVGLength, then a reference to that object and not a copy of it is returned"). One
+  element sits at a given position, and a reference to it is returned each time, so two
+  getItem calls for the same index on an unmodified list return the same object.
+
+  Raised as w3c/svgwg#1169, which asks for the requirement to be stated outright. This
+  file stays .tentative until it is.
+
+  SVGStringList is deliberately in scope with the OPPOSITE expectation. Its element type
+  is DOMString, so getItem returns a string and comparison is by value. Asserting that is
+  not a weaker version of the same test: it pins the carve-out the note itself makes, and
+  without it a reader cannot tell that the exclusion is deliberate.
+
+  The text elements below carry no content on purpose. WebKit's test harness dumps the
+  rendered text of the page before the harness output, so any content would land in the
+  baseline, and in a file that builds one element per subtest the number of those lines
+  would track the subtest count. Measured: an empty text element gives the same item
+  counts, values and identity behaviour, so nothing is lost.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg" width="200" height="200">
+  <text id="text" x="10 20 30" y="20" rotate="1 2 3"/>
+  <polyline id="polyline" points="1,2 3,4 5,6"/>
+  <rect id="rect" width="10" height="10" transform="translate(1) translate(2) translate(3)"
+        requiredExtensions="alpha beta gamma"/>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+
+// Each subject is a list whose element type is an object type, so identity is meaningful.
+const objectLists = [
+  ["SVGNumberList (text rotate)", () => $("text").rotate.baseVal],
+  ["SVGLengthList (text x)", () => $("text").x.baseVal],
+  ["SVGPointList (polyline points)", () => $("polyline").points],
+  ["SVGTransformList (rect transform)", () => $("rect").transform.baseVal],
+];
+
+for (const [name, getList] of objectLists) {
+  test(function() {
+    const list = getList();
+    assert_equals(list.numberOfItems, 3, "the markup should give three items");
+    for (let i = 0; i < list.numberOfItems; ++i)
+      assert_equals(list.getItem(i), list.getItem(i),
+                    "getItem(" + i + ") twice should give the same object, not two objects holding the same value");
+  }, name + ": getItem returns the same object for the same index");
+
+  // Separate subtest on purpose. An engine that returns a fresh object per call fails the
+  // test above; it should still be shown to return the right VALUE, so that a failure
+  // above reads as an identity difference and not as data loss.
+  test(function() {
+    const list = getList();
+    const read = item => item.value !== undefined ? item.value
+                       : item.x !== undefined ? item.x
+                       : item.matrix.e;
+    for (let i = 0; i < list.numberOfItems; ++i)
+      assert_equals(read(list.getItem(i)), read(list.getItem(i)),
+                    "getItem(" + i + ") twice should report the same value, which it does even where the objects differ");
+  }, name + ": two getItem calls for one index report the same value");
+
+  // The indexed getter is defined to return the same element as getItem, so it is the
+  // same requirement reached by a second route.
+  test(function() {
+    const list = getList();
+    for (let i = 0; i < list.numberOfItems; ++i)
+      assert_equals(list[i], list.getItem(i),
+                    "list[" + i + "] should be the very same object as getItem(" + i + ")");
+  }, name + ": the indexed getter returns the same object as getItem");
+
+  test(function() {
+    const list = getList();
+    assert_not_equals(list.getItem(0), list.getItem(1),
+                      "index 0 and index 1 should be different objects");
+  }, name + ": different indices return different objects");
+}
+
+// A list belongs to one element. Two elements carrying the same attribute value must not
+// share item objects, which is what makes the assertions above about identity rather
+// than about some global interning of equal values.
+test(function() {
+  const a = $("text").x.baseVal;
+  const other = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  other.setAttribute("x", "10 20 30");
+  $("svg").appendChild(other);
+  assert_equals(other.x.baseVal.numberOfItems, 3);
+  assert_not_equals(other.x.baseVal.getItem(0), a.getItem(0),
+                    "two elements with equal attribute values should not share item objects");
+}, "SVGLengthList: item objects are not shared between elements");
+
+// The carve-out, with the opposite expectation.
+test(function() {
+  const list = $("rect").requiredExtensions;
+  assert_equals(list.numberOfItems, 3, "the markup should give three items");
+  assert_equals(typeof list.getItem(0), "string",
+                "SVGStringList holds DOMString, so getItem returns a string");
+  assert_equals(list.getItem(0), list.getItem(0),
+                "strings compare by value, so this holds without an identity requirement");
+}, "SVGStringList: getItem returns a string, so identity is not a meaningful question");
+</script>

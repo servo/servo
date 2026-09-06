@@ -1,7 +1,6 @@
 <!doctype html>
 <meta charset="utf8">
 
-<!--We must specify intrinsic inline size in the reference because inline size calculations is different in grid lanes due to the presence of stacking axis. -->
 <style>
 #grid {
   border: 3px solid black;
@@ -9,7 +8,7 @@
   grid-template-rows: repeat(2, 35px);
   grid-template-columns: repeat(2, min-content);
   contain: size;
-  contain-intrinsic-inline-size: 6px;
+  contain-intrinsic-inline-size: 0;
   width: max-content;
   background: lightblue;
   grid-gap: 5px;

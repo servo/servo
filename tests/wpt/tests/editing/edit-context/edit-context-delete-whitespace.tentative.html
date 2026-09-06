@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2067230">
+<title>EditContext: Whitespace in text is not treated as collapsed for computing deletion ranges.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<div></div>
+<script>
+'use strict';
+const host = document.querySelector('div');
+const kBackspaceKey = "\uE003";
+
+promise_test(async () => {
+  const text = '1  2\n\n3';
+  const editContext = host.editContext = new EditContext({text});
+  editContext.updateSelection(text.length, text.length);
+  host.focus();
+  for (let i = 0; i < text.length; i++) {
+    await test_driver.send_keys(host, kBackspaceKey);
+    assert_equals(
+      editContext.text,
+      text.substring(0, text.length - i - 1),
+      `Pressing backspace should delete one character (iteration ${i})`);
+  }
+});
+
+</script>
+</body>
+</html>

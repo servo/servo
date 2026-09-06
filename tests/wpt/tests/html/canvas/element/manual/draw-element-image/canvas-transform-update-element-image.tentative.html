@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Canvas Transform: Automatic update via drawElementImage(ElementImage) and DrawElementImageOptions</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+</head>
+<body style="margin: 0;">
+  <canvas id="canvas" style="position: absolute; left: 0; top: 0; width: 400px; height: 400px;" width="400" height="400" layoutsubtree>
+    <div id="target" style="position: absolute; left: 0; top: 0; width: 100px; height: 50px; transform-origin: 0 0;"></div>
+    <div id="target2" style="position: absolute; left: 0; top: 0; width: 80px; height: 40px; transform-origin: 0 0;"></div>
+  </canvas>
+
+  <script>
+  function waitForElementGeometryUpdate(target) {
+    return new Promise((resolve) => {
+      target.addEventListener('elementgeometryupdate', resolve, {once: true});
+    });
+  }
+
+  const canvas = document.querySelector('#canvas');
+  const target = document.querySelector('#target');
+  const target2 = document.querySelector('#target2');
+  const offscreen = canvas.transferControlToOffscreen();
+  const ctx = offscreen.getContext('2d');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+    });
+
+    await waitForCanvasPaint(canvas);
+    assert_true(canvas.getElementTransform(target).isIdentity, 'Initial canvas transform is identity');
+    assert_equals(target.getBoundingClientRect().left, 0);
+    assert_equals(target.getBoundingClientRect().top, 0);
+
+    const elementImage = canvas.captureElementImage(target);
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+
+    // Default options ({preserveElementGeometry: false}).
+    ctx.drawElementImage(elementImage, 30, 40);
+    const event = await updatePromise;
+    assert_true(event instanceof ElementGeometryUpdateEvent);
+    assert_equals(event.elements.length, 1);
+    assert_equals(event.elements[0], target);
+
+    assert_array_equals(canvas.getElementTransform(target).toFloat64Array(),
+                        new DOMMatrix().translate(30, 40).toFloat64Array(),
+                        'target canvas transform matches drawn position');
+    const rect = target.getBoundingClientRect();
+    assert_equals(rect.left, 30);
+    assert_equals(rect.top, 40);
+  }, 'OffscreenCanvas drawElementImage(ElementImage) automatically updates element canvas transform by default');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+    });
+
+    await waitForCanvasPaint(canvas);
+    const elementImage = canvas.captureElementImage(target);
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+
+    ctx.drawElementImage(elementImage, 50, 60, {preserveElementGeometry: false});
+    const event = await updatePromise;
+    assert_true(event instanceof ElementGeometryUpdateEvent);
+    assert_equals(event.elements.length, 1);
+    assert_equals(event.elements[0], target);
+
+    assert_array_equals(canvas.getElementTransform(target).toFloat64Array(),
+                        new DOMMatrix().translate(50, 60).toFloat64Array(),
+                        'target canvas transform matches drawn position with preserveElementGeometry: false');
+    const rect = target.getBoundingClientRect();
+    assert_equals(rect.left, 50);
+    assert_equals(rect.top, 60);
+  }, 'OffscreenCanvas drawElementImage(ElementImage) updates element canvas transform with explicit {preserveElementGeometry: false}');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+      canvas.removeAttribute('onelementgeometryupdate');
+    });
+
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(target, {canvasTransform: new DOMMatrix().translate(10, 20)});
+    const initialTransform = canvas.getElementTransform(target);
+    const initialRect = target.getBoundingClientRect();
+
+    let eventFired = false;
+    canvas.onelementgeometryupdate = () => { eventFired = true; };
+    const elementImage = canvas.captureElementImage(target);
+    ctx.drawElementImage(elementImage, 100, 120, {preserveElementGeometry: true});
+
+    // Allow a microtask/task turn for any spurious task.
+    await new Promise(resolve => t.step_timeout(resolve, 50));
+
+    assert_false(eventFired, 'elementgeometryupdate should not fire when preserveElementGeometry is true');
+    assert_array_equals(canvas.getElementTransform(target).toFloat64Array(), initialTransform.toFloat64Array(),
+                        'target canvas transform is unchanged when preserveElementGeometry is true');
+    const rect = target.getBoundingClientRect();
+    assert_equals(rect.left, initialRect.left);
+    assert_equals(rect.top, initialRect.top);
+    assert_equals(rect.width, initialRect.width);
+    assert_equals(rect.height, initialRect.height);
+  }, 'OffscreenCanvas drawElementImage(ElementImage) does not update element canvas transform with {preserveElementGeometry: true}');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+      canvas.removeAttribute('onelementgeometryupdate');
+    });
+
+    await waitForCanvasPaint(canvas);
+    const elementImage = canvas.captureElementImage(target);
+    let updatePromise = waitForElementGeometryUpdate(canvas);
+    ctx.drawElementImage(elementImage, 30, 40);
+    let event = await updatePromise;
+    assert_true(event instanceof ElementGeometryUpdateEvent);
+    assert_equals(event.elements.length, 1);
+    assert_equals(event.elements[0], target);
+
+    assert_false(canvas.getElementTransform(target).isIdentity);
+    assert_equals(target.getBoundingClientRect().left, 30);
+    assert_equals(target.getBoundingClientRect().top, 40);
+
+    const elementImageForClear = canvas.captureElementImage(target);
+    updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.clearElementGeometry(elementImageForClear);
+    const clearEvent = await updatePromise;
+    assert_true(clearEvent instanceof ElementGeometryUpdateEvent);
+    assert_equals(clearEvent.elements.length, 1);
+    assert_equals(clearEvent.elements[0], target);
+
+    assert_true(canvas.getElementTransform(target).isIdentity);
+    assert_equals(target.getBoundingClientRect().left, 0);
+    assert_equals(target.getBoundingClientRect().top, 0);
+  }, 'OffscreenCanvas.clearElementGeometry(ElementImage) on main thread clears element canvas transform and dispatches elementgeometryupdate');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+      canvas.removeAttribute('onelementgeometryupdate');
+    });
+
+    await waitForCanvasPaint(canvas);
+    const elementImage = canvas.captureElementImage(target);
+    let updatePromise = waitForElementGeometryUpdate(canvas);
+    ctx.drawElementImage(elementImage, 30, 40);
+    await updatePromise;
+
+    assert_false(canvas.getElementTransform(target).isIdentity);
+    assert_equals(target.getBoundingClientRect().left, 30);
+    assert_equals(target.getBoundingClientRect().top, 40);
+
+    updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.clearElementGeometry(target);
+    const clearEvent = await updatePromise;
+    assert_true(clearEvent instanceof ElementGeometryUpdateEvent);
+    assert_equals(clearEvent.elements.length, 1);
+    assert_equals(clearEvent.elements[0], target);
+
+    assert_true(canvas.getElementTransform(target).isIdentity);
+    assert_equals(target.getBoundingClientRect().left, 0);
+    assert_equals(target.getBoundingClientRect().top, 0);
+  }, 'OffscreenCanvas.clearElementGeometry(Element) on main thread clears element canvas transform and dispatches elementgeometryupdate');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+      canvas.removeAttribute('onelementgeometryupdate');
+    });
+
+    await waitForCanvasPaint(canvas);
+    const elementImage1 = canvas.captureElementImage(target);
+    const elementImage2 = canvas.captureElementImage(target2);
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+
+    ctx.drawElementImage(elementImage1, 10, 20);
+    offscreen.clearElementGeometry(elementImage1);
+    ctx.drawElementImage(elementImage2, 30, 40);
+
+    const event = await updatePromise;
+    assert_true(event instanceof ElementGeometryUpdateEvent);
+    assert_equals(event.elements.length, 2, 'De-duplicated to 2 elements');
+    assert_equals(event.elements[0], target, 'First element is target based on first appearance');
+    assert_equals(event.elements[1], target2, 'Second element is target2 based on first appearance');
+
+    assert_true(canvas.getElementTransform(target).isIdentity, 'target transform is cleared');
+    assert_equals(target.getBoundingClientRect().left, 0);
+    assert_equals(target.getBoundingClientRect().top, 0);
+
+    assert_false(canvas.getElementTransform(target2).isIdentity);
+    assert_equals(target2.getBoundingClientRect().left, 30);
+    assert_equals(target2.getBoundingClientRect().top, 40);
+  }, 'OffscreenCanvas draw and clear in the same turn processes updates in order and de-duplicates event.elements');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+      canvas.removeAttribute('onelementgeometryupdate');
+    });
+
+    await waitForCanvasPaint(canvas);
+    const elementImage = canvas.captureElementImage(target);
+    let updatePromise = waitForElementGeometryUpdate(canvas);
+    ctx.drawElementImage(elementImage, 10, 20);
+    await updatePromise;
+
+    updatePromise = waitForElementGeometryUpdate(canvas);
+    const elementImage2 = canvas.captureElementImage(target);
+    offscreen.clearElementGeometry(elementImage2);
+    ctx.drawElementImage(elementImage2, 50, 60);
+
+    const event = await updatePromise;
+    assert_true(event instanceof ElementGeometryUpdateEvent);
+    assert_equals(event.elements.length, 1);
+    assert_equals(event.elements[0], target);
+
+    assert_false(canvas.getElementTransform(target).isIdentity);
+    assert_equals(target.getBoundingClientRect().left, 50);
+    assert_equals(target.getBoundingClientRect().top, 60);
+  }, 'OffscreenCanvas clear and redraw in same turn processes updates in order');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+      canvas.removeAttribute('onelementgeometryupdate');
+    });
+
+    await waitForCanvasPaint(canvas);
+    const elementImage1 = canvas.captureElementImage(target);
+    const elementImage2 = canvas.captureElementImage(target2);
+    let updatePromise = waitForElementGeometryUpdate(canvas);
+    ctx.drawElementImage(elementImage1, 10, 20);
+    ctx.drawElementImage(elementImage2, 30, 40);
+    await updatePromise;
+
+    const elementImage1Clear = canvas.captureElementImage(target);
+    const elementImage2Clear = canvas.captureElementImage(target2);
+    updatePromise = waitForElementGeometryUpdate(canvas);
+
+    offscreen.clearElementGeometry(elementImage1Clear);
+    offscreen.clearElementGeometry(elementImage2Clear);
+    offscreen.clearElementGeometry(elementImage1Clear);
+
+    const event = await updatePromise;
+    assert_true(event instanceof ElementGeometryUpdateEvent);
+    assert_equals(event.elements.length, 2, 'Batches and de-duplicates multiple clear updates');
+    assert_equals(event.elements[0], target);
+    assert_equals(event.elements[1], target2);
+
+    assert_true(canvas.getElementTransform(target).isIdentity);
+    assert_true(canvas.getElementTransform(target2).isIdentity);
+    assert_equals(target.getBoundingClientRect().left, 0);
+    assert_equals(target.getBoundingClientRect().top, 0);
+    assert_equals(target2.getBoundingClientRect().left, 0);
+    assert_equals(target2.getBoundingClientRect().top, 0);
+  }, 'OffscreenCanvas multiple clearElementGeometry calls in same turn batch and de-duplicate event.elements');
+  </script>
+</body>
+</html>

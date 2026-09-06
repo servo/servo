@@ -66,18 +66,18 @@ async def test_navigation(
     event = await wait_for_future_safe(on_load)
 
     # Check the node from the initial url is not available in the page.
-    result = await bidi_session.browsing_context.locate_nodes(
+    nodes = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
         locator={"type": "css", "value": "#from-initial"},
     )
-    assert len(result["nodes"]) == 0
+    assert len(nodes) == 0
 
     # Check the node from the redirected url is available in the page.
-    result = await bidi_session.browsing_context.locate_nodes(
+    nodes = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
         locator={"type": "css", "value": "#from-redirect"},
     )
-    assert len(result["nodes"]) == 1
+    assert len(nodes) == 1
 
     # Check that the window.location remains on initial_url
     result = await bidi_session.script.evaluate(

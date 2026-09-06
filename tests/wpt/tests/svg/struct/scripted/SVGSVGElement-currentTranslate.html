@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>SVGSVGElement.currentTranslate</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#__svg__SVGSVGElement__currentTranslate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="outer" width="200" height="200">
+  <svg id="inner" width="100" height="100">
+    <rect width="50" height="50" fill="green"/>
+  </svg>
+</svg>
+<script>
+const outer = document.getElementById("outer");
+const inner = document.getElementById("inner");
+
+test(function() {
+  const ct = outer.currentTranslate;
+  assert_equals(ct.x, 0, "initial x must be 0");
+  assert_equals(ct.y, 0, "initial y must be 0");
+}, "currentTranslate initial value is (0, 0) on outermost svg");
+
+test(function() {
+  const ct1 = outer.currentTranslate;
+  const ct2 = outer.currentTranslate;
+  assert_equals(ct1, ct2,
+    "currentTranslate must return the same object on repeated access");
+}, "currentTranslate satisfies [SameObject] on outermost svg");
+
+test(function() {
+  const before = outer.currentTranslate;
+  outer.currentTranslate = new DOMPoint(99, 99);
+  assert_equals(outer.currentTranslate, before,
+    "assigning to currentTranslate must not replace the object");
+}, "currentTranslate attribute is readonly (not replaceable)");
+
+test(function() {
+  const ct = inner.currentTranslate;
+  assert_equals(ct.x, 0, "inner svg x must be 0");
+  assert_equals(ct.y, 0, "inner svg y must be 0");
+}, "currentTranslate is (0, 0) on inner (non-outermost) svg");
+
+test(function() {
+  const ct1 = inner.currentTranslate;
+  const ct2 = inner.currentTranslate;
+  assert_equals(ct1, ct2,
+    "inner svg's currentTranslate must also satisfy [SameObject]");
+}, "currentTranslate satisfies [SameObject] on inner svg");
+
+test(function() {
+  const ct = outer.currentTranslate;
+  ct.x = 10;
+  ct.y = 20;
+  assert_equals(ct.x, 10, "x must be writable on outermost svg");
+  assert_equals(ct.y, 20, "y must be writable on outermost svg");
+  ct.x = 0;
+  ct.y = 0;
+}, "currentTranslate point is writable on outermost svg");
+
+test(function() {
+  const ct = inner.currentTranslate;
+  assert_throws_dom('NoModificationAllowedError', () => {
+    ct.x = 10;
+  }, 'cx.x should throw an exception on inner svg');
+  assert_throws_dom('NoModificationAllowedError', () => {
+    ct.y = 20;
+  }, 'cx.y should throw an exception on inner svg');
+  assert_equals(ct.x, 0, "x must remain 0 on non-outermost svg");
+  assert_equals(ct.y, 0, "y must remain 0 on non-outermost svg");
+}, "currentTranslate point is read only on non-outermost svg");
+</script>

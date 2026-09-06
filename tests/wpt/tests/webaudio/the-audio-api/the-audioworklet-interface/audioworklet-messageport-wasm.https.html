@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test WebAssembly.Module messaging with AudioWorklet</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      const processorPath = 'processors/wasm-port-processor.js';
+
+      function createContext(t) {
+        const context = new AudioContext();
+        t.add_cleanup(() => context.close());
+        return context;
+      }
+
+      function createEmptyWasmModule() {
+        return new WebAssembly.Module(
+            new Uint8Array([0x00, 0x61, 0x73, 0x6d,
+                            0x01, 0x00, 0x00, 0x00]));
+      }
+
+      function waitForWasmResult(port) {
+        return new Promise((resolve, reject) => {
+          function cleanup() {
+            port.removeEventListener('message', onMessage);
+            port.removeEventListener('messageerror', onMessageError);
+          }
+          function onMessage(event) {
+            if (event.data?.type === 'wasm-module-received' ||
+                event.data?.type === 'wasm-module-messageerror') {
+              cleanup();
+              resolve(event.data);
+            }
+          }
+          function onMessageError() {
+            cleanup();
+            reject(new Error('The port received a messageerror event'));
+          }
+          port.addEventListener('message', onMessage);
+          port.addEventListener('messageerror', onMessageError);
+          port.start();
+        });
+      }
+
+      async function assertWasmModuleRoundTrip(port) {
+        const resultPromise = waitForWasmResult(port);
+        port.postMessage(createEmptyWasmModule());
+
+        const result = await resultPromise;
+        assert_equals(
+            result.type,
+            'wasm-module-received',
+            'AudioWorklet must receive the module without messageerror');
+        assert_true(
+            new WebAssembly.Instance(result.module) instanceof
+                WebAssembly.Instance,
+            'The returned module can be instantiated');
+      }
+
+      promise_test(async (t) => {
+        const context = createContext(t);
+        await context.audioWorklet.addModule(processorPath);
+
+        await assertWasmModuleRoundTrip(context.audioWorklet.port);
+      }, 'AudioWorkletGlobalScope: global port can exchange a ' +
+          'WebAssembly.Module');
+
+      promise_test(async (t) => {
+        const context = createContext(t);
+        await context.audioWorklet.addModule(processorPath);
+        const node = new AudioWorkletNode(context, 'wasm-port-processor');
+
+        await assertWasmModuleRoundTrip(node.port);
+      }, 'AudioWorkletProcessor: processor port can exchange a ' +
+          'WebAssembly.Module');
+    </script>
+  </body>
+</html>

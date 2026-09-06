@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Canvas Transform: Element.getCanvasTransform() and Element.setCanvasTransform()</title>
+  <title>Canvas Transform: HTMLCanvasElement.getElementTransform() and HTMLCanvasElement.updateElementGeometry()</title>
   <link rel="help" href="https://github.com/WICG/html-in-canvas">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
@@ -10,106 +10,167 @@
   <div id="outside-canvas" style="width: 100px; height: 100px;"></div>
   <canvas id="canvas" width="100" height="100" layoutsubtree>
     <div id="inside-canvas" style="width: 10px; height: 10px;"></div>
+    <div id="nested-parent">
+      <div id="nested-drawable" drawable style="width: 5px; height: 5px;"></div>
+      <div id="nested-non-drawable" style="width: 5px; height: 5px;"></div>
+    </div>
+    <svg id="svg-inside" width="50" height="50">
+      <rect id="svg-rect" drawable width="50" height="50"></rect>
+      <rect id="svg-rect-non-drawable" width="50" height="50"></rect>
+    </svg>
+  </canvas>
+  <canvas id="other-canvas" width="100" height="100" layoutsubtree>
+    <div id="other-inside" style="width: 10px; height: 10px;"></div>
+  </canvas>
+  <canvas id="canvas-no-layoutsubtree" width="100" height="100">
+    <div id="inside-no-layoutsubtree" style="width: 10px; height: 10px;"></div>
   </canvas>
   <svg id="svg-root" width="100" height="100">
-    <rect id="svg-rect" width="50" height="50"></rect>
+    <rect id="svg-rect-outside" width="50" height="50"></rect>
   </svg>
 
   <script>
     'use strict';
 
     test(() => {
-      const el = document.createElement('div');
-      const m = el.getCanvasTransform();
+      const canvas = document.getElementById('canvas');
+      const inside = document.getElementById('inside-canvas');
+      const m = canvas.getElementTransform(inside);
       assert_true(m instanceof DOMMatrix);
       assert_true(m.is2D);
       assert_true(m.isIdentity);
       assert_array_equals(m.toFloat64Array(), new DOMMatrix().toFloat64Array());
-    }, 'getCanvasTransform() defaults to identity DOMMatrix');
+    }, 'getElementTransform() defaults to identity DOMMatrix');
 
     test(() => {
-      const el = document.createElement('div');
-      const m1 = el.getCanvasTransform();
-      const m2 = el.getCanvasTransform();
-      assert_not_equals(m1, m2);
-    }, 'getCanvasTransform() returns a new DOMMatrix object each time');
-
-    test(() => {
-      const el = document.createElement('div');
-      const expected = new DOMMatrix().translate(10, 20).scale(2, 3);
-      el.setCanvasTransform(expected);
-      assert_true(el.getCanvasTransform().is2D);
-      assert_array_equals(el.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
-    }, 'setCanvasTransform() with 2D DOMMatrix and reading back');
-
-    test(() => {
-      const el = document.createElement('div');
-      const expected = new DOMMatrix().translate(5, 6, 7).scale3d(2, 3, 4);
-      el.setCanvasTransform(expected);
-      assert_false(el.getCanvasTransform().is2D);
-      assert_array_equals(el.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
-    }, 'setCanvasTransform() with 3D DOMMatrix and reading back');
-
-    test(() => {
-      const el = document.createElement('div');
-      el.setCanvasTransform(new DOMMatrix().scale(2, 3));
-      assert_false(el.getCanvasTransform().isIdentity);
-      // Reset with empty dictionary or default
-      el.setCanvasTransform({});
-      assert_true(el.getCanvasTransform().isIdentity);
-      el.setCanvasTransform(new DOMMatrix().scale(5, 5));
-      assert_false(el.getCanvasTransform().isIdentity);
-      el.setCanvasTransform();
-      assert_true(el.getCanvasTransform().isIdentity);
-    }, 'setCanvasTransform() with empty or omitted argument resets matrix to identity');
-
-    test(() => {
-      const el = document.createElement('div');
-      assert_throws_js(TypeError, () => {
-        el.setCanvasTransform({a: 1, m11: 2});
-      });
-      assert_throws_js(TypeError, () => {
-        el.setCanvasTransform({b: 1, m12: 2});
-      });
-      assert_throws_js(TypeError, () => {
-        el.setCanvasTransform({is2D: true, m33: 2});
-      });
-      assert_throws_js(TypeError, () => {
-        el.setCanvasTransform({is2D: true, m13: 2});
-      });
-    }, 'setCanvasTransform() with invalid DOMMatrixInit throws TypeError');
-
-    test(() => {
-      const disconnected = document.createElement('span');
-      assert_true(disconnected.getCanvasTransform().isIdentity);
-      const expected = new DOMMatrix().translate(10, 0).scale(2, 4);
-      disconnected.setCanvasTransform(expected);
-      assert_array_equals(disconnected.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
-    }, 'getCanvasTransform() and setCanvasTransform() on disconnected elements');
-
-    test(() => {
-      const outside = document.getElementById('outside-canvas');
-      assert_true(outside.getCanvasTransform().isIdentity);
-      const expected = new DOMMatrix().translate(0, 15).scale(3, 6);
-      outside.setCanvasTransform(expected);
-      assert_array_equals(outside.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
-    }, 'getCanvasTransform() and setCanvasTransform() on elements outside <canvas>');
-
-    test(() => {
+      const canvas = document.getElementById('canvas');
       const inside = document.getElementById('inside-canvas');
-      assert_true(inside.getCanvasTransform().isIdentity);
-      const expected = new DOMMatrix().translate(20, 30).scale(4, 8);
-      inside.setCanvasTransform(expected);
-      assert_array_equals(inside.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
-    }, 'getCanvasTransform() and setCanvasTransform() on elements inside <canvas layoutsubtree>');
+      const m1 = canvas.getElementTransform(inside);
+      const m2 = canvas.getElementTransform(inside);
+      assert_not_equals(m1, m2);
+    }, 'getElementTransform() returns a new DOMMatrix object each time');
 
     test(() => {
+      const canvas = document.getElementById('canvas');
+      const inside = document.getElementById('inside-canvas');
+      const expected = new DOMMatrix().translate(10, 20).scale(2, 3);
+      canvas.updateElementGeometry(inside, {canvasTransform: expected});
+      assert_true(canvas.getElementTransform(inside).is2D);
+      assert_array_equals(canvas.getElementTransform(inside).toFloat64Array(), expected.toFloat64Array());
+    }, 'updateElementGeometry() with 2D DOMMatrix and reading back');
+
+    test(() => {
+      const canvas = document.getElementById('canvas');
+      const inside = document.getElementById('inside-canvas');
+      const expected = new DOMMatrix().translate(5, 6, 7).scale3d(2, 3, 4);
+      canvas.updateElementGeometry(inside, {canvasTransform: expected});
+      assert_false(canvas.getElementTransform(inside).is2D);
+      assert_array_equals(canvas.getElementTransform(inside).toFloat64Array(), expected.toFloat64Array());
+    }, 'updateElementGeometry() with 3D DOMMatrix and reading back');
+
+    test(() => {
+      const canvas = document.getElementById('canvas');
+      const inside = document.getElementById('inside-canvas');
+      canvas.updateElementGeometry(inside, {canvasTransform: new DOMMatrix().scale(2, 3)});
+      assert_false(canvas.getElementTransform(inside).isIdentity);
+      // Reset with clearElementGeometry
+      canvas.clearElementGeometry(inside);
+      assert_true(canvas.getElementTransform(inside).isIdentity);
+      canvas.updateElementGeometry(inside, {canvasTransform: new DOMMatrix().scale(5, 5)});
+      assert_false(canvas.getElementTransform(inside).isIdentity);
+      canvas.updateElementGeometry(inside, {canvasTransform: new DOMMatrix()});
+      assert_true(canvas.getElementTransform(inside).isIdentity);
+    }, 'clearElementGeometry() and updateElementGeometry() resetting matrix to identity');
+
+    test(() => {
+      const canvas = document.getElementById('canvas');
+      const inside = document.getElementById('inside-canvas');
+      assert_throws_js(TypeError, () => {
+        canvas.updateElementGeometry(inside, {canvasTransform: {a: 1, m11: 2}});
+      });
+      assert_throws_js(TypeError, () => {
+        canvas.updateElementGeometry(inside, {canvasTransform: {b: 1, m12: 2}});
+      });
+      assert_throws_js(TypeError, () => {
+        canvas.updateElementGeometry(inside, {canvasTransform: {is2D: true, m33: 2}});
+      });
+      assert_throws_js(TypeError, () => {
+        canvas.updateElementGeometry(inside, {canvasTransform: {is2D: true, m13: 2}});
+      });
+    }, 'updateElementGeometry() with invalid DOMMatrixInit throws TypeError');
+
+    test(() => {
+      const canvas = document.getElementById('canvas');
+      const disconnected = document.createElement('span');
+      assert_throws_dom('InvalidStateError', () => {
+        canvas.getElementTransform(disconnected);
+      });
+      assert_throws_dom('InvalidStateError', () => {
+        canvas.updateElementGeometry(disconnected, {canvasTransform: new DOMMatrix().translate(10, 0)});
+      });
+    }, 'getElementTransform() and updateElementGeometry() on disconnected elements throw InvalidStateError');
+
+    test(() => {
+      const canvas = document.getElementById('canvas');
+      const outside = document.getElementById('outside-canvas');
+      assert_throws_dom('InvalidStateError', () => {
+        canvas.getElementTransform(outside);
+      });
+      assert_throws_dom('InvalidStateError', () => {
+        canvas.updateElementGeometry(outside, {canvasTransform: new DOMMatrix().translate(0, 15)});
+      });
+    }, 'getElementTransform() and updateElementGeometry() on elements outside <canvas> throw InvalidStateError');
+
+    test(() => {
+      const canvas = document.getElementById('canvas');
+      const otherInside = document.getElementById('other-inside');
+      assert_throws_dom('InvalidStateError', () => {
+        canvas.getElementTransform(otherInside);
+      });
+      assert_throws_dom('InvalidStateError', () => {
+        canvas.updateElementGeometry(otherInside, {canvasTransform: new DOMMatrix().translate(0, 15)});
+      });
+    }, 'getElementTransform() and updateElementGeometry() on elements inside different <canvas> throw InvalidStateError');
+
+    test(() => {
+      const canvasNoLayoutSubtree = document.getElementById('canvas-no-layoutsubtree');
+      const insideNoLayoutSubtree = document.getElementById('inside-no-layoutsubtree');
+      assert_throws_dom('InvalidStateError', () => {
+        canvasNoLayoutSubtree.getElementTransform(insideNoLayoutSubtree);
+      });
+      assert_throws_dom('InvalidStateError', () => {
+        canvasNoLayoutSubtree.updateElementGeometry(insideNoLayoutSubtree, {canvasTransform: new DOMMatrix().translate(0, 15)});
+      });
+    }, 'getElementTransform() and updateElementGeometry() on canvas without layoutsubtree throw InvalidStateError');
+
+    test(() => {
+      const canvas = document.getElementById('canvas');
+      const nestedNonDrawable = document.getElementById('nested-non-drawable');
+      assert_throws_dom('InvalidStateError', () => {
+        canvas.getElementTransform(nestedNonDrawable);
+      });
+      assert_throws_dom('InvalidStateError', () => {
+        canvas.updateElementGeometry(nestedNonDrawable, {canvasTransform: new DOMMatrix().translate(0, 15)});
+      });
+    }, 'getElementTransform() and updateElementGeometry() on non-drawable nested descendants throw InvalidStateError');
+
+    test(() => {
+      const canvas = document.getElementById('canvas');
+      const nestedDrawable = document.getElementById('nested-drawable');
+      assert_true(canvas.getElementTransform(nestedDrawable).isIdentity);
+      const expected = new DOMMatrix().translate(12, 34);
+      canvas.updateElementGeometry(nestedDrawable, {canvasTransform: expected});
+      assert_array_equals(canvas.getElementTransform(nestedDrawable).toFloat64Array(), expected.toFloat64Array());
+    }, 'getElementTransform() and updateElementGeometry() on drawable nested descendants');
+
+    test(() => {
+      const canvas = document.getElementById('canvas');
       const svgRect = document.getElementById('svg-rect');
-      assert_true(svgRect.getCanvasTransform().isIdentity);
+      assert_true(canvas.getElementTransform(svgRect).isIdentity);
       const expected = new DOMMatrix().translate(25, 35).scale(5, 10);
-      svgRect.setCanvasTransform(expected);
-      assert_array_equals(svgRect.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
-    }, 'getCanvasTransform() and setCanvasTransform() on SVG element');
+      canvas.updateElementGeometry(svgRect, {canvasTransform: expected});
+      assert_array_equals(canvas.getElementTransform(svgRect).toFloat64Array(), expected.toFloat64Array());
+    }, 'getElementTransform() and updateElementGeometry() on SVG element');
   </script>
 </body>
 </html>

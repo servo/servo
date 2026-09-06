@@ -1,0 +1,24 @@
+<!doctype html>
+<title>fieldset.elements is updated when a form-associated custom element upgrades</title>
+<link rel="help" href="https://html.spec.whatwg.org/#dom-fieldset-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<fieldset id="outer">
+  <fieldset id="inner">
+    <legend><x-bar></x-bar></legend>
+    <x-bar></x-bar>
+  </fieldset>
+</fieldset>
+<script>
+test(() => {
+  const outer = document.getElementById("outer");
+  const inner = document.getElementById("inner");
+  assert_equals(outer.elements.length, 1, "outer before upgrade");
+  assert_equals(inner.elements.length, 0, "inner before upgrade");
+  customElements.define("x-bar", class extends HTMLElement {
+    static formAssociated = true;
+  });
+  assert_equals(outer.elements.length, 3, "outer after upgrade");
+  assert_equals(inner.elements.length, 2, "inner after upgrade");
+}, "Upgrading form-associated custom elements updates all ancestor fieldsets, including inside legend");
+</script>

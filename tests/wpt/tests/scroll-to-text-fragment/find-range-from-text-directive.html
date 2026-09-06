@@ -3,10 +3,24 @@
 <meta charset=utf-8>
 <link rel="help" href="https://wicg.github.io/scroll-to-text-fragment/#find-a-range-from-a-text-directive">
 <meta name="timeout" content="long">
+<meta name="variant" content="?1-4">
+<meta name="variant" content="?5-8">
+<meta name="variant" content="?9-12">
+<meta name="variant" content="?13-16">
+<meta name="variant" content="?17-20">
+<meta name="variant" content="?21-24">
+<meta name="variant" content="?25-28">
+<meta name="variant" content="?29-32">
+<meta name="variant" content="?33-36">
+<meta name="variant" content="?37-40">
+<meta name="variant" content="?41-44">
+<meta name="variant" content="?45-48">
+<meta name="variant" content="?49-last">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/subset-tests.js"></script>
 <script src="/common/utils.js"></script>
 <script src="stash.js"></script>
 <!--
@@ -326,7 +340,7 @@ let test_cases = [
 ];
 
 for (const test_case of test_cases) {
-  promise_test(t => new Promise((resolve, reject) => {
+  subsetTest(promise_test, t => new Promise((resolve, reject) => {
     let key = token();
 
     test_driver.bless('Open a URL with a text fragment directive', () => {

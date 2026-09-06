@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>about:blank is treated as initial for container reload and traversal</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<script>
+"use strict";
+
+// Note: bfcache won't mess with any windows with openers, so it doesn't
+// interfere with these tests.
+
+// Tentative due to https://github.com/whatwg/html/issues/12872
+
+promise_test(async t => {
+  // Open and wait for load
+  const w = await openWindow("../resources/has-initial-about-blank-iframe.html", t);
+  assert_equals(w.history.length, 1);
+
+  // For this test, the initial message might race with the next one
+  await waitForMessage(w);
+
+  // Navigate the container away and back
+  await waitToAvoidReplace(t);
+  w.location.href = "../resources/post-top-opener-on-load.html";
+  await waitForMessage(w);
+  assert_equals(w.history.length, 2);
+
+  w.history.back();
+  await waitForMessage(w);
+
+  const iframeAgain = w.document.querySelector("iframe");
+  assert_equals(iframeAgain.contentWindow.location.href, "about:blank");
+  assert_true(w.initialAboutBlankWasSync);
+}, "initial about:blank is loaded sync when container traverses back");
+
+promise_test(async t => {
+  // Open and wait for load
+  const w = await openWindow("../resources/has-initial-about-blank-iframe.html", t);
+  assert_equals(w.history.length, 1);
+
+  await waitToAvoidReplace(t);
+  const iframe = w.document.querySelector("iframe");
+  iframe.src = "/common/blank.html?navigated";
+  await waitForIframeLoad(iframe);
+
+  await waitToAvoidReplace(t);
+  iframe.src = "about:blank";
+  await waitForIframeLoad(iframe);
+  assert_equals(w.history.length, 2);
+
+  // Navigate the container away and back
+  w.location.href = "../resources/post-top-opener-on-load.html";
+  await waitForMessage(w);
+  assert_equals(w.history.length, 3);
+
+  w.history.back();
+  await waitForMessage(w);
+
+  const iframeAgain = w.document.querySelector("iframe");
+  assert_equals(iframeAgain.contentWindow.location.href, "about:blank");
+  assert_true(w.initialAboutBlankWasSync);
+}, "non-initial about:blank is loaded sync when container traverses back");
+
+promise_test(async t => {
+  // Open and wait for load
+  const w = await openWindow("../resources/has-initial-about-blank-iframe.html", t);
+  assert_equals(w.history.length, 1);
+
+  const iframe = w.document.querySelector("iframe");
+  const xoriginURL = get_host_info().HTTP_REMOTE_ORIGIN +
+    "/html/browsers/browsing-the-web/resources/navigates-to-blank.html";
+
+  await waitToAvoidReplace(t);
+  iframe.src = xoriginURL;
+  await waitForIframeLoad(iframe); // xoriginURL
+  await waitForIframeLoad(iframe); // about:blank
+  assert_equals(w.history.length, 2);
+
+  // Navigate the container away and back
+  w.location.href = "../resources/post-top-opener-on-load.html";
+  await waitForMessage(w);
+  assert_equals(w.history.length, 3);
+
+  w.history.back();
+  await waitForMessage(w);
+
+  const iframeAgain = w.document.querySelector("iframe");
+  assert_equals(iframeAgain.contentWindow.location.href, "about:blank");
+  assert_true(w.initialAboutBlankWasSync);
+}, "xorigin non-initial about:blank is loaded sync when container traverses back");
+</script>

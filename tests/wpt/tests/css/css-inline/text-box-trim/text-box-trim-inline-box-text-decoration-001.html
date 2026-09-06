@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Test of text-decoration position on inline boxes with text-box-trim</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-line-property">
+<link rel="match" href="text-box-trim-inline-box-text-decoration-001-ref.html">
+<meta name="assert" content="Applying text-box-trim to an inline box also appropriately positions text-decoration">
+<script src="support/variant-class.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="variant" content="?class=cap">
+<meta name="variant" content="?class=ex">
+<meta name="variant" content="?class=text">
+<meta name="variant" content="?class=ideographic">
+<meta name="variant" content="?class=ideographic-ink">
+<meta name="variant" content="?class=vrl,cap">
+<meta name="variant" content="?class=vrl,ex">
+<meta name="variant" content="?class=vrl,text">
+<meta name="variant" content="?class=vrl,ideographic">
+<meta name="variant" content="?class=vrl,ideographic-ink">
+<meta name="variant" content="?class=vlr,text">
+<meta name="variant" content="?class=vlr,alphabetic">
+<meta name="variant" content="?class=vlr,ideographic">
+<meta name="variant" content="?class=vlr,ideographic-ink">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+<style>
+.container {
+  font: 100px/1.5 BaselineDiagnosticAlphabeticZero;
+}
+
+.target {
+  text-box-trim: trim-start;
+  background: yellow;
+}
+
+.underline, .overline, .line-through { text-decoration-color: green; }
+.underline { text-decoration-line: underline; }
+.overline { text-decoration-line: overline; }
+.line-through { text-decoration-line: line-through; }
+
+:root.vrl { writing-mode: vertical-rl; }
+:root.vlr { writing-mode: vertical-lr; }
+
+.cap  .target { text-box-edge: cap alphabetic; }
+.ex   .target { text-box-edge: ex alphabetic; }
+.text .target { text-box-edge: text; }
+
+:root:not(.vlr).ideographic     .target { text-box-edge: ideographic alphabetic; }
+:root:not(.vlr).ideographic-ink .target { text-box-edge: ideographic-ink alphabetic; }
+
+:root.vlr.alphabetic      .target { text-box-edge: text alphabetic; }
+:root.vlr.ideographic     .target { text-box-edge: text ideographic; }
+:root.vlr.ideographic-ink .target { text-box-edge: text ideographic-ink; }
+</style>
+<div class="container">
+  <div><span class="target underline">█BxIF</span></div>
+  <div><span class="target overline">█BxIF</span></div>
+  <div><span class="target line-through">█BxIF</span></div>
+</div>

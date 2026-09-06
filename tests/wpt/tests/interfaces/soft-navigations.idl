@@ -1,0 +1,23 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Soft Navigations and Interaction Contentful Paint (https://wicg.github.io/soft-navigations/)
+
+[Exposed=Window]
+interface InteractionContentfulPaint : PerformanceEntry {
+    readonly attribute LargestContentfulPaint largestContentfulPaint;
+    readonly attribute unsigned long long interactionId;
+
+    object toJSON();
+};
+
+InteractionContentfulPaint includes PaintTimingMixin;
+
+[Exposed=Window]
+interface PerformanceSoftNavigation : PerformanceEntry {
+    readonly attribute NavigationType navigationType;
+    readonly attribute unsigned long long interactionId;
+    InteractionContentfulPaint? getLargestInteractionContentfulPaint();
+};
+
+PerformanceSoftNavigation includes PaintTimingMixin;

@@ -7,7 +7,7 @@
 interface ReadableStream {
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
-  static ReadableStream from(any asyncIterable);
+  static ReadableStream from(async_sequence<any> asyncIterable);
 
   readonly attribute boolean locked;
 

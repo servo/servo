@@ -1,0 +1,117 @@
+<!DOCTYPE HTML>
+<title>canvas.drawElementImage src rect variants</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/html/canvas/resources/canvas-tests.js'></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #child {
+    width: 200px;
+    height: 200px;
+  }
+  .subrect {
+    width:100px;
+    height: 100px;
+    position: absolute;
+  }
+  #topleft {
+    left: 0px;
+    top: 0px;
+    background-color: red;
+  }
+  #topright {
+    left: 100px;
+    top: 0px;
+    background-color: green;
+  }
+  #bottomleft {
+    left: 0px;
+    top: 100px;
+    background-color: blue;
+  }
+  #bottomright {
+    left: 100px;
+    top: 100px;
+    background-color: black;
+  }
+</style>
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="child">
+    <div class=subrect id=topleft></div>
+    <div class=subrect id=topright></div>
+    <div class=subrect id=bottomleft></div>
+    <div class=subrect id=bottomright></div>
+  </div>
+</canvas>
+
+<script>
+  'use strict';
+
+  promise_test(async t => {
+    const child = document.getElementById('child');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.fillStyle = 'white';
+    context.fillRect(0, 0, 200, 200);
+
+    await waitForCanvasPaint(canvas);
+
+    // Child had red in the top left quadrant, green top right, blue bottom left, black bottom right
+    context.drawElementImage(child, 0, 0, 100, 100, 0, 0, 100, 100);
+    var canvasTransform = canvas.getElementTransform(child);
+    assert_equals(canvasTransform.e, 0, "CanvasTransform x translate for src 0, 0, 100, 100");
+    assert_equals(canvasTransform.f, 0, "CanvasTransform y translate for src 0, 0, 100, 100");
+
+    context.drawElementImage(child, 200, 0, -100, 100, 100, 0, 100, 100);
+    canvasTransform = canvas.getElementTransform(child);
+    assert_equals(canvasTransform.e, 0, "CanvasTransform x translate for src 200, 0, -100, 100");
+    assert_equals(canvasTransform.f, 0, "CanvasTransform y translate for src 200, 0, -100, 100");
+
+    context.drawElementImage(child, 0, 200, 100, -100, 0, 100, 100, 100);
+    canvasTransform = canvas.getElementTransform(child);
+    assert_equals(canvasTransform.e, 0, "CanvasTransform x translate for src 0, 200, 100, -100");
+    assert_equals(canvasTransform.f, 0, "CanvasTransform y translate for src 0, 200, 100, -1000");
+
+    context.drawElementImage(child, 200, 200, -100, -100, 100, 100, 100, 100);
+    canvasTransform = canvas.getElementTransform(child);
+    assert_equals(canvasTransform.e, 0, "CanvasTransform x translate for src 200, 200, -100, -100");
+    assert_equals(canvasTransform.f, 0, "CanvasTransform y translate for src 200, 200, -100, -100");
+
+    const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+    assert_array_equals(_getPixelFromImageData(imgData, 0, 0), [255, 0, 0, 255],
+      "top left top left incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 0, 99), [255, 0, 0, 255],
+      "top left bottom left incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 99, 0), [255, 0, 0, 255],
+      "top left top right incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 99, 99), [255, 0, 0, 255],
+      "top left bottom right incorrect");
+
+    assert_array_equals(_getPixelFromImageData(imgData, 100, 0), [0, 128, 0, 255],
+      "top right top left incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 100, 99), [0, 128, 0, 255],
+      "top right bottom left incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 199, 0), [0, 128, 0, 255],
+      "top right top right incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 199, 99), [0, 128, 0, 255],
+      "top right bottom right incorrect");
+
+    assert_array_equals(_getPixelFromImageData(imgData, 0, 100), [0, 0, 255, 255],
+      "bottom left top left incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 0, 199), [0, 0, 255, 255],
+      "bottom left bottom left incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 99, 100), [0, 0, 255, 255],
+      "bottom left top right incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 99, 199), [0, 0, 255, 255],
+      "bottom left bottom right incorrect");
+
+    assert_array_equals(_getPixelFromImageData(imgData, 100, 100), [0, 0, 0, 255],
+      "bottom right top left incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 100, 199), [0, 0, 0, 255],
+      "bottom right bottom left incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 199, 100), [0, 0, 0, 255],
+      "bottom right top right incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 199, 199), [0, 0, 0, 255],
+      "bottom right bottom right incorrect");
+}, 'drawElementImage handles negative source width and height');
+</script>

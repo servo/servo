@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Reference: highlight registered after a rendering update over an already-highlighted range</title>
+<style>
+  ::highlight(highlight-a) {
+    background-color: red;
+  }
+  ::highlight(highlight-b) {
+    background-color: lime;
+    text-decoration-line: underline;
+  }
+</style>
+<body><p id="text">This text is highlighted by two CSS Highlights.</p>
+<script>
+  const range = new Range();
+  range.selectNodeContents(document.getElementById("text"));
+
+  CSS.highlights.set("highlight-a", new Highlight(range));
+  CSS.highlights.set("highlight-b", new Highlight(range));
+</script>

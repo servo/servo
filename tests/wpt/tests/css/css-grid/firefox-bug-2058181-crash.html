@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Grid with an overlarge repeat() count coming from a custom property</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2058181">
+<style>
+ul {
+  --columns: 2;
+  --rows: 6;
+  display: grid;
+  grid-template-columns: repeat(var(--columns), auto);
+  grid-template-rows: repeat(var(--rows), auto);
+  align-content: flex-start;
+  text-align: left;
+  row-gap: 0px;
+  column-gap: 3.125rem;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  list-style: none;
+}
+ul.overlarge {
+  --columns: 1;
+  --rows: 2147483647;
+}
+</style>
+<ul class="overlarge">
+  <li>a</li>
+  <li>b</li>
+</ul>

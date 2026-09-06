@@ -161,5 +161,30 @@ async_test(function(t) {
     });
 }, "Test that call convertToBlob on a OffscreenCanvas with tainted origin throws exception");
 
+async_test(function(t) {
+    const offscreenCanvas = new OffscreenCanvas(200, 200);
+    offscreenCanvas.getContext("2d").fillStyle = "red";
+    offscreenCanvas.getContext("2d").fillRect(0, 0, 200, 200);
+    offscreenCanvas
+        .convertToBlob({ type: "image/jpeg", quality: NaN })
+        .then(
+            t.step_func_done(function(nanQuality) {
+                offscreenCanvas
+                    .convertToBlob({ type: "image/jpeg" })
+                    .then(
+                        t.step_func_done(function(unspecifiedQuality) {
+                            assert_equals(nanQuality.size, unspecifiedQuality.size);
+                        }),
+                        t.step_func_done(function() {
+                            assert_false("convertToBlob threw");
+                        }),
+                    )
+            }),
+            t.step_func_done(function() {
+                assert_false("convertToBlob threw");
+            }),
+        );
+}, "Test that call convertToBlob with quality set to NaN on a OffscreenCanvas is the same as unspecified");
+
 </script>
 

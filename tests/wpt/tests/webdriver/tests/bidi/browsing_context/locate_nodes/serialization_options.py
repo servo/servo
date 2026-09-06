@@ -17,7 +17,7 @@ async def test_locate_nodes_serialization_options(bidi_session, top_context, get
         wait="complete",
     )
 
-    result = await bidi_session.browsing_context.locate_nodes(
+    nodes = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
         locator={ "type": "css", "value": "custom-element" },
         serialization_options=SerializationOptions(include_shadow_tree="all", max_dom_depth=1)
@@ -63,4 +63,4 @@ async def test_locate_nodes_serialization_options(bidi_session, top_context, get
         }
     ]
 
-    recursive_compare(expected, result["nodes"])
+    recursive_compare(expected, nodes)

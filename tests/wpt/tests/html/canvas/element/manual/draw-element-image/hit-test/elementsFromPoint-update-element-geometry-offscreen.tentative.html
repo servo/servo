@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<title>Elements should appear in elementsFromPoint when updated with OffscreenCanvas.updateElementGeometry</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #canvas {
+    width: 200px;
+    height: 200px;
+  }
+  div {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="a"></div>
+  <div id="b"></div>
+  <div id="c"></div>
+  <div id="pointerEventsNone" style="pointer-events: none;"></div>
+  <div id="inert" inert></div>
+</canvas>
+
+<script>
+  'use strict';
+
+  function waitForElementGeometryUpdate(target) {
+    return new Promise((resolve) => {
+      target.addEventListener('elementgeometryupdate', resolve, {once: true});
+    });
+  }
+
+  let offscreen;
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    offscreen = canvas.transferControlToOffscreen();
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.updateElementGeometry(b);
+    await updatePromise;
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, canvas, body, html]`');
+  }, 'Canvas descendants are hittable after OffscreenCanvas.updateElementGeometry.');
+
+  promise_test(async function () {
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.updateElementGeometry(a);
+    await updatePromise;
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[a, b, canvas, body, html]`');
+  }, 'Canvas descendants are hit in reverse update order.');
+
+  promise_test(async function () {
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.updateElementGeometry(b);
+    await updatePromise;
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, a, canvas, body, html]`');
+  }, 'Re-updating an element moves it to the top of the hit testing list.');
+
+  promise_test(async function () {
+    // b is currently on top. Updating a with preserveHitTestOrder: true keeps b on top.
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.updateElementGeometry(a, { preserveHitTestOrder: true });
+    await updatePromise;
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, a, canvas, body, html]`');
+  }, 'preserveHitTestOrder: true preserves existing hit testing order.');
+
+  promise_test(async function () {
+    // Explicit preserveHitTestOrder: false moves a to top.
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.updateElementGeometry(a, { preserveHitTestOrder: false });
+    await updatePromise;
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[a, b, canvas, body, html]`');
+  }, 'preserveHitTestOrder: false moves element to top of the hit testing list.');
+
+  promise_test(async function () {
+    // a is currently on top. Updating b with preserveHitTestOrder: true keeps a on top.
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.updateElementGeometry(b, { preserveHitTestOrder: true });
+    await updatePromise;
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[a, b, canvas, body, html]`');
+  }, 'preserveHitTestOrder: true preserves order when another element is on top.');
+
+  promise_test(async function () {
+    // c has not been added to the hit-test stack yet.
+    // preserveHitTestOrder: true should still add c to the stack.
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.updateElementGeometry(c, { preserveHitTestOrder: true });
+    await updatePromise;
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [c, a, b, canvas, document.body, document.documentElement],
+                        'c is placed at top of stack when not already present, even with preserveHitTestOrder: true');
+  }, 'preserveHitTestOrder: true adds element to hit testing stack if not already present.');
+
+  promise_test(async function (t) {
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.updateElementGeometry(b, {
+      canvasTransform: new DOMMatrix().translate(50, 50),
+      preserveHitTestOrder: true
+    });
+    await updatePromise;
+
+    t.add_cleanup(async () => {
+      const cleanupPromise = waitForElementGeometryUpdate(canvas);
+      offscreen.updateElementGeometry(b, {
+        canvasTransform: new DOMMatrix(),
+        preserveHitTestOrder: true
+      });
+      await cleanupPromise;
+    });
+
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, canvas, document.body, document.documentElement],
+                        'b is hittable at transformed coordinates');
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [c, a, b, canvas, document.body, document.documentElement],
+                        'b preserves hit test order at overlapping coordinates');
+  }, 'preserveHitTestOrder works when updating via ElementImage on OffscreenCanvas.');
+</script>
+</html>
