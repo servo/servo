@@ -13,7 +13,7 @@ use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{make_body, make_server};
 use servo::{CacheEntry, WebViewBuilder};
 
-use crate::common::{ServoTest, WebViewDelegateImpl};
+use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
 #[test]
 fn test_cache_entries() {
@@ -96,4 +96,45 @@ fn test_clear_cache() {
 
     let cache_entries = network_manager.cache_entries();
     assert_eq!(cache_entries.len(), 0);
+}
+
+#[test]
+fn test_set_online() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .build();
+
+    evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "addEventListener('online', () => console.log('online'))",
+    )
+    .unwrap();
+    evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "addEventListener('offline', () => console.log('offline'))",
+    )
+    .unwrap();
+
+    let network_manager = servo_test.servo().network_manager();
+    network_manager.set_network_online_state(false);
+    network_manager.set_network_online_state(true);
+
+    servo_test.spin({
+        let delegate = delegate.clone();
+        move || delegate.console_messages.borrow().len() < 2
+    });
+    assert_eq!(
+        delegate
+            .console_messages
+            .borrow()
+            .iter()
+            .map(|p| p.1.clone())
+            .collect::<Vec<_>>(),
+        vec!["offline".to_string(), "online".to_string(),]
+    );
 }
