@@ -50,7 +50,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskRunnable;
+use crate::runtime::job_queue::MicrotaskRunnable;
 
 #[derive(Clone)]
 pub(crate) struct RootedPromise(Rc<Promise>);

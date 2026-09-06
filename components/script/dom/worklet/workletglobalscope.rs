@@ -36,7 +36,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskQueue;
+use crate::runtime::job_queue::job_queue_microtask_checkpoint;
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
 
@@ -64,11 +64,6 @@ pub(crate) struct WorkletGlobalScope {
     #[conditional_malloc_size_of]
     task_manager: Rc<TaskManager>,
 
-    /// The "microtask queue" for this WorkletGlobalScope's event loop.
-    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
-    #[conditional_malloc_size_of]
-    microtask_queue: Rc<MicrotaskQueue>,
-
     #[conditional_malloc_size_of]
     closing: Arc<AtomicBool>,
 }
@@ -85,7 +80,6 @@ impl WorkletGlobalScope {
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
         closing: Arc<AtomicBool>,
-        microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<WorkletGlobalScope> {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
             #[cfg(feature = "testbinding")]
@@ -97,7 +91,6 @@ impl WorkletGlobalScope {
                 init,
                 cx,
                 closing,
-                microtask_queue,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
                 cx,
@@ -107,7 +100,6 @@ impl WorkletGlobalScope {
                 executor,
                 init,
                 closing,
-                microtask_queue,
             )),
         };
 
@@ -126,7 +118,6 @@ impl WorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         closing: Arc<AtomicBool>,
-        microtask_queue: Rc<MicrotaskQueue>,
     ) -> Self {
         let script_event_loop_sender = executor.event_loop_sender();
 
@@ -158,7 +149,6 @@ impl WorkletGlobalScope {
                 }),
             )),
             origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
-            microtask_queue,
             closing,
         }
     }
@@ -204,8 +194,7 @@ impl WorkletGlobalScope {
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
         if !self.closing.load(Ordering::SeqCst) {
-            self.microtask_queue
-                .checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
+            job_queue_microtask_checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
         }
     }
 }

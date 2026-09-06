@@ -399,7 +399,7 @@ impl HTMLSlotElement {
         mutation_observers.add_signal_slot(self);
 
         // Step 2. Queue a mutation observer microtask.
-        mutation_observers.queue_mutation_observer_microtask(cx, ScriptThread::microtask_queue());
+        mutation_observers.queue_mutation_observer_microtask(cx);
     }
 
     pub(crate) fn remove_from_signal_slots(&self) {
