@@ -116,6 +116,9 @@ pub(crate) struct ImageResolver {
     /// A list of in-progress image loads to be shared with the script thread.
     pub pending_images: Mutex<Vec<PendingImage>>,
 
+    /// Complete display-list demands, including uses in retained fragments.
+    pub static_raster_demands: Mutex<Vec<(PendingImageId, DeviceIntSize)>>,
+
     /// A list of fully loaded vector images that need to be rasterized to a specific
     /// size determined by layout. This will be shared with the script thread.
     pub pending_rasterization_images: Mutex<Vec<PendingRasterizationImage>>,
@@ -203,8 +206,16 @@ impl ImageResolver {
         }
     }
 
-    pub(crate) fn handle_animated_image(&self, node: OpaqueNode, image: Arc<RasterImage>) {
+    pub(crate) fn handle_image_animation(&self, node: OpaqueNode, image: &CachedImage) {
         let mut animating_images = self.animating_images.write();
+        let image = match image {
+            CachedImage::Raster(image) => image.clone(),
+            CachedImage::StaticRaster(_) => {
+                animating_images.remove(node);
+                return;
+            },
+            CachedImage::Vector(_) => return,
+        };
         if !image.should_animate() {
             animating_images.remove(node);
         } else {
@@ -228,9 +239,7 @@ impl ImageResolver {
         match result {
             LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                 ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
-                    if let Some(image) = image.as_raster_image() {
-                        self.handle_animated_image(node, image);
-                    }
+                    self.handle_image_animation(node, &image);
 
                     let mut resolved_images_cache = self.resolved_images_cache.write();
                     resolved_images_cache.insert(url, Ok(image.clone()));
@@ -282,6 +291,10 @@ impl ImageResolver {
     ) -> Option<ImageKey> {
         match image {
             CachedImage::Raster(raster_image) => raster_image.id,
+            CachedImage::StaticRaster(source) => {
+                self.static_raster_demands.lock().push((source.id, size));
+                self.image_cache.static_raster_image_key(source.id)
+            },
             CachedImage::Vector(vector_image) => node.and_then(|node| {
                 self.rasterize_vector_image(vector_image.id, size, node, vector_image.svg_id)
                     .and_then(|rasterized_image| rasterized_image.id)
@@ -345,7 +358,7 @@ impl ImageResolver {
                                     // > resolution, overriding any other source of data that might
                                     // > supply a natural resolution.
                                     let image_metadata = cached_image.metadata();
-                                    let size = if cached_image.as_raster_image().is_some() {
+                                    let size = if !matches!(cached_image, CachedImage::Vector(_)) {
                                         let scale_factor = image.resolution.dppx();
                                         Size2D::new(
                                             image_metadata.width as f32 / scale_factor,

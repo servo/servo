@@ -254,31 +254,10 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
     }
 }
 
-const MAX_DECODED_DIMENSION: u32 = 900;
-
-fn limited_decoded_resolution(metadata: ImageMetadata) -> ImageMetadata {
-    if metadata.width <= MAX_DECODED_DIMENSION && metadata.height <= MAX_DECODED_DIMENSION {
-        return metadata;
-    }
-
-    if metadata.width >= metadata.height {
-        ImageMetadata {
-            width: MAX_DECODED_DIMENSION,
-            height: (metadata.height as u64 * MAX_DECODED_DIMENSION as u64 / metadata.width as u64)
-                .max(1) as u32,
-        }
-    } else {
-        ImageMetadata {
-            width: (metadata.width as u64 * MAX_DECODED_DIMENSION as u64 / metadata.height as u64)
-                .max(1) as u32,
-            height: MAX_DECODED_DIMENSION,
-        }
-    }
-}
-
 pub(crate) fn decode_static_image(
     cors_status: CorsStatus,
     mut image_decoder: impl ImageDecoder,
+    target: Option<ImageMetadata>,
 ) -> Option<RasterImage> {
     let orientation = image_decoder.orientation();
 
@@ -295,8 +274,10 @@ pub(crate) fn decode_static_image(
         width: dynamic_image.width(),
         height: dynamic_image.height(),
     };
-    let decoded_resolution = limited_decoded_resolution(metadata);
+    let decoded_resolution = target.map_or(metadata, |target| metadata.fit_decode_size(target));
     let mut rgba = dynamic_image.into_rgba8();
+    // Filter premultiplied colors so transparent texels do not bleed into edges.
+    let is_opaque = rgba8_premultiply_inplace(&mut rgba);
     if decoded_resolution != metadata {
         rgba = imageops::resize(
             &rgba,
@@ -305,11 +286,6 @@ pub(crate) fn decode_static_image(
             FilterType::Lanczos3,
         );
     }
-
-    // Store pre-multiplied data as that prevents having to do conversions of the data at later
-    // times. This does cause an issue with some canvas APIs. See:
-    // https://github.com/servo/servo/issues/40257
-    let is_opaque = rgba8_premultiply_inplace(&mut rgba);
 
     let frame = ImageFrame {
         delay: None,
@@ -350,7 +326,7 @@ where
         LoopCount::Finite(repeat_time) => Repeat::Finite(repeat_time),
         LoopCount::Infinite => Repeat::Infinite,
     };
-    let mut frames: Vec<ImageFrame> = animated_image_decoder
+    let frames: Vec<ImageFrame> = animated_image_decoder
         .into_frames()
         .map_while(|decoded_frame| {
             let mut animated_frame = match decoded_frame {
@@ -394,27 +370,10 @@ where
     }
 
     let metadata = ImageMetadata { width, height };
-    let decoded_resolution = limited_decoded_resolution(metadata);
+    let decoded_resolution = metadata;
     let mut bytes = Vec::with_capacity(total_number_of_bytes);
-    if decoded_resolution == metadata {
-        for frame in frame_data {
-            bytes.extend_from_slice(frame.buffer());
-        }
-    } else {
-        total_number_of_bytes = 0;
-        for (frame, frame_data) in frames.iter_mut().zip(frame_data) {
-            let scaled = imageops::resize(
-                frame_data.buffer(),
-                decoded_resolution.width,
-                decoded_resolution.height,
-                FilterType::Lanczos3,
-            );
-            frame.byte_range = total_number_of_bytes..total_number_of_bytes + scaled.len();
-            frame.width = decoded_resolution.width;
-            frame.height = decoded_resolution.height;
-            total_number_of_bytes += scaled.len();
-            bytes.extend_from_slice(&scaled);
-        }
+    for frame in frame_data {
+        bytes.extend_from_slice(frame.buffer());
     }
 
     Some(RasterImage {

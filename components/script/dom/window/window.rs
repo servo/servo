@@ -412,6 +412,10 @@ pub(crate) struct Window {
         HashMapTracedValues<PendingImageId, Vec<PendingLayoutImageAncillaryData>, FxBuildHasher>,
     >,
 
+    /// Display decodes whose completion callbacks have not yet been handled.
+    #[no_trace]
+    pending_static_raster_images: DomRefCell<FxHashMap<PendingImageId, u64>>,
+
     /// Vector images for which layout has intiated rasterization at a specific size
     /// and whose results are not yet available. They are stored in the [`ScriptThread`]
     /// so that the element can be marked dirty once the rasterization is completed.
@@ -776,6 +780,14 @@ impl Window {
                 nodes.remove();
             },
         }
+    }
+
+    pub(crate) fn handle_static_raster_image_ready(&self, id: PendingImageId, generation: u64) {
+        let mut pending = self.pending_static_raster_images.borrow_mut();
+        if pending.get(&id) == Some(&generation) {
+            pending.remove(&id);
+        }
+        self.layout().set_needs_new_display_list();
     }
 
     pub(crate) fn handle_image_rasterization_complete_notification(
@@ -2751,6 +2763,33 @@ impl Window {
 
         self.handle_new_or_removed_web_fonts_post_reflow(cx, reflow_result.changed_web_fonts);
 
+        if let Some(demands) = reflow_result.static_raster_demands {
+            let sender = self.image_cache_sender.clone();
+            let statuses = self.image_cache().set_static_raster_demands(
+                demands,
+                Box::new(move |message| {
+                    let _ = sender.send(message);
+                }),
+            );
+            let statuses: FxHashMap<_, _> = statuses
+                .into_iter()
+                .map(|status| (status.id, status))
+                .collect();
+            let mut pending = self.pending_static_raster_images.borrow_mut();
+            // Keep completed requests until script handles their queued callback,
+            // so screenshots cannot race an upload and capture an old display list.
+            pending.retain(|id, generation| {
+                statuses
+                    .get(id)
+                    .is_some_and(|status| status.generation == *generation)
+            });
+            for status in statuses.into_values() {
+                if status.pending {
+                    pending.insert(status.id, status.generation);
+                }
+            }
+        }
+
         self.handle_pending_images_post_reflow(
             cx,
             reflow_result.pending_images,
@@ -2815,7 +2854,8 @@ impl Window {
         }
 
         if !self.pending_layout_images.borrow().is_empty() ||
-            !self.pending_images_for_rasterization.borrow().is_empty()
+            !self.pending_images_for_rasterization.borrow().is_empty() ||
+            !self.pending_static_raster_images.borrow().is_empty()
         {
             return;
         }
@@ -3978,6 +4018,7 @@ impl Window {
             pending_image_callbacks: Default::default(),
             pending_layout_images: Default::default(),
             pending_images_for_rasterization: Default::default(),
+            pending_static_raster_images: Default::default(),
             unminified_css_dir: DomRefCell::new(if unminify_css {
                 Some(unminified_path("unminified-css"))
             } else {

@@ -848,7 +848,24 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             .to_webrender();
         let common = self.common_properties(state, clip, &style);
 
-        if let Some(image_key) = fragment.image_key {
+        let image_key = if let Some(source) = &fragment.static_source {
+            let size = fragment.base.rect().size;
+            let scale = self.device_pixel_ratio.get();
+            let requested = DeviceIntSize::new(
+                (size.width.to_f32_px() * scale).ceil() as i32,
+                (size.height.to_f32_px() * scale).ceil() as i32,
+            );
+            self.image_resolver
+                .static_raster_demands
+                .lock()
+                .push((source.id, requested));
+            self.image_resolver
+                .image_cache
+                .static_raster_image_key(source.id)
+        } else {
+            fragment.image_key
+        };
+        if let Some(image_key) = image_key {
             self.wr().push_image(
                 &common,
                 rect,

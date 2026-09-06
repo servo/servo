@@ -18,7 +18,8 @@ use mime::Mime;
 use net_traits::image_cache::{
     FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback,
     ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
-    ImageResponse, PendingImageId, RasterizationCompleteResponse, VectorImage,
+    ImageResponse, PendingImageId, RasterizationCompleteResponse, StaticRasterDemandStatus,
+    StaticRasterImage, VectorImage,
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
@@ -96,6 +97,7 @@ fn decode_bytes_sync(
     cors: CorsStatus,
     content_type: Option<Mime>,
     usvg_options: Arc<usvg::Options>,
+    static_epoch: u64,
 ) -> DecoderMsg {
     let is_svg_document = content_type.is_some_and(|content_type| {
         (
@@ -118,7 +120,11 @@ fn decode_bytes_sync(
         load_from_memory(bytes, cors).map(DecodedImage::Raster)
     };
 
-    DecoderMsg { key, image }
+    DecoderMsg {
+        key,
+        image,
+        static_epoch,
+    }
 }
 
 fn set_webrender_image_key(
@@ -262,6 +268,7 @@ enum DecodedImage {
 
 /// Message that the decoder worker threads send to the image cache.
 struct DecoderMsg {
+    static_epoch: u64,
     key: LoadKey,
     image: Option<DecodedImage>,
 }
@@ -330,6 +337,7 @@ impl LoadKeyGenerator {
 #[derive(Debug)]
 enum LoadResult {
     LoadedRasterImage(RasterImage),
+    LoadedStaticRaster(Arc<StaticRasterImage>),
     LoadedVectorImage(VectorImageData),
     FailedToLoadOrDecode,
 }
@@ -408,6 +416,7 @@ struct RasterizationTask {
 enum PendingKey {
     RasterImage((LoadKey, RasterImage)),
     Svg((LoadKey, RasterImage, DeviceIntSize)),
+    StaticRaster((LoadKey, u64, RasterImage)),
 }
 
 /// The state of the `WebRenderImageKey`` cache
@@ -478,6 +487,51 @@ impl SvgRasterizationTaskStore {
     }
 }
 
+/// One display decode shared by every use of a static source in this pipeline.
+#[derive(MallocSizeOf)]
+struct StaticRasterEntry {
+    #[conditional_malloc_size_of]
+    source: Arc<StaticRasterImage>,
+    image: Option<RasterImage>,
+    target: Option<ImageMetadata>,
+    generation: u64,
+    completed_generation: Option<u64>,
+    pending_generation: Option<u64>,
+    decoding: bool,
+    failed_target: Option<ImageMetadata>,
+}
+
+/// Compare the dominant source dimension, avoiding instability from rounding the
+/// shorter dimension. Requirements have already been fitted to the source ratio.
+fn static_decode_target(
+    natural: ImageMetadata,
+    current: Option<ImageMetadata>,
+    required: ImageMetadata,
+) -> ImageMetadata {
+    let Some(current) = current else {
+        return required;
+    };
+    let dimension = |size: ImageMetadata| {
+        u64::from(if natural.width >= natural.height {
+            size.width
+        } else {
+            size.height
+        })
+    };
+    let have = dimension(current);
+    let need = dimension(required);
+    if need * 2 < have {
+        required
+    } else if need * 5 > have * 6 {
+        natural.fit_decode_size(ImageMetadata {
+            width: required.width.max(current.width.saturating_mul(2)),
+            height: required.height.max(current.height.saturating_mul(2)),
+        })
+    } else {
+        current
+    }
+}
+
 /// ## Image cache implementation.
 #[derive(MallocSizeOf)]
 struct ImageCacheStore {
@@ -486,6 +540,11 @@ struct ImageCacheStore {
 
     /// Images that have finished loading (successful or not)
     completed_loads: HashMap<ImageKey, CompletedLoad>,
+
+    static_rasters: FxHashMap<PendingImageId, StaticRasterEntry>,
+    static_epoch: u64,
+    #[ignore_malloc_size_of = "Callbacks cannot be measured"]
+    static_raster_callback: Option<ImageCacheResponseCallback>,
 
     /// Vector (e.g. SVG) images that have been sucessfully loaded and parsed
     /// but are yet to be rasterized. Since the same SVG data can be used for
@@ -524,9 +583,52 @@ impl ImageCacheStore {
         self.svg_rasterization_task_store.0.len()
     }
 
+    fn prune_static_pending_keys(&mut self) {
+        let entries = &self.static_rasters;
+        self.key_cache
+            .images_pending_keys
+            .retain(|pending| match pending {
+                PendingKey::StaticRaster((id, generation, _)) => entries
+                    .get(id)
+                    .is_some_and(|entry| entry.generation == *generation && entry.target.is_some()),
+                _ => true,
+            });
+    }
+
     /// Finishes loading the image by setting the WebRenderImageKey and calling `compete_load` or `complete_load_svg`.
     fn set_key_and_finish_load(&mut self, pending_image: PendingKey, image_key: WebRenderImageKey) {
         match pending_image {
+            PendingKey::StaticRaster((id, generation, mut image)) => {
+                let Some(entry) = self.static_rasters.get_mut(&id) else {
+                    return;
+                };
+                if entry.generation != generation || entry.target.is_none() {
+                    return;
+                }
+                if let Some(key) = entry.image.as_ref().and_then(|image| image.id) {
+                    let (descriptor, bytes, _) =
+                        image.webrender_image_descriptor_and_data_for_frame(0);
+                    self.paint_api.update_image(
+                        key,
+                        descriptor,
+                        SerializableImageData::Raw(bytes),
+                        None,
+                    );
+                    image.id = Some(key);
+                } else {
+                    set_webrender_image_key(&self.paint_api, &mut image, image_key);
+                }
+                entry.image = Some(image);
+                entry.pending_generation = None;
+                entry.completed_generation = Some(generation);
+                if let Some(callback) = &self.static_raster_callback {
+                    callback(ImageCacheResponseMessage::StaticRasterImageReady(
+                        self.pipeline_id,
+                        id,
+                        generation,
+                    ));
+                }
+            },
             PendingKey::RasterImage((pending_id, mut raster_image)) => {
                 // We can have concurrent sync and async loads for the same image, so if it's
                 // not pending anymore we early return since the async result will be ignored in that case.
@@ -654,7 +756,7 @@ impl ImageCacheStore {
         }
     }
 
-    /// The rest of complete load. This requires that images have a valid `WebRenderImageKey`.
+    /// Finish loading a validated source or an image with a WebRender key.
     fn complete_load(&mut self, key: LoadKey, load_result: LoadResult) {
         debug!("Completed decoding for {:?}", load_result);
         let pending_load = match self.pending_loads.remove(&key) {
@@ -663,6 +765,22 @@ impl ImageCacheStore {
         };
         let url = pending_load.final_url.clone();
         let image_response = match load_result {
+            LoadResult::LoadedStaticRaster(source) => {
+                self.static_rasters.insert(
+                    key,
+                    StaticRasterEntry {
+                        source: source.clone(),
+                        image: None,
+                        target: None,
+                        generation: 0,
+                        completed_generation: None,
+                        pending_generation: None,
+                        decoding: false,
+                        failed_target: None,
+                    },
+                );
+                ImageResponse::Loaded(Image::StaticRaster(source), url.unwrap())
+            },
             LoadResult::LoadedRasterImage(raster_image) => {
                 assert!(raster_image.id.is_some());
                 ImageResponse::Loaded(Image::Raster(Arc::new(raster_image)), url.unwrap())
@@ -707,17 +825,25 @@ impl ImageCacheStore {
         origin: &ImmutableOrigin,
         cors_setting: &Option<CorsSettings>,
     ) {
-        if let Some(loaded_image) =
+        let Some(loaded_image) =
             self.completed_loads
-                .remove(&(url.clone(), origin.clone(), *cors_setting)) &&
-            let ImageResponse::Loaded(Image::Raster(image), _) = loaded_image.image_response &&
-            let Some(id) = image.id
-        {
-            self.paint_api.update_images(
-                self.webview_id.into(),
-                vec![ImageUpdate::DeleteImage(id)].into(),
-            );
+                .remove(&(url.clone(), origin.clone(), *cors_setting))
+        else {
+            return;
+        };
+        let key = match loaded_image.image_response {
+            ImageResponse::Loaded(Image::Raster(image), _) => image.id,
+            ImageResponse::Loaded(Image::StaticRaster(source), _) => self
+                .static_rasters
+                .remove(&source.id)
+                .and_then(|entry| entry.image)
+                .and_then(|image| image.id),
+            _ => None,
+        };
+        if let Some(key) = key {
+            self.paint_api.delete_image(key);
         }
+        self.prune_static_pending_keys();
     }
 
     fn remove_rasterized_vector_image(
@@ -774,8 +900,28 @@ impl ImageCacheStore {
         let image = match msg.image {
             None => LoadResult::FailedToLoadOrDecode,
             Some(DecodedImage::Raster(raster_image)) => {
-                self.load_image_with_keycache(PendingKey::RasterImage((msg.key, raster_image)));
-                return;
+                if raster_image.loop_count.is_some() {
+                    self.load_image_with_keycache(PendingKey::RasterImage((msg.key, raster_image)));
+                    return;
+                }
+                if msg.static_epoch != self.static_epoch {
+                    self.pending_loads.remove(&msg.key);
+                    return;
+                }
+                let Some(pending) = self.pending_loads.get_by_key_mut(&msg.key) else {
+                    return;
+                };
+                let ImageBytes::Complete(bytes) = &pending.bytes else {
+                    return;
+                };
+                // Validate even detached/hidden images, but never retain or upload
+                // this full-resolution temporary decode without a display demand.
+                LoadResult::LoadedStaticRaster(Arc::new(StaticRasterImage {
+                    id: msg.key,
+                    metadata: raster_image.metadata,
+                    cors_status: raster_image.cors_status,
+                    bytes: bytes.clone(),
+                }))
             },
             Some(DecodedImage::Vector(vector_image_data)) => {
                 LoadResult::LoadedVectorImage(vector_image_data)
@@ -838,6 +984,9 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
                 completed_loads: HashMap::new(),
+                static_rasters: FxHashMap::default(),
+                static_epoch: 0,
+                static_raster_callback: None,
                 vector_images: FxHashMap::default(),
                 rasterized_vector_images: FxHashMap::default(),
                 broken_image_icon_image: OnceCell::new(),
@@ -995,6 +1144,89 @@ impl ImageCache for ImageCacheImpl {
                 ImageCacheResult::FailedToLoadOrDecode
             },
         }
+    }
+
+    fn static_raster_image_key(&self, image_id: PendingImageId) -> Option<WebRenderImageKey> {
+        self.store
+            .lock()
+            .static_rasters
+            .get(&image_id)?
+            .image
+            .as_ref()?
+            .id
+    }
+
+    fn set_static_raster_demands(
+        &self,
+        demands: Vec<(PendingImageId, DeviceIntSize)>,
+        callback: ImageCacheResponseCallback,
+    ) -> Vec<StaticRasterDemandStatus> {
+        let mut store = self.store.lock();
+        store.static_raster_callback = Some(callback);
+        let mut requirements: FxHashMap<PendingImageId, ImageMetadata> = FxHashMap::default();
+        for (id, size) in demands {
+            if size.width <= 0 || size.height <= 0 {
+                continue;
+            }
+            let Some(entry) = store.static_rasters.get(&id) else {
+                continue;
+            };
+            let required = entry.source.metadata.fit_decode_size(ImageMetadata {
+                width: size.width as u32,
+                height: size.height as u32,
+            });
+            requirements
+                .entry(id)
+                .and_modify(|size| {
+                    size.width = size.width.max(required.width);
+                    size.height = size.height.max(required.height);
+                })
+                .or_insert(required);
+        }
+        let paint_api = store.paint_api.clone();
+        let mut jobs = vec![];
+        let mut statuses = vec![];
+        for (&id, entry) in &mut store.static_rasters {
+            let target = requirements.get(&id).map(|required| {
+                static_decode_target(
+                    entry.source.metadata,
+                    entry.image.as_ref().map(|image| image.decoded_resolution),
+                    *required,
+                )
+            });
+            if entry.target != target {
+                entry.target = target;
+                entry.generation += 1;
+                entry.pending_generation = None;
+                if target.is_none() {
+                    if let Some(key) = entry.image.take().and_then(|image| image.id) {
+                        paint_api.delete_image(key);
+                    }
+                }
+            }
+            if let Some(target) = target {
+                if entry
+                    .image
+                    .as_ref()
+                    .is_some_and(|image| image.decoded_resolution == target)
+                {
+                    entry.completed_generation = Some(entry.generation);
+                }
+                statuses.push(StaticRasterDemandStatus {
+                    id,
+                    generation: entry.generation,
+                    pending: entry.completed_generation != Some(entry.generation) &&
+                        entry.failed_target != Some(target),
+                });
+            }
+            jobs.push(id);
+        }
+        store.prune_static_pending_keys();
+        drop(store);
+        for id in jobs {
+            start_static_decode(self.store.clone(), self.thread_pool.clone(), id);
+        }
+        statuses
     }
 
     fn add_rasterization_complete_listener(
@@ -1290,8 +1522,9 @@ impl ImageCache for ImageCacheImpl {
                 debug!("Received EOF for {:?}", key);
                 match result {
                     Ok(_) => {
-                        let (bytes, cors_status, content_type) = {
+                        let (bytes, cors_status, content_type, static_epoch) = {
                             let mut store = self.store.lock();
+                            let static_epoch = store.static_epoch;
                             if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
                                 pending_load.result = Some(Ok(()));
                                 debug!("Async decoding {} ({:?})", pending_load.url, key);
@@ -1299,6 +1532,7 @@ impl ImageCache for ImageCacheImpl {
                                     pending_load.bytes.mark_complete(),
                                     pending_load.cors_status,
                                     pending_load.content_type.clone(),
+                                    static_epoch,
                                 )
                             } else {
                                 debug!("Pending load for id {:?} already evicted from cache", id);
@@ -1315,6 +1549,7 @@ impl ImageCache for ImageCacheImpl {
                                 cors_status,
                                 content_type,
                                 usvg_options,
+                                static_epoch,
                             );
                             local_store.lock().handle_decoder(msg);
                         });
@@ -1385,6 +1620,11 @@ impl ImageCacheStore {
                 _ => None,
             })
             .chain(
+                self.static_rasters
+                    .values()
+                    .filter_map(|entry| entry.image.as_ref()?.id.map(ImageUpdate::DeleteImage)),
+            )
+            .chain(
                 self.rasterized_vector_images
                     .values()
                     .filter_map(|task| task.result.as_ref()?.id.map(ImageUpdate::DeleteImage)),
@@ -1405,6 +1645,10 @@ impl ImageCacheStore {
         // explicitly on pipeline close, and again on Drop (as a safeguard,
         // since we could forget to explicitly clear).
         self.completed_loads.clear();
+        self.static_rasters.clear();
+        self.prune_static_pending_keys();
+        self.static_raster_callback = None;
+        self.static_epoch += 1;
         self.rasterized_vector_images.clear();
         let _ = self.broken_image_icon_image.take();
     }
@@ -1433,4 +1677,94 @@ impl ImageCacheImpl {
         }
         warn!("Couldn't find cached entry for listener {:?}", id);
     }
+}
+
+/// At most one decoder runs per source. A changed demand is picked up after the
+/// current job finishes; its obsolete result never reaches WebRender.
+fn start_static_decode(
+    store: Arc<Mutex<ImageCacheStore>>,
+    pool: Arc<ThreadPool>,
+    id: PendingImageId,
+) {
+    let (source, target, generation) = {
+        let mut cache = store.lock();
+        let Some(entry) = cache.static_rasters.get_mut(&id) else {
+            return;
+        };
+        let Some(target) = entry.target else {
+            return;
+        };
+        if entry.decoding ||
+            entry.pending_generation == Some(entry.generation) ||
+            entry.completed_generation == Some(entry.generation) ||
+            entry.failed_target == Some(target)
+        {
+            return;
+        }
+        // A demand can return to the existing size while an obsolete job runs.
+        if entry
+            .image
+            .as_ref()
+            .is_some_and(|image| image.decoded_resolution == target)
+        {
+            entry.completed_generation = Some(entry.generation);
+            return;
+        }
+        entry.decoding = true;
+        (entry.source.clone(), target, entry.generation)
+    };
+    let next_pool = pool.clone();
+    pool.spawn(move || {
+        // The cache already fitted both dimensions. Use only the dominant axis
+        // to avoid magnifying rounding of the shorter dimension on a second fit.
+        let decode_target = if source.metadata.width >= source.metadata.height {
+            ImageMetadata {
+                width: target.width,
+                height: 0,
+            }
+        } else {
+            ImageMetadata {
+                width: 0,
+                height: target.height,
+            }
+        };
+        let decoded = pixels::load_from_memory_with_target(
+            &source.bytes,
+            source.cors_status,
+            Some(decode_target),
+        );
+        {
+            let mut cache = store.lock();
+            let Some(entry) = cache.static_rasters.get_mut(&id) else {
+                return;
+            };
+            entry.decoding = false;
+            if entry.generation == generation {
+                if let Some(image) = decoded {
+                    entry.pending_generation = Some(generation);
+                    // Updates reuse the existing key and do not consume a new key.
+                    if let Some(key) = entry.image.as_ref().and_then(|image| image.id) {
+                        cache.set_key_and_finish_load(
+                            PendingKey::StaticRaster((id, generation, image)),
+                            key,
+                        );
+                    } else {
+                        cache.load_image_with_keycache(PendingKey::StaticRaster((
+                            id, generation, image,
+                        )));
+                    }
+                } else {
+                    entry.failed_target = Some(target);
+                    if let Some(callback) = &cache.static_raster_callback {
+                        callback(ImageCacheResponseMessage::StaticRasterImageReady(
+                            cache.pipeline_id,
+                            id,
+                            generation,
+                        ));
+                    }
+                }
+            }
+        }
+        start_static_decode(store, next_pool, id);
+    });
 }

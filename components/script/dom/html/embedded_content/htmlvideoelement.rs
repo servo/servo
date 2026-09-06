@@ -349,11 +349,11 @@ impl HTMLVideoElement {
         match response {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
-                match image.as_raster_image() {
-                    Some(image) => self
-                        .htmlmediaelement
-                        .set_poster_frame(cx.no_gc(), Some(image)),
-                    None => warn!("Vector images are not yet supported in video poster"),
+                if matches!(image, net_traits::image_cache::Image::Vector(_)) {
+                    warn!("Vector images are not yet supported in video poster");
+                } else {
+                    self.htmlmediaelement
+                        .set_poster_frame(cx.no_gc(), Some(image));
                 }
                 LoadBlocker::terminate(&self.load_blocker, cx);
             },
@@ -614,8 +614,14 @@ impl LayoutDom<'_, HTMLVideoElement> {
             .zip(video.get_video_height())
             .map(|(width, height)| MediaMetadata { width, height });
 
+        let static_poster = video.htmlmediaelement.get_static_poster_to_present();
         HTMLMediaData {
-            current_frame,
+            current_frame: if static_poster.is_some() {
+                None
+            } else {
+                current_frame
+            },
+            static_poster,
             metadata,
             poster_url: unsafe {
                 video

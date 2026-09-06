@@ -2292,6 +2292,11 @@ impl ScriptThread {
                     window.pending_image_notification(pending_image_response, cx);
                 }
             },
+            ImageCacheResponseMessage::StaticRasterImageReady(pipeline_id, id, generation) => {
+                if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+                    window.handle_static_raster_image_ready(id, generation);
+                }
+            },
             ImageCacheResponseMessage::VectorImageRasterizationComplete(response) => {
                 let window = self.documents.borrow().find_window(response.pipeline_id);
                 if let Some(ref window) = window {

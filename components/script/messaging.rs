@@ -137,6 +137,9 @@ impl MixedMessage {
                 ImageCacheResponseMessage::NotifyPendingImageLoadStatus(response) => {
                     Some(response.pipeline_id)
                 },
+                ImageCacheResponseMessage::StaticRasterImageReady(pipeline_id, ..) => {
+                    Some(*pipeline_id)
+                },
                 ImageCacheResponseMessage::VectorImageRasterizationComplete(response) => {
                     Some(response.pipeline_id)
                 },

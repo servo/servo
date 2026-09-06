@@ -22,12 +22,12 @@ use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
+use net_traits::image_cache::{Image, StaticRasterImage};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
     CoreResourceThread, FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming,
 };
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
-use pixels::RasterImage;
 use script_bindings::assert::assert_in_script;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::InheritTypes::{
@@ -193,6 +193,8 @@ pub(crate) struct MediaFrameRenderer {
     current_frame_holder: Option<FrameHolder>,
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     poster_frame: Option<MediaFrame>,
+    #[conditional_malloc_size_of]
+    static_poster: Option<Arc<StaticRasterImage>>,
 }
 
 impl MediaFrameRenderer {
@@ -212,6 +214,7 @@ impl MediaFrameRenderer {
             very_old_frame: None,
             current_frame_holder: None,
             poster_frame: None,
+            static_poster: None,
         }
     }
 
@@ -302,8 +305,15 @@ impl MediaFrameRenderer {
         }
     }
 
-    fn set_poster_frame(&mut self, image: Option<Arc<RasterImage>>) {
+    fn set_poster_frame(&mut self, image: Option<Image>) {
+        self.static_poster = match &image {
+            Some(Image::StaticRaster(source)) => Some(source.clone()),
+            _ => None,
+        };
         self.poster_frame = image.and_then(|image| {
+            let Image::Raster(image) = image else {
+                return None;
+            };
             image.id.map(|image_key| MediaFrame {
                 image_key,
                 width: image.metadata.width as i32,
@@ -2389,7 +2399,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    pub(crate) fn set_poster_frame(&self, no_gc: &NoGC, image: Option<Arc<RasterImage>>) {
+    pub(crate) fn set_poster_frame(&self, no_gc: &NoGC, image: Option<Image>) {
         if pref!(media_testing_enabled) && image.is_some() {
             self.queue_media_element_task_to_fire_event(atom!("postershown"));
         }
@@ -3231,6 +3241,15 @@ impl HTMLMediaElement {
             .current_frame_holder
             .as_ref()
             .map(|holder| holder.get_frame())
+    }
+
+    pub(crate) fn get_static_poster_to_present(&self) -> Option<Arc<StaticRasterImage>> {
+        let renderer = self.video_renderer.lock().unwrap();
+        if self.show_poster.get() || renderer.current_frame.is_none() {
+            renderer.static_poster.clone()
+        } else {
+            None
+        }
     }
 
     /// Gets the current frame of the video element to present, if any.

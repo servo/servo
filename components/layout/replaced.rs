@@ -139,6 +139,8 @@ pub(crate) struct ImageInfo {
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct VideoInfo {
+    #[conditional_malloc_size_of]
+    pub static_poster: Option<Arc<net_traits::image_cache::StaticRasterImage>>,
     pub image_key: Option<ImageKey>,
     pub poster_url: Option<ServoUrl>,
 }
@@ -209,13 +211,13 @@ impl ReplacedContents {
         };
 
         if let ReplacedContentKind::Image(ImageInfo {
-            image: Some(Image::Raster(ref image)),
+            image: Some(ref image),
             ..
         }) = kind
         {
             context
                 .image_resolver
-                .handle_animated_image(node.opaque(), image.clone());
+                .handle_image_animation(node.opaque(), image);
         }
 
         Some(Self {
@@ -361,11 +363,9 @@ impl ReplacedContents {
         ) {
             LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                 ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
-                    if let Image::Raster(image) = &image {
-                        context
-                            .image_resolver
-                            .handle_animated_image(node.opaque(), image.clone());
-                    }
+                    context
+                        .image_resolver
+                        .handle_image_animation(node.opaque(), &image);
                     let metadata = image.metadata();
                     (Some(image), metadata.width as f32, metadata.height as f32)
                 },
@@ -513,28 +513,38 @@ impl ReplacedContents {
                 .image
                 .as_ref()
                 .and_then(|image| {
-                    let scale = layout_context.style_context.device_pixel_ratio();
-                    let size = Size2D::new(
-                        object_fit_size.width.scale_by(scale.0).to_px(),
-                        object_fit_size.height.scale_by(scale.0).to_px(),
-                    );
-                    layout_context.image_resolver.image_key_from_cached_image(
-                        image,
-                        size,
-                        self.base_fragment_info.tag.map(|tag| tag.node),
-                    )
-                })
-                .map(|image_key| {
-                    Fragment::Image(Arc::new(ImageFragment {
+                    let static_source = match image {
+                        Image::StaticRaster(source) => Some(source.clone()),
+                        _ => None,
+                    };
+                    let image_key = if static_source.is_some() {
+                        None
+                    } else {
+                        let scale = layout_context.style_context.device_pixel_ratio();
+                        let size = Size2D::new(
+                            object_fit_size.width.scale_by(scale.0).to_px(),
+                            object_fit_size.height.scale_by(scale.0).to_px(),
+                        );
+                        layout_context.image_resolver.image_key_from_cached_image(
+                            image,
+                            size,
+                            self.base_fragment_info.tag.map(|tag| tag.node),
+                        )
+                    };
+                    if image_key.is_none() && static_source.is_none() {
+                        return None;
+                    }
+                    Some(Fragment::Image(Arc::new(ImageFragment {
                         base,
                         style: style.clone().into(),
                         clip,
-                        image_key: Some(image_key),
+                        image_key,
+                        static_source,
                         showing_broken_image_icon: image_info.showing_broken_image_icon,
                         url: image_info.url.clone(),
                         natural_width: self.natural_size.width,
                         natural_height: self.natural_size.height,
-                    }))
+                    })))
                 })
                 .into_iter()
                 .collect(),
@@ -544,6 +554,7 @@ impl ReplacedContents {
                     style: style.clone().into(),
                     clip,
                     image_key: video_info.image_key,
+                    static_source: video_info.static_poster.clone(),
                     showing_broken_image_icon: false,
                     url: video_info.poster_url.clone(),
                     natural_width: self.natural_size.width,
@@ -588,6 +599,7 @@ impl ReplacedContents {
                     style: style.clone().into(),
                     clip,
                     image_key: Some(image_key),
+                    static_source: None,
                     showing_broken_image_icon: false,
                     url: None,
                     natural_width: self.natural_size.width,
@@ -643,6 +655,7 @@ impl ReplacedContents {
                             style: style.clone().into(),
                             clip,
                             image_key: Some(image_key),
+                            static_source: None,
                             showing_broken_image_icon: false,
                             url: None,
                             natural_width: self.natural_size.width,
