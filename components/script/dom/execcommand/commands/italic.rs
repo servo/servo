@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
+use script_bindings::str::DOMString;
 
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
@@ -17,10 +18,10 @@ pub(crate) fn execute_italic_command(
 ) -> bool {
     // > If queryCommandState("italic") returns true, set the selection's value to "normal".
     // > Otherwise set the selection's value to "italic". Either way, return true.
-    let value = if document.command_state_for_command(cx, "italic".into()) {
-        Some("normal".into())
+    let value = if document.command_state_for_command(cx, DOMString::from_static("italic")) {
+        Some(DOMString::from_static("normal"))
     } else {
-        Some("italic".into())
+        Some(DOMString::from_static("italic"))
     };
     selection.set_the_selection_value(cx, value, CommandName::Italic, document);
 

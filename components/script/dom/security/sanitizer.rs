@@ -436,7 +436,7 @@ fn sanitize_core(
 
                 // Step 1.6.7. Let elementWithLocalAttributes be « [] ».
                 let mut element_with_local_attributes =
-                    SanitizerElementWithAttributes::String("".into());
+                    SanitizerElementWithAttributes::String(DOMString::new());
 
                 // Step 1.6.8. If configuration["elements"] exists and configuration["elements"]
                 // contains elementName:

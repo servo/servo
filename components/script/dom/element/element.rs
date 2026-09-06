@@ -2573,7 +2573,7 @@ impl Element {
         // Step 2.1: Let nonce be element's [[CryptographicNonce]].
         let nonce = self.nonce_value();
         // Step 2.2: Set an attribute value for element using "nonce" and the empty string.
-        self.set_string_attribute(cx, &local_name!("nonce"), "".into());
+        self.set_string_attribute(cx, &local_name!("nonce"), DOMString::new());
         // Step 2.3: Set element's [[CryptographicNonce]] to nonce.
         self.update_nonce_internal_slot(nonce, cx.no_gc());
     }

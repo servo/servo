@@ -705,7 +705,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOverloaded_(&self, _: DOMString) {}
 
     fn PassOverloadedDict(&self, _: &Node) -> DOMString {
-        "node".into()
+        DOMString::from_static("node")
     }
 
     fn PassOverloadedDict_(&self, u: &TestURLLike) -> DOMString {
@@ -713,40 +713,40 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn PassOverloadedUnionOfObjectAndString(&self, _: ObjectOrString) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfObjectAndString_(&self, _: bool) -> DOMString {
-        "boolean".into()
+        DOMString::from_static("boolean")
     }
     fn PassOverloadedUnionOfObjectAndNumber(&self, _: ObjectOrLong) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfObjectAndNumber_(&self, _: bool) -> DOMString {
-        "boolean".into()
+        DOMString::from_static("boolean")
     }
     fn PassOverloadedUnionOfObjectAndBoolean(&self, _: ObjectOrBoolean) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfObjectAndBoolean_(&self, _: i32) -> DOMString {
-        "number".into()
+        DOMString::from_static("number")
     }
     fn PassOverloadedUnionOfStringAndNumber(&self, _: StringOrLong) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfStringAndNumber_(&self, _: bool) -> DOMString {
-        "boolean".into()
+        DOMString::from_static("boolean")
     }
     fn PassOverloadedUnionOfStringAndBoolean(&self, _: StringOrBoolean) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfStringAndBoolean_(&self, _: i32) -> DOMString {
-        "number".into()
+        DOMString::from_static("number")
     }
     fn PassOverloadedUnionOfNumberAndBoolean(&self, _: LongOrBoolean) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfNumberAndBoolean_(&self, _: DOMString) -> DOMString {
-        "string".into()
+        DOMString::from_static("string")
     }
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}

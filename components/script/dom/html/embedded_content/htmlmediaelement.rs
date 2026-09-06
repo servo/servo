@@ -3733,7 +3733,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         let track = TextTrack::new(
             cx,
             &window,
-            "".into(),
+            DOMString::new(),
             kind,
             label,
             language,

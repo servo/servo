@@ -2282,7 +2282,7 @@ impl Node {
                     }
                     current_element = element.upcast::<Node>().GetParentElement();
                 }
-                Some("rgba(0, 0, 0, 0)".into())
+                Some(DOMString::from_static("rgba(0, 0, 0, 0)"))
             },
             // Step 5. If command is "subscript" or "superscript":
             CommandName::Subscript | CommandName::Superscript => {
@@ -2311,11 +2311,11 @@ impl Node {
                 Some(match (affected_by_subscript, affected_by_superscript) {
                     // Step 5.3. If affected by subscript and affected by superscript are both true,
                     // return the string "mixed".
-                    (true, true) => "mixed".into(),
+                    (true, true) => DOMString::from_static("mixed"),
                     // Step 5.4. If affected by subscript is true, return "subscript".
-                    (true, false) => "subscript".into(),
+                    (true, false) => DOMString::from_static("subscript"),
                     // Step 5.5. If affected by superscript is true, return "superscript".
-                    (false, true) => "superscript".into(),
+                    (false, true) => DOMString::from_static("superscript"),
                     // Step 5.6. Return null.
                     (false, false) => return None,
                 })
@@ -2332,7 +2332,7 @@ impl Node {
                         })
                         .is_some_and(|property| property.contains("line-through"))
                 })
-                .then_some("line-through".into()),
+                .then_some(DOMString::from_static("line-through")),
             // Step 7. If command is "underline",
             // and the "text-decoration" property of node or any of its ancestors has resolved value containing "underline",
             // return "underline". Otherwise, return null.
@@ -2345,7 +2345,7 @@ impl Node {
                         })
                         .is_some_and(|property| property.contains("underline"))
                 })
-                .then_some("underline".into()),
+                .then_some(DOMString::from_static("underline")),
             // Step 8. Return the resolved value for node of the relevant CSS property for command.
             _ => command.resolved_value_for_node(element),
         }

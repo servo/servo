@@ -5926,7 +5926,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             "storageevent" => Ok(DomRoot::upcast(StorageEvent::new_uninitialized(
                 cx,
                 &self.window,
-                "".into(),
+                DOMString::new(),
             ))),
             "textevent" => Ok(DomRoot::upcast(TextEvent::new_uninitialized(
                 cx,
