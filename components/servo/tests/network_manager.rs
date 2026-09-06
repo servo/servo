@@ -99,7 +99,7 @@ fn test_clear_cache() {
 }
 
 #[test]
-fn test_set_online() {
+fn test_set_network_online() {
     let servo_test = ServoTest::new();
     let delegate = Rc::new(WebViewDelegateImpl::default());
 
@@ -121,8 +121,8 @@ fn test_set_online() {
     .unwrap();
 
     let network_manager = servo_test.servo().network_manager();
-    network_manager.set_network_online_state(false);
-    network_manager.set_network_online_state(true);
+    network_manager.set_online_state(false);
+    network_manager.set_online_state(true);
 
     servo_test.spin({
         let delegate = delegate.clone();
