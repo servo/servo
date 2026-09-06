@@ -199,9 +199,9 @@ pub(crate) fn enqueue(cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
     let task = Box::new(task);
     let raw = Box::into_raw(task);
     unsafe { JobQueueMayNotBeEmpty(cx) };
-    unsafe {
-        EnqueueMicroTask(cx, &PrivateValue(raw as *const c_void));
-    }
+    assert!(unsafe {
+        EnqueueMicroTask(cx, &PrivateValue(raw as *const c_void))
+    });
 }
 
 /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
