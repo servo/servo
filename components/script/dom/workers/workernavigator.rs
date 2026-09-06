@@ -110,7 +110,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
     fn OnLine(&self) -> bool {
-        true
+        self.global().is_online().get()
     }
 
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>

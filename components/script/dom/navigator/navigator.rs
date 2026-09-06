@@ -379,7 +379,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
     fn OnLine(&self) -> bool {
-        true
+        self.global().is_online().get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-plugins>

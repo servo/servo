@@ -4,7 +4,7 @@
 
 #![cfg_attr(crown, allow(crown::jscontext_first_arg))]
 
-use std::cell::{OnceCell, RefCell, RefMut};
+use std::cell::{Cell, OnceCell, RefCell, RefMut};
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
@@ -429,6 +429,7 @@ impl WorkerGlobalScope {
                 gpu_id_hub,
                 init.inherited_secure_context,
                 init.unminify_js,
+                Rc::new(Cell::new(true)),
             ),
             caches: Default::default(),
             worker_id: init.worker_id,
