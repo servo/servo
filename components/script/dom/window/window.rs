@@ -203,7 +203,7 @@ use crate::fetch::fetch;
 use crate::fetch::network_listener::{ResourceTimingListener, submit_timing};
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::UserMicrotask;
+use crate::runtime::job_queue::UserMicrotask;
 use crate::runtime::script_runtime::Runtime;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::SendableTaskSource;
