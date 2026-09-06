@@ -2356,6 +2356,7 @@ impl VirtualMethods for HTMLInputElement {
             }
             if !flags.is_empty() {
                 event.mark_as_handled();
+                self.update_placeholder_shown_state();
                 self.upcast::<Node>()
                     .dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
             }
