@@ -1,7 +1,17 @@
 name: Lint
 on:
   workflow_call:
+    inputs:
+      profile:
+        required: false
+        default: "checked-release"
+        type: string
   workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "checked-release"
+        type: string      
 
 env:
   RUST_BACKTRACE: 1
@@ -80,7 +90,7 @@ jobs:
           ./mach bootstrap --yes --skip-nextest
       - name: Clippy
         run: |
-          ./mach clippy --locked --github-annotations -- -- --deny warnings
+          ./mach clippy --profile ${{ inputs.profile }} --locked --github-annotations -- -- --deny warnings
       - name: Tidy
         env:
           CI_PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
