@@ -1180,7 +1180,7 @@ impl Fragment {
 
         // Accumulate this text fragment for LCP by the containing element's tag
         if let Some(tag) = state.containing_element_tag &&
-            pref!(largest_contentful_paint_enabled)
+            builder.largest_contentful_paint_enabled
         {
             let transform = builder
                 .paint_info
