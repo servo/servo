@@ -253,4 +253,10 @@ impl<'dom> LayoutElement<'dom> for ServoLayoutElement<'dom> {
     fn is_root(&self) -> bool {
         self.element.is_root()
     }
+
+    fn ensure_mapped_attribute_declarations(&self) -> bool {
+        unsafe {
+            self.element.ensure_mapped_attribute_declarations()
+        }
+    }
 }

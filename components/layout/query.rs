@@ -520,6 +520,14 @@ pub fn process_resolved_style_request_for_unstyled_node(
         thread_local: &mut tlc,
     };
 
+    let mut ancestor = Some(node);
+    while let Some(current) = ancestor {
+        if !current.as_element().is_some_and(|el| el.ensure_mapped_attribute_declarations()) {
+            break;
+        }
+        ancestor = unsafe { current.dangerous_flat_tree_parent() };
+    }
+
     let element = node.as_element().unwrap();
     let styles = resolve_style(
         &mut context,

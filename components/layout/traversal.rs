@@ -52,6 +52,7 @@ where
         let layout_element = dangerous_style_element.layout_element();
         let had_style_data = layout_element.style_data().is_some();
         layout_element.initialize_style_and_layout_data::<DOMLayoutData>();
+        layout_element.ensure_mapped_attribute_declarations();
 
         let mut element_data = dangerous_style_element.mutate_data().unwrap();
         if !had_style_data {
