@@ -16,8 +16,10 @@ use devtools_traits::{HttpRequest, HttpResponse};
 use headers::{ContentLength, HeaderMapExt};
 use http::HeaderMap;
 use malloc_size_of_derive::MallocSizeOf;
+use mime::Mime;
 use net::cookie::ServoCookie;
-use net_traits::fetch::headers::extract_mime_type_as_dataurl_mime;
+use net_traits::fetch::headers::{extract_mime_type_as_dataurl_mime, extract_mime_type_as_mime};
+use net_traits::mime_classifier::MimeClassifier;
 use net_traits::{CookieSource, TlsSecurityInfo};
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -460,20 +462,25 @@ impl Actor for NetworkEventActor {
                 let mime_type = headers
                     .and_then(extract_mime_type_as_dataurl_mime)
                     .map(|url| url.to_string());
+                let parsed_mime_type = headers.and_then(extract_mime_type_as_mime);
                 let transferred_size = headers
                     .and_then(|header| header.typed_get::<ContentLength>())
                     .map(|content_length_header| content_length_header.0);
 
                 let content = response.response.body.as_ref().map(|body| {
-                    let (encoding, text) = if mime_type.is_some() {
-                        // Queue a LongStringActor for this body
-                        let body_string = String::from_utf8_lossy(body).to_string();
-                        let long_string_actor = LongStringActor::register(registry, body_string);
-                        let value = long_string_actor.long_string_obj();
-                        (None, serde_json::to_value(value).unwrap())
-                    } else {
-                        let b64 = STANDARD.encode(body);
-                        (Some("base64".into()), serde_json::to_value(b64).unwrap())
+                    let (encoding, text) = match response_encoding(parsed_mime_type.as_ref()) {
+                        None => {
+                            // Queue a LongStringActor for this body
+                            let body_string = String::from_utf8_lossy(body).to_string();
+                            let long_string_actor =
+                                LongStringActor::register(registry, body_string);
+                            let value = long_string_actor.long_string_obj();
+                            (None, serde_json::to_value(value).unwrap())
+                        },
+                        Some(encoding) => {
+                            let b64 = STANDARD.encode(body);
+                            (Some(encoding.into()), serde_json::to_value(b64).unwrap())
+                        },
                     };
                     let is_content_encoded = encoding.is_some();
 
@@ -530,6 +537,60 @@ impl Actor for NetworkEventActor {
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
+    }
+}
+
+fn is_textual_mime(mime: &Mime) -> bool {
+    mime.type_() == mime::TEXT
+        || mime.suffix() == Some(mime::JSON)
+        || mime.suffix() == Some(mime::XML)
+        || MimeClassifier::is_javascript(mime)
+        || MimeClassifier::is_json(mime)
+        || MimeClassifier::is_css(mime)
+}
+
+fn response_encoding(mime: Option<&Mime>) -> Option<&'static str> {
+    (!mime.is_some_and(is_textual_mime)).then_some("base64")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::response_encoding;
+
+    fn mime(value: &str) -> mime::Mime {
+        value.parse().unwrap()
+    }
+
+    #[test]
+    fn textual_mime_types_use_plain_response_encoding() {
+        for value in [
+            "text/plain; charset=utf-8",
+            "text/x-custom",
+            "application/json",
+            "application/ld+json",
+            "application/xml",
+            "image/svg+xml",
+            "application/javascript",
+            "text/css",
+        ] {
+            assert_eq!(response_encoding(Some(&mime(value))), None, "{value}");
+        }
+    }
+
+    #[test]
+    fn binary_mime_types_use_base64_response_encoding() {
+        for value in [
+            "image/png",
+            "application/pdf",
+            "font/woff2",
+            "application/octet-stream",
+        ] {
+            assert_eq!(
+                response_encoding(Some(&mime(value))),
+                Some("base64"),
+                "{value}"
+            );
+        }
     }
 }
 

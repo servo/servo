@@ -8312,6 +8312,7 @@ dependencies = [
  "http",
  "log",
  "malloc_size_of_derive",
+ "mime",
  "parking_lot",
  "rand 0.10.2",
  "rustc-hash 2.1.3",

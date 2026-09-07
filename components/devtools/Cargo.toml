@@ -26,6 +26,7 @@ http = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+mime = { workspace = true }
 net = { workspace = true }
 net_traits = { workspace = true }
 profile_traits = { workspace = true }
