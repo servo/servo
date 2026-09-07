@@ -190,6 +190,7 @@ servo-tracing = { workspace = true }
 servo-url = { workspace = true }
 servo-webvtt = { workspace = true }
 servo_arc = { workspace = true }
+servo-structured-clone = { workspace = true }
 sha1 = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
 sha3 = { workspace = true, optional = true }

@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "components/media/examples",
+    "components/structured_clone",
     "components/xpath",
     "ffi/capi",
     "ports/servoshell",
@@ -140,7 +141,7 @@ inventory = "0.3.24"
 ipc-channel = "0.23"
 itertools = "0.15"
 jni = "0.22"
-js = { package = "mozjs", version = "=0.26.0", default-features = false, features = ["intl", "libz-sys"] }
+js = { package = "mozjs", git = "https://github.com/servo/mozjs", branch = "structured-clone-helpers", version = "=0.26.0", default-features = false, features = ["intl", "libz-sys"] }
 k12 = "0.5"
 keccak = "0.2"
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
@@ -227,6 +228,7 @@ serde_core = "1.0.226"
 serde_json = "1.0"
 serde_test = "1.0"
 servo_arc = { git = "https://github.com/servo/stylo", rev = "a5b0464f6838ee772f10cc2754b7a8d6eae56142" }
+servo-structured-clone = { path = "components/structured_clone" }
 sha1 = "0.11"
 sha2 = "0.11"
 sha3 = "0.12"
