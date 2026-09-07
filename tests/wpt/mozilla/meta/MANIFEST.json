@@ -7929,6 +7929,23 @@
      ]
     ]
    },
+   "input-events": {
+    "input-events-text-input-copy-paste.html": [
+     "76dce0e7133c1fb049d75a1109bdcfd2f138a51b",
+     [
+      null,
+      [
+       [
+        "/_mozilla/input-events/input-events-text-input-copy-paste-ref.html",
+        "=="
+       ]
+      ],
+      {
+       "testdriver": true
+      }
+     ]
+    ]
+   },
    "mozilla": {
     "FileAPI": {
      "blob-url-upload.html": [
@@ -10867,6 +10884,10 @@
     ]
    },
    "input-events": {
+    "input-events-text-input-copy-paste-ref.html": [
+     "9c1b5dfe19738c0c54a41d49f2729dd07aa018cd",
+     []
+    ],
     "input-events.js": [
      "d5c471f80064d5d848283d833c49cfe36f2475e2",
      []
