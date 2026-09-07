@@ -253,4 +253,8 @@ impl<'dom> LayoutElement<'dom> for ServoLayoutElement<'dom> {
     fn is_root(&self) -> bool {
         self.element.is_root()
     }
+
+    fn ensure_presentational_hints(&self) {
+        unsafe { self.element.ensure_presentational_hints() }
+    }
 }

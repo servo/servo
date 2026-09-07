@@ -8,7 +8,6 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 
-use crate::dom::MoveContext;
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -23,6 +22,7 @@ use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::html::htmlpictureelement::HTMLPictureElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeDamage, UnbindContext};
+use crate::dom::{Element, MoveContext};
 
 #[dom_struct]
 pub(crate) struct HTMLSourceElement {
@@ -126,7 +126,10 @@ impl VirtualMethods for HTMLSourceElement {
                     let next_sibling_iterator = self.upcast::<Node>().following_siblings();
                     HTMLSourceElement::iterate_next_html_image_element_siblings(
                         next_sibling_iterator,
-                        |image| image.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other),
+                        |image| {
+                            image.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+                            image.upcast::<Element>().clear_presentational_hints();
+                        },
                     );
                 }
             },
