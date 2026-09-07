@@ -121,11 +121,6 @@ impl AnimationManager {
         current_timeline_value: f64,
     ) -> bool {
         if current_timeline_value <= self.timeline_value_at_last_dirty.get() {
-            debug_assert_eq!(
-                current_timeline_value,
-                self.timeline_value_at_last_dirty.get(),
-                "Not monotonically increasing: https://drafts.csswg.org/web-animations-1/#timelines"
-            );
             return false;
         }
         self.timeline_value_at_last_dirty
