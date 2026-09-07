@@ -127,7 +127,7 @@ mod linux_sysfs {
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 mod platform {
     use super::BoostAffinity;
     use super::linux_sysfs::pin_thread_to_medium_or_large_cpus;
@@ -159,6 +159,7 @@ mod platform {
     //! sufficient, but for now this is all we have (pending better official OH APIs, perhaps
     //! modeled after the android performance hint API).
 
+    use crate::threadboost::{BoostAffinity, ThreadPriority};
     use super::linux_sysfs::pin_thread_to_medium_or_large_cpus;
 
     // Constants copied from `qos/qos.h`. Avoids depending on ohos-libqos-sys just for this one function.
