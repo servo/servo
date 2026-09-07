@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Dynamically changing the width and height attributes of an image while disconnected</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#attributes-for-embedded-content-and-images">
+<link rel="match" href="/css/reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  If the attributes change while the image is disconnected, the presentational hints
+  should reflect the new values once it becomes connected again.
+">
+
+<style>
+  #parent {
+    width: 200px;
+    height: 200px;
+    background: red;
+  }
+  #target {
+    display: block;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="parent">
+  <img id="target" width="100" height="100"></img>
+</div>
+
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script type="module">
+  await waitForAtLeastOneFrame();
+  const parent = document.getElementById("parent");
+  const target = document.getElementById("target");
+  target.remove();
+  target.setAttribute("width", "200");
+  target.setAttribute("height", "200");
+  parent.appendChild(target);
+  takeScreenshot();
+</script>
+</html>
