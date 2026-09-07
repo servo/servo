@@ -128,7 +128,7 @@ impl TrustedPromise {
 
 /// A JSTraceDataOp for tracing reflectors held in LIVE_REFERENCES
 pub(crate) unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
-    trace!("tracing live refcounted promises");
+    trace!("tracing live refcounted promise references");
     LIVE_PROMISE_REFERENCES.with(|live_references| {
         let table = live_references.promise_table.borrow_mut();
         for promise in table.keys() {
