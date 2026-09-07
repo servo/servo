@@ -711,64 +711,63 @@ impl FetchResponseListener for ModuleContext {
         // TODO Step 6. If mimeType's essence is "application/wasm" and moduleType is "javascript-or-wasm", then set
         // moduleScript to the result of creating a WebAssembly module script given bodyBytes, settingsObject, response's URL, and options.
 
-        if let Some(mime) = mime_type {
-            // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
-            let (mut source_text, _) = UTF_8.decode_with_bom_removal(&self.data);
+        // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
+        let (mut source_text, _) = UTF_8.decode_with_bom_removal(&self.data);
 
-            match module_type {
-                // Step 7.2. If moduleType is "text", then set moduleScript to the result of
-                // creating a text module script given sourceText and settingsObject.
-                ModuleType::Text => {
-                    let module_tree =
-                        Rc::new(ModuleTree::create_a_text_module_script(cx, &source_text));
-                    module_script = Some(module_tree);
-                },
-                // Step 7.3. If mimeType is a JavaScript MIME type and moduleType is
-                // "javascript-or-wasm", then set moduleScript to the result of creating a JavaScript
-                // module script given sourceText, settingsObject, response's URL, and options.
-                ModuleType::JavaScript if MimeClassifier::is_javascript(&mime) => {
-                    if let Some(window) = global.downcast::<Window>() &&
-                        let Some(script_souce) = window.local_script_source()
-                    {
-                        substitute_with_local_script(script_souce, &mut source_text, &final_url);
-                    }
+        match (module_type, mime_type) {
+            // Step 7.2. If moduleType is "text", then set moduleScript to the result of creating a
+            // text module script given sourceText and settingsObject.
+            (ModuleType::Text, _) => {
+                let module_tree =
+                    Rc::new(ModuleTree::create_a_text_module_script(cx, &source_text));
+                module_script = Some(module_tree);
+            },
+            // Step 7.3. If mimeType is a JavaScript MIME type and moduleType is
+            // "javascript-or-wasm", then set moduleScript to the result of creating a JavaScript
+            // module script given sourceText, settingsObject, response's URL, and options.
+            (ModuleType::JavaScript, Some(mime)) if MimeClassifier::is_javascript(&mime) => {
+                if let Some(window) = global.downcast::<Window>() &&
+                    let Some(script_souce) = window.local_script_source()
+                {
+                    substitute_with_local_script(script_souce, &mut source_text, &final_url);
+                }
 
-                    let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
-                        cx,
-                        source_text,
-                        &global,
-                        &final_url,
-                        self.options,
-                        true,
-                        1,
-                        self.introduction_type,
-                    ));
-                    module_script = Some(module_tree);
-                },
-                // Step 7.4. If the MIME type essence of mimeType is "text/css" and moduleType is
-                // "css", then set moduleScript to the result of creating a CSS module script given sourceText and settingsObject.
-                ModuleType::CSS if MimeClassifier::is_css(&mime) => {
-                    let module_tree = Rc::new(ModuleTree::create_a_css_module_script(
-                        cx,
-                        &source_text,
-                        &global,
-                        final_url.clone(),
-                    ));
-                    module_script = Some(module_tree);
-                },
-                // Step 7.5. If mimeType is a JSON MIME type and moduleType is "json", then set
-                // moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
-                ModuleType::JSON if MimeClassifier::is_json(&mime) => {
-                    let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
-                        cx,
-                        &source_text,
-                        &final_url,
-                        self.introduction_type,
-                    ));
-                    module_script = Some(module_tree);
-                },
-                _ => {},
-            }
+                let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
+                    cx,
+                    source_text,
+                    &global,
+                    &final_url,
+                    self.options,
+                    true,
+                    1,
+                    self.introduction_type,
+                ));
+                module_script = Some(module_tree);
+            },
+            // Step 7.4. If the MIME type essence of mimeType is "text/css" and moduleType is "css",
+            // then set moduleScript to the result of creating a CSS module script given sourceText
+            // and settingsObject.
+            (ModuleType::CSS, Some(mime)) if MimeClassifier::is_css(&mime) => {
+                let module_tree = Rc::new(ModuleTree::create_a_css_module_script(
+                    cx,
+                    &source_text,
+                    &global,
+                    final_url.clone(),
+                ));
+                module_script = Some(module_tree);
+            },
+            // Step 7.5. If mimeType is a JSON MIME type and moduleType is "json", then set
+            // moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
+            (ModuleType::JSON, Some(mime)) if MimeClassifier::is_json(&mime) => {
+                let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
+                    cx,
+                    &source_text,
+                    &final_url,
+                    self.introduction_type,
+                ));
+                module_script = Some(module_tree);
+            },
+            _ => {},
         }
 
         let callbacks = match module_map
