@@ -7,7 +7,6 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-#[cfg(feature = "webgl")]
 use js::error::throw_type_error;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue};
@@ -28,6 +27,7 @@ use servo_constellation_traits::{BlobImpl, TransferableOffscreenCanvas};
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
 #[cfg(feature = "webgl")]
 use crate::conversions::Convert;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DSettings;
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     ImageEncodeOptions, OffscreenCanvasMethods,
     OffscreenRenderingContext as RootedOffscreenRenderingContext, OffscreenRenderingContextId,
@@ -35,7 +35,6 @@ use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
 #[cfg(feature = "webgl")]
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
-#[cfg(feature = "webgl")]
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -160,9 +159,11 @@ impl OffscreenCanvas {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#offscreen-2d-context-creation-algorithm>
     pub(crate) fn get_or_init_2d_context(
         &self,
         cx: &mut js::context::JSContext,
+        options: HandleValue,
     ) -> Option<DomRoot<OffscreenCanvasRenderingContext2D>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
@@ -170,8 +171,24 @@ impl OffscreenCanvas {
                 _ => None,
             };
         }
-        let context =
-            OffscreenCanvasRenderingContext2D::new(cx, &self.global(), self, self.get_size())?;
+
+        // Step 2. Let settings be the result of converting arg to the dictionary type
+        // CanvasRenderingContext2DSettings. (This can throw an exception.)
+        let settings = match CanvasRenderingContext2DSettings::new(cx, options) {
+            Ok(ConversionResult::Success(settings)) => settings,
+            Ok(ConversionResult::Failure(error)) => {
+                throw_type_error(cx, &error);
+                return None;
+            },
+            Err(()) => return None,
+        };
+        let context = OffscreenCanvasRenderingContext2D::new(
+            cx,
+            &self.global(),
+            self,
+            self.get_size(),
+            &settings,
+        )?;
         *self.context.safe_borrow_mut(cx.no_gc()) = Some(OffscreenRenderingContext::Context2d(
             Dom::from_ref(&*context),
         ));
@@ -401,6 +418,13 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         id: OffscreenRenderingContextId,
         options: HandleValue,
     ) -> Fallible<Option<RootedOffscreenRenderingContext>> {
+        // Step 1. If options is not an object, then set options to null.
+        let options = if options.get().is_object() {
+            options
+        } else {
+            HandleValue::null()
+        };
+
         // Step 3. Throw an "InvalidStateError" DOMException if the
         // OffscreenCanvas object's context mode is detached.
         if let Some(OffscreenRenderingContext::Detached) = *self.context.borrow() {
@@ -409,7 +433,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
 
         match id {
             OffscreenRenderingContextId::_2d => Ok(self
-                .get_or_init_2d_context(cx)
+                .get_or_init_2d_context(cx, options)
                 .map(RootedOffscreenRenderingContext::OffscreenCanvasRenderingContext2D)),
             OffscreenRenderingContextId::Bitmaprenderer => Ok(self
                 .get_or_init_bitmaprenderer_context(cx)
