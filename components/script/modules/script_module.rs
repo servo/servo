@@ -6,7 +6,7 @@
 //! related to `type=module` for script thread or worker threads.
 
 use std::borrow::Cow;
-use std::cell::{OnceCell, RefCell};
+use std::cell::OnceCell;
 use std::collections::hash_map::Entry;
 use std::ffi::CStr;
 use std::fmt::Debug;
@@ -1298,7 +1298,6 @@ fn fetch_the_descendants_and_link_module_script(
     // Step 3. Let state be Record
     // { [[ErrorToRethrow]]: null, [[Destination]]: destination, [[PerformFetch]]: null, [[FetchClient]]: fetchClient }.
     let state = Box::new(LoadState {
-        error_to_rethrow: RefCell::new(None),
         destination,
         fetch_client,
         module_script: DomRefCell::new(Some(module_script.clone())),
