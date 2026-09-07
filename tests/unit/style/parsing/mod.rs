@@ -11,17 +11,17 @@ use style::stylesheets::{CssRuleType, Origin};
 use style_traits::{ParseError, ParsingMode};
 use url::Url;
 
-fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
+fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError>
 where
-    F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>>,
+    F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError>,
 {
     let mut input = ParserInput::new(s);
     parse_input(f, &mut input)
 }
 
-fn parse_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result<T, ParseError<'i>>
+fn parse_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result<T, ParseError>
 where
-    F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>,
+    F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError>,
 {
     let url_data = Url::parse("http://localhost").unwrap().into();
     let context = ParserContext::new(

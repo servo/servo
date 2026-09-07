@@ -86,10 +86,10 @@ impl MediaList {
     }
 
     /// <https://drafts.csswg.org/cssom/#parse-a-media-query>
-    pub(crate) fn parse_media_query<'i>(
-        value: &'i str,
+    pub(crate) fn parse_media_query(
+        value: &str,
         window: &Window,
-    ) -> Result<MediaQuery, ParseError<'i>> {
+    ) -> Result<MediaQuery, ParseError> {
         let mut input = ParserInput::new(value);
         let mut parser = Parser::new(&mut input);
         let document = window.Document();
