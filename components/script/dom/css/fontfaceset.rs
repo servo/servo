@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cssparser::{Parser, ParserInput, UnicodeRange};
+use cssparser::{Parser, UnicodeRange};
 use dom_struct::dom_struct;
 use fonts::FontFaceRuleInfo;
 use js::context::JSContext;
@@ -511,8 +511,7 @@ impl FontQueryParameters {
             &urlextradata,
         );
 
-        let mut input = ParserInput::new(font);
-        let mut parser = Parser::new(&mut input);
+        let mut parser = Parser::new(font);
         let Ok(font_shorthand) =
             parser.parse_entirely(|parser| font::parse_value(&parser_context, parser))
         else {

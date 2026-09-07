@@ -2,16 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, ParserInput, ToCss};
+use cssparser::{Parser, ToCss};
 use selectors::parser::{ParseRelative, SelectorList};
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Namespaces, Origin};
 use style_traits::ParseError;
 use url::Url;
 
-fn parse_selector<'i>(
-    input: &mut Parser<'i, '_>,
-) -> Result<SelectorList<SelectorImpl>, ParseError> {
+fn parse_selector<'i>(input: &mut Parser<'i>) -> Result<SelectorList<SelectorImpl>, ParseError> {
     let mut ns = Namespaces::default();
     ns.prefixes
         .insert("svg".into(), style::Namespace::new(ns!(svg)));
