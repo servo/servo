@@ -8,8 +8,8 @@
 //! and <http://tools.ietf.org/html/rfc7232>.
 
 use std::ops::Bound;
-use std::sync::Arc as StdArc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc as StdArc, RwLock};
 use std::time::{Duration, SystemTime};
 
 use headers::{
@@ -25,7 +25,8 @@ use net_traits::response::{Response, ResponseBody};
 use net_traits::{CacheEntryDescriptor, FetchMetadata, Metadata, ResourceFetchTiming};
 use parking_lot::Mutex as ParkingLotMutex;
 use quick_cache::sync::{Cache, PlaceholderGuard};
-use quick_cache::{DefaultHashBuilder, Lifecycle, UnitWeighter, Weighter};
+use quick_cache::{DefaultHashBuilder, Lifecycle, Weighter};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc;
 use servo_config::pref;
@@ -156,6 +157,13 @@ impl CachedResource {
     pub(crate) fn is_done(&self) -> bool {
         self.body.lock().is_done()
     }
+
+    fn size(&self) -> Option<usize> {
+        match &*self.body.lock() {
+            ResponseBody::Empty | ResponseBody::Receiving(_) => None,
+            ResponseBody::Done(items) => Some(items.len()),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -229,12 +237,12 @@ pub(crate) struct CachedResponse {
 
 pub(crate) type CacheEntry = std::sync::Arc<TokioRwLock<Vec<CachedResource>>>;
 type QuickCache =
-    Cache<CacheKey, CacheEntry, UnitWeighter, DefaultHashBuilder, MemoryCacheLifecycle>;
+    Cache<CacheKey, CacheEntry, CacheWeighter, DefaultHashBuilder, MemoryCacheLifecycle>;
 type QuickCachePlaceholderGuard<'a> = PlaceholderGuard<
     'a,
     CacheKey,
     CacheEntry,
-    UnitWeighter,
+    CacheWeighter,
     DefaultHashBuilder,
     MemoryCacheLifecycle,
 >;
@@ -257,6 +265,7 @@ pub struct HttpCache {
     /// cached responses.
     entries: QuickCache,
     disk_cache: Option<std::sync::Arc<DiskCache>>,
+    cache_weighter: CacheWeighter,
 }
 
 impl MallocSizeOf for HttpCache {
@@ -268,7 +277,8 @@ impl MallocSizeOf for HttpCache {
             self.disk_cache
                 .as_ref()
                 .map(|data| data.size_of(ops))
-                .unwrap_or(0)
+                .unwrap_or(0) +
+            self.cache_weighter.size_of(ops)
     }
 }
 
@@ -278,11 +288,12 @@ impl HttpCache {
         let size = pref!(network_http_cache_size)
             .try_into()
             .expect("http_cache_size needs to fit into u64");
-        let (disk_cache, lifecycle) = DiskCache::new(assignment);
+        let cache_weighter = CacheWeighter::default();
+        let (disk_cache, lifecycle) = DiskCache::new(assignment, cache_weighter.clone());
         let memory_cache = Cache::with(
             size,
             size as u64,
-            UnitWeighter,
+            cache_weighter.clone(),
             DefaultHashBuilder::default(),
             lifecycle,
         );
@@ -290,15 +301,29 @@ impl HttpCache {
         Self {
             entries: memory_cache,
             disk_cache,
+            cache_weighter,
         }
     }
 }
 
-struct CacheWeighter {}
+#[derive(Clone, Default, MallocSizeOf)]
+/// The weight of each entry in the cache
+pub struct CacheWeighter {
+    #[conditional_malloc_size_of]
+    weights: StdArc<RwLock<FxHashMap<CacheKey, (usize, bool)>>>,
+}
 
 impl Weighter<CacheKey, CacheEntry> for CacheWeighter {
-    fn weight(&self, key: &CacheKey, val: &CacheEntry) -> u64 {
-        todo!()
+    fn weight(&self, key: &CacheKey, _: &CacheEntry) -> u64 {
+        let weights = self
+            .weights
+            .read()
+            .unwrap()
+            .get(key)
+            .map(|entry| entry.0)
+            .unwrap_or(1) as u64;
+        log::error!("WEIGHTS {key:?} | {weights:?}");
+        weights
     }
 }
 
@@ -307,11 +332,25 @@ impl Weighter<CacheKey, CacheEntry> for CacheWeighter {
 /// Responsible for moving data to the disk.
 pub struct MemoryCacheLifecycle {
     pub(crate) disk_cache: Option<std::sync::Arc<DiskCache>>,
+    cache_weighter: CacheWeighter,
 }
 
 impl MemoryCacheLifecycle {
-    pub(crate) fn empty() -> MemoryCacheLifecycle {
-        MemoryCacheLifecycle { disk_cache: None }
+    pub(crate) fn empty(cache_weighter: CacheWeighter) -> MemoryCacheLifecycle {
+        MemoryCacheLifecycle {
+            disk_cache: None,
+            cache_weighter,
+        }
+    }
+
+    pub(crate) fn with_disk(
+        cache_weighter: CacheWeighter,
+        disk_cache: StdArc<DiskCache>,
+    ) -> MemoryCacheLifecycle {
+        MemoryCacheLifecycle {
+            disk_cache: Some(disk_cache),
+            cache_weighter,
+        }
     }
 }
 
@@ -320,21 +359,34 @@ impl Lifecycle<CacheKey, CacheEntry> for MemoryCacheLifecycle {
 
     // Cached Resources that are not complete could get evicted which means they cannot fill their body.
     // We allow unfinished resources to stay in the cache.
-    fn is_pinned(&self, _: &CacheKey, val: &CacheEntry) -> bool {
-        val.blocking_read()
-            .iter()
-            .any(|resource| !resource.is_done())
+    fn is_pinned(&self, key: &CacheKey, _: &CacheEntry) -> bool {
+        let pinned = self
+            .cache_weighter
+            .weights
+            .read()
+            .unwrap()
+            .get(key)
+            .map(|entry| entry.1)
+            .unwrap_or(true);
+        log::error!("PINNED {key:?} | {pinned:?}");
+        pinned
     }
 
     fn on_evict(&self, _state: &mut Self::RequestState, key: CacheKey, value: CacheEntry) {
+        log::error!("EViicting {key:?}");
         if let Some(disk_cache_data) = &self.disk_cache {
             let disk_cache_data = disk_cache_data.clone();
             tokio::spawn(async move { disk_cache_data.store(key, value).await });
         }
     }
 
-    /// THIS IS THE WRONG TOOL.
-    fn before_evict(&self, state: &mut Self::RequestState, key: &CacheKey, val: &mut CacheEntry) {}
+    fn before_evict(&self, state: &mut Self::RequestState, key: &CacheKey, val: &mut CacheEntry) {
+        self.cache_weighter
+            .weights
+            .read()
+            .unwrap()
+            .contains_key(key);
+    }
 }
 
 /// Determine if a response is cacheable by default <https://tools.ietf.org/html/rfc7231#section-6.1>
@@ -1079,6 +1131,30 @@ impl HttpCache {
     pub async fn store(&self, request: &Request, response: &Response) {
         let guard = self.get_or_guard(CacheKey::new(request)).await;
         guard.insert(request, response);
+    }
+
+    /// This updates the weight of the entry in the cache. Should be called when the response is ready.
+    pub async fn update_weight(&self, key: CacheKey) {
+        if let Some(entry) = self.entries.get(&key) {
+            log::error!("Updating weight of {key:?}");
+            let size = entry
+                .read()
+                .await
+                .iter()
+                .filter_map(|resources| resources.size())
+                .sum();
+
+            self.entries
+                .entry_async(&key, |key, value| {
+                    self.cache_weighter
+                        .weights
+                        .write()
+                        .unwrap()
+                        .insert(key.clone(), (size, false));
+                    quick_cache::sync::EntryAction::Retain(value.clone())
+                })
+                .await;
+        }
     }
 
     /// Try to construct a cached response for `request`.

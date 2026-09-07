@@ -1645,6 +1645,11 @@ async fn http_network_or_cache_fetch(
         // Note: this means only the fetch from which the original network response originated
         // will be able to stream it; all others receive a cached response in one chunk.
         wait_for_inflight_requests(done_chan, &mut response).await;
+        context
+            .state
+            .http_cache
+            .update_weight(CacheKey::new(&http_fetch_params.request))
+            .await;
     }
 
     let http_request = &mut http_fetch_params.request;

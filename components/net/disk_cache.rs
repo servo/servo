@@ -17,7 +17,7 @@ use servo_url::ServoUrl;
 use tokio::sync::{Mutex as TokioMutex, RwLock as TokioRwLock};
 
 use crate::http_cache::{
-    CacheEntry, CacheKey, CachedResource, HttpCacheAssignment, MemoryCacheLifecycle,
+    CacheEntry, CacheKey, CacheWeighter, CachedResource, HttpCacheAssignment, MemoryCacheLifecycle,
 };
 
 #[derive(MallocSizeOf)]
@@ -110,6 +110,7 @@ impl DiskCache {
     /// TODO: Implement WAL and other sqlite pragma.
     pub(crate) fn new(
         cache_assignment: HttpCacheAssignment,
+        cache_weighter: CacheWeighter,
     ) -> (Option<Arc<DiskCache>>, MemoryCacheLifecycle) {
         // For private browsing we currently do not want to store any disk cache.
         let disk_cache_path = storage_dir();
@@ -118,12 +119,12 @@ impl DiskCache {
             cache_assignment == HttpCacheAssignment::Public
         {
             let Ok(max_disk_cache_size) = pref!(network_http_disk_cache_size).try_into() else {
-                return (None, MemoryCacheLifecycle::empty());
+                return (None, MemoryCacheLifecycle::empty(cache_weighter));
             };
 
             let Ok(db) = rusqlite::Connection::open(&disk_cache_path) else {
                 error!("Could not open disk cache database");
-                return (None, MemoryCacheLifecycle::empty());
+                return (None, MemoryCacheLifecycle::empty(cache_weighter));
             };
 
             let _ = db.execute("PRAGMA journal_mode = WAL;", ());
@@ -146,7 +147,7 @@ impl DiskCache {
                 .build(SqliteQueryBuilder);
             if let Err(e) = db.execute(query.as_str(), ()) {
                 error!("Could not create table. DB Error {:?}", e);
-                return (None, MemoryCacheLifecycle::empty());
+                return (None, MemoryCacheLifecycle::empty(cache_weighter));
             }
 
             let (query, values) = Query::select()
@@ -157,7 +158,7 @@ impl DiskCache {
             let (entries, size) = {
                 let Ok(mut st) = db.prepare(query.as_str()) else {
                     error!("Could not get disk data");
-                    return (None, MemoryCacheLifecycle::empty());
+                    return (None, MemoryCacheLifecycle::empty(cache_weighter));
                 };
                 let entries = st
                     .query_map(&*values.as_params(), |row| Ok(DiskCacheMetadata::from(row)))
@@ -182,12 +183,10 @@ impl DiskCache {
 
             (
                 Some(disk_cache_data.clone()),
-                MemoryCacheLifecycle {
-                    disk_cache: Some(disk_cache_data),
-                },
+                MemoryCacheLifecycle::with_disk(cache_weighter, disk_cache_data),
             )
         } else {
-            (None, MemoryCacheLifecycle::empty())
+            (None, MemoryCacheLifecycle::empty(cache_weighter))
         }
     }
 
