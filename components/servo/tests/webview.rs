@@ -12,7 +12,8 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 
 use dpi::PhysicalSize;
-use embedder_traits::UrlRequest;
+use embedder_traits::{RefreshDriver, UrlRequest};
+use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Point2D, Size2D};
 use http::{HeaderMap, HeaderName, HeaderValue};
 use http_body_util::combinators::BoxBody;
@@ -30,7 +31,7 @@ use servo::{
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
-use surfman::Error;
+use surfman::{Error, Surface, SurfaceTexture};
 use url::Url;
 use webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePoint, DeviceVector2D};
 
@@ -83,10 +84,15 @@ fn test_create_webview() {
 }
 
 /// A [`RenderingContext`] that provides no surfman connection, which the trait
-/// permits: `connection()` returns `None`.
+/// permits: `connection()` returns `None`. Every other method must forward to the
+/// inner context; a defaulted `prepare_for_rendering` would bind no framebuffer.
 struct ConnectionlessRenderingContext(Rc<dyn RenderingContext>);
 
 impl RenderingContext for ConnectionlessRenderingContext {
+    fn prepare_for_rendering(&self) {
+        self.0.prepare_for_rendering();
+    }
+
     fn read_to_image(&self, source_rectangle: DeviceIntRect) -> Option<RgbaImage> {
         self.0.read_to_image(source_rectangle)
     }
@@ -113,6 +119,21 @@ impl RenderingContext for ConnectionlessRenderingContext {
 
     fn glow_gl_api(&self) -> Arc<glow::Context> {
         self.0.glow_gl_api()
+    }
+
+    fn create_texture(
+        &self,
+        surface: Surface,
+    ) -> Option<(SurfaceTexture, u32, UntypedSize2D<i32>)> {
+        self.0.create_texture(surface)
+    }
+
+    fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Option<Surface> {
+        self.0.destroy_texture(surface_texture)
+    }
+
+    fn refresh_driver(&self) -> Option<Rc<dyn RefreshDriver>> {
+        self.0.refresh_driver()
     }
 }
 
