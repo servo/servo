@@ -130,8 +130,8 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// Statistics collected about the reflow, in order to write tests for incremental layout.
     reflow_statistics: &'a mut ReflowStatistics,
 
-    /// Is LargestContentFulPaint enabled in the options,
-    largest_contentful_paint: bool,
+    /// Whether the `largest_contentul_paint_enabled` preference is enabled.
+    largest_contentful_paint_enabled: bool,
 }
 
 struct InspectorHighlight {
@@ -212,7 +212,7 @@ impl DisplayListBuilder<'_> {
             device_pixel_ratio,
             paint_timing_handler,
             reflow_statistics,
-            largest_contentful_paint: pref!(largest_contentful_paint_enabled),
+            largest_contentful_paint_enabled: pref!(largest_contentful_paint_enabled),
         };
 
         // Clear any caret color from previous display list constructions.
@@ -663,7 +663,7 @@ impl DisplayListBuilder<'_> {
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
-        if !self.largest_contentful_paint {
+        if !self.largest_contentful_paint_enabled {
             return;
         }
 
