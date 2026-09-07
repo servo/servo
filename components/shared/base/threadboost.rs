@@ -24,6 +24,8 @@ mod linux_sysfs {
     use std::fs;
     use std::sync::LazyLock;
 
+    use log::info;
+
     // The current maximum supported by CPU_SET is 1024, so u16 is sufficiently large.
     // <https://man7.org/linux/man-pages/man3/CPU_SET.3.html>
     type CoreId = u16;
@@ -84,6 +86,7 @@ mod linux_sysfs {
         classes.sort_unstable();
         classes.dedup();
         if classes.len() < 2 {
+            info!("No little/big cores configuration");
             return Ok(None);
         }
         let little = classes[0];
@@ -93,8 +96,14 @@ mod linux_sysfs {
             .map(|&(cpu, _)| cpu)
             .collect();
         if chosen.len() < 2 {
+            info!("Not enough big cores available ({})", chosen.len());
             return Ok(None);
         }
+        info!(
+            "CPU cores configuration: {} big cores out of {}",
+            chosen.len(),
+            cpus.len()
+        );
         Ok(Some(chosen))
     }
 
