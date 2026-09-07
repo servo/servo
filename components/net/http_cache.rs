@@ -25,7 +25,7 @@ use net_traits::response::{Response, ResponseBody};
 use net_traits::{CacheEntryDescriptor, FetchMetadata, Metadata, ResourceFetchTiming};
 use parking_lot::Mutex as ParkingLotMutex;
 use quick_cache::sync::{Cache, PlaceholderGuard};
-use quick_cache::{DefaultHashBuilder, Lifecycle, UnitWeighter};
+use quick_cache::{DefaultHashBuilder, Lifecycle, UnitWeighter, Weighter};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc;
 use servo_config::pref;
@@ -294,6 +294,14 @@ impl HttpCache {
     }
 }
 
+struct CacheWeighter {}
+
+impl Weighter<CacheKey, CacheEntry> for CacheWeighter {
+    fn weight(&self, key: &CacheKey, val: &CacheEntry) -> u64 {
+        todo!()
+    }
+}
+
 #[derive(Clone)]
 /// The lifecycle hooks of the HttpCache.
 /// Responsible for moving data to the disk.
@@ -324,6 +332,9 @@ impl Lifecycle<CacheKey, CacheEntry> for MemoryCacheLifecycle {
             tokio::spawn(async move { disk_cache_data.store(key, value).await });
         }
     }
+
+    /// THIS IS THE WRONG TOOL.
+    fn before_evict(&self, state: &mut Self::RequestState, key: &CacheKey, val: &mut CacheEntry) {}
 }
 
 /// Determine if a response is cacheable by default <https://tools.ietf.org/html/rfc7231#section-6.1>
