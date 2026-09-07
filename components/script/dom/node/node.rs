@@ -198,7 +198,11 @@ bitflags! {
         /// this element.
         const CLICK_IN_PROGRESS = 1 << 2;
 
-        // There are three free bits here.
+        // There are two free bits here.
+
+        /// Whether the style declarations mapped from attributes (presentational hints)
+        /// have been resolved already and are up-to-date.
+        const HAS_RESOLVED_PRESENTATIONAL_HINTS = 1 << 5;
 
         /// Specifies whether the parser has set an associated form owner for
         /// this element. Only applicable for form-associatable elements.

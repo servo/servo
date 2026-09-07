@@ -2456,6 +2456,7 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
+            &local_name!("type") => true,
             &local_name!("width") | &local_name!("height") => {
                 matches!(*self.input_type(), InputType::Image(_))
             },
