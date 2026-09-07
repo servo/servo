@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::Ref;
 
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use embedder_traits::{EmbedderControlRequest, RgbColor};
 use html5ever::{local_name, ns};
 use js::context::JSContext;
@@ -275,8 +275,7 @@ fn parse_color_value(value: &str) -> AbsoluteColor {
         ParsingMode::DEFAULT,
         urlextradata,
     );
-    let mut input = ParserInput::new(value);
-    let mut input = Parser::new(&mut input);
+    let mut input = Parser::new(value);
     Color::parse_and_compute(&context, &mut input, None)
         .map(|computed_color| computed_color.resolve_to_absolute(&AbsoluteColor::BLACK))
         .unwrap_or(AbsoluteColor::BLACK)
