@@ -73,7 +73,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::types::PeriodicWave;
 
 pub(crate) enum BaseAudioContextOptions {
@@ -82,16 +82,16 @@ pub(crate) enum BaseAudioContextOptions {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct DecodeResolver {
-    #[conditional_malloc_size_of]
-    pub(crate) promise: Rc<Promise>,
+    pub(crate) promise: TracedPromise,
     #[conditional_malloc_size_of]
     pub(crate) success_callback: Option<Rc<DecodeSuccessCallback>>,
     #[conditional_malloc_size_of]
     pub(crate) error_callback: Option<Rc<DecodeErrorCallback>>,
 }
 
-type BoxedSliceOfPromises = Box<[Rc<Promise>]>;
+type BoxedSliceOfPromises = Box<[TracedPromise]>;
 
 #[dom_struct]
 pub(crate) struct BaseAudioContext {
@@ -103,11 +103,9 @@ pub(crate) struct BaseAudioContext {
     destination: MutNullableDom<AudioDestinationNode>,
     listener: MutNullableDom<AudioListener>,
     /// Resume promises which are soon to be fulfilled by a queued task.
-    #[conditional_malloc_size_of]
     in_flight_resume_promises_queue: DomRefCell<VecDeque<(BoxedSliceOfPromises, ErrorResult)>>,
     /// <https://webaudio.github.io/web-audio-api/#pendingresumepromises>
-    #[conditional_malloc_size_of]
-    pending_resume_promises: DomRefCell<Vec<Rc<Promise>>>,
+    pending_resume_promises: DomRefCell<Vec<TracedPromise>>,
     decode_resolvers: DomRefCell<HashMap<String, DecodeResolver>>,
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate>
     sample_rate: f32,
@@ -180,10 +178,10 @@ impl BaseAudioContext {
         unsafe { IsDetachedArrayBufferObject(*array_buffer.underlying_object()) }
     }
 
-    fn push_pending_resume_promise(&self, promise: &Rc<Promise>) {
+    fn push_pending_resume_promise(&self, promise: &RootedPromise) {
         self.pending_resume_promises
             .borrow_mut()
-            .push(promise.clone());
+            .push(promise.to_traced());
     }
 
     /// Takes the pending resume promises.
@@ -197,11 +195,12 @@ impl BaseAudioContext {
     /// `fulfill_in_flight_resume_promises`, to actually fulfill the promises
     /// which were taken and moved to the in-flight queue.
     fn take_pending_resume_promises(&self, result: ErrorResult) {
-        let pending_resume_promises =
-            std::mem::take(&mut *self.pending_resume_promises.borrow_mut());
         self.in_flight_resume_promises_queue
             .borrow_mut()
-            .push_back((pending_resume_promises.into(), result));
+            .push_back((
+                std::mem::take(&mut *self.pending_resume_promises.borrow_mut()).into(),
+                result,
+            ));
     }
 
     /// Fulfills the next in-flight resume promises queue after running a closure.
@@ -220,9 +219,13 @@ impl BaseAudioContext {
             .in_flight_resume_promises_queue
             .borrow_mut()
             .pop_front()
+            .map(|(promises, result)| {
+                let promises: Vec<RootedPromise> = promises.iter().map(|p| p.root()).collect();
+                (promises, result)
+            })
             .expect("there should be at least one list of in flight resume promises");
         f();
-        for promise in &*promises {
+        for promise in &promises {
             match result {
                 Ok(ref value) => promise.resolve_native(cx, value),
                 Err(ref error) => promise.reject_error(cx, error.clone()),
@@ -299,9 +302,9 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume>
-    fn Resume(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn Resume(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1.
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
 
         // Step 2.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
@@ -498,11 +501,11 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         audio_data: CustomAutoRooterGuard<ArrayBuffer>,
         decode_success_callback: Option<Option<Rc<DecodeSuccessCallback>>>,
         decode_error_callback: Option<Option<Rc<DecodeErrorCallback>>>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // Step 1. If this's relevant global object's associated Document is NOT fully active,
         // return a promise rejected with "InvalidStateError".
         if !self.global().as_window().Document().is_fully_active() {
-            let promise = Promise::new_in_realm(cx);
+            let promise = Promise::new_in_realm_rooted(cx);
             promise.reject_error(
                 cx,
                 Error::InvalidState(Some("Audio context's document is not fully active.".into())),
@@ -511,7 +514,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         }
 
         // Step 2. Let promise be a new promise.
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
 
         // flatten the optionally nullable callbacks
         let decode_success_callback = decode_success_callback.flatten();
@@ -529,7 +532,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 self.decode_resolvers.safe_borrow_mut(cx.no_gc()).insert(
                     uuid.clone(),
                     DecodeResolver {
-                        promise: promise.clone(),
+                        promise: promise.to_traced(),
                         success_callback: decode_success_callback,
                         error_callback: decode_error_callback,
                     },
@@ -586,30 +589,30 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                                 this.sample_rate,
                                 Some(decoded_audio.as_slice()),
                             );
-                            // Potential borrow hazard
-                            let resolver = {
-                                let mut resolvers =
-                                    this.decode_resolvers.safe_borrow_mut(cx.no_gc());
-                                assert!(resolvers.contains_key(&uuid_));
-                                resolvers.remove(&uuid_).unwrap()
-                            };
-                            if let Some(callback) = resolver.success_callback {
+                            let (promise, success_callback) = this
+                                .decode_resolvers
+                                .safe_borrow_mut(cx.no_gc())
+                                .remove(&uuid_)
+                                .map(|resolver| (resolver.promise.root(), resolver.success_callback))
+                                .expect("resolver should exist");
+
+                            if let Some(callback) = success_callback {
                                 let _ = callback.Call__(cx, &buffer, ExceptionHandling::Report);
                             }
-                            resolver.promise.resolve_native(cx, &buffer);
+                            promise.resolve_native(cx, &buffer);
                         }));
                     })
                     .error(move |error| {
                         task_source_clone.queue(task!(audio_decode_eos: move |cx| {
                             let this = this_.root();
-                            // potential borrow hazard
-                            let resolver = {
-                                let mut resolvers =
-                                    this.decode_resolvers.safe_borrow_mut(cx.no_gc());
-                                assert!(resolvers.contains_key(&uuid));
-                                resolvers.remove(&uuid).unwrap()
-                            };
-                            if let Some(callback) = resolver.error_callback {
+                            let (promise, error_callback) = this
+                                .decode_resolvers
+                                .safe_borrow_mut(cx.no_gc())
+                                .remove(&uuid)
+                                .map(|resolver| (resolver.promise.root(), resolver.error_callback))
+                                .expect("resolver should exist");
+
+                            if let Some(callback) = error_callback {
                                 let exception = DOMException::new(
                                     cx,
                                     &this.global(),
@@ -619,7 +622,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                                     callback.Call__(cx, &exception, ExceptionHandling::Report);
                             }
                             let error = cformat!("Audio decode error {:?}", error);
-                            resolver.promise.reject_error(cx, Error::Type(error));
+                            promise.reject_error(cx, Error::Type(error));
                         }));
                     })
                     .build();
@@ -657,11 +660,14 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 let task = task!(decode_audio_data_detached_buffer: move |cx| {
                     let this = this.root();
                     let exception = exception.root();
-                    let resolver = {
-                        let mut resolvers = this.decode_resolvers.safe_borrow_mut(cx.no_gc());
-                        resolvers.remove(&uuid).unwrap()
-                    };
-                    if let Some(callback) = resolver.error_callback {
+                    let error_callback = this
+                        .decode_resolvers
+                        .safe_borrow_mut(cx.no_gc())
+                        .remove(&uuid)
+                        .map(|resolver| resolver.error_callback)
+                        .expect("resolver should exist");
+
+                    if let Some(callback) = error_callback {
                         let _ = callback.Call__(
                             cx,
                             &exception,
@@ -672,7 +678,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 self.decode_resolvers.safe_borrow_mut(cx.no_gc()).insert(
                     uuid_,
                     DecodeResolver {
-                        promise: promise.clone(),
+                        promise: promise.to_traced(),
                         success_callback: None,
                         error_callback: Some(callback),
                     },
