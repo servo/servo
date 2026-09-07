@@ -402,7 +402,6 @@ opt-level = 1
 # An optimized build for CI, to improve test runtime, but with debug assertions turned on.
 [profile.checked-release]
 inherits = "release"
-debug-assertions = true
 overflow-checks = true
 
 # Disk-space is limited in CI, so we disabled features that are not needed for code coverage.
