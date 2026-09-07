@@ -298,7 +298,7 @@ impl HttpCache {
 /// The lifecycle hooks of the HttpCache.
 /// Responsible for moving data to the disk.
 pub struct MemoryCacheLifecycle {
-    pub(crate) disk_cache: Option<std::sync::Arc<DiskCache>>,
+    pub(crate) disk_cache: Option<StdArc<DiskCache>>,
 }
 
 impl MemoryCacheLifecycle {
@@ -313,9 +313,11 @@ impl Lifecycle<CacheKey, CacheEntry> for MemoryCacheLifecycle {
     // Cached Resources that are not complete could get evicted which means they cannot fill their body.
     // We allow unfinished resources to stay in the cache.
     fn is_pinned(&self, _: &CacheKey, val: &CacheEntry) -> bool {
-        val.blocking_read()
-            .iter()
-            .any(|resource| !resource.is_done())
+        tokio::task::block_in_place(|| {
+            val.blocking_read()
+                .iter()
+                .any(|resource| !resource.is_done())
+        })
     }
 
     fn on_evict(&self, _state: &mut Self::RequestState, key: CacheKey, value: CacheEntry) {
