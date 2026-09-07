@@ -58,10 +58,6 @@ pub fn set(preferences: Preferences) {
         preferences.layout_css_alpha_color_function_enabled
     );
     stylo_static_prefs::set_pref!(
-        "layout.css.attr.enabled",
-        preferences.layout_css_attr_enabled
-    );
-    stylo_static_prefs::set_pref!(
         "layout.css.ellipse-corners.enabled",
         preferences.layout_css_ellipse_corners_enabled
     );
@@ -312,7 +308,6 @@ pub struct Preferences {
     pub layout_grid_enabled: bool,
     pub layout_container_queries_enabled: bool,
     pub layout_css_alpha_color_function_enabled: bool,
-    pub layout_css_attr_enabled: bool,
     pub layout_css_ellipse_corners_enabled: bool,
     pub layout_css_progress_function_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
@@ -562,7 +557,6 @@ impl Preferences {
             layout_columns_enabled: false,
             layout_container_queries_enabled: false,
             layout_css_alpha_color_function_enabled: false,
-            layout_css_attr_enabled: false,
             layout_css_ellipse_corners_enabled: false,
             layout_css_progress_function_enabled: false,
             layout_flexbox_balance: false,
