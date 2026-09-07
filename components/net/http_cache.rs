@@ -314,16 +314,14 @@ pub struct CacheWeighter {
 }
 
 impl Weighter<CacheKey, CacheEntry> for CacheWeighter {
+    /// The weight of the entry (given by the  weights hashset).
     fn weight(&self, key: &CacheKey, _: &CacheEntry) -> u64 {
-        let weights = self
-            .weights
+        self.weights
             .read()
             .unwrap()
             .get(key)
             .map(|entry| entry.0)
-            .unwrap_or(1) as u64;
-        log::error!("WEIGHTS {key:?} | {weights:?}");
-        weights
+            .unwrap_or(1) as u64
     }
 }
 
@@ -368,19 +366,19 @@ impl Lifecycle<CacheKey, CacheEntry> for MemoryCacheLifecycle {
             .get(key)
             .map(|entry| entry.1)
             .unwrap_or(true);
-        log::error!("PINNED {key:?} | {pinned:?}");
+        log::info!("{key:?} is pinned? {pinned:?}");
         pinned
     }
 
     fn on_evict(&self, _state: &mut Self::RequestState, key: CacheKey, value: CacheEntry) {
-        log::error!("EViicting {key:?}");
+        log::info!("Evicting entry for {key:?}");
         if let Some(disk_cache_data) = &self.disk_cache {
             let disk_cache_data = disk_cache_data.clone();
             tokio::spawn(async move { disk_cache_data.store(key, value).await });
         }
     }
 
-    fn before_evict(&self, state: &mut Self::RequestState, key: &CacheKey, val: &mut CacheEntry) {
+    fn before_evict(&self, _state: &mut Self::RequestState, key: &CacheKey, _val: &mut CacheEntry) {
         self.cache_weighter
             .weights
             .read()
@@ -1136,13 +1134,13 @@ impl HttpCache {
     /// This updates the weight of the entry in the cache. Should be called when the response is ready.
     pub async fn update_weight(&self, key: CacheKey) {
         if let Some(entry) = self.entries.get(&key) {
-            log::error!("Updating weight of {key:?}");
             let size = entry
                 .read()
                 .await
                 .iter()
                 .filter_map(|resources| resources.size())
                 .sum();
+            log::info!("Updating weight of {key:?} to {size}");
 
             self.entries
                 .entry_async(&key, |key, value| {
