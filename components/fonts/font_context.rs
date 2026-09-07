@@ -1411,7 +1411,8 @@ impl RemoteWebFontDownloader {
                 DownloaderResponseResult::Finished
             },
             FetchResponseMsg::ProcessContentLength(_request_id, size) => {
-                self.response_data.reserve(size - self.response_data.len());
+                self.response_data
+                    .reserve(size.saturating_sub(self.response_data.len()));
                 DownloaderResponseResult::InProcess
             },
         }

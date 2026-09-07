@@ -279,7 +279,8 @@ impl FetchResponseListener for ScriptFetchContext {
     }
 
     fn process_content_length(&mut self, _request_id: RequestId, size: usize) {
-        self.body_bytes.reserve(size - self.body_bytes.len());
+        self.body_bytes
+            .reserve(size.saturating_sub(self.body_bytes.len()));
     }
 }
 

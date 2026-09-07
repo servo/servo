@@ -303,7 +303,7 @@ impl ImageBytes {
 
     fn set_capacity(&mut self, size: usize) {
         match self {
-            ImageBytes::InProgress(items) => items.reserve(size - items.len()),
+            ImageBytes::InProgress(items) => items.reserve(size.saturating_sub(items.len())),
             ImageBytes::Complete(_) => error!("Want to set capacity on already completed image."),
         }
     }
