@@ -72,7 +72,7 @@ impl Sanitizer {
         )
     }
 
-    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-get-a-sanitizer-instance-from-options>
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#get-a-sanitizer-instance-from-options>
     pub(crate) fn get_sanitizer_instance_from_options(
         cx: &mut JSContext,
         window: &Window,
@@ -109,68 +109,50 @@ impl Sanitizer {
             );
         }
 
-        // Step 5. Assert: sanitizerSpec is either a Sanitizer instance, or a dictionary.
-        assert!(matches!(
-            sanitizer_spec,
-            SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(_) |
-                SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerConfig(_)
-        ));
-
-        // Step 6. If sanitizerSpec is a dictionary:
+        // Step 5. If sanitizerSpec is a dictionary:
         if let SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerConfig(
             sanitizer_spec_dictionary,
         ) = sanitizer_spec
         {
-            // Step 6.1. Let sanitizer be a new Sanitizer instance.
+            // Step 6.1. Let sanitizer be a new Sanitizer object.
             let sanitizer = Sanitizer::new_with_proto(cx, window, None, SanitizerConfig::default());
 
-            // Step 6.2. Let setConfigurationResult be the result of set a configuration with
-            // sanitizerSpec and not safe on sanitizer.
-            // Step 6.3. If setConfigurationResult is false, throw a TypeError.
-            if !sanitizer.set_configuration(sanitizer_spec_dictionary, !safe) {
-                return Err(Error::Type(
-                    c"Failed to set a configuration for a new sanitizer".into(),
-                ));
-            }
+            // Step 6.2. Let permissiveDefaults be true if safe is false; false otherwise.
+            let permissive_defaults = !safe;
+
+            // Step 6.3. Configure sanitizer given sanitizerSpec and permissiveDefaults.
+            sanitizer.configure(sanitizer_spec_dictionary, permissive_defaults)?;
 
             // Step 6.4. Set sanitizerSpec to sanitizer.
             sanitizer_spec = SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(sanitizer);
         }
 
-        // Step 7. Assert: sanitizerSpec is a Sanitizer instance.
-        assert!(matches!(
-            sanitizer_spec,
-            SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(_)
-        ));
-
-        // Step 8. Return sanitizerSpec.
+        // Step 6. Return sanitizerSpec.
         if let SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(sanitizer) = sanitizer_spec {
             Ok(sanitizer)
         } else {
-            unreachable!("Guaranteed by Step 7")
+            unreachable!("Guaranteed by Step 4 and 5")
         }
     }
 
-    /// <https://wicg.github.io/sanitizer-api/#sanitizer-set-a-configuration>
-    fn set_configuration(
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#configure-a-sanitizer>
+    fn configure(
         &self,
         mut configuration: SanitizerConfig,
-        allow_comments_pis_and_data_attributes: bool,
-    ) -> bool {
-        // Step 1. Canonicalize configuration with allowCommentsPIsAndDataAttributes.
-        configuration.canonicalize(allow_comments_pis_and_data_attributes);
+        permissive_defaults: bool,
+    ) -> ErrorResult {
+        // Step 1. Canonicalize the configuration configuration with permissiveDefaults.
+        configuration.canonicalize(permissive_defaults);
 
-        // Step 2. If configuration is not valid, then return false.
+        // Step 2. If configuration is not valid, then throw a TypeError.
         if !configuration.is_valid() {
-            return false;
+            return Err(Error::Type(c"The configuration is invalid".into()));
         }
 
-        // Step 3. Set sanitizer’s configuration to configuration.
+        // Step 3. Set sanitizer's configuration to configuration.
         let mut sanitizer_configuration = self.configuration.borrow_mut();
         *sanitizer_configuration = configuration;
-
-        // Step 4. Return true.
-        true
+        Ok(())
     }
 
     /// <https://wicg.github.io/sanitizer-api/#set-and-filter-html>
@@ -226,35 +208,32 @@ impl Sanitizer {
         Ok(())
     }
 
-    /// <https://wicg.github.io/sanitizer-api/#sanitize>
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#sanitize>
     pub(crate) fn sanitize(&self, cx: &mut JSContext, node: &Node, safe: bool) -> ErrorResult {
-        // Step 1. Let configuration be the value of sanitizer’s configuration.
+        // Step 1. Let configuration be sanitizer's configuration.
         {
             let mut configuration = self.configuration.borrow_mut();
 
             // Step 2. Assert: configuration is valid.
             debug_assert!(configuration.is_valid());
 
-            // Step 3. If safe is true, then set configuration to the result of calling remove unsafe on
-            // configuration.
+            // Step 3. If safe is true, then remove unsafe from configuration.
             if safe {
                 configuration.remove_unsafe();
             }
         }
 
         let configuration = self.configuration.borrow();
-        // Step 4. Call sanitize core on node, configuration, and with
-        // handleJavascriptNavigationUrls set to safe.
-        sanitize_core(cx, node, &configuration, safe)
+        // Step 4. Run the inner sanitize steps given node and configuration.
+        inner_samitize_steps(cx, node, &configuration)
     }
 }
 
-/// <https://wicg.github.io/sanitizer-api/#sanitize-core>
-fn sanitize_core(
+/// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#inner-sanitize-steps>
+fn inner_samitize_steps(
     cx: &mut JSContext,
     node: &Node,
     configuration: &SanitizerConfig,
-    handle_javascript_navigation_urls: bool,
 ) -> ErrorResult {
     // Step 1. For each child of node’s children:
     for child in node.children() {
@@ -270,21 +249,22 @@ fn sanitize_core(
         ));
 
         match child.type_id() {
-            // Step 1.2. If child implements DocumentType, then continue.
-            NodeTypeId::DocumentType => continue,
+            // Step 1.2. If child is a DocumentType or Text node, then continue.
+            NodeTypeId::DocumentType | NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
+                continue;
+            },
 
-            // Step 1.3. If child implements Text, then continue.
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => continue,
-
-            // Step 1.4. If child implements Comment:
+            // Step 1.3. If child implements Comment:
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
-                // Step 1.4.1. If configuration["comments"] is not true, then remove child.
+                // Step 1.3.1. If configuration["comments"] is not true, then remove child.
                 if configuration.comments != Some(true) {
                     child.remove_self(cx);
                 }
+                // Step 1.3.2. Continue.
+                continue;
             },
 
-            // Step 1.5. If child implements ProcessingInstruction:
+            // Step 1.4. If child implements ProcessingInstruction:
             //
             // FIXME: <https://github.com/whatwg/html/pull/12118>
             // Currently, processing instructions are parsed as comments, since HTML parsing has not
@@ -322,9 +302,9 @@ fn sanitize_core(
                 }
             },
 
-            // Step 1.6. Otherwise:
+            // Step 1.5. Otherwise:
             _ => {
-                // Step 1.6.1. Let elementName be a SanitizerElementNamespace with child’s local
+                // Step 1.5.1. Let elementName be a SanitizerElementNamespace with child’s local
                 // name and namespace.
                 let child = DomRoot::downcast::<Element>(child).expect("Guaranteed by Step 1.1");
                 let element_name =
@@ -333,7 +313,7 @@ fn sanitize_core(
                         namespace: Some(DOMString::from(&**child.namespace())),
                     });
 
-                // Step 1.6.2. If configuration["replaceWithChildrenElements"] exists and if
+                // Step 1.5.2. If configuration["replaceWithChildrenElements"] exists and if
                 // configuration["replaceWithChildrenElements"] contains elementName:
                 if configuration
                     .replaceWithChildrenElements
@@ -342,23 +322,18 @@ fn sanitize_core(
                         configuration_replace_with_children_elements.contains_item(&element_name)
                     })
                 {
-                    // Step 1.6.2.1. Assert: node does not implement Document.
+                    // Step 1.5.2.1. Assert: node does not implement Document.
                     assert!(!matches!(node.type_id(), NodeTypeId::Document(_)));
 
-                    // Step 1.6.2.2. Call sanitize core on child with configuration and
+                    // Step 1.5.2.2. Call sanitize core on child with configuration and
                     // handleJavascriptNavigationUrls.
-                    sanitize_core(
-                        cx,
-                        child.upcast(),
-                        configuration,
-                        handle_javascript_navigation_urls,
-                    )?;
+                    inner_samitize_steps(cx, child.upcast(), configuration)?;
 
-                    // Step 1.6.2.3. Let fragment be a new DocumentFragment whose node document is
+                    // Step 1.5.2.3. Let fragment be a new DocumentFragment whose node document is
                     // node’s node document.
                     let fragment = DocumentFragment::new(cx, &node.owner_document());
 
-                    // Step 1.6.2.4. For each innerChild of child’s children, append innerChild to
+                    // Step 1.5.2.4. For each innerChild of child’s children, append innerChild to
                     // fragment.
                     let child = DomRoot::upcast::<Node>(child);
                     let fragment = DomRoot::upcast::<Node>(fragment);
@@ -366,46 +341,39 @@ fn sanitize_core(
                         fragment.AppendChild(cx, &inner_child)?;
                     }
 
-                    // Step 1.6.2.5. Replace child with fragment within node.
+                    // Step 1.5.2.5. Replace child with fragment within node.
                     node.ReplaceChild(cx, &fragment, &child)?;
 
-                    // Step 1.6.2.6. Continue.
+                    // Step 1.5.2.6. Continue.
                     continue;
                 }
 
-                // Step 1.6.3. If configuration["elements"] exists:
-                // Step 1.6.3.1. If configuration["elements"] does not contain elementName:
-                if configuration
-                    .elements
-                    .as_ref()
-                    .is_some_and(|configuration_elements| {
-                        !configuration_elements.contains_item(&element_name)
-                    })
-                {
-                    // Step 1.6.3.1.1. Remove child.
-                    child.upcast::<Node>().remove_self(cx);
-
-                    // Step 1.6.3.1.2. Continue.
-                    continue;
+                // Step 1.5.3. If configuration["elements"] exists:
+                if let Some(configuration_elements) = configuration.elements.as_ref() {
+                    // Step 1.5.3.1. If configuration["elements"] does not contain elementName,
+                    // then remove child and continue.
+                    if !configuration_elements.contains_item(&element_name) {
+                        child.upcast::<Node>().remove_self(cx);
+                        continue;
+                    }
+                }
+                // Step 1.5.4. Otherwise:
+                else {
+                    // Step 1.5.4.1. If configuration["removeElements"] contains elementName,
+                    // then remove child and continue.
+                    if configuration.removeElements.as_ref().is_some_and(
+                        |configuration_remove_elements| {
+                            configuration_remove_elements.contains_item(&element_name)
+                        },
+                    ) {
+                        child.upcast::<Node>().remove_self(cx);
+                        continue;
+                    }
                 }
 
-                // Step 1.6.4. Otherwise:
-                // Step 1.6.4.1. If configuration["removeElements"] contains elementName:
-                if configuration.removeElements.as_ref().is_some_and(
-                    |configuration_remove_elements| {
-                        configuration_remove_elements.contains_item(&element_name)
-                    },
-                ) {
-                    // Step 1.6.4.1.1. Remove child.
-                    child.upcast::<Node>().remove_self(cx);
-
-                    // Step 1.6.4.1.2. Continue.
-                    continue;
-                }
-
-                // Step 1.6.5. If elementName equals «[ "name" → "template", "namespace" → HTML
-                // namespace ]», then call sanitize core on child’s template contents with
-                // configuration and handleJavascriptNavigationUrls.
+                // Step 1.5.5. If elementName["name"] is "template" and elementName["namespace"]
+                // is the HTML namespace, then run the inner sanitize steps given child's template
+                // contents and configuration.
                 if element_name.name().str() == "template" &&
                     element_name
                         .namespace()
@@ -415,43 +383,32 @@ fn sanitize_core(
                         .downcast::<HTMLTemplateElement>()
                         .expect("Guaranteed by elementName's name being \"template\"")
                         .Content(cx);
-                    sanitize_core(
-                        cx,
-                        template_contents.upcast(),
-                        configuration,
-                        handle_javascript_navigation_urls,
-                    )?;
+                    inner_samitize_steps(cx, template_contents.upcast(), configuration)?;
                 }
 
-                // Step 1.6.6. If child is a shadow host, then call sanitize core on child’s shadow
-                // root with configuration and handleJavascriptNavigationUrls.
+                // Step 1.5.6. If child is a shadow host, then run the inner sanitize steps given
+                // child's shadow root and configuration.
                 if let Some(shadow_root) = child.shadow_root() {
-                    sanitize_core(
-                        cx,
-                        shadow_root.upcast(),
-                        configuration,
-                        handle_javascript_navigation_urls,
-                    )?;
+                    inner_samitize_steps(cx, shadow_root.upcast(), configuration)?;
                 }
 
-                // Step 1.6.7. Let elementWithLocalAttributes be « [] ».
+                // Step 1.5.7. Let elementWithLocalAttributes be « [] ».
                 let mut element_with_local_attributes =
                     SanitizerElementWithAttributes::String(DOMString::new());
 
-                // Step 1.6.8. If configuration["elements"] exists and configuration["elements"]
-                // contains elementName:
+                // Step 1.5.8. If configuration["elements"] exists and configuration["elements"]
+                // contains elementName, then set elementWithLocalAttributes to
+                // configuration["elements"][elementName].
                 if let Some(configuration_elements) = &configuration.elements &&
                     let Some(found) = configuration_elements.iter().find(|entry| {
                         entry.name() == element_name.name() &&
                             entry.namespace() == element_name.namespace()
                     })
                 {
-                    // Step 1.6.8.1. Set elementWithLocalAttributes to
-                    // configuration["elements"][elementName].
                     element_with_local_attributes = found.clone();
                 }
 
-                // Step 1.6.9. For each attribute in child’s attribute list:
+                // Step 1.5.9. For each attribute in child's attribute list:
                 //
                 // NOTE: We will modify the attribute list in the "for" block. So, we clone the
                 // attribute list first to avoid holding an immutable reference to the attribute
@@ -471,7 +428,7 @@ fn sanitize_core(
                 for (attribute_local_name, attribute_namespace, attribute_value) in
                     attribute_list.iter()
                 {
-                    // Step 1.6.9.1. Let attrName be a SanitizerAttributeNamespace with attribute’s
+                    // Step 1.5.9.1. Let attrName be a SanitizerAttributeNamespace with attribute’s
                     // local name and namespace.
                     let attribute_name = SanitizerAttribute::SanitizerAttributeNamespace(
                         SanitizerAttributeNamespace {
@@ -484,25 +441,25 @@ fn sanitize_core(
                         },
                     );
 
-                    // Step 1.6.9.2. If elementWithLocalAttributes["removeAttributes"] with default
-                    // « » contains attrName:
+                    // Step 1.5.9.2. If elementWithLocalAttributes["removeAttributes"] exists and
+                    // elementWithLocalAttributes["removeAttributes"] contains attrName,
+                    // then remove attribute.
                     if element_with_local_attributes
                         .remove_attributes()
-                        .unwrap_or_default()
-                        .contains_item(&attribute_name)
+                        .is_some_and(|remove_attributes| {
+                            remove_attributes.contains_item(&attribute_name)
+                        })
                     {
-                        // Step 1.6.9.2.1. Remove attribute.
                         child.remove_attribute(cx, attribute_namespace, attribute_local_name);
                     }
-                    // Step 1.6.9.3. Otherwise, if configuration["attributes"] exists:
-                    // Step 1.6.9.3.1. If configuration["attributes"] does not contain attrName and
-                    // elementWithLocalAttributes["attributes"] with default « » does not contain
-                    // attrName, and if "data-" is not a code unit prefix of attribute’s local name
-                    // and namespace is not null or configuration["dataAttributes"] is not true:
-                    //
-                    // FIXME: <https://github.com/WICG/sanitizer-api/issues/380>
+                    // Step 1.5.9.3. Otherwise, if configuration["attributes"] exists:
                     else if let Some(configuration_attributes) = configuration.attributes.as_ref()
                     {
+                        // Step 1.5.9.3.1. If configuration["attributes"] does not contain attrName
+                        // and elementWithLocalAttributes["attributes"] with default « » does not
+                        // contain attrName, and if "data-" is not a code unit prefix of attribute's
+                        // local name or attribute's namespace is not null or
+                        // configuration["dataAttributes"] is not true, then remove attribute.
                         if (!configuration_attributes.contains_item(&attribute_name) &&
                             !element_with_local_attributes
                                 .attributes()
@@ -512,36 +469,31 @@ fn sanitize_core(
                                 !attribute_namespace.is_empty() ||
                                 configuration.dataAttributes != Some(true))
                         {
-                            // Step 1.6.9.3.1.1. Remove attribute.
                             child.remove_attribute(cx, attribute_namespace, attribute_local_name);
                         }
                     }
-                    // Step 1.6.9.4. Otherwise:
+                    // Step 1.5.9.4. Otherwise:
                     else {
-                        // Step 1.6.9.4.1. If elementWithLocalAttributes["attributes"] exists and
-                        // elementWithLocalAttributes["attributes"] does not contain attrName:
+                        // Step 1.5.9.4.1. If elementWithLocalAttributes["attributes"] exists and
+                        // elementWithLocalAttributes["attributes"] does not contain attrName, then
+                        // remove attribute.
+                        // Step 1.5.9.4.2. Otherwise, if configuration["removeAttributes"] contains
+                        // attrName, then remove attribute.
                         if element_with_local_attributes.attributes().is_some_and(
                             |local_attributes| !local_attributes.contains_item(&attribute_name),
-                        ) {
-                            // Step 1.6.9.4.1.1. Remove attribute.
-                            child.remove_attribute(cx, attribute_namespace, attribute_local_name);
-                        }
-                        // Step 1.6.9.4.2. Otherwise, if configuration["removeAttributes"] contains
-                        // attrName:
-                        else if configuration.removeAttributes.as_ref().is_some_and(
+                        ) || configuration.removeAttributes.as_ref().is_some_and(
                             |configuration_remove_attributes| {
                                 configuration_remove_attributes.contains_item(&attribute_name)
                             },
                         ) {
-                            // Step 1.6.9.4.2.1. Remove attribute.
                             child.remove_attribute(cx, attribute_namespace, attribute_local_name);
                         }
                     }
 
-                    // Step 1.6.9.5. If handleJavascriptNavigationUrls:
-                    if handle_javascript_navigation_urls {
-                        // Step 1.6.9.5.1. If «[elementName, attrName]» matches an entry in the
-                        // built-in navigating URL attributes list, and if attribute contains a
+                    // Step 1.5.9.5. If configuration["javascriptURLs"] is not true:
+                    if configuration.javascriptURLs != Some(true) {
+                        // Step 1.5.9.5.1. If the pair (elementName, attrName) matches an entry in
+                        // the built-in navigating URL attributes list, and if attribute contains a
                         // javascript: URL, then remove attribute.
                         if BUILT_IN_NAVIGATING_URL_ATTRIBUTES_LIST.iter().any(
                             |(
@@ -567,7 +519,7 @@ fn sanitize_core(
                             child.remove_attribute(cx, attribute_namespace, attribute_local_name);
                         }
 
-                        // Step 1.6.9.5.2. If child’s namespace is the MathML Namespace and attr’s
+                        // Step 1.5.9.5.2. If child’s namespace is the MathML Namespace and attr’s
                         // local name is "href" and attr’s namespace is null or the XLink namespace
                         // and attr contains a javascript: URL, then remove attribute.
                         if child.namespace() == &ns!(mathml) &&
@@ -579,9 +531,9 @@ fn sanitize_core(
                             child.remove_attribute(cx, attribute_namespace, attribute_local_name);
                         }
 
-                        // Step 1.6.9.5.3. If the built-in animating URL attributes list contains
-                        // «[elementName, attrName]» and attr’s value is "href" or "xlink:href",
-                        // then remove attribute.
+                        // Step 1.5.9.5.3. If the built-in animating URL attributes list contains
+                        // the pair (elementName, attrName) and attr’s value is "href" or
+                        // "xlink:href", then remove attribute.
                         if BUILT_IN_ANIMATING_URL_ATTRIBUTES_LIST.iter().any(
                             |(
                                 entry_element_name,
@@ -608,14 +560,8 @@ fn sanitize_core(
                     }
                 }
 
-                // Step 1.6.10. Call sanitize core on child with configuration and
-                // handleJavascriptNavigationUrls.
-                sanitize_core(
-                    cx,
-                    child.upcast(),
-                    configuration,
-                    handle_javascript_navigation_urls,
-                )?;
+                // Step 1.5.10. Run the inner sanitize steps given child and configuration.
+                inner_samitize_steps(cx, child.upcast(), configuration)?;
             },
         }
     }
@@ -636,7 +582,7 @@ fn contains_javascript_url(attribute_value: &AttrValue) -> bool {
 }
 
 impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
-    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-constructor>
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-sanitizer-constructor>
     fn Constructor(
         cx: &mut JSContext,
         window: &Window,
@@ -644,7 +590,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         configuration: SanitizerConfigOrSanitizerPresets,
     ) -> Fallible<DomRoot<Sanitizer>> {
         let configuration = match configuration {
-            // Step 1. If configuration is a SanitizerPresets string, then:
+            // Step 1. If configuration is a SanitizerPresets string:
             SanitizerConfigOrSanitizerPresets::SanitizerPresets(configuration) => {
                 // Step 1.1. Assert: configuration is default.
                 assert_eq!(configuration, SanitizerPresets::Default);
@@ -655,13 +601,9 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
             SanitizerConfigOrSanitizerPresets::SanitizerConfig(configuration) => configuration,
         };
 
-        // Step 2. Let valid be the return value of set a configuration with configuration and true
-        // on this.
-        // Step 3. If valid is false, then throw a TypeError.
+        // Step 2. Configure this given configuration and true.
         let sanitizer = Sanitizer::new_with_proto(cx, window, proto, SanitizerConfig::default());
-        if !sanitizer.set_configuration(configuration, true) {
-            return Err(Error::Type(c"The configuration is invalid".into()));
-        }
+        sanitizer.configure(configuration, true)?;
 
         Ok(sanitizer)
     }
@@ -1047,6 +989,26 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         }
 
         // Step 9. Return true.
+        true
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-sanitizer-setjavascripturls>
+    fn SetJavascriptURLs(&self, allow: bool) -> bool {
+        // Step 1. Let configuration be this's configuration.
+        let mut configuration = self.configuration.borrow_mut();
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(configuration.is_valid());
+
+        // Step 3. If configuration["javascriptURLs"] is allow, then return false.
+        if configuration.javascriptURLs == Some(allow) {
+            return false;
+        }
+
+        // Step 4. Set configuration["javascriptURLs"] to allow.
+        configuration.javascriptURLs = Some(allow);
+
+        // Step 5. Return true.
         true
     }
 
@@ -1851,86 +1813,87 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
         }
     }
 
-    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-remove-unsafe>
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#remove-unsafe>
     fn remove_unsafe(&mut self) -> bool {
-        // Step 1. Assert: The key set of built-in safe baseline configuration equals « [
-        // "removeElements", "removeAttributes" ] ».
         let baseline = built_in_safe_baseline_configuration();
-        assert!(baseline.removeElements.is_some() && baseline.removeAttributes.is_some());
 
-        // Step 2. Assert: configuration is valid.
+        // Step 1. Assert: configuration is valid.
         debug_assert!(self.is_valid());
 
-        // Step 3. Let result be false.
+        // Step 2. Let result be false.
         let mut result = false;
 
-        // Step 4. For each element in built-in safe baseline configuration["removeElements"]:
+        // Step 3. For each element in built-in safe baseline configuration["removeElements"]:
         for element in baseline.removeElements.unwrap_or_default() {
-            // Step 4.1. Call remove an element element from configuration.
-            // Step 4.2. If the call returned true, set result to true.
+            // Step 3.1. If removing element from configuration is true, then set result to true.
             if self.remove_element(element) {
                 result = true;
             }
         }
 
-        // Step 5. For each attribute in built-in safe baseline configuration["removeAttributes"]:
+        // Step 4. For each attribute in built-in safe baseline configuration["removeAttributes"]:
         for attribute in baseline.removeAttributes.unwrap_or_default() {
-            // Step 5.1. Call remove an attribute attribute from configuration.
-            // Step 5.2. If the call returned true, set result to true.
+            // Step 4.1. If removing attribute from configuration is true, then set result to true.
             if self.remove_attribute(attribute) {
                 result = true;
             }
         }
 
-        // Step 6. For each attribute listed in event handler content attributes:
+        // Step 5. For each attribute listed in event handler content attributes:
         for attribute in CONTENT_EVENT_HANDLER_NAMES.iter() {
-            // Step 6.1. Call remove an attribute attribute from configuration.
-            // Step 6.2. If the call returned true, set result to true.
+            // Step 5.1. If removing attribute from configuration is true, then set result to true.
             let attribute = SanitizerAttribute::String(DOMString::from(*attribute));
             if self.remove_attribute(attribute) {
                 result = true;
             }
         }
 
+        // Step 6. If configuration["javascriptURLs"] is true:
+        if self.javascriptURLs == Some(true) {
+            // Step 6.1. Set result to true.
+            result = true;
+            // Step 6.2. Set configuration["javascriptURLs"] to false.
+            self.javascriptURLs = Some(false);
+        }
+
         // Step 7. Return result.
         result
     }
 
-    /// <https://wicg.github.io/sanitizer-api/#sanitizer-canonicalize-the-configuration>
-    fn canonicalize(&mut self, allow_comments_pis_and_data_attributes: bool) {
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#canonicalize-the-configuration>
+    fn canonicalize(&mut self, permissive_defaults: bool) {
         // Step 1. If neither configuration["elements"] nor configuration["removeElements"] exist,
-        // then set configuration["removeElements"] to « ».
+        // then set configuration["removeElements"] to an empty list.
         if self.elements.is_none() && self.removeElements.is_none() {
             self.removeElements = Some(Vec::new());
         }
 
-        // Step 2. If neither configuration["processingInstructions"] nor
+        // Step 2. If neither configuration["attributes"] nor configuration["removeAttributes"]
+        // exist, then set configuration["removeAttributes"] to to an empty list.
+        if self.attributes.is_none() && self.removeAttributes.is_none() {
+            self.removeAttributes = Some(Vec::new());
+        }
+
+        // Step 3. If neither configuration["processingInstructions"] nor
         // configuration["removeProcessingInstructions"] exist:
         if self.processingInstructions.is_none() && self.removeProcessingInstructions.is_none() {
-            // Step 2.1. If allowCommentsPIsAndDataAttributes is true, then set
-            // configuration["removeProcessingInstructions"] to « ».
-            if allow_comments_pis_and_data_attributes {
+            // Step 2.1. If permissiveDefaults is true, then set
+            // configuration["removeProcessingInstructions"] to an empty list.
+            if permissive_defaults {
                 self.removeProcessingInstructions = Some(Vec::new());
             }
-            // Step 2.2. Otherwise, set configuration["processingInstructions"] to « ».
+            // Step 2.2. Otherwise, set configuration["processingInstructions"] to an empty list.
             else {
                 self.processingInstructions = Some(Vec::new());
             }
         }
 
-        // Step 3. If neither configuration["attributes"] nor configuration["removeAttributes"]
-        // exist, then set configuration["removeAttributes"] to « ».
-        if self.attributes.is_none() && self.removeAttributes.is_none() {
-            self.removeAttributes = Some(Vec::new());
-        }
-
         // Step 4. If configuration["elements"] exists:
         if let Some(elements) = &mut self.elements {
-            // Step 4.1. Let elements be « ».
-            // Step 4.2. For each element of configuration["elements"] do:
-            // Step 4.2.1. Append the result of canonicalize a sanitizer element with attributes
-            // element to elements.
-            // Step 4.3. Set configuration["elements"] to elements.
+            // Step 4.1. Let newElements be « ».
+            // Step 4.2. For each element of configuration["elements"], append the result of
+            // canonicalizing element to newElements.
+            // Step 4.3. Set configuration["elements"] to newElements.
             *elements = elements
                 .iter()
                 .cloned()
@@ -1938,101 +1901,64 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                 .collect();
         }
 
-        // Step 5. If configuration["removeElements"] exists:
+        // Step 5. If configuration["removeElements"] exists, then set
+        // configuration["removeElements"] to the result of canonicalizing
+        // configuration["removeElements"].
         if let Some(remove_elements) = &mut self.removeElements {
-            // Step 5.1. Let elements be « ».
-            // Step 5.2. For each element of configuration["removeElements"] do:
-            // Step 5.2.1. Append the result of canonicalize a sanitizer element element to
-            // elements.
-            // Step 5.3. Set configuration["removeElements"] to elements.
-            *remove_elements = remove_elements
-                .iter()
-                .cloned()
-                .map(SanitizerElement::canonicalize)
-                .collect();
+            *remove_elements = std::mem::take(remove_elements).canonicalize();
         }
 
-        // Step 6. If configuration["replaceWithChildrenElements"] exists:
-        if let Some(replace_with_children_elements) = &mut self.replaceWithChildrenElements {
-            // Step 6.1. Let elements be « ».
-            // Step 6.2. For each element of configuration["replaceWithChildrenElements"] do:
-            // Step 6.2.1. Append the result of canonicalize a sanitizer element element to
-            // elements.
-            // Step 6.3. Set configuration["replaceWithChildrenElements"] to elements.
-            *replace_with_children_elements = replace_with_children_elements
-                .iter()
-                .cloned()
-                .map(SanitizerElement::canonicalize)
-                .collect();
-        }
-
-        // Step 7. If configuration["processingInstructions"] exists:
-        if let Some(processing_instructions) = &mut self.processingInstructions {
-            // Step 7.1. Let processingInstructions be « ».
-            // Step 7.2. For each pi of configuration["processingInstructions"]:
-            // Step 7.2.1. Append the result of canonicalize a sanitizer processing instruction pi
-            // to processingInstructions.
-            // Step 7.3. Set configuration["processingInstructions"] to processingInstructions.
-            *processing_instructions = processing_instructions
-                .iter()
-                .cloned()
-                .map(SanitizerPI::canonicalize)
-                .collect();
-        }
-
-        // Step 8. If configuration["removeProcessingInstructions"] exists:
-        if let Some(remove_processing_instructions) = &mut self.removeProcessingInstructions {
-            // Step 8.1. Let processingInstructions be « ».
-            // Step 8.2. For each pi of configuration["removeProcessingInstructions"]:
-            // Step 8.2.1. Append the result of canonicalize a sanitizer processing instruction
-            // pi to processingInstructions.
-            // Step 8.3. Set configuration["removeProcessingInstructions"] to
-            // processingInstructions.
-            *remove_processing_instructions = remove_processing_instructions
-                .iter()
-                .cloned()
-                .map(SanitizerPI::canonicalize)
-                .collect();
-        }
-
-        // Step 9. If configuration["attributes"] exists:
+        // Step 6. If configuration["attributes"] exists, then set configuration["attributes"] to
+        // the result of canonicalizing configuration["attributes"].
         if let Some(attributes) = &mut self.attributes {
-            // Step 9.1. Let attributes be « ».
-            // Step 9.2. For each attribute of configuration["attributes"] do:
-            // Step 9.2.1. Append the result of canonicalize a sanitizer attribute attribute to
-            // attributes.
-            // Step 9.3. Set configuration["attributes"] to attributes.
-            *attributes = attributes
-                .iter()
-                .cloned()
-                .map(SanitizerAttribute::canonicalize)
-                .collect();
+            *attributes = std::mem::take(attributes).canonicalize()
         }
 
-        // Step 10. If configuration["removeAttributes"] exists:
+        // Step 7. If configuration["removeAttributes"] exists, then set
+        // configuration["removeAttributes"] to the result of canonicalizing
+        // configuration["removeAttributes"].
         if let Some(remove_attributes) = &mut self.removeAttributes {
-            // Step 10.1. Let attributes be « ».
-            // Step 10.2. For each attribute of configuration["removeAttributes"] do:
-            // Step 10.2.1. Append the result of canonicalize a sanitizer attribute attribute to
-            // attributes.
-            // Step 10.3. Set configuration["removeAttributes"] to attributes.
-            *remove_attributes = remove_attributes
-                .iter()
-                .cloned()
-                .map(SanitizerAttribute::canonicalize)
-                .collect();
+            *remove_attributes = std::mem::take(remove_attributes).canonicalize();
+        }
+
+        // Step 8. If configuration["replaceWithChildrenElements"] exists, then set
+        // configuration["replaceWithChildrenElements"] to the result of canonicalizing
+        // configuration["replaceWithChildrenElements"].
+        if let Some(replace_with_children_elements) = &mut self.replaceWithChildrenElements {
+            *replace_with_children_elements =
+                std::mem::take(replace_with_children_elements).canonicalize();
+        }
+
+        // Step 9. If configuration["processingInstructions"] exists, then set
+        // configuration["processingInstructions"] to the result of canonicalizing
+        // configuration["processingInstructions"].
+        if let Some(processing_instructions) = &mut self.processingInstructions {
+            *processing_instructions = std::mem::take(processing_instructions).canonicalize();
+        }
+
+        // Step 10. If configuration["removeProcessingInstructions"] exists, then set
+        // configuration["removeProcessingInstructions"] to the result of canonicalizing
+        // configuration["removeProcessingInstructions"].
+        if let Some(remove_processing_instructions) = &mut self.removeProcessingInstructions {
+            *remove_processing_instructions =
+                std::mem::take(remove_processing_instructions).canonicalize();
         }
 
         // Step 11. If configuration["comments"] does not exist, then set configuration["comments"]
-        // to allowCommentsPIsAndDataAttributes.
+        // to permissiveDefaults.
         if self.comments.is_none() {
-            self.comments = Some(allow_comments_pis_and_data_attributes);
+            self.comments = Some(permissive_defaults);
         }
 
         // Step 12. If configuration["attributes"] exists and configuration["dataAttributes"] does
-        // not exist, then set configuration["dataAttributes"] to allowCommentsPIsAndDataAttributes.
+        // not exist, then set configuration["dataAttributes"] to permissiveDefaults.
         if self.attributes.is_some() && self.dataAttributes.is_none() {
-            self.dataAttributes = Some(allow_comments_pis_and_data_attributes);
+            self.dataAttributes = Some(permissive_defaults);
+        }
+
+        // Step 13. If configuration["javascriptURLs"] does not exist, then set it to permissiveDefaults.
+        if self.javascriptURLs.is_none() {
+            self.javascriptURLs = Some(permissive_defaults)
         }
     }
 }
@@ -2042,6 +1968,8 @@ trait Canonicalization {
     /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-element>
     /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-processing-instruction>
     /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-attribute>
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#canonicalize-a-sanitizer-list>
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#canonicalize-a-processing-instruction-list>
     fn canonicalize(self) -> Self;
 }
 
@@ -2163,6 +2091,19 @@ impl Canonicalization for SanitizerAttribute {
         // Return the result of canonicalize a sanitizer name with attribute and null as the default
         // namespace.
         self.canonicalize_name(None)
+    }
+}
+
+impl<T: Canonicalization> Canonicalization for Vec<T> {
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#canonicalize-a-sanitizer-list>
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#canonicalize-a-processing-instruction-list>
+    fn canonicalize(self) -> Self {
+        // Step 1. Let newList be « ».
+        // Step 2. For each item in list, append the result of canonicalizing item to newList.
+        // Step 3. Return newList.
+        self.into_iter()
+            .map(Canonicalization::canonicalize)
+            .collect()
     }
 }
 
@@ -2807,7 +2748,7 @@ impl SanitizerMember for SetHTMLUnsafeOptions {
     }
 }
 
-/// <https://wicg.github.io/sanitizer-api/#built-in-safe-default-configuration>
+/// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#built-in-safe-default-configuration>
 fn built_in_safe_default_configuration() -> SanitizerConfig {
     const ELEMENTS: &[(&str, &Namespace, &[&str])] = &[
         ("math", &ns!(mathml), &[]),
@@ -3110,6 +3051,7 @@ fn built_in_safe_default_configuration() -> SanitizerConfig {
         removeAttributes: None,
         comments: Some(false),
         dataAttributes: Some(false),
+        javascriptURLs: Some(false),
     }
 }
 
@@ -3145,6 +3087,7 @@ fn built_in_safe_baseline_configuration() -> SanitizerConfig {
         removeAttributes: Some(Vec::new()),
         comments: None,
         dataAttributes: None,
+        javascriptURLs: None,
     }
 }
 
