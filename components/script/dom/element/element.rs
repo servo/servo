@@ -39,7 +39,7 @@ use script_bindings::reflector::DomObject;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::ElementSelectorFlags;
 use selectors::sink::Push;
-use servo_arc::Arc as ServoArc;
+use servo_arc::{Arc as ServoArc, ArcBorrow as ServoArcBorrow};
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
@@ -51,7 +51,7 @@ use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock,
     parse_style_attribute,
 };
-use style::rule_tree::{CascadeLevel, CascadeOrigin};
+use style::rule_tree::{CascadeLevel, CascadeOrigin, StyleSourceBorrow};
 use style::selector_parser::{RestyleDamage, SelectorParser, Snapshot};
 use style::shared_lock::Locked;
 use style::stylesheets::layer_rule::LayerOrder;
@@ -221,6 +221,9 @@ pub struct Element {
     /// passes and is used to lay out this node and populate layout data.
     #[no_trace]
     style_data: DomRefCell<Option<Box<StyleData>>>,
+
+    #[no_trace]
+    mapped_attribute_declarations: DomRefCell<MappedAttributeDeclarations>,
 }
 
 impl fmt::Debug for Element {
@@ -334,6 +337,7 @@ impl Element {
             selector_flags: Default::default(),
             rare_data: Default::default(),
             style_data: Default::default(),
+            mapped_attribute_declarations: Default::default(),
         }
     }
 
@@ -1111,6 +1115,34 @@ impl Element {
         let mut pseudo_styles = data.styles.pseudos.as_array().iter();
         pseudo_styles.any(|style| style.as_deref().is_some_and(&check_styles_fn))
     }
+
+    #[inline]
+    pub(crate) fn clear_mapped_attribute_declarations(&self) {
+        *self.mapped_attribute_declarations.borrow_mut() = Default::default();
+    }
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) struct MappedAttributeDeclarations {
+    #[conditional_malloc_size_of]
+    declarations: Option<ServoArc<Locked<PropertyDeclarationBlock>>>,
+    is_pending: bool,
+}
+
+impl Default for MappedAttributeDeclarations {
+    fn default() -> Self {
+        Self {
+            declarations: Default::default(),
+            is_pending: true,
+        }
+    }
+}
+
+impl MappedAttributeDeclarations {
+    #[inline]
+    pub(crate) fn is_pending(&self) -> bool {
+        self.is_pending
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
@@ -1243,10 +1275,29 @@ impl<'dom> LayoutDom<'dom, Element> {
         }
     }
 
-    pub(crate) fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
-    where
-        V: Push<ApplicableDeclarationBlock>,
-    {
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) fn mapped_attribute_declarations(self) -> &'dom MappedAttributeDeclarations {
+        unsafe {
+            self.unsafe_get()
+                .mapped_attribute_declarations
+                .borrow_for_layout()
+        }
+    }
+
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) unsafe fn initialize_mapped_attribute_declarations(self) {
+        let data = unsafe {
+            self.unsafe_get()
+                .mapped_attribute_declarations
+                .borrow_mut_for_layout()
+        };
+        debug_assert!(data.is_pending);
+        *data = self.compute_mapped_attribute_declarations();
+    }
+
+    fn compute_mapped_attribute_declarations(&self) -> MappedAttributeDeclarations {
         // TODO: Move HTML presentational hints handling into
         // HTMLElement::synthesize_presentational_hints_for_legacy_attributes
         let document = self.upcast::<Node>().owner_doc_for_layout();
@@ -1565,16 +1616,32 @@ impl<'dom> LayoutDom<'dom, Element> {
             }
         }
 
-        let Some(property_declaration_block) = property_declaration_block else {
-            return;
-        };
-
         let shared_lock = &document.shared_style_locks().author;
-        hints.push(ApplicableDeclarationBlock::from_declarations(
-            ServoArc::new(shared_lock.wrap(property_declaration_block)),
-            CascadeLevel::new(CascadeOrigin::PresHints),
-            LayerOrder::root(),
-        ));
+        MappedAttributeDeclarations {
+            declarations: property_declaration_block.map(|property_declaration_block| {
+                ServoArc::new(shared_lock.wrap(property_declaration_block))
+            }),
+            is_pending: false,
+        }
+    }
+
+    pub(crate) fn synthesize_presentational_hints_for_legacy_attributes<'a, V>(self, hints: &mut V)
+    where
+        V: Push<ApplicableDeclarationBlock<'a>>,
+    {
+        let mapped_attribute_declarations = self.mapped_attribute_declarations();
+        assert!(!mapped_attribute_declarations.is_pending);
+        if let Some(declarations) = &mapped_attribute_declarations.declarations {
+            // Safety: The declarations must outlive `'a`. That's the case for the presentational hints
+            // above, which are owned by the element, and which can't change while we're matching.
+            #[expect(unsafe_code)]
+            let declarations = unsafe { ServoArcBorrow::from_ref(&*(&**declarations as *const _)) };
+            hints.push(ApplicableDeclarationBlock::from_declarations(
+                StyleSourceBorrow::from_declarations(declarations),
+                CascadeLevel::new(CascadeOrigin::PresHints),
+                LayerOrder::root(),
+            ));
+        }
     }
 
     pub(crate) fn get_span(self) -> Option<u32> {

@@ -11,7 +11,7 @@ use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, longhands};
 use style::rule_tree::{
-    CascadeLevel, CascadeOrigin, RuleCascadeFlags, RuleTree, StrongRuleNode, StyleSource,
+    CascadeLevel, CascadeOrigin, RuleCascadeFlags, RuleTree, StrongRuleNode, StyleSourceBorrow,
 };
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
 use style::stylesheets::layer_rule::LayerOrder;
@@ -65,7 +65,11 @@ impl<'a> Drop for AutoGCRuleTree<'a> {
     }
 }
 
-fn parse_rules(lock: &SharedRwLock, css: &str) -> Vec<(StyleSource, CascadeLevel)> {
+fn parse_rules(
+    lock: &SharedRwLock,
+    css: &str,
+    callback: impl FnOnce(Vec<(StyleSourceBorrow, CascadeLevel)>),
+) {
     let media = Arc::new(lock.wrap(MediaList::empty()));
 
     let url_data = Url::parse("http://localhost").unwrap().into();
@@ -82,20 +86,26 @@ fn parse_rules(lock: &SharedRwLock, css: &str) -> Vec<(StyleSource, CascadeLevel
     );
     let guard = s.shared_lock.read();
     let rules = s.contents(&guard).rules.read_with(&guard);
-    rules
+    let rules = rules
         .0
         .iter()
         .filter_map(|rule| match *rule {
             CssRule::Style(ref style_rule) => Some((
-                StyleSource::from_declarations(style_rule.read_with(&guard).block.clone()),
+                StyleSourceBorrow::from_declarations(
+                    style_rule.read_with(&guard).block.borrow_arc(),
+                ),
                 CascadeLevel::new(CascadeOrigin::User),
             )),
             _ => None,
         })
-        .collect()
+        .collect();
+    callback(rules);
 }
 
-fn test_insertion(rule_tree: &RuleTree, rules: Vec<(StyleSource, CascadeLevel)>) -> StrongRuleNode {
+fn test_insertion(
+    rule_tree: &RuleTree,
+    rules: Vec<(StyleSourceBorrow, CascadeLevel)>,
+) -> StrongRuleNode {
     rule_tree.insert_ordered_rules(rules.into_iter().map(|(style_source, cascade_level)| {
         (
             style_source,
@@ -106,17 +116,16 @@ fn test_insertion(rule_tree: &RuleTree, rules: Vec<(StyleSource, CascadeLevel)>)
 
 fn test_insertion_style_attribute(
     rule_tree: &RuleTree,
-    rules: &[(StyleSource, CascadeLevel)],
+    rules: &[(StyleSourceBorrow, CascadeLevel)],
     shared_lock: &SharedRwLock,
 ) -> StrongRuleNode {
     let mut rules = rules.to_vec();
+    let declarations = Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
+        PropertyDeclaration::Display(longhands::display::SpecifiedValue::Block),
+        Importance::Normal,
+    )));
     rules.push((
-        StyleSource::from_declarations(Arc::new(shared_lock.wrap(
-            PropertyDeclarationBlock::with_one(
-                PropertyDeclaration::Display(longhands::display::SpecifiedValue::Block),
-                Importance::Normal,
-            ),
-        ))),
+        StyleSourceBorrow::from_declarations(declarations.borrow_arc()),
         CascadeLevel::new(CascadeOrigin::User),
     ));
     test_insertion(rule_tree, rules)
@@ -127,20 +136,22 @@ fn bench_insertion_basic(b: &mut Bencher) {
     let r = RuleTree::new();
     thread_state::initialize(ThreadState::SCRIPT);
     let lock = SharedRwLock::new();
-    let rules_matched = parse_rules(
+    let callback = |rules_matched: Vec<(StyleSourceBorrow<'_>, CascadeLevel)>| {
+        b.iter(|| {
+            let _gc = AutoGCRuleTree::new(&r, &lock);
+
+            for _ in 0..(4000 + 400) {
+                test::black_box(test_insertion(&r, rules_matched.clone()));
+            }
+        })
+    };
+    parse_rules(
         &lock,
         ".foo { width: 200px; } \
          .bar { height: 500px; } \
          .baz { display: block; }",
+        callback,
     );
-
-    b.iter(|| {
-        let _gc = AutoGCRuleTree::new(&r, &lock);
-
-        for _ in 0..(4000 + 400) {
-            test::black_box(test_insertion(&r, rules_matched.clone()));
-        }
-    })
 }
 
 #[bench]
@@ -149,18 +160,20 @@ fn bench_insertion_basic_per_element(b: &mut Bencher) {
     thread_state::initialize(ThreadState::SCRIPT);
 
     let lock = SharedRwLock::new();
-    let rules_matched = parse_rules(
+    let callback = |rules_matched: Vec<(StyleSourceBorrow<'_>, CascadeLevel)>| {
+        b.iter(|| {
+            let _gc = AutoGCRuleTree::new(&r, &lock);
+
+            test::black_box(test_insertion(&r, rules_matched.clone()));
+        });
+    };
+    parse_rules(
         &lock,
         ".foo { width: 200px; } \
          .bar { height: 500px; } \
          .baz { display: block; }",
+        callback,
     );
-
-    b.iter(|| {
-        let _gc = AutoGCRuleTree::new(&r, &lock);
-
-        test::black_box(test_insertion(&r, rules_matched.clone()));
-    });
 }
 
 #[bench]
@@ -172,20 +185,22 @@ fn bench_expensive_insertion(b: &mut Bencher) {
     // matching the same rules, with a different style attribute each
     // one.
     let lock = SharedRwLock::new();
-    let rules_matched = parse_rules(
+    let callback = |rules_matched: Vec<(StyleSourceBorrow<'_>, CascadeLevel)>| {
+        b.iter(|| {
+            let _gc = AutoGCRuleTree::new(&r, &lock);
+
+            for _ in 0..(4000 + 400) {
+                test::black_box(test_insertion_style_attribute(&r, &rules_matched, &lock));
+            }
+        });
+    };
+    parse_rules(
         &lock,
         ".foo { width: 200px; } \
          .bar { height: 500px; } \
          .baz { display: block; }",
+        callback,
     );
-
-    b.iter(|| {
-        let _gc = AutoGCRuleTree::new(&r, &lock);
-
-        for _ in 0..(4000 + 400) {
-            test::black_box(test_insertion_style_attribute(&r, &rules_matched, &lock));
-        }
-    });
 }
 
 #[bench]
@@ -194,31 +209,33 @@ fn bench_insertion_basic_parallel(b: &mut Bencher) {
     thread_state::initialize(ThreadState::SCRIPT);
 
     let lock = SharedRwLock::new();
-    let rules_matched = parse_rules(
+    let callback = |rules_matched: Vec<(StyleSourceBorrow<'_>, CascadeLevel)>| {
+        b.iter(|| {
+            let _gc = AutoGCRuleTree::new(&r, &lock);
+
+            rayon::scope_fifo(|s| {
+                for _ in 0..4 {
+                    s.spawn_fifo(|s| {
+                        for _ in 0..1000 {
+                            test::black_box(test_insertion(&r, rules_matched.clone()));
+                        }
+                        s.spawn_fifo(|_| {
+                            for _ in 0..100 {
+                                test::black_box(test_insertion(&r, rules_matched.clone()));
+                            }
+                        })
+                    })
+                }
+            });
+        });
+    };
+    parse_rules(
         &lock,
         ".foo { width: 200px; } \
          .bar { height: 500px; } \
          .baz { display: block; }",
+        callback,
     );
-
-    b.iter(|| {
-        let _gc = AutoGCRuleTree::new(&r, &lock);
-
-        rayon::scope_fifo(|s| {
-            for _ in 0..4 {
-                s.spawn_fifo(|s| {
-                    for _ in 0..1000 {
-                        test::black_box(test_insertion(&r, rules_matched.clone()));
-                    }
-                    s.spawn_fifo(|_| {
-                        for _ in 0..100 {
-                            test::black_box(test_insertion(&r, rules_matched.clone()));
-                        }
-                    })
-                })
-            }
-        });
-    });
 }
 
 #[bench]
@@ -227,33 +244,39 @@ fn bench_expensive_insertion_parallel(b: &mut Bencher) {
     thread_state::initialize(ThreadState::SCRIPT);
 
     let lock = SharedRwLock::new();
-    let rules_matched = parse_rules(
-        &lock,
-        ".foo { width: 200px; } \
-         .bar { height: 500px; } \
-         .baz { display: block; }",
-    );
+    let callback = |rules_matched: Vec<(StyleSourceBorrow<'_>, CascadeLevel)>| {
+        b.iter(|| {
+            let _gc = AutoGCRuleTree::new(&r, &lock);
 
-    b.iter(|| {
-        let _gc = AutoGCRuleTree::new(&r, &lock);
-
-        rayon::scope_fifo(|s| {
-            for _ in 0..4 {
-                s.spawn_fifo(|s| {
-                    for _ in 0..1000 {
-                        test::black_box(test_insertion_style_attribute(&r, &rules_matched, &lock));
-                    }
-                    s.spawn_fifo(|_| {
-                        for _ in 0..100 {
+            rayon::scope_fifo(|s| {
+                for _ in 0..4 {
+                    s.spawn_fifo(|s| {
+                        for _ in 0..1000 {
                             test::black_box(test_insertion_style_attribute(
                                 &r,
                                 &rules_matched,
                                 &lock,
                             ));
                         }
+                        s.spawn_fifo(|_| {
+                            for _ in 0..100 {
+                                test::black_box(test_insertion_style_attribute(
+                                    &r,
+                                    &rules_matched,
+                                    &lock,
+                                ));
+                            }
+                        })
                     })
-                })
-            }
+                }
+            });
         });
-    });
+    };
+    parse_rules(
+        &lock,
+        ".foo { width: 200px; } \
+         .bar { height: 500px; } \
+         .baz { display: block; }",
+        callback,
+    );
 }
