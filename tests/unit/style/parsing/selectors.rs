@@ -11,7 +11,7 @@ use url::Url;
 
 fn parse_selector<'i>(
     input: &mut Parser<'i, '_>,
-) -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
+) -> Result<SelectorList<SelectorImpl>, ParseError> {
     let mut ns = Namespaces::default();
     ns.prefixes
         .insert("svg".into(), style::Namespace::new(ns!(svg)));

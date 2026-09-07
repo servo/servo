@@ -468,7 +468,7 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
         F: for<'i, 't> FnOnce(
             &ParserContext,
             &mut cssparser::Parser<'i, 't>,
-        ) -> Result<PropertyDeclaration, style_traits::ParseError<'i>>,
+        ) -> Result<PropertyDeclaration, style_traits::ParseError>,
     {
         let element = self.upcast::<Element>();
         if let Some(value) = element.get_attr_val_for_layout(&ns!(), &LocalName::from(attr_name)) {
