@@ -1385,6 +1385,7 @@ impl HTMLImageElement {
     pub(crate) fn set_dimension_attribute_source(&self, no_gc: &NoGC, value: Option<&Element>) {
         self.dimension_attribute_source.set(value);
         self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
+        self.upcast::<Element>().clear_presentational_hints();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-available>

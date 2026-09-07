@@ -19,7 +19,9 @@ use layout_api::{
     ScrollContainerResponse,
 };
 use paint_api::display_list::ScrollTree;
-use script::layout_dom::ServoLayoutNode;
+use script::layout_dom::{
+    ServoDangerousStyleElement, ServoLayoutDomTypeBundle, ServoLayoutElement, ServoLayoutNode,
+};
 use servo_arc::Arc as ServoArc;
 use servo_base::text::Utf32CodeUnits;
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
@@ -30,6 +32,7 @@ use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
+use style::data::ElementStyles;
 use style::dom::{NodeInfo, OpaqueNode};
 use style::properties::style_structs::Font;
 use style::properties::{
@@ -40,7 +43,6 @@ use style::selector_parser::PseudoElement;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::stylist::RuleInclusion;
-use style::traversal::resolve_style;
 use style::values::computed::transform::Matrix3D;
 use style::values::computed::{Float, Size};
 use style::values::generics::font::LineHeight;
@@ -508,6 +510,33 @@ fn resolve_grid_template(
 }
 
 #[expect(unsafe_code)]
+fn resolve_style<'dom>(
+    context: &mut StyleContext<ServoDangerousStyleElement<'dom>>,
+    element: ServoLayoutElement<'dom>,
+    pseudo: Option<&PseudoElement>,
+) -> ElementStyles {
+    let mut ancestor = Some(element);
+    while let Some(current) = ancestor &&
+        current.style_data().is_none()
+    {
+        current.ensure_presentational_hints();
+        ancestor = unsafe {
+            current
+                .as_node()
+                .dangerous_flat_tree_parent()
+                .and_then(|parent| parent.as_element())
+        };
+    }
+
+    style::traversal::resolve_style(
+        context,
+        unsafe { element.dangerous_style_element() },
+        RuleInclusion::All,
+        pseudo,
+        None,
+    )
+}
+
 pub fn process_resolved_style_request_for_unstyled_node(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
@@ -526,13 +555,7 @@ pub fn process_resolved_style_request_for_unstyled_node(
     };
 
     let element = node.as_element().unwrap();
-    let styles = resolve_style(
-        &mut context,
-        unsafe { element.dangerous_style_element() },
-        RuleInclusion::All,
-        pseudo.as_ref(),
-        None,
-    );
+    let styles = resolve_style(&mut context, element, pseudo.as_ref());
     let style = styles.primary();
     let longhand_id = match *property {
         PropertyId::NonCustom(id) => match id.longhand_or_shorthand() {
@@ -1418,16 +1441,13 @@ pub fn process_containing_block_descendant_query(
     false
 }
 
-pub fn process_resolved_font_style_query<'dom, E>(
+pub fn process_resolved_font_style_query<'dom>(
     context: &SharedStyleContext,
-    node: E,
+    node: ServoLayoutNode<'dom>,
     value: &str,
     url_data: ServoUrl,
     shared_lock: &SharedRwLock,
-) -> Option<ServoArc<Font>>
-where
-    E: LayoutNode<'dom>,
-{
+) -> Option<ServoArc<Font>> {
     fn create_font_declaration(
         value: &str,
         url_data: &ServoUrl,
@@ -1456,22 +1476,19 @@ where
         // TODO: Force to set line-height property to 'normal' font property.
         Some(declarations)
     }
-    fn resolve_for_declarations<'dom, E>(
+    fn resolve_for_declarations(
         context: &SharedStyleContext,
         parent_style: Option<&ComputedValues>,
         declarations: PropertyDeclarationBlock,
         shared_lock: &SharedRwLock,
-    ) -> ServoArc<ComputedValues>
-    where
-        E: LayoutNode<'dom>,
-    {
+    ) -> ServoArc<ComputedValues> {
         let parent_style = match parent_style {
             Some(parent) => parent,
             None => context.stylist.device().default_computed_values(),
         };
         context
             .stylist
-            .compute_for_declarations::<DangerousStyleElementOf<'dom, E::ConcreteTypeBundle>>(
+            .compute_for_declarations::<DangerousStyleElementOf<ServoLayoutDomTypeBundle>>(
                 &context.guards,
                 parent_style,
                 ServoArc::new(shared_lock.wrap(declarations)),
@@ -1496,25 +1513,18 @@ where
                 shared: context,
                 thread_local: &mut tlc,
             };
-            #[expect(unsafe_code)]
-            let styles = resolve_style(
-                &mut context,
-                unsafe { element.dangerous_style_element() },
-                RuleInclusion::All,
-                None,
-                None,
-            );
+            let styles = resolve_style(&mut context, element, None);
             styles.primary().clone()
         }
     } else {
         let default_declarations =
             create_font_declaration("10px sans-serif", &url_data, quirks_mode).unwrap();
-        resolve_for_declarations::<E>(context, None, default_declarations, shared_lock)
+        resolve_for_declarations(context, None, default_declarations, shared_lock)
     };
 
     // 3. Resolve the parsed value with resolved styles of the parent element
     let computed_values =
-        resolve_for_declarations::<E>(context, Some(&*parent_style), declarations, shared_lock);
+        resolve_for_declarations(context, Some(&*parent_style), declarations, shared_lock);
 
     Some(computed_values.clone_font())
 }
