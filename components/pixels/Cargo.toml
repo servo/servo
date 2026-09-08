@@ -14,7 +14,6 @@ name = "pixels"
 path = "lib.rs"
 
 [dependencies]
-cfg-if = { workspace = true }
 euclid = { workspace = true }
 image = { workspace = true }
 log = { workspace = true }
@@ -26,7 +25,7 @@ typetag = { workspace = true }
 webrender_api = { workspace = true }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
-ohos-image-kit-sys = { version = "0.3.6", features = ["api-20", "picture"] }
+ohos-image-kit-sys = { version = "0.3.6", features = ["api-20", "picture", "image-source"] }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["html_reports"] }
