@@ -80,14 +80,13 @@ impl Sanitizer {
         safe: bool,
     ) -> Fallible<DomRoot<Sanitizer>> {
         // Step 1. Let sanitizerSpec be "default".
-        // Step 2. If options["sanitizer"] exists, then:
-        // Step 2.1. Set sanitizerSpec to options["sanitizer"]
+        // Step 2. If options["sanitizer"] exists, then set sanitizerSpec to options["sanitizer"].
         //
         // NOTE: options["sanitizer"] always exists.
         let mut sanitizer_spec = options.sanitizer().clone();
 
-        // Step 3. Assert: sanitizerSpec is either a Sanitizer instance, a string which is a
-        // SanitizerPresets member, or a dictionary.
+        // Step 3. Assert: sanitizerSpec is either a Sanitizer instance, a SanitizerPresets member,
+        // or a SanitizerConfig dictionary.
         assert!(matches!(
             sanitizer_spec,
             SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(_) |
@@ -114,16 +113,16 @@ impl Sanitizer {
             sanitizer_spec_dictionary,
         ) = sanitizer_spec
         {
-            // Step 6.1. Let sanitizer be a new Sanitizer object.
+            // Step 5.1. Let sanitizer be a new Sanitizer object.
             let sanitizer = Sanitizer::new_with_proto(cx, window, None, SanitizerConfig::default());
 
-            // Step 6.2. Let permissiveDefaults be true if safe is false; false otherwise.
+            // Step 5.2. Let permissiveDefaults be true if safe is false; false otherwise.
             let permissive_defaults = !safe;
 
-            // Step 6.3. Configure sanitizer given sanitizerSpec and permissiveDefaults.
+            // Step 5.3. Configure sanitizer given sanitizerSpec and permissiveDefaults.
             sanitizer.configure(sanitizer_spec_dictionary, permissive_defaults)?;
 
-            // Step 6.4. Set sanitizerSpec to sanitizer.
+            // Step 5.4. Set sanitizerSpec to sanitizer.
             sanitizer_spec = SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(sanitizer);
         }
 
@@ -225,20 +224,20 @@ impl Sanitizer {
 
         let configuration = self.configuration.borrow();
         // Step 4. Run the inner sanitize steps given node and configuration.
-        inner_samitize_steps(cx, node, &configuration)
+        inner_sanitize_steps(cx, node, &configuration)
     }
 }
 
 /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#inner-sanitize-steps>
-fn inner_samitize_steps(
+fn inner_sanitize_steps(
     cx: &mut JSContext,
     node: &Node,
     configuration: &SanitizerConfig,
 ) -> ErrorResult {
     // Step 1. For each child of node’s children:
     for child in node.children() {
-        // Step 1.1. Assert: child implements Text, Comment, Element, ProcessingInstruction or
-        // DocumentType.
+        // Step 1.1. Assert: child is a Text, Comment, Element, ProcessingInstruction, or
+        // DocumentType node.
         assert!(matches!(
             child.type_id(),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) |
@@ -254,7 +253,7 @@ fn inner_samitize_steps(
                 continue;
             },
 
-            // Step 1.3. If child implements Comment:
+            // Step 1.3. If child is a Comment node:
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
                 // Step 1.3.1. If configuration["comments"] is not true, then remove child.
                 if configuration.comments != Some(true) {
@@ -264,7 +263,7 @@ fn inner_samitize_steps(
                 continue;
             },
 
-            // Step 1.4. If child implements ProcessingInstruction:
+            // Step 1.4. If child is a ProcessingInstruction node:
             //
             // FIXME: <https://github.com/whatwg/html/pull/12118>
             // Currently, processing instructions are parsed as comments, since HTML parsing has not
@@ -272,7 +271,7 @@ fn inner_samitize_steps(
             // <https://github.com/whatwg/html/pull/12118> at HTML specification is merged and the
             // relavent changes are implemented in html5ever.
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
-                // Step 1.5.1. Let piTarget be child’s target.
+                // Step 1.4.1. Let piTarget be child's target.
                 let pi_target = SanitizerPI::String(
                     child
                         .downcast::<ProcessingInstruction>()
@@ -281,12 +280,12 @@ fn inner_samitize_steps(
                         .clone(),
                 );
 
-                // Step 1.5.2. If configuration["processingInstructions"] exists:
-                // Step 1.5.2.1. If configuration["processingInstructions"] does not contain piTarget:
-                // Step 1.5.2.1.1. Remove child.
-                // Step 1.5.3. Otherwise:
-                // Step 1.5.3.1. If configuration["removeProcessingInstructions"] contains piTarget:
-                // Step 1.5.3.1.1. Remove child.
+                // Step 1.4.2. If configuration["processingInstructions"] exists:
+                // Step 1.4.2.1. If configuration["processingInstructions"] does not contain
+                // piTarget, then remove child.
+                // Step 1.4.3. Otherwise:
+                // Step 1.4.3.1. If configuration["removeProcessingInstructions"] contains
+                // piTarget, then remove child.
                 if configuration.processingInstructions.as_ref().is_some_and(
                     |configuration_processing_instructions| {
                         !configuration_processing_instructions.contains_target(&pi_target)
@@ -327,10 +326,10 @@ fn inner_samitize_steps(
 
                     // Step 1.5.2.2. Call sanitize core on child with configuration and
                     // handleJavascriptNavigationUrls.
-                    inner_samitize_steps(cx, child.upcast(), configuration)?;
+                    inner_sanitize_steps(cx, child.upcast(), configuration)?;
 
-                    // Step 1.5.2.3. Let fragment be a new DocumentFragment whose node document is
-                    // node’s node document.
+                    // Step 1.5.2.3. Let fragment be the result of creating a document fragment
+                    // given node's node document.
                     let fragment = DocumentFragment::new(cx, &node.owner_document());
 
                     // Step 1.5.2.4. For each innerChild of child’s children, append innerChild to
@@ -342,7 +341,8 @@ fn inner_samitize_steps(
                     }
 
                     // Step 1.5.2.5. Replace child with fragment within node.
-                    node.ReplaceChild(cx, &fragment, &child)?;
+                    // Assert that this did not throw.
+                    node.ReplaceChild(cx, &fragment, &child).expect("Replacing child with fragment within node should not fail.");
 
                     // Step 1.5.2.6. Continue.
                     continue;
@@ -383,13 +383,13 @@ fn inner_samitize_steps(
                         .downcast::<HTMLTemplateElement>()
                         .expect("Guaranteed by elementName's name being \"template\"")
                         .Content(cx);
-                    inner_samitize_steps(cx, template_contents.upcast(), configuration)?;
+                    inner_sanitize_steps(cx, template_contents.upcast(), configuration)?;
                 }
 
                 // Step 1.5.6. If child is a shadow host, then run the inner sanitize steps given
                 // child's shadow root and configuration.
                 if let Some(shadow_root) = child.shadow_root() {
-                    inner_samitize_steps(cx, shadow_root.upcast(), configuration)?;
+                    inner_sanitize_steps(cx, shadow_root.upcast(), configuration)?;
                 }
 
                 // Step 1.5.7. Let elementWithLocalAttributes be « [] ».
@@ -561,7 +561,7 @@ fn inner_samitize_steps(
                 }
 
                 // Step 1.5.10. Run the inner sanitize steps given child and configuration.
-                inner_samitize_steps(cx, child.upcast(), configuration)?;
+                inner_sanitize_steps(cx, child.upcast(), configuration)?;
             },
         }
     }
@@ -1944,14 +1944,13 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                 std::mem::take(remove_processing_instructions).canonicalize();
         }
 
-        // Step 11. If configuration["comments"] does not exist, then set configuration["comments"]
-        // to permissiveDefaults.
+        // Step 11. If configuration["comments"] does not exist, then set it to permissiveDefaults.
         if self.comments.is_none() {
             self.comments = Some(permissive_defaults);
         }
 
         // Step 12. If configuration["attributes"] exists and configuration["dataAttributes"] does
-        // not exist, then set configuration["dataAttributes"] to permissiveDefaults.
+        // not exist, then set it to permissiveDefaults.
         if self.attributes.is_some() && self.dataAttributes.is_none() {
             self.dataAttributes = Some(permissive_defaults);
         }
