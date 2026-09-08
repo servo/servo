@@ -21,6 +21,7 @@ use crate::setlike;
 
 // setlike<TestBinding>
 #[dom_struct]
+#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
 pub(crate) struct TestBindingSetlikeWithInterface {
     reflector: Reflector,
     #[custom_trace]

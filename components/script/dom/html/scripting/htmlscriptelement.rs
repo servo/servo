@@ -1187,6 +1187,7 @@ impl VirtualMethods for HTMLScriptElement {
             // This method can be invoked while there are script/layout blockers present
             // as DOM mutations have not yet settled. We use a delayed task to avoid
             // running any scripts until the DOM tree is safe for interactions.
+            #[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
             self.owner_document().add_delayed_task(
                 task!(ScriptPrepare: |cx, script: DomRoot<HTMLScriptElement>| {
                     script.prepare(cx, Some(IntroductionType::INJECTED_SCRIPT));

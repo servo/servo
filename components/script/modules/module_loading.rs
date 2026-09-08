@@ -337,6 +337,7 @@ fn continue_dynamic_import(realm: &mut CurrentRealm, promise: Rc<Promise>, modul
     // Step 6. Let linkAndEvaluateClosure be a new Abstract Closure with no parameters that captures
     // module, promiseCapability, and onRejected and performs the following steps when called:
     // Step 7. Let linkAndEvaluate be CreateBuiltinFunction(linkAndEvaluateClosure, 0, "", « »).
+    #[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
     let link_and_evaluate = ModuleHandler::new_boxed(Box::new(
         task!(link_and_evaluate: |cx, global_scope: DomRoot<GlobalScope>, inner_promise: Rc<Promise>, module: ModuleObject| {
             let mut realm = enter_auto_realm(cx, &*global_scope);
