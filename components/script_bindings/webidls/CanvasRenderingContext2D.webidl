@@ -16,7 +16,7 @@ typedef (HTMLOrSVGImageElement or
          /*VideoFrame or*/
          /*CSSImageValue*/ CSSStyleValue) CanvasImageSource;
 
-enum PredefinedColorSpace { "srgb", "display-p3" };
+enum PredefinedColorSpace { "srgb", "srgb-linear", "display-p3", "display-p3-linear" };
 
 enum CanvasColorType { "unorm8", "float16" };
 

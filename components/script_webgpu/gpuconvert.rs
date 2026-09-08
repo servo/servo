@@ -844,8 +844,12 @@ impl WebGPUConvert<wgpu_types::TextureDimension> for GPUTextureDimension {
 impl WebGPUConvert<wgpu_types::PredefinedColorSpace> for PredefinedColorSpace {
     fn convert(self) -> wgpu_types::PredefinedColorSpace {
         match self {
-            PredefinedColorSpace::Srgb => wgpu_types::PredefinedColorSpace::Srgb,
-            PredefinedColorSpace::Display_p3 => wgpu_types::PredefinedColorSpace::DisplayP3,
+            PredefinedColorSpace::Srgb | PredefinedColorSpace::Srgb_linear => {
+                wgpu_types::PredefinedColorSpace::Srgb
+            },
+            PredefinedColorSpace::Display_p3 | PredefinedColorSpace::Display_p3_linear => {
+                wgpu_types::PredefinedColorSpace::DisplayP3
+            },
         }
     }
 }
