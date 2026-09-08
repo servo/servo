@@ -2,33 +2,56 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use markup5ever::{LocalName, Prefix};
+
 use crate::ast::CoreFunction;
 use crate::context::EvaluationCtx;
 use crate::eval::try_extract_nodeset;
 use crate::value::{NodeSet, parse_number_from_string};
-use crate::{Document, Dom, Element, Error, Node, Value};
+use crate::{Attribute, Document, Dom, Element, Error, Node, Value};
+
+struct NodeNameParts {
+    prefix: Option<Prefix>,
+    local_name: LocalName,
+}
+
+fn name_parts<N: Node>(node: &N) -> Option<NodeNameParts> {
+    match (node.as_element(), node.as_attribute()) {
+        (Some(e), _) => Some(NodeNameParts {
+            prefix: e.prefix(),
+            local_name: e.local_name(),
+        }),
+        (_, Some(a)) => Some(NodeNameParts {
+            prefix: a.prefix(),
+            local_name: a.local_name(),
+        }),
+        _ => None,
+    }
+}
 
 /// Returns e.g. "rect" for `<svg:rect>`
 fn local_name<N: Node>(node: &N) -> Option<String> {
-    node.as_element()
-        .map(|element| element.local_name().to_string())
+    name_parts(node).map(|node_name_parts| node_name_parts.local_name.to_string())
 }
 
 /// Returns e.g. "svg:rect" for `<svg:rect>`
 fn name<N: Node>(node: &N) -> Option<String> {
-    node.as_element().map(|element| {
-        if let Some(prefix) = element.prefix().as_ref() {
-            format!("{}:{}", prefix, element.local_name())
-        } else {
-            element.local_name().to_string()
-        }
-    })
+    let NodeNameParts { prefix, local_name } = name_parts(node)?;
+
+    if let Some(prefix) = prefix {
+        Some(format!("{}:{}", prefix, local_name))
+    } else {
+        Some(local_name.to_string())
+    }
 }
 
 /// Returns e.g. the SVG namespace URI for `<svg:rect>`
 fn namespace_uri<N: Node>(node: &N) -> Option<String> {
-    node.as_element()
-        .map(|element| element.namespace().to_string())
+    match (node.as_element(), node.as_attribute()) {
+        (Some(e), _) => Some(e.namespace().to_string()),
+        (_, Some(a)) => Some(a.namespace().to_string()),
+        _ => None,
+    }
 }
 
 /// If s2 is found inside s1, return everything *before* s2. Return all of s1 otherwise.
