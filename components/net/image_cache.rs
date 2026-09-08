@@ -425,12 +425,16 @@ enum KeyCacheState {
     Ready(Vec<WebRenderImageKey>),
     /// Currently filling images from the KeyCache. No new keys will be requested.
     Processing,
+    /// A special state to demark that we will not process any images anymore because the pipeline is shut down.
+    StopProcessing,
 }
 
 impl KeyCacheState {
     fn size(&self) -> usize {
         match self {
-            KeyCacheState::PendingBatch | KeyCacheState::Processing => 0,
+            KeyCacheState::PendingBatch |
+            KeyCacheState::Processing |
+            KeyCacheState::StopProcessing => 0,
             KeyCacheState::Ready(items) => items.len(),
         }
     }
@@ -460,7 +464,7 @@ impl KeyCache {
     }
 
     fn clear(&mut self) {
-        self.cache = KeyCacheState::Ready(vec![]);
+        self.cache = KeyCacheState::StopProcessing;
         self.images_pending_keys.clear();
         self.images_pending_keys.shrink_to_fit();
         self.evicted_images.clear();
@@ -597,6 +601,7 @@ impl ImageCacheStore {
                     self.fetch_more_image_keys();
                 },
             },
+            KeyCacheState::StopProcessing => {},
         }
     }
 
@@ -639,7 +644,7 @@ impl ImageCacheStore {
                     .generate_image_key_async(self.webview_id, self.pipeline_id);
                 self.key_cache.cache = KeyCacheState::PendingBatch
             }
-        } else {
+        } else if KeyCacheState::StopProcessing != self.key_cache.cache {
             unreachable!("A batch was received while we didn't request one")
         }
     }
@@ -1367,8 +1372,9 @@ impl ImageCache for ImageCacheImpl {
 
     fn clear(&self) {
         self.store.lock().clear();
-        self.svg_id_image_id_map.lock().clear();
-        self.svg_id_image_id_map.lock().shrink_to_fit();
+        let mut svg_id_map = self.svg_id_image_id_map.lock();
+        svg_id_map.clear();
+        svg_id_map.shrink_to_fit();
     }
 
     fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>> {
@@ -1423,6 +1429,8 @@ impl ImageCacheStore {
         // since we could forget to explicitly clear).
         self.completed_loads.clear();
         self.completed_loads.shrink_to_fit();
+        self.vector_images.clear();
+        self.vector_images.shrink_to_fit();
         self.rasterized_vector_images.clear();
         self.rasterized_vector_images.shrink_to_fit();
         self.svg_rasterization_task_store.clear();
