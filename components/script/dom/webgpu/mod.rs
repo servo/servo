@@ -4,15 +4,17 @@
 
 use std::sync::Arc;
 
-use script_webgpu::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+use script_webgpu::traits::{
+    WebGPUDomExceptionTrait, WebGPUEventTrait, WebGPUGlobalTrait, WebGPUPromiseTrait,
+};
 use webgpu_traits::Mapping;
 use wgpu_core::resource::BufferAccessError;
 
-use crate::dom::GlobalScope;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::gpu::GPU;
 use crate::dom::promise::RootedPromise;
-use crate::dom::types::{GPUAdapter, GPUBuffer, GPUShaderModule};
+use crate::dom::types::{DOMException, GPUAdapter, GPUBuffer, GPUShaderModule};
+use crate::dom::{Event, GlobalScope};
 use crate::routed_promise::callback_promise;
 
 pub(crate) mod gpu_promise_listener;
@@ -77,14 +79,25 @@ pub(crate) mod gpudevicelostinfo {
     pub(crate) type GPUDeviceLostInfo =
         script_webgpu::gpudevicelostinfo::GPUDeviceLostInfo<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuerror;
+pub(crate) mod gpuerror {
+    pub(crate) type GPUError = script_webgpu::gpuerror::GPUError<crate::DomTypeHolder>;
+}
 pub(crate) mod gpuexternaltexture;
-pub(crate) mod gpuinternalerror;
+pub(crate) mod gpuinternalerror {
+    pub(crate) type GPUInternalError =
+        script_webgpu::gpuinternalerror::GPUInternalError<crate::DomTypeHolder>;
+}
 pub(crate) mod gpumapmode {
     pub(crate) type GPUMapMode = script_webgpu::gpumapmode::GPUMapMode<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuoutofmemoryerror;
-pub(crate) mod gpupipelineerror;
+pub(crate) mod gpuoutofmemoryerror {
+    pub(crate) type GPUOutOfMemoryError =
+        script_webgpu::gpuoutofmemoryerror::GPUOutOfMemoryError<crate::DomTypeHolder>;
+}
+pub(crate) mod gpupipelineerror {
+    pub(crate) type GPUPipelineError =
+        script_webgpu::gpupipelineerror::GPUPipelineError<crate::DomTypeHolder>;
+}
 pub(crate) mod gpupipelinelayout {
     pub(crate) type GPUPipelineLayout =
         script_webgpu::gpupipelinelayout::GPUPipelineLayout<crate::DomTypeHolder>;
@@ -140,8 +153,14 @@ pub(crate) mod gputextureview {
     pub(crate) type GPUTextureView =
         script_webgpu::gputextureview::GPUTextureView<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuuncapturederrorevent;
-pub(crate) mod gpuvalidationerror;
+pub(crate) mod gpuuncapturederrorevent {
+    pub(crate) type GPUUncapturedErrorEvent =
+        script_webgpu::gpuuncapturederrorevent::GPUUncapturedErrorEvent<crate::DomTypeHolder>;
+}
+pub(crate) mod gpuvalidationerror {
+    pub(crate) type GPUValidationError =
+        script_webgpu::gpuvalidationerror::GPUValidationError<crate::DomTypeHolder>;
+}
 pub(crate) mod identityhub {
     pub(crate) type IdentityHub = script_webgpu::identityhub::IdentityHub;
 }
@@ -188,5 +207,28 @@ impl WebGPUPromiseTrait<crate::DomTypeHolder> for RootedPromise {
 impl WebGPUGlobalTrait for GlobalScope {
     fn global_wgpu_id_hub(&self) -> Arc<script_webgpu::identityhub::IdentityHub> {
         self.wgpu_id_hub()
+    }
+}
+
+impl WebGPUEventTrait for Event {
+    fn new_inherited() -> Self {
+        Event::new_inherited()
+    }
+
+    fn init_event(&self, type_: style::Atom, bubbles: bool, cancelable: bool) {
+        Event::init_event(self, type_, bubbles, cancelable);
+    }
+
+    fn IsTrusted(&self) -> bool {
+        script_bindings::codegen::GenericBindings::EventBinding::EventMethods::<crate::DomTypeHolder>::IsTrusted(self)
+    }
+}
+
+impl WebGPUDomExceptionTrait for DOMException {
+    fn new_inherited(
+        message: script_bindings::str::DOMString,
+        name: script_bindings::str::DOMString,
+    ) -> Self {
+        DOMException::new_inherited(message, name)
     }
 }

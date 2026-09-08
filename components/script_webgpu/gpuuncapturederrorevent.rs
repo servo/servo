@@ -5,55 +5,61 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUUncapturedErrorEventInit, GPUUncapturedErrorEventMethods, GPUUncapturedErrorEventWrap,
+};
+use script_bindings::reflector::reflect_dom_object_with_proto_and_wrap;
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUUncapturedErrorEventInit, GPUUncapturedErrorEventMethods,
-};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::event::Event;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::webgpu::gpuerror::GPUError;
+use crate::gpuerror::GPUError;
+use crate::traits::{Equivalence, WebGPUEventTrait};
+use crate::{DomObject, JSTraceable};
 
-#[dom_struct]
-pub(crate) struct GPUUncapturedErrorEvent {
-    event: Event,
+#[dom_struct(special)]
+pub struct GPUUncapturedErrorEvent<D: DomTypes> {
+    event: D::Event,
     #[ignore_malloc_size_of = "Because it is non-owning"]
-    gpu_error: Dom<GPUError>,
+    gpu_error: Dom<GPUError<D>>,
 }
 
-impl GPUUncapturedErrorEvent {
-    fn new_inherited(init: &GPUUncapturedErrorEventInit) -> Self {
+impl<D> GPUUncapturedErrorEvent<D>
+where
+    D: Equivalence,
+    D::Event: WebGPUEventTrait,
+{
+    fn new_inherited(init: &GPUUncapturedErrorEventInit<D>) -> Self {
         Self {
             gpu_error: Dom::from_ref(&init.error),
-            event: Event::new_inherited(),
+            event: D::Event::new_inherited(),
         }
     }
 
-    pub(crate) fn new(
+    pub fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         event_type: Atom,
-        init: &GPUUncapturedErrorEventInit,
+        init: &GPUUncapturedErrorEventInit<D>,
     ) -> DomRoot<Self> {
         Self::new_with_proto(cx, global, None, event_type, init)
     }
 
     fn new_with_proto(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         proto: Option<HandleObject>,
         event_type: Atom,
-        init: &GPUUncapturedErrorEventInit,
+        init: &GPUUncapturedErrorEventInit<D>,
     ) -> DomRoot<Self> {
-        let event = reflect_dom_object_with_proto(
-            cx,
+        let event = reflect_dom_object_with_proto_and_wrap::<D, _, _>(
             Box::new(GPUUncapturedErrorEvent::new_inherited(init)),
             global,
             proto,
+            cx,
+            GPUUncapturedErrorEventWrap::<D>,
         );
         event
             .event
@@ -62,20 +68,24 @@ impl GPUUncapturedErrorEvent {
     }
 }
 
-impl GPUUncapturedErrorEventMethods<crate::DomTypeHolder> for GPUUncapturedErrorEvent {
+impl<D> GPUUncapturedErrorEventMethods<D> for GPUUncapturedErrorEvent<D>
+where
+    D: Equivalence,
+    D::Event: WebGPUEventTrait,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-gpuuncapturederrorevent>
     fn Constructor(
         cx: &mut js::context::JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         proto: Option<HandleObject>,
         event_type: DOMString,
-        init: &GPUUncapturedErrorEventInit,
+        init: &GPUUncapturedErrorEventInit<D>,
     ) -> DomRoot<Self> {
         GPUUncapturedErrorEvent::new_with_proto(cx, global, proto, event_type.into(), init)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-error>
-    fn Error(&self) -> DomRoot<GPUError> {
+    fn Error(&self) -> DomRoot<GPUError<D>> {
         DomRoot::from_ref(&self.gpu_error)
     }
 

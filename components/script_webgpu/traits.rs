@@ -9,7 +9,9 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
 use script_bindings::codegen::GenericUnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use script_bindings::error::Fallible;
 use script_bindings::reflector::DomGlobalGeneric;
+use script_bindings::str::DOMString;
 use servo_base::generic_channel::GenericCallback;
+use stylo_atoms::Atom;
 use webgpu_traits::{
     Mapping, ShaderCompilationInfo, WebGPU, WebGPUAdapterResponse, WebGPUDevice,
     WebGPUDeviceResponse, WebGPUExternalTexture, WebGPUQueue,
@@ -33,7 +35,11 @@ use crate::gpucompilationmessage::GPUCompilationMessage;
 use crate::gpucomputepassencoder::GPUComputePassEncoder;
 use crate::gpucomputepipeline::GPUComputePipeline;
 use crate::gpudevicelostinfo::GPUDeviceLostInfo;
+use crate::gpuerror::GPUError;
+use crate::gpuinternalerror::GPUInternalError;
 use crate::gpumapmode::GPUMapMode;
+use crate::gpuoutofmemoryerror::GPUOutOfMemoryError;
+use crate::gpupipelineerror::GPUPipelineError;
 use crate::gpupipelinelayout::GPUPipelineLayout;
 use crate::gpuqueryset::GPUQuerySet;
 use crate::gpurenderbundle::GPURenderBundle;
@@ -48,6 +54,8 @@ use crate::gpusupportedlimits::GPUSupportedLimits;
 use crate::gputexture::GPUTexture;
 use crate::gputextureusage::GPUTextureUsage;
 use crate::gputextureview::GPUTextureView;
+use crate::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
+use crate::gpuvalidationerror::GPUValidationError;
 use crate::identityhub::IdentityHub;
 use crate::wgsllanguagefeatures::WGSLLanguageFeatures;
 
@@ -69,7 +77,11 @@ pub trait Equivalence =  DomTypes<
         GPUComputePassEncoder = GPUComputePassEncoder<Self>,
         GPUComputePipeline = GPUComputePipeline<Self>,
         GPUDeviceLostInfo = GPUDeviceLostInfo<Self>,
+        GPUError = GPUError<Self>,
+        GPUInternalError = GPUInternalError<Self>,
         GPUMapMode = GPUMapMode<Self>,
+        GPUOutOfMemoryError = GPUOutOfMemoryError<Self>,
+        GPUPipelineError = GPUPipelineError<Self>,
         GPUPipelineLayout = GPUPipelineLayout<Self>,
         GPUQuerySet = GPUQuerySet<Self>,
         GPURenderBundle = GPURenderBundle<Self>,
@@ -84,6 +96,8 @@ pub trait Equivalence =  DomTypes<
         GPUTexture = GPUTexture<Self>,
         GPUTextureUsage = GPUTextureUsage<Self>,
         GPUTextureView = GPUTextureView<Self>,
+        GPUUncapturedErrorEvent = GPUUncapturedErrorEvent<Self>,
+        GPUValidationError = GPUValidationError<Self>,
         WGSLLanguageFeatures = WGSLLanguageFeatures<Self>>;
 }
 
@@ -126,4 +140,15 @@ pub trait GPUDeviceTrait<D: DomTypes>: DomGlobalGeneric<D> {
 
 pub trait GPUExternalTextureTrait<D: DomTypes> {
     fn id(&self) -> WebGPUExternalTexture;
+}
+
+pub trait WebGPUEventTrait {
+    fn new_inherited() -> Self;
+    fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool);
+    #[expect(non_snake_case)]
+    fn IsTrusted(&self) -> bool;
+}
+
+pub trait WebGPUDomExceptionTrait {
+    fn new_inherited(message: DOMString, name: DOMString) -> Self;
 }
