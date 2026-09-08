@@ -95,7 +95,8 @@ pub(crate) fn process_box_area_request(
     stacking_context_tree: &StackingContextTree,
     node: ServoLayoutNode<'_>,
     area: BoxAreaType,
-    exclude_transform_and_inline: bool,
+    include_inline: bool,
+    include_transform: bool,
 ) -> Option<Rect<Au, CSSPixel>> {
     // Borrow fragments to avoid cloning on this hot path for accessibility and
     // `getBoundingClientRect()`.
@@ -103,8 +104,8 @@ pub(crate) fn process_box_area_request(
         let mut rects = fragments
             .iter()
             .filter(|fragment| {
-                !exclude_transform_and_inline ||
-                    fragment
+                include_inline ||
+                    !fragment
                         .retrieve_box_fragment()
                         .is_none_or(|fragment| !fragment.with_style().is_inline_box())
             })
@@ -114,7 +115,7 @@ pub(crate) fn process_box_area_request(
         rects.peek()?;
         let rect_union = rects.fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect));
 
-        if exclude_transform_and_inline {
+        if !include_transform {
             return Some(rect_union);
         }
 

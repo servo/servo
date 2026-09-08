@@ -408,12 +408,16 @@ impl Layout for LayoutThread {
             let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow();
             let stacking_context_tree = stacking_context_tree.as_ref()?;
+            let include_inline = !exclude_transform_and_inline;
+            let include_transform = !exclude_transform_and_inline;
+
             process_box_area_request(
                 self,
                 stacking_context_tree,
                 node,
                 area,
-                exclude_transform_and_inline,
+                include_inline,
+                include_transform,
             )
         })
     }

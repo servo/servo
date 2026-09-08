@@ -966,7 +966,8 @@ impl AccessibilityNode {
             context.stacking_context_tree,
             *dom_node,
             BoxAreaType::Border,
-            true, /* exclude_transform_and_inline */
+            true,  /* include_inline */
+            false, /* include_transform */
         )
         .map(au_rect_to_accesskit_rect);
 
