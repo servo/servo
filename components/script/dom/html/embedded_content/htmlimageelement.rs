@@ -124,7 +124,7 @@ impl ImageRequest {
 pub(crate) struct HTMLImageElement {
     htmlelement: HTMLElement,
     current_request: DomRefCell<ImageRequest>,
-    pending_request: DomRefCell<ImageRequest>,
+    pending_request: DomRefCell<Option<ImageRequest>>,
     form_owner: MutNullableDom<HTMLFormElement>,
     source_set: DomRefCell<SourceSet>,
     /// <https://html.spec.whatwg.org/multipage/#concept-img-dimension-attribute-source>
@@ -424,7 +424,7 @@ impl HTMLImageElement {
             current_request.state = State::CompletelyAvailable;
         }
 
-        self.pending_request.borrow_mut().clear();
+        self.pending_request.borrow_mut().take();
 
         LoadBlocker::terminate(&self.current_request.borrow().blocker, cx);
         // Mark the node dirty
@@ -491,10 +491,9 @@ impl HTMLImageElement {
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending, cx);
 
                 // Step 2. Upgrade the pending request to the current request.
-                mem::swap(
-                    &mut *self.current_request.borrow_mut(),
-                    &mut *self.pending_request.borrow_mut(),
-                );
+                if let Some(pending_request) = self.pending_request.borrow_mut().take() {
+                    *self.current_request.borrow_mut() = pending_request;
+                }
                 self.image_request.set(ImageRequestPhase::Current);
 
                 // Step 3. Set the current request's state to broken.
@@ -535,9 +534,11 @@ impl HTMLImageElement {
     ) {
         match image {
             ImageResponse::Loaded(image, url) => {
-                self.pending_request.borrow_mut().metadata = Some(image.metadata());
-                self.pending_request.borrow_mut().final_url = Some(url);
-                self.pending_request.borrow_mut().image = Some(image);
+                if let Some(pending_request) = &*self.pending_request.borrow_mut() {
+                    pending_request.metadata = Some(image.metadata());
+                    pending_request.final_url = Some(url);
+                    pending_request.image = Some(image);
+                }
                 self.finish_reacting_to_environment_change(
                     selected_source,
                     generation,
@@ -568,10 +569,11 @@ impl HTMLImageElement {
         cx: &mut js::context::JSContext,
     ) {
         let request = match request {
-            ImageRequestPhase::Current => &self.current_request,
-            ImageRequestPhase::Pending => &self.pending_request,
+            ImageRequestPhase::Current => self.current_request.borrow(),
+            ImageRequestPhase::Pending => self.pending_request.borrow(),
         };
         LoadBlocker::terminate(&request.borrow().blocker, cx);
+
         let mut request = request.safe_borrow_mut(cx);
         request.state = state;
         request.image = None;
@@ -1168,7 +1170,9 @@ impl HTMLImageElement {
                 *this.last_selected_source.borrow_mut() = Some(selected_source);
 
                 {
-                    let mut pending_request = this.pending_request.borrow_mut();
+                    {
+                        let mut pending_request = this.pending_request.borrow_mut();
+                    let pending_request = pending_request.as_mut().expect("Should have a pending request");
 
                     // Step 16.3. Set the image request's state to completely available.
                     pending_request.state = State::CompletelyAvailable;
@@ -1178,9 +1182,9 @@ impl HTMLImageElement {
                     // Step 16.4. Add the image to the list of available images using the key key,
                     // with the ignore higher-layer caching flag set.
                     // Already a part of the list of available images due to Step 15.
-
+                    }
                     // Step 16.5. Upgrade the pending request to the current request.
-                    mem::swap(&mut *this.current_request.borrow_mut(), &mut *pending_request);
+                    *this.current_request.borrow_mut() = this.pending_request.borrow_mut().take().expect("Should have a pending request");
                 }
 
                 this.abort_request(State::Unavailable, ImageRequestPhase::Pending, cx);
@@ -1225,16 +1229,7 @@ impl HTMLImageElement {
                 final_url: None,
                 current_pixel_density: None,
             }),
-            pending_request: DomRefCell::new(ImageRequest {
-                state: State::Unavailable,
-                parsed_url: None,
-                source_url: None,
-                image: None,
-                metadata: None,
-                blocker: DomRefCell::new(None),
-                final_url: None,
-                current_pixel_density: None,
-            }),
+            pending_request: DomRefCell::new(None),
             form_owner: Default::default(),
             generation: Default::default(),
             source_set: DomRefCell::new(SourceSet::new()),
