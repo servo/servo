@@ -16,7 +16,7 @@ use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
 use http::{HeaderMap, Method, StatusCode, header};
-use log::{debug, error};
+use log::{debug, error, info};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
@@ -312,15 +312,17 @@ impl Lifecycle<CacheKey, CacheEntry> for MemoryCacheLifecycle {
 
     // Cached Resources that are not complete could get evicted which means they cannot fill their body.
     // We allow unfinished resources to stay in the cache.
-    fn is_pinned(&self, _: &CacheKey, val: &CacheEntry) -> bool {
-        tokio::task::block_in_place(|| {
-            val.blocking_read()
-                .iter()
-                .any(|resource| !resource.is_done())
-        })
+    fn is_pinned(&self, key: &CacheKey, val: &CacheEntry) -> bool {
+        let pinned = val
+            .try_read()
+            .map(|cached_resources| cached_resources.iter().any(|resource| !resource.is_done()))
+            .unwrap_or(true);
+        info!("Key {key:?} is pinned",);
+        pinned
     }
 
     fn on_evict(&self, _state: &mut Self::RequestState, key: CacheKey, value: CacheEntry) {
+        info!("Evicting {key:?} from memory cache");
         if let Some(disk_cache_data) = &self.disk_cache {
             let disk_cache_data = disk_cache_data.clone();
             tokio::spawn(async move { disk_cache_data.store(key, value).await });
