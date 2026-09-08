@@ -9343,6 +9343,7 @@ dependencies = [
  "criterion",
  "euclid",
  "image",
+ "libc",
  "log",
  "malloc_size_of_derive",
  "ohos-image-kit-sys",

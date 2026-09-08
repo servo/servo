@@ -371,6 +371,9 @@ impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
         };
         let string = String::from_utf8_lossy(slice);
 
+        unsafe {
+            libc::free(image_string_target.data as *mut libc::c_void);
+        }
         if let Ok(loop_count) = string.parse::<u32>() {
             if loop_count == 0 {
                 LoopCount::Infinite
