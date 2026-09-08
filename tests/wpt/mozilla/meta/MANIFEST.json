@@ -5825,19 +5825,6 @@
       {}
      ]
     ],
-    "raster-image-layout-size.html": [
-     "259536b44442f9855b741402a15c99a692432c6f",
-     [
-      null,
-      [
-       [
-        "/_mozilla/css/raster-image-layout-size-ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "relative-position-clip.html": [
      "0fb11012847e4da79e9f63c3f3f47bf3f0bad11b",
      [
@@ -10213,10 +10200,6 @@
     ],
     "quotes-simple-ref.html": [
      "b378efaa4ab1acf3435b3fc574a9ff630f34b9f5",
-     []
-    ],
-    "raster-image-layout-size-ref.html": [
-     "7a247d172ca1716e75b318777646a46bd9a5a302",
      []
     ],
     "relative-position-clip-ref.html": [
@@ -14974,13 +14957,6 @@
     ],
     "range-request-file-url.html": [
      "023c39ea1493483da8417fc224bb169b574685d5",
-     [
-      null,
-      {}
-     ]
-    ],
-    "raster-image-source-access.html": [
-     "37346a5d9030d1be84036b4d4e8675bc80245c89",
      [
       null,
       {}
