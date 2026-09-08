@@ -605,7 +605,7 @@ impl ImageCacheStore {
                     self.fetch_more_image_keys();
                 },
             },
-            KeyCacheState::PipelineClosed(_) => {},
+            KeyCacheState::PipelineClosed => {},
         }
     }
 
@@ -626,7 +626,7 @@ impl ImageCacheStore {
     }
 
     /// Insert received keys into the cache and complete the loading of images.
-    fn insert_keys_and_load_images(&mut self, mut image_keys: Vec<WebRenderImageKey>) {
+    fn insert_keys_and_load_images(&mut self, image_keys: Vec<WebRenderImageKey>) {
         match &mut self.key_cache.cache {
             KeyCacheState::Processing => {
                 // We can set this now to ready as we have the exclusive write access.
@@ -653,7 +653,7 @@ impl ImageCacheStore {
             KeyCacheState::PendingBatch | KeyCacheState::Ready(_) => {
                 unreachable!("A batch was received while we didn't request one")
             },
-            PipelineClosed(items) => items.append(&mut image_keys),
+            PipelineClosed => {},
         }
     }
 
@@ -1427,7 +1427,6 @@ impl ImageCacheStore {
                     .and_then(|icon| icon.id)
                     .map(ImageUpdate::DeleteImage),
             )
-            .chain(key_cache.drain(..).map(ImageUpdate::DeleteImage))
             .collect();
         if !deletions.is_empty() {
             self.paint_api
