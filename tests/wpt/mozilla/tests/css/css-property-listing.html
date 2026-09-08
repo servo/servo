@@ -240,6 +240,7 @@ let expected_longhands = [
   "transition-timing-function",
   "translate",
   "unicode-bidi",
+  "user-select",
   "visibility",
   "white-space-collapse",
   "width",
@@ -480,6 +481,7 @@ let expected_shorthands = {
     "text-decoration-style",
     "text-decoration-thickness",
     "text-decoration-color",
+    "user-select",
     "animation-composition",
     "animation-delay",
     "animation-direction",
@@ -912,6 +914,7 @@ let expected_aliases = {
   "-moz-transition-duration": "transition-duration",
   "-moz-transition-property": "transition-property",
   "-moz-transition-timing-function": "transition-timing-function",
+  "-moz-user-select": "user-select",
   "-webkit-align-content": "align-content",
   "-webkit-align-items": "align-items",
   "-webkit-align-self": "align-self",
@@ -950,6 +953,7 @@ let expected_aliases = {
   "-webkit-transition-duration": "transition-duration",
   "-webkit-transition-property": "transition-property",
   "-webkit-transition-timing-function": "transition-timing-function",
+  "-webkit-user-select": "user-select",
 };
 
 let { style } = document.createElement("foo");

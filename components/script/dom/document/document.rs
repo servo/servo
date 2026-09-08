@@ -4936,6 +4936,7 @@ impl Document {
         }
 
         node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
+        node.set_flag(NodeFlags::SELECTION_INHIBITED, false);
         node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false);
     }
 
