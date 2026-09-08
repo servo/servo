@@ -139,7 +139,7 @@ impl ByteTeeUnderlyingSource {
                         &self.branch_2.get().expect("Branch 2 should be set."),
                         self.canceled_1.clone(),
                         self.canceled_2.clone(),
-                        &self.cancel_promise.root(),
+                        &self.cancel_promise.root(cx),
                         self.reader_version.clone(),
                         expected_version,
                     );
@@ -156,7 +156,7 @@ impl ByteTeeUnderlyingSource {
                         &self.branch_2.get().expect("Branch 2 should be set."),
                         self.canceled_1.clone(),
                         self.canceled_2.clone(),
-                        &self.cancel_promise.root(),
+                        &self.cancel_promise.root(cx),
                         self.reader_version.clone(),
                         expected_version,
                     );
@@ -207,7 +207,7 @@ impl ByteTeeUnderlyingSource {
                         self.reading.clone(),
                         self.canceled_1.clone(),
                         self.canceled_2.clone(),
-                        &self.cancel_promise.root(),
+                        &self.cancel_promise.root(cx),
                         self,
                         global,
                     );
@@ -277,7 +277,7 @@ impl ByteTeeUnderlyingSource {
                         self.reading.clone(),
                         self.canceled_1.clone(),
                         self.canceled_2.clone(),
-                        &self.cancel_promise.root(),
+                        &self.cancel_promise.root(cx),
                         self,
                         global,
                     );
@@ -453,7 +453,7 @@ impl ByteTeeUnderlyingSource {
                 }
 
                 // Return cancelPromise.
-                Some(Ok(self.cancel_promise.root()))
+                Some(Ok(self.cancel_promise.root(cx)))
             },
             ByteTeeCancelAlgorithm::Cancel2Algorithm => {
                 // Set canceled_2 to true.
@@ -467,7 +467,7 @@ impl ByteTeeUnderlyingSource {
                     self.resolve_cancel_promise(cx);
                 }
                 // Return cancelPromise.
-                Some(Ok(self.cancel_promise.root()))
+                Some(Ok(self.cancel_promise.root(cx)))
             },
         }
     }

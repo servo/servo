@@ -170,11 +170,11 @@ impl TransformStreamDefaultController {
         self.stream.set(Some(stream));
     }
 
-    pub(crate) fn get_finish_promise(&self) -> Option<RootedPromise> {
+    pub(crate) fn get_finish_promise(&self, cx: &JSContext) -> Option<RootedPromise> {
         self.finish_promise
             .borrow()
             .as_ref()
-            .map(|promise| promise.root())
+            .map(|promise| promise.root(cx))
     }
 
     pub(crate) fn set_finish_promise(&self, promise: &RootedPromise) {

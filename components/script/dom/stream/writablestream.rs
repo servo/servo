@@ -680,7 +680,7 @@ impl WritableStream {
                 .as_ref()
                 .expect("Pending abort request must be Some.")
                 .promise
-                .root();
+                .root(cx);
         }
 
         // Assert: state is "writable" or "erroring".

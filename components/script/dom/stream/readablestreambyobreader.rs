@@ -521,8 +521,8 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>
-    fn Closed(&self) -> RootedPromise {
-        self.closed()
+    fn Closed(&self, cx: &JSContext) -> RootedPromise {
+        self.closed(cx)
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
@@ -532,8 +532,8 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 }
 
 impl ReadableStreamGenericReader for ReadableStreamBYOBReader {
-    fn get_closed_promise(&self) -> RootedPromise {
-        self.closed_promise.borrow().root()
+    fn get_closed_promise(&self, cx: &JSContext) -> RootedPromise {
+        self.closed_promise.borrow().root(cx)
     }
 
     fn set_closed_promise(&self, promise: &RootedPromise) {

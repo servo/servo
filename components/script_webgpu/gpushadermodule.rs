@@ -152,7 +152,10 @@ impl<D: DomTypes> GPUShaderModuleMethods<D> for GPUShaderModule<D> {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo>
-    fn GetCompilationInfo(&self) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
-        self.compilation_info_promise.root()
+    fn GetCompilationInfo(
+        &self,
+        cx: &mut JSContext,
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
+        self.compilation_info_promise.root(cx)
     }
 }

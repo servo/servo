@@ -176,7 +176,7 @@ impl Callback for CancelPromiseFulfillment {
             rooted!(&in(cx) let mut error = UndefinedValue());
             self.readable.get_stored_error(error.handle_mut());
             self.controller
-                .get_finish_promise()
+                .get_finish_promise(cx)
                 .expect("finish promise is not set")
                 .reject_native(cx, &error.handle());
         } else {
@@ -190,7 +190,7 @@ impl Callback for CancelPromiseFulfillment {
 
             // Resolve controller.[[finishPromise]] with undefined.
             self.controller
-                .get_finish_promise()
+                .get_finish_promise(cx)
                 .expect("finish promise is not set")
                 .resolve_native(cx, &());
         }
@@ -216,7 +216,7 @@ impl Callback for CancelPromiseRejection {
 
         // Reject controller.[[finishPromise]] with r.
         self.controller
-            .get_finish_promise()
+            .get_finish_promise(cx)
             .expect("finish promise is not set")
             .reject(cx, v);
     }
@@ -242,7 +242,7 @@ impl Callback for SourceCancelPromiseFulfillment {
         // If cancelPromise was fulfilled, then:
         let finish_promise = self
             .controller
-            .get_finish_promise()
+            .get_finish_promise(cx)
             .expect("finish promise is not set");
 
         let global = &self.writeable.global();
@@ -296,7 +296,7 @@ impl Callback for SourceCancelPromiseRejection {
 
         // Reject controller.[[finishPromise]] with r.
         self.controller
-            .get_finish_promise()
+            .get_finish_promise(cx)
             .expect("finish promise is not set")
             .reject(cx, v);
     }
@@ -319,7 +319,7 @@ impl Callback for FlushPromiseFulfillment {
         // If flushPromise was fulfilled, then:
         let finish_promise = self
             .controller
-            .get_finish_promise()
+            .get_finish_promise(cx)
             .expect("finish promise is not set");
 
         // If readable.[[state]] is "errored", reject controller.[[finishPromise]] with readable.[[storedError]].
@@ -358,7 +358,7 @@ impl Callback for FlushPromiseRejection {
 
         // Reject controller.[[finishPromise]] with r.
         self.controller
-            .get_finish_promise()
+            .get_finish_promise(cx)
             .expect("finish promise is not set")
             .reject(cx, v);
     }
@@ -716,7 +716,7 @@ impl TransformStream {
         let controller = self.controller.get().expect("controller is not set");
 
         // If controller.[[finishPromise]] is not undefined, return controller.[[finishPromise]].
-        if let Some(finish_promise) = controller.get_finish_promise() {
+        if let Some(finish_promise) = controller.get_finish_promise(cx) {
             return Ok(finish_promise);
         }
 
@@ -752,7 +752,7 @@ impl TransformStream {
 
         // Return controller.[[finishPromise]].
         let finish_promise = controller
-            .get_finish_promise()
+            .get_finish_promise(cx)
             .expect("finish promise is not set");
         Ok(finish_promise)
     }
@@ -770,7 +770,7 @@ impl TransformStream {
             .ok_or(Error::Type(c"controller is not set".to_owned()))?;
 
         // If controller.[[finishPromise]] is not undefined, return controller.[[finishPromise]].
-        if let Some(finish_promise) = controller.get_finish_promise() {
+        if let Some(finish_promise) = controller.get_finish_promise(cx) {
             return Ok(finish_promise);
         }
 
@@ -803,12 +803,15 @@ impl TransformStream {
             })),
         );
 
-        let mut realm = enter_auto_realm(cx, global);
-        let realm = &mut realm.current_realm();
-        flush_promise.append_native_handler(realm, &handler);
+        {
+            let mut realm = enter_auto_realm(cx, global);
+            let realm = &mut realm.current_realm();
+            flush_promise.append_native_handler(realm, &handler);
+        }
+
         // Return controller.[[finishPromise]].
         let finish_promise = controller
-            .get_finish_promise()
+            .get_finish_promise(cx)
             .expect("finish promise is not set");
         Ok(finish_promise)
     }
@@ -827,7 +830,7 @@ impl TransformStream {
             .ok_or(Error::Type(c"controller is not set".to_owned()))?;
 
         // If controller.[[finishPromise]] is not undefined, return controller.[[finishPromise]].
-        if let Some(finish_promise) = controller.get_finish_promise() {
+        if let Some(finish_promise) = controller.get_finish_promise(cx) {
             return Ok(finish_promise);
         }
 
@@ -863,13 +866,14 @@ impl TransformStream {
             })),
         );
 
-        // Return controller.[[finishPromise]].
-        let finish_promise = controller
-            .get_finish_promise()
-            .expect("finish promise is not set");
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         cancel_promise.append_native_handler(cx, &handler);
+
+        // Return controller.[[finishPromise]].
+        let finish_promise = controller
+            .get_finish_promise(cx)
+            .expect("finish promise is not set");
         Ok(finish_promise)
     }
 
@@ -894,7 +898,7 @@ impl TransformStream {
             .borrow()
             .as_ref()
             .expect("Promise must be some by now.")
-            .root())
+            .root(cx))
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-error-writable-and-unblock-write>

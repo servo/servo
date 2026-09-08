@@ -57,7 +57,7 @@ pub(crate) trait ReadableStreamGenericReader {
             self.set_closed_promise(&Promise::new_rejected_rooted(cx, global, error.handle()));
 
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true
-            self.get_closed_promise().set_promise_is_handled(cx);
+            self.get_closed_promise(cx).set_promise_is_handled(cx);
         }
     }
 
@@ -96,7 +96,7 @@ pub(crate) trait ReadableStreamGenericReader {
 
             if stream.is_readable() {
                 // If stream.[[state]] is "readable", reject reader.[[closedPromise]] with a TypeError exception.
-                self.get_closed_promise()
+                self.get_closed_promise(cx)
                     .reject_error(cx, Error::Type(c"stream state is not readable".to_owned()));
             } else {
                 // Otherwise, set reader.[[closedPromise]] to a promise rejected with a TypeError exception.
@@ -114,7 +114,7 @@ pub(crate) trait ReadableStreamGenericReader {
                 ));
             }
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
-            self.get_closed_promise().set_promise_is_handled(cx);
+            self.get_closed_promise(cx).set_promise_is_handled(cx);
 
             // Perform ! stream.[[controller]].[[ReleaseSteps]]().
             stream
@@ -130,8 +130,8 @@ pub(crate) trait ReadableStreamGenericReader {
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>
-    fn closed(&self) -> RootedPromise {
-        self.get_closed_promise()
+    fn closed(&self, cx: &JSContext) -> RootedPromise {
+        self.get_closed_promise(cx)
     }
 
     // <https://streams.spec.whatwg.org/#generic-reader-cancel>
@@ -159,7 +159,7 @@ pub(crate) trait ReadableStreamGenericReader {
 
     fn set_closed_promise(&self, promise: &RootedPromise);
 
-    fn get_closed_promise(&self) -> RootedPromise;
+    fn get_closed_promise(&self, cx: &JSContext) -> RootedPromise;
 
     fn as_default_reader(&self) -> Option<&ReadableStreamDefaultReader> {
         None
