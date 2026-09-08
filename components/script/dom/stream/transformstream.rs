@@ -543,7 +543,7 @@ impl TransformStream {
         let readable = create_readable_stream(
             cx,
             global,
-            UnderlyingSourceType::Transform(self, &start_promise),
+            UnderlyingSourceType::Transform(self, start_promise),
             Some(readable_size_algorithm),
             Some(readable_high_water_mark),
         );
