@@ -37,6 +37,8 @@ use uuid::Uuid;
 use webrender_api::ImageKey as WebRenderImageKey;
 use webrender_api::units::DeviceIntSize;
 
+use crate::image_cache::KeyCacheState::PipelineClosed;
+
 thread_local! {
     pub static SUPPRESS_ABORT_IN_PANIC_HOOK: Cell<bool> = const { Cell::new(false) };
 }
@@ -426,7 +428,7 @@ enum KeyCacheState {
     /// Currently filling images from the KeyCache. No new keys will be requested.
     Processing,
     /// A special state to demark that we will not process any images anymore because the pipeline is shut down.
-    StopProcessing,
+    PipelineClosed,
 }
 
 impl KeyCacheState {
@@ -434,7 +436,7 @@ impl KeyCacheState {
         match self {
             KeyCacheState::PendingBatch |
             KeyCacheState::Processing |
-            KeyCacheState::StopProcessing => 0,
+            KeyCacheState::PipelineClosed => 0,
             KeyCacheState::Ready(items) => items.len(),
         }
     }
@@ -463,8 +465,10 @@ impl KeyCache {
         }
     }
 
+    /// Clears all the keys.
     fn clear(&mut self) {
-        self.cache = KeyCacheState::StopProcessing;
+        // Webrender currently does not care about image keys that are requested but never used, so we do not need to delete them.
+        self.cache = KeyCacheState::PipelineClosed;
         self.images_pending_keys.clear();
         self.images_pending_keys.shrink_to_fit();
         self.evicted_images.clear();
@@ -601,7 +605,7 @@ impl ImageCacheStore {
                     self.fetch_more_image_keys();
                 },
             },
-            KeyCacheState::StopProcessing => {},
+            KeyCacheState::PipelineClosed(_) => {},
         }
     }
 
@@ -622,30 +626,34 @@ impl ImageCacheStore {
     }
 
     /// Insert received keys into the cache and complete the loading of images.
-    fn insert_keys_and_load_images(&mut self, image_keys: Vec<WebRenderImageKey>) {
-        if let KeyCacheState::Processing = self.key_cache.cache {
-            // We can set this now to ready as we have the exclusive write access.
-            self.key_cache.cache = KeyCacheState::Ready(image_keys);
-            let len = min(
-                self.key_cache.cache.size(),
-                self.key_cache.images_pending_keys.len(),
-            );
-            let images = self
-                .key_cache
-                .images_pending_keys
-                .drain(0..len)
-                .collect::<Vec<PendingKey>>();
-            for key in images {
-                self.load_image_with_keycache(key);
-            }
-            // It is important to fetch new image keys as we might have missed previous returns.
-            if !self.key_cache.images_pending_keys.is_empty() {
-                self.paint_api
-                    .generate_image_key_async(self.webview_id, self.pipeline_id);
-                self.key_cache.cache = KeyCacheState::PendingBatch
-            }
-        } else if KeyCacheState::StopProcessing != self.key_cache.cache {
-            unreachable!("A batch was received while we didn't request one")
+    fn insert_keys_and_load_images(&mut self, mut image_keys: Vec<WebRenderImageKey>) {
+        match &mut self.key_cache.cache {
+            KeyCacheState::Processing => {
+                // We can set this now to ready as we have the exclusive write access.
+                self.key_cache.cache = KeyCacheState::Ready(image_keys);
+                let len = min(
+                    self.key_cache.cache.size(),
+                    self.key_cache.images_pending_keys.len(),
+                );
+                let images = self
+                    .key_cache
+                    .images_pending_keys
+                    .drain(0..len)
+                    .collect::<Vec<PendingKey>>();
+                for key in images {
+                    self.load_image_with_keycache(key);
+                }
+                // It is important to fetch new image keys as we might have missed previous returns.
+                if !self.key_cache.images_pending_keys.is_empty() {
+                    self.paint_api
+                        .generate_image_key_async(self.webview_id, self.pipeline_id);
+                    self.key_cache.cache = KeyCacheState::PendingBatch
+                }
+            },
+            KeyCacheState::PendingBatch | KeyCacheState::Ready(_) => {
+                unreachable!("A batch was received while we didn't request one")
+            },
+            PipelineClosed(items) => items.append(&mut image_keys),
         }
     }
 
@@ -1419,6 +1427,7 @@ impl ImageCacheStore {
                     .and_then(|icon| icon.id)
                     .map(ImageUpdate::DeleteImage),
             )
+            .chain(key_cache.drain(..).map(ImageUpdate::DeleteImage))
             .collect();
         if !deletions.is_empty() {
             self.paint_api
@@ -1436,6 +1445,7 @@ impl ImageCacheStore {
         self.svg_rasterization_task_store.clear();
         self.pending_loads.clear();
         self.key_cache.clear();
+
         let _ = self.broken_image_icon_image.take();
     }
 }
