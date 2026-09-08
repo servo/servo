@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::VecDeque;
 use std::num::NonZeroU32;
-use std::vec::IntoIter;
 use std::{ptr, slice};
 
 use image::error::ImageFormatHint;
@@ -16,8 +16,9 @@ use ohos_image_kit_sys::native_image::image_source::{
     OH_ImageSourceInfo_GetHeight, OH_ImageSourceInfo_GetWidth, OH_ImageSourceInfo_Release,
     OH_ImageSourceNative, OH_ImageSourceNative_CreateFromDataWithUserBuffer,
     OH_ImageSourceNative_CreatePixelmap, OH_ImageSourceNative_CreatePixelmapList,
-    OH_ImageSourceNative_GetFrameCount, OH_ImageSourceNative_GetImageInfo,
-    OH_ImageSourceNative_GetImageProperty, OH_ImageSourceNative_Release,
+    OH_ImageSourceNative_GetDelayTimeList, OH_ImageSourceNative_GetFrameCount,
+    OH_ImageSourceNative_GetImageInfo, OH_ImageSourceNative_GetImageProperty,
+    OH_ImageSourceNative_Release,
 };
 use ohos_image_kit_sys::native_image::pixelmap::{
     OH_PixelmapNative, OH_PixelmapNative_GetByteCount, OH_PixelmapNative_ReadPixels,
@@ -90,15 +91,15 @@ impl<'a> OhosImageDecoder<'a> {
             }
             let mut decoding_options = ptr::null_mut();
             let res = OH_DecodingOptions_Create(&raw mut decoding_options);
-            OH_DecodingOptions_SetPixelFormat(
-                decoding_options,
-                PIXEL_FORMAT::PIXEL_FORMAT_RGBA_8888.0 as i32,
-            );
             if res != OhosImageResult::SUCCESS || decoding_options.is_null() {
                 log::error!("Something wrong with doing decoding options");
                 OH_ImageSourceNative_Release(image_source_native);
                 return Err(());
             }
+            OH_DecodingOptions_SetPixelFormat(
+                decoding_options,
+                PIXEL_FORMAT::PIXEL_FORMAT_RGBA_8888.0 as i32,
+            );
 
             let mut image_info = ptr::null_mut();
             let res = OH_ImageSourceInfo_Create(&raw mut image_info);
@@ -153,12 +154,14 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
                 OhosImageResult::SUCCESS
             {
                 log::error!("Could not get width");
+                return (0, 0);
             }
             let mut height = 20;
             if OH_ImageSourceInfo_GetHeight(self.image_info, &raw mut height) !=
                 OhosImageResult::SUCCESS
             {
                 log::error!("Could not get height");
+                return (0, 0);
             }
             (width, height)
         }
@@ -187,6 +190,7 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
 
             if write_pixmap_to_buffer(pixmap, buf).is_err() {
                 log::error!("Could not decode pixmap");
+                OH_PixelmapNative_Release(pixmap);
                 return Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()));
             }
 
@@ -211,18 +215,16 @@ unsafe fn write_pixmap_to_buffer(
     buffer: &mut [u8],
 ) -> Result<(), ()> {
     unsafe {
-        let mut buffer_size = 0;
-        if OH_PixelmapNative_GetByteCount(pixmap, &raw mut buffer_size) != OhosImageResult::SUCCESS
-        {
+        let mut byte_count: u32 = 0;
+        if OH_PixelmapNative_GetByteCount(pixmap, &raw mut byte_count) != OhosImageResult::SUCCESS {
             log::error!("Could not get byte count");
             return Err(());
         }
 
-        if OH_PixelmapNative_ReadPixels(
-            pixmap,
-            buffer.as_mut_ptr(),
-            &raw mut buffer_size as *mut usize,
-        ) != OhosImageResult::SUCCESS
+        let mut buffer_size: usize = byte_count.try_into().map_err(|_| ())?;
+        debug_assert!(buffer.len() >= buffer_size);
+        if OH_PixelmapNative_ReadPixels(pixmap, buffer.as_mut_ptr(), &raw mut buffer_size) !=
+            OhosImageResult::SUCCESS
         {
             log::error!("Could not read pixels from pixmap");
             return Err(());
@@ -244,21 +246,25 @@ impl Drop for OHPixelmapNative {
 }
 
 struct OhosAnimationIterator {
-    inner_iterator: IntoIter<*mut OH_PixelmapNative>,
+    inner_vector: VecDeque<OHPixelmapNative>,
     width: u32,
     height: u32,
+    delay_time_list: Vec<i32>,
+    count: usize,
+    sum: u32,
 }
 
 impl Iterator for OhosAnimationIterator {
     type Item = ImageResult<Frame>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next_frame = self.inner_iterator.next().map(OHPixelmapNative)?;
+        let next_frame = self.inner_vector.pop_front()?;
 
         let mut buffer = vec![0_u8; 4 * (self.width * self.height) as usize];
         unsafe {
             if write_pixmap_to_buffer(next_frame.0, &mut buffer).is_err() {
-                log::error!("Could not write pixmap buffer")
+                log::error!("Could not write pixmap buffer");
+                return None;
             }
         };
 
@@ -266,7 +272,17 @@ impl Iterator for OhosAnimationIterator {
             log::error!("failed, aborting");
             return None;
         };
-        Some(Ok(Frame::new(rgba_image)))
+
+        let delay = image::Delay::from_numer_denom_ms(
+            self.delay_time_list
+                .get(self.count)
+                .and_then(|delay_time| (*delay_time).try_into().ok())
+                .unwrap_or(0),
+            self.sum,
+        );
+        let result = Some(Ok(Frame::from_parts(rgba_image, 0, 0, delay)));
+        self.count += 1;
+        result
     }
 }
 
@@ -292,10 +308,35 @@ impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
                 log::error!("Something wrong with creating pixmap list");
             }
 
+            // Collect into native object that will free the allocation automatically if the vector drops
+            let pixmap_vector = result_pixmap_vector
+                .into_iter()
+                .map(OHPixelmapNative)
+                .collect();
+
+            // find dealys
+            let mut delay_time_list = vec![0; frame_count as usize];
+            if OH_ImageSourceNative_GetDelayTimeList(
+                self.image_source,
+                delay_time_list.as_mut_ptr(),
+                delay_time_list.len(),
+            ) != OhosImageResult::SUCCESS
+            {
+                log::error!("Could not get delay times");
+            }
+
+            let sum = delay_time_list
+                .iter()
+                .sum::<i32>()
+                .try_into()
+                .unwrap_or(delay_time_list.len() as u32);
             let frame_iterator = Box::new(OhosAnimationIterator {
-                inner_iterator: result_pixmap_vector.into_iter(),
+                inner_vector: pixmap_vector,
                 width,
                 height,
+                delay_time_list,
+                count: 0,
+                sum,
             });
 
             Frames::new(frame_iterator)
@@ -303,7 +344,7 @@ impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
     }
 
     fn loop_count(&self) -> LoopCount {
-        let mut loop_count_str = "LoopCount".to_owned();
+        let mut loop_count_str = "GIFLoopCount".to_owned();
         let mut image_string = Image_String {
             data: loop_count_str.as_mut_ptr(),
             size: loop_count_str.len(),
@@ -329,7 +370,7 @@ impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
             slice::from_raw_parts(image_string_target.data, image_string_target.size)
         };
         let string = String::from_utf8_lossy(slice);
-        log::error!("STRING FOUND {:?}", string);
+
         if let Ok(loop_count) = string.parse::<u32>() {
             if loop_count == 0 {
                 LoopCount::Infinite

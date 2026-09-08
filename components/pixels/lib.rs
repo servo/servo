@@ -4,7 +4,7 @@
 
 mod default_decoding;
 pub mod image_encoder_decoder_factory;
-#[cfg(target_env = "ohos")]
+//#[cfg(target_env = "ohos")]
 pub mod ohos_decoder;
 mod snapshot;
 
