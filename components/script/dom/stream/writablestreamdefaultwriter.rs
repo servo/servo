@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -17,7 +16,7 @@ use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::{Promise, RootedPromise};
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::stream::writablestream::WritableStream;
 
 /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter>
@@ -25,12 +24,10 @@ use crate::dom::stream::writablestream::WritableStream;
 pub struct WritableStreamDefaultWriter {
     reflector_: Reflector,
 
-    #[conditional_malloc_size_of]
-    ready_promise: RefCell<Rc<Promise>>,
+    ready_promise: RefCell<TracedPromise>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter-closedpromise>
-    #[conditional_malloc_size_of]
-    closed_promise: RefCell<Rc<Promise>>,
+    closed_promise: RefCell<TracedPromise>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter-stream>
     stream: MutNullableDom<WritableStream>,
@@ -40,14 +37,14 @@ impl WritableStreamDefaultWriter {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
     /// The parts that create a new promise.
     fn new_inherited(
-        closed_promise: Rc<Promise>,
-        ready_promise: Rc<Promise>,
+        closed_promise: &RootedPromise,
+        ready_promise: &RootedPromise,
     ) -> WritableStreamDefaultWriter {
         WritableStreamDefaultWriter {
             reflector_: Reflector::new(),
             stream: Default::default(),
-            closed_promise: RefCell::new(closed_promise),
-            ready_promise: RefCell::new(ready_promise),
+            closed_promise: RefCell::new(closed_promise.to_traced()),
+            ready_promise: RefCell::new(ready_promise.to_traced()),
         }
     }
 
@@ -56,13 +53,13 @@ impl WritableStreamDefaultWriter {
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> DomRoot<WritableStreamDefaultWriter> {
-        let closed_promise = Promise::new_in_realm(cx);
-        let ready_promise = Promise::new_in_realm(cx);
+        let closed_promise = Promise::new_in_realm_rooted(cx);
+        let ready_promise = Promise::new_in_realm_rooted(cx);
         reflect_dom_object_with_proto(
             cx,
             Box::new(WritableStreamDefaultWriter::new_inherited(
-                closed_promise,
-                ready_promise,
+                &closed_promise,
+                &ready_promise,
             )),
             global,
             proto,
@@ -169,8 +166,8 @@ impl WritableStreamDefaultWriter {
         self.closed_promise.borrow().set_promise_is_handled(cx);
     }
 
-    pub(crate) fn set_ready_promise(&self, promise: Rc<Promise>) {
-        *self.ready_promise.borrow_mut() = promise;
+    pub(crate) fn set_ready_promise(&self, promise: &RootedPromise) {
+        *self.ready_promise.borrow_mut() = promise.to_traced();
     }
 
     pub(crate) fn resolve_ready_promise_with_undefined(&self, cx: &mut JSContext) {
@@ -188,10 +185,12 @@ impl WritableStreamDefaultWriter {
         global: &GlobalScope,
         error: SafeHandleValue,
     ) {
-        let ready_promise = self.ready_promise.borrow().clone();
+        let is_pending = self.ready_promise.borrow().is_pending();
 
         // If writer.[[readyPromise]].[[PromiseState]] is "pending",
-        if ready_promise.is_pending() {
+        if is_pending {
+            let ready_promise = self.ready_promise.borrow();
+
             // reject writer.[[readyPromise]] with error.
             ready_promise.reject_native(cx, &error);
 
@@ -199,11 +198,11 @@ impl WritableStreamDefaultWriter {
             ready_promise.set_promise_is_handled(cx);
         } else {
             // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
-            let promise = Promise::new_rejected(cx, global, error);
+            let promise = Promise::new_rejected_rooted(cx, global, error);
 
             // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
             promise.set_promise_is_handled(cx);
-            *self.ready_promise.borrow_mut() = promise;
+            *self.ready_promise.borrow_mut() = promise.to_traced();
         }
     }
 
@@ -214,22 +213,23 @@ impl WritableStreamDefaultWriter {
         global: &GlobalScope,
         error: SafeHandleValue,
     ) {
-        let closed_promise = self.closed_promise.borrow().clone();
+        let is_pending = self.closed_promise.borrow().is_pending();
 
         // If writer.[[closedPromise]].[[PromiseState]] is "pending",
-        if closed_promise.is_pending() {
-            // reject writer.[[closedPromise]] with error.
+        if is_pending {
+            let closed_promise = self.closed_promise.borrow();
+
             closed_promise.reject_native(cx, &error);
 
             // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
             closed_promise.set_promise_is_handled(cx);
         } else {
             // Otherwise, set writer.[[closedPromise]] to a promise rejected with error.
-            let promise = Promise::new_rejected(cx, global, error);
+            let promise = Promise::new_rejected_rooted(cx, global, error);
 
             // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
             promise.set_promise_is_handled(cx);
-            *self.closed_promise.borrow_mut() = promise;
+            *self.closed_promise.borrow_mut() = promise.to_traced();
         }
     }
 
@@ -425,9 +425,9 @@ impl WritableStreamDefaultWriter {
 
 impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStreamDefaultWriter {
     /// <https://streams.spec.whatwg.org/#default-writer-closed>
-    fn Closed(&self) -> Rc<Promise> {
+    fn Closed(&self) -> RootedPromise {
         // Return this.[[closedPromise]].
-        return self.closed_promise.borrow().clone();
+        return self.closed_promise.borrow().root();
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-desired-size>
@@ -442,31 +442,31 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-ready>
-    fn Ready(&self) -> Rc<Promise> {
+    fn Ready(&self) -> RootedPromise {
         // Return this.[[readyPromise]].
-        return self.ready_promise.borrow().clone();
+        return self.ready_promise.borrow().root();
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-abort>
-    fn Abort(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) -> Rc<Promise> {
+    fn Abort(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) -> RootedPromise {
         let global = GlobalScope::from_current_realm(cx);
 
         // If this.[[stream]] is undefined,
         if self.stream.get().is_none() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(cx, &global);
+            let promise = Promise::new_rooted(cx, &global);
             promise.reject_error(cx, Error::Type(c"Stream is undefined".to_owned()));
             return promise;
         }
 
         // Return ! WritableStreamDefaultWriterAbort(this, reason).
-        self.abort(cx, &global, reason).into()
+        self.abort(cx, &global, reason)
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-close>
-    fn Close(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn Close(&self, cx: &mut CurrentRealm) -> RootedPromise {
         let global = GlobalScope::from_current_realm(cx);
-        let promise = Promise::new(cx, &global);
+        let promise = Promise::new_rooted(cx, &global);
 
         // Let stream be this.[[stream]].
         let Some(stream) = self.stream.get() else {
@@ -486,7 +486,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
             return promise;
         }
 
-        self.close(cx, &global).into()
+        self.close(cx, &global)
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-release-lock>
@@ -507,19 +507,19 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-write>
-    fn Write(&self, cx: &mut CurrentRealm, chunk: SafeHandleValue) -> Rc<Promise> {
+    fn Write(&self, cx: &mut CurrentRealm, chunk: SafeHandleValue) -> RootedPromise {
         let global = GlobalScope::from_current_realm(cx);
 
         // If this.[[stream]] is undefined,
         if self.stream.get().is_none() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(cx, &global);
+            let promise = Promise::new_rooted(cx, &global);
             promise.reject_error(cx, Error::Type(c"Stream is undefined".to_owned()));
             return promise;
         }
 
         // Return ! WritableStreamDefaultWriterWrite(this, chunk).
-        self.write(cx, &global, chunk).into()
+        self.write(cx, &global, chunk)
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-constructor>

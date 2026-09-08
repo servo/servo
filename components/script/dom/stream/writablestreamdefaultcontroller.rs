@@ -26,7 +26,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes, ValueWithSize};
 use crate::dom::stream::writablestream::WritableStream;
@@ -147,12 +147,11 @@ impl js::gc::Rootable for TransferBackPressurePromiseReaction {}
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct TransferBackPressurePromiseReaction {
     /// The result of reacting to backpressurePromise.
-    #[conditional_malloc_size_of]
-    result_promise: Rc<Promise>,
+    result_promise: TracedPromise,
 
     /// The backpressurePromise.
     #[ignore_malloc_size_of = "nested Rc"]
-    backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
+    backpressure_promise: Rc<RefCell<Option<TracedPromise>>>,
 
     /// The chunk received by the `writeAlgorithm`.
     #[ignore_malloc_size_of = "mozjs"]
@@ -167,8 +166,8 @@ impl Callback for TransferBackPressurePromiseReaction {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         let global = self.result_promise.global();
         // Set backpressurePromise to a new promise.
-        let promise = Promise::new(cx, &global);
-        *self.backpressure_promise.borrow_mut() = Some(promise);
+        let promise = Promise::new_rooted(cx, &global);
+        *self.backpressure_promise.borrow_mut() = Some(promise.to_traced());
 
         // Let result be PackAndPostMessageHandlingError(port, "chunk", chunk).
         rooted!(&in(cx) let mut chunk = UndefinedValue());
@@ -287,11 +286,11 @@ pub enum UnderlyingSinkType {
     /// Algorithms supporting streams transfer are implemented in Rust.
     /// The promise and port used in those algorithms are stored here.
     Transfer {
-        backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
+        backpressure_promise: Rc<RefCell<Option<TracedPromise>>>,
         port: Dom<MessagePort>,
     },
     /// Algorithms supporting transform streams are implemented in Rust.
-    Transform(Dom<TransformStream>, Rc<Promise>),
+    Transform(Dom<TransformStream>, TracedPromise),
 }
 
 impl UnderlyingSinkType {
@@ -518,7 +517,7 @@ impl WritableStreamDefaultController {
     }
 
     #[expect(unsafe_code)]
-    fn start_algorithm(&self, cx: &mut JSContext, global: &GlobalScope) -> Fallible<Rc<Promise>> {
+    fn start_algorithm(&self, cx: &mut JSContext, global: &GlobalScope) -> Fallible<RootedPromise> {
         match &self.underlying_sink_type {
             UnderlyingSinkType::Js {
                 start,
@@ -547,24 +546,24 @@ impl WritableStreamDefaultController {
                         }
                     };
                     if is_promise {
-                        Promise::new_with_js_promise(cx, result_object.handle())
+                        Promise::new_with_js_promise_rooted(cx, result_object.handle())
                     } else {
-                        Promise::new_resolved(cx, global, result.get())
+                        Promise::new_resolved_rooted(cx, global, result.get())
                     }
                 } else {
                     // Let startAlgorithm be an algorithm that returns undefined.
-                    Promise::new_resolved(cx, global, ())
+                    Promise::new_resolved_rooted(cx, global, ())
                 };
 
                 Ok(start_promise)
             },
             UnderlyingSinkType::Transfer { .. } => {
                 // Let startAlgorithm be an algorithm that returns undefined.
-                Ok(Promise::new_resolved(cx, global, ()))
+                Ok(Promise::new_resolved_rooted(cx, global, ()))
             },
             UnderlyingSinkType::Transform(_, start_promise) => {
                 // Let startAlgorithm be an algorithm that returns startPromise.
-                Ok(start_promise.clone())
+                Ok(start_promise.root())
             },
         }
     }
@@ -575,7 +574,7 @@ impl WritableStreamDefaultController {
         cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let result = match &self.underlying_sink_type {
             UnderlyingSinkType::Js {
                 abort,
@@ -594,10 +593,10 @@ impl WritableStreamDefaultController {
                         ExceptionHandling::Rethrow,
                     )
                 } else {
-                    Ok(Promise::new_resolved(cx, global, ()))
+                    Ok(Promise::new_resolved_rooted(cx, global, ()))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new(cx, global);
+                    let promise = Promise::new_rooted(cx, global);
                     promise.reject_error(cx, e);
                     promise
                 })
@@ -612,7 +611,7 @@ impl WritableStreamDefaultController {
                 // Disentangle port.
                 global.disentangle_port(cx, port);
 
-                let promise = Promise::new(cx, global);
+                let promise = Promise::new_rooted(cx, global);
 
                 // If result is an abrupt completion, return a promise rejected with result.[[Value]]
                 if let Err(error) = result {
@@ -643,7 +642,7 @@ impl WritableStreamDefaultController {
         cx: &mut JSContext,
         chunk: SafeHandleValue,
         global: &GlobalScope,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         match &self.underlying_sink_type {
             UnderlyingSinkType::Js {
                 abort: _,
@@ -662,10 +661,10 @@ impl WritableStreamDefaultController {
                         ExceptionHandling::Rethrow,
                     )
                 } else {
-                    Ok(Promise::new_resolved(cx, global, ()))
+                    Ok(Promise::new_resolved_rooted(cx, global, ()))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new(cx, global);
+                    let promise = Promise::new_rooted(cx, global);
                     promise.reject_error(cx, e);
                     promise
                 })
@@ -680,17 +679,17 @@ impl WritableStreamDefaultController {
                 // If backpressurePromise is undefined,
                 // set backpressurePromise to a promise resolved with undefined.
                 if backpressure_promise.borrow().is_none() {
-                    let promise = Promise::new_resolved(cx, global, ());
-                    *backpressure_promise.borrow_mut() = Some(promise);
+                    let promise = Promise::new_resolved_rooted(cx, global, ());
+                    *backpressure_promise.borrow_mut() = Some(promise.to_traced());
                 }
 
                 // Return the result of reacting to backpressurePromise with the following fulfillment steps:
-                let result_promise = Promise::new(cx, global);
+                let result_promise = Promise::new_rooted(cx, global);
                 rooted!(&in(cx) let mut fulfillment_handler = Some(TransferBackPressurePromiseReaction {
                     port: port.clone(),
                     backpressure_promise: backpressure_promise.clone(),
                     chunk: Heap::boxed(chunk.get()),
-                    result_promise: result_promise.clone(),
+                    result_promise: result_promise.to_traced(),
                 }));
                 let handler = PromiseNativeHandler::new(
                     cx,
@@ -717,7 +716,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-closealgorithm>
-    fn call_close_algorithm(&self, cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
+    fn call_close_algorithm(&self, cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
         match &self.underlying_sink_type {
             UnderlyingSinkType::Js {
                 abort: _,
@@ -731,10 +730,10 @@ impl WritableStreamDefaultController {
                 let result = if let Some(algo) = algo {
                     algo.Call_(cx, &this_object.handle(), ExceptionHandling::Rethrow)
                 } else {
-                    Ok(Promise::new_resolved(cx, global, ()))
+                    Ok(Promise::new_resolved_rooted(cx, global, ()))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new(cx, global);
+                    let promise = Promise::new_rooted(cx, global);
                     promise.reject_error(cx, e);
                     promise
                 })
@@ -752,7 +751,7 @@ impl WritableStreamDefaultController {
                 global.disentangle_port(cx, port);
 
                 // Return a promise resolved with undefined.
-                Promise::new_resolved(cx, global, ())
+                Promise::new_resolved_rooted(cx, global, ())
             },
             UnderlyingSinkType::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSinkCloseAlgorithm(stream).

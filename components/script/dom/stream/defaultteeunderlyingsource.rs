@@ -16,7 +16,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
 use crate::dom::types::{ReadableStream, ReadableStreamDefaultReader};
@@ -49,8 +49,7 @@ pub(crate) struct DefaultTeeUnderlyingSource {
     reason_1: Rc<Heap<Value>>,
     #[ignore_malloc_size_of = "mozjs"]
     reason_2: Rc<Heap<Value>>,
-    #[conditional_malloc_size_of]
-    cancel_promise: Rc<Promise>,
+    cancel_promise: TracedPromise,
     tee_cancel_algorithm: DefaultTeeCancelAlgorithm,
 }
 
@@ -68,7 +67,7 @@ impl DefaultTeeUnderlyingSource {
         clone_for_branch_2: Rc<Cell<bool>>,
         reason_1: Rc<Heap<Value>>,
         reason_2: Rc<Heap<Value>>,
-        cancel_promise: Rc<Promise>,
+        cancel_promise: &RootedPromise,
         tee_cancel_algorithm: DefaultTeeCancelAlgorithm,
     ) -> DomRoot<DefaultTeeUnderlyingSource> {
         reflect_dom_object(
@@ -86,7 +85,7 @@ impl DefaultTeeUnderlyingSource {
                 clone_for_branch_2,
                 reason_1,
                 reason_2,
-                cancel_promise,
+                cancel_promise: cancel_promise.to_traced(),
                 tee_cancel_algorithm,
             }),
             &*stream.global(),
@@ -103,13 +102,13 @@ impl DefaultTeeUnderlyingSource {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     /// Let pullAlgorithm be the following steps:
-    pub(crate) fn pull_algorithm(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+    pub(crate) fn pull_algorithm(&self, cx: &mut js::context::JSContext) -> RootedPromise {
         // If reading is true,
         if self.reading.get() {
             // Set readAgain to true.
             self.read_again.set(true);
             // Return a promise resolved with undefined.
-            return Promise::new_resolved(cx, &self.stream.global(), ());
+            return Promise::new_resolved_rooted(cx, &self.stream.global(), ());
         }
 
         // Set reading to true.
@@ -126,7 +125,7 @@ impl DefaultTeeUnderlyingSource {
             self.canceled_1.clone(),
             self.canceled_2.clone(),
             self.clone_for_branch_2.clone(),
-            self.cancel_promise.clone(),
+            &self.cancel_promise.root(),
             self,
         );
 
@@ -139,7 +138,7 @@ impl DefaultTeeUnderlyingSource {
         self.reader.read(cx, &read_request);
 
         // Return a promise resolved with undefined.
-        Promise::new_resolved(cx, &self.stream.global(), ())
+        Promise::new_resolved_rooted(cx, &self.stream.global(), ())
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
@@ -151,7 +150,7 @@ impl DefaultTeeUnderlyingSource {
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-    ) -> Option<Result<Rc<Promise>, Error>> {
+    ) -> Option<Result<RootedPromise, Error>> {
         match self.tee_cancel_algorithm {
             DefaultTeeCancelAlgorithm::Cancel1Algorithm => {
                 // Set canceled_1 to true.
@@ -165,7 +164,7 @@ impl DefaultTeeUnderlyingSource {
                     self.resolve_cancel_promise(cx, global);
                 }
                 // Return cancelPromise.
-                Some(Ok(self.cancel_promise.clone()))
+                Some(Ok(self.cancel_promise.root()))
             },
             DefaultTeeCancelAlgorithm::Cancel2Algorithm => {
                 // Set canceled_2 to true.
@@ -179,7 +178,7 @@ impl DefaultTeeUnderlyingSource {
                     self.resolve_cancel_promise(cx, global);
                 }
                 // Return cancelPromise.
-                Some(Ok(self.cancel_promise.clone()))
+                Some(Ok(self.cancel_promise.root()))
             },
         }
     }

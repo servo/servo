@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::ptr;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -21,7 +20,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::stream::transformstream::TransformStream;
 
@@ -36,7 +35,7 @@ enum UnderlyingSource {
     Js(JsUnderlyingSource, Heap<*mut JSObject>),
     Tee(Dom<DefaultTeeUnderlyingSource>),
     Transfer(Dom<MessagePort>),
-    Transform(Dom<TransformStream>, Rc<Promise>),
+    Transform(Dom<TransformStream>, TracedPromise),
     TeeByte(Dom<ByteTeeUnderlyingSource>),
 }
 
@@ -57,7 +56,7 @@ impl From<UnderlyingSourceType<'_>> for UnderlyingSource {
             UnderlyingSourceType::Tee(source) => UnderlyingSource::Tee(Dom::from_ref(source)),
             UnderlyingSourceType::Transfer(port) => UnderlyingSource::Transfer(Dom::from_ref(port)),
             UnderlyingSourceType::Transform(stream, promise) => {
-                UnderlyingSource::Transform(Dom::from_ref(stream), promise)
+                UnderlyingSource::Transform(Dom::from_ref(stream), promise.to_traced())
             },
             UnderlyingSourceType::TeeByte(source) => {
                 UnderlyingSource::TeeByte(Dom::from_ref(source))
@@ -88,7 +87,7 @@ pub(crate) enum UnderlyingSourceType<'a> {
     /// A struct representing a JS object as underlying source,
     /// and the actual JS object for use as `thisArg` in callbacks.
     /// This is used for the `TransformStream` API.
-    Transform(&'a TransformStream, Rc<Promise>),
+    Transform(&'a TransformStream, &'a RootedPromise),
     /// Tee Byte
     TeeByte(&'a ByteTeeUnderlyingSource),
 }
@@ -153,7 +152,7 @@ impl UnderlyingSourceContainer {
         cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-    ) -> Option<Result<Rc<Promise>, Error>> {
+    ) -> Option<Result<RootedPromise, Error>> {
         match &self.underlying_source_type {
             UnderlyingSource::Js(source, this_obj) => {
                 if let Some(algo) = &source.cancel {
@@ -187,7 +186,7 @@ impl UnderlyingSourceContainer {
                 // Disentangle port.
                 self.global().disentangle_port(cx, port);
 
-                let promise = Promise::new(cx, &self.global());
+                let promise = Promise::new_rooted(cx, &self.global());
 
                 // If result is an abrupt completion,
                 if let Err(error) = result {
@@ -213,7 +212,7 @@ impl UnderlyingSourceContainer {
         &self,
         cx: &mut JSContext,
         controller: Controller,
-    ) -> Option<Result<Rc<Promise>, Error>> {
+    ) -> Option<Result<RootedPromise, Error>> {
         match &self.underlying_source_type {
             UnderlyingSource::Js(source, this_obj) => {
                 if let Some(algo) = &source.pull {
@@ -243,7 +242,7 @@ impl UnderlyingSourceContainer {
                     .expect("Sending pull should not fail.");
 
                 // Return a promise resolved with undefined.
-                let promise = Promise::new_resolved(cx, &self.global(), ());
+                let promise = Promise::new_resolved_rooted(cx, &self.global(), ());
                 Some(Ok(promise))
             },
             UnderlyingSource::TeeByte(tee_underlyin_source) => {
@@ -271,7 +270,7 @@ impl UnderlyingSourceContainer {
         &self,
         cx: &mut JSContext,
         controller: Controller,
-    ) -> Option<Result<Rc<Promise>, Error>> {
+    ) -> Option<Result<RootedPromise, Error>> {
         match &self.underlying_source_type {
             UnderlyingSource::Js(source, this_obj) => {
                 if let Some(start) = &source.start {
@@ -297,9 +296,9 @@ impl UnderlyingSourceContainer {
                         }
                     };
                     let promise = if is_promise {
-                        Promise::new_with_js_promise(cx, result_object.handle())
+                        Promise::new_with_js_promise_rooted(cx, result_object.handle())
                     } else {
-                        Promise::new_resolved(cx, &self.global(), result.get())
+                        Promise::new_resolved_rooted(cx, &self.global(), result.get())
                     };
                     return Some(Ok(promise));
                 }
@@ -316,7 +315,7 @@ impl UnderlyingSourceContainer {
             },
             UnderlyingSource::Transform(_, start_promise) => {
                 // Let startAlgorithm be an algorithm that returns startPromise.
-                Some(Ok(start_promise.clone()))
+                Some(Ok(start_promise.root()))
             },
             _ => None,
         }

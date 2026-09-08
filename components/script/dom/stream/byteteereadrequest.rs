@@ -20,7 +20,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{RootedPromise, TracedPromise};
 use crate::dom::stream::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::runtime::job_queue::MicrotaskRunnable;
@@ -58,8 +58,7 @@ pub(crate) struct ByteTeeReadRequest {
     canceled_1: Rc<Cell<bool>>,
     #[conditional_malloc_size_of]
     canceled_2: Rc<Cell<bool>>,
-    #[conditional_malloc_size_of]
-    cancel_promise: Rc<Promise>,
+    cancel_promise: TracedPromise,
     tee_underlying_source: Dom<ByteTeeUnderlyingSource>,
 }
 impl ByteTeeReadRequest {
@@ -74,7 +73,7 @@ impl ByteTeeReadRequest {
         reading: Rc<Cell<bool>>,
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
-        cancel_promise: Rc<Promise>,
+        cancel_promise: &RootedPromise,
         tee_underlying_source: &ByteTeeUnderlyingSource,
         global: &GlobalScope,
     ) -> DomRoot<Self> {
@@ -90,7 +89,7 @@ impl ByteTeeReadRequest {
                 reading,
                 canceled_1,
                 canceled_2,
-                cancel_promise,
+                cancel_promise: cancel_promise.to_traced(),
                 tee_underlying_source: Dom::from_ref(tee_underlying_source),
             }),
             global,

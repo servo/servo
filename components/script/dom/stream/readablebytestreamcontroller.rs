@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::cmp::min;
 use std::collections::VecDeque;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -31,7 +30,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::readablestreambyobrequest::ReadableStreamBYOBRequest;
@@ -1662,14 +1661,14 @@ impl ReadableByteStreamController {
             let result = underlying_source
                 .call_pull_algorithm(cx, controller)
                 .unwrap_or_else(|| {
-                    let promise = Promise::new_resolved(cx, &global, ());
+                    let promise = Promise::new_resolved_rooted(cx, &global, ());
                     Ok(promise)
                 });
             let promise = result.unwrap_or_else(|error| {
                 rooted!(&in(cx) let mut rval = UndefinedValue());
                 // TODO: check if `self.global()` is the right globalscope.
                 error.to_jsval(cx, &global, rval.handle_mut());
-                Promise::new_rejected(cx, &global, rval.handle())
+                Promise::new_rejected_rooted(cx, &global, rval.handle())
             });
             promise.append_native_handler(cx, &handler);
         }
@@ -1774,7 +1773,7 @@ impl ReadableByteStreamController {
                     cx,
                     Controller::ReadableByteStreamController(rooted_byte_controller.clone()),
                 )
-                .unwrap_or_else(|| Ok(Promise::new_resolved(cx, global, ())));
+                .unwrap_or_else(|| Ok(Promise::new_resolved_rooted(cx, global, ())));
 
             // Let startPromise be a promise resolved with startResult.
             let start_promise = start_result?;
@@ -1822,7 +1821,7 @@ impl ReadableByteStreamController {
         cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // Perform ! ReadableByteStreamControllerClearPendingPullIntos(this).
         self.clear_pending_pull_intos();
 
@@ -1838,7 +1837,7 @@ impl ReadableByteStreamController {
         let result = underlying_source
             .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
-                let promise = Promise::new(cx, global);
+                let promise = Promise::new_rooted(cx, global);
                 promise.resolve_native(cx, &());
                 Ok(promise)
             });
@@ -1846,7 +1845,7 @@ impl ReadableByteStreamController {
         let promise = result.unwrap_or_else(|error| {
             rooted!(&in(cx) let mut rval = UndefinedValue());
             error.to_jsval(cx, global, rval.handle_mut());
-            let promise = Promise::new(cx, global);
+            let promise = Promise::new_rooted(cx, global);
             promise.reject_native(cx, &rval.handle());
             promise
         });

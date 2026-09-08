@@ -830,8 +830,8 @@ impl WritableStream {
                 // and backpressure is not stream.[[backpressure]],
                 if backpressure {
                     // If backpressure is true, set writer.[[readyPromise]] to a new promise.
-                    let promise = Promise::new(cx, global);
-                    writer.set_ready_promise(promise);
+                    let promise = Promise::new_rooted(cx, global);
+                    writer.set_ready_promise(&promise);
                 } else {
                     // Otherwise,
                     // Assert: backpressure is false.
@@ -865,14 +865,15 @@ impl WritableStream {
         // Note: other algorithms defined in the controller at call site.
 
         // Let backpressurePromise be a new promise.
-        let backpressure_promise = Rc::new(RefCell::new(Some(Promise::new(cx, &global))));
+        let backpressure_promise = Promise::new_rooted(cx, &global);
+        rooted!(&in(cx) let backpressure_promise = RcHolder(Rc::new(RefCell::new(Some(backpressure_promise.to_traced())))));
 
         // Let controller be a new WritableStreamDefaultController.
         let controller = WritableStreamDefaultController::new(
             cx,
             &global,
             UnderlyingSinkType::Transfer {
-                backpressure_promise: backpressure_promise.clone(),
+                backpressure_promise: backpressure_promise.0.clone(),
                 port: Dom::from_ref(port),
             },
             1.0,
@@ -883,7 +884,7 @@ impl WritableStream {
         // Add a handler for port’s messageerror event with the following steps:
         rooted!(&in(cx) let cross_realm_transform_writable = CrossRealmTransformWritable {
             controller: Dom::from_ref(&controller),
-            backpressure_promise,
+            backpressure_promise: backpressure_promise.0.clone(),
         });
         global.note_cross_realm_transform_writable(&cross_realm_transform_writable, port_id);
 
@@ -1052,29 +1053,29 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#ws-abort>
-    fn Abort(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) -> Rc<Promise> {
+    fn Abort(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) -> RootedPromise {
         let global = GlobalScope::from_current_realm(cx);
 
         // If ! IsWritableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(cx, &global);
+            let promise = Promise::new_rooted(cx, &global);
             promise.reject_error(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
 
         // Return ! WritableStreamAbort(this, reason).
-        self.abort(cx, &global, reason).into()
+        self.abort(cx, &global, reason)
     }
 
     /// <https://streams.spec.whatwg.org/#ws-close>
-    fn Close(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn Close(&self, cx: &mut CurrentRealm) -> RootedPromise {
         let global = GlobalScope::from_current_realm(cx);
 
         // If ! IsWritableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(cx, &global);
+            let promise = Promise::new_rooted(cx, &global);
             promise.reject_error(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
@@ -1082,7 +1083,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // If ! WritableStreamCloseQueuedOrInFlight(this) is true
         if self.close_queued_or_in_flight() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(cx, &global);
+            let promise = Promise::new_rooted(cx, &global);
             promise.reject_error(
                 cx,
                 Error::Type(c"Stream has closed queued or in-flight".to_owned()),
@@ -1091,7 +1092,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         }
 
         // Return ! WritableStreamClose(this).
-        self.close(cx, &global).into()
+        self.close(cx, &global)
     }
 
     /// <https://streams.spec.whatwg.org/#ws-get-writer>
@@ -1118,8 +1119,8 @@ pub(crate) struct CrossRealmTransformWritable {
     controller: Dom<WritableStreamDefaultController>,
 
     /// The `backpressurePromise` used in the algorithm.
-    #[ignore_malloc_size_of = "nested Rc"]
-    backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
+    #[conditional_malloc_size_of]
+    backpressure_promise: Rc<RefCell<Option<TracedPromise>>>,
 }
 
 impl CrossRealmTransformWritable {
@@ -1143,11 +1144,11 @@ impl CrossRealmTransformWritable {
             self.controller.error_if_needed(cx, value.handle(), global);
         }
 
-        let backpressure_promise = self.backpressure_promise.borrow_mut().take();
+        rooted!(&in(cx) let backpressure_promise = self.backpressure_promise.borrow_mut().take());
 
         // Note: the below steps are for both "pull" and "error" types.
         // If backpressurePromise is not undefined,
-        if let Some(promise) = backpressure_promise {
+        if let Some(ref promise) = *backpressure_promise {
             // Resolve backpressurePromise with undefined.
             promise.resolve_native(cx, &());
 
@@ -1260,3 +1261,8 @@ impl Transferable for WritableStream {
         }
     }
 }
+
+#[derive(JSTraceable)]
+struct RcHolder<T>(Rc<T>);
+
+impl<T: js::rust::Traceable> js::gc::Rootable for RcHolder<T> {}

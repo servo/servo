@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue as SafeHandleValue;
@@ -13,7 +11,7 @@ use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::stream::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::stream::readablestreamdefaultreader::ReadableStreamDefaultReader;
 use crate::dom::types::ReadableStream;
@@ -44,11 +42,11 @@ pub(crate) trait ReadableStreamGenericReader {
         if stream.is_readable() {
             // If stream.[[state]] is "readable
             // Set reader.[[closedPromise]] to a new promise.
-            self.set_closed_promise(Promise::new(cx, global));
+            self.set_closed_promise(&Promise::new_rooted(cx, global));
         } else if stream.is_closed() {
             // Otherwise, if stream.[[state]] is "closed",
             // Set reader.[[closedPromise]] to a promise resolved with undefined.
-            self.set_closed_promise(Promise::new_resolved(cx, global, ()));
+            self.set_closed_promise(&Promise::new_resolved_rooted(cx, global, ()));
         } else {
             // Assert: stream.[[state]] is "errored"
             assert!(stream.is_errored());
@@ -56,7 +54,7 @@ pub(crate) trait ReadableStreamGenericReader {
             // Set reader.[[closedPromise]] to a promise rejected with stream.[[storedError]].
             rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
-            self.set_closed_promise(Promise::new_rejected(cx, global, error.handle()));
+            self.set_closed_promise(&Promise::new_rejected_rooted(cx, global, error.handle()));
 
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true
             self.get_closed_promise().set_promise_is_handled(cx);
@@ -69,7 +67,7 @@ pub(crate) trait ReadableStreamGenericReader {
         cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // Let stream be reader.[[stream]].
         let stream = self.get_stream();
 
@@ -78,7 +76,7 @@ pub(crate) trait ReadableStreamGenericReader {
             stream.expect("Reader should have a stream when generic cancel is called into.");
 
         // Return ! ReadableStreamCancel(stream, reason).
-        stream.cancel(cx, global, reason).into()
+        stream.cancel(cx, global, reason)
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
@@ -109,7 +107,7 @@ pub(crate) trait ReadableStreamGenericReader {
                     error.handle_mut(),
                 );
 
-                self.set_closed_promise(Promise::new_rejected(
+                self.set_closed_promise(&Promise::new_rejected_rooted(
                     cx,
                     &stream.global(),
                     error.handle(),
@@ -132,7 +130,7 @@ pub(crate) trait ReadableStreamGenericReader {
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>
-    fn closed(&self) -> Rc<Promise> {
+    fn closed(&self) -> RootedPromise {
         self.get_closed_promise()
     }
 
@@ -142,11 +140,11 @@ pub(crate) trait ReadableStreamGenericReader {
         cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         if self.get_stream().is_none() {
             // If this.[[stream]] is undefined,
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(cx, global);
+            let promise = Promise::new_rooted(cx, global);
             promise.reject_error(cx, Error::Type(c"stream is undefined".to_owned()));
             promise
         } else {
@@ -159,9 +157,9 @@ pub(crate) trait ReadableStreamGenericReader {
 
     fn get_stream(&self) -> Option<DomRoot<ReadableStream>>;
 
-    fn set_closed_promise(&self, promise: Rc<Promise>);
+    fn set_closed_promise(&self, promise: &RootedPromise);
 
-    fn get_closed_promise(&self) -> Rc<Promise>;
+    fn get_closed_promise(&self) -> RootedPromise;
 
     fn as_default_reader(&self) -> Option<&ReadableStreamDefaultReader> {
         None

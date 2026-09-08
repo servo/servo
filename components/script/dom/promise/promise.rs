@@ -123,6 +123,12 @@ impl ToJSValConvertible for RootedPromise {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct TracedPromise(#[conditional_malloc_size_of] Rc<Promise>);
 
+impl std::cmp::PartialEq for TracedPromise {
+    fn eq(&self, other: &Self) -> bool {
+        *self.0 == **other
+    }
+}
+
 impl HeapTracedPromiseHelpers<crate::DomTypeHolder> for TracedPromise {
     type StackRoot = RootedPromise;
     fn root(&self) -> RootedPromise {
@@ -306,7 +312,6 @@ impl Promise {
         Promise::new_with_js_promise(cx, p.handle())
     }
 
-    #[expect(dead_code)]
     pub(crate) fn new_rejected_rooted(
         cx: &mut JSContext,
         global: &GlobalScope,

@@ -1364,7 +1364,7 @@ impl ReadableStream {
     /// and before `stop_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub(crate) fn read_a_chunk(&self, cx: &mut JSContext) -> Rc<Promise> {
+    pub(crate) fn read_a_chunk(&self, cx: &mut JSContext) -> RootedPromise {
         match self.reader.borrow().as_ref() {
             Some(ReaderType::Default(reader)) => {
                 let Some(reader) = reader.get() else {
@@ -1552,7 +1552,7 @@ impl ReadableStream {
 
                 // Let readIntoRequest be reader.[[readIntoRequests]][0].
                 // Remove readIntoRequest from reader.[[readIntoRequests]].
-                let read_into_request = reader.remove_read_into_request();
+                rooted!(&in(cx) let read_into_request = reader.remove_read_into_request());
 
                 // If done is true, perform readIntoRequest’s close steps, given chunk.
                 let result = RootedTraceableBox::new(Heap::default());
@@ -1734,7 +1734,7 @@ impl ReadableStream {
         let reason_2 = Rc::new(Heap::default());
 
         // Let cancelPromise be a new promise.
-        let cancel_promise = Promise::new(cx, &self.global());
+        let cancel_promise = Promise::new_rooted(cx, &self.global());
         let reader_version = Rc::new(Cell::new(0));
 
         let byte_tee_source_1 = ByteTeeUnderlyingSource::new(
@@ -1748,7 +1748,7 @@ impl ReadableStream {
             canceled_2.clone(),
             reason_1.clone(),
             reason_2.clone(),
-            cancel_promise.clone(),
+            &cancel_promise,
             reader_version.clone(),
             ByteTeeCancelAlgorithm::Cancel1Algorithm,
             ByteTeePullAlgorithm::Pull1Algorithm,
@@ -1765,7 +1765,7 @@ impl ReadableStream {
             canceled_2,
             reason_1,
             reason_2,
-            cancel_promise,
+            &cancel_promise,
             reader_version,
             ByteTeeCancelAlgorithm::Cancel2Algorithm,
             ByteTeePullAlgorithm::Pull2Algorithm,
@@ -1826,7 +1826,7 @@ impl ReadableStream {
         // Let reason2 be undefined.
         let reason_2 = Rc::new(Heap::default());
         // Let cancelPromise be a new promise.
-        let cancel_promise = Promise::new(cx, &self.global());
+        let cancel_promise = Promise::new_rooted(cx, &self.global());
 
         let tee_source_1 = DefaultTeeUnderlyingSource::new(
             cx,
@@ -1839,7 +1839,7 @@ impl ReadableStream {
             clone_for_branch_2.clone(),
             reason_1.clone(),
             reason_2.clone(),
-            cancel_promise.clone(),
+            &cancel_promise,
             DefaultTeeCancelAlgorithm::Cancel1Algorithm,
         );
 
@@ -1856,7 +1856,7 @@ impl ReadableStream {
             clone_for_branch_2,
             reason_1,
             reason_2,
-            cancel_promise.clone(),
+            &cancel_promise,
             DefaultTeeCancelAlgorithm::Cancel2Algorithm,
         );
 
@@ -1891,7 +1891,7 @@ impl ReadableStream {
             &branch_2,
             canceled_1,
             canceled_2,
-            cancel_promise,
+            &cancel_promise,
         );
 
         // Return « branch_1, branch_2 ».
@@ -2196,17 +2196,17 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-cancel>
-    fn Cancel(&self, cx: &mut JSContext, reason: SafeHandleValue) -> Rc<Promise> {
+    fn Cancel(&self, cx: &mut JSContext, reason: SafeHandleValue) -> RootedPromise {
         let global = self.global();
         if self.is_locked() {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(cx, &global);
+            let promise = Promise::new_rooted(cx, &global);
             promise.reject_error(cx, Error::Type(c"stream is locked".to_owned()));
             promise
         } else {
             // Return ! ReadableStreamCancel(this, reason).
-            self.cancel(cx, &global, reason).into()
+            self.cancel(cx, &global, reason)
         }
     }
 
@@ -2243,13 +2243,13 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         cx: &mut CurrentRealm,
         destination: &WritableStream,
         options: &StreamPipeOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let global = self.global();
 
         // If ! IsReadableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(cx, &global);
+            let promise = Promise::new_rooted(cx, &global);
             promise.reject_error(cx, Error::Type(c"Source stream is locked".to_owned()));
             return promise;
         }
@@ -2257,7 +2257,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         // If ! IsWritableStreamLocked(destination) is true,
         if destination.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(cx, &global);
+            let promise = Promise::new_rooted(cx, &global);
             promise.reject_error(cx, Error::Type(c"Destination stream is locked".to_owned()));
             return promise;
         }
@@ -2275,7 +2275,6 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             options.preventCancel,
             signal,
         )
-        .into()
     }
 
     /// <https://streams.spec.whatwg.org/#rs-pipe-through>
