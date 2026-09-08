@@ -1,0 +1,72 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  section#a {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 10px;
+    height: 10px;
+  }
+
+  article#b {
+    width: 20px;
+    height: 20px;
+  }
+
+  aside#c {
+    position: absolute;
+    left: 100px;
+    top: 100px;
+    width: 100px;
+    height: 100px;
+  }
+
+  p#d {
+    width: 30px;
+    height: 20px;
+  }
+</style>
+
+<main>
+  <section id="a">
+    <article id="b"></article>
+  </section>
+  <aside id="c">
+    <p id="d"></p>
+  </aside>
+</main>
+
+<script>
+  setup({ explicit_done: true });
+  window.onload = () => {
+    test((t) => {
+      ServoTestUtils.ensureAccessibilityActive();
+      let initial = ServoTestUtils.forceAccessibilityUpdate();
+
+      assert_equals(initial.nodesUpdatedFromDom, 26, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 26, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesUpdatedBounds, 26, "nodesUpdatedBounds");
+      assert_equals(initial.nodesInTreeUpdate, 26, "nodesInTreeUpdate");
+
+      b.style.width = "50px";
+
+      let update = ServoTestUtils.forceAccessibilityUpdate();
+
+      // Children of #a walked
+      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+
+      assert_equals(update.nodesUpdatedFromTree, 0, "nodesUpdatedFromTree");
+
+      // Bounds are updated for #b, and checked for #a
+      assert_equals(update.nodesUpdatedBounds, 2, "nodesUpdatedBounds");
+
+      // Changed nodes: #b (bounds changed)
+      assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");
+    }, "");
+
+    done();
+  };
+</script>

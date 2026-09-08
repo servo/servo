@@ -24,17 +24,14 @@
       let update = ServoTestUtils.forceAccessibilityUpdate();
 
       // Updated nodes:
-      // - em (<strong> removed)
-      // Nodes visited because of subtree layout damage:
-      // - <html>
-      // - <body>
-      // - <h2>
+      // - <em> (<strong> removed),
+      // - <html>, <body>, <h2> (children walked)
       assert_equals(update.nodesUpdatedFromDom, 4, "nodesUpdatedFromDom");
 
       // <html>, <body>, <h2>, <em>
       assert_equals(update.nodesUpdatedFromTree, 4, "nodesUpdatedFromTree");
 
-      // Bounds are updated for the <em> and its ancestors.
+      // Bounds are checked for the <em> and all its ancestors.
       assert_equals(update.nodesUpdatedBounds, 4, "nodesUpdatedBounds");
 
       // Changed nodes:

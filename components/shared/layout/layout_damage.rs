@@ -38,8 +38,12 @@ bitflags! {
         const BoxDamage = 0b1111_1111_0000_0000;
 
         // Accessibility-specific damage
-        /// A descendant of this node has accessibility damage. This node should be marked as having
-        /// `AccessibilityDamage::DescendantHasDamage`.
+        //
+        // These should be kept in sync with the layout-related values in `AccessibilityDamage`
+
+        /// Corresponds to [`AccessibilityDamage::Layout`].
+        const HasAccessibilityDamage = 0b0000_0000_0001_0000;
+        /// Corresponds to [`AccessibilityDamage::DescendantHasDamageFromLayout`].
         const DescendantHasAccessibilityDamage = 0b0000_0000_1000_0000;
     }
 }
@@ -65,12 +69,20 @@ impl From<LayoutDamage> for RestyleDamage {
 bitflags! {
     #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
     pub struct AccessibilityDamage: u16 {
+        /// The properties of this node (other than children) have changed.
         const Node = 0b0001;
+        /// Children have been added to or removed from this node.
         const Children = 0b0010;
-        const Layout = 0b1000;
-        const Rebuild = 0b1111;
 
-        const DescendantHasDamage = 0b1000_0000;
+        // Layout-related values: keep in sync with accessibility-related values in `LayoutDamage`.
+
+        /// This node's box(es) was recomputed during layout.
+        const Layout = 0b0000_0000_0001_0000;
+        /// A descendent of this node has damage from layout.
+        const DescendantHasDamageFromLayout = 0b0000_0000_1000_0000;
+
+        /// All properties of this node need to be recomputed.
+        const Rebuild = 0b0000_0000_0001_0011;
     }
 }
 malloc_size_of::malloc_size_of_is_0!(AccessibilityDamage);

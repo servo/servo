@@ -23,15 +23,13 @@
 
       // Updated nodes:
       // - h2 (<code> removed)
-      // Nodes visited because of subtree layout damage:
-      // - <html>
-      // - <body>
+      // - <html>, <body> (children walked)
       assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
 
       // <html>, <body>, <h2>
       assert_equals(update.nodesUpdatedFromTree, 3, "nodesUpdatedFromTree");
 
-      // Bounds are updated for the <h2> and its ancestors.
+      // Bounds are updated for the <h2>, and checked for ancestors <html> and <body>.
       assert_equals(update.nodesUpdatedBounds, 3, "nodesUpdatedBounds");
 
       // Changed nodes:
