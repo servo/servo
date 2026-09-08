@@ -225,6 +225,9 @@ class DescriptorProvider:
     def callbackUsesRc(self, callbackIdentifier: str) -> bool:
         return self.config.getCallbackConfig(callbackIdentifier).get('rc', False)
 
+    def callbackUsesRcPromise(self, callbackIdentifier: str) -> bool:
+        return self.config.getCallbackConfig(callbackIdentifier).get('useRcPromise', False)
+
 def MemberIsLegacyUnforgeable(member: IDLAttribute | IDLMethod, descriptor: Descriptor) -> bool:
     return ((member.isAttr() or member.isMethod())
             and not member.isStatic()

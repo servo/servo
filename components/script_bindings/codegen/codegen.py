@@ -8647,7 +8647,7 @@ class CGCallbackFunction(CGCallback):
     def __init__(self, callback: IDLCallback, descriptorProvider: DescriptorProvider) -> None:
         CGCallback.__init__(self, callback, descriptorProvider,
                             "CallbackFunction<D>",
-                            methods=[CallCallback(callback, descriptorProvider, useRcPromise=True)])
+                            methods=[CallCallback(callback, descriptorProvider, useRcPromise=descriptorProvider.callbackUsesRcPromise(callback.identifier.name))])
 
     def getConstructors(self) -> list[ClassConstructor]:
         return CGCallback.getConstructors(self)
@@ -8738,7 +8738,8 @@ class CallbackMember(CGNativeMember):
                                 extendedAttrs={},
                                 passJSBitsAsNeeded=False,
                                 unsafe=needThisHandling,
-                                visibility=visibility)
+                                visibility=visibility,
+                                useRcPromise=useRcPromise)
         # We have to do all the generation of our body now, because
         # the caller relies on us throwing if we can't manage it.
         self.exceptionCode = "return Err(JSFailed);\n"
@@ -8781,7 +8782,8 @@ class CallbackMember(CGNativeMember):
             self.descriptorProvider,
             exceptionCode=self.exceptionCode,
             # XXXbz we should try to do better here
-            sourceDescription="return value")
+            sourceDescription="return value",
+            useRcPromise=self.useRcPromise)
         template = info.template
         declType = info.declType
 
