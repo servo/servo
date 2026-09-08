@@ -125,6 +125,10 @@ jobs:
       # We should find a nother way to handle that to avoid needing to hand-out this
       # permission.
       actions: write
+      # The following two are used by the code that uploads a comment and check run
+      # when processing WPT results.
+      checks: write
+      pull-requests: write
     strategy:
       fail-fast: ${{ fromJson(needs.parse-comment.outputs.configuration).fail_fast }}
       matrix:
