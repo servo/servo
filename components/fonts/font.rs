@@ -42,8 +42,8 @@ use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{
-    FontFeatureSettings, FontStretch, FontStyle, FontSynthesis, FontVariantEastAsian,
-    FontVariantLigatures, FontVariantNumeric, FontWeight,
+    FontFeatureSettings, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
+    FontVariantNumeric, FontWeight, FontWidth,
 };
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
@@ -181,20 +181,20 @@ pub trait PlatformFontMethods: Sized {
         }
 
         let weight = FontWeight::from_float(os2.us_weight_class() as f32);
-        let stretch = match os2.us_width_class() {
-            1 => FontStretch::ULTRA_CONDENSED,
-            2 => FontStretch::EXTRA_CONDENSED,
-            3 => FontStretch::CONDENSED,
-            4 => FontStretch::SEMI_CONDENSED,
-            5 => FontStretch::NORMAL,
-            6 => FontStretch::SEMI_EXPANDED,
-            7 => FontStretch::EXPANDED,
-            8 => FontStretch::EXTRA_EXPANDED,
-            9 => FontStretch::ULTRA_EXPANDED,
-            _ => FontStretch::NORMAL,
+        let width = match os2.us_width_class() {
+            1 => FontWidth::ULTRA_CONDENSED,
+            2 => FontWidth::EXTRA_CONDENSED,
+            3 => FontWidth::CONDENSED,
+            4 => FontWidth::SEMI_CONDENSED,
+            5 => FontWidth::NORMAL,
+            6 => FontWidth::SEMI_EXPANDED,
+            7 => FontWidth::EXPANDED,
+            8 => FontWidth::EXTRA_EXPANDED,
+            9 => FontWidth::ULTRA_EXPANDED,
+            _ => FontWidth::NORMAL,
         };
 
-        FontTemplateDescriptor::new(weight, stretch, style)
+        FontTemplateDescriptor::new(weight, width, style)
     }
 }
 
@@ -1194,8 +1194,7 @@ fn compute_variations(
     //
     // If the selected font is defined in an @font-face rule, then the values applied at this step should be clamped
     // to the value of the font-weight, font-width, and font-style descriptors in that @font-face rule.
-    // TODO: Clamp weight/stretch to the descriptors from the @font-face rule, if any
-    // NOTE: font-stretch is a legacy alias to font-width
+    // TODO: Clamp weight/width to the descriptors from the @font-face rule, if any
     add_variation(FontVariation {
         tag: Tag::new(b"wght").to_u32(),
         value: descriptor.weight.value(),
@@ -1203,7 +1202,7 @@ fn compute_variations(
 
     add_variation(FontVariation {
         tag: Tag::new(b"wdth").to_u32(),
-        value: descriptor.stretch.0.to_float(),
+        value: descriptor.width.0.to_float(),
     });
 
     if variation_axes.intersects(VariationAxes::ITAL | VariationAxes::SLNT) {

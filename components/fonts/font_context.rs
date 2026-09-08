@@ -1640,7 +1640,7 @@ fn font_face_rules_conflict(
     first_rule: &FontFaceRuleDescriptors,
     second_rule: &FontFaceRuleDescriptors,
 ) -> bool {
-    first_rule.font_stretch == second_rule.font_stretch &&
+    first_rule.font_width == second_rule.font_width &&
         first_rule.font_style == second_rule.font_style &&
         first_rule.font_weight == second_rule.font_weight &&
         first_rule.unicode_range == second_rule.unicode_range

@@ -18,7 +18,7 @@ use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{
-    FontStretch as ServoFontStretch, FontStyle as ServoFontStyle, FontSynthesis, FontWeight,
+    FontStyle as ServoFontStyle, FontSynthesis, FontWeight, FontWidth as ServoFontWidth,
 };
 use webrender_api::FontVariation;
 
@@ -95,16 +95,16 @@ fn font_to_fontdescriptor(font: &Font) -> FontDescriptor {
         FontStyle::Oblique => ServoFontStyle::OBLIQUE,
     };
 
-    let stretch = match font.stretch() {
-        FontStretch::UltraCondensed => ServoFontStretch::ULTRA_CONDENSED,
-        FontStretch::ExtraCondensed => ServoFontStretch::EXTRA_CONDENSED,
-        FontStretch::Condensed => ServoFontStretch::CONDENSED,
-        FontStretch::SemiCondensed => ServoFontStretch::SEMI_CONDENSED,
-        FontStretch::Normal => ServoFontStretch::NORMAL,
-        FontStretch::SemiExpanded => ServoFontStretch::SEMI_EXPANDED,
-        FontStretch::Expanded => ServoFontStretch::EXPANDED,
-        FontStretch::ExtraExpanded => ServoFontStretch::EXTRA_EXPANDED,
-        FontStretch::UltraExpanded => ServoFontStretch::ULTRA_EXPANDED,
+    let width = match font.stretch() {
+        FontStretch::UltraCondensed => ServoFontWidth::ULTRA_CONDENSED,
+        FontStretch::ExtraCondensed => ServoFontWidth::EXTRA_CONDENSED,
+        FontStretch::Condensed => ServoFontWidth::CONDENSED,
+        FontStretch::SemiCondensed => ServoFontWidth::SEMI_CONDENSED,
+        FontStretch::Normal => ServoFontWidth::NORMAL,
+        FontStretch::SemiExpanded => ServoFontWidth::SEMI_EXPANDED,
+        FontStretch::Expanded => ServoFontWidth::EXPANDED,
+        FontStretch::ExtraExpanded => ServoFontWidth::EXTRA_EXPANDED,
+        FontStretch::UltraExpanded => ServoFontWidth::ULTRA_EXPANDED,
     };
 
     let variation_settings = font
@@ -118,7 +118,7 @@ fn font_to_fontdescriptor(font: &Font) -> FontDescriptor {
 
     FontDescriptor {
         weight: FontWeight::from_float(font.weight() as f32),
-        stretch,
+        width,
         style,
         variant: FontVariantCaps::Normal,
         pt_size: Au::from_px(16),
@@ -131,7 +131,7 @@ fn font_to_fontdescriptor(font: &Font) -> FontDescriptor {
 fn fallback_descriptor() -> FontDescriptor {
     FontDescriptor {
         weight: FontWeight::normal(),
-        stretch: ServoFontStretch::hundred(),
+        width: ServoFontWidth::hundred(),
         style: ServoFontStyle::normal(),
         variant: FontVariantCaps::Normal,
         pt_size: Au::from_px(16),
