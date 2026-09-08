@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use layout_api::{AccessibilityDamage, LayoutElement, LayoutNode};
 use script::layout_dom::ServoLayoutNode;
+use style::selector_parser::RestyleDamage;
 
+use crate::accessibility_tree::AccessibilityDamageMap;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
 use crate::flexbox::FlexLevelBox;
@@ -34,7 +37,7 @@ use crate::fragment_tree::Fragment;
 /// has started to escape from the layout root. In that case, a full fragment tree layout
 /// becomes necessary to rebuild the fragment properly.
 pub(crate) struct LayoutRoot<'dom> {
-    pub(crate) node: ServoLayoutNode<'dom>,
+    pub node: ServoLayoutNode<'dom>,
 }
 
 impl<'dom> TryFrom<ServoLayoutNode<'dom>> for LayoutRoot<'dom> {
@@ -60,8 +63,12 @@ impl<'dom> TryFrom<ServoLayoutNode<'dom>> for LayoutRoot<'dom> {
     }
 }
 
-impl LayoutRoot<'_> {
-    pub(crate) fn try_layout(&self, layout_context: &LayoutContext) -> bool {
+impl<'dom> LayoutRoot<'dom> {
+    pub(crate) fn try_layout(
+        &self,
+        layout_context: &LayoutContext,
+        mut accessibility_damage: Option<&mut AccessibilityDamageMap<'dom>>,
+    ) -> bool {
         let Some(inner_layout_data) = self.node.inner_layout_data_mut() else {
             return false;
         };
@@ -112,17 +119,77 @@ impl LayoutRoot<'_> {
 
         // If an `Err` is returned here, that means that this layout root is no longer
         // a viable layout root and a full fragment tree layout is necessary.
-        layout_inputs
+        let is_ok = layout_inputs
             .layout(
                 layout_context,
                 formatting_context,
                 &layout_root_fragment.fragment,
             )
-            .is_ok()
+            .is_ok();
+
+        if is_ok &&
+            let Some(map) = accessibility_damage.as_mut() &&
+            let Some(element) = self.node.as_element()
+        {
+            // Insert this element into the accessibility damage map with the damage stored on the
+            // element. This allows the accessibility tree to use it as a starting point for damage
+            // resolution for damage from layout. See
+            // AccessibilityTree::apply_changes_from_dom_tree().
+            let accessibility_damage =
+                AccessibilityDamage::from_bits_retain(element.element_data().damage.bits());
+            map.insert(self.node.opaque(), (self.node, accessibility_damage));
+        }
+
+        is_ok
     }
 
-    pub(crate) fn handle_failed_layout_root_layout(&self) {
+    pub(crate) fn handle_failed_layout_root_layout(
+        &self,
+        accessibility_damage: Option<&mut AccessibilityDamageMap<'dom>>,
+    ) {
         self.node
             .clear_fragments_and_dirty_fragment_caches_recursively();
+
+        if let Some(map) = accessibility_damage {
+            self.propagate_accessibility_damage_to_root(map);
+        }
+    }
+
+    /// If the accessibility tree can't use this node as a starting point for resolving damage from
+    /// layout, remove it from the accessibility damage map, propagate the accessibility damage up
+    /// to the root, and add the root element to the damage map instead.
+    #[expect(unsafe_code)]
+    fn propagate_accessibility_damage_to_root(&self, map: &mut AccessibilityDamageMap<'dom>) {
+        let Some(element) = self.node.as_element() else {
+            return;
+        };
+        map.remove(&self.node.opaque());
+
+        let damage = RestyleDamage::from_bits_retain(
+            AccessibilityDamage::DescendantHasDamageFromLayout.bits(),
+        );
+        let mut ancestor = unsafe { self.node.dangerous_flat_tree_parent() };
+        let mut root_element = element;
+        while let Some(node) = ancestor {
+            let element = node
+                .as_element()
+                .expect("All ancestors of elements should be elements");
+            let mut element_data = element.element_data_mut();
+            element_data.damage |= damage;
+            ancestor = unsafe { node.dangerous_flat_tree_parent() };
+            if ancestor.is_none() {
+                root_element = element;
+                break;
+            }
+        }
+
+        let root_node = root_element.as_node();
+        map.insert(
+            root_node.opaque(),
+            (
+                root_node,
+                AccessibilityDamage::from_bits_retain(root_element.element_data().damage.bits()),
+            ),
+        );
     }
 }

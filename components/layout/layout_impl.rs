@@ -1349,24 +1349,10 @@ impl LayoutThread {
             }
 
             debug_assert!(!layout_roots.is_empty());
-            if let Some(map) = accessibility_damage.as_mut() {
-                for layout_root in layout_roots.iter() {
-                    let node = layout_root.node;
-                    if let Some(element) = node.as_element() {
-                        let accessibility_damage = AccessibilityDamage::from_bits_retain(
-                            element.element_data().damage.bits(),
-                        );
-                        map.insert(
-                            layout_root.node.opaque(),
-                            (layout_root.node, accessibility_damage),
-                        );
-                    }
-                }
-            }
-            if layout_roots
-                .iter()
-                .all(|layout_root| layout_root.try_layout(&layout_context))
-            {
+
+            if layout_roots.iter().all(|layout_root| {
+                layout_root.try_layout(&layout_context, accessibility_damage.as_deref_mut())
+            }) {
                 return (
                     ReflowPhasesRun::RanLayout,
                     std::mem::take(&mut *layout_context.iframe_sizes.lock()),
@@ -1379,8 +1365,12 @@ impl LayoutThread {
             // layout, we need to ensure that none of the partial layout results corrupt
             // the upcoming full layout.
             for layout_root in layout_roots {
-                layout_root.handle_failed_layout_root_layout();
+                layout_root.handle_failed_layout_root_layout(accessibility_damage.as_deref_mut());
             }
+        } else if let Some(map) = accessibility_damage.as_mut() {
+            let accessibility_damage =
+                AccessibilityDamage::from_bits_retain(root_element.element_data().damage.bits());
+            map.insert(root_node.opaque(), (root_node, accessibility_damage));
         }
 
         let box_tree = &*box_tree;
@@ -1412,12 +1402,6 @@ impl LayoutThread {
                 .stylist
                 .rule_tree()
                 .dump_stdout(&layout_context.style_context.guards);
-        }
-
-        if let Some(map) = accessibility_damage.as_mut() {
-            let accessibility_damage =
-                AccessibilityDamage::from_bits_retain(root_element.element_data().damage.bits());
-            map.insert(root_node.opaque(), (root_node, accessibility_damage));
         }
 
         // GC the rule tree if some heuristics are met.

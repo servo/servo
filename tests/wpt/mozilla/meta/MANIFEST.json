@@ -11416,14 +11416,35 @@
      ]
     ],
     "accessibility-update-children-of-heading-change.html": [
-     "362d24c4aa572ef951fa60d61e9378f7df00c501",
+     "f03b9ee27982cc8a35671bce31b88f5c2a5c93f5",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-descendants-of-heading-change.html": [
-     "0cafef06b23e2a478cd55918e2bd481ad4649b10",
+     "4e6caabbae5723387f60bbcaf22d46fc5079a9e1",
+     [
+      null,
+      {}
+     ]
+    ],
+    "accessibility-update-layout-from-layout-root-failed.html": [
+     "359fbc3f76b683b103f687992d225aaf1c0fa64c",
+     [
+      null,
+      {}
+     ]
+    ],
+    "accessibility-update-layout-from-layout-root.html": [
+     "6067ea745f55d575b5fef66bee65ed4d6bf07561",
+     [
+      null,
+      {}
+     ]
+    ],
+    "accessibility-update-layout-from-layout-roots.html": [
+     "5f24fff3c00f4975598219847c55769633a28c71",
      [
       null,
       {}
