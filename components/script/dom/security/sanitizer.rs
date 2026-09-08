@@ -72,7 +72,7 @@ impl Sanitizer {
         )
     }
 
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#get-a-sanitizer-instance-from-options>
+    /// <https://html.spec.whatwg.org/multipage/#get-a-sanitizer-instance-from-options>
     pub(crate) fn get_sanitizer_instance_from_options(
         cx: &mut JSContext,
         window: &Window,
@@ -134,7 +134,7 @@ impl Sanitizer {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#configure-a-sanitizer>
+    /// <https://html.spec.whatwg.org/multipage/#configure-a-sanitizer>
     fn configure(
         &self,
         mut configuration: SanitizerConfig,
@@ -207,7 +207,7 @@ impl Sanitizer {
         Ok(())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#sanitize>
+    /// <https://html.spec.whatwg.org/multipage/#sanitize>
     pub(crate) fn sanitize(&self, cx: &mut JSContext, node: &Node, safe: bool) -> ErrorResult {
         // Step 1. Let configuration be sanitizer's configuration.
         {
@@ -228,7 +228,7 @@ impl Sanitizer {
     }
 }
 
-/// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#inner-sanitize-steps>
+/// <https://html.spec.whatwg.org/multipage/#inner-sanitize-steps>
 fn inner_sanitize_steps(
     cx: &mut JSContext,
     node: &Node,
@@ -342,7 +342,8 @@ fn inner_sanitize_steps(
 
                     // Step 1.5.2.5. Replace child with fragment within node.
                     // Assert that this did not throw.
-                    node.ReplaceChild(cx, &fragment, &child).expect("Replacing child with fragment within node should not fail.");
+                    node.ReplaceChild(cx, &fragment, &child)
+                        .expect("Replacing child with fragment within node should not fail.");
 
                     // Step 1.5.2.6. Continue.
                     continue;
@@ -582,7 +583,7 @@ fn contains_javascript_url(attribute_value: &AttrValue) -> bool {
 }
 
 impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-sanitizer-constructor>
+    /// <https://html.spec.whatwg.org/multipage/#dom-sanitizer-constructor>
     fn Constructor(
         cx: &mut JSContext,
         window: &Window,
@@ -992,7 +993,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         true
     }
 
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-sanitizer-setjavascripturls>
+    /// <https://html.spec.whatwg.org/multipage/#dom-sanitizer-setjavascripturls>
     fn SetJavascriptURLs(&self, allow: bool) -> bool {
         // Step 1. Let configuration be this's configuration.
         let mut configuration = self.configuration.borrow_mut();
@@ -1813,7 +1814,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#remove-unsafe>
+    /// <https://html.spec.whatwg.org/multipage/#remove-unsafe>
     fn remove_unsafe(&mut self) -> bool {
         let baseline = built_in_safe_baseline_configuration();
 
@@ -1860,7 +1861,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
         result
     }
 
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#canonicalize-the-configuration>
+    /// <https://html.spec.whatwg.org/multipage/#canonicalize-the-configuration>
     fn canonicalize(&mut self, permissive_defaults: bool) {
         // Step 1. If neither configuration["elements"] nor configuration["removeElements"] exist,
         // then set configuration["removeElements"] to an empty list.
@@ -1967,8 +1968,8 @@ trait Canonicalization {
     /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-element>
     /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-processing-instruction>
     /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-attribute>
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#canonicalize-a-sanitizer-list>
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#canonicalize-a-processing-instruction-list>
+    /// <https://html.spec.whatwg.org/multipage/#canonicalize-a-sanitizer-list>
+    /// <https://html.spec.whatwg.org/multipage/#canonicalize-a-processing-instruction-list>
     fn canonicalize(self) -> Self;
 }
 
@@ -2094,8 +2095,8 @@ impl Canonicalization for SanitizerAttribute {
 }
 
 impl<T: Canonicalization> Canonicalization for Vec<T> {
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#canonicalize-a-sanitizer-list>
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#canonicalize-a-processing-instruction-list>
+    /// <https://html.spec.whatwg.org/multipage/#canonicalize-a-sanitizer-list>
+    /// <https://html.spec.whatwg.org/multipage/#canonicalize-a-processing-instruction-list>
     fn canonicalize(self) -> Self {
         // Step 1. Let newList be « ».
         // Step 2. For each item in list, append the result of canonicalizing item to newList.
@@ -2747,7 +2748,7 @@ impl SanitizerMember for SetHTMLUnsafeOptions {
     }
 }
 
-/// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#built-in-safe-default-configuration>
+/// <https://html.spec.whatwg.org/multipage/#built-in-safe-default-configuration>
 fn built_in_safe_default_configuration() -> SanitizerConfig {
     const ELEMENTS: &[(&str, &Namespace, &[&str])] = &[
         ("math", &ns!(mathml), &[]),
