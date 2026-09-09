@@ -1374,17 +1374,25 @@ impl ParserContext {
         // Step 21.9. Set responsePolicyContainer to the result of creating a
         // policy container from a fetch response given response and request's
         // reserved client.
-        let (policy_container, endpoints_list, link_headers) = match metadata.as_ref() {
-            None => (PolicyContainer::default(), None, vec![]),
-            Some(metadata) => (
-                Self::create_policy_container_from_fetch_response(metadata),
-                ReportingEndpoint::parse_reporting_endpoints_header(
-                    &self.url.clone(),
-                    &metadata.headers,
-                ),
-                extract_links_from_headers(&metadata.headers),
-            ),
-        };
+        let (policy_container, endpoints_list, link_headers, content_language) = metadata
+            .as_ref()
+            .map(|metadata| {
+                (
+                    Self::create_policy_container_from_fetch_response(metadata),
+                    ReportingEndpoint::parse_reporting_endpoints_header(
+                        &self.url.clone(),
+                        &metadata.headers,
+                    ),
+                    extract_links_from_headers(&metadata.headers),
+                    metadata
+                        .headers
+                        .as_ref()
+                        .and_then(|headers| headers.get("Content-Language"))
+                        .and_then(|header| header.to_str().ok())
+                        .map(|string| string.to_owned()),
+                )
+            })
+            .unwrap_or_default();
 
         // Step 21.10. Set finalSandboxFlags to the union of targetSnapshotParams's
         // sandboxing flags and responsePolicyContainer's CSP list's CSP-derived
@@ -1473,6 +1481,10 @@ impl ParserContext {
         if let Some(endpoints) = endpoints_list {
             window.set_endpoints_list(endpoints);
         }
+        // https://html.spec.whatwg.org/multipage/#language
+        // > then language information from a higher-level protocol (such as HTTP),
+        // > if any, must be used as the final fallback language instead
+        document.set_default_language(content_language);
         if let Some(parser) = document.get_current_parser() {
             self.parser = Some(Trusted::new(&*parser));
         }
