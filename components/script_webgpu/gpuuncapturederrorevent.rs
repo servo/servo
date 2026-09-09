@@ -14,13 +14,13 @@ use script_bindings::reflector::reflect_dom_object_with_proto_and_wrap;
 use script_bindings::traits::DomEventTrait;
 use stylo_atoms::Atom;
 
+use crate::JSTraceable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::gpuerror::GPUError;
 use crate::traits::Equivalence;
-use crate::{DomObject, JSTraceable};
 
-#[dom_struct(special)]
+#[dom_struct]
 pub struct GPUUncapturedErrorEvent<D: DomTypes> {
     event: D::Event,
     #[ignore_malloc_size_of = "Because it is non-owning"]

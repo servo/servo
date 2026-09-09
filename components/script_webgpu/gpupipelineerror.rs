@@ -15,14 +15,14 @@ use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_wrap;
 use script_bindings::traits::DomExceptionTrait;
 
+use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::gpuerror::GPUError;
 use crate::traits::Equivalence;
-use crate::{DomObject, JSTraceable};
 
 /// <https://gpuweb.github.io/gpuweb/#gpupipelineerror>
-#[dom_struct(special)]
+#[dom_struct]
 pub struct GPUPipelineError<D: DomTypes> {
     exception: D::DOMException,
     reason: GPUPipelineErrorReason,
