@@ -380,6 +380,9 @@ pub trait Layout {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> String;
+
+    fn query_accesskit_node(&self, node: TrustedNodeAddress) -> Option<accesskit::Node>;
+
     fn query_resolved_font_style(
         &self,
         node: TrustedNodeAddress,
@@ -551,6 +554,7 @@ pub enum QueryMsg {
     TextIndexQuery,
     PaddingQuery,
     FlushForUpdateTheRenderingQuery,
+    AccessKitNodeQuery,
 }
 
 /// The goal of a reflow request.

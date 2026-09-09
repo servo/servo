@@ -31,8 +31,10 @@ use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
+use servo_base::Epoch;
 use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId};
+use servo_config::pref;
 use webdriver::error::ErrorStatus;
 
 use crate::DomTypeHolder;
@@ -1392,13 +1394,23 @@ pub(crate) fn handle_get_computed_role(
     node_id: String,
     reply: GenericSender<Result<Option<String>, ErrorStatus>>,
 ) {
+    if !pref!(accessibility_enabled) {
+        return reply.send(Err(ErrorStatus::UnsupportedOperation)).unwrap();
+    }
     reply
         .send(
             get_known_element(documents, pipeline, node_id)
-                // FIXME: Actually compute the role instead of using WAI-ARIA role.
+                // WIP: Actually compute the role instead of using WAI-ARIA role.
                 // <https://github.com/servo/servo/issues/43734>
                 // The logic can then be shared with devtools accessibility inspector.
-                .map(|element| element.GetRole().map(String::from)),
+                .map(|element| {
+                    let document = element.upcast::<Node>().owner_doc();
+                    let window = document.window();
+                    window
+                        .layout()
+                        .set_accessibility_active(true, Epoch::default());
+                    element.get_computed_role().map(String::from)
+                }),
         )
         .unwrap();
 }
