@@ -131,6 +131,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Whether the `largest_contentul_paint_enabled` preference is enabled.
     largest_contentful_paint_enabled: bool,
+
+    /// The background color used for the shell.
+    shell_background_color: AbsoluteColor,
 }
 
 struct InspectorHighlight {
@@ -198,6 +201,18 @@ impl DisplayListBuilder<'_> {
             webrender_display_list_builder.dump_serialized_display_list();
         }
 
+        let shell_background_color = {
+            let default_background_color = pref!(shell_background_color_rgba);
+            AbsoluteColor::new(
+                ColorSpace::Srgb,
+                default_background_color[0] as f32,
+                default_background_color[1] as f32,
+                default_background_color[2] as f32,
+                default_background_color[3] as f32,
+            )
+            .into_srgb_legacy()
+        };
+
         let _span = profile_traits::trace_span!("DisplayListBuilder::build").entered();
         let mut builder = DisplayListBuilder {
             fragment_tree,
@@ -212,6 +227,7 @@ impl DisplayListBuilder<'_> {
             paint_timing_handler,
             reflow_statistics,
             largest_contentful_paint_enabled: pref!(largest_contentful_paint_enabled),
+            shell_background_color,
         };
 
         // Clear any caret color from previous display list constructions.
@@ -947,16 +963,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
             // First paint ... includes non-default background paint and the enclosing box of an iframe.
             // The spec is vague. See also: https://github.com/w3c/paint-timing/issues/122
-            let default_background_color = servo_config::pref!(shell_background_color_rgba);
-            let default_background_color = AbsoluteColor::new(
-                ColorSpace::Srgb,
-                default_background_color[0] as f32,
-                default_background_color[1] as f32,
-                default_background_color[2] as f32,
-                default_background_color[3] as f32,
-            )
-            .into_srgb_legacy();
-            if background_color != default_background_color {
+            if background_color != self.shell_background_color {
                 self.mark_is_paintable();
             }
         }
@@ -1659,16 +1666,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
             // First paint ... includes non-default background paint and the enclosing box of an iframe.
             // The spec is vague. See also: https://github.com/w3c/paint-timing/issues/122
-            let default_background_color = servo_config::pref!(shell_background_color_rgba);
-            let default_background_color = AbsoluteColor::new(
-                ColorSpace::Srgb,
-                default_background_color[0] as f32,
-                default_background_color[1] as f32,
-                default_background_color[2] as f32,
-                default_background_color[3] as f32,
-            )
-            .into_srgb_legacy();
-            if background_color != default_background_color {
+            if background_color != builder.shell_background_color {
                 builder.mark_is_paintable();
             }
         }
