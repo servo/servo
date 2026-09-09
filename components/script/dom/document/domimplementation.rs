@@ -68,7 +68,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         //      "InvalidCharacterError" DOMException.
         if !is_valid_doctype_name(&qualified_name) {
             return Err(Error::InvalidCharacter(Some(
-                "Name is not a valid doctype name, as it contains ASCII whitespace".into(),
+                "Doctype name contains ASCII whitespace".into(),
             )));
         }
 

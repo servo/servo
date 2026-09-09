@@ -154,7 +154,7 @@ impl WebSocket {
         let return_after_buffer = match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
                 return Err(Error::InvalidState(Some(
-                    "Web Socket has not connected yet".into(),
+                    "Cannot send while socket is connecting".into(),
                 )));
             },
             WebSocketRequestState::Open => false,
@@ -211,9 +211,8 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         let base_url = global.api_base_url();
         // Step 2. Let urlRecord be the result of applying the URL parser to url with baseURL.
         // Step 3. If urlRecord is failure, then throw a "SyntaxError" DOMException.
-        let mut url_record = ServoUrl::parse_with_base(Some(&base_url), &url.str()).or(Err(
-            Error::Syntax(Some("Failed to parse url with baseURL".into())),
-        ))?;
+        let mut url_record = ServoUrl::parse_with_base(Some(&base_url), &url.str())
+            .or(Err(Error::Syntax(Some("Failed to parse url".into()))))?;
 
         // Step 4. If urlRecord’s scheme is "http", then set urlRecord’s scheme to "ws".
         // Step 5. Otherwise, if urlRecord’s scheme is "https", set urlRecord’s scheme to "wss".
@@ -233,17 +232,13 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             },
             "ws" | "wss" => {},
             _ => {
-                return Err(Error::Syntax(Some(
-                    "urlRecord's scheme is not http nor https".into(),
-                )));
+                return Err(Error::Syntax(Some("Forbidden URL scheme".into())));
             },
         }
 
         // Step 7. If urlRecord’s fragment is non-null, then throw a "SyntaxError" DOMException.
         if url_record.fragment().is_some() {
-            return Err(Error::Syntax(Some(
-                "urlRecord's fragment is non-null".into(),
-            )));
+            return Err(Error::Syntax(Some("Forbidden URL fragment".into())));
         }
 
         // Step 8. If protocols is a string, set protocols to a sequence consisting of just that string.
@@ -265,9 +260,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 .iter()
                 .any(|p| p.eq_ignore_ascii_case(protocol))
             {
-                return Err(Error::Syntax(Some(
-                    "Protocol header field occurs more than once".into(),
-                )));
+                return Err(Error::Syntax(Some("Duplicate protocol header".into())));
             }
 
             // https://tools.ietf.org/html/rfc6455#section-4.1

@@ -394,7 +394,10 @@ impl DocumentOrShadowRoot {
             // > If value’s constructed flag is not set, or its constructor document is not equal
             // > to this DocumentOrShadowRoot’s node document, throw a "NotAllowedError" DOMException.
             if !sheet.constructor_document_matches(owner_doc) {
-                return Err(Error::NotAllowed(Some("CSS style sheet constructor flag is not set or its constructor document is not equal to this DocumentOrShadowRoot's node document".into())));
+                return Err(Error::NotAllowed(Some(
+                    "Stylesheet is not constructed or its constructor document does not match"
+                        .into(),
+                )));
             }
         }
 

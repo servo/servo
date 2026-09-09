@@ -5465,7 +5465,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 1. If this's browsing context is null, then throw a "SecurityError" DOMException.
         if !self.has_browsing_context {
             return Err(Error::Security(Some(
-                "Document's browsing context has not been set".into(),
+                "Document has no browsing context".into(),
             )));
         }
 
@@ -5489,7 +5489,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 5. If the given value is not a registrable domain suffix of and is not equal to effectiveDomain, then throw a "SecurityError" DOMException.
         let host =
             match get_registrable_domain_suffix_of_or_is_equal_to(&value.str(), effective_domain) {
-                None => return Err(Error::Security(Some("Provided domain is not a registrable domain suffix and is not equal to document's effectiveDomain".into()))),
+                None => return Err(Error::Security(Some("Provided domain is not a registrable domain suffix and is not equal to document's effective domain".into()))),
                 Some(host) => host,
             };
 
@@ -5792,7 +5792,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 2
         if data.contains("]]>") {
-            return Err(Error::InvalidCharacter(Some("CDATA section cannot include `]]>', as this is the closing seqeuence of the CDATA section itself".into())));
+            return Err(Error::InvalidCharacter(Some(
+                "CDATA section cannot include `]]>`".into(),
+            )));
         }
 
         // Step 3
@@ -6663,7 +6665,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .same_origin(&entry_responsible_document.origin())
         {
             return Err(Error::Security(Some(
-                "Document's origin is not the same as entryDocument's origin".into(),
+                "Document's origin is not the same as entry global's document origin".into(),
             )));
         }
 
