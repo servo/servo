@@ -653,7 +653,7 @@ checksum = "82f6aeea286b8eb4dd3431a1be1b59d290ace00f5bfd8e2a159bc2a05e2c1667"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -1143,7 +1143,7 @@ checksum = "fc0e56a716f1e132ff6bf4bdac1c944a3fcdc1cae65f70a4a2a1ac3b401d2d1f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -1239,9 +1239,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.4.4"
+version = "1.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ad534f4357a5264cce5019c989cf66a4f0dc4e0d1b1d15f8aacec0ff7360273"
+checksum = "005ec2760ca554fae18df7a11195552ec576cd665632a881bc011d5bb2fd4d80"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1732,18 +1732,18 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-epoch"
-version = "0.9.20"
+version = "0.9.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d6914041f254d6e9176c01941b21115dcfb7089e55135a35411081bd106ef3f"
+checksum = "dc74980687109a3b14c72fd458107bf0baa1da1a1a805e178d15501ba9b86d9d"
 dependencies = [
  "crossbeam-utils",
 ]
 
 [[package]]
 name = "crossbeam-utils"
-version = "0.8.22"
+version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61803da095bee82a81bb1a452ecc25d3b2f1416d1897eb86430c6159ef717c17"
+checksum = "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6"
 
 [[package]]
 name = "crunchy"
@@ -2166,7 +2166,7 @@ checksum = "c6232dd377dcc64799954cbd3a9bb882e9cdc1308ccd87b1c098f1fb2eaf82a8"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -2848,7 +2848,7 @@ checksum = "ea5190182e6915eb873ddbc16e23b711b6eb1f9c00a0d0a3a91b5f6228475225"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -2979,7 +2979,7 @@ checksum = "9fb9654ba8355388abeb8dcb4fc62f511300867002afc858860463bdd9fe0c44"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -4620,9 +4620,9 @@ dependencies = [
 
 [[package]]
 name = "ipnet"
-version = "2.12.1"
+version = "2.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a756c3fac73139e83f14c2d742155dd2b78d3ee56597b419a0579b7bdd6dd78"
+checksum = "791930b43c0d5973160d90a8f3894509f2b273430f5c5c73b668636d0287c5c0"
 
 [[package]]
 name = "is_terminal_polyfill"
@@ -4954,7 +4954,7 @@ dependencies = [
  "bitflags 2.13.1",
  "libc",
  "plain",
- "redox_syscall 0.9.3",
+ "redox_syscall 0.9.4",
 ]
 
 [[package]]
@@ -6847,9 +6847,9 @@ checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
 
 [[package]]
 name = "portable-atomic-util"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2a106d1259c23fac8e543272398ae0e3c0b8d33c88ed73d0cc71b0f1d902618"
+checksum = "10ab3eb7f3becc3a1cbc4f2c6f20267996cfc1a6467a873763411b136a122715"
 dependencies = [
  "portable-atomic",
 ]
@@ -7349,9 +7349,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.9.3"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d678d17679829e73d371e96880897e98fee2ded7acc0a50bdf8af2affa4b2fe5"
+checksum = "737970939a87c6fa31e7acad13307bccbb017a073b695b6089a2c484f929e20e"
 dependencies = [
  "bitflags 2.13.1",
 ]
@@ -7794,7 +7794,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.40.0"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "bitflags 2.13.1",
  "cssparser",
@@ -7872,7 +7872,7 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -7897,7 +7897,7 @@ checksum = "8d3b1629de253c70a0508c3899572da79ca359fdab27c7920ff00406df418906"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -8395,6 +8395,7 @@ dependencies = [
 name = "servo-fonts"
 version = "0.6.0"
 dependencies = [
+ "ab_glyph",
  "app_units",
  "atomic_refcell",
  "bitflags 2.13.1",
@@ -9610,7 +9611,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.3"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -10116,7 +10117,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -10172,7 +10173,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -10181,7 +10182,7 @@ dependencies = [
 [[package]]
 name = "stylo_derive"
 version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -10193,7 +10194,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "bitflags 2.13.1",
  "stylo_malloc_size_of",
@@ -10202,7 +10203,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "app_units",
  "cssparser",
@@ -10219,7 +10220,7 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "toml 1.1.5+spec-1.1.0",
 ]
@@ -10227,7 +10228,7 @@ dependencies = [
 [[package]]
 name = "stylo_traits"
 version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "app_units",
  "bitflags 2.13.1",
@@ -10316,9 +10317,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "3.0.4"
+version = "3.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6275cddf4610d1775e6d1fe9469b2e77d0f39fd98fb7450901b821e0c53649f"
+checksum = "12df2e0110f65b775f769bb17ef989067a1d931b2eb822bd4346631eeada89f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -10480,7 +10481,7 @@ checksum = "bc04cd3e1236dd4a98afca4569f2deb3f120e5422a4023be2cb683f8486292af"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -10658,7 +10659,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -10671,7 +10672,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?rev=a5b0464f6838ee772f10cc2754b7a8d6eae56142#a5b0464f6838ee772f10cc2754b7a8d6eae56142"
+source = "git+https://github.com/servo/stylo?rev=9a4ecea702e299a09857dfd78ca8ff54e011631e#9a4ecea702e299a09857dfd78ca8ff54e011631e"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -10704,7 +10705,7 @@ checksum = "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -10942,7 +10943,7 @@ checksum = "55442dd31337ec4b06189213a6a65cc414e4ae34e4cbc7bc050fae1573d14ed5"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -12866,7 +12867,7 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
  "zbus_names",
  "zvariant",
  "zvariant_utils",
@@ -13009,7 +13010,7 @@ checksum = "34df6fc39dbd26ddc9c10e6a2984476e13acce22e64e4487636ef494369225da"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -13029,9 +13030,9 @@ dependencies = [
 
 [[package]]
 name = "zstd-safe"
-version = "7.2.4"
+version = "7.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f49c4d5f0abb602a93fb8736af2a4f4dd9512e36f7f570d66e65ff867ed3b9d"
+checksum = "64d80649ab6db9d9f6f9c80a40becd948eda4714a0a5ac8c4d157a32231c7882"
 dependencies = [
  "zstd-sys",
 ]
@@ -13094,7 +13095,7 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
  "zvariant_utils",
 ]
 
@@ -13107,6 +13108,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde",
- "syn 3.0.4",
+ "syn 3.0.5",
  "winnow 1.0.4",
 ]

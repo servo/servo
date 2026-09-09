@@ -24,6 +24,7 @@ bundled_freetype = ["freetype-sys/bundled"]
 tracing = ["dep:tracing"]
 
 [dependencies]
+ab_glyph = { workspace = true }
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 bitflags = { workspace = true }
