@@ -269,7 +269,11 @@ pub enum WebDriverScriptCommand {
     AddLoadStatusSender(WebViewId, GenericSender<WebDriverLoadStatus>),
     RemoveLoadStatusSender(WebViewId),
     SetProtocolHandlerAutomationMode(CustomHandlersAutomationMode),
-    SetPermission(String, SetPermissionState, GenericOneshotSender<bool>),
+    SetPermission(
+        String,
+        SetPermissionState,
+        GenericOneshotSender<Result<(), ErrorStatus>>,
+    ),
 }
 
 pub type WebDriverJSResult = Result<JSValue, JavaScriptEvaluationError>;

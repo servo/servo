@@ -2680,11 +2680,8 @@ impl Handler {
         ))?;
 
         match wait_for_oneshot_response(receiver)? {
-            true => Ok(WebDriverResponse::Void),
-            false => Err(WebDriverError::new(
-                ErrorStatus::InvalidArgument,
-                "invalid name or state".to_string(),
-            )),
+            Ok(()) => Ok(WebDriverResponse::Void),
+            Err(status) => Err(WebDriverError::new(status, "failed to set permission")),
         }
     }
 }

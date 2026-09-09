@@ -2243,10 +2243,10 @@ pub(crate) fn set_permission(
     pipeline: PipelineId,
     name: String,
     state: SetPermissionState,
-    reply: GenericOneshotSender<bool>,
+    reply: GenericOneshotSender<Result<(), ErrorStatus>>,
 ) {
     let Ok(name) = name.parse::<PermissionName>() else {
-        if let Err(err) = reply.send(false) {
+        if let Err(err) = reply.send(Err(ErrorStatus::InvalidArgument)) {
             error!("SetPermission Failed to send reply: {err}");
         }
         return;
@@ -2258,7 +2258,7 @@ pub(crate) fn set_permission(
     };
 
     let Some(global) = documents.find_global(pipeline) else {
-        if let Err(err) = reply.send(false) {
+        if let Err(err) = reply.send(Err(ErrorStatus::NoSuchWindow)) {
             error!("SetPermission Failed to send reply: {err}");
         }
         return;
@@ -2273,7 +2273,7 @@ pub(crate) fn set_permission(
     // TODO: dispatch "change" event.
     // This is currently impossible because eventtarget is not registered.
 
-    if let Err(err) = reply.send(true) {
+    if let Err(err) = reply.send(Ok(())) {
         error!("SetPermission Failed to send reply: {err}");
     }
 }
