@@ -73,7 +73,7 @@ impl Drop for DroppableWebGLShader {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLShader {
     webgl_object: WebGLObject,
     gl_type: u32,

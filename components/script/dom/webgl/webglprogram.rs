@@ -172,7 +172,7 @@ impl Drop for DroppableWebGLProgram {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLProgram {
     webgl_object: WebGLObject,
     link_called: Cell<bool>,

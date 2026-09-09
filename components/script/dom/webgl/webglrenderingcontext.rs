@@ -164,7 +164,7 @@ impl Drop for DroppableWebGLRenderingContext {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLRenderingContext {
     reflector_: Reflector<AssociatedMemory>,
     #[no_trace]

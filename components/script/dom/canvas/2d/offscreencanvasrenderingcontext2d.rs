@@ -35,7 +35,7 @@ use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::path2d::Path2D;
 use crate::dom::textmetrics::TextMetrics;
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct OffscreenCanvasRenderingContext2D {
     context: CanvasRenderingContext2D,
 }

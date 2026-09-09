@@ -15,7 +15,7 @@ use crate::dom::webgl::webglbuffer::WebGLBuffer;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLVertexArrayObjectOES {
     webgl_object_: WebGLObject,
     array_object: VertexArrayObject,
