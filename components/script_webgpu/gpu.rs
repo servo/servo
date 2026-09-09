@@ -23,7 +23,7 @@ use wgpu_types::PowerPreference;
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::error::Error;
 use crate::gpuadapter::GPUAdapter;
-use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait};
 
 #[dom_struct]
 pub struct GPU<D: DomTypes> {
@@ -56,7 +56,7 @@ impl<D: Equivalence> GPU<D> {
 impl<D> GPUMethods<D> for GPU<D>
 where
     D: Equivalence,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
     Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter>
@@ -68,7 +68,7 @@ where
         let global = self.global_from_reflector();
         // 1. Let promise be a new promise.
         let promise = D::Promise::new_in_realm_rooted(cx);
-        let callback = promise.callback_promise_gpu(self);
+        let callback = promise.callback_promise_dom_manipulation_task_source(self);
 
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,

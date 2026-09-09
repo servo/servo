@@ -2,23 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
 use std::sync::Arc;
 
+use euclid::default::Size2D;
 use script_bindings::DomTypes;
-use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
-use script_bindings::codegen::GenericUnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
+use script_bindings::callback::CallbackContainer;
+use script_bindings::conversions::DerivedFrom;
 use script_bindings::error::Fallible;
+use script_bindings::inheritance::Castable;
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::DomGlobalGeneric;
+use script_bindings::root::DomRoot;
+use script_bindings::traits::DomEventTrait;
+use serde_core::Serialize;
 use servo_base::generic_channel::GenericCallback;
 use webgpu_traits::{
-    Mapping, ShaderCompilationInfo, WebGPU, WebGPUAdapterResponse, WebGPUDevice,
-    WebGPUDeviceResponse, WebGPUExternalTexture, WebGPUQueue,
+    Mapping, ShaderCompilationInfo, WebGPU, WebGPUAdapterResponse, WebGPUComputePipelineResponse,
+    WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse, WebGPUQueue,
+    WebGPURenderPipelineResponse,
 };
 use wgpu_core::resource::BufferAccessError;
-use wgpu_types::TextureFormat;
 
-use crate::PipelineLayout;
 use crate::gpu::GPU;
 use crate::gpuadapter::GPUAdapter;
 use crate::gpuadapterinfo::GPUAdapterInfo;
@@ -33,8 +38,10 @@ use crate::gpucompilationinfo::GPUCompilationInfo;
 use crate::gpucompilationmessage::GPUCompilationMessage;
 use crate::gpucomputepassencoder::GPUComputePassEncoder;
 use crate::gpucomputepipeline::GPUComputePipeline;
+use crate::gpudevice::GPUDevice;
 use crate::gpudevicelostinfo::GPUDeviceLostInfo;
 use crate::gpuerror::GPUError;
+use crate::gpuexternaltexture::GPUExternalTexture;
 use crate::gpuinternalerror::GPUInternalError;
 use crate::gpumapmode::GPUMapMode;
 use crate::gpuoutofmemoryerror::GPUOutOfMemoryError;
@@ -60,7 +67,7 @@ use crate::wgsllanguagefeatures::WGSLLanguageFeatures;
 
 // This trait enforces the equivalence of all local types with the types in DomTypes.
 trait_set::trait_set! {
-pub trait Equivalence =  DomTypes<
+pub trait Equivalence = DomTypes<
     GPU = GPU<Self>,
         GPUAdapter = GPUAdapter<Self>,
         GPUAdapterInfo = GPUAdapterInfo<Self>,
@@ -75,8 +82,10 @@ pub trait Equivalence =  DomTypes<
         GPUCompilationMessage = GPUCompilationMessage<Self>,
         GPUComputePassEncoder = GPUComputePassEncoder<Self>,
         GPUComputePipeline = GPUComputePipeline<Self>,
+        GPUDevice = GPUDevice<Self>,
         GPUDeviceLostInfo = GPUDeviceLostInfo<Self>,
         GPUError = GPUError<Self>,
+        GPUExternalTexture = GPUExternalTexture<Self>,
         GPUInternalError = GPUInternalError<Self>,
         GPUMapMode = GPUMapMode<Self>,
         GPUOutOfMemoryError = GPUOutOfMemoryError<Self>,
@@ -98,47 +107,100 @@ pub trait Equivalence =  DomTypes<
         GPUUncapturedErrorEvent = GPUUncapturedErrorEvent<Self>,
         GPUValidationError = GPUValidationError<Self>,
         WGSLLanguageFeatures = WGSLLanguageFeatures<Self>,
-        Promise: PromiseHelpers<Self> + PartialEq,
-        GlobalScope: WebGPUGlobalTrait>;
+        // End of Equivalence
+        GPU: DomGlobalGeneric<Self>,
+        GPUAdapter: DomGlobalGeneric<Self>,
+        GPUComputePipeline: DomGlobalGeneric<Self>,
+        GPUCommandEncoder: DomGlobalGeneric<Self>,
+        GPUDevice: DomGlobalGeneric<Self>,
+        GPURenderBundleEncoder: DomGlobalGeneric<Self>,
+        GPURenderPipeline: DomGlobalGeneric<Self>,
+        GPUQueue: GPUQueueTrait<Self>,
+        GPUError: Castable,
+        GPUTexture: DomGlobalGeneric<Self>,
+        GPUValidationError: DerivedFrom<GPUError<Self>>,
+        GPUOutOfMemoryError: DerivedFrom<GPUError<Self>>,
+        GPUInternalError: DerivedFrom<GPUError<Self>>,
+        // Other bounds
+        HTMLVideoElement: WebGPUHTMLVideoTrait<Self>,
+        // General Bounds
+        GlobalScope: WebGPUGlobalTrait,
+        Promise: PromiseHelpers<Self> + WebGPUTracedPromiseTrait<Self> + PartialEq,
+        Event: DomEventTrait<Self>,
+        EventTarget: EventTargetTrait<Self>>;
+
+    pub trait WebGPUPromise<D: DomTypes> =
+        WebGPUPromiseCallbackTrait<D, GPU<D>, WebGPUAdapterResponse>
+        + WebGPUPromiseCallbackTrait<D, GPUAdapter<D>, WebGPUDeviceResponse>
+        + WebGPUPromiseCallbackTrait<D, GPUBuffer<D>, Result<Mapping, BufferAccessError>>
+        + WebGPUPromiseCallbackTrait<D, GPUDevice<D>, WebGPUPoppedErrorScopeResponse>
+        + WebGPUPromiseCallbackTrait<D, GPUDevice<D>, WebGPUComputePipelineResponse>
+        + WebGPUPromiseCallbackTrait<D, GPUDevice<D>, WebGPURenderPipelineResponse>
+        + WebGPUPromiseCallbackTrait<D, GPUShaderModule<D>, Option<ShaderCompilationInfo>>
+        + WebGPURootedPromiseTrait<D>;
 }
 
-/// The main trait for creating and using promises in script_webgpu.
-pub trait WebGPUPromiseTrait<D: DomTypes> {
-    fn callback_promise_adapter(&self, d: &GPUAdapter<D>) -> GenericCallback<WebGPUDeviceResponse>;
+/// Trait for Rooted Promise
+pub trait WebGPURootedPromiseTrait<D: DomTypes> {
+    fn new_rooted(
+        cx: &mut js::context::JSContext,
+        global: &D::GlobalScope,
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot;
+}
 
-    fn callback_promise_gpubuffer(
-        &self,
-        d: &GPUBuffer<D>,
-    ) -> GenericCallback<Result<Mapping, BufferAccessError>>;
+/// Trait for sending Promise callbacks
+pub trait WebGPUPromiseCallbackTrait<D: DomTypes, S, T: Serialize + 'static + Send> {
+    fn callback_promise_dom_manipulation_task_source(&self, d: &S) -> GenericCallback<T>;
+}
 
-    fn callback_promise_gpu(&self, d: &GPU<D>) -> GenericCallback<WebGPUAdapterResponse>;
-
-    fn callback_promise_gpushadermodule(
-        &self,
-        d: &GPUShaderModule<D>,
-    ) -> GenericCallback<Option<ShaderCompilationInfo>>;
+/// Trait that needs to be implemented for TracedPromise
+pub trait WebGPUTracedPromiseTrait<D: DomTypes> {
+    fn is_fulfilled(&self) -> bool;
 }
 
 pub trait WebGPUGlobalTrait {
     fn global_wgpu_id_hub(&self) -> Arc<IdentityHub>;
+    fn queue_webgpu_task_source<F: FnOnce(&mut js::context::JSContext) + Send + 'static>(
+        &self,
+        name: &'static str,
+        task: F,
+    );
 }
 
-pub trait GPUDeviceTrait<D: DomTypes>: DomGlobalGeneric<D> {
-    fn is_lost(&self) -> bool;
-    fn id(&self) -> WebGPUDevice;
-    fn channel(&self) -> WebGPU;
-    fn dispatch_error(&self, error: webgpu_traits::Error);
-    fn validate_texture_format_required_features(
+#[expect(clippy::type_complexity)]
+pub trait WebGPUHTMLVideoTrait<D: DomTypes> {
+    fn planar_video_for_webgpu(
         &self,
-        gpu_texture_format: &GPUTextureFormat,
-    ) -> Fallible<TextureFormat>;
-    fn get_pipeline_layout_data(
-        &self,
-        layout: &GPUPipelineLayoutOrGPUAutoLayoutMode<D>,
-    ) -> PipelineLayout;
-    fn queue_id(&self) -> WebGPUQueue;
+        device: &GPUDevice<D>,
+    ) -> Fallible<(
+        Size2D<u32>,
+        Option<Rc<crate::gpuexternaltexture::PlanarTexture<D>>>,
+    )>;
 }
 
-pub trait GPUExternalTextureTrait<D: DomTypes> {
-    fn id(&self) -> WebGPUExternalTexture;
+#[expect(clippy::new_ret_no_self)]
+pub trait GPUQueueTrait<D: DomTypes> {
+    fn new(
+        cx: &mut js::context::JSContext,
+        global: &D::GlobalScope,
+        channel: WebGPU,
+        queue: WebGPUQueue,
+    ) -> DomRoot<D::GPUQueue>;
+    fn id(&self) -> WebGPUQueue;
+    fn set_device(&self, cx: &mut js::context::JSContext, device: &GPUDevice<D>);
+}
+
+pub trait EventTargetTrait<D: DomTypes> {
+    fn new_inherited() -> D::EventTarget;
+    fn get_event_handler_common<T: CallbackContainer<D>>(
+        &self,
+        cx: &mut js::context::JSContext,
+        ty: &str,
+    ) -> Option<Rc<T>>;
+    fn set_event_handler_common<T: CallbackContainer<D>>(
+        &self,
+        cx: &mut js::context::JSContext,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    );
 }

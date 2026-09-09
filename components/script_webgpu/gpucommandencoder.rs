@@ -34,7 +34,7 @@ use crate::gpuconvert::{
 };
 use crate::gpuqueryset::GPUQuerySet;
 use crate::gpurenderpassencoder::GPURenderPassEncoder;
-use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUCommandEncoder {
@@ -101,8 +101,7 @@ impl<D: Equivalence> GPUCommandEncoder<D> {
 impl<D> GPUCommandEncoder<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D> + DomGlobalGeneric<D>,
-    Self: DomGlobalGeneric<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     pub(crate) fn id(&self) -> WebGPUCommandEncoder {
         self.droppable.encoder
@@ -150,10 +149,7 @@ where
 impl<D> GPUCommandEncoderMethods<D> for GPUCommandEncoder<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
-    D::Promise: PromiseHelpers<D>,
-    Self: DomGlobalGeneric<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {

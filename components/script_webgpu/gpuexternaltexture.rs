@@ -3,37 +3,40 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::marker::PhantomData;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::context::JSContext;
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use pixels::Snapshot;
+use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
-use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUDeviceMethods as _;
-use script_bindings::error::Fallible;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_webgpu::traits::GPUExternalTextureTrait;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUDeviceMethods, GPUExternalTextureDescriptor, GPUExternalTextureMethods,
+    GPUExternalTextureWrap,
+};
+use script_bindings::error::{Error, Fallible};
+use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
     WebGPU, WebGPUDevice, WebGPUExternalTexture, WebGPUQueue, WebGPURequest, WebGPUTexture,
     WebGPUTextureView,
 };
 use wgpu_types::Features;
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUExternalTextureDescriptor, GPUExternalTextureMethods,
-};
-use crate::dom::bindings::error::Error;
+use crate::JSTraceable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomGlobal as _;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpudevice::GPUDevice;
+use crate::gpudevice::GPUDevice;
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUHTMLVideoTrait, WebGPUPromise};
 
 /// Backing of GPUExternalTexture
 #[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct PlanarTexture {
+pub struct PlanarTexture<D: DomTypes> {
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
@@ -48,15 +51,30 @@ pub(crate) struct PlanarTexture {
     expired: Cell<bool>,
     #[no_trace]
     size: Size2D<u32>,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl PlanarTexture {
-    pub(crate) fn new(channel: WebGPU, device: &GPUDevice, snapshot: Snapshot) -> Self {
+impl<D> PlanarTexture<D>
+where
+    D: Equivalence,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
+{
+    pub fn new(channel: WebGPU, device: &GPUDevice<D>, snapshot: Snapshot) -> Self {
         let device_id = device.id();
         let queue_id = device.queue_id();
-        let texture_id = WebGPUTexture(device.global().wgpu_id_hub().create_texture_id());
-        let texture_view_id =
-            WebGPUTextureView(device.global().wgpu_id_hub().create_texture_view_id());
+        let texture_id = WebGPUTexture(
+            device
+                .global_from_reflector()
+                .global_wgpu_id_hub()
+                .create_texture_id(),
+        );
+        let texture_view_id = WebGPUTextureView(
+            device
+                .global_from_reflector()
+                .global_wgpu_id_hub()
+                .create_texture_view_id(),
+        );
         let size = snapshot.size();
         if let Err(error) = channel.0.send(WebGPURequest::CreatePlanarTexture {
             device_id: device_id.0,
@@ -75,16 +93,17 @@ impl PlanarTexture {
             texture_view_id,
             size,
             expired: Cell::new(true),
+            phantom: PhantomData,
         };
         self_.update(snapshot);
         self_
     }
 
-    pub(crate) fn size(&self) -> Size2D<u32> {
+    pub fn size(&self) -> Size2D<u32> {
         self.size
     }
 
-    pub(crate) fn update(&self, snapshot: Snapshot) {
+    pub fn update(&self, snapshot: Snapshot) {
         if !self.expired.get() {
             return;
         }
@@ -103,12 +122,12 @@ impl PlanarTexture {
         self.expired.set(true);
     }
 
-    pub(crate) fn is_expired(&self) -> bool {
+    pub fn is_expired(&self) -> bool {
         self.expired.get()
     }
 }
 
-impl Drop for PlanarTexture {
+impl<D: DomTypes> Drop for PlanarTexture<D> {
     fn drop(&mut self) {
         if let Err(error) = self.channel.0.send(WebGPURequest::DropPlanarTexture(
             self.texture_id.0,
@@ -144,21 +163,27 @@ impl Drop for DroppableGPUExternalTexture {
 }
 
 #[dom_struct]
-pub(crate) struct GPUExternalTexture {
+pub struct GPUExternalTexture<D: DomTypes> {
     reflector_: Reflector,
     label: DomRefCell<USVString>,
     #[conditional_malloc_size_of]
-    planar_texture: Option<Rc<PlanarTexture>>,
+    planar_texture: Option<Rc<PlanarTexture<D>>>,
     droppable: DroppableGPUExternalTexture,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl GPUExternalTexture {
+impl<D> GPUExternalTexture<D>
+where
+    D: Equivalence,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
+{
     fn new_inherited(
         channel: WebGPU,
         external_texture: WebGPUExternalTexture,
         label: USVString,
-        planar_texture: Option<Rc<PlanarTexture>>,
-    ) -> GPUExternalTexture {
+        planar_texture: Option<Rc<PlanarTexture<D>>>,
+    ) -> GPUExternalTexture<D> {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
@@ -167,19 +192,19 @@ impl GPUExternalTexture {
                 external_texture,
             },
             planar_texture,
+            phantom: PhantomData,
         }
     }
 
     pub(crate) fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         channel: WebGPU,
         external_texture: WebGPUExternalTexture,
         label: USVString,
-        planar_texture: Option<Rc<PlanarTexture>>,
-    ) -> DomRoot<GPUExternalTexture> {
-        reflect_dom_object(
-            cx,
+        planar_texture: Option<Rc<PlanarTexture<D>>>,
+    ) -> DomRoot<GPUExternalTexture<D>> {
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPUExternalTexture::new_inherited(
                 channel,
                 external_texture,
@@ -187,6 +212,8 @@ impl GPUExternalTexture {
                 planar_texture,
             )),
             global,
+            cx,
+            GPUExternalTextureWrap::<D>,
         )
     }
 
@@ -212,9 +239,9 @@ impl GPUExternalTexture {
     /// <https://www.w3.org/TR/webgpu/#dom-gpudevice-importexternaltexture>
     pub(crate) fn create(
         cx: &mut JSContext,
-        device: &super::gpudevice::GPUDevice,
-        descriptor: &GPUExternalTextureDescriptor,
-    ) -> Fallible<DomRoot<GPUExternalTexture>> {
+        device: &GPUDevice<D>,
+        descriptor: &GPUExternalTextureDescriptor<D>,
+    ) -> Fallible<DomRoot<GPUExternalTexture<D>>> {
         let (size, planar_texture) = if device
             .Features()
             .wgpu_features()
@@ -231,7 +258,10 @@ impl GPUExternalTexture {
         // 2.5. Let result be a new GPUExternalTexture object wrapping data.
         let device_id = device.id().0;
         let channel = device.channel();
-        let external_texture_id = device.global().wgpu_id_hub().create_external_texture_id();
+        let external_texture_id = device
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_external_texture_id();
 
         if let Err(error) = channel.0.send(WebGPURequest::ImportExternalTexture {
             device_id,
@@ -246,7 +276,7 @@ impl GPUExternalTexture {
         };
         let result = Self::new(
             cx,
-            &device.global(),
+            &device.global_from_reflector(),
             channel,
             WebGPUExternalTexture(external_texture_id),
             // 5. Set result.label to descriptor.label.
@@ -255,26 +285,24 @@ impl GPUExternalTexture {
         );
         // 3. If source is an HTMLVideoElement, queue an automatic expiry task with device this and the following steps
         let this = Trusted::new(&*result);
-        device
-            .global()
-            .task_manager()
-            .webgpu_task_source()
-            .queue(task!(expire: move || {
-                this.root().expire();
-            }));
 
+        device
+            .global_from_reflector()
+            .queue_webgpu_task_source("expire", move |_| {
+                this.root().expire();
+            });
         // 6. Return result.
         Ok(result)
     }
 }
 
-impl GPUExternalTexture {
+impl<D: Equivalence> GPUExternalTexture<D> {
     pub(crate) fn id(&self) -> WebGPUExternalTexture {
         self.droppable.external_texture
     }
 }
 
-impl GPUExternalTextureMethods<crate::DomTypeHolder> for GPUExternalTexture {
+impl<D: Equivalence> GPUExternalTextureMethods<D> for GPUExternalTexture<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
@@ -283,11 +311,5 @@ impl GPUExternalTextureMethods<crate::DomTypeHolder> for GPUExternalTexture {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
-    }
-}
-
-impl GPUExternalTextureTrait<crate::DomTypeHolder> for GPUExternalTexture {
-    fn id(&self) -> WebGPUExternalTexture {
-        self.id()
     }
 }

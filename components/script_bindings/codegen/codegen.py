@@ -7269,10 +7269,11 @@ class CGInterfaceTrait(CGThing):
 
 
 class CGWeakReferenceableTrait(CGThing):
-    def __init__(self, descriptor: Descriptor) -> None:
+    def __init__(self, descriptor: Descriptor, generic: bool = False) -> None:
         CGThing.__init__(self)
         assert descriptor.weakReferenceable
-        self.code = f"impl WeakReferenceable for {descriptor.interface.identifier.name} {{}}"
+        generic_mark =  ["<D: DomTypes>", "<D>"] if generic else ["",""]
+        self.code = f"impl{generic_mark[0]} WeakReferenceable for {descriptor.interface.identifier.name}{generic_mark[1]} {{}}"
 
     def define(self) -> str:
         return self.code
@@ -8177,7 +8178,7 @@ class CGConcreteBindingRoot(CGThing):
 
 
             if d.weakReferenceable:
-                cgthings.append(CGWeakReferenceableTrait(d))
+                cgthings.append(CGWeakReferenceableTrait(d, generic = generic))
 
             if (
                 not d.interface.isIteratorInterface() and

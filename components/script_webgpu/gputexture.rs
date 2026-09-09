@@ -15,6 +15,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUTextureMethods, GPUTextureViewDescriptor, GPUTextureWrap,
 };
 use script_bindings::dom::MutNullableDom;
+use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 use wgpu_core::resource::{self, TextureDescriptor};
@@ -25,7 +26,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::gpuconvert::{WebGPUConvert, convert_texture_descriptor};
 use crate::gputextureview::GPUTextureView;
-use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUTexture {
@@ -134,7 +135,7 @@ impl<D: Equivalence> GPUTexture<D> {
 impl<D> GPUTexture<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     pub fn id(&self) -> WebGPUTexture {
         self.droppable.texture
@@ -161,10 +162,8 @@ where
     ) -> Fallible<DomRoot<GPUTexture<D>>> {
         let (desc, size) = convert_texture_descriptor::<D>(descriptor, device)?;
 
-        let texture_id = device
-            .global_from_reflector()
-            .global_wgpu_id_hub()
-            .create_texture_id();
+        let global: DomRoot<D::GlobalScope> = device.global_from_reflector();
+        let texture_id = global.global_wgpu_id_hub().create_texture_id();
 
         device
             .channel()
@@ -207,8 +206,7 @@ where
 impl<D> GPUTextureMethods<D> for GPUTexture<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
-    Self: DomGlobalGeneric<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
