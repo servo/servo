@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document selection visible height should be consistent regardless of font size</title>
+</head>
+
+<style>
+    .test {
+        color: transparent;
+    }
+</style>
+
+<div class="test" style="width: 300px; overflow: clip;">
+<span style="font-size: 100px">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span>
+</div>
+
+<script>
+    document.getSelection().selectAllChildren(document.querySelector(".test"));
+</script>

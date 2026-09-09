@@ -890,7 +890,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     fn visit_text(
         &mut self,
         state: &TraversalState,
-        containing_block: PhysicalRect<Au>,
+        line_box_rect: PhysicalRect<Au>,
         fragment: &Arc<TextFragment>,
     ) {
         fragment.base.visit_fragment(self);
@@ -899,7 +899,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         if style.get_inherited_box().visibility != Visibility::Visible {
             return;
         }
-        Fragment::build_display_list_for_text_fragment(fragment, self, state, &containing_block);
+        Fragment::build_display_list_for_text_fragment(fragment, self, state, &line_box_rect);
     }
 
     fn visit_positioning(&mut self, _state: &TraversalState, fragment: &Arc<PositioningFragment>) {
@@ -1045,14 +1045,11 @@ impl Fragment {
         fragment: &TextFragment,
         builder: &mut DisplayListBuilder,
         state: &TraversalState,
-        containing_block: &PhysicalRect<Au>,
+        line_box_rect: &PhysicalRect<Au>,
     ) {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
-        let rect = fragment
-            .base
-            .rect()
-            .translate(containing_block.origin.to_vector());
+        let rect = fragment.base.rect().translate(state.origin.to_vector());
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
 
@@ -1128,14 +1125,7 @@ impl Fragment {
             );
         }
 
-        Self::build_display_list_for_text_selection(
-            fragment,
-            builder,
-            state,
-            containing_block,
-            fragment.base.rect().min_x(),
-            fragment.justification_adjustment,
-        );
+        Self::build_display_list_for_text_selection(fragment, builder, state, line_box_rect);
 
         for text_decoration in state.text_decorations.iter() {
             if text_decoration.line.contains(TextDecorationLine::UNDERLINE) {
@@ -1316,9 +1306,7 @@ impl Fragment {
         fragment: &TextFragment,
         builder: &mut DisplayListBuilder<'_>,
         state: &TraversalState,
-        containing_block_rect: &PhysicalRect<Au>,
-        fragment_x_offset: Au,
-        justification_adjustment: Au,
+        line_box_rect: &PhysicalRect<Au>,
     ) {
         let run_data = &fragment.run_data;
         let Some(selection) = *run_data.selection.borrow() else {
@@ -1358,7 +1346,8 @@ impl Fragment {
                 selection_character_range.start
             {
                 current_advance += glyph_store.total_advance() +
-                    (justification_adjustment * glyph_store.total_word_separators() as i32);
+                    (fragment.justification_adjustment *
+                        glyph_store.total_word_separators() as i32);
                 current_character_index += glyph_store_character_count;
                 continue;
             }
@@ -1375,7 +1364,7 @@ impl Fragment {
                 current_character_index += Utf32CodeUnits(glyph.character_count());
                 current_advance += glyph.advance();
                 if glyph.char_is_word_separator() {
-                    current_advance += justification_adjustment;
+                    current_advance += fragment.justification_adjustment;
                 }
 
                 if current_character_index <= selection_character_range.end {
@@ -1387,12 +1376,15 @@ impl Fragment {
         let start_x = start_advance.unwrap_or(current_advance);
         let end_x = end_advance.unwrap_or(current_advance);
 
+        let fragment_rect = fragment.base.rect();
+        let fragment_origin =
+            (state.origin + fragment_rect.origin.to_vector()) + Vector2D::new(start_x, Au::zero());
+
         let parent_style = fragment.style();
         if !selection_character_range.is_empty() {
             let selection_rect = Rect::new(
-                containing_block_rect.origin +
-                    Vector2D::new(fragment_x_offset + start_x, Au::zero()),
-                Size2D::new(end_x - start_x, containing_block_rect.height()),
+                Point2D::new(fragment_origin.x, line_box_rect.min_y()),
+                Size2D::new(end_x - start_x, line_box_rect.height()),
             )
             .to_webrender();
 
@@ -1415,10 +1407,10 @@ impl Fragment {
         }
 
         let insertion_point_rect = Rect::new(
-            containing_block_rect.origin + Vector2D::new(start_x + fragment_x_offset, Au::zero()),
+            fragment_origin,
             Size2D::new(
                 INSERTION_POINT_LOGICAL_WIDTH,
-                containing_block_rect.height(),
+                fragment.font_metrics.line_gap,
             ),
         )
         .to_webrender();
