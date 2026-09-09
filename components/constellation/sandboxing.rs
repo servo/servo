@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::OsStr;
+use std::{env, process};
 
 #[cfg(any(
     target_os = "macos",
@@ -151,7 +152,9 @@ pub fn content_process_sandbox_profile() {
     target_arch = "riscv32",
     target_arch = "riscv64"
 ))]
-pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcError> {
+pub fn spawn_multiprocess(
+    content: UnprivilegedContent,
+) -> Result<crate::process_manager::Process, ipc_channel::IpcError> {
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
     // Note that this function can panic, due to process creation,
     // avoiding this panic would require a mechanism for dealing
@@ -159,7 +162,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
     let (server, token) = IpcOneShotServer::<IpcSender<UnprivilegedContent>>::new()
         .expect("Failed to create IPC one-shot server.");
 
-    let path_to_self = std::env::current_exe().expect("Failed to get current executor.");
+    let path_to_self = env::current_exe().expect("Failed to get current executor.");
     let mut child_process = process::Command::new(path_to_self);
     setup_common(&mut child_process, token);
 
@@ -171,7 +174,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
     let (_receiver, sender) = server.accept().expect("Server failed to accept.");
     sender.send(content)?;
 
-    Ok(Process::Unsandboxed(child))
+    Ok(crate::process_manager::Process::Unsandboxed(child))
 }
 
 #[cfg(all(
@@ -229,8 +232,8 @@ pub fn spawn_multiprocess(
                 .pid as u32,
         )
     } else {
-        let path_to_self = std::env::current_exe().expect("Failed to get current executor.");
-        let mut child_process = std::process::Command::new(path_to_self);
+        let path_to_self = env::current_exe().expect("Failed to get current executor.");
+        let mut child_process = process::Command::new(path_to_self);
         setup_common(&mut child_process, token);
 
         crate::process_manager::Process::Unsandboxed(
@@ -256,11 +259,11 @@ fn setup_common<C: CommandMethods>(command: &mut C, token: String) {
     C::arg(command, "--content-process");
     C::arg(command, token);
 
-    if let Ok(value) = std::env::var("RUST_BACKTRACE") {
+    if let Ok(value) = env::var("RUST_BACKTRACE") {
         C::env(command, "RUST_BACKTRACE", value);
     }
 
-    if let Ok(value) = std::env::var("RUST_LOG") {
+    if let Ok(value) = env::var("RUST_LOG") {
         C::env(command, "RUST_LOG", value);
     }
 }
@@ -279,7 +282,7 @@ trait CommandMethods {
         U: AsRef<OsStr>;
 }
 
-impl CommandMethods for std::process::Command {
+impl CommandMethods for process::Command {
     fn arg<T>(&mut self, arg: T)
     where
         T: AsRef<OsStr>,
