@@ -106,20 +106,6 @@ struct ImageRequest {
     current_pixel_density: Option<f64>,
 }
 
-impl ImageRequest {
-    /// Removes any data this ImageRequest owns.
-    fn clear(&mut self) {
-        self.state = State::Unavailable;
-        self.parsed_url = None;
-        self.source_url = None;
-        self.blocker.take();
-        self.image = None;
-        self.metadata = None;
-        self.final_url = None;
-        self.current_pixel_density = None;
-    }
-}
-
 #[dom_struct]
 pub(crate) struct HTMLImageElement {
     htmlelement: HTMLElement,
@@ -574,17 +560,23 @@ impl HTMLImageElement {
         request: ImageRequestPhase,
         cx: &mut js::context::JSContext,
     ) {
-        let request = match request {
-            ImageRequestPhase::Current => self.current_request.borrow(),
-            ImageRequestPhase::Pending => self.pending_request.borrow(),
-        };
-        LoadBlocker::terminate(&request.borrow().blocker, cx);
+        match request {
+            ImageRequestPhase::Current => {
+                LoadBlocker::terminate(&self.current_request.borrow().blocker, cx);
 
-        let mut request = request.safe_borrow_mut(cx);
-        request.state = state;
-        request.image = None;
-        request.metadata = None;
-        request.current_pixel_density = None;
+                let mut request = self.current_request.safe_borrow_mut(cx);
+                request.state = state;
+                request.image = None;
+                request.metadata = None;
+                request.current_pixel_density = None;
+            },
+            ImageRequestPhase::Pending => {
+                if let Some(pending_request) = &*self.pending_request.borrow() {
+                    LoadBlocker::terminate(&pending_request.blocker, cx);
+                }
+                self.pending_request.borrow_mut().take();
+            },
+        };
 
         if matches!(state, State::Broken) {
             self.reject_image_decode_promises();
@@ -661,9 +653,7 @@ impl HTMLImageElement {
                     .pending_request
                     .borrow()
                     .as_ref()
-                    .expect("Should have a pending request")
-                    .parsed_url
-                    .as_ref()
+                    .and_then(|pending_request| pending_request.parsed_url.as_ref())
                     .is_some_and(|parsed_url| *parsed_url == *image_url)
                 {
                     return;
@@ -1215,11 +1205,8 @@ impl HTMLImageElement {
                 // img element's current pixel density to selected pixel density.
                 *this.last_selected_source.borrow_mut() = Some(selected_source);
 
-                {
-                    {
-                        let mut pending_request = this.pending_request.borrow_mut();
-                    let pending_request = pending_request.as_mut().expect("Should have a pending request");
 
+                if let Some(pending_request) = &mut *this.pending_request.borrow_mut() {
                     // Step 16.3. Set the image request's state to completely available.
                     pending_request.state = State::CompletelyAvailable;
 
@@ -1228,10 +1215,13 @@ impl HTMLImageElement {
                     // Step 16.4. Add the image to the list of available images using the key key,
                     // with the ignore higher-layer caching flag set.
                     // Already a part of the list of available images due to Step 15.
-                    }
                     // Step 16.5. Upgrade the pending request to the current request.
-                    *this.current_request.borrow_mut() = this.pending_request.borrow_mut().take().expect("Should have a pending request");
+                } else {
+                    log::error!("Pending request was null");
+                    return
                 }
+                *this.current_request.borrow_mut() = this.pending_request.borrow_mut().take().expect("Should have a pending request");
+
 
                 this.abort_request(State::Unavailable, ImageRequestPhase::Pending, cx);
                 this.image_request.set(ImageRequestPhase::Current);
