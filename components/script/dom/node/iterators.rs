@@ -319,6 +319,11 @@ where
     }
 }
 
+pub(crate) type UnrootedAncestorIterator<'no_gc> = UnrootedSimpleNodeIterator<
+    'no_gc,
+    fn(&Node, &'no_gc NoGC) -> Option<UnrootedDom<'no_gc, Node>>,
+>;
+
 pub(crate) struct TreeIterator {
     current: Option<DomRoot<Node>>,
     depth: usize,
