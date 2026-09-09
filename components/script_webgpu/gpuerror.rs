@@ -12,8 +12,6 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUErrorFilter, GPUErrorMethods, GPUErrorWrap,
 };
-use script_bindings::conversions::DerivedFrom;
-use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_wrap};
 use webgpu_traits::{Error, ErrorFilter};
 
@@ -37,10 +35,6 @@ pub struct GPUError<D: DomTypes> {
 impl<D> GPUError<D>
 where
     D: Equivalence,
-    D::GPUError: Castable,
-    D::GPUValidationError: DerivedFrom<GPUError<D>>,
-    D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
-    D::GPUInternalError: DerivedFrom<GPUError<D>>,
 {
     pub(crate) fn new_inherited(message: DOMString) -> Self {
         Self {

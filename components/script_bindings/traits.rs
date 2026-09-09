@@ -4,14 +4,16 @@
 
 use style::Atom;
 
+use crate::DomTypes;
 use crate::str::DOMString;
 
 /// Trait for subcrates to use DOM events.
-pub trait DomEventTrait {
+pub trait DomEventTrait<D: DomTypes> {
     fn new_inherited() -> Self;
     fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool);
     #[expect(non_snake_case)]
     fn IsTrusted(&self) -> bool;
+    fn fire(&self, cx: &mut js::context::JSContext, target: &D::EventTarget);
 }
 
 /// Trait for subcrates to use DomExceptions.

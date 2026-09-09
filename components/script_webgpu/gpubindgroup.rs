@@ -14,6 +14,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUBindGroupDescriptor, GPUBindGroupMethods, GPUBindGroupWrap,
 };
+use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{WebGPU, WebGPUBindGroup, WebGPUDevice, WebGPURequest};
 use wgpu_core::binding_model::BindGroupDescriptor;
@@ -22,7 +23,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::gpuconvert::{WebGPUConvert, convert_bind_group_entry};
-use crate::traits::{Equivalence, GPUDeviceTrait, GPUExternalTextureTrait, WebGPUGlobalTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUBindGroup {
@@ -100,8 +101,7 @@ impl<D: Equivalence> GPUBindGroup<D> {
 impl<D> GPUBindGroup<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
-    D::GPUExternalTexture: GPUExternalTextureTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     pub fn id(&self) -> &WebGPUBindGroup {
         &self.droppable.bind_group

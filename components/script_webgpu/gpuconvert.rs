@@ -6,7 +6,6 @@ use std::borrow::Cow;
 use std::num::NonZeroU64;
 
 use js::context::JSContext;
-use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::CanvasRenderingContext2DBinding::PredefinedColorSpace;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
@@ -22,7 +21,6 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::codegen::GenericUnionTypes::GPUTextureOrGPUTextureView;
 use script_bindings::interfaces::PromiseHelpers;
-use script_bindings::reflector::DomGlobalGeneric;
 use webgpu_traits::WebGPUTextureView;
 use wgpu_core::binding_model::{BindGroupEntry, BindingResource, BufferBinding};
 use wgpu_core::command::{self as wgpu_com, ComputePassDescriptor, PassTimestampWrites};
@@ -31,7 +29,7 @@ use wgpu_core::resource::{QuerySetDescriptor, TextureDescriptor};
 use wgpu_types::{self, AstcBlock, AstcChannel, IndexFormat};
 
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::traits::{Equivalence, GPUDeviceTrait, GPUExternalTextureTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, WebGPUPromise};
 
 /// A version of the `Into<T>` trait from the standard library that can be used
 /// to convert between two types that are not defined in the script crate.
@@ -518,7 +516,7 @@ impl WebGPUConvert<wgpu_types::StencilOperation> for GPUStencilOperation {
 impl<D> WebGPUConvert<wgpu_com::TexelCopyBufferInfo> for &GPUTexelCopyBufferInfo<D>
 where
     D: Equivalence,
-    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     fn convert(self) -> wgpu_com::TexelCopyBufferInfo {
         wgpu_com::TexelCopyBufferInfo {
@@ -582,7 +580,7 @@ impl WebGPUTryConvert<wgpu_types::Origin2d> for &GPUOrigin2D {
 impl<D> WebGPUTryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUTexelCopyTextureInfo<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     type Error = Error;
 
@@ -620,8 +618,8 @@ pub(crate) fn convert_bind_group_layout_entry<D>(
     device: &D::GPUDevice,
 ) -> Fallible<Result<wgpu_types::BindGroupLayoutEntry, webgpu_traits::Error>>
 where
-    D: DomTypes,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    D: Equivalence,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     let number_of_provided_bindings = bgle.buffer.is_some() as u8 +
         bgle.sampler.is_some() as u8 +
@@ -701,8 +699,8 @@ pub fn convert_texture_descriptor<D>(
     device: &D::GPUDevice,
 ) -> Fallible<(TextureDescriptor<'static>, wgpu_types::Extent3d)>
 where
-    D: DomTypes,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    D: Equivalence,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     let size = (&descriptor.size).try_convert()?;
     let desc = TextureDescriptor {
@@ -753,8 +751,7 @@ impl WebGPUTryConvert<wgpu_types::Color> for &GPUColor {
 impl<'a, D> WebGPUConvert<ProgrammableStageDescriptor<'a>> for &GPUProgrammableStage<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     fn convert(self) -> ProgrammableStageDescriptor<'a> {
         ProgrammableStageDescriptor {
@@ -779,7 +776,7 @@ pub fn convert_texture_for_wgpu_with_cx<D>(
 ) -> WebGPUTextureView
 where
     D: Equivalence,
-    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     match texture_view {
         GPUTextureOrGPUTextureView::GPUTextureView(view) => view.id(),
@@ -793,8 +790,7 @@ pub(crate) fn convert_bind_group_entry<'a, D>(
 ) -> BindGroupEntry<'a>
 where
     D: Equivalence,
-    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
-    D::GPUExternalTexture: GPUExternalTextureTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     BindGroupEntry {
         binding: bind_group.binding,
@@ -860,7 +856,7 @@ impl WebGPUConvert<QuerySetDescriptor<'static>> for &GPUQuerySetDescriptor {
 impl<D> WebGPUConvert<PassTimestampWrites> for &GPUComputePassTimestampWrites<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     fn convert(self) -> PassTimestampWrites {
         PassTimestampWrites {
@@ -874,7 +870,7 @@ where
 impl<D> WebGPUConvert<PassTimestampWrites> for &GPURenderPassTimestampWrites<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     fn convert(self) -> PassTimestampWrites {
         PassTimestampWrites {
@@ -888,7 +884,7 @@ where
 impl<D> WebGPUConvert<ComputePassDescriptor<'static>> for &GPUComputePassDescriptor<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     fn convert(self) -> ComputePassDescriptor<'static> {
         ComputePassDescriptor {
