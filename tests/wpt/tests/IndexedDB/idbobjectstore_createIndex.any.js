@@ -55,6 +55,33 @@ async_test(t => {
 }, "Attempt to create an index that requires unique values on an object store already contains duplicates");
 
 async_test(t => {
+    let db;
+
+    let open_rq = createdb(t);
+    open_rq.onupgradeneeded = function (e) {
+        db = e.target.result;
+        let txn = e.target.transaction,
+            objStore1 = db.createObjectStore("store1"),
+            objStore2 = db.createObjectStore("store2");
+
+        let index1 = objStore1.createIndex("index", "indexedProperty1");
+        let index2 = objStore2.createIndex("index", "indexedProperty2");
+
+        assert_true(index1 instanceof IDBIndex, "IDBIndex");
+        assert_true(index2 instanceof IDBIndex, "IDBIndex");
+        assert_equals(index1.name, "index", "index1.name");
+        assert_equals(index1.objectStore, objStore1, "index1.objectStore");
+        assert_equals(index1.keyPath, "indexedProperty1", "index1.keyPath");
+        assert_equals(index2.name, "index", "index2.name");
+        assert_equals(index2.objectStore, objStore2, "index2.objectStore");
+        assert_equals(index2.keyPath, "indexedProperty2", "index2.keyPath");
+    };
+    open_rq.onsuccess = function () {
+        t.done();
+    }
+}, "Create two object stores each with index of the same name");
+
+async_test(t => {
     let db, aborted;
 
     let open_rq = createdb(t);
