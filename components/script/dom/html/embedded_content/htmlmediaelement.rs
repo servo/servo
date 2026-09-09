@@ -22,7 +22,7 @@ use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
-use net_traits::image_cache::{Image, StaticRasterImage};
+use net_traits::image_cache::{Image, EncodedImage};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
     CoreResourceThread, FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming,
@@ -194,7 +194,7 @@ pub(crate) struct MediaFrameRenderer {
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     poster_frame: Option<MediaFrame>,
     #[conditional_malloc_size_of]
-    static_poster: Option<Arc<StaticRasterImage>>,
+    static_poster: Option<Arc<EncodedImage>>,
 }
 
 impl MediaFrameRenderer {
@@ -307,7 +307,7 @@ impl MediaFrameRenderer {
 
     fn set_poster_frame(&mut self, image: Option<Image>) {
         self.static_poster = match &image {
-            Some(Image::StaticRaster(source)) => Some(source.clone()),
+            Some(Image::Encoded(source)) => Some(source.clone()),
             _ => None,
         };
         self.poster_frame = image.and_then(|image| {
@@ -3243,7 +3243,7 @@ impl HTMLMediaElement {
             .map(|holder| holder.get_frame())
     }
 
-    pub(crate) fn get_static_poster_to_present(&self) -> Option<Arc<StaticRasterImage>> {
+    pub(crate) fn get_static_poster_to_present(&self) -> Option<Arc<EncodedImage>> {
         let renderer = self.video_renderer.lock().unwrap();
         if self.show_poster.get() || renderer.current_frame.is_none() {
             renderer.static_poster.clone()

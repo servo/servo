@@ -206,11 +206,11 @@ impl ImageResolver {
         }
     }
 
-    pub(crate) fn handle_image_animation(&self, node: OpaqueNode, image: &CachedImage) {
+    pub(crate) fn handle_animated_image(&self, node: OpaqueNode, image: &CachedImage) {
         let mut animating_images = self.animating_images.write();
         let image = match image {
             CachedImage::Raster(image) => image.clone(),
-            CachedImage::StaticRaster(_) => {
+            CachedImage::Encoded(_) => {
                 animating_images.remove(node);
                 return;
             },
@@ -239,7 +239,7 @@ impl ImageResolver {
         match result {
             LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                 ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
-                    self.handle_image_animation(node, &image);
+                    self.handle_animated_image(node, &image);
 
                     let mut resolved_images_cache = self.resolved_images_cache.write();
                     resolved_images_cache.insert(url, Ok(image.clone()));
@@ -291,7 +291,7 @@ impl ImageResolver {
     ) -> Option<ImageKey> {
         match image {
             CachedImage::Raster(raster_image) => raster_image.id,
-            CachedImage::StaticRaster(source) => {
+            CachedImage::Encoded(source) => {
                 self.static_raster_demands.lock().push((source.id, size));
                 self.image_cache.static_raster_image_key(source.id)
             },

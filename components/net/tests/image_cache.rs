@@ -904,7 +904,7 @@ fn static_display_waits_for_layout_and_preserves_source_pixels() {
     let (id, image) = load_static_test_image(&cache);
     assert!(matches!(
         image,
-        net_traits::image_cache::Image::StaticRaster(_)
+        net_traits::image_cache::Image::Encoded(_)
     ));
     assert!(
         receiver.try_recv().is_err(),

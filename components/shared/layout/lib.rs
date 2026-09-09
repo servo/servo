@@ -39,7 +39,7 @@ pub use layout_node::{DangerousStyleNode, LayoutNode};
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId, StaticRasterImage};
+use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId, EncodedImage};
 use net_traits::request::InternalRequest;
 use paint_api::CrossProcessPaintApi;
 use parking_lot::RwLock;
@@ -234,7 +234,7 @@ pub struct MediaMetadata {
 }
 
 pub struct HTMLMediaData {
-    pub static_poster: Option<Arc<StaticRasterImage>>,
+    pub static_poster: Option<Arc<EncodedImage>>,
     pub current_frame: Option<MediaFrame>,
     pub metadata: Option<MediaMetadata>,
     pub poster_url: Option<ServoUrl>,

@@ -140,7 +140,7 @@ pub(crate) struct ImageInfo {
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct VideoInfo {
     #[conditional_malloc_size_of]
-    pub static_poster: Option<Arc<net_traits::image_cache::StaticRasterImage>>,
+    pub static_poster: Option<Arc<net_traits::image_cache::EncodedImage>>,
     pub image_key: Option<ImageKey>,
     pub poster_url: Option<ServoUrl>,
 }
@@ -217,7 +217,7 @@ impl ReplacedContents {
         {
             context
                 .image_resolver
-                .handle_image_animation(node.opaque(), image);
+                .handle_animated_image(node.opaque(), image);
         }
 
         Some(Self {
@@ -365,7 +365,7 @@ impl ReplacedContents {
                 ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
                     context
                         .image_resolver
-                        .handle_image_animation(node.opaque(), &image);
+                        .handle_animated_image(node.opaque(), &image);
                     let metadata = image.metadata();
                     (Some(image), metadata.width as f32, metadata.height as f32)
                 },
@@ -514,7 +514,7 @@ impl ReplacedContents {
                 .as_ref()
                 .and_then(|image| {
                     let static_source = match image {
-                        Image::StaticRaster(source) => Some(source.clone()),
+                        Image::Encoded(source) => Some(source.clone()),
                         _ => None,
                     };
                     let image_key = if static_source.is_some() {
