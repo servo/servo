@@ -2641,6 +2641,9 @@ impl ScriptThread {
                     mode,
                 )
             },
+            WebDriverScriptCommand::SetPermission(name, state, reply) => {
+                webdriver_handlers::set_permission(&documents, pipeline_id, name, state, reply)
+            },
         }
     }
 
