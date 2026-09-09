@@ -22,7 +22,7 @@ use js::rust::{Runtime, Trace};
 use malloc_size_of::MallocSizeOfOps;
 use num_traits::{ToPrimitive, Zero};
 use regex::Regex;
-use servo_base::text::{Str32, Utf8CodeUnits, Utf16CodeUnits};
+use servo_base::text::{AssumeUnder4GB, Utf8CodeUnits, Utf16CodeUnits};
 use style::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
 use zeroize::Zeroize;
@@ -468,7 +468,7 @@ impl DOMString {
         };
         match as_str {
             // TODO: add a check that DOMString values never exceed 2 GiB?
-            Ok(string) => Utf16CodeUnits::length_of(Str32(string)),
+            Ok(string) => Utf16CodeUnits::length_of(AssumeUnder4GB, string),
             // All Latin-1 bytes characters encode to a single UTF-16 code unit
             Err(latin1_bytes) => Utf16CodeUnits(latin1_bytes.len() as u32),
         }

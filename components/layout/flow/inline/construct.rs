@@ -10,7 +10,7 @@ use atomic_refcell::AtomicRefCell;
 use icu_properties::CodePointMapData;
 use icu_properties::props::BidiClass;
 use layout_api::LayoutNode;
-use servo_base::text::{RangeAny, Str32, Utf8CodeUnits, Utf32CodeUnits};
+use servo_base::text::{AssumeUnder4GB, RangeAny, Utf8CodeUnits, Utf32CodeUnits};
 use style::computed_values::direction::T as Direction;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::dom::NodeInfo;
@@ -146,10 +146,10 @@ impl InlineFormattingContextBuilder {
 
     fn push_control_character_string(&mut self, string_to_push: &str) {
         self.text_segments.push(string_to_push.to_owned());
-        let string_to_push = Str32(string_to_push); // string_to_push is always small
-        self.current_text_offset += Utf8CodeUnits::length_of(string_to_push);
+        // string_to_push is always small
+        self.current_text_offset += Utf8CodeUnits::length_of(AssumeUnder4GB, string_to_push);
 
-        let new_characters = Utf32CodeUnits::length_of(string_to_push);
+        let new_characters = Utf32CodeUnits::length_of(AssumeUnder4GB, string_to_push);
         self.current_character_offset += new_characters;
         self.offset_map
             .borrow_mut()
@@ -339,8 +339,8 @@ impl InlineFormattingContextBuilder {
         // Push any leading white space first.
         let first_letter_range_u32 = LazyCell::new(|| {
             // TODO: ensure layout doesn’t handle more than 4 GiB at a time?
-            Utf32CodeUnits::length_of(Str32(&text[..first_letter_range.start]))..
-                Utf32CodeUnits::length_of(Str32(&text[..first_letter_range.end]))
+            Utf32CodeUnits::length_of(AssumeUnder4GB, &text[..first_letter_range.start])..
+                Utf32CodeUnits::length_of(AssumeUnder4GB, &text[..first_letter_range.end])
         });
         if first_letter_range.start != 0 {
             let leading_whitespace_range = 0..first_letter_range.start;
@@ -456,7 +456,7 @@ impl InlineFormattingContextBuilder {
         }
 
         // TODO: ensure layout doesn’t handle more than 4 GiB at a time?
-        let new_text_len = Utf8CodeUnits::length_of(Str32(&new_text));
+        let new_text_len = Utf8CodeUnits::length_of(AssumeUnder4GB, &new_text);
         let new_utf8_range = self.current_text_offset..self.current_text_offset + new_text_len;
         self.current_text_offset = new_utf8_range.end;
 

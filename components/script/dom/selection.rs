@@ -14,7 +14,7 @@ use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMeth
 use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::text::{
-    RangeAny, Str32, Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset,
+    AssumeUnder4GB, RangeAny, Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset,
 };
 
 use crate::dom::abstractrange::bp_position;
@@ -1451,7 +1451,7 @@ impl Node {
         if let Some(character_data) = self.downcast::<CharacterData>() {
             // TODO: ensure that each `CharacterData` holds no more than 4 GiB?
             offset
-                .to_utf16_code_units_in(Str32(&character_data.data()))
+                .to_utf16_code_units_in(AssumeUnder4GB, &character_data.data())
                 .0
         } else {
             offset.0

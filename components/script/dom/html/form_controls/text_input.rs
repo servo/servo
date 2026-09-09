@@ -18,7 +18,7 @@ use script_bindings::trace::CustomTraceable;
 use script_traits::MouseButtons;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::WebViewId;
-use servo_base::text::{RangeAny, Str32, Utf8CodeUnits, Utf16CodeUnits, Utf32CodeUnits};
+use servo_base::text::{AssumeUnder4GB, RangeAny, Utf8CodeUnits, Utf16CodeUnits, Utf32CodeUnits};
 use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -477,7 +477,8 @@ impl<T: ClipboardProvider> TextInput<T> {
                 max_length.saturating_sub(utf16_length_without_selection);
             // TODO: ensure that DOMString’s are under 4 GiB?
             let last_char_index = usize::from(
-                utf16_length_that_can_be_inserted.to_utf8_code_units_in(Str32(&insert.str())),
+                utf16_length_that_can_be_inserted
+                    .to_utf8_code_units_in(AssumeUnder4GB, &insert.str()),
             );
             &insert.str()[..last_char_index]
         } else {

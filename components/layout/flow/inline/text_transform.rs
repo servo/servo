@@ -16,7 +16,7 @@ use icu_segmenter::WordSegmenter;
 use icu_segmenter::options::WordBreakInvariantOptions;
 use malloc_size_of_derive::MallocSizeOf;
 #[cfg(test)]
-use servo_base::text::Str32;
+use servo_base::text::AssumeUnder4GB;
 use servo_base::text::Utf32CodeUnits;
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -635,12 +635,12 @@ fn test_offsetmap_basic_expansion() {
         let start = usize::from(
             offset_map
                 .map(Utf32CodeUnits(offset))
-                .to_utf8_code_units_in(Str32(final_string)),
+                .to_utf8_code_units_in(AssumeUnder4GB, final_string),
         );
         let end = usize::from(
             offset_map
                 .map(Utf32CodeUnits(offset + length))
-                .to_utf8_code_units_in(Str32(final_string)),
+                .to_utf8_code_units_in(AssumeUnder4GB, final_string),
         );
         &final_string[start..end]
     };
