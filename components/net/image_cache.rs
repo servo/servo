@@ -149,7 +149,7 @@ type ImageKey = (ServoUrl, ImmutableOrigin, Option<CorsSettings>);
 
 // Represents all the currently pending loads/decodings. For
 // performance reasons, loads are indexed by a dedicated load key.
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 struct AllPendingLoads {
     // The loads, indexed by a load key. Used during most operations,
     // for performance reasons.
@@ -170,13 +170,6 @@ impl AllPendingLoads {
             url_to_load_key: HashMap::default(),
             keygen: LoadKeyGenerator::new(),
         }
-    }
-
-    fn clear(&mut self) {
-        self.loads.clear();
-        self.loads.shrink_to_fit();
-        self.url_to_load_key.clear();
-        self.url_to_load_key.shrink_to_fit();
     }
 
     // get a PendingLoad from its LoadKey.
@@ -320,7 +313,7 @@ impl ImageBytes {
 // A key used to communicate during loading.
 type LoadKey = PendingImageId;
 
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 struct LoadKeyGenerator {
     counter: u64,
 }
@@ -419,7 +412,7 @@ enum PendingKey {
 }
 
 /// The state of the `WebRenderImageKey`` cache
-#[derive(Debug, MallocSizeOf)]
+#[derive(Debug, Default, MallocSizeOf)]
 enum KeyCacheState {
     /// We already requested a batch of keys.
     PendingBatch,
@@ -428,6 +421,7 @@ enum KeyCacheState {
     /// Currently filling images from the KeyCache. No new keys will be requested.
     Processing,
     /// A special state to demark that we will not process any images anymore because the pipeline is shut down.
+    #[default]
     PipelineClosed,
 }
 
@@ -445,7 +439,7 @@ impl KeyCacheState {
 /// As getting new keys takes a round trip over the constellation, we keep a small cache of them.
 /// Additionally, this cache will store image resources that do not have a key yet because those
 /// are needed to complete the load.
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 struct KeyCache {
     /// A cache of `WebRenderImageKey`.
     cache: KeyCacheState,
@@ -464,16 +458,6 @@ impl KeyCache {
             evicted_images: HashSet::new(),
         }
     }
-
-    /// Clears all the keys.
-    fn clear(&mut self) {
-        // Webrender currently does not care about image keys that are requested but never used, so we do not need to delete them.
-        self.cache = KeyCacheState::PipelineClosed;
-        self.images_pending_keys.clear();
-        self.images_pending_keys.shrink_to_fit();
-        self.evicted_images.clear();
-        self.evicted_images.shrink_to_fit();
-    }
 }
 
 #[derive(Debug, Default, MallocSizeOf)]
@@ -481,11 +465,6 @@ impl KeyCache {
 struct SvgRasterizationTaskStore(FxHashSet<(PendingImageId, DeviceIntSize)>);
 
 impl SvgRasterizationTaskStore {
-    fn clear(&mut self) {
-        self.0.clear();
-        self.0.shrink_to_fit();
-    }
-
     /// Returns true if it is already being rasterized, otherwise false and sets it.
     fn is_or_set_being_rasterized(
         &mut self,
@@ -1380,9 +1359,7 @@ impl ImageCache for ImageCacheImpl {
 
     fn clear(&self) {
         self.store.lock().clear();
-        let mut svg_id_map = self.svg_id_image_id_map.lock();
-        svg_id_map.clear();
-        svg_id_map.shrink_to_fit();
+        *self.svg_id_image_id_map.lock() = Default::default();
     }
 
     fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>> {
@@ -1405,6 +1382,7 @@ impl ImageCache for ImageCacheImpl {
 
 impl ImageCacheStore {
     /// Clear the image cache.
+    // Webrender currently does not care about keys that are loaded but do not have an image attached to it.
     fn clear(&mut self) {
         let deletions: smallvec::SmallVec<_> = self
             .completed_loads
@@ -1435,15 +1413,12 @@ impl ImageCacheStore {
         // Clear these fields, since `clear()` will be called multiple times,
         // explicitly on pipeline close, and again on Drop (as a safeguard,
         // since we could forget to explicitly clear).
-        self.completed_loads.clear();
-        self.completed_loads.shrink_to_fit();
-        self.vector_images.clear();
-        self.vector_images.shrink_to_fit();
-        self.rasterized_vector_images.clear();
-        self.rasterized_vector_images.shrink_to_fit();
-        self.svg_rasterization_task_store.clear();
-        self.pending_loads.clear();
-        self.key_cache.clear();
+        self.completed_loads = Default::default();
+        self.vector_images = Default::default();
+        self.rasterized_vector_images = Default::default();
+        self.svg_rasterization_task_store = Default::default();
+        self.pending_loads = Default::default();
+        self.key_cache = Default::default();
 
         let _ = self.broken_image_icon_image.take();
     }
