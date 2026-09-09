@@ -4805,6 +4805,11 @@ trait NormalizedAlgorithm: Sized {
         //   `match` block on `self` that explicitly lists all patterns so that the Rust compiler
         //   can remind you to add the necessary parameter validation here when a new operation of
         //   an algorithm is added.
+        debug_assert!(
+            false,
+            "determine_support_from_operation_steps() is not implemented \
+                for this normalized algorithm."
+        );
         false
     }
 }
