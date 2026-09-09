@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub(crate) mod largestcontentfulpaint;
+pub(crate) mod painttimingmixin;
 #[allow(clippy::module_inception, reason = "The interface name is Performance")]
 pub(crate) mod performance;
 pub(crate) mod performanceentry;
