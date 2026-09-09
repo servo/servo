@@ -480,8 +480,10 @@ impl HTMLImageElement {
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending, cx);
 
                 // Step 2. Upgrade the pending request to the current request.
-                if let Some(pending_request) = self.pending_request.borrow_mut().take() {
-                    *self.current_request.borrow_mut() = pending_request;
+                // This is written this way as otherwise crown complains
+                if self.pending_request.borrow().is_some() {
+                    *self.current_request.borrow_mut() =
+                        self.pending_request.borrow_mut().take().unwrap();
                 }
                 self.image_request.set(ImageRequestPhase::Current);
 
