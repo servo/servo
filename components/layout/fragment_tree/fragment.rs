@@ -12,7 +12,7 @@ use euclid::{Point2D, Rect, Size2D};
 use fonts::{FontMetrics, ShapedTextSlice};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::StaticRasterImage;
+use net_traits::image_cache::EncodedImage;
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::PipelineId;
@@ -120,7 +120,7 @@ pub(crate) struct ImageFragment {
     pub clip: PhysicalRect<Au>,
     pub image_key: Option<ImageKey>,
     #[conditional_malloc_size_of]
-    pub static_source: Option<Arc<StaticRasterImage>>,
+    pub static_source: Option<Arc<EncodedImage>>,
     pub showing_broken_image_icon: bool,
     pub url: Option<ServoUrl>,
     pub load_time: Option<CrossProcessInstant>,

@@ -22,7 +22,7 @@ use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
 use net_traits::fetch::fetch_controller::FetchController;
-use net_traits::image_cache::{Image, StaticRasterImage};
+use net_traits::image_cache::{EncodedImage, Image};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{CoreResourceThread, FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::assert::assert_in_script;
@@ -3000,7 +3000,7 @@ impl HTMLMediaElement {
             .map(|holder| holder.get_frame())
     }
 
-    pub(crate) fn get_static_poster_to_present(&self) -> Option<Arc<StaticRasterImage>> {
+    pub(crate) fn get_static_poster_to_present(&self) -> Option<Arc<EncodedImage>> {
         let renderer = self.video_renderer.lock().unwrap();
         if self.show_poster.get() || renderer.current_frame().is_none() {
             renderer.static_poster()
