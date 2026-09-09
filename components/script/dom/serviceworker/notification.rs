@@ -704,7 +704,7 @@ fn request_notification_permission(
     cx: &mut JSContext,
     global: &GlobalScope,
 ) -> NotificationPermission {
-    let promise = &Promise::new(cx, global);
+    let promise = &Promise::new_rooted(cx, global);
     let descriptor = PermissionDescriptor {
         name: PermissionName::Notifications,
     };

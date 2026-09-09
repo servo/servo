@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
@@ -99,8 +97,8 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue>
-    fn ReadValue(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let p = Promise::new_in_realm(cx);
+    fn ReadValue(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(cx);
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Reads) {
@@ -135,8 +133,8 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
         &self,
         cx: &mut CurrentRealm,
         value: ArrayBufferViewOrArrayBuffer,
-    ) -> Rc<Promise> {
-        let p = Promise::new_in_realm(cx);
+    ) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(cx);
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Writes) {
