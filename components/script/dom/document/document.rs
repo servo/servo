@@ -2466,10 +2466,6 @@ impl Document {
 
                 // Step 9.10. Set the Document's page showing to true.
                 document.page_showing.set(true);
-                // TODO: This is intended to workaround the issue where `visibilityState`
-                // is always hidden. This should really be hooked with system visibility
-                // which involves more work.
-                document.update_visibility_state(cx, DocumentVisibilityState::Visible);
 
                 // Step 9.11. Fire a page transition event named pageshow at window with false.
                 let page_show_event = PageTransitionEvent::new(
@@ -4062,7 +4058,10 @@ impl Document {
             declarative_refresh: Default::default(),
             resize_observers: Default::default(),
             fonts: Default::default(),
-            visibility_state: Cell::new(DocumentVisibilityState::Hidden),
+            // TODO: This is intended to workaround the issue where `visibilityState`
+            // is always hidden. This should really be hooked with system visibility
+            // which involves more work.
+            visibility_state: Cell::new(DocumentVisibilityState::Visible),
             status_code,
             is_initial_about_blank: Cell::new(is_initial_about_blank),
             allow_declarative_shadow_roots: Cell::new(allow_declarative_shadow_roots),
