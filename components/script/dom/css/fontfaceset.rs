@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use cssparser::{Parser, ParserInput, UnicodeRange};
 use dom_struct::dom_struct;
 use fonts::FontFaceRuleInfo;
@@ -40,7 +37,7 @@ use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::fontface::FontFace;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::Callback;
 use crate::dom::types::PromiseNativeHandler;
 use crate::dom::window::Window;
@@ -52,17 +49,16 @@ pub(crate) struct FontFaceSet {
     target: EventTarget,
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-readypromise-slot>
-    #[conditional_malloc_size_of]
-    promise: RefCell<Rc<Promise>>,
+    promise: DomRefCell<TracedPromise>,
 
     set_entries: DomRefCell<Vec<Dom<FontFace>>>,
 }
 
 impl FontFaceSet {
-    fn new_inherited(promise: Rc<Promise>) -> Self {
+    fn new_inherited(promise: &RootedPromise) -> Self {
         FontFaceSet {
             target: EventTarget::new_inherited(),
-            promise: promise.into(),
+            promise: DomRefCell::new(promise.to_traced()),
             set_entries: Default::default(),
         }
     }
@@ -72,10 +68,10 @@ impl FontFaceSet {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        let promise = Promise::new(cx, global);
+        let promise = Promise::new_rooted(cx, global);
         reflect_dom_object_with_proto(
             cx,
-            Box::new(FontFaceSet::new_inherited(promise)),
+            Box::new(FontFaceSet::new_inherited(&promise)),
             global,
             proto,
         )
@@ -105,7 +101,7 @@ impl FontFaceSet {
 
     /// Fulfill the font ready promise, returning true if it was not already fulfilled beforehand.
     pub(crate) fn fulfill_ready_promise_if_needed(&self, cx: &mut JSContext) -> bool {
-        let promise = self.promise.borrow().clone();
+        let promise = self.promise.borrow();
         if promise.is_fulfilled() {
             return false;
         }
@@ -145,7 +141,8 @@ impl FontFaceSet {
         // Step 3. If font face set’s [[ReadyPromise]] slot currently holds a fulfilled
         // promise, replace it with a fresh pending promise.
         if self.promise.borrow().is_fulfilled() {
-            *self.promise.borrow_mut() = Promise::new(cx, &self.global());
+            let promise = Promise::new_rooted(cx, &self.global());
+            *self.promise.borrow_mut() = promise.to_traced()
         }
 
         // Step 4. Queue a task to fire a font load event named loading at font face set.
@@ -278,13 +275,13 @@ impl FontFaceSet {
 
 impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-ready>
-    fn Ready(&self, cx: &mut JSContext) -> Rc<Promise> {
+    fn Ready(&self, cx: &mut JSContext) -> RootedPromise {
         if self.promise.borrow().is_fulfilled() {
             // There may be pending style changes that cause new web fonts to start loading,
             // re-initializing document.fonts.ready.
             self.flush_author_font_set(cx);
         }
-        self.promise.borrow().clone()
+        self.promise.borrow().root()
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-add>
@@ -344,10 +341,10 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-load>
-    fn Load(&self, cx: &mut JSContext, font: DOMString, text: DOMString) -> Rc<Promise> {
+    fn Load(&self, cx: &mut JSContext, font: DOMString, text: DOMString) -> RootedPromise {
         // Step 1. Let font face set be the FontFaceSet object this method was called on. Let
         // promise be a newly-created promise object.
-        let load_promise = Promise::new(cx, &self.global());
+        let load_promise = Promise::new_rooted(cx, &self.global());
 
         // Step 2. Return promise. Complete the rest of these steps asynchronously.
         #[derive(MallocSizeOf, JSTraceable)]
@@ -358,8 +355,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
             /// (Our current implementation waits for `document.fonts.ready` instead)
             font_face_objects: Vec<Dom<FontFace>>,
 
-            #[conditional_malloc_size_of]
-            load_promise: Rc<Promise>,
+            load_promise: TracedPromise,
         }
         impl Callback for LoadPromiseFulfillmentHandler {
             fn callback(&self, cx: &mut CurrentRealm, _: Handle<Value>) {
@@ -374,14 +370,14 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
 
         // Step 4. Queue a task to run the following steps synchronously:
         let trusted_this = Trusted::new(self);
-        let trusted_load_promise = TrustedPromise::new(load_promise.clone());
+        let trusted_load_promise = TrustedPromise::from(&load_promise);
         let font = font.to_string();
         let text = text.to_string();
         self.global()
             .task_manager()
             .font_loading_task_source()
             .queue(task!(resolve_font_face_set_load_task: move |cx| {
-                let load_promise = trusted_load_promise.root();
+                let load_promise = trusted_load_promise.root().duplicate(cx);
                 let this = trusted_this.root();
 
                 // This will need adjustments once FontFaceSet is exposed to workers.
@@ -417,7 +413,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                     &global,
                     Some(Box::new(LoadPromiseFulfillmentHandler {
                         font_face_objects: font_face_objects.into_iter().map(|font_face| font_face.as_traced()).collect(),
-                        load_promise,
+                        load_promise: load_promise.to_traced(),
                     })),
                     None,
                 );
