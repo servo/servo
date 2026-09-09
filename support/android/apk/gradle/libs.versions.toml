@@ -19,3 +19,4 @@ androidx-preference = { module = "androidx.preference:preference-ktx", version =
 android-application = { id = "com.android.application", version.ref = "android-gradle-plugin" }
 android-library = { id = "com.android.library", version.ref = "android-gradle-plugin" }
 compose = { id = "org.jetbrains.kotlin.plugin.compose", version = "2.4.0" }
+ktfmt = { id = "com.ncorti.ktfmt.gradle", version = "0.27.0" }

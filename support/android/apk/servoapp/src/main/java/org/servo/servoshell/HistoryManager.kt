@@ -2,26 +2,18 @@ package org.servo.servoshell
 
 import android.content.Context
 import android.util.Log
+import java.io.File
+import java.io.FileWriter
+import java.io.IOException
 import org.json.JSONArray
 import org.json.JSONException
 import org.servo.servoshell.HistoryEntry.Companion.fromJSON
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileReader
-import java.io.FileWriter
-import java.io.IOException
 
-/**
- * Keeps a history of visited websites in an app-scoped JSON
- * file.
- */
+/** Keeps a history of visited websites in an app-scoped JSON file. */
 class HistoryManager(context: Context) {
     private val historyFile = File(context.filesDir, HISTORY_FILE)
 
-    /**
-     * Add a new history entry.
-     * Only adds if the URL is different from the most recent entry.
-     */
+    /** Add a new history entry. Only adds if the URL is different from the most recent entry. */
     fun addEntry(url: String, title: String?) {
         val history = loadHistory()
 
@@ -44,7 +36,7 @@ class HistoryManager(context: Context) {
         val timestamp = System.currentTimeMillis()
         val entry = HistoryEntry(timestamp, url, title)
 
-        // We sort the history most recent first, so new stuff at 
+        // We sort the history most recent first, so new stuff at
         // the beginning
         history.add(0, entry)
 
@@ -54,9 +46,7 @@ class HistoryManager(context: Context) {
     val history: MutableList<HistoryEntry>
         get() = loadHistory()
 
-    /**
-     * Clear all history
-     */
+    /** Clear all history */
     fun clearHistory() {
         if (historyFile.exists()) {
             historyFile.delete()
@@ -64,9 +54,7 @@ class HistoryManager(context: Context) {
         Log.i(TAG, "History cleared")
     }
 
-    /**
-     * Load history from JSON file
-     */
+    /** Load history from JSON file */
     private fun loadHistory(): MutableList<HistoryEntry> {
         val history = mutableListOf<HistoryEntry>()
 
@@ -89,9 +77,7 @@ class HistoryManager(context: Context) {
         return history
     }
 
-    /**
-     * Save history to JSON file
-     */
+    /** Save history to JSON file */
     private fun saveHistory(history: MutableList<HistoryEntry>) {
         try {
             val jsonArray = JSONArray()
