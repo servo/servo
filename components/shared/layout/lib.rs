@@ -8,6 +8,7 @@
 
 #![deny(unsafe_code)]
 
+mod largest_contentful_paint_candidate;
 mod layout_damage;
 mod layout_dom;
 mod layout_element;
@@ -27,6 +28,7 @@ use bitflags::bitflags;
 use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
 use fonts::{FontContext, WebFontDocumentContext, WebFontSetDifference};
+pub use largest_contentful_paint_candidate::LCPCandidate;
 pub use layout_damage::{AccessibilityDamage, LayoutDamage};
 pub use layout_dom::{
     DangerousStyleElementOf, DangerousStyleNodeOf, LayoutDomTypeBundle, LayoutElementOf,
@@ -40,7 +42,6 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
 use net_traits::request::InternalRequest;
 use paint_api::CrossProcessPaintApi;
-use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use parking_lot::RwLock;
 use pixels::{RasterImage, Repeat};
 use profile_traits::mem::Report;
@@ -629,8 +630,6 @@ pub struct ReflowResult {
     pub changed_web_fonts: WebFontSetDifference,
     /// The LCP candidate during this layout pass, if any.
     pub lcp_candidate: Option<LCPCandidate>,
-    /// The UntrustedNodeAddress for the LCP candidate if any.
-    pub lcp_node_address: Option<UntrustedNodeAddress>,
 }
 
 bitflags! {
