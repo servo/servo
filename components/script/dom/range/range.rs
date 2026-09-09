@@ -238,9 +238,9 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
-    pub(crate) fn set_start(&self, node: &Node, offset: u32) {
+    pub(crate) fn set_start(&self, no_gc: &NoGC, node: &Node, offset: u32) {
         if self.set_start_without_reporting(node, offset) {
-            self.report_change(SelectionLiveRangeNotification::Start);
+            self.report_change(no_gc, SelectionLiveRangeNotification::Start);
         }
     }
 
@@ -253,9 +253,9 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
-    pub(crate) fn set_end(&self, node: &Node, offset: u32) {
+    pub(crate) fn set_end(&self, no_gc: &NoGC, node: &Node, offset: u32) {
         if self.set_end_without_reporting(node, offset) {
-            self.report_change(SelectionLiveRangeNotification::End);
+            self.report_change(no_gc, SelectionLiveRangeNotification::End);
         }
     }
 
@@ -316,17 +316,24 @@ impl Range {
             .retain(|s| &**s != selection);
     }
 
-    pub(crate) fn report_change(&self, notification: SelectionLiveRangeNotification) {
+    pub(crate) fn report_change(&self, no_gc: &NoGC, notification: SelectionLiveRangeNotification) {
         if notification.is_empty() {
             return;
         }
 
-        self.associated_selections
+        // Clearing the selection might, in turn, call `Self::disassociate_selection`, so
+        // a `SmallVec` is necessary here to avoid a borrow hazard.
+        let selections: SmallVec<[DomRoot<Selection>; 1]> = self
+            .associated_selections
             .borrow()
             .iter()
-            .for_each(|selection| {
-                selection.update_from_live_range(self, notification);
-            });
+            .map(Dom::as_rooted)
+            .collect();
+        for selection in selections {
+            if !selection.clear_selection_if_live_range_document_changed(no_gc, self) {
+                selection.update_from_live_range(no_gc, self, notification);
+            }
+        }
     }
 
     fn abstract_range(&self) -> &AbstractRange {
@@ -430,10 +437,7 @@ impl Range {
                         self.end_offset(),
                     ) == Ordering::Greater
                 {
-                    notification.set(
-                        SelectionLiveRangeNotification::End,
-                        self.set_end_without_reporting(node, offset),
-                    );
+                    self.set_end_without_reporting(node, offset);
                 }
 
                 // Step 4.2. Set range’s start to bp.
@@ -455,10 +459,7 @@ impl Range {
                         self.start_offset(),
                     ) == Ordering::Less
                 {
-                    notification.set(
-                        SelectionLiveRangeNotification::Start,
-                        self.set_start_without_reporting(node, offset),
-                    );
+                    self.set_start_without_reporting(node, offset);
                 }
 
                 // Step 4.2. Set range’s end to bp.
@@ -470,7 +471,7 @@ impl Range {
         }
 
         self.maybe_update_document();
-        self.report_change(notification);
+        self.report_change(no_gc, notification);
         Ok(())
     }
 
@@ -495,6 +496,11 @@ impl Range {
             new_document.live_ranges().push(WeakRef::new(self));
             self.document.set(&new_document);
         }
+    }
+
+    pub(crate) fn start_and_end_are_in_document_tree(&self) -> bool {
+        self.start_container().is_in_a_document_tree() &&
+            self.end_container().is_in_a_document_tree()
     }
 }
 
@@ -570,29 +576,29 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-collapse>
-    fn Collapse(&self, to_start: bool) {
+    fn Collapse(&self, no_gc: &NoGC, to_start: bool) {
         if to_start {
-            self.set_end(&self.start_container(), self.start_offset());
+            self.set_end(no_gc, &self.start_container(), self.start_offset());
         } else {
-            self.set_start(&self.end_container(), self.end_offset());
+            self.set_start(no_gc, &self.end_container(), self.end_offset());
         }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-selectnode>
-    fn SelectNode(&self, node: &Node) -> ErrorResult {
+    fn SelectNode(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
         // Steps 1, 2.
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
         // Step 3.
         let index = node.index();
         // Step 4.
-        self.set_start(&parent, index);
+        self.set_start(no_gc, &parent, index);
         // Step 5.
-        self.set_end(&parent, index + 1);
+        self.set_end(no_gc, &parent, index + 1);
         Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-selectnodecontents>
-    fn SelectNodeContents(&self, node: &Node) -> ErrorResult {
+    fn SelectNodeContents(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
             return Err(Error::InvalidNodeType(None));
@@ -600,9 +606,9 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Step 2.
         let length = node.len();
         // Step 3.
-        self.set_start(node, 0);
+        self.set_start(no_gc, node, 0);
         // Step 4.
-        self.set_end(node, length);
+        self.set_end(no_gc, node, length);
         Ok(())
     }
 
@@ -1060,7 +1066,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         // Step 13.
         if self.collapsed() {
-            self.set_end(&parent, new_offset);
+            self.set_end(cx.no_gc(), &parent, new_offset);
         }
 
         Ok(())
@@ -1207,7 +1213,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         new_parent.AppendChild(cx, fragment.upcast())?;
 
         // Step 7.
-        self.SelectNode(new_parent)
+        self.SelectNode(cx.no_gc(), new_parent)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-stringifier>
