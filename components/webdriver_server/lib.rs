@@ -2663,6 +2663,7 @@ impl Handler {
         ))
     }
 
+    /// <https://www.w3.org/TR/permissions/#webdriver-command-set-permission>
     fn handle_set_permission(
         &self,
         parameters: SetPermissionParameters,

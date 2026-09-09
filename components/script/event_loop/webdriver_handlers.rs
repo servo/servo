@@ -2237,6 +2237,7 @@ pub(crate) fn set_protocol_handler_automation_mode(
     }
 }
 
+/// <https://www.w3.org/TR/permissions/#webdriver-command-set-permission>
 pub(crate) fn set_permission(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -2263,6 +2264,7 @@ pub(crate) fn set_permission(
         return;
     };
 
+    // TODO: Make this per-origin instead of per-document/globalscope according to spec.
     global
         .permission_state_invocation_results()
         .borrow_mut()
