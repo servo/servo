@@ -17,13 +17,13 @@ struct NodeNameParts {
 
 fn name_parts<N: Node>(node: &N) -> Option<NodeNameParts> {
     match (node.as_element(), node.as_attribute()) {
-        (Some(e), _) => Some(NodeNameParts {
-            prefix: e.prefix(),
-            local_name: e.local_name(),
+        (Some(element), _) => Some(NodeNameParts {
+            prefix: element.prefix(),
+            local_name: element.local_name(),
         }),
-        (_, Some(a)) => Some(NodeNameParts {
-            prefix: a.prefix(),
-            local_name: a.local_name(),
+        (_, Some(attribute)) => Some(NodeNameParts {
+            prefix: attribute.prefix(),
+            local_name: attribute.local_name(),
         }),
         _ => None,
     }
