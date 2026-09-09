@@ -58,7 +58,7 @@ impl Drop for DroppableWebGLTransformFeedback {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLTransformFeedback {
     webgl_object: WebGLObject,
     has_been_bound: Cell<bool>,

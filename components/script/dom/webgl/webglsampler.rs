@@ -53,7 +53,7 @@ impl Drop for DroppableWebGLSampler {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLSampler {
     webgl_object: WebGLObject,
     droppable: DroppableWebGLSampler,

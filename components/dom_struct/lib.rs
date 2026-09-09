@@ -22,10 +22,9 @@ fn dom_struct_impl(
     args: proc_macro2::TokenStream,
     input: proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
-    let associated_memory = args.to_string().contains("associated_memory");
     let no_has_parent = args.to_string().contains("no_has_parent");
-    if !associated_memory && !no_has_parent && !args.is_empty() {
-        panic!("#[dom_struct] only takes 'associated_memory' or 'no_has_parent' as an argument");
+    if !no_has_parent && !args.is_empty() {
+        panic!("#[dom_struct] only takes 'no_has_parent' as an argument");
     }
     let attributes = quote! {
         #[derive(deny_public_fields::DenyPublicFields, JSTraceable, MallocSizeOf)]
@@ -41,7 +40,7 @@ fn dom_struct_impl(
     let item: Item = syn::parse2(output).unwrap();
 
     if let Item::Struct(s) = item {
-        let expanded_dom_object = expand_dom_object(s.clone(), associated_memory);
+        let expanded_dom_object = expand_dom_object(s.clone());
         let s2 = quote! { #s #expanded_dom_object };
         if no_has_parent {
             return s2;
@@ -88,7 +87,7 @@ fn dom_struct_impl(
 
 #[test]
 fn test_valid_dom_struct_generation() {
-    let args = quote! { associated_memory };
+    let args = quote! {};
     let reflector_type: syn::Type = parse_quote!(Reflector);
     let input = quote! {
         struct DomElement {
@@ -132,7 +131,7 @@ fn test_valid_dom_struct_generation() {
             }
         }
         impl crate::DomObject for DomElement {
-            type ReflectorType = crate::AssociatedMemory;
+            type ReflectorType = <Reflector as crate::DomObject>::ReflectorType;
             #[inline]
             fn reflector(&self) -> &crate::Reflector<Self::ReflectorType> {
                 self.reflector.reflector()
@@ -175,7 +174,7 @@ fn test_valid_dom_struct_generation() {
 }
 
 #[test]
-#[should_panic(expected = "#[dom_struct] only takes 'associated_memory'")]
+#[should_panic(expected = "#[dom_struct] only takes 'no_has_parent' as an argument")]
 fn test_invalid_arguments_panic() {
     let args = quote! { invalid_flag_here };
     let input = quote! { struct MockStruct { first_field: i32 } };

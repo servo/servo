@@ -107,7 +107,7 @@ impl Drop for DroppableWebGLTexture {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLTexture {
     webgl_object: WebGLObject,
     /// The target to which this texture was bound the first time
