@@ -4,7 +4,7 @@
 
 use std::fmt;
 use std::iter::Sum;
-use std::mem::{MaybeUninit, size_of};
+use std::mem::MaybeUninit;
 use std::ops::{Add, AddAssign, Range, Sub, SubAssign};
 
 use malloc_size_of_derive::MallocSizeOf;
@@ -56,7 +56,7 @@ pub fn is_cjk(codepoint: char) -> bool {
 pub struct RangeAny<T>(RangeAnyInner<T>);
 
 #[derive(Copy, MallocSizeOf)]
-pub enum RangeAnyInner<T> {
+enum RangeAnyInner<T> {
     Range {
         start: T,
         end: T,
@@ -74,8 +74,8 @@ pub enum RangeAnyInner<T> {
     RangeFull,
 }
 
-const _: () = assert!(size_of::<RangeAny<u32>>() == 12);
-const _: () = assert!(size_of::<Option<RangeAny<u32>>>() == 12);
+size_of_test!(RangeAny<u32>, 12);
+size_of_test!(Option<RangeAny<u32>>, 12);
 
 impl<T: fmt::Debug> fmt::Debug for RangeAny<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -224,23 +224,9 @@ impl<T> From<Range<T>> for RangeAny<T> {
 #[derive(Clone, Copy)]
 pub struct Str32<'a>(pub &'a str);
 
-#[expect(unexpected_cfgs)] // for `target_pointer_width = "128"`
-fn infalliable_u32_to_usize(value: u32) -> usize {
-    cfg_if::cfg_if! {
-        if #[cfg(any(
-            target_pointer_width = "32",
-            target_pointer_width = "64",
-            // Rust 1.98 supports no 128-bit target but maybe some future version will
-            // Some folks bother to write down RV128I after all
-            target_pointer_width = "128",
-        ))] {
-            value as usize
-        } else if #[cfg(target_pointer_width = "16")] {
-            const _: () = panic!("16-bit targets are not supported");
-        } else {
-            const _: () = panic!("This target exceeds the author’s wildest expectations");
-        }
-    }
+fn infallible_u32_to_usize(value: u32) -> usize {
+    const _: () = assert!(usize::BITS >= u32::BITS, "16-bit targets are not supported");
+    value as usize
 }
 
 macro_rules! unicode_length_type {
@@ -268,7 +254,7 @@ macro_rules! unicode_length_type {
         impl From<$type_name> for usize {
             #[inline]
             fn from(value: $type_name) -> usize {
-                infalliable_u32_to_usize(value.0)
+                infallible_u32_to_usize(value.0)
             }
         }
 
@@ -393,7 +379,7 @@ impl Utf16CodeUnits {
             for utf8_byte in string.0.bytes() {
                 current_utf16_offset.0 += len_utf16_for_utf8_byte(utf8_byte);
                 if current_utf16_offset > self {
-                    break;
+                    return current_utf8_offset;
                 }
                 current_utf8_offset.0 += len_utf8_for_utf8_byte(utf8_byte);
             }

@@ -2189,11 +2189,10 @@ impl InlineFormattingContext {
     }
 
     fn next_character_prevents_soft_wrap_opportunity(&self, index: Utf8CodeUnits) -> bool {
-        // FIXME: `iterator.nth(1)` returns the **second** item. Do we want `.next()` instead?
-        let Some(character) = self.text_content[usize::from(index)..].chars().nth(1) else {
+        let Some(second_character) = self.text_content[usize::from(index)..].chars().nth(1) else {
             return false;
         };
-        char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
+        char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(second_character)
     }
 
     fn previous_character_prevents_soft_wrap_opportunity(&self, index: Utf8CodeUnits) -> bool {
