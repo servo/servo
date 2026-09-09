@@ -736,6 +736,9 @@ pub(crate) struct Document {
     #[no_trace]
     theme: Cell<Option<Theme>>,
 
+    /// Language specific for this document, set by a meta element
+    default_language: DomRefCell<Option<String>>,
+
     /// True if this document is no longer the active document of its associated
     /// window.
     window_detached: Cell<bool>,
@@ -3833,6 +3836,11 @@ impl<'dom> LayoutDom<'dom, Document> {
     pub(crate) fn selection_for_layout(&self) -> Option<LayoutDom<'dom, Selection>> {
         unsafe { self.unsafe_get().selection.to_layout() }
     }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn default_language_for_layout(&self) -> Option<&'dom str> {
+        unsafe { self.unsafe_get().default_language.borrow_for_layout() }.as_deref()
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
@@ -4100,6 +4108,7 @@ impl Document {
             image_cache,
             history: Default::default(),
             theme: Default::default(),
+            default_language: Default::default(),
             window_detached: Default::default(),
             live_ranges: Default::default(),
         }
@@ -5255,6 +5264,14 @@ impl Document {
     pub(crate) fn set_theme(&self, new_theme: Option<Theme>) {
         self.theme.set(new_theme);
         self.window.refresh_theme();
+    }
+
+    pub(crate) fn default_language(&self) -> Option<String> {
+        self.default_language.borrow().clone()
+    }
+
+    pub(crate) fn set_default_language(&self, new_language: Option<String>) {
+        *self.default_language.borrow_mut() = new_language;
     }
 }
 

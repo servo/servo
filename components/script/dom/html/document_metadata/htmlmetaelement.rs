@@ -71,8 +71,9 @@ impl HTMLMetaElement {
             if name.eq_ignore_ascii_case("viewport") {
                 self.parse_and_send_viewport_if_necessary(cx);
             }
+        }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
-        } else if !self.HttpEquiv().is_empty() {
+        if !self.HttpEquiv().is_empty() {
             // TODO: Implement additional http-equiv candidates
             if self.HttpEquiv().eq_ignore_ascii_case("refresh") {
                 self.declarative_refresh();
@@ -81,6 +82,8 @@ impl HTMLMetaElement {
                 .eq_ignore_ascii_case("content-security-policy")
             {
                 self.apply_csp_list();
+            } else if self.HttpEquiv().eq_ignore_ascii_case("content-language") {
+                self.pragma_set_default_language();
             }
         }
     }
@@ -252,6 +255,35 @@ impl HTMLMetaElement {
                 /* from_meta_element */ true,
             );
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#pragma-set-default-language>
+    fn pragma_set_default_language(&self) {
+        // Step 3. Let input be the value of the element's content attribute.
+        let input = self.Content();
+        let input = input.str();
+        // Step 2. If the element's content attribute contains
+        // a U+002C COMMA character (,), then return.
+        let candidate = if input.contains('\u{002C}') {
+            None
+        } else {
+            // Step 1. If the meta element has no content attribute, then return.
+            // Step 4. Let position point at the first character of input.
+            // Step 5. Skip ASCII whitespace within input given position.
+            // Step 6. Collect a sequence of code points that are
+            // not ASCII whitespace from input given position.
+            // Step 7. Let candidate be the string that resulted from the previous step.
+            // Step 8. If candidate is the empty string, return.
+            input
+                .trim_start()
+                .split_ascii_whitespace()
+                .next()
+                .filter(|candidate| !candidate.is_empty())
+                .map(|candidate| candidate.to_owned())
+        };
+
+        // Step 9. Set the pragma-set default language to candidate.
+        self.owner_document().set_default_language(candidate);
     }
 }
 
