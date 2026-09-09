@@ -82,7 +82,6 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
@@ -1965,11 +1964,6 @@ impl Element {
         } else {
             false
         }
-    }
-
-    pub(crate) fn is_editing_host(&self) -> bool {
-        self.downcast::<HTMLElement>()
-            .is_some_and(|element| element.IsContentEditable())
     }
 
     pub(crate) fn is_actually_disabled(&self) -> bool {
