@@ -168,7 +168,7 @@ impl AnimationManager {
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
         let opaque_node = node.to_opaque();
 
-        let animation_keys = vec![
+        let animation_keys = [
             AnimationSetKey::new_for_non_pseudo(opaque_node),
             AnimationSetKey::new_for_pseudo(opaque_node, PseudoElement::Before),
             AnimationSetKey::new_for_pseudo(opaque_node, PseudoElement::After),
