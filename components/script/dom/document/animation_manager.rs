@@ -235,11 +235,11 @@ impl AnimationManager {
 
         if self.animating_images().write().clear_dirty() {
             self.root_nodes_with_newly_animating_images();
-            self.maybe_schedule_update(window, now);
+            self.maybe_schedule_image_animation_update(window, now);
         }
     }
 
-    pub(crate) fn update_active_frames(&self, window: &Window, now: f64) {
+    pub(crate) fn update_active_image_animation_frames(&self, window: &Window, now: f64) {
         if self.animating_images.read().is_empty() {
             return;
         }
@@ -277,7 +277,7 @@ impl AnimationManager {
             .paint_api()
             .update_images(window.webview_id().into(), updates);
 
-        self.maybe_schedule_update(window, now);
+        self.maybe_schedule_image_animation_update(window, now);
     }
 
     fn root_nodes_with_newly_animating_images(&self) {
@@ -287,14 +287,14 @@ impl AnimationManager {
         }
     }
 
-    fn maybe_schedule_update(&self, window: &Window, now: f64) {
+    fn maybe_schedule_image_animation_update(&self, window: &Window, now: f64) {
         with_script_thread(|script_thread| {
             if let Some(current_timer_id) = self.image_callback_timer_id.take() {
                 self.image_callback_timer_id.set(None);
                 script_thread.cancel_timer(current_timer_id);
             }
 
-            if let Some(duration) = self.duration_to_next_frame(now) {
+            if let Some(duration) = self.duration_to_next_image_animation_frame(now) {
                 let trusted_window = Trusted::new(window);
                 let timer_id = script_thread.schedule_timer(timers::TimerEventRequest {
                     callback: Box::new(move || {
@@ -308,7 +308,7 @@ impl AnimationManager {
         })
     }
 
-    fn duration_to_next_frame(&self, now: f64) -> Option<Duration> {
+    fn duration_to_next_image_animation_frame(&self, now: f64) -> Option<Duration> {
         self.animating_images
             .read()
             .node_to_state_map
