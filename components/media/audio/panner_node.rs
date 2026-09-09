@@ -4,6 +4,7 @@
 
 use std::f32::consts::PI as PI32;
 use std::f64::consts::PI;
+use std::any::Any;
 
 use euclid::default::Vector3D;
 use malloc_size_of_derive::MallocSizeOf;
@@ -421,5 +422,9 @@ impl AudioNodeEngine for PannerNode {
                 PannerNodeMessage::SetConeGain(val) => self.cone_outer_gain = val,
             }
         }
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }

@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
+
 use log::error;
 use num_traits::Zero;
 
 use crate::audio_node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::{Chunk, FRAMES_PER_BLOCK_USIZE};
-use crate::delay_node::{CachedUpmixedBlock, DelayBuffer};
+use crate::delay_node::{AccessLock, CachedUpmixedBlock, DelayBuffer};
 
 /// <https://webaudio.github.io/web-audio-api/#delaywriter>
 /// > ...an object that has the same interface as an AudioNode,
@@ -16,6 +18,7 @@ use crate::delay_node::{CachedUpmixedBlock, DelayBuffer};
 #[derive(AudioNodeCommon)]
 pub(crate) struct DelayWriter {
     channel_info: ChannelInfo,
+    accessed_first: AccessLock,
     // Ring buffer where we push to the front.
     // Easier mental model since entries in the back are the oldest.
     delay_line: DelayBuffer,
@@ -27,6 +30,7 @@ pub(crate) struct DelayWriter {
 
 impl DelayWriter {
     pub(super) fn new(
+        accessed_first: AccessLock,
         buffer: DelayBuffer,
         upmixed_block: CachedUpmixedBlock,
         channel_info: ChannelInfo,
@@ -34,6 +38,7 @@ impl DelayWriter {
     ) -> Self {
         Self {
             channel_info,
+            accessed_first,
             delay_line: buffer,
             upmixed_block,
             max_delay_time,
@@ -46,6 +51,11 @@ impl DelayWriter {
         if delay_line.capacity().is_zero() {
             delay_line.reserve(capacity);
         }
+    }
+
+    fn update_accessed_first(&mut self) {
+        let mut accessed_first = self.accessed_first.lock();
+        *accessed_first = !(*accessed_first);
     }
 
     /// Writes the input block to the delay line
@@ -64,8 +74,9 @@ impl DelayWriter {
             // Push the input block to the front of the delay line.
             delay_line.push_front(block);
         }
-        // Shifts the index of the existing upmixed block
-        if let Some(upmixed_block) = self.upmixed_block.write().as_mut() {
+        // If the writer acquired the access lock first, it shifts the index of the existing upmixed block
+        let access_lock = self.accessed_first.lock();
+        if *access_lock && let Some(upmixed_block) = self.upmixed_block.write().as_mut() {
             upmixed_block.increment_index();
         }
     }
@@ -77,6 +88,8 @@ impl AudioNodeEngine for DelayWriter {
     }
 
     fn process(&mut self, inputs: Chunk, info: &BlockInfo) -> Chunk {
+        // Update the accessed_first lock
+        self.update_accessed_first();
         debug_assert!(inputs.len() == 1);
 
         let max_delay_frame = self.max_delay_time * info.sample_rate as f64;
@@ -92,5 +105,9 @@ impl AudioNodeEngine for DelayWriter {
 
     fn output_count(&self) -> u32 {
         0
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
