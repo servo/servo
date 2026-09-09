@@ -16,10 +16,10 @@ use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait,
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use net_traits::image_cache::{
-    FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback,
+    EncodedImage, FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback,
     ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
     ImageResponse, PendingImageId, RasterizationCompleteResponse, StaticRasterDemandStatus,
-    StaticRasterImage, VectorImage,
+    VectorImage,
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchResponseMsg, Metadata, NetworkError};
@@ -340,7 +340,7 @@ impl LoadKeyGenerator {
 #[derive(Debug)]
 enum LoadResult {
     LoadedRasterImage(RasterImage),
-    LoadedStaticRaster(Arc<StaticRasterImage>),
+    LoadedStaticRaster(Arc<EncodedImage>),
     LoadedVectorImage(VectorImageData),
     FailedToLoadOrDecode,
 }
@@ -503,7 +503,7 @@ impl SvgRasterizationTaskStore {
 #[derive(MallocSizeOf)]
 struct StaticRasterEntry {
     #[conditional_malloc_size_of]
-    source: Arc<StaticRasterImage>,
+    source: Arc<EncodedImage>,
     image: Option<RasterImage>,
     target: Option<ImageMetadata>,
     generation: u64,
@@ -796,7 +796,7 @@ impl ImageCacheStore {
                         failed_target: None,
                     },
                 );
-                ImageResponse::Loaded(Image::StaticRaster(source), url.unwrap())
+                ImageResponse::Loaded(Image::Encoded(source), url.unwrap())
             },
             LoadResult::LoadedRasterImage(mut raster_image) => {
                 assert!(raster_image.id.is_some());
@@ -852,7 +852,7 @@ impl ImageCacheStore {
         };
         let key = match loaded_image.image_response {
             ImageResponse::Loaded(Image::Raster(image), _) => image.id,
-            ImageResponse::Loaded(Image::StaticRaster(source), _) => self
+            ImageResponse::Loaded(Image::Encoded(source), _) => self
                 .static_rasters
                 .remove(&source.id)
                 .and_then(|entry| entry.image)
@@ -935,7 +935,7 @@ impl ImageCacheStore {
                 };
                 // Validate even detached/hidden images, but never retain or upload
                 // this full-resolution temporary decode without a display demand.
-                LoadResult::LoadedStaticRaster(Arc::new(StaticRasterImage {
+                LoadResult::LoadedStaticRaster(Arc::new(EncodedImage {
                     id: msg.key,
                     metadata: raster_image.metadata,
                     cors_status: raster_image.cors_status,
