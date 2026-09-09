@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use rustc_ast::ast::LitKind;
 use rustc_hir::def::DefKind;
 use rustc_hir::def_id::{CrateNum, DefId};
+use rustc_hir::ExprKind;
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_infer::traits::{EvaluationResult, Obligation, ObligationCause};
 use rustc_lint::LateContext;
@@ -82,6 +84,17 @@ pub fn trait_in_crate<'tcx>(
         .iter()
         .find(|id| tcx.opt_item_name(**id) == Some(trait_sym))
         .copied()
+}
+
+pub fn value_if_expr_is_str(expr_kind: &ExprKind<'_>) -> Option<String> {
+    // It's a directly instantiated string
+    if let ExprKind::Lit(lit) = expr_kind {
+        if let LitKind::Str(value, _) = lit.node {
+            return Some(value.to_string());
+        };
+    };
+
+    None
 }
 
 /*
@@ -163,4 +176,16 @@ pub fn implements_trait_with_env_from_iter<'tcx>(
     infcx
         .evaluate_obligation(&obligation)
         .is_ok_and(EvaluationResult::must_apply_modulo_regions)
+}
+
+/// <https://github.com/rust-lang/rust-clippy/blob/4e521d16cec7b404db646f7a5b285e80df85b73e/clippy_lints/src/manual_string_new.rs#L68-L77>
+pub fn is_expr_kind_empty_str(expr_kind: &ExprKind<'_>) -> bool {
+    let ExprKind::Lit(lit) = expr_kind else {
+        return false;
+    };
+    let LitKind::Str(value, _) = lit.node else {
+        return false;
+    };
+
+    value == rustc_span::sym::empty
 }
