@@ -48,8 +48,8 @@ fn name<N: Node>(node: &N) -> Option<String> {
 /// Returns e.g. the SVG namespace URI for `<svg:rect>`
 fn namespace_uri<N: Node>(node: &N) -> Option<String> {
     match (node.as_element(), node.as_attribute()) {
-        (Some(e), _) => Some(e.namespace().to_string()),
-        (_, Some(a)) => Some(a.namespace().to_string()),
+        (Some(element), _) => Some(element.namespace().to_string()),
+        (_, Some(attribute)) => Some(attribute.namespace().to_string()),
         _ => None,
     }
 }
