@@ -980,8 +980,6 @@ impl Servo {
         } else {
             None
         };
-        #[cfg(not(feature = "multiprocess"))]
-        let js_engine_setup = Some(script::init());
 
         // Create the constellation, which maintains the engine pipelines, including script and
         // layout, as well as the navigation context.
