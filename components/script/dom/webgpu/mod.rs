@@ -4,17 +4,15 @@
 
 use std::sync::Arc;
 
-use script_webgpu::traits::{
-    WebGPUDomExceptionTrait, WebGPUEventTrait, WebGPUGlobalTrait, WebGPUPromiseTrait,
-};
+use script_webgpu::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
 use webgpu_traits::Mapping;
 use wgpu_core::resource::BufferAccessError;
 
+use crate::dom::GlobalScope;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::gpu::GPU;
 use crate::dom::promise::RootedPromise;
-use crate::dom::types::{DOMException, GPUAdapter, GPUBuffer, GPUShaderModule};
-use crate::dom::{Event, GlobalScope};
+use crate::dom::types::{GPUAdapter, GPUBuffer, GPUShaderModule};
 use crate::routed_promise::callback_promise;
 
 pub(crate) mod gpu_promise_listener;
@@ -207,28 +205,5 @@ impl WebGPUPromiseTrait<crate::DomTypeHolder> for RootedPromise {
 impl WebGPUGlobalTrait for GlobalScope {
     fn global_wgpu_id_hub(&self) -> Arc<script_webgpu::identityhub::IdentityHub> {
         self.wgpu_id_hub()
-    }
-}
-
-impl WebGPUEventTrait for Event {
-    fn new_inherited() -> Self {
-        Event::new_inherited()
-    }
-
-    fn init_event(&self, type_: style::Atom, bubbles: bool, cancelable: bool) {
-        Event::init_event(self, type_, bubbles, cancelable);
-    }
-
-    fn IsTrusted(&self) -> bool {
-        script_bindings::codegen::GenericBindings::EventBinding::EventMethods::<crate::DomTypeHolder>::IsTrusted(self)
-    }
-}
-
-impl WebGPUDomExceptionTrait for DOMException {
-    fn new_inherited(
-        message: script_bindings::str::DOMString,
-        name: script_bindings::str::DOMString,
-    ) -> Self {
-        DOMException::new_inherited(message, name)
     }
 }

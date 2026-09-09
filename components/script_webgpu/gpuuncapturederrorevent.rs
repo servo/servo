@@ -11,12 +11,13 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUUncapturedErrorEventInit, GPUUncapturedErrorEventMethods, GPUUncapturedErrorEventWrap,
 };
 use script_bindings::reflector::reflect_dom_object_with_proto_and_wrap;
+use script_bindings::traits::DomEventTrait;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::gpuerror::GPUError;
-use crate::traits::{Equivalence, WebGPUEventTrait};
+use crate::traits::Equivalence;
 use crate::{DomObject, JSTraceable};
 
 #[dom_struct(special)]
@@ -29,7 +30,7 @@ pub struct GPUUncapturedErrorEvent<D: DomTypes> {
 impl<D> GPUUncapturedErrorEvent<D>
 where
     D: Equivalence,
-    D::Event: WebGPUEventTrait,
+    D::Event: DomEventTrait,
 {
     fn new_inherited(init: &GPUUncapturedErrorEventInit<D>) -> Self {
         Self {
@@ -71,7 +72,7 @@ where
 impl<D> GPUUncapturedErrorEventMethods<D> for GPUUncapturedErrorEvent<D>
 where
     D: Equivalence,
-    D::Event: WebGPUEventTrait,
+    D::Event: DomEventTrait,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-gpuuncapturederrorevent>
     fn Constructor(

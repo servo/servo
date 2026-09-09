@@ -13,11 +13,12 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 use script_bindings::conversions::DerivedFrom;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_wrap;
+use script_bindings::traits::DomExceptionTrait;
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::gpuerror::GPUError;
-use crate::traits::{Equivalence, WebGPUDomExceptionTrait};
+use crate::traits::Equivalence;
 use crate::{DomObject, JSTraceable};
 
 /// <https://gpuweb.github.io/gpuweb/#gpupipelineerror>
@@ -34,7 +35,7 @@ where
     D::GPUValidationError: DerivedFrom<GPUError<D>>,
     D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
     D::GPUInternalError: DerivedFrom<GPUError<D>>,
-    D::DOMException: WebGPUDomExceptionTrait,
+    D::DOMException: DomExceptionTrait,
 {
     fn new_inherited(message: DOMString, reason: GPUPipelineErrorReason) -> Self {
         Self {
@@ -79,7 +80,7 @@ where
     D::GPUValidationError: DerivedFrom<GPUError<D>>,
     D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
     D::GPUInternalError: DerivedFrom<GPUError<D>>,
-    D::DOMException: WebGPUDomExceptionTrait,
+    D::DOMException: DomExceptionTrait,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpupipelineerror-constructor>
     fn Constructor(

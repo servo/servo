@@ -9,9 +9,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
 use script_bindings::codegen::GenericUnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use script_bindings::error::Fallible;
 use script_bindings::reflector::DomGlobalGeneric;
-use script_bindings::str::DOMString;
 use servo_base::generic_channel::GenericCallback;
-use stylo_atoms::Atom;
 use webgpu_traits::{
     Mapping, ShaderCompilationInfo, WebGPU, WebGPUAdapterResponse, WebGPUDevice,
     WebGPUDeviceResponse, WebGPUExternalTexture, WebGPUQueue,
@@ -140,15 +138,4 @@ pub trait GPUDeviceTrait<D: DomTypes>: DomGlobalGeneric<D> {
 
 pub trait GPUExternalTextureTrait<D: DomTypes> {
     fn id(&self) -> WebGPUExternalTexture;
-}
-
-pub trait WebGPUEventTrait {
-    fn new_inherited() -> Self;
-    fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool);
-    #[expect(non_snake_case)]
-    fn IsTrusted(&self) -> bool;
-}
-
-pub trait WebGPUDomExceptionTrait {
-    fn new_inherited(message: DOMString, name: DOMString) -> Self;
 }
