@@ -499,6 +499,12 @@ impl PaintTimingHandler {
         // TODO Step 8. Let frameTimingInfo be document’s current frame timing info.
         // TODO Step 9. Set document’s current frame timing info to null.
 
+        // Step 7. Let reportedPaints be the document’s set of previously
+        // reported paints. (Directly accessing)
+
+        // TODO Step 8. Let frameTimingInfo be document’s current frame timing info.
+        // TODO Step 9. Set document’s current frame timing info to null.
+
         // Step 10. Let flushPaintTimings be the following steps:
 
         // Note: A new PaintTimingReport to accumulate the paints.
