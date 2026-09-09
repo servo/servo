@@ -1469,7 +1469,7 @@ where
                 self.set_accessibility_active(webview_id, active);
             },
             EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
-                self.clear_history(webview_id);
+                self.handle_clear_session_history(webview_id);
             },
         }
     }
@@ -3205,7 +3205,7 @@ where
         );
     }
 
-    fn clear_history(&mut self, webview_id: WebViewId) {
+    fn handle_clear_session_history(&mut self, webview_id: WebViewId) {
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
             return;
         };
