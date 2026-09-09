@@ -17,6 +17,7 @@ use crate::dom::navigator::hardware_concurrency;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::storagemanager::StorageManager;
+use crate::dom::types::LockManager;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -134,5 +135,10 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
     fn HardwareConcurrency(&self) -> u64 {
         hardware_concurrency()
+    }
+
+    /// <https://w3c.github.io/web-locks/#navigator-mixins>
+    fn Locks(&self) -> DomRoot<LockManager> {
+        todo!()
     }
 }
