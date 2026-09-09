@@ -31,7 +31,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::Epoch;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericReceiver, GenericSharedMemory};
-use servo_base::id::{LCPCandidateID, PainterId, PipelineId, WebViewId};
+use servo_base::id::{PainterId, PipelineId, WebViewId};
 use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 use servo_config::{opts, pref};
 use servo_constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
@@ -1002,6 +1002,10 @@ impl Painter {
             details.first_contentful_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }
 
+        if let Some(lcp_candidate) = display_list_info.lcp_candidate {
+            details.lcp_candidates.push_back((epoch, lcp_candidate));
+        }
+
         details.animations.handle_new_display_list(
             display_list_info.caret_property_binding,
             &self.web_content_animator,
@@ -1487,22 +1491,6 @@ impl Painter {
             .values()
             .map(|renderer| renderer.scroll_trees_memory_usage(ops))
             .sum::<usize>()
-    }
-
-    pub(crate) fn append_lcp_candidate(
-        &mut self,
-        id: LCPCandidateID,
-        area: usize,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        epoch: Epoch,
-    ) {
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
-            webview_renderer
-                .ensure_pipeline_details(pipeline_id)
-                .lcp_candidates
-                .push_back((epoch.into(), (id, area)));
-        }
     }
 }
 
