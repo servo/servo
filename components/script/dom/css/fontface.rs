@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref, RefCell};
-use std::rc::Rc;
 
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
@@ -37,7 +36,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::css::fontfaceset::FontFaceSet;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::NodeTraits;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::window::Window;
 
 /// <https://drafts.csswg.org/css-font-loading/#fontface-interface>
@@ -69,8 +68,7 @@ pub struct FontFace {
     urls: DomRefCell<Option<SourceList>>,
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontface-fontstatuspromise-slot>
-    #[conditional_malloc_size_of]
-    font_status_promise: Rc<Promise>,
+    font_status_promise: TracedPromise,
 
     /// The `@font-face` rule that this `FontFace` object is [css-connected] to, if any.
     ///
@@ -241,7 +239,7 @@ impl FontFace {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        let font_status_promise = Promise::new(cx, global);
+        let font_status_promise = Promise::new_rooted(cx, global);
         // If any of them fail to parse correctly, reject font face’s [[FontStatusPromise]] with a
         // DOMException named "SyntaxError"
         font_status_promise
@@ -254,7 +252,7 @@ impl FontFace {
             Box::new(Self {
                 reflector: Reflector::new(),
                 font_face_set: MutNullableDom::default(),
-                font_status_promise,
+                font_status_promise: font_status_promise.to_traced(),
                 family_name: DomRefCell::default(),
                 urls: Default::default(),
                 descriptors: DomRefCell::new(FontFaceDescriptors {
@@ -283,7 +281,7 @@ impl FontFace {
         family_name: DOMString,
         urls: Option<SourceList>,
         descriptors: &Descriptors,
-        font_status_promise: Rc<Promise>,
+        font_status_promise: &RootedPromise,
     ) -> Self {
         Self {
             reflector: Reflector::new(),
@@ -298,7 +296,7 @@ impl FontFace {
             family_name: DomRefCell::new(family_name),
             urls: DomRefCell::new(urls),
             template: RefCell::default(),
-            font_status_promise,
+            font_status_promise: font_status_promise.to_traced(),
             css_font_face_rule: Default::default(),
         }
     }
@@ -311,7 +309,7 @@ impl FontFace {
         font_family: DOMString,
         urls: Option<SourceList>,
         descriptors: &Descriptors,
-        font_status_promise: Rc<Promise>,
+        font_status_promise: &RootedPromise,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
             cx,
@@ -331,7 +329,7 @@ impl FontFace {
         family_name: DOMString,
         descriptors: FontFaceDescriptors,
         src: Option<SourceList>,
-        font_status_promise: Rc<Promise>,
+        font_status_promise: &RootedPromise,
         font_face_rule: ServoArc<FontFaceRuleInfo>,
     ) -> Self {
         Self {
@@ -342,7 +340,7 @@ impl FontFace {
             family_name: DomRefCell::new(family_name),
             urls: DomRefCell::new(src),
             template: RefCell::default(),
-            font_status_promise,
+            font_status_promise: font_status_promise.to_traced(),
             css_font_face_rule: DomRefCell::new(Some(font_face_rule)),
         }
     }
@@ -369,14 +367,14 @@ impl FontFace {
         // > descriptors in the @font-face rule.
         let descriptors = serialize_parsed_descriptors(&font_face_rule.descriptors);
 
-        let font_status_promise = Promise::new(cx, global);
+        let font_status_promise = Promise::new_rooted(cx, global);
         Some(reflect_dom_object_with_proto(
             cx,
             Box::new(Self::new_inherited_for_web_font(
                 family_name,
                 descriptors,
                 font_face_rule.descriptors.src.clone(),
-                font_status_promise,
+                &font_status_promise,
                 font_face_rule,
             )),
             global,
@@ -663,15 +661,15 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
     /// load. For fonts constructed from a buffer source, or fonts that are already loading or
     /// loaded, it does nothing.
     /// <https://drafts.csswg.org/css-font-loading/#font-face-load>
-    fn Load(&self, cx: &mut JSContext) -> Rc<Promise> {
+    fn Load(&self, cx: &mut JSContext) -> RootedPromise {
         // Step 2. If font face’s [[Urls]] slot is null, or its status attribute is anything
         // other than "unloaded", return font face’s [[FontStatusPromise]] and abort these
         // steps.
         let Some(sources) = self.urls.borrow_mut().take() else {
-            return self.font_status_promise.clone();
+            return self.font_status_promise.root();
         };
         if self.status.get() != FontFaceLoadStatus::Unloaded {
-            return self.font_status_promise.clone();
+            return self.font_status_promise.root();
         }
 
         let global = self.global();
@@ -753,12 +751,12 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
             font_face_set.handle_font_face_status_changed(cx, self);
         }
 
-        self.font_status_promise.clone()
+        self.font_status_promise.root()
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontface-loaded>
-    fn Loaded(&self) -> Rc<Promise> {
-        self.font_status_promise.clone()
+    fn Loaded(&self) -> RootedPromise {
+        self.font_status_promise.root()
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#font-face-constructor>
@@ -795,7 +793,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         };
 
         // Set its internal [[FontStatusPromise]] slot to a fresh pending Promise object.
-        let font_status_promise = Promise::new(cx, global);
+        let font_status_promise = Promise::new_rooted(cx, global);
 
         let sources = parsed_font_face_rule.descriptors.src.clone();
         // Let font face be a fresh FontFace object.
@@ -806,7 +804,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
             family,
             sources,
             &parsed_font_face_rule.descriptors,
-            font_status_promise,
+            &font_status_promise,
         );
 
         // If font face’s status is "error", terminate this algorithm;
