@@ -4781,6 +4781,9 @@ trait NormalizedAlgorithm: Sized {
         //         Return true.
         //     Otherwise:
         //         Execute the step.
+        // Step 4. Assert: this step is never reached, because one of the steps of the operation
+        // will have said to return a value or throw an error, causing us to return true or false,
+        // respectively.
         //
         // NOTE:
         // - Step 3 can be interpreted as executing the specified operation of the specified
