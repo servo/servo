@@ -15,6 +15,7 @@ use crate::webstorage_thread::{OriginDescriptor, WebStorageThreadMsg, WebStorage
 pub mod cache_storage;
 pub mod client_storage;
 pub mod indexeddb;
+pub mod weblock;
 pub mod webstorage_thread;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
