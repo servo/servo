@@ -4,6 +4,15 @@
 
 //! This module implements structured cloning, as defined by [HTML](https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
+#[expect(dead_code)]
+mod algorithm;
+#[expect(dead_code)]
+mod interfaces;
+#[expect(dead_code)]
+mod jsapi;
+#[expect(dead_code)]
+mod mozjs;
+
 use std::ffi::CStr;
 use std::os::raw;
 use std::ptr::{self, NonNull};

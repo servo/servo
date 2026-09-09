@@ -5263,8 +5263,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.26.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38aa58e8a393778d92a1330a831bdde8af766ef2e39fb61b3c670fe6e60f259e"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "bindgen",
  "cc",
@@ -5278,8 +5277,7 @@ dependencies = [
 [[package]]
 name = "mozjs_collator_glue"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9d330b59a436d446124fae0115c677f786b182b3cfbbb9e1460dfd789b6220e"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "arraystring",
  "arrayvec",
@@ -5293,8 +5291,7 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_collator"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e20d3cd19d06337756e27bbe58e8f6136fd9371af02351854c74ff3b0cd6354"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "displaydoc",
  "icu_locale",
@@ -5314,14 +5311,12 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_collator_data"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e869ba6b2f8960fb52ef18ae81b0160d7e72c461ced73681dfad916ac94e5fba"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 
 [[package]]
 name = "mozjs_icu_collections"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15f85e375edb763fd03de1dcc357b6d7b325afee7895764415a1e73bc8371ffe"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "displaydoc",
  "icu_casemap",
@@ -5335,8 +5330,7 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_normalizer"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ae4065b463408fadb3548e58594b85b10031ccb863252ad39da0343e587e09e"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "displaydoc",
  "icu_properties",
@@ -5353,14 +5347,12 @@ dependencies = [
 [[package]]
 name = "mozjs_icu_normalizer_data"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba0b6737962931cc55247972cc17d84132faf2aaa9a9c0d5eb3f6d892e5593e4"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 
 [[package]]
 name = "mozjs_locale_glue"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e7677a58f7cbca8d77fb3833fac679d3c7ceaffd06f54a52e6508fd16263f30"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "cbindgen",
  "icu_locale",
@@ -5369,8 +5361,7 @@ dependencies = [
 [[package]]
 name = "mozjs_normalizer_glue"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb267434ba58d999f3749e9a156d5fcdfd3633a45e1bd4ba92b802cb07358727"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "cbindgen",
  "encoding_rs",
@@ -5382,8 +5373,7 @@ dependencies = [
 [[package]]
 name = "mozjs_properties_glue"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc5a22e3a1daf87de3f3e625d7652d102124850cf7e18828f4615fb9ddafed14"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "cbindgen",
  "icu_casemap",
@@ -5394,8 +5384,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "153.0.0-1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04127e43d8b292e7d5739963d9787e30ecac27e054c75f153f553b5c4c2d3ede"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "bindgen",
  "cc",
@@ -5417,8 +5406,7 @@ dependencies = [
 [[package]]
 name = "mozjs_unicode_bidi_ffi"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b863d108fb1ac889545ba03e4fcea54cbe94c120d9b40080a3309b7ecd3fede"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "cbindgen",
  "icu_properties",
@@ -5428,8 +5416,7 @@ dependencies = [
 [[package]]
 name = "mozjs_utf16_iter"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dea6d470af028bd441a9cfd0a604b9a7c7ca64a606c584698a279a34f5ec3c90"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "mozjs_icu_collections",
 ]
@@ -5437,8 +5424,7 @@ dependencies = [
 [[package]]
 name = "mozjs_utf8_iter"
 version = "153.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be78a1690af5a65b4f0df6e3f6d52dbcdfec1fbc546634bea9678b64c1d9125d"
+source = "git+https://github.com/servo/mozjs?branch=structured-clone-helpers#33168d26ab50e754f59fbd8fd21d5eafddb74ae6"
 dependencies = [
  "mozjs_icu_collections",
 ]
@@ -9243,6 +9229,7 @@ dependencies = [
  "servo-script-traits",
  "servo-script-webgpu",
  "servo-storage-traits",
+ "servo-structured-clone",
  "servo-timers",
  "servo-tracing",
  "servo-url",
@@ -9429,6 +9416,10 @@ dependencies = [
  "servo-url",
  "uuid",
 ]
+
+[[package]]
+name = "servo-structured-clone"
+version = "0.6.0"
 
 [[package]]
 name = "servo-timers"
