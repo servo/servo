@@ -49,13 +49,13 @@ pub type VectorImageId = PendingImageId;
 pub enum Image {
     Raster(#[conditional_malloc_size_of] Arc<RasterImage>),
     Vector(VectorImage),
-    StaticRaster(#[conditional_malloc_size_of] Arc<StaticRasterImage>),
+    Encoded(#[conditional_malloc_size_of] Arc<EncodedImage>),
 }
 
 /// A validated static raster source. Display pixels are owned by the cache, not
 /// by DOM/layout references, so replacing a decode releases its old buffer.
 #[derive(MallocSizeOf)]
-pub struct StaticRasterImage {
+pub struct EncodedImage {
     pub id: PendingImageId,
     pub metadata: ImageMetadata,
     pub cors_status: CorsStatus,
@@ -64,7 +64,7 @@ pub struct StaticRasterImage {
     pub bytes: Arc<Vec<u8>>,
 }
 
-impl std::fmt::Debug for StaticRasterImage {
+impl std::fmt::Debug for EncodedImage {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("StaticRasterImage")
@@ -74,7 +74,7 @@ impl std::fmt::Debug for StaticRasterImage {
     }
 }
 
-impl StaticRasterImage {
+impl EncodedImage {
     /// Obtain original pixels for consumers such as canvas. Do not use for layout.
     pub fn decode(&self) -> Option<Arc<RasterImage>> {
         pixels::load_from_memory(&self.bytes, self.cors_status).map(|mut image| {
@@ -98,7 +98,7 @@ impl Image {
         match self {
             Image::Vector(image, ..) => image.metadata,
             Image::Raster(image) => image.metadata,
-            Image::StaticRaster(image) => image.metadata,
+            Image::Encoded(image) => image.metadata,
         }
     }
 
@@ -106,7 +106,7 @@ impl Image {
         match self {
             Image::Vector(image) => image.cors_status,
             Image::Raster(image) => image.cors_status,
-            Image::StaticRaster(image) => image.cors_status,
+            Image::Encoded(image) => image.cors_status,
         }
     }
 
@@ -115,7 +115,7 @@ impl Image {
     pub fn as_raster_image(&self) -> Option<Arc<RasterImage>> {
         match self {
             Image::Raster(image) => Some(image.clone()),
-            Image::StaticRaster(image) => image.decode(),
+            Image::Encoded(image) => image.decode(),
             Image::Vector(..) => None,
         }
     }
@@ -124,7 +124,7 @@ impl Image {
         match self {
             Image::Raster(image) => image.load_time,
             Image::Vector(image) => image.load_time,
-            Image::StaticRaster(image) => image.load_time,
+            Image::Encoded(image) => image.load_time,
         }
     }
 }

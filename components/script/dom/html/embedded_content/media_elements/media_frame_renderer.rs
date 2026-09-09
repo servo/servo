@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex, RwLock, Weak};
 use euclid::default::Size2D;
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
-use net_traits::image_cache::{Image, StaticRasterImage};
+use net_traits::image_cache::{EncodedImage, Image};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use servo_base::generic_channel::{GenericCallback, GenericSharedMemory};
 use servo_base::id::WebViewId;
@@ -83,7 +83,7 @@ pub(crate) struct MediaFrameRenderer {
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     poster_frame: Option<MediaFrame>,
     #[conditional_malloc_size_of]
-    static_poster: Option<Arc<StaticRasterImage>>,
+    static_poster: Option<Arc<EncodedImage>>,
 }
 
 impl MediaFrameRenderer {
@@ -115,7 +115,7 @@ impl MediaFrameRenderer {
         self.poster_frame
     }
 
-    pub(crate) fn static_poster(&self) -> Option<Arc<StaticRasterImage>> {
+    pub(crate) fn static_poster(&self) -> Option<Arc<EncodedImage>> {
         self.static_poster.clone()
     }
 
@@ -212,7 +212,7 @@ impl MediaFrameRenderer {
 
     pub(crate) fn set_poster_frame(&mut self, image: Option<Image>) {
         self.static_poster = match &image {
-            Some(Image::StaticRaster(source)) => Some(source.clone()),
+            Some(Image::Encoded(source)) => Some(source.clone()),
             _ => None,
         };
         self.poster_frame = image.and_then(|image| {
