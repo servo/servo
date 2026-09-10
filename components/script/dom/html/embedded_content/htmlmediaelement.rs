@@ -3000,10 +3000,10 @@ impl HTMLMediaElement {
             .map(|holder| holder.get_frame())
     }
 
-    pub(crate) fn get_static_poster_to_present(&self) -> Option<Arc<EncodedImage>> {
+    pub(crate) fn get_encoded_poster_to_present(&self) -> Option<Arc<EncodedImage>> {
         let renderer = self.video_renderer.lock().unwrap();
         if self.show_poster.get() || renderer.current_frame().is_none() {
-            renderer.static_poster()
+            renderer.encoded_poster()
         } else {
             None
         }

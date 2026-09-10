@@ -596,7 +596,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
 
     fn as_video(&self) -> Option<(VideoInfo, Option<PhysicalSize<f64>>)> {
         let data = self.media_data()?;
-        let natural_size = if let Some(source) = &data.static_poster {
+        let natural_size = if let Some(source) = &data.encoded_poster {
             Some(PhysicalSize::new(
                 source.metadata.width.into(),
                 source.metadata.height.into(),
@@ -609,7 +609,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
         };
         Some((
             VideoInfo {
-                static_poster: data.static_poster,
+                encoded_poster: data.encoded_poster,
                 image_key: data.current_frame.map(|frame| frame.image_key),
                 poster_or_src_url: data.poster_or_src_url,
             },
