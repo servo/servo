@@ -34,6 +34,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_base::threadpool::ThreadPool;
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 use webrender_api::ImageKey as WebRenderImageKey;
@@ -919,7 +920,9 @@ impl ImageCacheStore {
         let image = match msg.image {
             None => LoadResult::FailedToLoadOrDecode,
             Some(DecodedImage::Raster(raster_image)) => {
-                if raster_image.loop_count.is_some() {
+                if raster_image.loop_count.is_some() ||
+                    !pref!(image_layout_driven_decode_downscaling_enabled)
+                {
                     self.load_image_with_keycache(PendingKey::RasterImage((msg.key, raster_image)));
                     return;
                 }
