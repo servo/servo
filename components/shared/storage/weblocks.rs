@@ -28,7 +28,7 @@ pub struct LockRequestId(Uuid);
 pub enum WebLocksThreadMsg {
     Request(LockRequest, ImmutableOrigin),
     Query(GenericCallback<LockManagerSnapshotMsg>, ImmutableOrigin),
-    Release(String, ImmutableOrigin),
+    Release(LockId, String, ImmutableOrigin),
     Abort(LockRequestId, ImmutableOrigin, String),
     CollectMemoryReport(ReportsChan),
 }

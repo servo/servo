@@ -6,7 +6,7 @@ use rustc_hash::FxHashMap;
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_url::ImmutableOrigin;
 use storage_traits::weblocks::{
-    LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, LockMsg, LockRequest, LockRequestId,
+    LockId, LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, LockMsg, LockRequest, LockRequestId,
     WebLocksThreadMsg,
 };
 
@@ -76,8 +76,8 @@ impl WebLocksManager {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
                 },
-                WebLocksThreadMsg::Release(name, origin) => {
-                    // TODO: release lock
+                WebLocksThreadMsg::Release(lock_id, name, origin) => {
+                    self.release_lock(origin, name, lock_id);
                 },
                 WebLocksThreadMsg::Abort(request_id, origin, name) => {
                     self.abort_request(origin, name, request_id);
@@ -95,6 +95,19 @@ impl WebLocksManager {
     fn collect_memory_reports(&self) -> Vec<Report> {
         // TODO: actual report
         vec![]
+    }
+
+    /// <https://www.w3.org/TR/web-locks/#algorithm-release-lock>
+    fn release_lock(&mut self, origin: ImmutableOrigin, name: String, lock_id: LockId) {
+        // Step 1. skip assert
+        // Step 2-5. Let
+        let manager = self.obtain_lock_manager(origin);
+
+        // Step 6. Remove lock from the manager’s held lock set.
+        manager.held.remove(&lock_id);
+
+        // Step 7. Process the lock request queue queue.
+        manager.process_lock_request_queue(&name);
     }
 
     /// <https://www.w3.org/TR/web-locks/#algorithm-abort-request>
@@ -120,7 +133,7 @@ impl WebLocksManager {
 #[derive(Default)]
 struct LockManager {
     queue_map: FxHashMap<String, VecDeque<LockRequest>>,
-    held: FxHashMap<String, Lock>,
+    held: FxHashMap<LockId, Lock>,
 }
 
 impl LockManager {
@@ -133,7 +146,7 @@ impl LockManager {
         // Step 3.4. If steal is true,
         if request.steal {
             // Step 3.4.1.
-            if let Some(_todo) = self.held.remove(&name) {
+            if let Some((_, lock)) = self.held.extract_if(|_, v| v.name == name).next() {
                 // TODO: reject original lock released promise
             }
             // Step 3.4.2. Prepend request in queue.
@@ -179,13 +192,14 @@ impl LockManager {
 
             // Step 12. Let lock be a new lock with ...
             let lock = Lock {
+                id: LockId::next(),
                 name: request.name.clone(),
                 mode: request.mode,
                 client_id: request.client_id,
             };
 
             // Step 13. Append lock to manager’s held lock set.
-            self.held.insert(lock.name.clone(), lock);
+            self.held.insert(lock.id, lock);
 
             // Step 14. Enqueue the following steps on callback’s relevant settings
             // object’s responsible event loop.
@@ -233,7 +247,7 @@ impl LockManager {
 }
 
 /// <https://www.w3.org/TR/web-locks/#grantable>
-fn is_grantable(request: &LockRequest, is_first: bool, held: &FxHashMap<String, Lock>) -> bool {
+fn is_grantable(request: &LockRequest, is_first: bool, held: &FxHashMap<LockId, Lock>) -> bool {
     // Step 1 to 6 skip
     // Step 7.
     if !is_first {
@@ -241,7 +255,7 @@ fn is_grantable(request: &LockRequest, is_first: bool, held: &FxHashMap<String, 
     }
     match request.mode {
         // Step 8.
-        LockModeMsg::Exclusive => !held.contains_key(&request.name),
+        LockModeMsg::Exclusive => !held.values().any(|lock| lock.name == request.name),
         // Step 9.
         LockModeMsg::Shared => !held
             .values()
@@ -250,6 +264,7 @@ fn is_grantable(request: &LockRequest, is_first: bool, held: &FxHashMap<String, 
 }
 
 struct Lock {
+    id: LockId,
     name: String,
     mode: LockModeMsg,
     client_id: String,
