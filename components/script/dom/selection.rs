@@ -56,8 +56,10 @@ pub(crate) struct Selection {
     range: DomRefCell<Option<SelectionRange>>,
     /// The live range version of this selection, which will never cross shadow roots.
     live_range: MutNullableDom<Range>,
-    /// This is like [`Range`], but in the flat tree, which means that it is `None`
-    /// if the selection is unrenderable and boundaries are in flat tree order.
+    /// This is like [`Range`], but in the flat tree, which means that:
+    ///
+    /// * It is `None` if the selection is unrenderable.
+    /// * Boundaries are in flat tree order.
     visible_range: DomRefCell<Option<SelectionRange>>,
     /// The [`Direction`] of this [`Selection`] which determines which endpoint of
     /// [`Self::range`] is the anchor and which is the focus.
