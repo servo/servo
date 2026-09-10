@@ -1,15 +1,16 @@
 use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericCallback;
+use servo_url::ImmutableOrigin;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebLocksThreadMsg {
-    Request(GenericCallback<LockMsg>, String), // TODO: options
-    Query(GenericCallback<LockManagerSnapshotMsg>),
+    Request(GenericCallback<LockMsg>, String, ImmutableOrigin), // TODO: options
+    Query(GenericCallback<LockManagerSnapshotMsg>, ImmutableOrigin),
     CollectMemoryReport(ReportsChan),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct LockManagerSnapshotMsg {
     pub held: Vec<LockInfoMsg>,
     pub pending: Vec<LockInfoMsg>,
@@ -22,7 +23,7 @@ pub struct LockInfoMsg {
     pub client_id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum LockModeMsg {
     Exclusive,
     Shared,

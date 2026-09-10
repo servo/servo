@@ -8,6 +8,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 use servo_base::generic_channel::{GenericCallback, GenericSend, SendResult};
+use servo_url::ImmutableOrigin;
 use storage_traits::weblocks::{
     LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, WebLocksThreadMsg,
 };
@@ -38,6 +39,10 @@ impl LockManager {
         GenericSend::send(self.global().storage_threads(), msg)
     }
 
+    fn get_immutable_origin(&self) -> ImmutableOrigin {
+        self.global().origin().immutable().clone()
+    }
+
     fn request(
         &self,
         cx: &mut JSContext,
@@ -60,7 +65,11 @@ impl LockManager {
         })
         .unwrap();
 
-        if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Request(callback, name.into())) {
+        if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Request(
+            callback,
+            name.into(),
+            self.get_immutable_origin(),
+        )) {
             warn!("Request failed with {e}");
         }
 
@@ -95,7 +104,10 @@ impl LockManagerMethods<crate::DomTypeHolder> for LockManager {
         let task_source = task_manager.weblocks_task_source();
         let callback = callback_promise(&promise, self, task_source);
 
-        if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Query(callback)) {
+        if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Query(
+            callback,
+            self.get_immutable_origin(),
+        )) {
             warn!("Query failed with {e}");
         }
 

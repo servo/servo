@@ -1,10 +1,12 @@
-use std::thread;
+use std::{collections::VecDeque, thread};
 
 use profile_traits::mem::{ProcessReports, ProfilerChan as MemProfilerChan, Report};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_url::ImmutableOrigin;
-use storage_traits::weblocks::{LockManagerSnapshotMsg, WebLocksThreadMsg};
+use storage_traits::weblocks::{
+    LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, WebLocksThreadMsg,
+};
 
 pub trait WebLocksThreadFactory {
     fn new(mem_profiler_chan: MemProfilerChan, reporter_name: String) -> Self;
@@ -29,34 +31,32 @@ impl WebLocksThreadFactory for GenericSender<WebLocksThreadMsg> {
     }
 }
 
-struct OriginEntry {}
-
 struct WebLocksManager {
     port: GenericReceiver<WebLocksThreadMsg>,
-    locks: FxHashMap<ImmutableOrigin, OriginEntry>,
+    managers: FxHashMap<ImmutableOrigin, LockManager>,
 }
 
 impl WebLocksManager {
     fn new(port: GenericReceiver<WebLocksThreadMsg>) -> Self {
         Self {
             port,
-            locks: Default::default(),
+            managers: Default::default(),
         }
     }
 
     fn start(&mut self) {
         loop {
             match self.port.recv().unwrap() {
-                WebLocksThreadMsg::Request(sender, name) => {
+                WebLocksThreadMsg::Request(sender, name, origin) => {
                     // TODO: reply request
                 },
-                WebLocksThreadMsg::Query(sender) => {
-                    // TODO: actual fill message
-                    let msg = LockManagerSnapshotMsg {
-                        held: vec![],
-                        pending: vec![],
-                    };
-                    _ = sender.send(msg);
+                WebLocksThreadMsg::Query(sender, origin) => {
+                    let snapshot = self
+                        .managers
+                        .get(&origin)
+                        .map(|manager| manager.snapshot_lock_state())
+                        .unwrap_or_default();
+                    _ = sender.send(snapshot);
                 },
                 WebLocksThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
@@ -70,4 +70,57 @@ impl WebLocksManager {
         // TODO: actual report
         vec![]
     }
+}
+
+/// Pages and workers sharing a storage bucket opened inthe same user agent
+/// share a lock manager.
+/// <https://www.w3.org/TR/web-locks/#lock-manager>
+struct LockManager {
+    queue_map: FxHashMap<String, VecDeque<LockRequest>>,
+    held: FxHashSet<Lock>,
+}
+
+impl LockManager {
+    /// <https://www.w3.org/TR/web-locks/#snapshot-the-lock-state>
+    fn snapshot_lock_state(&self) -> LockManagerSnapshotMsg {
+        // Step 1. skip assert
+        // Step 2.
+        let mut pending = vec![];
+        // Step 3.
+        for queue in self.queue_map.values() {
+            for request in queue.iter() {
+                pending.push(LockInfoMsg {
+                    name: request.name.clone(),
+                    mode: request.mode,
+                    client_id: request.client_id.clone(),
+                });
+            }
+        }
+
+        // Step 4.
+        let mut held = vec![];
+        // Step 5.
+        for lock in self.held.iter() {
+            held.push(LockInfoMsg {
+                name: lock.name.clone(),
+                mode: lock.mode,
+                client_id: lock.client_id.clone(),
+            });
+        }
+
+        // Step 6.
+        LockManagerSnapshotMsg { held, pending }
+    }
+}
+
+struct LockRequest {
+    pub name: String,
+    pub mode: LockModeMsg,
+    pub client_id: String,
+}
+
+struct Lock {
+    name: String,
+    mode: LockModeMsg,
+    client_id: String,
 }
