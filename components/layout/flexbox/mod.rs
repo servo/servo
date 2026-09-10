@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use geom::{FlexAxis, MainStartCrossStart};
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
@@ -23,8 +24,10 @@ use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
+use crate::geom::LogicalVec2;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
+use crate::style_ext::{AspectRatio, ComputedValuesExt};
 
 mod geom;
 mod layout;
@@ -147,6 +150,14 @@ impl FlexContainer {
     pub(crate) fn repair_style(&mut self, new_style: &ServoArc<ComputedValues>) {
         self.config = FlexContainerConfig::new(new_style);
         self.style = new_style.clone();
+    }
+
+    #[inline]
+    pub(crate) fn preferred_aspect_ratio(
+        &self,
+        padding_border_sums: &LogicalVec2<Au>,
+    ) -> Option<AspectRatio> {
+        self.style.preferred_aspect_ratio(None, padding_border_sums)
     }
 
     pub(crate) fn subtree_size(&self) -> usize {
