@@ -276,7 +276,11 @@ pub(crate) fn decode_static_image(
     };
     let decoded_resolution = target.map_or(metadata, |target| metadata.fit_decode_size(target));
     let mut rgba = dynamic_image.into_rgba8();
-    // Filter premultiplied colors so transparent texels do not bleed into edges.
+    // Store pre-multiplied data to avoid conversions later. Premultiplying before
+    // resizing also prevents colors in transparent texels from bleeding into edges.
+    // This does cause an issue with some canvas APIs. See:
+    // https://github.com/servo/servo/issues/40257
+
     let is_opaque = rgba8_premultiply_inplace(&mut rgba);
     if decoded_resolution != metadata {
         rgba = imageops::resize(
@@ -369,6 +373,7 @@ where
         return None;
     }
 
+    // Coalesce the frame data into one single shared memory region.
     let metadata = ImageMetadata { width, height };
     let decoded_resolution = metadata;
     let mut bytes = Vec::with_capacity(total_number_of_bytes);

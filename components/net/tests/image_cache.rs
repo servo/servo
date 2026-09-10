@@ -787,23 +787,3 @@ fn test_svg_not_rasterize_zero_size() {
             .is_none()
     );
 }
-
-/// A generated 1000 x 500 BMP keeps the tests independent of external resources.
-fn large_static_bmp() -> Vec<u8> {
-    let width = 1000u32;
-    let height = 500u32;
-    let length = 54 + width * height * 3;
-    let mut bytes = vec![0; length as usize];
-    bytes[..2].copy_from_slice(b"BM");
-    bytes[2..6].copy_from_slice(&length.to_le_bytes());
-    bytes[10..14].copy_from_slice(&54u32.to_le_bytes());
-    bytes[14..18].copy_from_slice(&40u32.to_le_bytes());
-    bytes[18..22].copy_from_slice(&width.to_le_bytes());
-    bytes[22..26].copy_from_slice(&height.to_le_bytes());
-    bytes[26..28].copy_from_slice(&1u16.to_le_bytes());
-    bytes[28..30].copy_from_slice(&24u16.to_le_bytes());
-    for pixel in bytes[54..].chunks_exact_mut(3) {
-        pixel.copy_from_slice(&[0, 0, 255]);
-    }
-    bytes
-}
