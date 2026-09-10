@@ -1733,19 +1733,9 @@ impl Node {
         &self,
         no_gc: &'a NoGC,
     ) -> UnrootedAncestorIterator<'a> {
-        fn parent_in_flat_tree<'no_gc>(
-            no_gc: &'no_gc NoGC,
-            node: &Node,
-        ) -> Option<UnrootedDom<'no_gc, Node>> {
-            match node.parent_in_flat_tree(no_gc) {
-                FlatTreeParent::Parent(parent) => Some(parent),
-                FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => None,
-            }
-        }
-
         UnrootedSimpleNodeIterator::new(
-            parent_in_flat_tree(no_gc, self),
-            |node, no_gc| parent_in_flat_tree(no_gc, node),
+            self.parent_in_flat_tree(no_gc).into_parent(),
+            |node, no_gc| node.parent_in_flat_tree(no_gc).into_parent(),
             no_gc,
         )
     }
@@ -1756,10 +1746,7 @@ impl Node {
     ) -> UnrootedAncestorIterator<'a> {
         UnrootedSimpleNodeIterator::new(
             Some(UnrootedDom::from_ref(self, no_gc)),
-            move |node, no_gc| match node.parent_in_flat_tree(no_gc) {
-                FlatTreeParent::Parent(parent) => Some(parent),
-                FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => None,
-            },
+            |node, no_gc| node.parent_in_flat_tree(no_gc).into_parent(),
             no_gc,
         )
     }
@@ -4741,4 +4728,13 @@ pub(crate) enum FlatTreeParent<'a> {
     NotInFlatTree,
     /// This node is in the flat tree, but has no parent node because it is the root node.
     RootNode,
+}
+
+impl<'a> FlatTreeParent<'a> {
+    pub(crate) fn into_parent(self) -> Option<UnrootedDom<'a, Node>> {
+        match self {
+            FlatTreeParent::Parent(parent) => Some(parent),
+            FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => None,
+        }
+    }
 }
