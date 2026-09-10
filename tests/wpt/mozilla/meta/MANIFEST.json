@@ -13621,6 +13621,15 @@
       }
      ]
     ],
+    "mousewheel-scrolling.html": [
+     "4628545eec97207daa8bb1853358a1e252c43b05",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "sequential-focus-navigation-across-documents-001.html": [
      "40c2ff0e0fd0e85110825c7836eb767880d6dd61",
      [
