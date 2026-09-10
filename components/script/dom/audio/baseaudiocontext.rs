@@ -39,10 +39,12 @@ use crate::dom::audio::biquadfilternode::BiquadFilterNode;
 use crate::dom::audio::channelmergernode::ChannelMergerNode;
 use crate::dom::audio::channelsplitternode::ChannelSplitterNode;
 use crate::dom::audio::constantsourcenode::ConstantSourceNode;
+use crate::dom::audio::delaynode::DelayNode;
 use crate::dom::audio::gainnode::GainNode;
 use crate::dom::audio::iirfilternode::IIRFilterNode;
 use crate::dom::audio::oscillatornode::OscillatorNode;
 use crate::dom::audio::pannernode::PannerNode;
+use crate::dom::audio::periodicwave::PeriodicWave;
 use crate::dom::audio::stereopannernode::StereoPannerNode;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::AnalyserOptions;
@@ -75,7 +77,6 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
-use crate::dom::types::PeriodicWave;
 
 pub(crate) enum BaseAudioContextOptions {
     AudioContext(RealTimeAudioContextOptions),

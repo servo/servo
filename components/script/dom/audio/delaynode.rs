@@ -33,6 +33,7 @@ pub(crate) struct DelayNode {
 
 impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-delaynode-delaynode>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn Constructor(
         cx: &mut JSContext,
         window: &Window,
