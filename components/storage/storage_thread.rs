@@ -6,11 +6,12 @@ use std::path::PathBuf;
 
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use servo_base::generic_channel::GenericSender;
+use storage_traits::StorageThreads;
 use storage_traits::cache_storage::CacheStorageThreadHandle;
 use storage_traits::client_storage::ClientStorageThreadHandle;
 use storage_traits::indexeddb::IndexedDBThreadMsg;
+use storage_traits::weblocks::WebLocksThreadMsg;
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
-use storage_traits::{StorageThreads, weblocks::WebLocksThreadMsg};
 
 use crate::weblocks::WebLocksThreadFactory;
 use crate::{

@@ -1,9 +1,7 @@
 use dom_struct::dom_struct;
-use script_bindings::{
-    codegen::GenericBindings::WebLockBinding::{LockMethods, LockMode},
-    reflector::Reflector,
-    str::DOMString,
-};
+use script_bindings::codegen::GenericBindings::WebLockBinding::{LockMethods, LockMode};
+use script_bindings::reflector::Reflector;
+use script_bindings::str::DOMString;
 
 #[dom_struct]
 pub(crate) struct Lock {

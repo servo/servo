@@ -1,22 +1,19 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::{
-    callback::RootedCallback,
-    codegen::GenericBindings::WebLockBinding::{
-        LockGrantedCallback, LockManagerMethods, LockOptions,
-    },
-    interfaces::PromiseHelpers,
-    reflector::{Reflector, reflect_dom_object_with_cx},
-    root::DomRoot,
-    str::DOMString,
+use script_bindings::callback::RootedCallback;
+use script_bindings::codegen::GenericBindings::WebLockBinding::{
+    LockGrantedCallback, LockManagerMethods, LockOptions,
 };
+use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::root::DomRoot;
+use script_bindings::str::DOMString;
 use servo_base::generic_channel::{GenericSend, SendResult};
 use storage_traits::weblocks::{LockInfoMsg, LockManagerSnapshotMsg, WebLocksThreadMsg};
 
-use crate::{
-    dom::{GlobalScope, Promise, RootedPromise, bindings::reflector::DomGlobal},
-    routed_promise::{RoutedPromiseListener, callback_promise},
-};
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::{GlobalScope, Promise, RootedPromise};
+use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 
 #[dom_struct]
 pub(crate) struct LockManager {
@@ -67,8 +64,7 @@ impl LockManagerMethods<crate::DomTypeHolder> for LockManager {
         let global = self.global();
         let promise = Promise::new_rooted(cx, &global);
         let task_manager = global.task_manager();
-        // TODO: custom task source
-        let task_source = task_manager.dom_manipulation_task_source();
+        let task_source = task_manager.weblocks_task_source();
         let callback = callback_promise(&promise, self, task_source);
 
         if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Query(callback)) {
