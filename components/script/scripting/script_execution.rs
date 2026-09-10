@@ -266,8 +266,7 @@ impl GlobalScope {
             // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
             // promise rejected with script's error to rethrow.
             {
-                let module_error = module_tree.get_rethrow_error().borrow();
-                if let Some(exception) = &*module_error {
+                if let Some(exception) = module_tree.rethrow_error() {
                     unsafe {
                         JS_SetPendingException(
                             cx,
@@ -281,7 +280,7 @@ impl GlobalScope {
             }
 
             // Step 7.1. Otherwise: Let record be script's record.
-            let record = module_tree.get_record().unwrap();
+            let record = module_tree.record().unwrap();
 
             // Step 7.2. Set evaluationPromise to record.Evaluate().
             rooted!(&in(cx) let mut rval = UndefinedValue());
