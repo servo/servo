@@ -7,7 +7,7 @@ use script_bindings::codegen::GenericBindings::WebLockBinding::{
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
-use servo_base::generic_channel::{GenericSend, SendResult};
+use servo_base::generic_channel::{GenericCallback, GenericSend, SendResult};
 use storage_traits::weblocks::{
     LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, WebLocksThreadMsg,
 };
@@ -45,8 +45,26 @@ impl LockManager {
         options: Option<&LockOptions<crate::DomTypeHolder>>,
         callback: RootedCallback<LockGrantedCallback<crate::DomTypeHolder>>,
     ) -> RootedPromise {
-        todo!()
-        // self.
+        // TODO: request actually involves two promises, fix this later:
+        // 1. the query respond, and run callback
+        // 2. when callback finish, release the lock
+        // 3. when release done, then the final promise, not the "Request" one
+
+        let global = self.global();
+        let promise = Promise::new_rooted(cx, &global);
+        let task_manager = global.task_manager();
+        let task_source = task_manager.weblocks_task_source();
+
+        let callback = GenericCallback::new(|_| {
+            // TODO
+        })
+        .unwrap();
+
+        if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Request(callback, name.into())) {
+            warn!("Request failed with {e}");
+        }
+
+        promise
     }
 }
 

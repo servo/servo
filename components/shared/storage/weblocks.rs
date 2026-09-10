@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use servo_base::generic_channel::{GenericCallback, GenericSender};
+use servo_base::generic_channel::GenericCallback;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebLocksThreadMsg {
-    Request(GenericSender<LockMsg>, String), // TODO: options
+    Request(GenericCallback<LockMsg>, String), // TODO: options
     Query(GenericCallback<LockManagerSnapshotMsg>),
 }
 
