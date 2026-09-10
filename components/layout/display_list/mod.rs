@@ -848,7 +848,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             .to_webrender();
         let common = self.common_properties(state, clip, &style);
 
-        let image_key = if let Some(source) = &fragment.static_source {
+        let image_key = if let Some(source) = &fragment.encoded_source {
             let size = fragment.base.rect().size;
             let scale = self.device_pixel_ratio.get();
             let requested = DeviceIntSize::new(
@@ -856,7 +856,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                 (size.height.to_f32_px() * scale).ceil() as i32,
             );
             self.image_resolver
-                .static_raster_demands
+                .raster_decode_demands
                 .lock()
                 .push((source.id, requested));
             self.image_resolver

@@ -614,14 +614,14 @@ impl LayoutDom<'_, HTMLVideoElement> {
             .zip(video.get_video_height())
             .map(|(width, height)| MediaMetadata { width, height });
 
-        let static_poster = video.htmlmediaelement.get_static_poster_to_present();
+        let static_poster = video.htmlmediaelement.get_encoded_poster_to_present();
         HTMLMediaData {
             current_frame: if static_poster.is_some() {
                 None
             } else {
                 current_frame
             },
-            static_poster,
+            encoded_poster: static_poster,
             metadata,
             poster_url: unsafe {
                 video

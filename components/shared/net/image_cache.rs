@@ -262,7 +262,7 @@ pub trait ImageCache: Sync + Send {
     /// Current display pixels, if available. This never decodes synchronously.
     fn demand_driven_raster_image_key(&self, image_id: PendingImageId) -> Option<ImageKey>;
 
-    /// Replace the complete set of static raster demands after building a display
+    /// Replace the complete set of encoded raster demands after building a display
     /// list. Duplicate ids are combined by their largest aspect-preserving scale.
     /// Completion notifications request another paint, without repeating load events.
     /// Returns each active generation and whether its completion is still pending.

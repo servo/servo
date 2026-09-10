@@ -117,7 +117,7 @@ pub(crate) struct ImageResolver {
     pub pending_images: Mutex<Vec<PendingImage>>,
 
     /// Complete display-list demands, including uses in retained fragments.
-    pub static_raster_demands: Mutex<Vec<(PendingImageId, DeviceIntSize)>>,
+    pub raster_decode_demands: Mutex<Vec<(PendingImageId, DeviceIntSize)>>,
 
     /// A list of fully loaded vector images that need to be rasterized to a specific
     /// size determined by layout. This will be shared with the script thread.
@@ -292,7 +292,7 @@ impl ImageResolver {
         match image {
             CachedImage::Raster(raster_image) => raster_image.id,
             CachedImage::Encoded(source) => {
-                self.static_raster_demands.lock().push((source.id, size));
+                self.raster_decode_demands.lock().push((source.id, size));
                 self.image_cache.demand_driven_raster_image_key(source.id)
             },
             CachedImage::Vector(vector_image) => node.and_then(|node| {

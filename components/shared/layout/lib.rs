@@ -234,7 +234,7 @@ pub struct MediaMetadata {
 }
 
 pub struct HTMLMediaData {
-    pub static_poster: Option<Arc<EncodedImage>>,
+    pub encoded_poster: Option<Arc<EncodedImage>>,
     pub current_frame: Option<MediaFrame>,
     pub metadata: Option<MediaMetadata>,
     pub poster_url: Option<ServoUrl>,
@@ -616,7 +616,7 @@ pub struct ReflowResult {
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
     /// None if no display list was rebuilt; an empty list releases display pixels.
-    pub static_raster_demands: Option<Vec<(PendingImageId, DeviceIntSize)>>,
+    pub raster_decode_demands: Option<Vec<(PendingImageId, DeviceIntSize)>>,
     /// The list of vector images that were encountered that still need to be rasterized.
     pub pending_rasterization_images: Vec<PendingRasterizationImage>,
     /// The list of `SVGSVGElement`s encountered in the DOM that need to be serialized.

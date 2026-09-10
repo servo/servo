@@ -2294,7 +2294,7 @@ impl ScriptThread {
             },
             ImageCacheResponseMessage::RasterDecodeReady(pipeline_id, id, generation) => {
                 if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
-                    window.handle_static_raster_image_ready(id, generation);
+                    window.handle_encoded_raster_image_ready(id, generation);
                 }
             },
             ImageCacheResponseMessage::VectorImageRasterizationComplete(response) => {
