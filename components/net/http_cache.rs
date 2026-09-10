@@ -259,6 +259,12 @@ pub struct HttpCache {
     disk_cache: Option<std::sync::Arc<DiskCache>>,
 }
 
+impl std::fmt::Debug for HttpCache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.entries.iter()).finish()
+    }
+}
+
 impl MallocSizeOf for HttpCache {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.entries
@@ -291,6 +297,12 @@ impl HttpCache {
             entries: memory_cache,
             disk_cache,
         }
+    }
+
+    #[allow(unused, clippy::len_without_is_empty)]
+    /// The number of entries in the memory cache. This does not say anything about the disk cache.
+    pub fn len(&self) -> usize {
+        self.entries.len()
     }
 }
 
