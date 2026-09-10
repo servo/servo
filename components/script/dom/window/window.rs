@@ -173,7 +173,7 @@ use crate::dom::navigator::Navigator;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
 use crate::dom::performance::performance::Performance;
 use crate::dom::performanceresourcetiming::InitiatorType;
-use crate::dom::promise::Promise;
+use crate::dom::promise::RootedPromise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::selection::Selection;
@@ -1720,7 +1720,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         realm: &mut CurrentRealm,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
             image,
@@ -1731,6 +1731,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             options,
             realm,
         )
+        .duplicate(realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -1743,7 +1744,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         sw: i32,
         sh: i32,
         options: &ImageBitmapOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
             image,
@@ -1754,6 +1755,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             options,
             realm,
         )
+        .duplicate(realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window>
@@ -2234,7 +2236,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         realm: &mut CurrentRealm,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         fetch::Fetch(self.upcast(), input, init, realm)
     }
 

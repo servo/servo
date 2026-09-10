@@ -377,7 +377,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
             .task_manager()
             .font_loading_task_source()
             .queue(task!(resolve_font_face_set_load_task: move |cx| {
-                let load_promise = trusted_load_promise.root().duplicate(cx);
+                let load_promise = trusted_load_promise.root(cx);
                 let this = trusted_this.root();
 
                 // This will need adjustments once FontFaceSet is exposed to workers.

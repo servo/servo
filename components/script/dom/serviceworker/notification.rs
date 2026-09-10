@@ -421,7 +421,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
         global.task_manager().dom_manipulation_task_source().queue(
             task!(request_permission: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 let global = promise.global();
 
                 // Step 3.2.1: If deprecatedCallback is given,

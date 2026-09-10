@@ -78,7 +78,7 @@ use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::promise::Promise;
+use crate::dom::promise::RootedPromise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::script_execution::ScriptOptions;
@@ -1012,8 +1012,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         realm: &mut CurrentRealm,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(self.upcast(), image, 0, 0, None, None, options, realm)
+            .duplicate(realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -1026,7 +1027,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         sw: i32,
         sh: i32,
         options: &ImageBitmapOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(
             self.upcast(),
             image,
@@ -1037,6 +1038,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             options,
             realm,
         )
+        .duplicate(realm)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
@@ -1045,7 +1047,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         realm: &mut CurrentRealm,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         Fetch(self.upcast(), input, init, realm)
     }
 

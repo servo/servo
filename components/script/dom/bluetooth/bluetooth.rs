@@ -125,8 +125,7 @@ where
     T: AsyncBluetoothListener + DomObject,
 {
     fn response(&mut self, cx: &mut JSContext, response: BluetoothResponseResult) {
-        let promise =
-            RootedPromise::from(self.promise.take().expect("bt promise is missing").root());
+        let promise = self.promise.take().expect("bt promise is missing").root(cx);
 
         // JSAutoRealm needs to be manually made.
         // Otherwise, Servo will crash.

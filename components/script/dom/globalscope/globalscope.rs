@@ -123,7 +123,7 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceentry::EntryType;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::script_execution::ScriptOptions;
 use crate::dom::serviceworker::ServiceWorker;
@@ -406,7 +406,7 @@ struct BroadcastListener {
 }
 
 type FileListenerCallback =
-    Box<dyn Fn(&mut js::context::JSContext, Rc<Promise>, Fallible<Vec<u8>>) + Send>;
+    Box<dyn Fn(&mut js::context::JSContext, &RootedPromise, Fallible<Vec<u8>>) + Send>;
 
 /// A wrapper for the handling of file data received by the ipc router
 struct FileListener {
@@ -675,9 +675,9 @@ impl FileListener {
                 Some(FileListenerState::Receiving(bytes, target)) => match target {
                     FileListenerTarget::Promise(trusted_promise, callback) => {
                         let task = task!(resolve_promise: move |cx| {
-                            let promise = trusted_promise.root();
+                            let promise = trusted_promise.root(cx);
                             let mut realm = enter_auto_realm(cx, &*promise.global());
-                            callback(&mut realm, promise, Ok(bytes));
+                            callback(&mut realm, &promise, Ok(bytes));
                         });
 
                         self.task_source.queue(task);
@@ -703,9 +703,9 @@ impl FileListener {
                     match target {
                         FileListenerTarget::Promise(trusted_promise, callback) => {
                             self.task_source.queue(task!(reject_promise: move |cx| {
-                                let promise = trusted_promise.root();
+                                let promise = trusted_promise.root(cx);
                                 let mut realm = enter_auto_realm(cx, &*promise.global());
-                                callback(&mut realm, promise, error);
+                                callback(&mut realm, &promise, error);
                             }));
                         },
                         FileListenerTarget::Stream(trusted_stream) => {

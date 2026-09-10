@@ -10,6 +10,7 @@ use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::rc::Rc;
 
+use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSTracer;
 use rustc_hash::FxHashMap;
@@ -18,7 +19,7 @@ pub(crate) use script_bindings::refcounted::Trusted;
 use script_bindings::reflector::DomObject;
 use script_bindings::trace::trace_reflector;
 
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::tasks::task::TaskOnce;
 
 thread_local!(pub(super) static LIVE_PROMISE_REFERENCES: LivePromiseReferences =
@@ -76,7 +77,7 @@ impl TrustedPromise {
     /// Obtain a usable DOM Promise from a pinned `TrustedPromise` value. Fails if used on
     /// a different thread than the original value from which this `TrustedPromise` was
     /// obtained.
-    pub(crate) fn root(self) -> Rc<Promise> {
+    pub(crate) fn root(self, cx: &JSContext) -> RootedPromise {
         LIVE_PROMISE_REFERENCES.with(|live_references| {
             assert_eq!(
                 self.owner_thread,
@@ -93,6 +94,7 @@ impl TrustedPromise {
                         promises
                             .pop()
                             .expect("rooted promise list unexpectedly empty")
+                            .duplicate(cx)
                     };
                     if entry.get().is_empty() {
                         entry.remove();
@@ -109,7 +111,7 @@ impl TrustedPromise {
         let this = self;
         task!(reject_promise: move |cx| {
             debug!("Rejecting promise.");
-            this.root().reject_error(cx, error);
+            this.root(cx).reject_error(cx, error);
         })
     }
 
@@ -121,7 +123,7 @@ impl TrustedPromise {
         let this = self;
         task!(resolve_promise: move |cx| {
             debug!("Resolving promise.");
-            this.root().resolve_native(cx, &value);
+            this.root(cx).resolve_native(cx, &value);
         })
     }
 }

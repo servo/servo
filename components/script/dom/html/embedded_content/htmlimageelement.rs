@@ -1086,7 +1086,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(fulfill_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().resolve_native(cx, &());
+                    trusted_promise.root(cx).resolve_native(cx, &());
                 }
             }));
     }
@@ -1113,7 +1113,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(reject_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error(cx, Error::Encoding(Some("Image could not be decoded".into())));
+                    trusted_promise.root(cx).reject_error(cx, Error::Encoding(Some("Image could not be decoded".into())));
                 }
             }));
     }

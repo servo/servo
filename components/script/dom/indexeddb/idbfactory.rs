@@ -671,7 +671,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
             // Step 4.4: Queue a database task to resolve p with result.
             task_source.queue(task!(set_request_result_to_database: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 match result {
                     Err(err) => {
                         let error = map_backend_error_to_dom_error(err);

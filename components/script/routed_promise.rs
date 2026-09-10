@@ -29,7 +29,7 @@ impl<R: Serialize + DeserializeOwned + Send, T: RoutedPromiseListener<R> + DomOb
     RoutedPromiseContext<R, T>
 {
     fn response(self, cx: &mut JSContext, response: R) {
-        let promise = RootedPromise::from(self.trusted.root());
+        let promise = self.trusted.root(cx);
         self.receiver.root().handle_response(cx, response, &promise);
     }
 }
