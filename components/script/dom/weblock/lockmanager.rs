@@ -63,7 +63,7 @@ impl LockManager {
         let task_manager = global.task_manager();
         let task_source = task_manager.weblocks_task_source();
 
-        let callback = GenericCallback::new(|_| {
+        let callback = GenericCallback::new(|_lock| {
             // TODO
         })
         .unwrap();
@@ -101,8 +101,8 @@ impl LockManager {
             return reject_not_supported("signal exists but either steal or ifAvailable is true");
         }
         // Step 9.
-        if let Some(signal) = &options.signal
-            && signal.aborted()
+        if let Some(signal) = &options.signal &&
+            signal.aborted()
         {
             rooted!(&in(cx) let mut reason = UndefinedValue());
             signal.Reason(reason.handle_mut());
@@ -114,7 +114,7 @@ impl LockManager {
         // Step 11.
         self.request_lock(
             &promise,
-            // TODO: environment id is not implemented in servo, except for service worker
+            // TODO: environment id is not implemented in servo
             String::new(),
             callback,
             name,
@@ -133,7 +133,7 @@ impl LockManager {
         &self,
         promise: &RootedPromise,
         client_id: String,
-        callback: GenericCallback<LockMsg>,
+        callback: GenericCallback<Option<LockMsg>>,
         name: DOMString,
         mode: LockMode,
         if_available: bool,
@@ -150,7 +150,9 @@ impl LockManager {
             steal,
         };
 
-        // Step 2-4 happen on storage_threads
+        // Step 2. TODO
+
+        // Step 3. happens on storage_threads
         if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Request(
             request,
             self.get_immutable_origin(),

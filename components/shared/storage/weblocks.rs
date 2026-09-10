@@ -25,7 +25,7 @@ pub struct LockInfoMsg {
     pub client_id: String,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum LockModeMsg {
     Shared,
     Exclusive,
@@ -42,7 +42,7 @@ pub struct LockRequest {
     pub client_id: String,
     pub name: String,
     pub mode: LockModeMsg,
-    pub callback: GenericCallback<LockMsg>,
+    pub callback: GenericCallback<Option<LockMsg>>,
     pub if_available: bool,
     pub steal: bool,
 }
