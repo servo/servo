@@ -18,7 +18,7 @@ use mime::Mime;
 use net_traits::image_cache::{
     EncodedImage, FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback,
     ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
-    ImageResponse, PendingImageId, RasterizationCompleteResponse, RasterDecodeDemandStatus,
+    ImageResponse, PendingImageId, RasterDecodeDemandStatus, RasterizationCompleteResponse,
     VectorImage,
 };
 use net_traits::request::CorsSettings;
@@ -1165,7 +1165,10 @@ impl ImageCache for ImageCacheImpl {
         }
     }
 
-    fn demand_driven_raster_image_key(&self, image_id: PendingImageId) -> Option<WebRenderImageKey> {
+    fn demand_driven_raster_image_key(
+        &self,
+        image_id: PendingImageId,
+    ) -> Option<WebRenderImageKey> {
         self.store
             .lock()
             .encoded_raster_images
