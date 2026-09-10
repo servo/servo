@@ -13,10 +13,12 @@ use script_bindings::str::DOMString;
 use servo_base::generic_channel::{GenericCallback, GenericSend, SendResult};
 use servo_url::ImmutableOrigin;
 use storage_traits::weblocks::{
-    LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, LockMsg, LockRequest, WebLocksThreadMsg,
+    LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, LockMsg, LockRequest, LockRequestId,
+    WebLocksThreadMsg,
 };
 
 use crate::conversions::Convert;
+use crate::dom::abortsignal::AbortAlgorithm;
 use crate::dom::bindings::codegen::Bindings::WebLockBinding::{LockInfo, LockManagerSnapshot};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::types::{AbortSignal, DOMException};
@@ -55,11 +57,11 @@ impl LockManager {
         options: Option<&LockOptions<crate::DomTypeHolder>>,
         callback: RootedCallback<LockGrantedCallback<crate::DomTypeHolder>>,
     ) -> RootedPromise {
-        // Step 1.
+        // Step 1. If options was not passed, default LockOptions.
         let default_options = LockOptions::default();
         let options = options.unwrap_or(&default_options);
 
-        // Step 2.
+        // Step 2. Let environment be this’s relevant settings object.
         let global = self.global();
 
         let mut reject_not_supported = |message: &str| {
@@ -70,7 +72,7 @@ impl LockManager {
             )
         };
 
-        // Step 3.
+        // Step 3. If associated Document not fully active, reject with ...
         if !global.as_window().Document().is_fully_active() {
             return Promise::new_rejected_rooted(
                 cx,
@@ -84,34 +86,34 @@ impl LockManager {
 
         // Step 4. skip, manager is on storage threads
 
-        // Step 5.
+        // Step 5-9. validate arguments
         if name.starts_with('-') {
             return reject_not_supported("name starts with U+002D HYPHEN-MINUS(-)");
         }
-        // Step 6.
         if options.steal && options.ifAvailable {
-            return reject_not_supported("both steal and ifAvailable are true");
+            if options.ifAvailable {
+                return reject_not_supported("both steal and ifAvailable are true");
+            }
+            if options.mode != LockMode::Exclusive {
+                return reject_not_supported("steal is true but mode is not exclusive");
+            }
         }
-        // Step 7.
-        if options.steal && options.mode != LockMode::Exclusive {
-            return reject_not_supported("steal is true but mode is not exclusive");
-        }
-        // Step 8.
-        if options.signal.is_some() && (options.steal || options.ifAvailable) {
-            return reject_not_supported("signal exists but either steal or ifAvailable is true");
-        }
-        // Step 9.
-        if let Some(signal) = &options.signal
-            && signal.aborted()
-        {
-            rooted!(&in(cx) let mut reason = UndefinedValue());
-            signal.Reason(reason.handle_mut());
-            return Promise::new_rejected_rooted(cx, &global, *reason);
+        if let Some(signal) = &options.signal {
+            if options.steal || options.ifAvailable {
+                return reject_not_supported(
+                    "signal exists but either steal or ifAvailable is true",
+                );
+            }
+            if signal.aborted() {
+                rooted!(&in(cx) let mut reason = UndefinedValue());
+                signal.Reason(reason.handle_mut());
+                return Promise::new_rejected_rooted(cx, &global, *reason);
+            }
         }
 
-        // Step 10.
+        // Step 10. Let promise be a new promise.
         let promise = Promise::new_rooted(cx, &global);
-        // Step 11.
+        // Step 11. Request a lock with arguments ...
         self.request_lock(
             &promise,
             // TODO: environment id is not implemented in servo
@@ -123,7 +125,7 @@ impl LockManager {
             options.steal,
             &options.signal,
         );
-        // Step 12.
+        // Step 12. Return promise
         promise
     }
 
@@ -141,12 +143,14 @@ impl LockManager {
         signal: &Option<Root<Dom<AbortSignal>>>,
     ) {
         let callback = GenericCallback::new(|_lock| {
-            // TODO
+            // TODO: something to do with promise in callback, the promise is "released promise"
         })
         .unwrap();
 
-        // Step 1.
+        // Step 1. Let request be a new lock request with ...
+        let id = LockRequestId::default();
         let request = LockRequest {
+            id,
             client_id,
             name: name.into(),
             mode: mode.convert(),
@@ -155,9 +159,13 @@ impl LockManager {
             steal,
         };
 
-        // Step 2. TODO
+        // Step 2. If signal is present, add the abort algorithm to signal
+        if let Some(signal) = signal {
+            signal.add(&AbortAlgorithm::AbortLockRequest(id));
+        }
 
-        // Step 3. happens on storage_threads
+        // Step 3. Enqueue the following steps to local task queue.
+        // The inner steps (3.1 to 3.6) continues on WebLocksThread.
         if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Request(
             request,
             self.get_immutable_origin(),
@@ -165,8 +173,7 @@ impl LockManager {
             warn!("Request failed with {e}");
         }
 
-        // TODO: enqueue abort
-        // TODO: resolve promise when release/abort
+        // Step 4. skip return request, unused in spec
     }
 }
 
@@ -191,12 +198,29 @@ impl LockManagerMethods<crate::DomTypeHolder> for LockManager {
     }
 
     fn Query(&self, cx: &mut JSContext) -> RootedPromise {
+        // Step 1. Let environment be this’s relevant settings object.
         let global = self.global();
-        let promise = Promise::new_rooted(cx, &global);
-        let task_manager = global.task_manager();
-        let task_source = task_manager.weblocks_task_source();
-        let callback = callback_promise(&promise, self, task_source);
 
+        // Step 2. If associated Document is not fully active, reject with ...
+        if !global.as_window().Document().is_fully_active() {
+            return Promise::new_rejected_rooted(
+                cx,
+                &global,
+                DOMException::new_inherited(
+                    "associated Document is not fully active".into(),
+                    "InvalidStateError".into(),
+                ),
+            );
+        }
+
+        // Step 3. skip, manager is on WebLocksThread
+
+        // Step 4. Let promise be a new promise.
+        let promise = Promise::new_rooted(cx, &global);
+
+        // Step 5. Enqueue the steps to snapshot the lock state for manager with promise to the lock task queue.
+        let callback =
+            callback_promise(&promise, self, global.task_manager().weblocks_task_source());
         if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Query(
             callback,
             self.get_immutable_origin(),
@@ -204,6 +228,7 @@ impl LockManagerMethods<crate::DomTypeHolder> for LockManager {
             warn!("Query failed with {e}");
         }
 
+        // Step 6. Return promise.
         promise
     }
 }

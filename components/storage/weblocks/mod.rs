@@ -34,6 +34,7 @@ impl WebLocksThreadFactory for GenericSender<WebLocksThreadMsg> {
 
 struct WebLocksManager {
     port: GenericReceiver<WebLocksThreadMsg>,
+    /// Per-origin managers,
     managers: FxHashMap<ImmutableOrigin, LockManager>,
 }
 
@@ -62,7 +63,7 @@ impl WebLocksManager {
                 WebLocksThreadMsg::Release(name, origin) => {
                     // TODO: release lock
                 },
-                WebLocksThreadMsg::Abort() => {
+                WebLocksThreadMsg::Abort(request_id) => {
                     // TODO: abort lock
                 },
             }

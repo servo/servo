@@ -1,14 +1,35 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericCallback;
 use servo_url::ImmutableOrigin;
+use uuid::Uuid;
+
+static LOCK_ID: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct LockId(usize);
+
+impl LockId {
+    pub fn next() -> Self {
+        Self(LOCK_ID.fetch_add(1, Ordering::Relaxed))
+    }
+}
+
+// TODO: once servo implements client id, this can be changed to usize
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize,
+)]
+pub struct LockRequestId(Uuid);
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebLocksThreadMsg {
     Request(LockRequest, ImmutableOrigin),
     Query(GenericCallback<LockManagerSnapshotMsg>, ImmutableOrigin),
     Release(String, ImmutableOrigin),
-    Abort(),
+    Abort(LockRequestId),
     CollectMemoryReport(ReportsChan),
 }
 
@@ -39,6 +60,7 @@ pub struct LockMsg {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct LockRequest {
+    pub id: LockRequestId,
     pub client_id: String,
     pub name: String,
     pub mode: LockModeMsg,

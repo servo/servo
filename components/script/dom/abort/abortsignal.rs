@@ -18,6 +18,8 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use script_bindings::weakref::WeakRef;
+use servo_base::generic_channel::GenericSend;
+use storage_traits::weblocks::{LockRequestId, WebLocksThreadMsg};
 
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -53,6 +55,8 @@ pub(crate) enum AbortAlgorithm {
     ),
     /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
     FetchLater(#[no_trace] DeferredFetchRecordId),
+    /// <https://www.w3.org/TR/web-locks/#signal-to-abort-the-request>
+    AbortLockRequest(#[no_trace] LockRequestId),
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -209,6 +213,11 @@ impl AbortSignal {
                     &removable_listener.listener,
                     &removable_listener.options,
                 );
+            },
+            AbortAlgorithm::AbortLockRequest(lock_request_id) => {
+                _ = global
+                    .storage_threads()
+                    .send(WebLocksThreadMsg::Abort(*lock_request_id));
             },
         }
     }
