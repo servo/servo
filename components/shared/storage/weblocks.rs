@@ -9,8 +9,8 @@ pub enum WebLocksThreadMsg {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct LockManagerSnapshotMsg {
-    held: Vec<LockInfoMsg>,
-    pending: Vec<LockInfoMsg>,
+    pub held: Vec<LockInfoMsg>,
+    pub pending: Vec<LockInfoMsg>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

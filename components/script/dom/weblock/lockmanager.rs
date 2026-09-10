@@ -2,15 +2,18 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::callback::RootedCallback;
 use script_bindings::codegen::GenericBindings::WebLockBinding::{
-    LockGrantedCallback, LockManagerMethods, LockOptions,
+    LockGrantedCallback, LockManagerMethods, LockMode, LockOptions,
 };
-use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 use servo_base::generic_channel::{GenericSend, SendResult};
-use storage_traits::weblocks::{LockInfoMsg, LockManagerSnapshotMsg, WebLocksThreadMsg};
+use storage_traits::weblocks::{
+    LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, WebLocksThreadMsg,
+};
 
+use crate::conversions::Convert;
+use crate::dom::bindings::codegen::Bindings::WebLockBinding::{LockInfo, LockManagerSnapshot};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::{GlobalScope, Promise, RootedPromise};
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
@@ -35,7 +38,14 @@ impl LockManager {
         GenericSend::send(self.global().storage_threads(), msg)
     }
 
-    fn request(&self) {
+    fn request(
+        &self,
+        cx: &mut JSContext,
+        name: DOMString,
+        options: Option<&LockOptions<crate::DomTypeHolder>>,
+        callback: RootedCallback<LockGrantedCallback<crate::DomTypeHolder>>,
+    ) -> RootedPromise {
+        todo!()
         // self.
     }
 }
@@ -47,7 +57,7 @@ impl LockManagerMethods<crate::DomTypeHolder> for LockManager {
         name: DOMString,
         callback: RootedCallback<LockGrantedCallback<crate::DomTypeHolder>>,
     ) -> RootedPromise {
-        todo!()
+        self.request(cx, name, None, callback)
     }
 
     fn Request_(
@@ -57,7 +67,7 @@ impl LockManagerMethods<crate::DomTypeHolder> for LockManager {
         options: &LockOptions<crate::DomTypeHolder>,
         callback: RootedCallback<LockGrantedCallback<crate::DomTypeHolder>>,
     ) -> RootedPromise {
-        todo!()
+        self.request(cx, name, Some(options), callback)
     }
 
     fn Query(&self, cx: &mut JSContext) -> RootedPromise {
@@ -79,10 +89,41 @@ impl RoutedPromiseListener<LockManagerSnapshotMsg> for LockManager {
     fn handle_response(
         &self,
         cx: &mut JSContext,
-        response: LockManagerSnapshotMsg,
+        msg: LockManagerSnapshotMsg,
         promise: &RootedPromise,
     ) {
         let global = self.global();
+
+        let snapshot: LockManagerSnapshot = msg.convert();
+
         todo!()
+    }
+}
+
+impl Convert<LockManagerSnapshot> for LockManagerSnapshotMsg {
+    fn convert(self) -> LockManagerSnapshot {
+        let mut snapshot = LockManagerSnapshot::empty();
+        snapshot.held = Some(self.held.into_iter().map(Convert::convert).collect());
+        snapshot.pending = Some(self.pending.into_iter().map(Convert::convert).collect());
+        snapshot
+    }
+}
+
+impl Convert<LockInfo> for LockInfoMsg {
+    fn convert(self) -> LockInfo {
+        let mut lock_info = LockInfo::empty();
+        lock_info.name = Some(self.name.into());
+        lock_info.mode = Some(self.mode.convert());
+        lock_info.clientId = Some(self.client_id.into());
+        lock_info
+    }
+}
+
+impl Convert<LockMode> for LockModeMsg {
+    fn convert(self) -> LockMode {
+        match self {
+            LockModeMsg::Exclusive => LockMode::Exclusive,
+            LockModeMsg::Shared => LockMode::Shared,
+        }
     }
 }
