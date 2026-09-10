@@ -165,12 +165,12 @@ pub(crate) struct Promise {
 
 /// Private helper to enable adding new methods to `Rc<Promise>`.
 trait PromiseHelper {
-    fn initialize(&self, cx: &mut JSContext);
+    fn initialize(&self, cx: &JSContext);
 }
 
 impl PromiseHelper for Rc<Promise> {
     #[expect(unsafe_code)]
-    fn initialize(&self, cx: &mut JSContext) {
+    fn initialize(&self, cx: &JSContext) {
         let obj = self.reflector().get_jsobject();
         self.permanent_js_root.set(ObjectValue(*obj));
         unsafe {
@@ -221,13 +221,13 @@ impl Promise {
         RootedPromise(Self::new_in_realm(current_realm))
     }
 
-    pub(crate) fn duplicate(&self, cx: &mut JSContext) -> RootedPromise {
+    pub(crate) fn duplicate(&self, cx: &JSContext) -> RootedPromise {
         Promise::new_with_js_promise_rooted(cx, self.reflector().get_jsobject())
     }
 
     #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_with_js_promise(cx: &mut JSContext, obj: HandleObject) -> Rc<Promise> {
+    pub(crate) fn new_with_js_promise(cx: &JSContext, obj: HandleObject) -> Rc<Promise> {
         unsafe {
             assert!(IsPromiseObject(obj));
         }
@@ -244,7 +244,7 @@ impl Promise {
     }
 
     pub(crate) fn new_with_js_promise_rooted(
-        cx: &mut JSContext,
+        cx: &JSContext,
         obj: HandleObject,
     ) -> RootedPromise {
         RootedPromise(Self::new_with_js_promise(cx, obj))
