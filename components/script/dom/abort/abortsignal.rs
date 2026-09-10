@@ -19,6 +19,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use script_bindings::weakref::WeakRef;
 use servo_base::generic_channel::GenericSend;
+use servo_url::ImmutableOrigin;
 use storage_traits::weblocks::{LockRequestId, WebLocksThreadMsg};
 
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
@@ -56,7 +57,11 @@ pub(crate) enum AbortAlgorithm {
     /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
     FetchLater(#[no_trace] DeferredFetchRecordId),
     /// <https://www.w3.org/TR/web-locks/#signal-to-abort-the-request>
-    AbortLockRequest(#[no_trace] LockRequestId),
+    AbortLockRequest(
+        #[no_trace] LockRequestId,
+        #[no_trace] ImmutableOrigin,
+        String,
+    ),
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -214,10 +219,16 @@ impl AbortSignal {
                     &removable_listener.options,
                 );
             },
-            AbortAlgorithm::AbortLockRequest(lock_request_id) => {
-                _ = global
-                    .storage_threads()
-                    .send(WebLocksThreadMsg::Abort(*lock_request_id));
+            AbortAlgorithm::AbortLockRequest(lock_request_id, origin, name) => {
+                // <https://www.w3.org/TR/web-locks/#signal-to-abort-the-request>
+                // Step 1. Enqueue the steps to abort the request request to the lock task queue.
+                _ = global.storage_threads().send(WebLocksThreadMsg::Abort(
+                    *lock_request_id,
+                    origin.clone(),
+                    name.clone(),
+                ));
+                // Step 2. Reject request’s promise with signal’s abort reason.
+                // TODO
             },
         }
     }

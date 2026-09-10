@@ -6,8 +6,24 @@ use rustc_hash::FxHashMap;
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_url::ImmutableOrigin;
 use storage_traits::weblocks::{
-    LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, LockMsg, LockRequest, WebLocksThreadMsg,
+    LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, LockMsg, LockRequest, LockRequestId,
+    WebLocksThreadMsg,
 };
+
+/// View type is not stable, use macro to avoid &mut self.
+/// <https://www.w3.org/TR/web-locks/#get-the-lock-request-queue>
+macro_rules! get_lock_request_queue {
+    ($self:expr, $name:expr) => {{
+        // Step 1.
+        if !$self.queue_map.contains_key($name) {
+            $self
+                .queue_map
+                .insert($name.to_string(), Default::default());
+        }
+        // Step 2.
+        $self.queue_map.get_mut($name).unwrap()
+    }};
+}
 
 pub trait WebLocksThreadFactory {
     fn new(mem_profiler_chan: MemProfilerChan, reporter_name: String) -> Self;
@@ -63,8 +79,8 @@ impl WebLocksManager {
                 WebLocksThreadMsg::Release(name, origin) => {
                     // TODO: release lock
                 },
-                WebLocksThreadMsg::Abort(request_id) => {
-                    // TODO: abort lock
+                WebLocksThreadMsg::Abort(request_id, origin, name) => {
+                    self.abort_request(origin, name, request_id);
                 },
             }
         }
@@ -80,6 +96,22 @@ impl WebLocksManager {
         // TODO: actual report
         vec![]
     }
+
+    /// <https://www.w3.org/TR/web-locks/#algorithm-abort-request>
+    fn abort_request(&mut self, origin: ImmutableOrigin, name: String, request_id: LockRequestId) {
+        // Step 1. skip assert
+        // Step 2-5. Let
+        let manager = self.obtain_lock_manager(origin);
+        let queue = get_lock_request_queue!(manager, &name);
+
+        // Step 6. Remove request from queue.
+        if let Some(pos) = queue.iter().position(|request| request.id == request_id) {
+            queue.remove(pos);
+        }
+
+        // Step 7. Process the lock request queue queue.
+        manager.process_lock_request_queue(&name);
+    }
 }
 
 /// Pages and workers sharing a storage bucket opened inthe same user agent
@@ -89,21 +121,6 @@ impl WebLocksManager {
 struct LockManager {
     queue_map: FxHashMap<String, VecDeque<LockRequest>>,
     held: FxHashMap<String, Lock>,
-}
-
-/// View type is not stable, use macro to avoid &mut self.
-/// <https://www.w3.org/TR/web-locks/#get-the-lock-request-queue>
-macro_rules! get_lock_request_queue {
-    ($self:expr, $name:expr) => {{
-        // Step 1.
-        if !$self.queue_map.contains_key($name) {
-            $self
-                .queue_map
-                .insert($name.to_string(), Default::default());
-        }
-        // Step 2.
-        $self.queue_map.get_mut($name).unwrap()
-    }};
 }
 
 impl LockManager {

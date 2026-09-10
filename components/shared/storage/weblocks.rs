@@ -29,7 +29,7 @@ pub enum WebLocksThreadMsg {
     Request(LockRequest, ImmutableOrigin),
     Query(GenericCallback<LockManagerSnapshotMsg>, ImmutableOrigin),
     Release(String, ImmutableOrigin),
-    Abort(LockRequestId),
+    Abort(LockRequestId, ImmutableOrigin, String),
     CollectMemoryReport(ReportsChan),
 }
 

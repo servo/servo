@@ -142,6 +142,7 @@ impl LockManager {
         steal: bool,
         signal: &Option<Root<Dom<AbortSignal>>>,
     ) {
+        let origin = self.get_immutable_origin();
         let callback = GenericCallback::new(|_lock| {
             // TODO: something to do with promise in callback, the promise is "released promise"
         })
@@ -161,15 +162,16 @@ impl LockManager {
 
         // Step 2. If signal is present, add the abort algorithm to signal
         if let Some(signal) = signal {
-            signal.add(&AbortAlgorithm::AbortLockRequest(id));
+            signal.add(&AbortAlgorithm::AbortLockRequest(
+                id,
+                origin.clone(),
+                request.name.clone(),
+            ));
         }
 
         // Step 3. Enqueue the following steps to local task queue.
         // The inner steps (3.1 to 3.6) continues on WebLocksThread.
-        if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Request(
-            request,
-            self.get_immutable_origin(),
-        )) {
+        if let Err(e) = self.send_storage_msg(WebLocksThreadMsg::Request(request, origin)) {
             warn!("Request failed with {e}");
         }
 
