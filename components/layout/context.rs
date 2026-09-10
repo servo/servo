@@ -293,7 +293,7 @@ impl ImageResolver {
             CachedImage::Raster(raster_image) => raster_image.id,
             CachedImage::Encoded(source) => {
                 self.static_raster_demands.lock().push((source.id, size));
-                self.image_cache.static_raster_image_key(source.id)
+                self.image_cache.demand_driven_raster_image_key(source.id)
             },
             CachedImage::Vector(vector_image) => node.and_then(|node| {
                 self.rasterize_vector_image(vector_image.id, size, node, vector_image.svg_id)

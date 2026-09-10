@@ -861,7 +861,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                 .push((source.id, requested));
             self.image_resolver
                 .image_cache
-                .static_raster_image_key(source.id)
+                .demand_driven_raster_image_key(source.id)
         } else {
             fragment.image_key
         };
