@@ -3,18 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::array::from_ref;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::f64::consts::PI;
 use std::mem;
-use std::rc::Rc;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use embedder_traits::{
-    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
-    InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
-    TouchId, TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    Cursor, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome, InputEventResult,
+    KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
+    MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType, TouchId,
+    TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
@@ -36,12 +35,10 @@ use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMeth
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
 use script_bindings::inheritance::Castable;
-use script_bindings::match_domstring_ascii;
 use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
 use script_bindings::str::DOMString;
 use script_traits::{ConstellationInputEvent, MouseButtons};
-use servo_base::generic_channel::GenericCallback;
 use servo_config::pref;
 use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use style::Atom;
@@ -54,12 +51,10 @@ use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTy
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
-use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::FireMouseEventType;
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::document::interactive_element_command::InteractiveElementCommand;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
-use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 #[cfg(feature = "gamepad")]
@@ -71,13 +66,11 @@ use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::types::{
-    ClipboardEvent, CompositionEvent, DataTransfer, Element, Event, EventTarget, GlobalScope,
-    HTMLAnchorElement, HTMLElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList,
-    WheelEvent, Window,
+    CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLElement,
+    HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
 };
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
-use crate::drag::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::drag::drag_gesture::DragGesture;
 use crate::realms::enter_auto_realm;
 
@@ -386,9 +379,10 @@ impl DocumentEventHandler {
                     self.handle_gamepad_event(gamepad_event);
                     InputEventResult::default()
                 },
-                InputEvent::EditingAction(editing_action_event) => {
-                    self.handle_editing_action(cx, None, editing_action_event)
-                },
+                InputEvent::EditingAction(editing_action_event) => self
+                    .window
+                    .Document()
+                    .handle_editing_action(cx, None, editing_action_event),
             };
 
             input_event_outcomes.push(InputEventOutcome {
@@ -421,7 +415,7 @@ impl DocumentEventHandler {
     /// When an event should be fired on the element that has focus, this returns the target. If
     /// there is no associated element with the focused area (such as when the viewport is focused),
     /// then the body is returned. If no body is returned then the `Window` is returned.
-    fn target_for_events_following_focus(&self) -> DomRoot<EventTarget> {
+    pub(crate) fn target_for_events_following_focus(&self) -> DomRoot<EventTarget> {
         let document = self.window.Document();
         match &*document.focus_handler().focused_area() {
             FocusableArea::Node { node, .. } => DomRoot::from_ref(node.upcast()),
@@ -1978,214 +1972,6 @@ impl DocumentEventHandler {
         }
     }
 
-    /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
-    pub(crate) fn handle_editing_action(
-        &self,
-        cx: &mut JSContext,
-        element: Option<DomRoot<Element>>,
-        action: EditingActionEvent,
-    ) -> InputEventResult {
-        let clipboard_event_type = match action {
-            EditingActionEvent::Copy => ClipboardEventType::Copy,
-            EditingActionEvent::Cut => ClipboardEventType::Cut,
-            EditingActionEvent::Paste => ClipboardEventType::Paste,
-        };
-
-        // The script_triggered flag is set if the action runs because of a script, e.g. document.execCommand()
-        let script_triggered = false;
-
-        // The script_may_access_clipboard flag is set
-        // if action is paste and the script thread is allowed to read from clipboard or
-        // if action is copy or cut and the script thread is allowed to modify the clipboard
-        let script_may_access_clipboard = false;
-
-        // Step 1 If the script-triggered flag is set and the script-may-access-clipboard flag is unset
-        if script_triggered && !script_may_access_clipboard {
-            return InputEventResult::empty();
-        }
-
-        // Step 2 Fire a clipboard event
-        let clipboard_event = self.fire_clipboard_event(cx, element.clone(), clipboard_event_type);
-
-        // Step 3 If a script doesn't call preventDefault()
-        // the event will be handled inside target's VirtualMethods::handle_event
-        let event = clipboard_event.upcast::<Event>();
-        if !event.IsTrusted() {
-            return event.flags().into();
-        }
-
-        // Step 4 If the event was canceled, then
-        if event.DefaultPrevented() {
-            let event_type = event.Type();
-            match_domstring_ascii!(event_type,
-
-                "copy" => {
-                    // Step 4.1 Call the write content to the clipboard algorithm,
-                    // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
-                    if let Some(clipboard_data) = clipboard_event.get_clipboard_data() {
-                        let drag_data_store =
-                            clipboard_data.data_store().expect("This shouldn't fail");
-                        self.write_content_to_the_clipboard(&drag_data_store);
-                    }
-                },
-                "cut" => {
-                    // Step 4.1 Call the write content to the clipboard algorithm,
-                    // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
-                    if let Some(clipboard_data) = clipboard_event.get_clipboard_data() {
-                        let drag_data_store =
-                            clipboard_data.data_store().expect("This shouldn't fail");
-                        self.write_content_to_the_clipboard(&drag_data_store);
-                    }
-
-                    // Step 4.2 Fire a clipboard event named clipboardchange
-                    self.fire_clipboard_event(cx, element, ClipboardEventType::Change);
-                },
-                // Step 4.1 Return false.
-                // Note: This function deviates from the specification a bit by returning
-                // the `InputEventResult` below.
-                "paste" => (),
-                _ => (),
-            )
-        }
-
-        // Step 5: Return true from the action.
-        // In this case we are returning the `InputEventResult` instead of true or false.
-        event.flags().into()
-    }
-
-    /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
-    pub(crate) fn fire_clipboard_event(
-        &self,
-        cx: &mut JSContext,
-        target: Option<DomRoot<Element>>,
-        clipboard_event_type: ClipboardEventType,
-    ) -> DomRoot<ClipboardEvent> {
-        let clipboard_event = ClipboardEvent::new(
-            cx,
-            &self.window,
-            None,
-            clipboard_event_type.as_str().into(),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
-            None,
-        );
-
-        // Step 1 Let clear_was_called be false
-        // Step 2 Let types_to_clear an empty list
-        let mut drag_data_store = DragDataStore::new();
-
-        // Step 4 let clipboard-entry be the sequence number of clipboard content, null if the OS doesn't support it.
-
-        // Step 5 let trusted be true if the event is generated by the user agent, false otherwise
-        let trusted = true;
-
-        // Step 6 if the context is editable:
-        let target = target
-            .map(DomRoot::upcast)
-            .unwrap_or_else(|| self.target_for_events_following_focus());
-
-        // Step 6.2 else TODO require Selection see https://github.com/w3c/clipboard-apis/issues/70
-        // Step 7
-        match clipboard_event_type {
-            ClipboardEventType::Copy | ClipboardEventType::Cut => {
-                // Step 7.2.1
-                drag_data_store.set_mode(Mode::ReadWrite);
-            },
-            ClipboardEventType::Paste => {
-                let (callback, receiver) =
-                    GenericCallback::new_blocking().expect("Could not create callback");
-                self.window.send_to_embedder(EmbedderMsg::GetClipboardText(
-                    self.window.webview_id(),
-                    callback,
-                ));
-                let text_contents = receiver
-                    .recv()
-                    .map(Result::unwrap_or_default)
-                    .unwrap_or_default();
-
-                // Step 7.1.1
-                drag_data_store.set_mode(Mode::ReadOnly);
-                // Step 7.1.2 If trusted or the implementation gives script-generated events access to the clipboard
-                if trusted {
-                    // Step 7.1.2.1 For each clipboard-part on the OS clipboard:
-
-                    // Step 7.1.2.1.1 If clipboard-part contains plain text, then
-                    let data = DOMString::from(text_contents);
-                    let type_ = DOMString::from_static("text/plain");
-                    let _ = drag_data_store.add(Kind::Text { data, type_ });
-
-                    // Step 7.1.2.1.2 TODO If clipboard-part represents file references, then for each file reference
-                    // Step 7.1.2.1.3 TODO If clipboard-part contains HTML- or XHTML-formatted text then
-
-                    // Step 7.1.3 Update clipboard-event-data’s files to match clipboard-event-data’s items
-                    // Step 7.1.4 Update clipboard-event-data’s types to match clipboard-event-data’s items
-                }
-            },
-            ClipboardEventType::Change => (),
-        }
-
-        // Step 3
-        let clipboard_event_data = DataTransfer::new(
-            cx,
-            &self.window,
-            Rc::new(RefCell::new(Some(drag_data_store))),
-        );
-
-        // Step 8
-        clipboard_event.set_clipboard_data(Some(&clipboard_event_data));
-
-        // Step 9
-        let event = clipboard_event.upcast::<Event>();
-        event.set_trusted(trusted);
-
-        // Step 10 Set event’s composed to true.
-        event.set_composed(true);
-
-        // Step 11
-        event.dispatch(cx, &target, false);
-
-        DomRoot::from(clipboard_event)
-    }
-
-    /// <https://www.w3.org/TR/clipboard-apis/#write-content-to-the-clipboard>
-    fn write_content_to_the_clipboard(&self, drag_data_store: &DragDataStore) {
-        // Step 1
-        if drag_data_store.list_len() > 0 {
-            // Step 1.1 Clear the clipboard.
-            self.window
-                .send_to_embedder(EmbedderMsg::ClearClipboard(self.window.webview_id()));
-            // Step 1.2
-            for item in drag_data_store.iter_item_list() {
-                match item {
-                    Kind::Text { data, .. } => {
-                        // Step 1.2.1.1 Ensure encoding is correct per OS and locale conventions
-                        // Step 1.2.1.2 Normalize line endings according to platform conventions
-                        // Step 1.2.1.3
-                        self.window.send_to_embedder(EmbedderMsg::SetClipboardText(
-                            self.window.webview_id(),
-                            data.to_string(),
-                        ));
-                    },
-                    Kind::File { .. } => {
-                        // Step 1.2.2 If data is of a type listed in the mandatory data types list, then
-                        // Step 1.2.2.1 Place part on clipboard with the appropriate OS clipboard format description
-                        // Step 1.2.3 Else this is left to the implementation
-                    },
-                }
-            }
-        } else {
-            // Step 2.1
-            if drag_data_store.clear_was_called {
-                // Step 2.1.1 If types-to-clear list is empty, clear the clipboard
-                self.window
-                    .send_to_embedder(EmbedderMsg::ClearClipboard(self.window.webview_id()));
-                // Step 2.1.2 Else remove the types in the list from the clipboard
-                // As of now this can't be done with Arboard, and it's possible that will be removed from the spec
-            }
-        }
-    }
-
-    /// Handle a scroll event triggered by user interactions from the embedder.
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
     #[expect(unsafe_code)]
     pub(crate) fn handle_embedder_scroll_event(&self, scrolled_node: ExternalScrollId) {
@@ -2243,80 +2029,6 @@ impl DocumentEventHandler {
         true
     }
 
-    /// <https://w3c.github.io/editing/docs/execCommand/#additional-requirements>
-    fn maybe_perform_editing_command(
-        &self,
-        cx: &mut js::context::JSContext,
-        event: &KeyboardEvent,
-    ) -> bool {
-        if !servo_config::pref!(dom_exec_command_enabled) {
-            return false;
-        }
-        // This function does not do any checks for whether or not we are actually inside an
-        // editing host, since those checks are performed by exec_command_for_command_id either way.
-        match event.key() {
-            Key::Named(NamedKey::Enter) => {
-                // TODO: Figure out if the bit about Option+Enter works and whether or not this
-                //       ends up providing the correct behavior on Mac. (i.e. whether or not
-                //       Shift should be accepted in addition to Option.)
-                if event.modifiers().contains(Modifiers::SHIFT) {
-                    // > When the user instructs the user agent to insert a line break inside an
-                    // > editing host without breaking out of the current block, such as by
-                    // > pressing Shift-Enter or Option-Enter while the cursor is in an editable
-                    // > node, the user agent must call execCommand("insertlinebreak") on the
-                    // > relevant document.
-                    self.window.Document().exec_command_for_command_id(
-                        cx,
-                        DOMString::from_static("insertlinebreak"),
-                        DOMString::new(),
-                    )
-                } else {
-                    // > When the user instructs the user agent to insert a line break inside an
-                    // > editing host, such as by pressing the Enter key while the cursor is in an
-                    // > editable node, the user agent must call execCommand("insertparagraph") on
-                    // > the relevant document.
-                    self.window.Document().exec_command_for_command_id(
-                        cx,
-                        DOMString::from_static("insertparagraph"),
-                        DOMString::new(),
-                    )
-                }
-            },
-            // > When the user instructs the user agent to delete the previous character inside an
-            // > editing host, such as by pressing the Backspace key while the cursor is in an
-            // > editable node, the user agent must call execCommand("delete") on the relevant
-            // > document.
-            // TODO: Gecko, Chromium and WebKit seem to delete up to the next word boundary on
-            //       Ctrl+Backspace and Ctrl+Delete. We probably want that as well.
-            Key::Named(NamedKey::Backspace) => self.window.Document().exec_command_for_command_id(
-                cx,
-                DOMString::from_static("delete"),
-                DOMString::new(),
-            ),
-            // > When the user instructs the user agent to delete the next character inside an
-            // > editing host, such as by pressing the Delete key while the cursor is in an
-            // > editable node, the user agent must call execCommand("forwarddelete") on the
-            // > relevant document.
-            Key::Named(NamedKey::Delete) => self.window.Document().exec_command_for_command_id(
-                cx,
-                DOMString::from_static("forwarddelete"),
-                DOMString::new(),
-            ),
-            // > When the user instructs the user agent to insert text inside an editing host, such
-            // > as by typing on the keyboard while the cursor is in an editable node, the user
-            // > agent must call execCommand("inserttext", false, value) on the relevant document,
-            // > with value equal to the text the user provided. If the user inserts multiple
-            // > characters at once or in quick succession, this specification does not define
-            // > whether it is treated as one insertion or several consecutive insertions.
-            Key::Character(string) => self.window.Document().exec_command_for_command_id(
-                cx,
-                DOMString::from_static("inserttext"),
-                DOMString::from(string),
-            ),
-            _ => false,
-        }
-    }
-
     pub(crate) fn run_default_keyboard_event_handler(
         &self,
         cx: &mut js::context::JSContext,
@@ -2327,7 +2039,8 @@ impl DocumentEventHandler {
             return;
         }
 
-        if self.maybe_perform_editing_command(cx, event) {
+        let document = self.window.Document();
+        if document.maybe_perform_editing_command(cx, event) {
             return;
         }
 
@@ -2363,8 +2076,7 @@ impl DocumentEventHandler {
                 // > If the key is the Tab key, the default action MUST be to shift the document focus
                 // > from the currently focused element (if any) to the new focused element, as
                 // > described in Focus Event Types
-                self.window
-                    .Document()
+                document
                     .focus_handler()
                     .sequential_focus_navigation_via_keyboard_event(cx, event);
                 return;
