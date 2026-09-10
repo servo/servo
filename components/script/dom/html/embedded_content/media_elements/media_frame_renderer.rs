@@ -83,7 +83,7 @@ pub(crate) struct MediaFrameRenderer {
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     poster_frame: Option<MediaFrame>,
     #[conditional_malloc_size_of]
-    static_poster: Option<Arc<EncodedImage>>,
+    encoded_poster: Option<Arc<EncodedImage>>,
 }
 
 impl MediaFrameRenderer {
@@ -103,7 +103,7 @@ impl MediaFrameRenderer {
             very_old_frame: None,
             current_frame_holder: None,
             poster_frame: None,
-            static_poster: None,
+            encoded_poster: None,
         }
     }
 
@@ -115,8 +115,8 @@ impl MediaFrameRenderer {
         self.poster_frame
     }
 
-    pub(crate) fn static_poster(&self) -> Option<Arc<EncodedImage>> {
-        self.static_poster.clone()
+    pub(crate) fn encoded_poster(&self) -> Option<Arc<EncodedImage>> {
+        self.encoded_poster.clone()
     }
 
     pub(crate) fn current_frame_holder(&self) -> Option<&FrameHolder> {
@@ -211,7 +211,7 @@ impl MediaFrameRenderer {
     }
 
     pub(crate) fn set_poster_frame(&mut self, image: Option<Image>) {
-        self.static_poster = match &image {
+        self.encoded_poster = match &image {
             Some(Image::Encoded(source)) => Some(source.clone()),
             _ => None,
         };
