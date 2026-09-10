@@ -60,7 +60,6 @@ impl<D> GPURenderPassEncoder<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
 {
     fn new_inherited(
         channel: WebGPU,

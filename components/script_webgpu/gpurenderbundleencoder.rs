@@ -14,7 +14,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,
     GPURenderBundleEncoderMethods, GPURenderBundleEncoderWrap,
 };
-use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
+use script_bindings::interfaces::GlobalScopeHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
     RenderBundleCommand, WebGPU, WebGPURenderBundle, WebGPURenderBundleEncoder, WebGPURequest,
@@ -108,7 +108,6 @@ impl<D> GPURenderBundleEncoder<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
     Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
@@ -188,7 +187,6 @@ where
     D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
     D::GPUExternalTexture: GPUExternalTextureTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
-    D::Promise: PromiseHelpers<D>,
     Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
