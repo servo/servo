@@ -130,37 +130,83 @@ impl LockManager {
         let name = request.name.clone();
         let queue = get_lock_request_queue!(self, &name);
 
-        // Step 3.4.
+        // Step 3.4. If steal is true,
         if request.steal {
+            // Step 3.4.1.
             if let Some(_todo) = self.held.remove(&name) {
                 // TODO: reject original lock released promise
             }
+            // Step 3.4.2. Prepend request in queue.
             queue.push_front(request);
         }
-        // Step 3.5.
+        // Step 3.5. Otherwise
         else {
             let is_first = queue
                 .front()
                 .is_some_and(|first| std::ptr::eq(first, &request));
+
+            // Step 3.5.1. if ifAvailable and not grantable, enqueue on callback event loop
             if request.if_available && is_grantable(&request, is_first, &self.held) {
                 _ = request.callback.send(None);
                 // TODO: resolve promise and abort
+            } else {
+                // Step 3.5.2. Enqueue request in queue.
+                queue.push_back(request);
             }
-            queue.push_back(request);
         }
 
-        // Step 3.6.
+        // Step 3.6. Process the lock request queue queue.
         self.process_lock_request_queue(&name);
+    }
+
+    /// <https://www.w3.org/TR/web-locks/#process-the-lock-request-queue>
+    fn process_lock_request_queue(&mut self, name: &str) {
+        let queue = get_lock_request_queue!(self, name);
+
+        // Step 1. skip assert
+
+        // Step 2. For each request of queue:
+        while let Some(request) = queue.front() {
+            // Step 2.1. If request is not grantable, return.
+            if !is_grantable(request, true, &self.held) {
+                return;
+            }
+            // Step 2.2. Remove request from queue.
+            let request = queue.pop_front().unwrap();
+
+            // Step 2.3 to 2.8. skip
+            // TODO: especially waiting promises
+
+            // Step 12. Let lock be a new lock with ...
+            let lock = Lock {
+                name: request.name.clone(),
+                mode: request.mode,
+                client_id: request.client_id,
+            };
+
+            // Step 13. Append lock to manager’s held lock set.
+            self.held.insert(lock.name.clone(), lock);
+
+            // Step 14. Enqueue the following steps on callback’s relevant settings
+            // object’s responsible event loop.
+            // The inner steps continue on that thread.
+            _ = request.callback.send(Some(LockMsg {
+                name: request.name,
+                mode: request.mode,
+            }));
+        }
     }
 
     /// <https://www.w3.org/TR/web-locks/#snapshot-the-lock-state>
     fn snapshot_lock_state(&self) -> LockManagerSnapshotMsg {
         // Step 1. skip assert
-        // Step 2.
+        // Step 2. Let pending be a new list.
         let mut pending = vec![];
-        // Step 3.
+        // Step 3. For each queue of lock request queue map:
         for queue in self.queue_map.values() {
+            // Step 3.1. For each request of queue:
             for request in queue.iter() {
+                // Step 3.1.1. Append ...
                 pending.push(LockInfoMsg {
                     name: request.name.clone(),
                     mode: request.mode,
@@ -169,10 +215,11 @@ impl LockManager {
             }
         }
 
-        // Step 4.
+        // Step 4. Let held be a new list.
         let mut held = vec![];
-        // Step 5.
+        // Step 5. For each lock of manager’s held lock set:
         for lock in self.held.values() {
+            // Step 5.1. Append ...
             held.push(LockInfoMsg {
                 name: lock.name.clone(),
                 mode: lock.mode,
@@ -180,39 +227,8 @@ impl LockManager {
             });
         }
 
-        // Step 6.
+        // Step 6. Resolve promise with held and pending.
         LockManagerSnapshotMsg { held, pending }
-    }
-
-    /// <https://www.w3.org/TR/web-locks/#process-the-lock-request-queue>
-    fn process_lock_request_queue(&mut self, name: &str) {
-        // Step 1. skip assert
-        let queue = get_lock_request_queue!(self, name);
-        // Step 2.
-        while let Some(request) = queue.front() {
-            // Step 2.1.
-            if !is_grantable(request, true, &self.held) {
-                return;
-            }
-            // Step 2.2.
-            let request = queue.pop_front().unwrap();
-            // Step 2.3 to 2.8. skip
-            // TODO: especially waiting promises
-
-            // Step 12.
-            let lock = Lock {
-                name: request.name.clone(),
-                mode: request.mode,
-                client_id: request.client_id,
-            };
-            // Step 13.
-            self.held.insert(lock.name.clone(), lock);
-            // Step 14.
-            _ = request.callback.send(Some(LockMsg {
-                name: request.name,
-                mode: request.mode,
-            }));
-        }
     }
 }
 
