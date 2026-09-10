@@ -22,9 +22,7 @@ use crate::gpubindgroup::GPUBindGroup;
 use crate::gpubuffer::GPUBuffer;
 use crate::gpucommandencoder::GPUCommandEncoder;
 use crate::gpucomputepipeline::GPUComputePipeline;
-use crate::traits::{
-    Equivalence, GPUDeviceTrait, GPUExternalTextureTrait, WebGPUGlobalTrait, WebGPUPromiseTrait,
-};
+use crate::traits::{Equivalence, GPUDeviceTrait, GPUExternalTextureTrait, WebGPUPromiseTrait};
 
 #[derive(MallocSizeOf)]
 struct DroppableGPUComputePassEncoder {
@@ -100,10 +98,8 @@ where
 impl<D> GPUComputePassEncoderMethods<D> for GPUComputePassEncoder<D>
 where
     D: Equivalence,
-    D::GlobalScope: WebGPUGlobalTrait,
     D::GPUDevice: GPUDeviceTrait<D>,
     D::GPUExternalTexture: GPUExternalTextureTrait<D>,
-    D::Promise: PromiseHelpers<D>,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>

@@ -135,7 +135,6 @@ impl<D> GPUTexture<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
 {
     pub fn id(&self) -> WebGPUTexture {
         self.droppable.texture
@@ -209,7 +208,6 @@ impl<D> GPUTextureMethods<D> for GPUTexture<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
     Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>

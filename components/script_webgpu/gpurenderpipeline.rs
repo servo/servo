@@ -102,7 +102,6 @@ impl<D> GPURenderPipeline<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
     Self: DomGlobalGeneric<D>,
 {
     pub(crate) fn id(&self) -> WebGPURenderPipeline {
@@ -138,7 +137,6 @@ where
 impl<D> GPURenderPipelineMethods<D> for GPURenderPipeline<D>
 where
     D: Equivalence,
-    D::GlobalScope: DomGlobalGeneric<D> + WebGPUGlobalTrait,
     D::GPUDevice: GPUDeviceTrait<D>,
     Self: DomGlobalGeneric<D>,
 {

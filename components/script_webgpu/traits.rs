@@ -8,6 +8,7 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
 use script_bindings::codegen::GenericUnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use script_bindings::error::Fallible;
+use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::DomGlobalGeneric;
 use servo_base::generic_channel::GenericCallback;
 use webgpu_traits::{
@@ -96,7 +97,9 @@ pub trait Equivalence =  DomTypes<
         GPUTextureView = GPUTextureView<Self>,
         GPUUncapturedErrorEvent = GPUUncapturedErrorEvent<Self>,
         GPUValidationError = GPUValidationError<Self>,
-        WGSLLanguageFeatures = WGSLLanguageFeatures<Self>>;
+        WGSLLanguageFeatures = WGSLLanguageFeatures<Self>,
+        Promise: PromiseHelpers<Self> + PartialEq,
+        GlobalScope: WebGPUGlobalTrait>;
 }
 
 /// The main trait for creating and using promises in script_webgpu.
