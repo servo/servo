@@ -264,17 +264,14 @@ impl GlobalScope {
         run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
             // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
             // promise rejected with script's error to rethrow.
-            {
-                let module_error = module_tree.get_rethrow_error().borrow();
-                if let Some(exception) = &*module_error {
-                    JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
-                    report_pending_exception(cx);
-                    return;
-                }
+            if let Some(exception) = module_tree.rethrow_error() {
+                JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
+                report_pending_exception(cx);
+                return;
             }
 
             // Step 7.1. Otherwise: Let record be script's record.
-            let record = module_tree.get_record().unwrap();
+            let record = module_tree.record().unwrap();
 
             // Step 7.2. Set evaluationPromise to record.Evaluate().
             rooted!(&in(cx) let mut rval = UndefinedValue());
