@@ -935,7 +935,7 @@ impl Node {
         no_gc: &'b NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'b, Node>> + use<'b> {
         UnrootedSimpleNodeIterator::new(
-            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            Some(UnrootedDom::from_ref(self, no_gc)),
             |n, no_gc| n.get_next_sibling_unrooted(no_gc),
             no_gc,
         )
@@ -946,7 +946,7 @@ impl Node {
         no_gc: &'b NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'b, Node>> + use<'b> {
         UnrootedSimpleNodeIterator::new(
-            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            Some(UnrootedDom::from_ref(self, no_gc)),
             |n, no_gc| n.get_previous_sibling_unrooted(no_gc),
             no_gc,
         )
@@ -1054,8 +1054,8 @@ impl Node {
         shadow_including: ShadowIncluding,
     ) -> UnrootedFollowingNodeIterator<'b> {
         UnrootedFollowingNodeIterator::new(
-            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
-            UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
+            Some(UnrootedDom::from_ref(self, no_gc)),
+            UnrootedDom::from_ref(root, no_gc),
             shadow_including,
             no_gc,
         )
@@ -1071,8 +1071,8 @@ impl Node {
         root: &Node,
     ) -> UnrootedPrecedingNodeIterator<'b> {
         UnrootedPrecedingNodeIterator::new(
-            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
-            UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
+            Some(UnrootedDom::from_ref(self, no_gc)),
+            UnrootedDom::from_ref(root, no_gc),
             no_gc,
         )
     }
@@ -1652,9 +1652,9 @@ impl Node {
             .id_map()
             .resolve_all(cx.no_gc(), self.owner_doc().upcast());
 
-        let traced_node = UnrootedDom::from_dom(Dom::from_ref(self), cx.no_gc());
+        let unrooted_node = UnrootedDom::from_ref(self, cx.no_gc());
         let matching_elements = with_layout_state(|| {
-            let layout_node: LayoutDom<'_, _> = unsafe { traced_node.to_layout() };
+            let layout_node: LayoutDom<'_, _> = unsafe { unrooted_node.to_layout() };
             ServoDangerousStyleNode::from(layout_node)
                 .scope_match_a_selectors_string::<QueryAll>(document_url, &selectors.str())
         })?;
@@ -1704,17 +1704,14 @@ impl Node {
         shadow_including: ShadowIncluding,
     ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + use<'a> {
         UnrootedSimpleNodeIterator::new(
-            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
-            move |n, no_gc| {
+            Some(UnrootedDom::from_ref(self, no_gc)),
+            move |node, no_gc| {
                 if shadow_including == ShadowIncluding::Yes &&
-                    let Some(shadow_root) = n.downcast::<ShadowRoot>()
+                    let Some(shadow_root) = node.downcast::<ShadowRoot>()
                 {
-                    return Some(UnrootedDom::from_dom(
-                        Dom::from_ref(shadow_root.host_unrooted(no_gc).upcast::<Node>()),
-                        no_gc,
-                    ));
+                    return Some(UnrootedDom::upcast(shadow_root.host_unrooted(no_gc)));
                 }
-                n.get_parent_node_unrooted(no_gc)
+                node.get_parent_node_unrooted(no_gc)
             },
             no_gc,
         )
@@ -1750,7 +1747,7 @@ impl Node {
             .as_ref()?
             .containing_shadow_root
             .as_ref()
-            .map(|shadow_root| UnrootedDom::from_dom(shadow_root.clone(), no_gc))
+            .map(|shadow_root| shadow_root.as_unrooted(no_gc))
     }
 
     pub(crate) fn set_containing_shadow_root(&self, shadow_root: Option<&ShadowRoot>) {
@@ -2098,7 +2095,7 @@ impl Node {
     ) -> Option<UnrootedDom<'a, HTMLSlotElement>> {
         let rare_data = self.rare_data.borrow();
         let assigned_slot = rare_data.as_ref()?.slottable_data.assigned_slot.as_ref()?;
-        Some(UnrootedDom::from_dom(Dom::from_ref(assigned_slot), no_gc))
+        Some(UnrootedDom::from_ref(assigned_slot, no_gc))
     }
 
     pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
@@ -2146,10 +2143,7 @@ impl Node {
         };
 
         if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
-            return FlatTreeParent::Parent(UnrootedDom::from_dom(
-                Dom::from_ref(shadow_root.Host().upcast::<Node>()),
-                no_gc,
-            ));
+            return FlatTreeParent::Parent(UnrootedDom::upcast(shadow_root.host_unrooted(no_gc)));
         }
 
         if parent
@@ -2174,12 +2168,9 @@ impl Node {
         no_gc: &'a NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + use<'a> {
         UnrootedSimpleNodeIterator::new(
-            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            Some(UnrootedDom::from_ref(self, no_gc)),
             move |node, no_gc| match node.parent_in_flat_tree(no_gc) {
-                FlatTreeParent::Parent(parent) => {
-                    // Supoptimal
-                    Some(UnrootedDom::from_dom(Dom::from_ref(&*parent), no_gc))
-                },
+                FlatTreeParent::Parent(parent) => Some(parent),
                 FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => None,
             },
             no_gc,
@@ -3509,7 +3500,7 @@ impl Node {
                 .skip_while(|slottable| &*slottable.0 != self)
                 // Skip `self` so that this moves on the the next node in the list of slottables.
                 .nth(1)
-                .map(|next_slottable| UnrootedDom::from_dom(next_slottable.0.clone(), no_gc));
+                .map(|next_slottable| next_slottable.0.as_unrooted(no_gc));
         }
         self.get_next_sibling_unrooted(no_gc)
     }
@@ -3548,7 +3539,7 @@ impl Node {
             slot_element.has_assigned_nodes() &&
             let Some(assigned_node) = slot_element.assigned_nodes().first()
         {
-            return Some(UnrootedDom::from_dom(assigned_node.0.clone(), no_gc));
+            return Some(assigned_node.0.as_unrooted(no_gc));
         }
 
         self.get_first_child_unrooted(no_gc)

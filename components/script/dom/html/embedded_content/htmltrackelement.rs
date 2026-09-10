@@ -184,7 +184,7 @@ impl HTMLTrackElement {
     }
 
     pub(crate) fn track<'a>(&self, no_gc: &'a NoGC) -> UnrootedDom<'a, TextTrack> {
-        UnrootedDom::from_dom(self.track.clone(), no_gc)
+        self.track.as_unrooted(no_gc)
     }
 }
 
