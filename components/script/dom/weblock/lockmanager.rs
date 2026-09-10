@@ -55,17 +55,12 @@ impl LockManager {
         options: Option<&LockOptions<crate::DomTypeHolder>>,
         callback: RootedCallback<LockGrantedCallback<crate::DomTypeHolder>>,
     ) -> RootedPromise {
-        // TODO: request actually involves two promises, fix this later:
-        // 1. the query respond, and run callback
-        // 2. when callback finish, release the lock
-        // 3. when release done, then the final promise, not the "Request" one
+        // Step 1.
+        let default_options = LockOptions::default();
+        let options = options.unwrap_or(&default_options);
 
+        // Step 2.
         let global = self.global();
-
-        let callback = GenericCallback::new(|_lock| {
-            // TODO
-        })
-        .unwrap();
 
         let mut reject_not_supported = |message: &str| {
             Promise::new_rejected_rooted(
@@ -75,14 +70,8 @@ impl LockManager {
             )
         };
 
-        // Step 1.
-        let default_options = LockOptions::default();
-        let options = options.unwrap_or(&default_options);
-
-        // Step 2. skip
-
         // Step 3.
-        if !self.global().as_window().Document().is_fully_active() {
+        if !global.as_window().Document().is_fully_active() {
             return Promise::new_rejected_rooted(
                 cx,
                 &global,
@@ -93,7 +82,7 @@ impl LockManager {
             );
         }
 
-        // Step 4. skip, manager in storage threads
+        // Step 4. skip, manager is on storage threads
 
         // Step 5.
         if name.starts_with('-') {
@@ -144,13 +133,18 @@ impl LockManager {
         &self,
         promise: &RootedPromise,
         client_id: String,
-        callback: GenericCallback<Option<LockMsg>>,
+        callback: RootedCallback<LockGrantedCallback<crate::DomTypeHolder>>,
         name: DOMString,
         mode: LockMode,
         if_available: bool,
         steal: bool,
         signal: &Option<Root<Dom<AbortSignal>>>,
     ) {
+        let callback = GenericCallback::new(|_lock| {
+            // TODO
+        })
+        .unwrap();
+
         // Step 1.
         let request = LockRequest {
             client_id,
