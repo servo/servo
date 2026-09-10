@@ -30,9 +30,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::comparator::compare_dom_positions;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::iterators::{
-    PrePostIteration, UnrootedAncestorIterator, UnrootedFollowingFlatTreeNodesTraversal,
-};
+use crate::dom::iterators::{PrePostIteration, UnrootedFollowingFlatTreeNodesTraversal};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
 use crate::dom::selection_range::{SelectionBoundary, SelectionRange};
@@ -318,16 +316,13 @@ impl Selection {
         let previously_flagged_nodes = self
             .iter_nodes_with_overlaps_document_selection_flag(no_gc)
             .collect();
-        let mut update = VisibleSelectionFlagUpdate::new(no_gc, previously_flagged_nodes);
-
         let flat_tree_selection = FlatTreeSelection::from_selection_if_renderable(no_gc, self);
-        if let Some(flat_tree_selection) = flat_tree_selection.as_ref() {
-            for node in flat_tree_selection.traversal() {
-                update.set(&node, flat_tree_selection);
-            }
-        }
-
-        update.finish(&self.document);
+        VisibleSelectionFlagUpdate::run(
+            no_gc,
+            previously_flagged_nodes,
+            flat_tree_selection.as_ref(),
+            &self.document,
+        );
         self.set_visible_range(flat_tree_selection);
     }
 
@@ -1605,9 +1600,6 @@ impl<'no_gc> FlatTreeSelection<'no_gc> {
         let start_position = position_in_flat_tree_for_selection(self.no_gc, &self.start);
         let end_position = position_in_flat_tree_for_selection(self.no_gc, &self.end);
         VisibleSelectionTraversal {
-            ancestors: start_position
-                .node()
-                .ancestors_in_flat_tree_unrooted(self.no_gc),
             following: start_position
                 .node()
                 .following_flat_tree_nodes_unrooted(self.no_gc),
@@ -1620,7 +1612,6 @@ impl<'no_gc> FlatTreeSelection<'no_gc> {
 }
 
 struct VisibleSelectionTraversal<'no_gc> {
-    ancestors: UnrootedAncestorIterator<'no_gc>,
     following: UnrootedFollowingFlatTreeNodesTraversal<'no_gc>,
     start: FlatTreeNodePosition,
     end: FlatTreeNodePosition,
@@ -1632,10 +1623,6 @@ impl<'no_gc> Iterator for VisibleSelectionTraversal<'no_gc> {
     type Item = UnrootedDom<'no_gc, Node>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(ancestor) = self.ancestors.next() {
-            return Some(ancestor);
-        }
-
         while !self.finished {
             let following = if std::mem::take(&mut self.skip_subtree) {
                 self.following.next_skipping_subtree()?
@@ -1685,15 +1672,33 @@ struct VisibleSelectionFlagUpdate<'no_gc> {
 }
 
 impl<'no_gc> VisibleSelectionFlagUpdate<'no_gc> {
-    fn new(
+    fn run(
         no_gc: &'no_gc NoGC,
         previously_flagged_nodes: FxHashSet<UnrootedDom<'no_gc, Node>>,
-    ) -> Self {
-        Self {
+        flat_tree_selection: Option<&FlatTreeSelection<'_>>,
+        document: &Document,
+    ) {
+        let mut update = Self {
             no_gc,
             previously_flagged_nodes,
             needs_new_display_list: false,
+        };
+
+        if let Some(flat_tree_selection) = flat_tree_selection {
+            let traversal = flat_tree_selection.traversal();
+            for ancestor in traversal
+                .start
+                .node()
+                .ancestors_in_flat_tree_unrooted(no_gc)
+            {
+                update.set(&ancestor, flat_tree_selection);
+            }
+            for node in traversal {
+                update.set(&node, flat_tree_selection);
+            }
         }
+
+        update.finish(document);
     }
 
     fn set(&mut self, node: &UnrootedDom<'no_gc, Node>, flat_tree_selection: &FlatTreeSelection) {
