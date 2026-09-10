@@ -47,7 +47,7 @@ impl WebLocksManager {
     fn start(&mut self) {
         loop {
             match self.port.recv().unwrap() {
-                WebLocksThreadMsg::Request(sender, name, origin) => {
+                WebLocksThreadMsg::Request(request, origin) => {
                     // TODO: reply request
                 },
                 WebLocksThreadMsg::Query(sender, origin) => {
@@ -61,6 +61,12 @@ impl WebLocksManager {
                 WebLocksThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
+                },
+                WebLocksThreadMsg::Release() => {
+                    // TODO: release lock
+                },
+                WebLocksThreadMsg::Abort() => {
+                    // TODO: abort lock
                 },
             }
         }

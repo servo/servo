@@ -5,8 +5,10 @@ use servo_url::ImmutableOrigin;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebLocksThreadMsg {
-    Request(GenericCallback<LockMsg>, String, ImmutableOrigin), // TODO: options
+    Request(LockRequest, ImmutableOrigin),
     Query(GenericCallback<LockManagerSnapshotMsg>, ImmutableOrigin),
+    Release(),
+    Abort(),
     CollectMemoryReport(ReportsChan),
 }
 
@@ -25,12 +27,22 @@ pub struct LockInfoMsg {
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum LockModeMsg {
-    Exclusive,
     Shared,
+    Exclusive,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct LockMsg {
     pub name: String,
     pub mode: LockModeMsg,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct LockRequest {
+    pub client_id: String,
+    pub name: String,
+    pub mode: LockModeMsg,
+    pub callback: GenericCallback<LockMsg>,
+    pub if_available: bool,
+    pub steal: bool,
 }
