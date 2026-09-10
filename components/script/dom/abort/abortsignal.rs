@@ -22,6 +22,7 @@ use servo_base::generic_channel::GenericSend;
 use servo_url::ImmutableOrigin;
 use storage_traits::weblocks::{LockRequestId, WebLocksThreadMsg};
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
@@ -61,6 +62,7 @@ pub(crate) enum AbortAlgorithm {
         #[no_trace] LockRequestId,
         #[no_trace] ImmutableOrigin,
         String,
+        #[ignore_malloc_size_of = "dont know how to handle this"] RootedPromise,
     ),
 }
 
@@ -219,7 +221,7 @@ impl AbortSignal {
                     &removable_listener.options,
                 );
             },
-            AbortAlgorithm::AbortLockRequest(lock_request_id, origin, name) => {
+            AbortAlgorithm::AbortLockRequest(lock_request_id, origin, name, promise) => {
                 // <https://www.w3.org/TR/web-locks/#signal-to-abort-the-request>
                 // Step 1. Enqueue the steps to abort the request request to the lock task queue.
                 _ = global.storage_threads().send(WebLocksThreadMsg::Abort(
@@ -228,7 +230,9 @@ impl AbortSignal {
                     name.clone(),
                 ));
                 // Step 2. Reject request’s promise with signal’s abort reason.
-                // TODO
+                rooted!(&in(cx) let mut reason = UndefinedValue());
+                self.Reason(reason.handle_mut());
+                promise.reject(cx, reason.handle());
             },
         }
     }

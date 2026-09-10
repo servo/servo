@@ -166,6 +166,7 @@ impl LockManager {
                 id,
                 origin.clone(),
                 request.name.clone(),
+                promise.clone(),
             ));
         }
 
