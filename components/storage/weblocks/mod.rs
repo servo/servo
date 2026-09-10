@@ -59,7 +59,7 @@ impl WebLocksManager {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
                 },
-                WebLocksThreadMsg::Release() => {
+                WebLocksThreadMsg::Release(name, origin) => {
                     // TODO: release lock
                 },
                 WebLocksThreadMsg::Abort() => {

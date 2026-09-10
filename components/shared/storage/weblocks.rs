@@ -7,7 +7,7 @@ use servo_url::ImmutableOrigin;
 pub enum WebLocksThreadMsg {
     Request(LockRequest, ImmutableOrigin),
     Query(GenericCallback<LockManagerSnapshotMsg>, ImmutableOrigin),
-    Release(),
+    Release(String, ImmutableOrigin),
     Abort(),
     CollectMemoryReport(ReportsChan),
 }
