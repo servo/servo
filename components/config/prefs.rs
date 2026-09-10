@@ -257,6 +257,8 @@ pub struct Preferences {
     /// Whether or not subpixel antialiasing is enabled for text rendering.
     pub gfx_subpixel_text_antialiasing_enabled: bool,
     pub gfx_texture_swizzling_enabled: bool,
+    /// Whether static raster images retain display-sized decoded pixels selected by layout.
+    pub image_layout_driven_decode_downscaling_enabled: bool,
     /// The amount of image keys we request per batch for the image cache.
     pub image_key_batch_size: i64,
     /// Whether or not the DOM inspector should show shadow roots of user-agent shadow trees
@@ -520,6 +522,7 @@ impl Preferences {
             gfx_text_antialiasing_enabled: true,
             gfx_subpixel_text_antialiasing_enabled: true,
             gfx_texture_swizzling_enabled: true,
+            image_layout_driven_decode_downscaling_enabled: false,
             image_key_batch_size: 10,
             inspector_show_servo_internal_shadow_roots: false,
             intl_locale_override: String::new(),

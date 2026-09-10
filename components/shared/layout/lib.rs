@@ -39,7 +39,7 @@ pub use layout_node::{DangerousStyleNode, LayoutNode};
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId, EncodedImage};
+use net_traits::image_cache::{EncodedImage, ImageCache, ImageCacheFactory, PendingImageId};
 use net_traits::request::InternalRequest;
 use paint_api::CrossProcessPaintApi;
 use parking_lot::RwLock;
