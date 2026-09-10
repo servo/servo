@@ -149,7 +149,7 @@ pub(crate) struct ImageInfo {
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct VideoInfo {
     #[conditional_malloc_size_of]
-    pub static_poster: Option<Arc<net_traits::image_cache::EncodedImage>>,
+    pub encoded_poster: Option<Arc<net_traits::image_cache::EncodedImage>>,
     pub image_key: Option<ImageKey>,
     pub poster_or_src_url: Option<ServoUrl>,
 }
@@ -533,11 +533,11 @@ impl ReplacedContents {
                 .image
                 .as_ref()
                 .and_then(|image| {
-                    let static_source = match image {
+                    let encoded_source = match image {
                         Image::Encoded(source) => Some(source.clone()),
                         _ => None,
                     };
-                    let image_key = if static_source.is_some() {
+                    let image_key = if encoded_source.is_some() {
                         None
                     } else {
                         let scale = layout_context.style_context.device_pixel_ratio();
@@ -551,7 +551,7 @@ impl ReplacedContents {
                             self.base_fragment_info.tag.map(|tag| tag.node),
                         )
                     };
-                    if image_key.is_none() && static_source.is_none() {
+                    if image_key.is_none() && encoded_source.is_none() {
                         return None;
                     }
                     Some(Fragment::Image(Arc::new(ImageFragment {
@@ -560,7 +560,7 @@ impl ReplacedContents {
                         selected_style: self.selected_style.clone(),
                         clip,
                         image_key,
-                        static_source,
+                        encoded_source,
                         showing_broken_image_icon: image_info.showing_broken_image_icon,
                         url: image_info.url.clone(),
                         load_time: image_info.load_time,
@@ -578,7 +578,7 @@ impl ReplacedContents {
                     selected_style: self.selected_style.clone(),
                     clip,
                     image_key: video_info.image_key,
-                    static_source: video_info.static_poster.clone(),
+                    encoded_source: video_info.encoded_poster.clone(),
                     showing_broken_image_icon: false,
                     url: video_info.poster_or_src_url.clone(),
                     load_time: None,
@@ -626,7 +626,7 @@ impl ReplacedContents {
                     selected_style: self.selected_style.clone(),
                     clip,
                     image_key: Some(image_key),
-                    static_source: None,
+                    encoded_source: None,
                     showing_broken_image_icon: false,
                     url: None,
                     load_time: None,
@@ -685,7 +685,7 @@ impl ReplacedContents {
                             selected_style: self.selected_style.clone(),
                             clip,
                             image_key: Some(image_key),
-                            static_source: None,
+                            encoded_source: None,
                             showing_broken_image_icon: false,
                             url: None,
                             load_time: None,

@@ -120,7 +120,7 @@ pub(crate) struct ImageFragment {
     pub clip: PhysicalRect<Au>,
     pub image_key: Option<ImageKey>,
     #[conditional_malloc_size_of]
-    pub static_source: Option<Arc<EncodedImage>>,
+    pub encoded_source: Option<Arc<EncodedImage>>,
     pub showing_broken_image_icon: bool,
     pub url: Option<ServoUrl>,
     pub load_time: Option<CrossProcessInstant>,
