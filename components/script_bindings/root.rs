@@ -8,6 +8,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::{fmt, mem, ptr};
 
+use js::context::NoGC;
 use js::gc::{Handle, Traceable as JSTraceable};
 use js::jsapi::{Heap, JSObject, JSTracer};
 use js::rust::GCMethods;
@@ -15,6 +16,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 use crate::assert::assert_in_script;
 use crate::conversions::DerivedFrom;
+use crate::dom::UnrootedDom;
 use crate::inheritance::Castable;
 use crate::reflector::{DomObject, MutDomObject};
 use crate::trace::trace_reflector;
@@ -186,6 +188,12 @@ impl<T: DomObject> Dom<T> {
         DomRoot::from_ref(self)
     }
 
+    /// Return an unrooted version of this DOM object ([`UnrootedDom<T>`]) suitable for use on the
+    /// stack which has the lifetime of the provided [`NoGC`] token.
+    pub fn as_unrooted<'no_gc>(&self, no_gc: &'no_gc NoGC) -> UnrootedDom<'no_gc, T> {
+        UnrootedDom::from_dom(self.clone(), no_gc)
+    }
+
     pub fn as_ptr(&self) -> *const T {
         self.ptr.as_ptr()
     }
@@ -312,6 +320,12 @@ impl<T: DomObject> DomRoot<T> {
     /// end up as members of other DOM objects.
     pub fn as_traced(&self) -> Dom<T> {
         Dom::from_ref(self)
+    }
+
+    /// Return an unrooted version of this DOM object ([`UnrootedDom<T>`]) suitable for use on the
+    /// stack which has the lifetime of the provided [`NoGC`] token.
+    pub fn as_unrooted<'no_gc>(&self, no_gc: &'no_gc NoGC) -> UnrootedDom<'no_gc, T> {
+        self.value.as_unrooted(no_gc)
     }
 }
 

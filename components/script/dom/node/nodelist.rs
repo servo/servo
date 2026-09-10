@@ -157,7 +157,7 @@ impl NodeList {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems
                 .get(index as usize)
-                .map(|node| UnrootedDom::from_dom(node.clone(), no_gc)),
+                .map(|node| node.as_unrooted(no_gc)),
             NodeListType::Children(ref list) => list.item(no_gc, index),
             NodeListType::Labels(ref list) => list.item(no_gc, index),
             NodeListType::Radio(ref list) => list.item(no_gc, index),
@@ -205,7 +205,7 @@ impl ChildrenList {
                     .collect()
             })
             .get(index as usize)
-            .map(|child| UnrootedDom::from_dom(child.clone(), no_gc))
+            .map(|child| child.as_unrooted(no_gc))
     }
 
     pub(crate) fn children_changed(&self, mutation: &ChildrenMutation) {

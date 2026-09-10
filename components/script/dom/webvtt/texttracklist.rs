@@ -151,7 +151,7 @@ impl TextTrackList {
                     .borrow()
                     .clone()
                     .into_iter()
-                    .map(|track| UnrootedDom::from_dom(track, no_gc)),
+                    .map(|track| track.as_unrooted(no_gc)),
             ),
         }
     }

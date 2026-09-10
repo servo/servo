@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAncho
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::NodeTypeId;
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, UnrootedDom};
+use crate::dom::bindings::root::{DomRoot, DomSlice, UnrootedDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;
@@ -43,7 +43,7 @@ pub(crate) enum NodeOrString<'a> {
 
 impl<'a> NodeOrString<'a> {
     pub(crate) fn from_node(node: &Node, no_gc: &'a NoGC) -> NodeOrString<'a> {
-        NodeOrString::Node(UnrootedDom::from_dom(Dom::from_ref(node), no_gc))
+        NodeOrString::Node(UnrootedDom::from_ref(node, no_gc))
     }
 
     fn as_node(&self) -> Option<UnrootedDom<'a, Node>> {
@@ -1622,7 +1622,7 @@ impl Node {
         let Some(editing_host) = self.editing_host_of() else {
             return false;
         };
-        let self_unrooted = UnrootedDom::from_dom(Dom::from_ref(self), no_gc);
+        let self_unrooted = UnrootedDom::from_ref(self, no_gc);
         self.ancestors_unrooted(no_gc)
             .take_while(|ancestor| ancestor.editing_host_of().as_ref() == Some(&editing_host))
             .all(|ancestor| {

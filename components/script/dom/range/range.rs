@@ -391,11 +391,11 @@ impl Range {
         }
 
         let document = start.owner_doc();
-        let end_clone = UnrootedDom::from_dom(Dom::from_ref(&*end), no_gc);
+        let unrooted_end = end.as_unrooted(no_gc);
         start
             .following_nodes_unrooted(no_gc, document.upcast::<Node>(), ShadowIncluding::No)
             .take_while(move |node| *node != *end)
-            .chain(iter::once(end_clone))
+            .chain(iter::once(unrooted_end))
             .flat_map(move |node| node.border_boxes())
             .collect()
     }
