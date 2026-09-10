@@ -1,3 +1,4 @@
+use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericCallback;
 
@@ -5,6 +6,7 @@ use servo_base::generic_channel::GenericCallback;
 pub enum WebLocksThreadMsg {
     Request(GenericCallback<LockMsg>, String), // TODO: options
     Query(GenericCallback<LockManagerSnapshotMsg>),
+    CollectMemoryReport(ReportsChan),
 }
 
 #[derive(Debug, Deserialize, Serialize)]

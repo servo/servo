@@ -33,12 +33,13 @@ fn new_storage_thread_group(
     );
     let web_storage: GenericSender<WebStorageThreadMsg> = WebStorageThreadFactory::new(
         config_dir.clone(),
-        mem_profiler_chan,
+        mem_profiler_chan.clone(),
         format!("storage-reporter-{label}"),
     );
     let cache_storage: CacheStorageThreadHandle =
         CacheStorageThreadFactory::new(config_dir, temporary_storage);
-    let web_locks: GenericSender<WebLocksThreadMsg> = WebLocksThreadFactory::new();
+    let web_locks: GenericSender<WebLocksThreadMsg> =
+        WebLocksThreadFactory::new(mem_profiler_chan, format!("WebLocks-reporter-{label}"));
 
     StorageThreads::new(
         client_storage.into(),
