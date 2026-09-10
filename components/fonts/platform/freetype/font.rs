@@ -65,14 +65,14 @@ pub struct PlatformFont {
 
 impl PlatformFontMethods for PlatformFont {
     fn new_from_data(
-        _font_identifier: FontIdentifier,
+        font_identifier: FontIdentifier,
         font_data: &FontData,
         requested_size: Option<Au>,
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data = FontBackingStore::Web(font_data.clone());
-        let face = FreeTypeFace::new_from_memory(&library, data, 0)?;
+        let face = FreeTypeFace::new_from_memory(&library, data, font_identifier.index())?;
 
         let (requested_face_size, actual_face_size) = match requested_size {
             Some(requested_size) => (requested_size, face.set_size(requested_size)?),
