@@ -6,12 +6,13 @@ use std::path::PathBuf;
 
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use servo_base::generic_channel::GenericSender;
-use storage_traits::StorageThreads;
 use storage_traits::cache_storage::CacheStorageThreadHandle;
 use storage_traits::client_storage::ClientStorageThreadHandle;
 use storage_traits::indexeddb::IndexedDBThreadMsg;
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
+use storage_traits::{StorageThreads, weblocks::WebLocksThreadMsg};
 
+use crate::weblocks::WebLocksThreadFactory;
 use crate::{
     CacheStorageThreadFactory, ClientStorageThreadFactory, IndexedDBThreadFactory,
     WebStorageThreadFactory,
@@ -36,12 +37,14 @@ fn new_storage_thread_group(
     );
     let cache_storage: CacheStorageThreadHandle =
         CacheStorageThreadFactory::new(config_dir, temporary_storage);
+    let web_locks: GenericSender<WebLocksThreadMsg> = WebLocksThreadFactory::new();
 
     StorageThreads::new(
         client_storage.into(),
         idb,
         web_storage,
         cache_storage.into(),
+        web_locks,
     )
 }
 

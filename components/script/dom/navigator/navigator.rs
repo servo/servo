@@ -141,6 +141,7 @@ pub(crate) struct Navigator {
     servo_internals: MutNullableDom<ServoInternals>,
     user_activation: MutNullableDom<UserActivation>,
     wake_lock: MutNullableDom<WakeLock>,
+    locks: MutNullableDom<LockManager>,
 }
 
 impl Navigator {
@@ -169,6 +170,7 @@ impl Navigator {
             servo_internals: Default::default(),
             user_activation: Default::default(),
             wake_lock: Default::default(),
+            locks: Default::default(),
         }
     }
 
@@ -670,8 +672,8 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://w3c.github.io/web-locks/#navigator-mixins>
-    fn Locks(&self) -> DomRoot<LockManager> {
-        todo!()
+    fn Locks(&self, cx: &mut JSContext) -> DomRoot<LockManager> {
+        self.locks.or_init(|| LockManager::new(cx, &self.global()))
     }
 }
 

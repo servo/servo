@@ -30,6 +30,7 @@ pub(crate) struct WorkerNavigator {
     storage: MutNullableDom<StorageManager>,
     #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
+    locks: MutNullableDom<LockManager>,
 }
 
 impl WorkerNavigator {
@@ -40,6 +41,7 @@ impl WorkerNavigator {
             storage: Default::default(),
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
+            locks: Default::default(),
         }
     }
 
@@ -138,7 +140,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     }
 
     /// <https://w3c.github.io/web-locks/#navigator-mixins>
-    fn Locks(&self) -> DomRoot<LockManager> {
-        todo!()
+    fn Locks(&self, cx: &mut JSContext) -> DomRoot<LockManager> {
+        self.locks.or_init(|| LockManager::new(cx, &self.global()))
     }
 }
