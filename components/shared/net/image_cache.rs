@@ -194,7 +194,7 @@ pub struct RasterizationCompleteResponse {
 pub enum ImageCacheResponseMessage {
     NotifyPendingImageLoadStatus(PendingImageResponse),
     VectorImageRasterizationComplete(RasterizationCompleteResponse),
-    StaticRasterImageReady(PipelineId, PendingImageId, u64),
+    RasterDecodeReady(PipelineId, PendingImageId, u64),
 }
 
 // ======================================================================
@@ -210,7 +210,7 @@ pub enum ImageCacheResult {
 
 /// Status of an active display demand. The generation distinguishes callbacks
 /// already queued for an obsolete resize from the current request.
-pub struct StaticRasterDemandStatus {
+pub struct RasterDecodeDemandStatus {
     pub id: PendingImageId,
     pub generation: u64,
     pub pending: bool,
@@ -260,17 +260,17 @@ pub trait ImageCache: Sync + Send {
     ) -> ImageCacheResult;
 
     /// Current display pixels, if available. This never decodes synchronously.
-    fn static_raster_image_key(&self, image_id: PendingImageId) -> Option<ImageKey>;
+    fn demand_driven_raster_image_key(&self, image_id: PendingImageId) -> Option<ImageKey>;
 
     /// Replace the complete set of static raster demands after building a display
     /// list. Duplicate ids are combined by their largest aspect-preserving scale.
     /// Completion notifications request another paint, without repeating load events.
     /// Returns each active generation and whether its completion is still pending.
-    fn set_static_raster_demands(
+    fn set_raster_decode_demands(
         &self,
         demands: Vec<(PendingImageId, DeviceIntSize)>,
         callback: ImageCacheResponseCallback,
-    ) -> Vec<StaticRasterDemandStatus>;
+    ) -> Vec<RasterDecodeDemandStatus>;
 
     /// Returns `Some` if the given `image_id` has already been rasterized at the given `size`.
     /// Otherwise, triggers a new job to perform the rasterization. If a notification

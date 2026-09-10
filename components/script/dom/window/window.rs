@@ -2765,7 +2765,7 @@ impl Window {
 
         if let Some(demands) = reflow_result.static_raster_demands {
             let sender = self.image_cache_sender.clone();
-            let statuses = self.image_cache().set_static_raster_demands(
+            let statuses = self.image_cache().set_raster_decode_demands(
                 demands,
                 Box::new(move |message| {
                     let _ = sender.send(message);
