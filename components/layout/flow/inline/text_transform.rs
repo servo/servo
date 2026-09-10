@@ -286,7 +286,7 @@ impl<'a> TextTransformationIterator<'a> {
         // > preserved white space.
 
         let case_map_iterator = match text_transform.case() {
-            TextTransformCase::None => {
+            TextTransformCase::None | TextTransformCase::MathAuto => {
                 Box::new(iterator) as Box<dyn Iterator<Item = CharacterTransformIteration>>
             },
             TextTransformCase::Lowercase => {

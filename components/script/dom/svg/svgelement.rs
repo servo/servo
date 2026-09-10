@@ -437,8 +437,7 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
             // Wrap the raw path data in `path("...")` so the CSS parser can handle it.
             if let Some(value) = element.get_attr_val_for_layout(&ns!(), &local_name!("d")) {
                 if value.eq_ignore_ascii_case("none") {
-                    let mut input = cssparser::ParserInput::new(value);
-                    let mut parser = cssparser::Parser::new(&mut input);
+                    let mut parser = cssparser::Parser::new(value);
                     if let Ok(property) =
                         parser.parse_entirely(|i| longhands::d::parse_declared(&parser_context, i))
                     {
@@ -446,8 +445,7 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
                     }
                 } else {
                     let wrapped = format!("path(\"{}\")", value);
-                    let mut input = cssparser::ParserInput::new(&wrapped);
-                    let mut parser = cssparser::Parser::new(&mut input);
+                    let mut parser = cssparser::Parser::new(&wrapped);
                     if let Ok(property) = parser.parse_entirely(|parse_input| {
                         longhands::d::parse_declared(&parser_context, parse_input)
                     }) {
@@ -467,13 +465,12 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
     ) where
         F: for<'i, 't> FnOnce(
             &ParserContext,
-            &mut cssparser::Parser<'i, 't>,
-        ) -> Result<PropertyDeclaration, style_traits::ParseError<'i>>,
+            &mut cssparser::Parser<'i>,
+        ) -> Result<PropertyDeclaration, style_traits::ParseError>,
     {
         let element = self.upcast::<Element>();
         if let Some(value) = element.get_attr_val_for_layout(&ns!(), &LocalName::from(attr_name)) {
-            let mut input = cssparser::ParserInput::new(value);
-            let mut parser = cssparser::Parser::new(&mut input);
+            let mut parser = cssparser::Parser::new(value);
             if let Ok(property) =
                 parser.parse_entirely(|parse_input| parse(parser_context, parse_input))
             {

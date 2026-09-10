@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::AnimationEffectBinding::{
@@ -152,8 +152,7 @@ impl AnimationEffect {
             .as_ref()
             .map(|easing| {
                 let easing = easing.str();
-                let mut parser_input = ParserInput::new(&easing);
-                let mut parser = Parser::new(&mut parser_input);
+                let mut parser = Parser::new(&easing);
 
                 // None of these values should matter
                 let document = self.window.Document();

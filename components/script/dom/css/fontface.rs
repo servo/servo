@@ -4,7 +4,7 @@
 
 use std::cell::{Cell, Ref, RefCell};
 
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use dom_struct::dom_struct;
 use fonts::{
     FontContext, FontContextWebFontMethods, FontFaceRuleInfo, FontTemplate, LowercaseFontFamilyName,
@@ -136,8 +136,7 @@ fn parse_font_face_descriptors(
 
     // TODO: Should this be the source location in the script that invoked the font face API?
     let location = cssparser::SourceLocation { line: 0, column: 0 };
-    let mut input = ParserInput::new(&font_face_rule);
-    let mut parser = Parser::new(&mut input);
+    let mut parser = Parser::new(&font_face_rule);
     let mut parsed_font_face_rule =
         style::font_face::parse_font_face_block(&parser_context, &mut parser, location);
 

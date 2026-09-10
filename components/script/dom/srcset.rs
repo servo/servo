@@ -5,7 +5,7 @@
 use std::sync::LazyLock;
 
 use app_units::Au;
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use regex::Regex;
 use rustc_hash::FxHashSet;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
@@ -391,8 +391,7 @@ impl SourceSet {
 
 /// <https://html.spec.whatwg.org/multipage/#parse-a-sizes-attribute>
 pub fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
-    let mut input = ParserInput::new(value);
-    let mut parser = Parser::new(&mut input);
+    let mut parser = Parser::new(value);
     // FIXME(emilio): why ::empty() instead of ::DEFAULT? Also, what do
     // browsers do regarding quirks-mode in a media list?
     let context = parser_context_for_anonymous_content(
