@@ -2154,7 +2154,7 @@ class AttrDefiner(PropertyDefiner):
         self.descriptor = descriptor
         self.regular: list[dict[str, Any]] = [
             {
-                "name": m.identifier.name,
+                "name": name,
                 "attr": m,
                 "flags": "JSPROP_ENUMERATE",
                 "kind": "JSPropertySpec_Kind::NativeAccessor",
@@ -2165,6 +2165,7 @@ class AttrDefiner(PropertyDefiner):
             and (not crossorigin
                  or m.getExtendedAttribute("CrossOriginReadable")
                  or m.getExtendedAttribute("CrossOriginWritable"))
+            for name in [m.identifier.name] + m.bindingAliases
         ]
         self.static = static
         self.unforgeable = unforgeable
@@ -2265,7 +2266,7 @@ class AttrDefiner(PropertyDefiner):
             flags = attr["flags"]
             if self.unforgeable:
                 flags += " | JSPROP_PERMANENT"
-            return (str_to_cstr_ptr(attr["attr"].identifier.name), flags, attr["kind"], getter(attr),
+            return (str_to_cstr_ptr(attr["name"]), flags, attr["kind"], getter(attr),
                     setter(attr))
 
         def template(m: dict[str, Any]) -> str:

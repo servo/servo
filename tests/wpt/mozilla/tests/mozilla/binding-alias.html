@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebIDL BindingAlias extended attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  const names = [
+    "stringAttribute",
+    "stringAttributeAlias",
+    "stringAttributeAlias2",
+  ];
+  const descriptors = names.map(function(name) {
+    assert_own_property(TestBinding.prototype, name);
+    return Object.getOwnPropertyDescriptor(TestBinding.prototype, name);
+  });
+
+  for (const descriptor of descriptors) {
+    assert_true(descriptor.enumerable);
+    assert_true(descriptor.configurable);
+    assert_equals(typeof descriptor.get, "function");
+    assert_equals(typeof descriptor.set, "function");
+  }
+
+  assert_not_equals(descriptors[0].get, descriptors[1].get);
+  assert_not_equals(descriptors[0].get, descriptors[2].get);
+  assert_not_equals(descriptors[1].get, descriptors[2].get);
+  assert_not_equals(descriptors[0].set, descriptors[1].set);
+  assert_not_equals(descriptors[0].set, descriptors[2].set);
+  assert_not_equals(descriptors[1].set, descriptors[2].set);
+
+  const instance = new TestBinding();
+  assert_equals(descriptors[0].get.call(instance), descriptors[1].get.call(instance));
+  assert_equals(descriptors[0].get.call(instance), descriptors[2].get.call(instance));
+  instance.stringAttributeAlias = "first alias";
+  instance.stringAttributeAlias2 = "second alias";
+}, "BindingAlias creates distinct accessors backed by the original attribute");
+</script>
