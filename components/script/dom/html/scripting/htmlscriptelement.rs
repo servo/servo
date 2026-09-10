@@ -241,20 +241,37 @@ fn finish_fetching_a_script(
     // Step 2. If el's steps to run when the result is ready are not null, then run them.
     match script_kind {
         ExternalScriptKind::Asap => {
-            let document = elem.preparation_time_document.get().unwrap();
-            document.asap_script_loaded(cx, elem, load)
+            if let Some(loading_handler) = elem
+                .preparation_time_document
+                .get()
+                .unwrap()
+                .loading_handler()
+                .as_ref()
+            {
+                loading_handler.asap_script_loaded(cx, elem, load)
+            }
         },
         ExternalScriptKind::AsapInOrder => {
-            let document = elem.preparation_time_document.get().unwrap();
-            document.asap_in_order_script_loaded(cx, elem, load)
+            if let Some(loading_handler) = elem
+                .preparation_time_document
+                .get()
+                .unwrap()
+                .loading_handler()
+                .as_ref()
+            {
+                loading_handler.asap_in_order_script_loaded(cx, elem, load)
+            }
         },
         ExternalScriptKind::Deferred => {
-            let document = elem.parser_document.as_rooted();
-            document.deferred_script_loaded(cx, elem, load);
+            if let Some(loading_handler) =
+                elem.parser_document.as_rooted().loading_handler().as_ref()
+            {
+                loading_handler.deferred_script_loaded(cx, elem, load);
+            }
         },
         ExternalScriptKind::ParsingBlocking => {
             let document = elem.parser_document.as_rooted();
-            document.pending_parsing_blocking_script_loaded(elem, load, cx);
+            document.pending_parsing_blocking_script_loaded(cx, elem, load);
         },
     }
 
@@ -960,12 +977,24 @@ impl HTMLScriptElement {
 
         // Step 33.2/33.3/33.4/33.5, substeps 1-2. Add el to the corresponding script list.
         match kind {
-            ExternalScriptKind::Deferred => delayed_document.add_deferred_script(self),
+            ExternalScriptKind::Deferred => {
+                if let Some(loading_handler) = delayed_document.loading_handler().as_ref() {
+                    loading_handler.add_deferred_script(self);
+                }
+            },
             ExternalScriptKind::ParsingBlocking => {
                 delayed_document.set_pending_parsing_blocking_script(self, None);
             },
-            ExternalScriptKind::AsapInOrder => delayed_document.push_asap_in_order_script(self),
-            ExternalScriptKind::Asap => delayed_document.add_asap_script(self),
+            ExternalScriptKind::AsapInOrder => {
+                if let Some(loading_handler) = delayed_document.loading_handler().as_ref() {
+                    loading_handler.push_asap_in_order_script(self);
+                }
+            },
+            ExternalScriptKind::Asap => {
+                if let Some(loading_handler) = delayed_document.loading_handler().as_ref() {
+                    loading_handler.add_asap_script(self);
+                }
+            },
         }
     }
 
