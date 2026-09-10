@@ -16,6 +16,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUAdapterMethods;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use script_webgpu::PipelineLayout;
 use script_webgpu::gpuconvert::WebGPUConvert;
+use script_webgpu::gpuerror::AsWebGpu;
 use script_webgpu::traits::GPUDeviceTrait;
 use webgpu_traits::{
     PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
@@ -27,7 +28,6 @@ use wgpu_core::pipeline::RenderPipelineDescriptor;
 use wgpu_types::{self, TextureFormat};
 
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
-use super::gpuerror::AsWebGpu;
 use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;

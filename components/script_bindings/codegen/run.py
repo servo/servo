@@ -71,7 +71,6 @@ def main() -> None:
         ("InterfaceObjectMapData", "InterfaceObjectMapData.json"),
         ("InterfaceTypes", "InterfaceTypes.rs"),
         ("InheritTypes", "InheritTypes.rs"),
-        ("ConcreteInheritTypes", "ConcreteInheritTypes.rs"),
         ("Bindings", "Bindings/mod.rs"),
         ("Bindings", "ConcreteBindings/mod.rs"),
         ("Bindings", "WebGPUConcreteBindings/mod.rs"),
@@ -108,6 +107,18 @@ def main() -> None:
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
                 f.write(module.encode("utf-8"))
+
+
+    from codegen import GlobalGenRoots
+    root = GlobalGenRoots.ConcreteInheritTypes(config, s, generic = True)
+    code = root.define()
+    with open(os.path.join(out_dir, "WebGPUConcreteInheritTypes.rs"), "wb") as f:
+        f.write(code.encode("utf-8"))
+
+    root = GlobalGenRoots.ConcreteInheritTypes(config, all_interface_descriptors - s, generic = False)
+    code = root.define()
+    with open(os.path.join(out_dir, "ConcreteInheritTypes.rs"), "wb") as f:
+        f.write(code.encode("utf-8"))
 
 
 def make_dir(path: str)-> str:

@@ -77,14 +77,25 @@ pub(crate) mod gpudevicelostinfo {
     pub(crate) type GPUDeviceLostInfo =
         script_webgpu::gpudevicelostinfo::GPUDeviceLostInfo<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuerror;
+pub(crate) mod gpuerror {
+    pub(crate) type GPUError = script_webgpu::gpuerror::GPUError<crate::DomTypeHolder>;
+}
 pub(crate) mod gpuexternaltexture;
-pub(crate) mod gpuinternalerror;
+pub(crate) mod gpuinternalerror {
+    pub(crate) type GPUInternalError =
+        script_webgpu::gpuinternalerror::GPUInternalError<crate::DomTypeHolder>;
+}
 pub(crate) mod gpumapmode {
     pub(crate) type GPUMapMode = script_webgpu::gpumapmode::GPUMapMode<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuoutofmemoryerror;
-pub(crate) mod gpupipelineerror;
+pub(crate) mod gpuoutofmemoryerror {
+    pub(crate) type GPUOutOfMemoryError =
+        script_webgpu::gpuoutofmemoryerror::GPUOutOfMemoryError<crate::DomTypeHolder>;
+}
+pub(crate) mod gpupipelineerror {
+    pub(crate) type GPUPipelineError =
+        script_webgpu::gpupipelineerror::GPUPipelineError<crate::DomTypeHolder>;
+}
 pub(crate) mod gpupipelinelayout {
     pub(crate) type GPUPipelineLayout =
         script_webgpu::gpupipelinelayout::GPUPipelineLayout<crate::DomTypeHolder>;
@@ -140,8 +151,14 @@ pub(crate) mod gputextureview {
     pub(crate) type GPUTextureView =
         script_webgpu::gputextureview::GPUTextureView<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuuncapturederrorevent;
-pub(crate) mod gpuvalidationerror;
+pub(crate) mod gpuuncapturederrorevent {
+    pub(crate) type GPUUncapturedErrorEvent =
+        script_webgpu::gpuuncapturederrorevent::GPUUncapturedErrorEvent<crate::DomTypeHolder>;
+}
+pub(crate) mod gpuvalidationerror {
+    pub(crate) type GPUValidationError =
+        script_webgpu::gpuvalidationerror::GPUValidationError<crate::DomTypeHolder>;
+}
 pub(crate) mod identityhub {
     pub(crate) type IdentityHub = script_webgpu::identityhub::IdentityHub;
 }

@@ -5,27 +5,41 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
-
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUPipelineErrorInit, GPUPipelineErrorMethods, GPUPipelineErrorReason,
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUPipelineErrorInit, GPUPipelineErrorMethods, GPUPipelineErrorReason, GPUPipelineErrorWrap,
 };
+use script_bindings::conversions::DerivedFrom;
+use script_bindings::inheritance::Castable;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_wrap;
+use script_bindings::traits::DomExceptionTrait;
+
+use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::domexception::DOMException;
-use crate::dom::globalscope::GlobalScope;
+use crate::gpuerror::GPUError;
+use crate::traits::Equivalence;
 
 /// <https://gpuweb.github.io/gpuweb/#gpupipelineerror>
 #[dom_struct]
-pub(crate) struct GPUPipelineError {
-    exception: DOMException,
+pub struct GPUPipelineError<D: DomTypes> {
+    exception: D::DOMException,
     reason: GPUPipelineErrorReason,
 }
 
-impl GPUPipelineError {
+impl<D> GPUPipelineError<D>
+where
+    D: Equivalence,
+    D::GPUError: Castable,
+    D::GPUValidationError: DerivedFrom<GPUError<D>>,
+    D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
+    D::GPUInternalError: DerivedFrom<GPUError<D>>,
+    D::DOMException: DomExceptionTrait,
+{
     fn new_inherited(message: DOMString, reason: GPUPipelineErrorReason) -> Self {
         Self {
-            exception: DOMException::new_inherited(
+            exception: D::DOMException::new_inherited(
                 message,
                 DOMString::from_static("GPUPipelineError"),
             ),
@@ -35,22 +49,23 @@ impl GPUPipelineError {
 
     pub(crate) fn new_with_proto(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
         reason: GPUPipelineErrorReason,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(
-            cx,
+        reflect_dom_object_with_proto_and_wrap::<D, _, _>(
             Box::new(Self::new_inherited(message, reason)),
             global,
             proto,
+            cx,
+            GPUPipelineErrorWrap::<D>,
         )
     }
 
-    pub(crate) fn new(
+    pub fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         message: DOMString,
         reason: GPUPipelineErrorReason,
     ) -> DomRoot<Self> {
@@ -58,11 +73,19 @@ impl GPUPipelineError {
     }
 }
 
-impl GPUPipelineErrorMethods<crate::DomTypeHolder> for GPUPipelineError {
+impl<D> GPUPipelineErrorMethods<D> for GPUPipelineError<D>
+where
+    D: Equivalence,
+    D::GPUError: Castable,
+    D::GPUValidationError: DerivedFrom<GPUError<D>>,
+    D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
+    D::GPUInternalError: DerivedFrom<GPUError<D>>,
+    D::DOMException: DomExceptionTrait,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpupipelineerror-constructor>
     fn Constructor(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
         options: &GPUPipelineErrorInit,
