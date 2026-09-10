@@ -494,8 +494,20 @@ impl SharedWorkerGlobalScope {
                     registration_id,
                     cx,
                 );
+
+                /// A data structure that ensures that a panicking SharedWorker will
+                /// always call `clear_js_runtime` in order to prevent it from leaking.
+                struct ClearJsRuntime<'a>(&'a WorkerGlobalScope);
+                impl Drop for ClearJsRuntime<'_> {
+                    fn drop(&mut self) {
+                        self.0.clear_js_runtime();
+                    }
+                }
+
                 let scope = global.upcast::<WorkerGlobalScope>();
+                let _clear_js_runtime = ClearJsRuntime(scope);
                 let global_scope = global.upcast::<GlobalScope>();
+
                 // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
                 let worker_is_secure_context = global_scope.is_secure_context();
                 if devtools_enabled {
@@ -508,12 +520,10 @@ impl SharedWorkerGlobalScope {
                 }
 
                 if setup_sender.send(worker_is_secure_context).is_err() {
-                    scope.clear_js_runtime();
                     return;
                 }
 
                 if registration_receiver.recv().is_err() {
-                    scope.clear_js_runtime();
                     return;
                 }
                 // Keep cleanup guard alive for the remainder of worker execution.
@@ -567,8 +577,6 @@ impl SharedWorkerGlobalScope {
                         event_loop_sender,
                         CommonScriptMsg::CollectReports,
                     );
-
-                scope.clear_js_runtime();
             })
     }
 
@@ -601,15 +609,18 @@ impl SharedWorkerGlobalScope {
         SharedWorker::unregister_shared_worker(self.registration_id);
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let worker = self.worker.borrow().clone().expect("worker must be set");
-        // Step 1.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
-        self.parent_event_loop_sender
-            .send(CommonScriptMsg::Task(
-                WorkerEvent,
-                Box::new(SimpleWorkerErrorHandler::new(worker)),
-                Some(pipeline_id),
-                TaskSourceName::DOMManipulation,
-            ))
-            .expect("Sending to parent failed");
+        // Step 1.1. Queue a global task on the DOM manipulation task source given
+        // worker's relevant global object to fire an event named error at worker.
+        if let Err(error) = self.parent_event_loop_sender.send(CommonScriptMsg::Task(
+            WorkerEvent,
+            Box::new(SimpleWorkerErrorHandler::new(worker)),
+            Some(pipeline_id),
+            TaskSourceName::DOMManipulation,
+        )) {
+            // TODO: A failed message should really remove this owner from the
+            // specification's concept of owner set (when that exists)
+            log::warn!("Failed to send forward simple error to parent event loop: {error}.")
+        }
     }
 
     pub(crate) fn report_csp_violations(&self, violations: Vec<Violation>) {
@@ -629,18 +640,22 @@ impl SharedWorkerGlobalScope {
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let worker = self.worker.borrow().clone().expect("worker must be set");
 
-        self.parent_event_loop_sender
-            .send(CommonScriptMsg::Task(
-                WorkerEvent,
-                Box::new(
-                    task!(sharedworker_enable_outside_port_message_queue: move |cx| {
-                        SharedWorker::enable_outside_port_message_queue(worker, cx);
-                    }),
-                ),
-                Some(pipeline_id),
-                TaskSourceName::DOMManipulation,
-            ))
-            .expect("Sending to parent failed");
+        if let Err(error) = self.parent_event_loop_sender.send(CommonScriptMsg::Task(
+            WorkerEvent,
+            Box::new(
+                task!(sharedworker_enable_outside_port_message_queue: move |cx| {
+                    SharedWorker::enable_outside_port_message_queue(worker, cx);
+                }),
+            ),
+            Some(pipeline_id),
+            TaskSourceName::DOMManipulation,
+        )) {
+            // TODO: A failed message should really remove this owner from the
+            // specification's concept of owner set (when that exists)
+            log::warn!(
+                "Failed to send enable outside port message queue to parent event loop: {error}."
+            )
+        }
     }
 
     fn handle_connect(
