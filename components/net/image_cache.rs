@@ -420,7 +420,7 @@ enum KeyCacheState {
     Ready(Vec<WebRenderImageKey>),
     /// Currently filling images from the KeyCache. No new keys will be requested.
     Processing,
-    /// A special state to demark that we will not process any images anymore because the pipeline is shut down.
+    /// We will not process any images anymore because the pipeline is shut down.
     #[default]
     PipelineClosed,
 }
