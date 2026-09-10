@@ -6,6 +6,7 @@ use script_bindings::codegen::GenericBindings::AbortSignalBinding::AbortSignalMe
 use script_bindings::codegen::GenericBindings::WebLockBinding::{
     LockGrantedCallback, LockManagerMethods, LockMode, LockOptions,
 };
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::{Dom, DomRoot, Root};
 use script_bindings::str::DOMString;
@@ -60,8 +61,6 @@ impl LockManager {
         // 3. when release done, then the final promise, not the "Request" one
 
         let global = self.global();
-        let task_manager = global.task_manager();
-        let task_source = task_manager.weblocks_task_source();
 
         let callback = GenericCallback::new(|_lock| {
             // TODO
@@ -80,7 +79,19 @@ impl LockManager {
         let default_options = LockOptions::default();
         let options = options.unwrap_or(&default_options);
 
-        // Step 3. TODO: check fully active
+        // Step 2. skip
+
+        // Step 3.
+        if !self.global().as_window().Document().is_fully_active() {
+            return Promise::new_rejected_rooted(
+                cx,
+                &global,
+                DOMException::new_inherited(
+                    "associated Document is not fully active".into(),
+                    "InvalidStateError".into(),
+                ),
+            );
+        }
 
         // Step 4. skip, manager in storage threads
 
@@ -101,8 +112,8 @@ impl LockManager {
             return reject_not_supported("signal exists but either steal or ifAvailable is true");
         }
         // Step 9.
-        if let Some(signal) = &options.signal &&
-            signal.aborted()
+        if let Some(signal) = &options.signal
+            && signal.aborted()
         {
             rooted!(&in(cx) let mut reason = UndefinedValue());
             signal.Reason(reason.handle_mut());
