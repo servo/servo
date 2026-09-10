@@ -92,11 +92,8 @@ impl RoutedPromiseListener<LockManagerSnapshotMsg> for LockManager {
         msg: LockManagerSnapshotMsg,
         promise: &RootedPromise,
     ) {
-        let global = self.global();
-
         let snapshot: LockManagerSnapshot = msg.convert();
-
-        todo!()
+        promise.resolve_native(cx, &snapshot);
     }
 }
 
