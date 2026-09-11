@@ -133,6 +133,7 @@ net = { workspace = true }
 net_traits = { workspace = true }
 paint = { workspace = true }
 paint_api = { workspace = true }
+pixels = { workspace = true }
 parking_lot = { workspace = true }
 profile = { workspace = true }
 profile_traits = { workspace = true }
