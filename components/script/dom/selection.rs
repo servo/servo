@@ -1543,9 +1543,9 @@ impl<'no_gc> FlatTreeSelection<'no_gc> {
         let range = selection.range.borrow();
         let range = range.as_ref()?;
 
-        let mut start_container = UnrootedDom::from_dom(range.start.container.clone(), no_gc);
+        let mut start_container = range.start.container.as_unrooted(no_gc);
         let mut start_offset = range.start.offset;
-        let mut end_container = UnrootedDom::from_dom(range.end.container.clone(), no_gc);
+        let mut end_container = range.end.container.as_unrooted(no_gc);
         let mut end_offset = range.end.offset;
 
         if !start_container.is_in_flat_tree(no_gc) {
