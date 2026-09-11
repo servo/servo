@@ -36,7 +36,7 @@ use crate::ArcRefCell;
 use crate::cell::WeakRefCell;
 use crate::display_list::StackingContextTree;
 use crate::layout_impl::LayoutThread;
-use crate::query::process_box_area_request;
+use crate::query::{BoxAreaInclusion, process_box_area_request};
 
 bitflags! {
     /// Damage which was caused by changes to the accessibility tree. These changes can cause other
@@ -966,7 +966,7 @@ impl AccessibilityNode {
             context.stacking_context_tree,
             *dom_node,
             BoxAreaType::Border,
-            true, /* exclude_transform_and_inline */
+            BoxAreaInclusion::Inlines,
         )
         .map(au_rect_to_accesskit_rect);
 

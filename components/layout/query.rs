@@ -10,6 +10,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use app_units::Au;
+use bitflags::bitflags;
 use embedder_traits::UntrustedNodeAddress;
 use euclid::{Point2D, Rect, Size2D};
 use layout_api::{
@@ -90,12 +91,20 @@ pub(crate) fn process_padding_request(node: ServoLayoutNode<'_>) -> Option<Physi
     )
 }
 
+bitflags! {
+    #[derive(Clone, Copy)]
+    pub(crate) struct BoxAreaInclusion: u8 {
+        const Transforms = 1 << 0;
+        const Inlines = 1 << 1;
+    }
+}
+
 pub(crate) fn process_box_area_request(
     layout_thread: &LayoutThread,
     stacking_context_tree: &StackingContextTree,
     node: ServoLayoutNode<'_>,
     area: BoxAreaType,
-    exclude_transform_and_inline: bool,
+    inclusion: BoxAreaInclusion,
 ) -> Option<Rect<Au, CSSPixel>> {
     // Borrow fragments to avoid cloning on this hot path for accessibility and
     // `getBoundingClientRect()`.
@@ -103,7 +112,7 @@ pub(crate) fn process_box_area_request(
         let mut rects = fragments
             .iter()
             .filter(|fragment| {
-                !exclude_transform_and_inline ||
+                inclusion.contains(BoxAreaInclusion::Inlines) ||
                     fragment
                         .retrieve_box_fragment()
                         .is_none_or(|fragment| !fragment.with_style().is_inline_box())
@@ -114,7 +123,7 @@ pub(crate) fn process_box_area_request(
         rects.peek()?;
         let rect_union = rects.fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect));
 
-        if exclude_transform_and_inline {
+        if !inclusion.contains(BoxAreaInclusion::Transforms) {
             return Some(rect_union);
         }
 

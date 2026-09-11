@@ -86,8 +86,8 @@ use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
 use crate::query::{
-    find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
-    process_box_areas_request, process_client_rect_request,
+    BoxAreaInclusion, find_character_offset_in_fragment_descendants, get_the_text_steps,
+    process_box_area_request, process_box_areas_request, process_client_rect_request,
     process_containing_block_descendant_query, process_containing_block_query,
     process_current_css_zoom_query, process_effective_overflow_query,
     process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
@@ -408,13 +408,13 @@ impl Layout for LayoutThread {
             let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow();
             let stacking_context_tree = stacking_context_tree.as_ref()?;
-            process_box_area_request(
-                self,
-                stacking_context_tree,
-                node,
-                area,
-                exclude_transform_and_inline,
-            )
+            let inclusion = if exclude_transform_and_inline {
+                BoxAreaInclusion::empty()
+            } else {
+                BoxAreaInclusion::Transforms | BoxAreaInclusion::Inlines
+            };
+
+            process_box_area_request(self, stacking_context_tree, node, area, inclusion)
         })
     }
 
