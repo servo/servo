@@ -226,6 +226,12 @@ class MachCommands(CommandBase):
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
             packages |= set(self_contained_tests)
 
+        # Servoshell is meant as an app library and links in NAPI, which
+        # is not available when running unit-tests.
+        if is_openharmony(self.target) and "servoshell" in packages:
+            print("Skipping servoshell unit tests on OpenHarmony.")
+            packages.remove("servoshell")
+
         in_crate_packages = []
         for crate in self_contained_tests:
             try:
