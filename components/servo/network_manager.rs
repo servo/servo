@@ -5,6 +5,9 @@
 use std::collections::HashSet;
 
 use net_traits::ResourceThreads;
+use servo_constellation_traits::EmbedderToConstellationMessage;
+
+use crate::proxies::ConstellationProxy;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CacheEntry {
@@ -29,16 +32,19 @@ impl CacheEntry {
 pub struct NetworkManager {
     public_resource_threads: ResourceThreads,
     private_resource_threads: ResourceThreads,
+    constellation_proxy: ConstellationProxy,
 }
 
 impl NetworkManager {
     pub(crate) fn new(
         public_resource_threads: ResourceThreads,
         private_resource_threads: ResourceThreads,
+        constellation_proxy: ConstellationProxy,
     ) -> Self {
         Self {
             public_resource_threads,
             private_resource_threads,
+            constellation_proxy,
         }
     }
 
@@ -75,5 +81,13 @@ impl NetworkManager {
     pub fn clear_cache(&self) {
         self.public_resource_threads.clear_cache();
         self.private_resource_threads.clear_cache();
+    }
+
+    /// Set the network online state.
+    pub fn set_online_state(&self, online: bool) {
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::SetNetworkOnlineState(
+                online,
+            ));
     }
 }

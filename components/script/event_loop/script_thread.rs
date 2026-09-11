@@ -136,7 +136,7 @@ use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, Proc
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::script_execution::{RethrowErrors, ScriptOptions};
 use crate::dom::servoparser::{ParserContext, ServoParser};
-use crate::dom::types::DebuggerGlobalScope;
+use crate::dom::types::{DebuggerGlobalScope, EventTarget};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
@@ -412,6 +412,9 @@ pub struct ScriptThread {
     privileged_urls: Vec<ServoUrl>,
 
     devtools_state: DevtoolsState,
+
+    /// Switch offline and online events
+    is_online: Rc<Cell<bool>>,
 }
 
 struct BHMExitSignal {
@@ -956,6 +959,7 @@ impl ScriptThread {
                     privileged_urls: state.privileged_urls,
                     this: weak_script_thread.clone(),
                     devtools_state: Default::default(),
+                    is_online: Rc::new(Cell::new(true)),
                 }
             }),
             cx,
@@ -1935,6 +1939,23 @@ impl ScriptThread {
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(cx, GCReason::API);
             },
+            ScriptThreadMessage::SetNetworkOnlineState(is_online) => {
+                self.handle_network_status(is_online, cx);
+            },
+        }
+    }
+
+    fn fire_network_events(&self, is_online: bool, cx: &mut JSContext) {
+        let event_name = if is_online {
+            Atom::from("online")
+        } else {
+            Atom::from("offline")
+        };
+
+        for (_, document) in self.documents.borrow().iter() {
+            let window = document.window();
+            let event_target = window.upcast::<EventTarget>();
+            event_target.fire_event(cx, event_name.clone());
         }
     }
 
@@ -3504,6 +3525,7 @@ impl ScriptThread {
                     incomplete.load_data.inherited_secure_context,
                     incomplete.embedder_theme,
                     self.this.clone(),
+                    self.is_online.clone(),
                 )
             },
         };
@@ -4440,6 +4462,13 @@ impl ScriptThread {
         } else {
             warn!("No MediaSession for this pipeline ID");
         };
+    }
+
+    fn handle_network_status(&self, is_online: bool, cx: &mut JSContext) {
+        let previous = self.is_online.replace(is_online);
+        if previous != is_online {
+            self.fire_network_events(is_online, cx);
+        }
     }
 
     pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {
