@@ -439,10 +439,19 @@ addEventListener("eval", event => {
                 hasException: false,
             };
         } else if ("throw" in completionValue) {
-            let realError = completionValue.throw.unsafeDereference();
+            let exceptionMessage = null;
+            if (typeof completionValue.throw.unsafeDereference === "function") {
+                const deref = completionValue.throw.unsafeDereference();
+                if (typeof deref.message === "string") {
+                    exceptionMessage = deref.message;
+                }
+            }
+            if (!exceptionMessage) {
+                exceptionMessage = `Uncaught ${completionValue.throw}`;
+            }
             resultValue = {
                 value: createValueGrip(completionValue.throw, 0),
-                exceptionMessage: realError.message,
+                exceptionMessage,
                 hasException: true,
             };
         } else if ("return" in completionValue) {
