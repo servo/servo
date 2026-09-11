@@ -14,7 +14,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
-use servo_base::id::ScrollTreeNodeId;
+use servo_base::id::{LCPCandidateID, ScrollTreeNodeId};
 use servo_base::print_tree::PrintTree;
 use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
@@ -951,6 +951,10 @@ pub struct PaintDisplayListInfo {
     /// The paint-timing report for this display list.
     pub paint_timing_report: PaintTimingReport,
 
+    /// New largest-contentful-paint candidate in this display list, if any.
+    /// The pair is the candidate's id and its reported area.
+    pub lcp_candidate: Option<(LCPCandidateID, usize)>,
+
     /// If this display list contains a blinking caret, this value will be filled with its animation
     /// key and original color value so that the painter can animate the caret.
     pub caret_property_binding: Option<(PropertyBindingKey<ColorF>, ColorF)>,
@@ -1003,6 +1007,7 @@ impl PaintDisplayListInfo {
             root_reference_frame_id,
             root_scroll_node_id,
             first_reflow,
+            lcp_candidate: None,
             paint_timing_report: PaintTimingReport::default(),
             caret_property_binding: Default::default(),
         }

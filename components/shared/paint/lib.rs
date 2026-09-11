@@ -37,7 +37,6 @@ use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{
     self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory, SendError,
 };
-use servo_base::id::LCPCandidateID;
 pub use webrender_api::ExternalImageSource;
 use webrender_api::units::{DevicePixel, LayoutVector2D, TexelRect};
 use webrender_api::{
@@ -184,8 +183,6 @@ pub enum PaintMessage {
     /// Let `Paint` know that the given WebView is ready to have a screenshot taken
     /// after the given pipeline's epochs have been rendered.
     ScreenshotReadinessReponse(WebViewId, FxHashMap<PipelineId, Epoch>),
-    /// The candidate of largest-contentful-paint, as a pair of its id and area.
-    SendLCPCandidate(LCPCandidateID, usize, WebViewId, PipelineId, Epoch),
 }
 
 impl Debug for PaintMessage {
@@ -360,26 +357,6 @@ impl CrossProcessPaintApi {
 
         if let Err(error) = display_list_data_sender.send(display_list_data) {
             warn!("Error sending display list: {error}");
-        }
-    }
-
-    /// Send the largest contentful paint candidate to `Paint`.
-    pub fn send_lcp_candidate(
-        &self,
-        id: LCPCandidateID,
-        area: usize,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        epoch: Epoch,
-    ) {
-        if let Err(error) = self.0.send(PaintMessage::SendLCPCandidate(
-            id,
-            area,
-            webview_id,
-            pipeline_id,
-            epoch,
-        )) {
-            warn!("Error sending LCPCandidate: {error}");
         }
     }
 
