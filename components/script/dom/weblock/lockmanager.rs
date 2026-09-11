@@ -1,38 +1,55 @@
+use std::collections::HashMap;
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
-use script_bindings::callback::RootedCallback;
+use rustc_hash::FxHashMap;
+use script_bindings::callback::{ExceptionHandling, RootedCallback};
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::AbortSignalBinding::AbortSignalMethods;
 use script_bindings::codegen::GenericBindings::WebLockBinding::{
     LockGrantedCallback, LockManagerMethods, LockMode, LockOptions,
 };
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::refcounted::Trusted;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::{Dom, DomRoot, Root};
 use script_bindings::str::DOMString;
 use servo_base::generic_channel::{GenericCallback, GenericSend, SendResult};
 use servo_url::ImmutableOrigin;
 use storage_traits::weblocks::{
-    LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, LockRequest, LockRequestId, WebLocksThreadMsg,
+    LockId, LockManagerSnapshotMsg, LockMsg, LockRequest, LockRequestId, WebLocksThreadMsg,
 };
 
 use crate::conversions::Convert;
 use crate::dom::abortsignal::AbortAlgorithm;
-use crate::dom::bindings::codegen::Bindings::WebLockBinding::{LockInfo, LockManagerSnapshot};
+use crate::dom::bindings::codegen::Bindings::WebLockBinding::LockManagerSnapshot;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::types::{AbortSignal, DOMException};
+use crate::dom::lock::Lock;
+use crate::dom::types::{AbortSignal, DOMException, PromiseNativeHandler};
 use crate::dom::{GlobalScope, Promise, RootedPromise};
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 
 #[dom_struct]
 pub(crate) struct LockManager {
     reflector_: Reflector,
+    /// Pending lock requests.
+    #[no_trace]
+    #[ignore_malloc_size_of = "todo"]
+    pendings: DomRefCell<
+        HashMap<LockRequestId, RootedCallback<LockGrantedCallback<crate::DomTypeHolder>>>,
+    >,
+    #[no_trace]
+    #[ignore_malloc_size_of = "todo"]
+    held: DomRefCell<FxHashMap<LockId, ()>>,
 }
 
 impl LockManager {
     fn new_inherited() -> LockManager {
         LockManager {
             reflector_: Reflector::new(),
+            pendings: Default::default(),
+            held: Default::default(),
         }
     }
 
@@ -114,7 +131,6 @@ impl LockManager {
         let promise = Promise::new_rooted(cx, &global);
         // Step 11. Request a lock with arguments ...
         self.request_lock(
-            cx,
             &promise,
             // TODO: environment id is not implemented in servo
             String::new(),
@@ -133,7 +149,6 @@ impl LockManager {
     #[expect(clippy::too_many_arguments)]
     fn request_lock(
         &self,
-        cx: &mut JSContext,
         promise: &RootedPromise,
         client_id: String,
         callback: RootedCallback<LockGrantedCallback<crate::DomTypeHolder>>,
@@ -144,10 +159,24 @@ impl LockManager {
         signal: &Option<Root<Dom<AbortSignal>>>,
     ) {
         let origin = self.get_immutable_origin();
+        let request_id = LockRequestId::next();
+
+        let task_source = self
+            .global()
+            .task_manager()
+            .weblocks_task_source()
+            .to_sendable();
+        let context = Trusted::new(self);
 
         // <https://www.w3.org/TR/web-locks/#process-the-lock-request-queue> Step 14 inner steps
-        let held_callback = GenericCallback::new(|lock| {
-            let lock = lock.unwrap();
+        let held_callback = GenericCallback::new({
+            move |lock_msg| {
+                let lock_msg = lock_msg.unwrap();
+                let context = context.clone();
+                task_source.queue(task!(on_lock_held: move |cx| {
+                    context.root().on_lock_held(cx, request_id, lock_msg);
+                }));
+            }
         })
         .unwrap();
 
@@ -157,9 +186,8 @@ impl LockManager {
         let released_callback = GenericCallback::new(|_err| {}).unwrap();
 
         // Step 1. Let request be a new lock request with ...
-        let id = LockRequestId::next();
         let request = LockRequest {
-            id,
+            id: request_id,
             client_id,
             name: name.into(),
             mode: mode.convert(),
@@ -172,7 +200,7 @@ impl LockManager {
         // Step 2. If signal is present, add the abort algorithm to signal
         if let Some(signal) = signal {
             signal.add(&AbortAlgorithm::AbortLockRequest(
-                id,
+                request_id,
                 origin.clone(),
                 request.name.clone(),
                 promise.clone(),
@@ -185,7 +213,42 @@ impl LockManager {
             warn!("Request failed with {e}");
         }
 
-        // Step 4. skip return request, unused in spec
+        // Step 4. return request
+        self.pendings.borrow_mut().insert(request_id, callback);
+    }
+
+    fn on_lock_held(
+        &self,
+        cx: &mut JSContext,
+        request_id: LockRequestId,
+        lock_msg: Option<LockMsg>,
+    ) {
+        let Some(pending) = self.pendings.borrow_mut().remove(&request_id) else {
+            return;
+        };
+
+        // TODO: pass msg
+        let lock = lock_msg.map(|msg| Lock::new(cx, &self.global(), msg));
+
+        let waiting_promise = match pending.Call__(cx, lock.as_deref(), ExceptionHandling::Report) {
+            Ok(p) => p,
+            Err(_) => {
+                return;
+            },
+        };
+
+        // let handler = PromiseNativeHandler::new(
+        //     cx,
+        //     &self.global(),
+        //     Some(Box::new(todo!()), Some(Box::new(todo!()))),
+        // );
+        // waiting_promise.append_native_handler(todo!(), &handler);
+
+        // self.held.borrow_mut().insert(msg.id, ());
+    }
+
+    fn on_lock_released(&self, cx: &mut JSContext, lock_id: LockRequestId, _: bool) {
+        // TODO: resolve released promise with saved result of user callback
     }
 }
 
@@ -254,42 +317,5 @@ impl RoutedPromiseListener<LockManagerSnapshotMsg> for LockManager {
     ) {
         let snapshot: LockManagerSnapshot = msg.convert();
         promise.resolve_native(cx, &snapshot);
-    }
-}
-
-impl Convert<LockManagerSnapshot> for LockManagerSnapshotMsg {
-    fn convert(self) -> LockManagerSnapshot {
-        let mut snapshot = LockManagerSnapshot::empty();
-        snapshot.held = Some(self.held.into_iter().map(Convert::convert).collect());
-        snapshot.pending = Some(self.pending.into_iter().map(Convert::convert).collect());
-        snapshot
-    }
-}
-
-impl Convert<LockInfo> for LockInfoMsg {
-    fn convert(self) -> LockInfo {
-        let mut lock_info = LockInfo::empty();
-        lock_info.name = Some(self.name.into());
-        lock_info.mode = Some(self.mode.convert());
-        lock_info.clientId = Some(self.client_id.into());
-        lock_info
-    }
-}
-
-impl Convert<LockMode> for LockModeMsg {
-    fn convert(self) -> LockMode {
-        match self {
-            LockModeMsg::Shared => LockMode::Shared,
-            LockModeMsg::Exclusive => LockMode::Exclusive,
-        }
-    }
-}
-
-impl Convert<LockModeMsg> for LockMode {
-    fn convert(self) -> LockModeMsg {
-        match self {
-            LockMode::Shared => LockModeMsg::Shared,
-            LockMode::Exclusive => LockModeMsg::Exclusive,
-        }
     }
 }

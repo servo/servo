@@ -50,13 +50,13 @@ pub struct LockInfoMsg {
     pub client_id: String,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum LockModeMsg {
     Shared,
     Exclusive,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct LockMsg {
     pub id: LockId,
     pub name: String,
