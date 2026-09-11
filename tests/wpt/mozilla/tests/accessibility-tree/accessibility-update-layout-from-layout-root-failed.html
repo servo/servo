@@ -51,8 +51,8 @@
 
       let update = ServoTestUtils.forceAccessibilityUpdate();
 
-      // Children walked: <html>, <body>, #a
-      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
+      // Children walked: #a
+      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
 
       assert_equals(update.nodesUpdatedFromTree, 0, "nodesUpdatedFromTree");
 
