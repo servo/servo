@@ -13,8 +13,7 @@ use script_bindings::str::DOMString;
 use servo_base::generic_channel::{GenericCallback, GenericSend, SendResult};
 use servo_url::ImmutableOrigin;
 use storage_traits::weblocks::{
-    LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, LockMsg, LockRequest, LockRequestId,
-    WebLocksThreadMsg,
+    LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, LockRequest, LockRequestId, WebLocksThreadMsg,
 };
 
 use crate::conversions::Convert;
@@ -115,6 +114,7 @@ impl LockManager {
         let promise = Promise::new_rooted(cx, &global);
         // Step 11. Request a lock with arguments ...
         self.request_lock(
+            cx,
             &promise,
             // TODO: environment id is not implemented in servo
             String::new(),
@@ -133,6 +133,7 @@ impl LockManager {
     #[expect(clippy::too_many_arguments)]
     fn request_lock(
         &self,
+        cx: &mut JSContext,
         promise: &RootedPromise,
         client_id: String,
         callback: RootedCallback<LockGrantedCallback<crate::DomTypeHolder>>,
@@ -143,19 +144,27 @@ impl LockManager {
         signal: &Option<Root<Dom<AbortSignal>>>,
     ) {
         let origin = self.get_immutable_origin();
-        let callback = GenericCallback::new(|_lock| {
-            // TODO: something to do with promise in callback, the promise is "released promise"
+
+        // <https://www.w3.org/TR/web-locks/#process-the-lock-request-queue> Step 14 inner steps
+        let held_callback = GenericCallback::new(|lock| {
+            let lock = lock.unwrap();
         })
         .unwrap();
 
+        // TODO: release seem should only later be sent to storage thread, otherwise the callback
+        // cannot capture the waiting_promise.
+        // NO: the release_promise can be rejected even without lock
+        let released_callback = GenericCallback::new(|_err| {}).unwrap();
+
         // Step 1. Let request be a new lock request with ...
-        let id = LockRequestId::default();
+        let id = LockRequestId::next();
         let request = LockRequest {
             id,
             client_id,
             name: name.into(),
             mode: mode.convert(),
-            callback,
+            held_callback,
+            released_callback,
             if_available,
             steal,
         };

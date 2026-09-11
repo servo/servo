@@ -19,10 +19,14 @@ impl LockId {
 }
 
 // TODO: once servo implements client id, this can be changed to usize
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize,
-)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct LockRequestId(Uuid);
+
+impl LockRequestId {
+    pub fn next() -> Self {
+        Self(Uuid::new_v4())
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebLocksThreadMsg {
@@ -54,6 +58,7 @@ pub enum LockModeMsg {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct LockMsg {
+    pub id: LockId,
     pub name: String,
     pub mode: LockModeMsg,
 }
@@ -64,7 +69,8 @@ pub struct LockRequest {
     pub client_id: String,
     pub name: String,
     pub mode: LockModeMsg,
-    pub callback: GenericCallback<Option<LockMsg>>,
+    pub held_callback: GenericCallback<Option<LockMsg>>,
+    pub released_callback: GenericCallback<bool>,
     pub if_available: bool,
     pub steal: bool,
 }

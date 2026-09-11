@@ -3,7 +3,7 @@ use std::thread;
 
 use profile_traits::mem::{ProcessReports, ProfilerChan as MemProfilerChan, Report};
 use rustc_hash::FxHashMap;
-use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
+use servo_base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
 use servo_url::ImmutableOrigin;
 use storage_traits::weblocks::{
     LockId, LockInfoMsg, LockManagerSnapshotMsg, LockModeMsg, LockMsg, LockRequest, LockRequestId,
@@ -147,7 +147,7 @@ impl LockManager {
         if request.steal {
             // Step 3.4.1.
             if let Some((_, lock)) = self.held.extract_if(|_, v| v.name == name).next() {
-                // TODO: reject original lock released promise
+                _ = lock.released_callback.send(false);
             }
             // Step 3.4.2. Prepend request in queue.
             queue.push_front(request);
@@ -160,8 +160,7 @@ impl LockManager {
 
             // Step 3.5.1. if ifAvailable and not grantable, enqueue on callback event loop
             if request.if_available && is_grantable(&request, is_first, &self.held) {
-                _ = request.callback.send(None);
-                // TODO: resolve promise and abort
+                _ = request.held_callback.send(None);
             } else {
                 // Step 3.5.2. Enqueue request in queue.
                 queue.push_back(request);
@@ -191,20 +190,23 @@ impl LockManager {
             // TODO: especially waiting promises
 
             // Step 12. Let lock be a new lock with ...
+            let lock_id = LockId::next();
             let lock = Lock {
-                id: LockId::next(),
+                id: lock_id,
                 name: request.name.clone(),
                 mode: request.mode,
                 client_id: request.client_id,
+                released_callback: request.released_callback,
             };
 
             // Step 13. Append lock to manager’s held lock set.
-            self.held.insert(lock.id, lock);
+            self.held.insert(lock_id, lock);
 
             // Step 14. Enqueue the following steps on callback’s relevant settings
             // object’s responsible event loop.
             // The inner steps continue on that thread.
-            _ = request.callback.send(Some(LockMsg {
+            _ = request.held_callback.send(Some(LockMsg {
+                id: lock_id,
                 name: request.name,
                 mode: request.mode,
             }));
@@ -268,4 +270,6 @@ struct Lock {
     name: String,
     mode: LockModeMsg,
     client_id: String,
+    // TODO: waiting promise => receiver? or msg? Msg::WaitingDone or similar is better.
+    released_callback: GenericCallback<bool>,
 }
