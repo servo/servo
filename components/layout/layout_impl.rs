@@ -1048,6 +1048,7 @@ impl LayoutThread {
             image_cache: self.image_cache.clone(),
             resolved_images_cache: self.resolved_images_cache.clone(),
             pending_images: Mutex::default(),
+            raster_decode_demands: Mutex::default(),
             pending_rasterization_images: Mutex::default(),
             pending_svg_elements_for_serialization: Mutex::default(),
             animating_images: reflow_request.animating_images.clone(),
@@ -1097,6 +1098,9 @@ impl LayoutThread {
         Some(ReflowResult {
             reflow_phases_run,
             pending_images,
+            raster_decode_demands: reflow_phases_run
+                .contains(ReflowPhasesRun::BuiltDisplayList)
+                .then(|| std::mem::take(&mut *image_resolver.raster_decode_demands.lock())),
             pending_rasterization_images,
             pending_svg_elements_for_serialization,
             iframe_sizes: Some(iframe_sizes),
@@ -1655,6 +1659,7 @@ impl LayoutThread {
 
         Some(ReflowResult {
             reflow_phases_run: ReflowPhasesRun::BuiltDisplayList,
+            raster_decode_demands: Some(vec![]),
             ..Default::default()
         })
     }

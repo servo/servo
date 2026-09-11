@@ -39,7 +39,7 @@ pub use layout_node::{DangerousStyleNode, LayoutNode};
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
+use net_traits::image_cache::{EncodedImage, ImageCache, ImageCacheFactory, PendingImageId};
 use net_traits::request::InternalRequest;
 use paint_api::CrossProcessPaintApi;
 use parking_lot::RwLock;
@@ -234,6 +234,7 @@ pub struct MediaMetadata {
 }
 
 pub struct HTMLMediaData {
+    pub encoded_poster: Option<Arc<EncodedImage>>,
     pub current_frame: Option<MediaFrame>,
     pub metadata: Option<MediaMetadata>,
     pub poster_url: Option<ServoUrl>,
@@ -614,6 +615,8 @@ pub struct ReflowResult {
     pub reflow_statistics: ReflowStatistics,
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
+    /// None if no display list was rebuilt; an empty list releases display pixels.
+    pub raster_decode_demands: Option<Vec<(PendingImageId, DeviceIntSize)>>,
     /// The list of vector images that were encountered that still need to be rasterized.
     pub pending_rasterization_images: Vec<PendingRasterizationImage>,
     /// The list of `SVGSVGElement`s encountered in the DOM that need to be serialized.
@@ -1033,6 +1036,10 @@ mod test {
                 width: 100,
                 height: 100,
             },
+            decoded_resolution: ImageMetadata {
+                width: 100,
+                height: 100,
+            },
             format: PixelFormat::BGRA8,
             id: None,
             bytes: Arc::new(vec![1]),
@@ -1071,6 +1078,10 @@ mod test {
         .collect();
         let image = RasterImage {
             metadata: ImageMetadata {
+                width: 100,
+                height: 100,
+            },
+            decoded_resolution: ImageMetadata {
                 width: 100,
                 height: 100,
             },

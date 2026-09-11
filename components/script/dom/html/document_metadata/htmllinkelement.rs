@@ -892,6 +892,11 @@ impl HTMLLinkElement {
 
         match image {
             Image::Raster(raster_image) => send_rasterized_favicon_to_embedder(&raster_image),
+            Image::Encoded(source) => {
+                if let Some(image) = source.decode() {
+                    send_rasterized_favicon_to_embedder(&image);
+                }
+            },
             Image::Vector(vector_image) => {
                 // This size is completely arbitrary.
                 let size = DeviceIntSize::new(250, 250);
