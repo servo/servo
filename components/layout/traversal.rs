@@ -243,6 +243,39 @@ impl BoxDamageAction<'_> {
     fn rebuilds_box(&self) -> bool {
         matches!(self, Self::RebuildAncestor | Self::TryRebuild)
     }
+
+    /// Compute the accessibility damage which should be written to this node, and the accessibility
+    /// damage which should be propagated to its parent, respectively.
+    fn accessibility_damage(&self, from_children: LayoutDamage) -> (LayoutDamage, LayoutDamage) {
+        dbg!(&from_children);
+        let accessibility_damage_from_children =
+            from_children.intersection(LayoutDamage::DescendantHasAccessibilityDamage);
+
+        match self {
+            // Box(es) for this node may be recomputed. Bounds will need to be recalculated, and
+            // any layout roots are further up the tree, so we need to propagate damage to the
+            // parent.
+            BoxDamageAction::TryRebuild |
+            BoxDamageAction::RebuildAncestor |
+            BoxDamageAction::InvalidateFragmentTreeBelowLayoutRoot => (
+                accessibility_damage_from_children | LayoutDamage::HasAccessibilityDamage,
+                LayoutDamage::DescendantHasAccessibilityDamage,
+            ),
+            // Box(es) for this node will be recomputed, so bounds will need to be recalculated.
+            // Since this is a layout root, we don't need to propagate damage up the tree, since it
+            // will be added to the accessibility damage map which will be passes to
+            // `update_tree()`.
+            BoxDamageAction::CollectLayoutRoot(_) => (
+                accessibility_damage_from_children | LayoutDamage::HasAccessibilityDamage,
+                LayoutDamage::empty(),
+            ),
+            // Boxes for this node won't be changed.
+            _ => (
+                accessibility_damage_from_children,
+                accessibility_damage_from_children,
+            ),
+        }
+    }
 }
 
 pub(crate) struct ElementDamageSet<'a> {
@@ -325,8 +358,11 @@ impl<'a> ElementDamageSet<'a> {
         let only_layout_mode_damage =
             (self.from_parent | self.on_element | self.from_children).only_layout_modes();
 
+        let action = self.box_damage_action();
+
         let invalidate_for_rebuild = || {
             self.node.unset_all_boxes();
+
             LayoutDamage::DescendantHasBoxDamage | LayoutDamage::Relayout
         };
 
@@ -335,9 +371,10 @@ impl<'a> ElementDamageSet<'a> {
             layout_roots.truncate(self.incoming_layout_root_count);
         };
 
-        let action = self.box_damage_action();
         let will_rebuild_box = action.rebuilds_box();
-        let damage_for_parent = match action {
+        let (accessibility_damage_for_node, accessibility_damage_for_parent) =
+            action.accessibility_damage(self.from_children);
+        let layout_damage_for_parent = match action {
             BoxDamageAction::TryRebuild => {
                 discard_any_descendant_layout_roots(layout_roots);
 
@@ -414,6 +451,7 @@ impl<'a> ElementDamageSet<'a> {
                     base.invalidate_caches(&self);
                     base.mark_fragments_as_descendants_changed();
                 });
+
                 LayoutDamage::RecalculateOverflow |
                     LayoutDamage::DescendantCollectedAsLayoutRoot |
                     LayoutDamage::RecomputeInlineContentSizes
@@ -456,7 +494,17 @@ impl<'a> ElementDamageSet<'a> {
             self.node.repair_style(&layout_context.style_context);
         }
 
-        damage_for_parent
+        if layout_context.will_update_accessibility_tree &&
+            !accessibility_damage_for_node.is_empty() &&
+            let Some(element) = self.node.as_element()
+        {
+            element
+                .element_data_mut()
+                .damage
+                .insert(RestyleDamage::from(accessibility_damage_for_node));
+        }
+
+        accessibility_damage_for_parent | layout_damage_for_parent
     }
 
     fn box_damage_action(&self) -> BoxDamageAction<'a> {

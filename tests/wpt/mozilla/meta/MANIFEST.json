@@ -11409,42 +11409,63 @@
   "testharness": {
    "accessibility-tree": {
     "accessibility-update-basic-mutation.html": [
-     "29f6c8d5c9c46e1134b9a0bb5ad1636554e1cf44",
+     "abf3f9fe8d658356ed2a863cb945330faa82c639",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-children-of-heading-change.html": [
-     "a5147a6a8f6745f6e30e18afdf5da3bc9ce8f7c2",
+     "f03b9ee27982cc8a35671bce31b88f5c2a5c93f5",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-descendants-of-heading-change.html": [
-     "bd8c0e35509d8d32038e1b5df7e06fa19c0c7ff9",
+     "4e6caabbae5723387f60bbcaf22d46fc5079a9e1",
+     [
+      null,
+      {}
+     ]
+    ],
+    "accessibility-update-layout-from-layout-root-failed.html": [
+     "03202d2ef8f9a397a5fd60b89e2ce7f4b2dcf85d",
+     [
+      null,
+      {}
+     ]
+    ],
+    "accessibility-update-layout-from-layout-root.html": [
+     "6067ea745f55d575b5fef66bee65ed4d6bf07561",
+     [
+      null,
+      {}
+     ]
+    ],
+    "accessibility-update-layout-from-layout-roots.html": [
+     "5f24fff3c00f4975598219847c55769633a28c71",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-mutation-move-nodes.html": [
-     "71e749f898ce0e731986dbdef48bc7f76ce20932",
+     "27bd37752fcebe51c429bd676a3ed1f98c4de138",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-partial-subtree-move-and-delete.html": [
-     "8e61b0b1f2484d387efe2aebbaf81331fae4faf4",
+     "0e2d375bbd4efba12cd7e12072925daa4c793313",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-text-change.html": [
-     "c39136e64d3ced27ef7d04c0e722bc90f3af469a",
+     "1a0071fbbbfa22f0b310044419f589ed7ec94a7c",
      [
       null,
       {}

@@ -31,10 +31,20 @@ bitflags! {
         /// Rebuild this box and all of its ancestors. Do not rebuild any children. This
         /// is used when a box's content (such as text content) changes or a descendant
         /// has box damage ([`Self::BOX_DAMAGE`]).
-        const DescendantHasBoxDamage = 0b0011_1111_1111_0000;
+        const DescendantHasBoxDamage = 0b0011_0000_0000_0000;
+
         /// Rebuild this box, all of its ancestors and all of its descendants. This is the
         /// most a box can be damaged.
-        const BoxDamage = 0b1111_1111_1111_0000;
+        const BoxDamage = 0b1111_1111_0000_0000;
+
+        // Accessibility-specific damage
+        //
+        // These should be kept in sync with the layout-related values in `AccessibilityDamage`
+
+        /// Corresponds to [`AccessibilityDamage::Layout`].
+        const HasAccessibilityDamage = 0b0000_0000_0001_0000;
+        /// Corresponds to [`AccessibilityDamage::DescendantHasDamageFromLayout`].
+        const DescendantHasAccessibilityDamage = 0b0000_0000_1000_0000;
     }
 }
 
@@ -59,10 +69,26 @@ impl From<LayoutDamage> for RestyleDamage {
 bitflags! {
     #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
     pub struct AccessibilityDamage: u16 {
+        /// The properties of this node (other than children) have changed.
         const Node = 0b0001;
+        /// Children have been added to or removed from this node.
         const Children = 0b0010;
-        const Subtree = 0b0100;
-        const Rebuild = 0b1111;
+
+        // Layout-related values: keep in sync with accessibility-related values in `LayoutDamage`.
+
+        /// This node's box(es) was recomputed during layout.
+        const Layout = 0b0000_0000_0001_0000;
+        /// A descendent of this node has damage from layout.
+        const DescendantHasDamageFromLayout = 0b0000_0000_1000_0000;
+
+        /// All properties of this node need to be recomputed.
+        const Rebuild = 0b0000_0000_0001_0011;
     }
 }
 malloc_size_of::malloc_size_of_is_0!(AccessibilityDamage);
+
+impl From<RestyleDamage> for AccessibilityDamage {
+    fn from(restyle_damage: RestyleDamage) -> Self {
+        AccessibilityDamage::from_bits_retain(restyle_damage.bits())
+    }
+}

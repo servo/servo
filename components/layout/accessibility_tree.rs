@@ -27,6 +27,7 @@ use servo_config::opts::{self, DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::pref;
 use style::Atom;
 use style::dom::OpaqueNode;
+use style::selector_parser::RestyleDamage;
 use style_traits::CSSPixel;
 use web_atoms::{LocalName, local_name, ns};
 use webrender_api::ExternalScrollId;
@@ -246,7 +247,7 @@ impl AccessibilityTree {
 
         self.ensure_root_node(root_dom_node, &context, &mut update);
 
-        self.apply_changes_from_dom_tree(&context, &mut update);
+        self.apply_changes_from_dom_tree(root_dom_node, &context, &mut update);
 
         self.handle_pending_scroll_updates(&mut update);
 
@@ -289,11 +290,6 @@ impl AccessibilityTree {
             update.insert_damage(root_id, AccessibilityDamage::Rebuild);
             update.insert_dom_node(root_id, *root_dom_node);
             self.populate_pending_scroll_updates_from_scroll_tree(context);
-        } else {
-            // TODO(#47161) This hack is necessary because we don't collect accessibility damage
-            // from layout.
-            update.insert_damage(root_id, AccessibilityDamage::Subtree);
-            update.insert_dom_node(root_id, *root_dom_node);
         }
 
         self.root_node = Some(root_node);
@@ -302,8 +298,12 @@ impl AccessibilityTree {
     /// Update all nodes with damage tracked in `update` based on their `AccessibilityDamage`. If
     /// any [`LocalAccessibilityDamage`] results from the update, propagate
     /// [`LocalAccessibilityDamage::SubtreeChanged`] to its ancestors.
-    fn apply_changes_from_dom_tree(
+    ///
+    /// If the [`expensive_accessibility_test_assertions_enabled`] preference is enabled, check the
+    /// DOM tree at the end to ensure there is no leftover damage store in any element.
+    fn apply_changes_from_dom_tree<'update>(
         &mut self,
+        root_dom_node: &ServoLayoutNode<'update>,
         context: &AccessibilityContext,
         update: &mut AccessibilityUpdate,
     ) {
@@ -317,6 +317,10 @@ impl AccessibilityTree {
                 .update_subtree(damage_root.clone(), context, self, update);
 
         damage_root.borrow().update_ancestors(local_damage, update);
+
+        if pref!(expensive_accessibility_test_assertions_enabled) {
+            Self::assert_no_layout_damage(root_dom_node);
+        }
     }
 
     /// Read all scroll offsets directly from the scroll tree, and use them to populate
@@ -431,7 +435,14 @@ impl AccessibilityTree {
             }
         }
 
-        common_ancestors.pop()
+        let lowest_common_ancestor = common_ancestors.pop();
+
+        for ancestor_id in common_ancestors {
+            let ancestor = self.assert_node_for_id(&ancestor_id);
+            ancestor.borrow_mut().dirty_state -= DirtyState::DescendantHasDamage;
+        }
+
+        lowest_common_ancestor
     }
 
     /// Get the [`AccessibilityNode`] corresponding to the given DOM node.
@@ -646,6 +657,22 @@ impl AccessibilityTree {
         assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
     }
 
+    /// Walk the flat DOM tree from `root_dom_node` and check that no element in the tree has
+    /// left-over damage in its `element_data.damage`.
+    fn assert_no_layout_damage(root_dom_node: &ServoLayoutNode<'_>) {
+        let mut nodes = vec![(*root_dom_node)];
+        while let Some(node) = nodes.pop() {
+            let Some(element) = node.as_element() else {
+                continue;
+            };
+            if let Some(style_data) = element.style_data() {
+                let element_data = style_data.element_data.borrow();
+                assert_eq!(element_data.damage, RestyleDamage::empty());
+            }
+            nodes.extend(node.flat_tree_children());
+        }
+    }
+
     fn print(&self) {
         let Some(root_node) = self.root_node.clone() else {
             return;
@@ -755,36 +782,42 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
-        let damage = self.compute_damage(update);
+        let dom_node = update.take_dom_node(&self.id);
+        let damage = self.take_damage(dom_node, update);
+        let mut children_changed = false;
 
-        if let Some(dom_node) = update.take_dom_node(&self.id) {
-            // TODO(#47162, #47161): Once we handle scrolling properly and have a way of tracking
-            // damage from layout, we won't need to update every node.
+        if let Some(dom_node) = dom_node {
             local_damage.insert(self.update_properties_and_children_from_dom_node(
-                ref_self, &dom_node, damage, tree, update,
+                &ref_self, &dom_node, damage, tree, update,
             ));
-            self.update_bounds_from_dom_node(&dom_node, context, update);
+            self.update_node_from_layout(&dom_node, damage, context, update);
 
-            if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) &&
-                let Some(scroll_offset) = self.scroll_offset
-            {
-                // If children have changed, re-set the scroll transforms on all children.
-                self.set_scroll_offset(scroll_offset, update);
+            if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) {
+                children_changed = true;
             }
 
             self.dirty_state -= DirtyState::HasDamage;
         }
 
-        for child_node in self.children() {
-            let child_node_ref = child_node.clone();
-            let mut child_node = child_node.borrow_mut();
-            let child_local_damage =
-                child_node.update_subtree(child_node_ref, context, tree, update);
-            if !child_local_damage.is_empty() {
-                local_damage.insert(LocalAccessibilityDamage::SubtreeChanged);
+        if self.dirty_state.descendant_has_damage() ||
+            damage.contains(AccessibilityDamage::DescendantHasDamageFromLayout)
+        {
+            for child_node in self.children() {
+                let child_node_ref = child_node.clone();
+                let mut child_node = child_node.borrow_mut();
+                let child_local_damage =
+                    child_node.update_subtree(child_node_ref, context, tree, update);
+                if !child_local_damage.is_empty() {
+                    local_damage.insert(LocalAccessibilityDamage::SubtreeChanged);
+                }
             }
         }
         self.dirty_state -= DirtyState::DescendantHasDamage;
+
+        if children_changed && let Some(scroll_offset) = self.scroll_offset {
+            // If this node may have new children, update their scroll offsets.
+            self.set_scroll_offset(scroll_offset, update);
+        }
 
         local_damage.insert(self.update_node_local(local_damage, update));
 
@@ -821,7 +854,7 @@ impl AccessibilityNode {
     // Any changed nodes will be added to the given [`AccessibilityUpdate`].
     fn update_properties_and_children_from_dom_node<'update>(
         &mut self,
-        ref_self: ArcRefCell<Self>,
+        ref_self: &ArcRefCell<Self>,
         dom_node: &ServoLayoutNode<'update>,
         dom_damage: AccessibilityDamage,
         tree: &mut AccessibilityTree,
@@ -829,16 +862,28 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
-        // TODO(#47162): We currently need to walk the children each time so that we always find the
-        // DOM node for each accessibility node, since we update bounds on every node.
-        // Once this is no longer true, we can check dom_damage and potentially early return here.
+        if !dom_damage.intersects(
+            AccessibilityDamage::Node |
+                AccessibilityDamage::Children |
+                AccessibilityDamage::DescendantHasDamageFromLayout,
+        ) {
+            return local_damage;
+        }
 
         update.counters.nodes_updated_from_dom += 1;
 
-        local_damage.insert(self.update_properties_from_dom_node(dom_node, dom_damage));
-        local_damage.insert(
-            self.update_children_from_dom_node(ref_self, dom_node, dom_damage, tree, update),
-        );
+        if dom_damage.contains(AccessibilityDamage::Node) {
+            local_damage.insert(self.update_properties_from_dom_node(dom_node));
+        }
+
+        if dom_damage.intersects(
+            AccessibilityDamage::Children | AccessibilityDamage::DescendantHasDamageFromLayout,
+        ) {
+            // If a descendant has damage from layout, this ensures that all of its children have
+            // their corresponding DOM nodes in `update`.
+            local_damage
+                .insert(self.update_children_from_dom_node(ref_self, dom_node, tree, update));
+        }
 
         local_damage
     }
@@ -847,22 +892,17 @@ impl AccessibilityNode {
     /// If it has new children, those will be created here, but not yet populated.
     fn update_children_from_dom_node<'update>(
         &mut self,
-        ref_self: ArcRefCell<AccessibilityNode>,
+        ref_self: &ArcRefCell<AccessibilityNode>,
         dom_node: &ServoLayoutNode<'update>,
-        _dom_damage: AccessibilityDamage,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate<'update>,
     ) -> LocalAccessibilityDamage {
-        // TODO(#47162): We currently need to walk the children each time so that we always find the
-        // DOM node for each accessibility node, since we update bounds on every node.
-        // Once this is no longer true, we can check _dom_damage and potentially early return here.
-
         let mut remaining_dom_children = dom_node.flat_tree_children().peekable();
         let mut old_child_ids = self.child_ids().iter().peekable();
-        let mut unchanged_count = 0usize;
 
         // Iterate over existing children and DOM children while they match. No action is necessary
         // for these nodes.
+        let mut unchanged_count = 0usize;
         while let Some(&old_id) = old_child_ids.peek() &&
             let Some(dom_child) = remaining_dom_children.peek()
         {
@@ -929,12 +969,8 @@ impl AccessibilityNode {
     fn update_properties_from_dom_node(
         &mut self,
         dom_node: &ServoLayoutNode,
-        dom_damage: AccessibilityDamage,
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
-        if !dom_damage.contains(AccessibilityDamage::Node) {
-            return local_damage;
-        }
         local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
         if dom_node.type_id() == Some(LayoutNodeType::Text) {
             let text_content = dom_node.text_content();
@@ -947,12 +983,17 @@ impl AccessibilityNode {
     }
 
     /// Update this node's bounds from the current layout geometry.
-    fn update_bounds_from_dom_node(
+    fn update_node_from_layout(
         &mut self,
-        dom_node: &ServoLayoutNode,
+        dom_node: &ServoLayoutNode<'_>,
+        dom_damage: AccessibilityDamage,
         context: &AccessibilityContext,
         update: &mut AccessibilityUpdate,
     ) {
+        if !dom_damage.contains(AccessibilityDamage::Layout) {
+            return;
+        }
+
         update.counters.nodes_updated_bounds += 1;
 
         // Border box without transforms. Bounds are in CSS pixels, relative to the document origin;
@@ -984,7 +1025,7 @@ impl AccessibilityNode {
         // its rendered descendants.
         match bounds {
             Some(bounds) => self.set_bounds(bounds),
-            None => self.clear_bounds(),
+            None => self.clear_bounds(), // display: contents case
         }
     }
 
@@ -1216,13 +1257,28 @@ impl AccessibilityNode {
         );
     }
 
-    fn compute_damage(&self, update: &mut AccessibilityUpdate) -> AccessibilityDamage {
+    /// Take the damage from `dom_node` and `update` for this node and combine into a single
+    /// `AccessibilityDamage` value for this node.
+    fn take_damage(
+        &self,
+        dom_node: Option<ServoLayoutNode<'_>>,
+        update: &mut AccessibilityUpdate,
+    ) -> AccessibilityDamage {
         let mut damage = AccessibilityDamage::empty();
 
         if self.dirty_state.has_damage() {
             damage |= update.take_damage(&self.id);
         }
 
+        if let Some(dom_node) = dom_node &&
+            let Some(element) = dom_node.as_element() &&
+            let Some(style_data) = element.style_data()
+        {
+            let mut element_data = style_data.element_data.borrow_mut();
+            let restyle_damage = std::mem::take(&mut element_data.damage);
+            let damage_from_layout = AccessibilityDamage::from(restyle_damage);
+            damage |= damage_from_layout;
+        }
         damage
     }
 }

@@ -23,14 +23,14 @@
 
       // Updated nodes:
       // - h2 (<code> removed)
-      // But we need to walk all the nodes to make sure we can update bounds.
-      assert_equals(update.nodesUpdatedFromDom, 13, "nodesUpdatedFromDom");
+      // - <html>, <body> (children walked)
+      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
 
       // <html>, <body>, <h2>
       assert_equals(update.nodesUpdatedFromTree, 3, "nodesUpdatedFromTree");
 
-      // Bounds are refreshed for every node still in the tree (the <code> and its text are gone)
-      assert_equals(update.nodesUpdatedBounds, 13, "nodesUpdatedBounds");
+      // Bounds are updated for the <h2>, and checked for ancestors <html> and <body>.
+      assert_equals(update.nodesUpdatedBounds, 3, "nodesUpdatedBounds");
 
       // Changed nodes:
       // - <h2>, children and label changed (its geometry did not: the text still fits one line)
