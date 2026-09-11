@@ -1050,10 +1050,10 @@ fn find_node_matching(
     mut pred: impl FnMut(&NodeId, &accesskit::Node) -> bool,
 ) -> &accesskit::Node {
     let mut matches = update.nodes.iter().filter(|(id, node)| pred(id, node));
-    let node = matches.next().unwrap_or_else(|| panic!());
+    let node = matches.next().expect("Exactly one node should match pred");
     assert!(
         matches.next().is_none(),
-        "Exactly one node should match predicate"
+        "Exactly one node should match pred"
     );
     &node.1
 }

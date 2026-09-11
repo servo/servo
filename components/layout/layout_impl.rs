@@ -1045,15 +1045,8 @@ impl LayoutThread {
         });
         let mut reflow_statistics = Default::default();
 
-        let mut accessibility_damage: Option<FxHashMap<_, _>> =
-            std::mem::take(&mut reflow_request.accessibility_damage).map(|vec| {
-                vec.into_iter()
-                    .map(|(address, damage)| {
-                        let node = unsafe { ServoLayoutNode::new(&address) };
-                        (node.opaque(), (node, damage))
-                    })
-                    .collect()
-            });
+        let mut accessibility_damage =
+            to_accessibility_damage_map(std::mem::take(&mut reflow_request.accessibility_damage));
 
         let (mut reflow_phases_run, iframe_sizes, changed_web_fonts) = self
             .restyle_and_build_trees(
@@ -1350,9 +1343,17 @@ impl LayoutThread {
 
             debug_assert!(!layout_roots.is_empty());
 
-            if layout_roots.iter().all(|layout_root| {
-                layout_root.try_layout(&layout_context, accessibility_damage.as_deref_mut())
-            }) {
+            if let Some(damage_map) = accessibility_damage.as_mut() {
+                damage_map.extend(layout_roots.iter().map(|layout_root| {
+                    let node = layout_root.node();
+                    (node.opaque(), (node, AccessibilityDamage::empty()))
+                }));
+            }
+
+            if layout_roots
+                .iter()
+                .all(|layout_root| layout_root.try_layout(&layout_context))
+            {
                 return (
                     ReflowPhasesRun::RanLayout,
                     std::mem::take(&mut *layout_context.iframe_sizes.lock()),
@@ -1365,12 +1366,15 @@ impl LayoutThread {
             // layout, we need to ensure that none of the partial layout results corrupt
             // the upcoming full layout.
             for layout_root in layout_roots {
-                layout_root.handle_failed_layout_root_layout(accessibility_damage.as_deref_mut());
+                layout_root.handle_failed_layout_root_layout();
             }
-        } else if let Some(map) = accessibility_damage.as_mut() {
-            let accessibility_damage =
-                AccessibilityDamage::from_bits_retain(root_element.element_data().damage.bits());
-            map.insert(root_node.opaque(), (root_node, accessibility_damage));
+        }
+
+        if let Some(map) = accessibility_damage.as_mut() {
+            map.insert(
+                root_node.opaque(),
+                (root_node, AccessibilityDamage::empty()),
+            );
         }
 
         let box_tree = &*box_tree;
@@ -1678,6 +1682,19 @@ impl LayoutThread {
         );
         self.need_containing_block_calculation.set(false)
     }
+}
+
+fn to_accessibility_damage_map<'dom>(
+    damage_from_dom: Option<Vec<(TrustedNodeAddress, AccessibilityDamage)>>,
+) -> Option<AccessibilityDamageMap<'dom>> {
+    damage_from_dom.map(|vec| {
+        vec.into_iter()
+            .map(|(address, damage)| {
+                let node = unsafe { ServoLayoutNode::new(&address) };
+                (node.opaque(), (node, damage))
+            })
+            .collect()
+    })
 }
 
 fn get_ua_stylesheets(shared_lock: &SharedRwLock) -> Rc<UserAgentStylesheets> {

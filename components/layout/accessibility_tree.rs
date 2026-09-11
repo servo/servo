@@ -787,8 +787,6 @@ impl AccessibilityNode {
         let mut children_changed = false;
 
         if let Some(dom_node) = dom_node {
-            // TODO(#47162, #47161): Once we handle scrolling properly and have a way of tracking
-            // damage from layout, we won't need to update every node.
             local_damage.insert(self.update_properties_and_children_from_dom_node(
                 &ref_self, &dom_node, damage, tree, update,
             ));
@@ -1028,7 +1026,7 @@ impl AccessibilityNode {
         match bounds {
             Some(bounds) => self.set_bounds(bounds),
             None => self.clear_bounds(), // display: contents case
-        };
+        }
     }
 
     /// Update this node's properties based on changes already made to the accessibility tree.
@@ -1278,7 +1276,7 @@ impl AccessibilityNode {
         {
             let mut element_data = style_data.element_data.borrow_mut();
             let restyle_damage = std::mem::take(&mut element_data.damage);
-            let damage_from_layout = AccessibilityDamage::from_bits_retain(restyle_damage.bits());
+            let damage_from_layout = AccessibilityDamage::from(restyle_damage);
             damage |= damage_from_layout;
         }
         damage
