@@ -1343,7 +1343,12 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // TODO: find out what "visually equivalent" means for boundary points and implement it.
         // https://github.com/w3c/selection-api/issues/6
-        // For now it is simplified to "position is equal".
+        //
+        // For now it is simplified to "node is in the flat tree" and "position is equal".
+        if !node.is_in_flat_tree(no_gc) {
+            return false;
+        }
+
         matches!(
             compare_shadow_including_dom_positions(
                 no_gc,
