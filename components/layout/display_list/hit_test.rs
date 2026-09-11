@@ -211,7 +211,7 @@ impl PaintTraversalHandler for HitTest<'_> {
     fn visit_text(
         &mut self,
         state: &TraversalState,
-        _: PhysicalRect<Au>,
+        _line_box_rect: PhysicalRect<Au>,
         fragment: &Arc<TextFragment>,
     ) {
         Fragment::Text(fragment.clone()).hit_test(state, self);

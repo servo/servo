@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document selection visible height should be consistent regardless of font size</title>
+    <link rel="match" href="document-selection-visible-height-ref.html">
+</head>
+
+<style>
+    .test {
+        color: transparent;
+    }
+</style>
+
+<div class="test" style="width: 300px; overflow: clip;">
+<span style="font-size: 30px">A</span><span style="font-size: 100px">A</span><span style="font-size: 30px">A</span><span style="font-size: 30px">A</span><span style="font-size: 100px">A</span><span style="font-size: 30px">A</span><span style="font-size: 30px">A</span><span style="font-size: 100px">a</span><span style="font-size: 30px">A</span><span style="font-size: 30px">A</span><span style="font-size: 100px">A</span><span style="font-size: 30px">A</span><span style="font-size: 30px">A</span><span style="font-size: 100px">A</span><span style="font-size: 30px">A</span><span style="font-size: 30px">A</span><span style="font-size: 100px">A</span><span style="font-size: 30px">A</span>
+</div>
+
+<script>
+    document.getSelection().selectAllChildren(document.querySelector(".test"));
+</script>

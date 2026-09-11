@@ -212,6 +212,19 @@
   },
   "reftest": {
    "appearance": {
+    "document-selection-visible-height.html": [
+     "4320002c1416ee7e957f92bd24c0ca4a62e61e54",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/document-selection-visible-height-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "input-range.html": [
      "ed42641aa50cb89647ac3671da73d40b30f55f0d",
      [
@@ -8430,6 +8443,10 @@
     []
    ],
    "appearance": {
+    "document-selection-visible-height-ref.html": [
+     "d24a8715c8b453906323e89a1d605ba3e77351f0",
+     []
+    ],
     "input-range-ref.html": [
      "a805e58f2bf0f48b597a3fef54ac7fa7c50db3b5",
      []
