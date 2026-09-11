@@ -16,23 +16,25 @@
 
       assert_equals(initial.nodesUpdatedFromDom, 19, "nodesUpdatedFromDom");
       assert_equals(initial.nodesUpdatedFromTree, 19, "nodesUpdatedFromTree");
-      // Bounds are refreshed for every node in the tree
-      assert_equals(initial.nodesUpdatedBounds, 19, "nodesUpdatedBounds");
+      // Bounds are refreshed for every visible node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 12, "nodesUpdatedBounds");
       assert_equals(initial.nodesInTreeUpdate, 19, "nodesInTreeUpdate");
 
       document.getElementById("h2").remove();
       let update = ServoTestUtils.forceAccessibilityUpdate();
 
       // Only the <section> is updated from the DOM
-      // But we need to walk all the nodes to make sure we can update bounds.
-      assert_equals(update.nodesUpdatedFromDom, 17, "nodesUpdatedFromDom");
+      // Nodes visited because of subtree layout damage:
+      // - <html>
+      // - <body>
+      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
 
       // The <section>, its parent <body> and the document are checked for changes as their subtrees
       // changed
       assert_equals(update.nodesUpdatedFromTree, 3, "nodesUpdatedFromTree");
 
-      // Bounds are refreshed for every node still in the tree (the <h2> and its text are gone)
-      assert_equals(update.nodesUpdatedBounds, 17, "nodesUpdatedBounds");
+      // Bounds are updated for the <section> and its ancestors.
+      assert_equals(update.nodesUpdatedBounds, 3, "nodesUpdatedFromLayout");
 
       // The tree update holds the parent <section> of the removed <h2>, plus the <body> and the
       // document, whose heights shrank when the <h2> was removed

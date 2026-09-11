@@ -34,7 +34,7 @@ use crate::fragment_tree::Fragment;
 /// has started to escape from the layout root. In that case, a full fragment tree layout
 /// becomes necessary to rebuild the fragment properly.
 pub(crate) struct LayoutRoot<'dom> {
-    node: ServoLayoutNode<'dom>,
+    pub(crate) node: ServoLayoutNode<'dom>,
 }
 
 impl<'dom> TryFrom<ServoLayoutNode<'dom>> for LayoutRoot<'dom> {
