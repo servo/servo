@@ -37,6 +37,8 @@ use uuid::Uuid;
 use webrender_api::ImageKey as WebRenderImageKey;
 use webrender_api::units::DeviceIntSize;
 
+use crate::image_cache::KeyCacheState::PipelineClosed;
+
 thread_local! {
     pub static SUPPRESS_ABORT_IN_PANIC_HOOK: Cell<bool> = const { Cell::new(false) };
 }
@@ -147,7 +149,7 @@ type ImageKey = (ServoUrl, ImmutableOrigin, Option<CorsSettings>);
 
 // Represents all the currently pending loads/decodings. For
 // performance reasons, loads are indexed by a dedicated load key.
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 struct AllPendingLoads {
     // The loads, indexed by a load key. Used during most operations,
     // for performance reasons.
@@ -312,7 +314,7 @@ impl ImageBytes {
 // A key used to communicate during loading.
 type LoadKey = PendingImageId;
 
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 struct LoadKeyGenerator {
     counter: u64,
 }
@@ -411,7 +413,7 @@ enum PendingKey {
 }
 
 /// The state of the `WebRenderImageKey`` cache
-#[derive(Debug, MallocSizeOf)]
+#[derive(Debug, Default, MallocSizeOf)]
 enum KeyCacheState {
     /// We already requested a batch of keys.
     PendingBatch,
@@ -419,12 +421,17 @@ enum KeyCacheState {
     Ready(Vec<WebRenderImageKey>),
     /// Currently filling images from the KeyCache. No new keys will be requested.
     Processing,
+    /// We will not process any images anymore because the pipeline is shut down.
+    #[default]
+    PipelineClosed,
 }
 
 impl KeyCacheState {
     fn size(&self) -> usize {
         match self {
-            KeyCacheState::PendingBatch | KeyCacheState::Processing => 0,
+            KeyCacheState::PendingBatch |
+            KeyCacheState::Processing |
+            KeyCacheState::PipelineClosed => 0,
             KeyCacheState::Ready(items) => items.len(),
         }
     }
@@ -433,7 +440,7 @@ impl KeyCacheState {
 /// As getting new keys takes a round trip over the constellation, we keep a small cache of them.
 /// Additionally, this cache will store image resources that do not have a key yet because those
 /// are needed to complete the load.
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 struct KeyCache {
     /// A cache of `WebRenderImageKey`.
     cache: KeyCacheState,
@@ -578,6 +585,7 @@ impl ImageCacheStore {
                     self.fetch_more_image_keys();
                 },
             },
+            KeyCacheState::PipelineClosed => {},
         }
     }
 
@@ -599,29 +607,33 @@ impl ImageCacheStore {
 
     /// Insert received keys into the cache and complete the loading of images.
     fn insert_keys_and_load_images(&mut self, image_keys: Vec<WebRenderImageKey>) {
-        if let KeyCacheState::Processing = self.key_cache.cache {
-            // We can set this now to ready as we have the exclusive write access.
-            self.key_cache.cache = KeyCacheState::Ready(image_keys);
-            let len = min(
-                self.key_cache.cache.size(),
-                self.key_cache.images_pending_keys.len(),
-            );
-            let images = self
-                .key_cache
-                .images_pending_keys
-                .drain(0..len)
-                .collect::<Vec<PendingKey>>();
-            for key in images {
-                self.load_image_with_keycache(key);
-            }
-            // It is important to fetch new image keys as we might have missed previous returns.
-            if !self.key_cache.images_pending_keys.is_empty() {
-                self.paint_api
-                    .generate_image_key_async(self.webview_id, self.pipeline_id);
-                self.key_cache.cache = KeyCacheState::PendingBatch
-            }
-        } else {
-            unreachable!("A batch was received while we didn't request one")
+        match &mut self.key_cache.cache {
+            KeyCacheState::Processing => {
+                // We can set this now to ready as we have the exclusive write access.
+                self.key_cache.cache = KeyCacheState::Ready(image_keys);
+                let len = min(
+                    self.key_cache.cache.size(),
+                    self.key_cache.images_pending_keys.len(),
+                );
+                let images = self
+                    .key_cache
+                    .images_pending_keys
+                    .drain(0..len)
+                    .collect::<Vec<PendingKey>>();
+                for key in images {
+                    self.load_image_with_keycache(key);
+                }
+                // It is important to fetch new image keys as we might have missed previous returns.
+                if !self.key_cache.images_pending_keys.is_empty() {
+                    self.paint_api
+                        .generate_image_key_async(self.webview_id, self.pipeline_id);
+                    self.key_cache.cache = KeyCacheState::PendingBatch
+                }
+            },
+            KeyCacheState::PendingBatch | KeyCacheState::Ready(_) => {
+                unreachable!("A batch was received while we didn't request one")
+            },
+            PipelineClosed => {},
         }
     }
 
@@ -1348,6 +1360,7 @@ impl ImageCache for ImageCacheImpl {
 
     fn clear(&self) {
         self.store.lock().clear();
+        *self.svg_id_image_id_map.lock() = Default::default();
     }
 
     fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>> {
@@ -1370,6 +1383,7 @@ impl ImageCache for ImageCacheImpl {
 
 impl ImageCacheStore {
     /// Clear the image cache.
+    // Webrender currently does not care about keys that are loaded but do not have an image attached to it.
     fn clear(&mut self) {
         let deletions: smallvec::SmallVec<_> = self
             .completed_loads
@@ -1400,8 +1414,13 @@ impl ImageCacheStore {
         // Clear these fields, since `clear()` will be called multiple times,
         // explicitly on pipeline close, and again on Drop (as a safeguard,
         // since we could forget to explicitly clear).
-        self.completed_loads.clear();
-        self.rasterized_vector_images.clear();
+        self.completed_loads = Default::default();
+        self.vector_images = Default::default();
+        self.rasterized_vector_images = Default::default();
+        self.svg_rasterization_task_store = Default::default();
+        self.pending_loads = Default::default();
+        self.key_cache = Default::default();
+
         let _ = self.broken_image_icon_image.take();
     }
 }
