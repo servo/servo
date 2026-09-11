@@ -9,7 +9,7 @@ use fonts_traits::LocalFontIdentifier;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
-use style::values::specified::font::FontStretchKeyword;
+use style::values::specified::font::FontWidthKeyword;
 
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
@@ -322,20 +322,20 @@ fn font_template_descriptor_from_font(font: &Font) -> FontTemplateDescriptor {
         FontStyle::Italic => StyleFontStyle::ITALIC,
     };
     let weight = StyleFontWeight::from_float(font.weight().to_u32() as f32);
-    let stretch = match font.stretch() {
-        FontStretch::Undefined => FontStretchKeyword::Normal,
-        FontStretch::UltraCondensed => FontStretchKeyword::UltraCondensed,
-        FontStretch::ExtraCondensed => FontStretchKeyword::ExtraCondensed,
-        FontStretch::Condensed => FontStretchKeyword::Condensed,
-        FontStretch::SemiCondensed => FontStretchKeyword::SemiCondensed,
-        FontStretch::Normal => FontStretchKeyword::Normal,
-        FontStretch::SemiExpanded => FontStretchKeyword::SemiExpanded,
-        FontStretch::Expanded => FontStretchKeyword::Expanded,
-        FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
-        FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
+    let width = match font.stretch() {
+        FontStretch::Undefined => FontWidthKeyword::Normal,
+        FontStretch::UltraCondensed => FontWidthKeyword::UltraCondensed,
+        FontStretch::ExtraCondensed => FontWidthKeyword::ExtraCondensed,
+        FontStretch::Condensed => FontWidthKeyword::Condensed,
+        FontStretch::SemiCondensed => FontWidthKeyword::SemiCondensed,
+        FontStretch::Normal => FontWidthKeyword::Normal,
+        FontStretch::SemiExpanded => FontWidthKeyword::SemiExpanded,
+        FontStretch::Expanded => FontWidthKeyword::Expanded,
+        FontStretch::ExtraExpanded => FontWidthKeyword::ExtraExpanded,
+        FontStretch::UltraExpanded => FontWidthKeyword::UltraExpanded,
     }
     .compute();
-    FontTemplateDescriptor::new(weight, stretch, style)
+    FontTemplateDescriptor::new(weight, width, style)
 }
 
 pub(crate) fn default_system_generic_font_family(

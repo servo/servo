@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
@@ -20,7 +18,7 @@ use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUID, BluetoothUUID};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::{Promise, RootedPromise};
+use crate::dom::promise::RootedPromise;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
 #[dom_struct]
@@ -92,7 +90,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
         &self,
         cx: &mut CurrentRealm,
         characteristic: BluetoothCharacteristicUUID,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let is_connected = self.Device().get_gatt(cx).Connected();
         get_gatt_children(
             cx,
@@ -111,7 +109,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
         &self,
         cx: &mut CurrentRealm,
         characteristic: Option<BluetoothCharacteristicUUID>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let is_connected = self.Device().get_gatt(cx).Connected();
         get_gatt_children(
             cx,
@@ -130,7 +128,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
         &self,
         cx: &mut CurrentRealm,
         service: BluetoothServiceUUID,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let is_connected = self.Device().get_gatt(cx).Connected();
         get_gatt_children(
             cx,
@@ -149,7 +147,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
         &self,
         cx: &mut CurrentRealm,
         service: Option<BluetoothServiceUUID>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let is_connected = self.Device().get_gatt(cx).Connected();
         get_gatt_children(
             cx,

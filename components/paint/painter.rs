@@ -18,7 +18,7 @@ use gleam::gl::RENDERER;
 use image::RgbaImage;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
-use paint_api::display_list::{PaintDisplayListInfo, ScrollType};
+use paint_api::display_list::{PaintDisplayListInfo, PaintTimingReport, ScrollType};
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
@@ -986,14 +986,18 @@ impl Painter {
 
         let epoch = display_list_info.epoch.into();
         let first_reflow = display_list_info.first_reflow;
-        if details.first_paint_metric == PaintMetricState::Waiting && display_list_info.is_paintable
+        if details.first_paint_metric == PaintMetricState::Waiting &&
+            display_list_info
+                .paint_timing_report
+                .contains(PaintTimingReport::FirstPaint)
         {
             details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }
 
         if details.first_contentful_paint_metric == PaintMetricState::Waiting &&
-            display_list_info.is_paintable &&
-            display_list_info.is_contentful
+            display_list_info
+                .paint_timing_report
+                .contains(PaintTimingReport::FirstContentfulPaint)
         {
             details.first_contentful_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }

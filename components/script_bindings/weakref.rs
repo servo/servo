@@ -22,7 +22,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::JSTraceable;
 use crate::dom::UnrootedDom;
 use crate::reflector::DomObject;
-use crate::root::{Dom, DomRoot};
+use crate::root::DomRoot;
 
 /// A weak reference to a JS-managed DOM object.
 #[derive(Clone)]
@@ -66,7 +66,7 @@ impl<T: WeakReferenceable> WeakRef<T> {
     pub fn unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, T>> {
         self.0
             .upgrade()
-            .map(|x| UnrootedDom::from_dom(Dom::from_ref(&*x), no_gc))
+            .map(|value| UnrootedDom::from_ref(&*value, no_gc))
     }
 
     /// Return whether the weakly-referenced object is still alive.

@@ -105,7 +105,6 @@ impl<D> GPUPipelineLayout<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
 {
     pub fn id(&self) -> WebGPUPipelineLayout {
         self.droppable.pipeline_layout

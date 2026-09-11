@@ -56,10 +56,6 @@ impl SelectionRange {
     pub(crate) fn collapsed(&self) -> bool {
         self.start == self.end
     }
-
-    pub(crate) fn start_and_end_are_in_document_tree(&self) -> bool {
-        self.start.container.is_in_a_document_tree() && self.end.container.is_in_a_document_tree()
-    }
 }
 
 impl From<&Range> for SelectionRange {

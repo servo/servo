@@ -102,7 +102,6 @@ impl<D> GPUCommandEncoder<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D> + DomGlobalGeneric<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
     Self: DomGlobalGeneric<D>,
 {
     pub(crate) fn id(&self) -> WebGPUCommandEncoder {

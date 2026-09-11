@@ -98,7 +98,6 @@ impl<D> GPUBindGroupLayout<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
 {
     pub fn id(&self) -> WebGPUBindGroupLayout {
         self.droppable.bind_group_layout

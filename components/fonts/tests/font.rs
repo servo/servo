@@ -14,12 +14,13 @@ use fonts::{
 };
 use icu_locale_core::subtags::Language;
 use servo_url::ServoUrl;
+use style::Zero;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::values::computed::{
-    FontFeatureSettings, FontStretch, FontStyle, FontSynthesis, FontVariantEastAsian,
-    FontVariantLigatures, FontVariantNumeric, FontWeight,
+    FontFeatureSettings, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
+    FontVariantNumeric, FontWeight, FontWidth,
 };
 use unicode_script::Script;
 
@@ -38,7 +39,7 @@ fn make_font(path: PathBuf) -> Font {
     let template = FontTemplate::new(identifier, platform_font.descriptor(), None);
     let descriptor = FontDescriptor {
         weight: FontWeight::normal(),
-        stretch: FontStretch::hundred(),
+        width: FontWidth::hundred(),
         style: FontStyle::normal(),
         variant: FontVariantCaps::Normal,
         pt_size: Au::from_px(24),
@@ -79,8 +80,8 @@ fn test_font_can_do_fast_shaping() {
 
     // Fast shaping requires a font with a kern table and no GPOS or GSUB tables.
     let shaping_options = ShapingOptions {
-        letter_spacing: None,
-        word_spacing: None,
+        letter_spacing: Au::zero(),
+        word_spacing: Au::zero(),
         script: Script::Latin,
         language: Language::UNKNOWN,
         flags: ShapingFlags::empty(),
@@ -96,8 +97,8 @@ fn test_font_can_do_fast_shaping() {
 
     // Non-Latin script should never have fast shaping.
     let shaping_options = ShapingOptions {
-        letter_spacing: None,
-        word_spacing: None,
+        letter_spacing: Au::zero(),
+        word_spacing: Au::zero(),
         script: Script::Cherokee,
         language: Language::UNKNOWN,
         flags: ShapingFlags::empty(),
@@ -113,8 +114,8 @@ fn test_font_can_do_fast_shaping() {
 
     // Right-to-left text should never use fast shaping.
     let shaping_options = ShapingOptions {
-        letter_spacing: None,
-        word_spacing: None,
+        letter_spacing: Au::zero(),
+        word_spacing: Au::zero(),
         script: Script::Latin,
         language: Language::UNKNOWN,
         flags: ShapingFlags::RTL_FLAG,

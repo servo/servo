@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use app_units::Au;
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use dom_struct::dom_struct;
 use euclid::{Rect, SideOffsets2D, Size2D, Vector2D};
 use js::context::{JSContext, NoGC};
@@ -891,8 +891,7 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargi
     };
 
     // Create necessary style ParserContext and utilize stylo's IntersectionObserverMargin
-    let mut input = ParserInput::new(value);
-    let mut parser = Parser::new(&mut input);
+    let mut parser = Parser::new(value);
 
     let context = parser_context_for_anonymous_content(
         CssRuleType::Style,

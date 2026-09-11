@@ -123,7 +123,7 @@ impl<'a, T: DomObject> UnrootedDom<'a, T> {
     /// the token and the token should ensure that no garbage collection will take place
     /// as long as it is alive.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub fn from_dom(object: Dom<T>, _no_gc: &'a NoGC) -> UnrootedDom<'a, T> {
+    pub(crate) fn from_dom(object: Dom<T>, _no_gc: &'a NoGC) -> UnrootedDom<'a, T> {
         UnrootedDom {
             inner: object,
             _phantom: PhantomData,

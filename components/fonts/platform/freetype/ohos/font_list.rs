@@ -17,7 +17,7 @@ use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
-    FontStretch as StyleFontStretch, FontStyle as StyleFontStyle, FontWeight as StyleFontWeight,
+    FontStyle as StyleFontStyle, FontWeight as StyleFontWeight, FontWidth as StyleFontWidth,
 };
 use unicode_script::Script;
 
@@ -48,7 +48,7 @@ enum FontWidth {
     Normal,
 }
 
-impl From<FontWidth> for StyleFontStretch {
+impl From<FontWidth> for StyleFontWidth {
     fn from(value: FontWidth) -> Self {
         match value {
             FontWidth::Condensed => Self::CONDENSED,
@@ -384,7 +384,7 @@ where
             face_index: 0,
             named_instance_index: 0,
         };
-        let stretch = font.width.into();
+        let width = font.width.into();
         let weight = font
             .weight
             .map(|w| StyleFontWeight::from_float(w as f32))
@@ -401,7 +401,7 @@ where
             },
             None => StyleFontStyle::NORMAL,
         };
-        let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
+        let descriptor = FontTemplateDescriptor::new(weight, width, style);
         callback(FontTemplate::new(
             FontIdentifier::Local(local_font_identifier),
             descriptor,

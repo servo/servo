@@ -224,7 +224,7 @@ fn apply_node_test<D: Dom>(test: &NodeTest, node: &D::Node) -> Result<bool, Erro
                 false
             }
         },
-        NodeTest::Wildcard => node.as_element().is_some(),
+        NodeTest::Wildcard => node.as_element().is_some() || node.as_attribute().is_some(),
         NodeTest::Kind(kind) => match kind {
             KindTest::PI(target) => {
                 if let Some(processing_instruction) = node.as_processing_instruction() {

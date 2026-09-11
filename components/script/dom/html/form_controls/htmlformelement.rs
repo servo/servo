@@ -200,7 +200,7 @@ impl HTMLFormElement {
             .iter()
             .filter(|n| HTMLFormElement::filter_for_radio_list(mode, n, name))
             .nth(index as usize)
-            .map(|n| UnrootedDom::upcast(UnrootedDom::from_dom(n.clone(), no_gc)))
+            .map(|node| UnrootedDom::upcast(node.as_unrooted(no_gc)))
     }
 
     pub(crate) fn count_for_radio_list(&self, mode: RadioListMode, name: &Atom) -> u32 {

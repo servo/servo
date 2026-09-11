@@ -50,7 +50,11 @@ pub struct Reflector<T = ()> {
 }
 
 unsafe impl<T> js::gc::Traceable for Reflector<T> {
-    unsafe fn trace(&self, _: *mut js::jsapi::JSTracer) {}
+    unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
+        unsafe {
+            self.object.trace(tracer);
+        }
+    }
 }
 
 impl<T> PartialEq for Reflector<T> {

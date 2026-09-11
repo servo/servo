@@ -56,10 +56,7 @@ impl<D: Equivalence> GPU<D> {
 impl<D> GPUMethods<D> for GPU<D>
 where
     D: Equivalence,
-    D::Promise: PromiseHelpers<D>,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
-    D::GPU: DomGlobalGeneric<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
     Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter>
