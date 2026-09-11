@@ -144,8 +144,8 @@ fn apply_algorithm_to_response(
     body: MutexGuard<ResponseBody>,
     algorithm: &'static digest::Algorithm,
 ) -> String {
-    if let ResponseBody::Done(ref vec) = *body {
-        let response_digest = digest::digest(algorithm, vec);
+    if let ResponseBody::Done(ref done_body) = *body {
+        let response_digest = digest::digest(algorithm, &done_body.decoded_body);
         base64::engine::general_purpose::STANDARD.encode(response_digest)
     } else {
         unreachable!("Tried to calculate digest of incomplete response body")

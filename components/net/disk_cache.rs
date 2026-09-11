@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use futures::future::join_all;
 use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use rusqlite::Row;
@@ -17,7 +18,8 @@ use servo_url::ServoUrl;
 use tokio::sync::{Mutex as TokioMutex, RwLock as TokioRwLock};
 
 use crate::http_cache::{
-    CacheEntry, CacheKey, CachedResource, HttpCacheAssignment, MemoryCacheLifecycle,
+    CacheEntry, CacheKey, CachedResource, DiskCachedResource, HttpCacheAssignment,
+    MemoryCacheLifecycle,
 };
 
 #[derive(MallocSizeOf)]
@@ -245,12 +247,23 @@ impl DiskCache {
             }
             bytes
         };
-        let _span = profile_traits::trace_span!("deserialize cache request").entered();
-        let Ok(value) = postcard::from_bytes(&bytes) else {
-            error!("Could not deserialize cached resource");
-            return None;
+
+        let value = {
+            let _span = profile_traits::trace_span!("deserialize cache request").entered();
+            let Ok(value) = postcard::from_bytes::<Vec<DiskCachedResource>>(&bytes) else {
+                error!("Could not deserialize cached resource");
+                return None;
+            };
+            value
         };
-        let deserialized_vec_cached_response = std::sync::Arc::new(TokioRwLock::new(value));
+
+        let resources = join_all(value.into_iter().map(
+            |disk_cached_resource: DiskCachedResource| disk_cached_resource.make_cached_reource(),
+        ))
+        .await
+        .into_iter()
+        .collect::<Option<Vec<_>>>()?;
+        let deserialized_vec_cached_response = std::sync::Arc::new(TokioRwLock::new(resources));
 
         Some(deserialized_vec_cached_response)
     }
@@ -259,10 +272,13 @@ impl DiskCache {
     #[servo_tracing::instrument(skip(self))]
     pub(crate) async fn store(&self, key: CacheKey, entry: CacheEntry) {
         let entry = entry.read().await;
-        let data_to_serialize: Vec<&CachedResource> = entry
+        let data_to_serialize = entry
             .iter()
             .filter(|cached_resource| cached_resource.is_done())
-            .collect();
+            .cloned()
+            .map(|cached_resource| cached_resource.into())
+            .collect::<Vec<DiskCachedResource>>();
+
         let Ok(data) = postcard::to_stdvec(&*data_to_serialize) else {
             error!("Could not deserialize value");
             return;

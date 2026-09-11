@@ -71,6 +71,14 @@ pub mod fetch {
     pub mod headers;
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, MallocSizeOf)]
+pub enum DecoderType {
+    Gzip,
+    Brotli,
+    Deflate,
+    Zstd,
+}
+
 /// A loading context, for context-specific sniffing, as defined in
 /// <https://mimesniff.spec.whatwg.org/#context-specific-sniffing>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

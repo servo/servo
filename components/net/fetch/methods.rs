@@ -30,7 +30,9 @@ use net_traits::request::{
     Request, RequestBody, RequestId, RequestMode, ResponseTainting, is_cors_safelisted_method,
     is_cors_safelisted_request_header,
 };
-use net_traits::response::{Response, ResponseBody, ResponseType, TerminationReason};
+use net_traits::response::{
+    DoneResponseBody, Response, ResponseBody, ResponseType, TerminationReason,
+};
 use net_traits::{
     FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
     ResourceFetchTimingContainer, ResourceTimeValue, ResourceTimingType, WebSocketDomAction,
@@ -935,15 +937,23 @@ async fn wait_for_response(
         }
     } else {
         match *response.actual_response().body.lock() {
-            ResponseBody::Done(ref vec) if !vec.is_empty() => {
+            ResponseBody::Done(ref done_response) if !done_response.decoded_body.is_empty() => {
                 // in case there was no channel to wait for, the body was
                 // obtained synchronously via scheme_fetch for data/file/about/etc
                 // We should still send the body across as a chunk
-                target.process_response_chunk(request, Bytes::copy_from_slice(vec));
+                target.process_response_chunk(
+                    request,
+                    Bytes::copy_from_slice(&done_response.decoded_body),
+                );
                 if context.devtools_chan.is_some() {
                     // Now that we've replayed the entire cached body,
                     // notify the DevTools server with the full Response.
-                    send_response_to_devtools(request, context, response, Some(vec.clone()));
+                    send_response_to_devtools(
+                        request,
+                        context,
+                        response,
+                        Some(done_response.decoded_body.clone()),
+                    );
                 }
             },
             ResponseBody::Done(_) | ResponseBody::Empty => {},
@@ -989,7 +999,10 @@ fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Respons
     response
         .headers
         .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
-    *response.body.lock() = ResponseBody::Done(vec![]);
+    *response.body.lock() = ResponseBody::Done(DoneResponseBody {
+        decoded_body: vec![],
+        encoded_body: None,
+    });
     response.status = HttpStatus::default();
     response
 }
@@ -999,7 +1012,10 @@ fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Respon
     response
         .headers
         .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
-    *response.body.lock() = ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML));
+    *response.body.lock() = ResponseBody::Done(DoneResponseBody {
+        decoded_body: resources::read_bytes(Resource::AboutMemoryHTML),
+        encoded_body: None,
+    });
     response.status = HttpStatus::default();
     response
 }
