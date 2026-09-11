@@ -528,8 +528,8 @@ impl TextRun {
                 }
             };
 
-        let text_range = usize::from(self.text_range.start)..usize::from(self.text_range.end);
-        let text_run_text = &formatting_context_text[text_range];
+        let text_run_text =
+            &formatting_context_text[Utf8CodeUnits::to_usize_range(&self.text_range)];
         let char_iterator = TwoCharsAtATimeIterator::new(text_run_text.chars());
         // The next bytes index of the character within the entire inline formatting context's text.
         let mut next_byte_index = self.text_range.start;

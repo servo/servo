@@ -297,10 +297,8 @@ impl Selection {
             let Some(character_data) = end_container.downcast::<CharacterData>()
         {
             let text = character_data.data();
-            let range = RangeAny::new(
-                None,
-                Some(Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text)),
-            );
+            let range =
+                RangeAny::from_start_to(Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text));
             set_text_run_selection(character_data, Some(range))
         }
 

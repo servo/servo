@@ -120,7 +120,7 @@ impl BatchSlicer<'_> {
 
             // Extend the slice to the next UAX#14 line break opportunity.
             let mut slice = last_slice.end..*break_index;
-            let word = &self.text[usize::from(slice.start)..usize::from(slice.end)];
+            let word = &self.text[Utf8CodeUnits::to_usize_range(&slice)];
 
             // Split off any trailing whitespace into a separate glyph run.
             let mut whitespace = slice.end..slice.end;
@@ -165,20 +165,21 @@ impl BatchSlicer<'_> {
 
             // Push the non-whitespace part of the range.
             if !slice.is_empty() {
-                let slice = usize::from(slice.start)..usize::from(slice.end);
                 // TODO: ensure layout doesn’t handle more than 4 GiB at a time?
-                current_character_offset +=
-                    Utf32CodeUnits::length_of(AssumeUnder4GB, &self.text[slice]);
+                current_character_offset += Utf32CodeUnits::length_of(
+                    AssumeUnder4GB,
+                    &self.text[Utf8CodeUnits::to_usize_range(&slice)],
+                );
                 maybe_push_run(
                     self.slicer
                         .slice_until_character_offset(current_character_offset, slice_type),
                 );
             }
 
+            let whitespace = Utf8CodeUnits::to_usize_range(&whitespace);
             if whitespace.is_empty() {
                 continue;
             }
-            let whitespace = usize::from(whitespace.start)..usize::from(whitespace.end);
 
             // If `white-space-collapse: break-spaces` is active, insert a line breaking opportunity
             // between each white space character in the white space that we trimmed off.
@@ -284,8 +285,10 @@ impl<'a> ShapingQueue<'a> {
         options.script = self.resolved_script.unwrap_or(first.info.script);
 
         let font = &first.info.font_info.font;
-        let byte_range = usize::from(self.byte_range.start)..usize::from(self.byte_range.end);
-        Some(font.shape_text(&self.text[byte_range], &options))
+        Some(font.shape_text(
+            &self.text[Utf8CodeUnits::to_usize_range(&self.byte_range)],
+            &options,
+        ))
     }
 
     /// Flush this [`ShapingQueue`]. If any content had been collected up to this point,

@@ -4,7 +4,6 @@
 
 use std::fmt;
 use std::iter::Sum;
-use std::mem::MaybeUninit;
 use std::ops::{Add, AddAssign, Range, Sub, SubAssign};
 
 use malloc_size_of_derive::MallocSizeOf;
@@ -55,22 +54,11 @@ pub fn is_cjk(codepoint: char) -> bool {
 #[derive(Clone, Copy, Eq, PartialEq, MallocSizeOf)]
 pub struct RangeAny<T>(RangeAnyInner<T>);
 
-#[derive(Copy, MallocSizeOf)]
+#[derive(Clone, Copy, Eq, PartialEq, MallocSizeOf)]
 enum RangeAnyInner<T> {
-    Range {
-        start: T,
-        end: T,
-    },
-    RangeFrom {
-        start: T,
-    },
-    RangeTo {
-        // Nudges rustc towards placing `end` at the same offset as in the `Range` variant,
-        // for slightly better codegen in the `fn end()` getter
-        #[ignore_malloc_size_of = "always uninitialized"]
-        _layout_hint: MaybeUninit<T>,
-        end: T,
-    },
+    Range { start: T, end: T },
+    RangeFrom { start: T },
+    RangeTo { end: T },
     RangeFull,
 }
 
@@ -87,60 +75,20 @@ impl<T: fmt::Debug> fmt::Debug for RangeAny<T> {
         }
     }
 }
-impl<T: Eq> Eq for RangeAnyInner<T> {}
-
-impl<T: PartialEq> PartialEq for RangeAnyInner<T> {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (
-                Self::Range {
-                    start: l_start,
-                    end: l_end,
-                },
-                Self::Range {
-                    start: r_start,
-                    end: r_end,
-                },
-            ) => l_start == r_start && l_end == r_end,
-            (Self::RangeFrom { start: l_start }, Self::RangeFrom { start: r_start }) => {
-                l_start == r_start
-            },
-            (Self::RangeTo { end: l_end, .. }, Self::RangeTo { end: r_end, .. }) => l_end == r_end,
-            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
-        }
-    }
-}
-
-impl<T: Clone> Clone for RangeAnyInner<T> {
-    fn clone(&self) -> Self {
-        match self {
-            Self::Range { start, end } => Self::Range {
-                start: start.clone(),
-                end: end.clone(),
-            },
-            Self::RangeFrom { start } => Self::RangeFrom {
-                start: start.clone(),
-            },
-            Self::RangeTo { end, .. } => Self::RangeTo {
-                _layout_hint: MaybeUninit::uninit(),
-                end: end.clone(),
-            },
-            Self::RangeFull => Self::RangeFull,
-        }
-    }
-}
 
 impl<T> RangeAny<T> {
     pub fn new(start: Option<T>, end: Option<T>) -> Self {
         Self(match (start, end) {
             (Some(start), Some(end)) => RangeAnyInner::Range { start, end },
             (Some(start), None) => RangeAnyInner::RangeFrom { start },
-            (None, Some(end)) => RangeAnyInner::RangeTo {
-                _layout_hint: MaybeUninit::uninit(),
-                end,
-            },
+            (None, Some(end)) => RangeAnyInner::RangeTo { end },
             (None, None) => RangeAnyInner::RangeFull,
         })
+    }
+
+    /// Returns a `RangeAny` that represents the range from the start to the given end.
+    pub fn from_start_to(end: T) -> Self {
+        Self(RangeAnyInner::RangeTo { end })
     }
 
     /// Returns a `RangeAny` that represents the full range: both bounds unset
@@ -148,7 +96,7 @@ impl<T> RangeAny<T> {
         Self(RangeAnyInner::RangeFull)
     }
 
-    // Note: for a fully-generic general puprose container we’d return `Option<&T>`
+    // Note: for a fully-generic general purpose container we’d return `Option<&T>`
     // and remove the `Copy` bound, but Servo only uses `RangeAny` with `Utf*CodeUnits` types
     // that implement `Copy`, so relying on `Copy` makes callers less verbose.
     pub fn start(&self) -> Option<T>
@@ -241,6 +189,11 @@ macro_rules! unicode_length_type {
             #[inline]
             pub fn saturating_sub(self, value: Self) -> Self {
                 Self(self.0.saturating_sub(value.0))
+            }
+
+            #[inline]
+            pub fn to_usize_range(range: &Range<Self>) -> Range<usize> {
+                usize::from(range.start)..usize::from(range.end)
             }
         }
 
@@ -362,13 +315,13 @@ impl Utf16CodeUnits {
 
     /// Convert this UTF-16 offset in `string` to an UTF-8 (byte) offset
     pub fn to_utf8_code_units_in(self, _: AssumeUnder4GB, string: &str) -> Utf8CodeUnits {
-        self.to_utf8_code_units_in_iter(AssumeUnder4GB, Some(string))
+        self.to_utf8_code_units_in_iter(AssumeUnder4GB, std::iter::once(string))
     }
 
     /// Convert this UTF-16 offset in an iterator of strings, to an UTF-8 (byte) offset
     ///
     /// Note: this silently wraps and returns an incorrect value for results larger than
-    /// `u32::MAX` bytes (4 GiB), even if individual iterator items fits `Str32`.
+    /// `u32::MAX` bytes (4 GiB).
     pub fn to_utf8_code_units_in_iter<S>(
         self,
         _: AssumeUnder4GB,
@@ -393,8 +346,8 @@ impl Utf16CodeUnits {
 
     /// Convert this UTF-16 offset in `string` to an UTF-32 offset
     ///
-    /// Note: this never overflows since the return value is always less or equal
-    /// since one UTF-32 code unit corresponds to one or two UTF-16 code units.
+    /// Note: this never overflows since the return value is always less than or equal to self as
+    /// one UTF-32 code unit corresponds to one or two UTF-16 code units.
     pub fn to_utf32_code_units_in(self, string: &str) -> Utf32CodeUnits {
         let mut current_utf16_offset = Utf16CodeUnits(0);
         let mut current_utf32_offset = Utf32CodeUnits(0);
@@ -501,9 +454,6 @@ impl Utf32CodeUnits {
 
 impl Utf32CodeUnitsOrNodeOffset {
     /// Convert this UTF-32 (`char`) offset in `string` to an UTF-16 offset
-    ///
-    /// Note: this silently wraps and returns an incorrect value for offsets larger than
-    /// `u32::MAX` (~4 billion) code units
     pub fn to_utf16_code_units_in(self, _: AssumeUnder4GB, string: &str) -> Utf16CodeUnits {
         Utf32CodeUnits(self.0).to_utf16_code_units_in(AssumeUnder4GB, string)
     }

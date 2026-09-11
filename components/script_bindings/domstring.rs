@@ -78,16 +78,6 @@ impl EncodedBytes<'_> {
         }
     }
 
-    pub fn len(&self) -> usize {
-        match self {
-            Self::Latin1(bytes) => bytes
-                .iter()
-                .map(|b| if *b <= ASCII_END { 1 } else { 2 })
-                .sum(),
-            Self::Utf8(bytes) => bytes.len(),
-        }
-    }
-
     /// Return whether or not there is any data in this collection of bytes.
     pub fn is_empty(&self) -> bool {
         self.bytes().is_empty()
@@ -437,7 +427,7 @@ impl DOMString {
             EncodedBytes::Latin1(bytes) => bytes
                 .iter()
                 // Latin-1 bytes 0x00 to 0x7F are ASCII-compatible and UTF-8-compatible
-                // Latin-1 bytes 0x80 to 0xFF convert to two-bytes UTF-8 sequences
+                // Latin-1 bytes 0x80 to 0xFF convert to two-byte UTF-8 sequences
                 .map(|&byte| if byte < 128 { 1 } else { 2 })
                 .sum::<u32>(),
         })
@@ -456,21 +446,14 @@ impl DOMString {
     /// Note: This is different than the number of Unicode characters (or code points). A
     /// character may require multiple UTF-16 code units.
     pub fn len_utf16(&self) -> Utf16CodeUnits {
-        let inner = self.0.borrow();
-        let as_str = match &*inner {
-            DOMStringType::Rust(string) => Ok(string.as_str()),
-            DOMStringType::RustStatic(string) => Ok(*string),
-            DOMStringType::JSString(rooted_traceable_box) => {
-                Err(unsafe { get_latin1_string_bytes(rooted_traceable_box) })
-            },
-            #[cfg(test)]
-            DOMStringType::Latin1Vec(vec) => Err(vec.as_slice()),
-        };
-        match as_str {
+        match self.encoded_bytes() {
+            // All Latin-1 characters encode to a single UTF-16 code unit.
+            EncodedBytes::Latin1(bytes) => Utf16CodeUnits(bytes.len() as u32),
             // TODO: add a check that DOMString values never exceed 2 GiB?
-            Ok(string) => Utf16CodeUnits::length_of(AssumeUnder4GB, string),
-            // All Latin-1 bytes characters encode to a single UTF-16 code unit
-            Err(latin1_bytes) => Utf16CodeUnits(latin1_bytes.len() as u32),
+            // SAFETY: These are the bytes of a UTF-8 string, so they can be interpreted as UTF-8.
+            EncodedBytes::Utf8(bytes) => Utf16CodeUnits::length_of(AssumeUnder4GB, unsafe {
+                str::from_utf8_unchecked(&bytes)
+            }),
         }
     }
 

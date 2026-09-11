@@ -346,7 +346,7 @@ impl InlineFormattingContextBuilder {
             let leading_whitespace_range = 0..first_letter_range.start;
             let leading_whitespace_selection_range = selection.and_then(|range| {
                 let leading_whitespace_range_u32 =
-                    RangeAny::new(None, Some(first_letter_range_u32.start));
+                    RangeAny::from_start_to(first_letter_range_u32.start);
                 range.intersect(leading_whitespace_range_u32)
             });
 
