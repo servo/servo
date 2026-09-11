@@ -15,7 +15,6 @@ use layout_api::ReflowStatistics;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
-use servo_base::text::Utf32CodeUnits;
 use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
 use servo_url::ServoUrl;
@@ -1353,7 +1352,7 @@ impl Fragment {
         let mut start_advance = None;
         let mut end_advance = None;
         for glyph_store in fragment.glyphs.iter() {
-            let glyph_store_character_count = Utf32CodeUnits(glyph_store.character_count());
+            let glyph_store_character_count = glyph_store.character_count();
             if current_character_index + glyph_store_character_count <
                 selection_character_range.start
             {
@@ -1372,7 +1371,7 @@ impl Fragment {
                     start_advance = start_advance.or(Some(current_advance));
                 }
 
-                current_character_index += Utf32CodeUnits(glyph.character_count());
+                current_character_index += glyph.character_count();
                 current_advance += glyph.advance();
                 if glyph.char_is_word_separator() {
                     current_advance += justification_adjustment;

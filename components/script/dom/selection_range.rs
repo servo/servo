@@ -27,8 +27,7 @@ impl SelectionBoundary {
 
 impl PartialEq<BoundaryPoint> for SelectionBoundary {
     fn eq(&self, boundary_point: &BoundaryPoint) -> bool {
-        *self.container == *boundary_point.node().get() &&
-            self.offset as usize == boundary_point.offset().0
+        *self.container == *boundary_point.node().get() && self.offset == boundary_point.offset().0
     }
 }
 

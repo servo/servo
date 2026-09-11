@@ -11,6 +11,7 @@
 
 pub mod cross_process_instant;
 pub mod generic_channel;
+#[macro_use]
 pub mod id;
 pub mod print_tree;
 mod rope;

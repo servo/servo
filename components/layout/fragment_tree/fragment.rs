@@ -542,7 +542,7 @@ impl TextFragment {
                     return Some(current_character);
                 }
                 current_offset += advance;
-                current_character += Utf32CodeUnits(glyph.character_count());
+                current_character += glyph.character_count();
             }
         }
 

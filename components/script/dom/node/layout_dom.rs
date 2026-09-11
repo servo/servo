@@ -274,11 +274,11 @@ impl<'dom> LayoutDom<'dom, Node> {
         let is_start_node = unsafe { range.start.container.to_layout() } == *self;
         let is_end_node = unsafe { range.end.container.to_layout() } == *self;
 
-        let start = is_start_node
-            .then(|| Utf16CodeUnits(range.start.offset as usize).to_utf32_code_units_in(&text));
-        let end = is_end_node
-            .then(|| Utf16CodeUnits(range.end.offset as usize).to_utf32_code_units_in(&text));
-        Some(RangeAny { start, end })
+        let start =
+            is_start_node.then(|| Utf16CodeUnits(range.start.offset).to_utf32_code_units_in(&text));
+        let end =
+            is_end_node.then(|| Utf16CodeUnits(range.end.offset).to_utf32_code_units_in(&text));
+        Some(RangeAny::new(start, end))
     }
 
     pub(crate) fn text_node_paints_caret(&self) -> bool {

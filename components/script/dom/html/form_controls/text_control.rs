@@ -63,8 +63,8 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
 
         // Step 2 : Set the selection range with 0 and infinity.
         self.set_range(
-            Some(Utf16CodeUnits::zero()),
-            Some(Utf16CodeUnits(usize::MAX)),
+            Some(Utf16CodeUnits(0)),
+            Some(Utf16CodeUnits(u32::MAX)),
             None,
             None,
         );
@@ -305,8 +305,6 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
                 let old_length = end.saturating_sub(start);
 
                 // Sub-step 2: Let delta be new length minus old length.
-                let delta = (new_length.0 as isize) - (old_length.0 as isize);
-
                 // Sub-step 3: If selection start is greater than end, then increment it
                 // by delta. (If delta is negative, i.e. the new text is shorter than the
                 // old text, then this will decrease the value of selection start.)
@@ -315,7 +313,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
                 // start. (This snaps the start of the selection to the start of the new
                 // text if it was in the middle of the text that it replaced.)
                 if selection_start > end {
-                    selection_start = Utf16CodeUnits::from((selection_start.0 as isize) + delta);
+                    selection_start = selection_start + new_length - old_length;
                 } else if selection_start > start {
                     selection_start = start;
                 }
@@ -327,7 +325,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
                 // end. (This snaps the end of the selection to the end of the new text if
                 // it was in the middle of the text that it replaced.)
                 if selection_end > end {
-                    selection_end = Utf16CodeUnits::from((selection_end.0 as isize) + delta);
+                    selection_end = selection_end + new_length - old_length;
                 } else if selection_end > start {
                     selection_end = new_end;
                 }
