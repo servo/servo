@@ -1295,3 +1295,66 @@ fn test_webview_title_updates_when_title_element_is_created_from_javascript() {
 
     assert_eq!(webview.page_title().as_deref(), Some("Success"));
 }
+
+#[test]
+fn test_webview_clear_history() {
+    let session_history_changed = Rc::new(Cell::new(false));
+    let entries = Rc::new(RefCell::new(vec![]));
+    struct MyDelegate {
+        session_history_changed: Rc<Cell<bool>>,
+        entries: Rc<RefCell<Vec<Url>>>,
+    }
+    impl WebViewDelegate for MyDelegate {
+        fn notify_history_changed(&self, _webview: WebView, entries: Vec<Url>, _current: usize) {
+            self.session_history_changed.set(true);
+            *self.entries.borrow_mut() = entries;
+        }
+    }
+
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(MyDelegate {
+        session_history_changed: session_history_changed.clone(),
+        entries: entries.clone(),
+    });
+
+    let url_1 = Url::parse("data:text/html,<body><title>Success</title></body>").unwrap();
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url_1)
+        .build();
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success".into()));
+    }
+    let second_url =
+        Url::parse("data:text/html,<script>document.title='Success2';</script>").unwrap();
+    webview.load(second_url.clone());
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success2".into()));
+    }
+
+    webview.load(Url::parse("data:text/html,<script>document.title='Success3';</script>").unwrap());
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success3".into()));
+    }
+
+    assert!(webview.can_go_back());
+
+    webview.go_back(1);
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success2".into()));
+    }
+
+    session_history_changed.set(false);
+    entries.borrow_mut().clear();
+    webview.clear_session_history();
+
+    servo_test.spin(move || !session_history_changed.get());
+
+    assert!(!webview.can_go_back());
+    assert!(!webview.can_go_forward());
+    assert_eq!(&*entries.borrow(), &vec![second_url]);
+}

@@ -1467,6 +1467,9 @@ where
             EmbedderToConstellationMessage::SetAccessibilityActive(webview_id, active) => {
                 self.set_accessibility_active(webview_id, active);
             },
+            EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
+                self.handle_clear_session_history(webview_id);
+            },
         }
     }
 
@@ -3199,6 +3202,15 @@ where
             ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active, epoch),
             "Set accessibility active after closure",
         );
+    }
+
+    fn handle_clear_session_history(&mut self, webview_id: WebViewId) {
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            return;
+        };
+        webview.session_history.future.clear();
+        webview.session_history.past.clear();
+        self.notify_history_changed(webview_id);
     }
 
     fn forward_input_event(
