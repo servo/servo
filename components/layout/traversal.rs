@@ -5,8 +5,7 @@
 use std::sync::Arc;
 
 use layout_api::{
-    AccessibilityDamage, DangerousStyleElement, DangerousStyleNode, LayoutDamage, LayoutElement,
-    LayoutNode,
+    DangerousStyleElement, DangerousStyleNode, LayoutDamage, LayoutElement, LayoutNode,
 };
 use script::layout_dom::ServoLayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
