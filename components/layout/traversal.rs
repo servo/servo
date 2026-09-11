@@ -156,17 +156,6 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_above_dirty_root<'dom>(
     let mut damage_for_parent = layout_damage;
     let mut maybe_parent_node = unsafe { dirty_root.dangerous_flat_tree_parent() };
     while let Some(parent_node) = maybe_parent_node {
-        if layout_context.accessibility_active {
-            let propagate =
-                damage_for_parent.contains(LayoutDamage::DescendantHasAccessibilityDamage);
-
-            if propagate && let Some(parent_element) = parent_node.as_element() {
-                let mut element_data = parent_element.element_data_mut();
-                element_data.damage.insert(RestyleDamage::from(
-                    AccessibilityDamage::DescendantHasDamageFromLayout,
-                ));
-            }
-        }
         let damage_set = ElementDamageSet {
             node: parent_node,
             from_parent: LayoutDamage::empty(),
@@ -238,19 +227,6 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root<'dom>(
         layout_roots,
     );
 
-    if layout_context.accessibility_active {
-        let descendant_has_accessibility_damage = damage_set
-            .from_children
-            .intersects(LayoutDamage::DescendantHasAccessibilityDamage);
-
-        if descendant_has_accessibility_damage {
-            let mut element_data = element.element_data_mut();
-            element_data.damage.insert(RestyleDamage::from(
-                AccessibilityDamage::DescendantHasDamageFromLayout,
-            ));
-        }
-    }
-
     // Apply the calculated damage to this element (perhaps triggering box tree layout),
     // and propagate resulting damage to ancestors.
     damage_set.apply_damage(layout_context, layout_roots)
@@ -269,6 +245,39 @@ enum BoxDamageAction<'a> {
 impl BoxDamageAction<'_> {
     fn rebuilds_box(&self) -> bool {
         matches!(self, Self::RebuildAncestor | Self::TryRebuild)
+    }
+
+    /// Compute the accessibility damage which should be written to this node, and the accessibility
+    /// damage which should be propagated to its parent, respectively.
+    fn accessibility_damage(&self, from_children: LayoutDamage) -> (LayoutDamage, LayoutDamage) {
+        dbg!(&from_children);
+        let accessibility_damage_from_children =
+            from_children.intersection(LayoutDamage::DescendantHasAccessibilityDamage);
+
+        match self {
+            // Box(es) for this node may be recomputed. Bounds will need to be recalculated, and
+            // any layout roots are further up the tree, so we need to propagate damage to the
+            // parent.
+            BoxDamageAction::TryRebuild |
+            BoxDamageAction::RebuildAncestor |
+            BoxDamageAction::InvalidateFragmentTreeBelowLayoutRoot => (
+                accessibility_damage_from_children | LayoutDamage::HasAccessibilityDamage,
+                LayoutDamage::DescendantHasAccessibilityDamage,
+            ),
+            // Box(es) for this node will be recomputed, so bounds will need to be recalculated.
+            // Since this is a layout root, we don't need to propagate damage up the tree, since it
+            // will be added to the accessibility damage map which will be passes to
+            // `update_tree()`.
+            BoxDamageAction::CollectLayoutRoot(_) => (
+                accessibility_damage_from_children | LayoutDamage::HasAccessibilityDamage,
+                LayoutDamage::empty(),
+            ),
+            // Boxes for this node won't be changed.
+            _ => (
+                accessibility_damage_from_children,
+                accessibility_damage_from_children,
+            ),
+        }
     }
 }
 
@@ -354,9 +363,6 @@ impl<'a> ElementDamageSet<'a> {
 
         let action = self.box_damage_action();
 
-        let accessibility_damage_for_parent =
-            self.record_accessibility_damage(layout_context.accessibility_active, &action);
-
         let invalidate_for_rebuild = || {
             self.node.unset_all_boxes();
 
@@ -369,6 +375,8 @@ impl<'a> ElementDamageSet<'a> {
         };
 
         let will_rebuild_box = action.rebuilds_box();
+        let (accessibility_damage_for_node, accessibility_damage_for_parent) =
+            action.accessibility_damage(self.from_children);
         let layout_damage_for_parent = match action {
             BoxDamageAction::TryRebuild => {
                 discard_any_descendant_layout_roots(layout_roots);
@@ -489,6 +497,16 @@ impl<'a> ElementDamageSet<'a> {
             self.node.repair_style(&layout_context.style_context);
         }
 
+        if layout_context.will_update_accessibility_tree &&
+            !accessibility_damage_for_node.is_empty() &&
+            let Some(element) = self.node.as_element()
+        {
+            element
+                .element_data_mut()
+                .damage
+                .insert(RestyleDamage::from(accessibility_damage_for_node));
+        }
+
         accessibility_damage_for_parent | layout_damage_for_parent
     }
 
@@ -552,60 +570,5 @@ impl<'a> ElementDamageSet<'a> {
             LayoutDamage::RecomputeInlineContentSizes,
             !self.on_element.is_empty() || children_need_inline_content_size_recalculation,
         );
-    }
-
-    /// If `accessibility_active` is true, write the appropriate damage for accessibility to this
-    /// element's `element_data.damage`, and return any accessibility-related damage to be
-    /// propagated to the parent, based on the value of `action`.
-    fn record_accessibility_damage(
-        &self,
-        accessibility_active: bool,
-        action: &BoxDamageAction,
-    ) -> LayoutDamage {
-        if !accessibility_active {
-            return LayoutDamage::empty();
-        }
-
-        let Some(element) = self.node.as_element() else {
-            return LayoutDamage::empty();
-        };
-
-        let (damage_for_node, damage_for_parent) = match action {
-            // Box(es) for this node may be recomputed. Bounds will need to be recalculated, and
-            // any layout roots are further up the tree, so we need to propagate damage to the
-            // parent.
-            BoxDamageAction::TryRebuild => (
-                AccessibilityDamage::Layout,
-                LayoutDamage::DescendantHasAccessibilityDamage,
-            ),
-            BoxDamageAction::RebuildAncestor => (
-                AccessibilityDamage::Layout,
-                LayoutDamage::DescendantHasAccessibilityDamage,
-            ),
-            BoxDamageAction::InvalidateFragmentTreeBelowLayoutRoot => (
-                AccessibilityDamage::Layout,
-                LayoutDamage::DescendantHasAccessibilityDamage,
-            ),
-            // Box(es) for this node will be recomputed, so bounds will need to be recalculated.
-            // Since this is a layout root, we don't need to propagate damage up the tree, since it
-            // will be added to the accessibility damage map which will be passes to
-            // `update_tree()`.
-            BoxDamageAction::CollectLayoutRoot(_) => {
-                (AccessibilityDamage::Layout, LayoutDamage::empty())
-            },
-            // Boxes for this node won't be changed.
-            BoxDamageAction::InvalidateFragmentTreeAboveLayoutRoot => {
-                (AccessibilityDamage::empty(), LayoutDamage::empty())
-            },
-            BoxDamageAction::InvalidateScrollableOverflow => {
-                (AccessibilityDamage::empty(), LayoutDamage::empty())
-            },
-            BoxDamageAction::None => (AccessibilityDamage::empty(), LayoutDamage::empty()),
-        };
-
-        let damage_for_node = RestyleDamage::from(damage_for_node);
-        element.element_data_mut().damage.insert(damage_for_node);
-
-        damage_for_parent
     }
 }
