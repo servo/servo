@@ -756,8 +756,8 @@ mod test {
 }
 
 impl ImageMetadata {
-    /// Cover both requested dimensions without enlarging the source. Round up so
-    /// integer rounding cannot undersample a narrow or unusually shaped image.
+    /// Calculate new dimentions so that the smallest axis matched required aspect ratio
+    /// also checks to not exceed source diminetions of the image
     pub fn fit_decode_size(self, target: Self) -> Self {
         if self.width == 0 || self.height == 0 {
             return self;
