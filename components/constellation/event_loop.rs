@@ -9,12 +9,14 @@
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangAlert};
 use embedder_traits::ScriptToEmbedderChan;
 use layout_api::ScriptThreadFactory;
 use log::error;
 use media::WindowGLContext;
+use pixels::image_encoder_decoder_factory::ImageEncoderDecoderFactory;
 use script_traits::{InitialScriptState, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender, SendError};
@@ -171,6 +173,7 @@ impl EventLoop {
                 opts: (*opts::get()).clone(),
                 prefs: Box::new(prefs::get().clone()),
                 broken_image_icon_data: constellation.broken_image_icon_data.clone(),
+                image_encoder_decoder_factory: constellation.image_encoder_decoder_factory.clone(),
             },
         ))?;
 
@@ -221,4 +224,5 @@ pub struct NewScriptEventLoopProcessInfo {
     pub prefs: Box<Preferences>,
     /// The broken image icon data that is used to create an image to show in place of broken images.
     pub broken_image_icon_data: Vec<u8>,
+    pub image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
