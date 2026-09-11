@@ -43,6 +43,8 @@ const SUPPORTED_IMAGE_MIME_TYPES: &[&str] = &[
     "image/vnd.microsoft.icon",
     "image/x-icon",
     "image/webp",
+    #[cfg(feature = "jxl")]
+    "image/jxl",
 ];
 
 /// <https://html.spec.whatwg.org/multipage/#source-set>

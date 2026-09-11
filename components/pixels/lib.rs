@@ -524,6 +524,13 @@ pub struct ImageMetadata {
     pub height: u32,
 }
 
+#[cfg(feature = "jxl")]
+fn ensure_jxl_hook_registered() {
+    static JXL_HOOK: std::sync::Once = std::sync::Once::new();
+    JXL_HOOK.call_once(|| {
+        jxl_image_rs_integration::register_image_decoding_hook();
+    });
+}
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
@@ -532,14 +539,32 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
         return None;
     }
 
+    #[cfg(feature = "jxl")]
+    ensure_jxl_hook_registered();
+
     let image_fmt_result = detect_image_format(buffer);
     match image_fmt_result {
+        #[cfg(feature = "jxl")]
+        Err("JXL") => {
+            // Plugins cannot use image::ImageFormat
+            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(None, buffer)
+            else {
+                return None;
+            };
+
+            if image_decoder.is_animated() {
+                decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
+            } else {
+                decoding::decode_static_image(cors_status, image_decoder.decoder())
+            }
+        },
         Err(msg) => {
             debug!("{}", msg);
             None
         },
         Ok(format) => {
-            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(format, buffer)
+            let Ok(image_decoder) =
+                decoding::DefaultImageDecoder::make_decoder(Some(format), buffer)
             else {
                 return None;
             };
@@ -567,6 +592,8 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
         Ok(ImageFormat::Bmp)
     } else if is_ico(buffer) {
         Ok(ImageFormat::Ico)
+    } else if is_jxl(buffer) {
+        Err("JXL")
     } else {
         Err("Image Format Not Supported")
     }
@@ -702,6 +729,13 @@ fn is_webp(buffer: &[u8]) -> bool {
     // > of the whole file is at most 4 GiB minus 2 bytes.
     let len: usize = u32::from_le_bytes(size) as usize;
     buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
+}
+
+fn is_jxl(buffer: &[u8]) -> bool {
+    buffer.starts_with(&[0xff, 0x0a]) ||
+        buffer.starts_with(&[
+            0x00, 0x00, 0x00, 0x0c, b'J', b'X', b'L', b' ', 0x0d, 0x0a, 0x87, 0x0a,
+        ])
 }
 
 #[cfg(test)]

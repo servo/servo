@@ -17,6 +17,7 @@ doctest = false
 
 [features]
 tracing = ["dep:tracing"]
+jxl = ["pixels/jxl"]
 
 [dependencies]
 accesskit = { workspace = true }

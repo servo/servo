@@ -13,9 +13,13 @@ description.workspace = true
 name = "pixels"
 path = "lib.rs"
 
+[features]
+jxl = ["dep:jxl-image-rs-integration"]
+
 [dependencies]
 euclid = { workspace = true }
 image = { workspace = true }
+jxl-image-rs-integration = { workspace = true, optional = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
