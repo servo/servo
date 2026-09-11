@@ -135,6 +135,7 @@ icu_properties = "2.1.0"
 icu_segmenter = "2.1.0"
 image = { version = "0.25", default-features = false, features = ["bmp", "gif", "ico", "jpeg", "png", "rayon", "webp"] }
 imsz = "0.4"
+jxl-image-rs-integration = "0.7.2"
 indexmap = { version = "2.14.0", features = ["std"] }
 inventory = "0.3.24"
 ipc-channel = "0.23"

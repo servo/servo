@@ -12,9 +12,11 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::time::Duration;
 
+
 use euclid::default::{Point2D, Rect, Size2D};
 use image::imageops::{self, FilterType};
 use image::{ImageBuffer, ImageFormat, Rgba};
+use jxl_image_rs_integration::JxlDecoder;
 use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -524,6 +526,12 @@ pub struct ImageMetadata {
     pub height: u32,
 }
 
+fn ensure_jxl_hook_registered() {
+    static JXL_HOOK: std::sync::Once = std::sync::Once::new();
+    JXL_HOOK.call_once(|| {
+        jxl_image_rs_integration::register_image_decoding_hook();
+    });
+}
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
@@ -532,8 +540,18 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
         return None;
     }
 
+    ensure_jxl_hook_registered();
     let image_fmt_result = detect_image_format(buffer);
     match image_fmt_result {
+        Err("JXL") => {
+            // Plugins cannot use image::ImageFormat
+            let decoder =
+                GenericImageDecoder::Jxl(Box::new(JxlDecoder::new(Cursor::new(buffer)).ok()?));
+            return match decoder {
+                GenericImageDecoder::Jxl(decoder) => decode_static_image(cors_status, *decoder),
+                _ => None,
+            };
+        },
         Err(msg) => {
             debug!("{}", msg);
             None
@@ -548,6 +566,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
                 decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
             } else {
                 decoding::decode_static_image(cors_status, image_decoder.decoder())
+
             }
         },
     }
@@ -567,6 +586,8 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
         Ok(ImageFormat::Bmp)
     } else if is_ico(buffer) {
         Ok(ImageFormat::Ico)
+    } else if is_jxl(buffer) {
+        Err("JXL")
     } else {
         Err("Image Format Not Supported")
     }
@@ -702,6 +723,14 @@ fn is_webp(buffer: &[u8]) -> bool {
     // > of the whole file is at most 4 GiB minus 2 bytes.
     let len: usize = u32::from_le_bytes(size) as usize;
     buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
+}
+
+
+fn is_jxl(buffer: &[u8]) -> bool {
+    buffer.starts_with(&[0xff, 0x0a]) ||
+        buffer.starts_with(&[
+            0x00, 0x00, 0x00, 0x0c, b'J', b'X', b'L', b' ', 0x0d, 0x0a, 0x87, 0x0a,
+        ])
 }
 
 #[cfg(test)]

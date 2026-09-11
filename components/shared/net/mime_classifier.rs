@@ -574,6 +574,8 @@ impl GroupedClassifier {
                 Box::new(ByteMatcher::image_webp()),
                 Box::new(ByteMatcher::image_png()),
                 Box::new(ByteMatcher::image_jpeg()),
+                Box::new(ByteMatcher::image_jxl_codestream()),
+                Box::new(ByteMatcher::image_jxl_container()),
             ],
         }
     }
@@ -737,6 +739,24 @@ impl ByteMatcher {
             pattern: b"\xFF\xD8\xFF",
             mask: b"\xFF\xFF\xFF",
             content_type: mime::IMAGE_JPEG,
+            leading_ignore: &[],
+        }
+    }
+    // A bare JPEG XL codestream signature.
+    fn image_jxl_codestream() -> ByteMatcher {
+        ByteMatcher {
+            pattern: b"\xFF\x0A",
+            mask: b"\xFF\xFF",
+            content_type: "image/jxl".parse().unwrap(),
+            leading_ignore: &[],
+        }
+    }
+    // A JPEG XL ISO BMFF container signature (`JXL ` brand).
+    fn image_jxl_container() -> ByteMatcher {
+        ByteMatcher {
+            pattern: b"\x00\x00\x00\x0CJXL \x0D\x0A\x87\x0A",
+            mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+            content_type: "image/jxl".parse().unwrap(),
             leading_ignore: &[],
         }
     }

@@ -48,11 +48,12 @@ default = ["default_without_allocator", "servo-allocator/use-jemalloc"]
 default_without_allocator = ["bundled", "default_web_features", "max_log_level", "js_jit"]
 # Default web features should be kept in sync with the list in servo/Cargo.toml.
 # We also need to enable our own features, since we also have `cfg` gated code here.
-default_web_features = ["servo/default_web_features", "gamepad", "webgpu", "webgl", "webxr"]
+default_web_features = ["servo/default_web_features", "gamepad", "webgpu", "webgl", "webxr", "jxl"]
 # Bundle required resources in the binary.
 bundled = ["servo/bundled"]
 
 ## Individual features below this line
+
 baked-in-resources = ["servo/baked-in-resources"]
 bundled_freetype = ["servo/bundled_freetype"]
 crown = ["servo/crown"]
@@ -61,6 +62,7 @@ gamepad = ["servo/gamepad"]
 jitspew = ["servo/jitspew"]
 js_backtrace = ["servo/js_backtrace"]
 js_jit = ["servo/js_jit"]
+jxl = ["servo/jxl"]
 max_log_level = ["log/release_max_level_info"]
 media-gstreamer = ["servo/media-gstreamer"]
 native-bluetooth = ["servo/native-bluetooth"]
