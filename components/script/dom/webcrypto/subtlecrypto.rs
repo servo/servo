@@ -2387,6 +2387,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             // Step 3.6. If the result of determining support from operation steps with op set to
             // "importKey" and normalizedAlgorithm set to normalizedAdditionalAlgorithm, and length
             // set to null is false, return false.
+            //
+            // NOTE: normalized_additional_algorithm is an ImportKeyAlgorithm value, so we don't
+            // need to explicitly set op to "importKey" when we call the
+            // determine_support_from_operation_steps method.
             if !normalized_additional_algorithm.determine_support_from_operation_steps(None) {
                 return false;
             }
