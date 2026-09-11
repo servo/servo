@@ -319,9 +319,6 @@ impl Utf16CodeUnits {
     }
 
     /// Convert this UTF-16 offset in an iterator of strings, to an UTF-8 (byte) offset
-    ///
-    /// Note: this silently wraps and returns an incorrect value for results larger than
-    /// `u32::MAX` bytes (4 GiB).
     pub fn to_utf8_code_units_in_iter<S>(
         self,
         _: AssumeUnder4GB,
