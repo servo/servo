@@ -92,9 +92,3 @@ impl From<RestyleDamage> for AccessibilityDamage {
         AccessibilityDamage::from_bits_retain(restyle_damage.bits())
     }
 }
-
-impl From<AccessibilityDamage> for RestyleDamage {
-    fn from(accessibility_damage: AccessibilityDamage) -> Self {
-        RestyleDamage::from_bits_retain(accessibility_damage.bits())
-    }
-}

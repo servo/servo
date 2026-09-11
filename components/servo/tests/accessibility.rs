@@ -1056,7 +1056,6 @@ fn test_accessibility_bounds_changed_by_sibling() {
 
     let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
     let update = &updates[0];
-    dbg!(update);
 
     let main = find_node_matching(&update, |&id, _node| id == main_id);
     let main_bounds = main.bounds().expect("main should have bounds after update");
