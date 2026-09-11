@@ -16,7 +16,6 @@ use std::time::Duration;
 use euclid::default::{Point2D, Rect, Size2D};
 use image::imageops::{self, FilterType};
 use image::{ImageBuffer, ImageFormat, Rgba};
-use jxl_image_rs_integration::JxlDecoder;
 use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -526,6 +525,7 @@ pub struct ImageMetadata {
     pub height: u32,
 }
 
+#[cfg(feature = "jxl")]
 fn ensure_jxl_hook_registered() {
     static JXL_HOOK: std::sync::Once = std::sync::Once::new();
     JXL_HOOK.call_once(|| {
@@ -540,24 +540,32 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
         return None;
     }
 
+    #[cfg(feature = "jxl")]
     ensure_jxl_hook_registered();
+
     let image_fmt_result = detect_image_format(buffer);
     match image_fmt_result {
+        #[cfg(feature = "jxl")]
         Err("JXL") => {
             // Plugins cannot use image::ImageFormat
-            let decoder =
-                GenericImageDecoder::Jxl(Box::new(JxlDecoder::new(Cursor::new(buffer)).ok()?));
-            return match decoder {
-                GenericImageDecoder::Jxl(decoder) => decode_static_image(cors_status, *decoder),
-                _ => None,
+            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(None, buffer)
+            else {
+                return None;
             };
+            
+            if image_decoder.is_animated() {
+                decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
+            } else {
+                decoding::decode_static_image(cors_status, image_decoder.decoder())
+
+            }
         },
         Err(msg) => {
             debug!("{}", msg);
             None
         },
         Ok(format) => {
-            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(format, buffer)
+            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(Some(format), buffer)
             else {
                 return None;
             };

@@ -15,10 +15,36 @@ use image::{
 };
 use log::debug;
 
+#[cfg(feature = "jxl")]
+use jxl_image_rs_integration::JxlDecoder;
+
 use crate::{
-    CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, Repeat,
-    rgba8_premultiply_inplace,
+    CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, Repeat, is_jxl, rgba8_premultiply_inplace,
 };
+
+// Dummy decoder to satisfy compiler and not have cfgs everywhere.
+// Code should never be reached
+#[cfg(not(feature = "jxl"))]
+#[derive(Debug)]
+pub struct JxlDecoder<R>(std::marker::PhantomData<R>);
+
+#[cfg(not(feature = "jxl"))]
+impl<R> JxlDecoder<R> {
+    pub fn new(_reader: R) -> Result<Self, image::ImageError> {
+        Err(image::ImageError::Unsupported(
+            image::error::ImageFormatHint::Name("jxl".into()).into()
+        ))
+    }
+}
+
+// Dummy stub implementation for ImageDecoder so match arms compile cleanly
+#[cfg(not(feature = "jxl"))]
+impl<R: std::io::Read> image::ImageDecoder for JxlDecoder<R> {
+    fn dimensions(&self) -> (u32, u32) { (0, 0) }
+    fn color_type(&self) -> image::ColorType { image::ColorType::Rgba8 }
+    fn read_image(self, _: &mut [u8]) -> image::ImageResult<()> { Ok(()) }
+    fn read_image_boxed(self: Box<Self>, _: &mut [u8]) -> image::ImageResult<()> { Ok(()) }
+}
 
 enum GenericImageDecoder<'a> {
     Apng(Box<png::ApngDecoder<Cursor<&'a [u8]>>>),
@@ -28,6 +54,7 @@ enum GenericImageDecoder<'a> {
     Jpeg(Box<jpeg::JpegDecoder<Cursor<&'a [u8]>>>),
     Bmp(Box<bmp::BmpDecoder<Cursor<&'a [u8]>>>),
     Ico(Box<ico::IcoDecoder<Cursor<&'a [u8]>>>),
+    Jxl(Box<JxlDecoder<Cursor<&'a [u8]>>>)
 }
 
 impl<'a> std::fmt::Debug for GenericImageDecoder<'a> {
@@ -40,6 +67,7 @@ impl<'a> std::fmt::Debug for GenericImageDecoder<'a> {
             Self::Jpeg(_) => f.debug_tuple("Jpeg").finish(),
             Self::Bmp(_) => f.debug_tuple("Bmp").finish(),
             Self::Ico(_) => f.debug_tuple("Ico").finish(),
+            Self::Jxl(_) => f.debug_tuple("Jxl").finish(),
         }
     }
 }
@@ -58,6 +86,7 @@ impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
             GenericImageDecoder::Jpeg(d) => d.dimensions(),
             GenericImageDecoder::Bmp(d) => d.dimensions(),
             GenericImageDecoder::Ico(d) => d.dimensions(),
+            GenericImageDecoder::Jxl(d) => d.dimensions(),
         }
     }
 
@@ -72,6 +101,7 @@ impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
             GenericImageDecoder::Jpeg(d) => d.color_type(),
             GenericImageDecoder::Bmp(d) => d.color_type(),
             GenericImageDecoder::Ico(d) => d.color_type(),
+            GenericImageDecoder::Jxl(d) => d.color_type(),
         }
     }
 
@@ -89,6 +119,7 @@ impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
             GenericImageDecoder::Jpeg(d) => d.read_image(buf),
             GenericImageDecoder::Bmp(d) => d.read_image(buf),
             GenericImageDecoder::Ico(d) => d.read_image(buf),
+            GenericImageDecoder::Jxl(d) => d.read_image(buf),
         }
     }
 
@@ -103,6 +134,7 @@ impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
             GenericImageDecoder::Jpeg(d) => d.read_image_boxed(buf),
             GenericImageDecoder::Bmp(d) => d.read_image_boxed(buf),
             GenericImageDecoder::Ico(d) => d.read_image_boxed(buf),
+            GenericImageDecoder::Jxl(d) => d.read_image_boxed(buf),
         }
     }
 
@@ -117,6 +149,7 @@ impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
             GenericImageDecoder::Jpeg(d) => d.icc_profile(),
             GenericImageDecoder::Bmp(d) => d.icc_profile(),
             GenericImageDecoder::Ico(d) => d.icc_profile(),
+            GenericImageDecoder::Jxl(d) => d.icc_profile(),
         }
     }
 
@@ -131,6 +164,7 @@ impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
             GenericImageDecoder::Jpeg(d) => d.exif_metadata(),
             GenericImageDecoder::Bmp(d) => d.exif_metadata(),
             GenericImageDecoder::Ico(d) => d.exif_metadata(),
+            GenericImageDecoder::Jxl(d) => d.exif_metadata(),
         }
     }
 
@@ -145,6 +179,7 @@ impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
             GenericImageDecoder::Jpeg(d) => d.xmp_metadata(),
             GenericImageDecoder::Bmp(d) => d.xmp_metadata(),
             GenericImageDecoder::Ico(d) => d.xmp_metadata(),
+            GenericImageDecoder::Jxl(d) => d.xmp_metadata(),
         }
     }
 
@@ -159,6 +194,7 @@ impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
             GenericImageDecoder::Jpeg(d) => d.iptc_metadata(),
             GenericImageDecoder::Bmp(d) => d.iptc_metadata(),
             GenericImageDecoder::Ico(d) => d.iptc_metadata(),
+            GenericImageDecoder::Jxl(d) => d.iptc_metadata(),
         }
     }
 }
@@ -193,7 +229,7 @@ pub(crate) struct DefaultImageDecoder<'a> {
 /// Main Image decoder trait.
 pub(crate) trait ServoImageDecoder<'a>: Sized + std::fmt::Debug {
     /// Create a decoder for a `format` from a `buffer`.
-    fn make_decoder(format: ImageFormat, buffer: &'a [u8]) -> ImageResult<Self>;
+    fn make_decoder(format: Option<ImageFormat>, buffer: &'a [u8]) -> ImageResult<Self>;
     fn is_animated(&self) -> bool;
     /// Return the created decoder in `impl ImageDecoder`
     fn decoder(self) -> impl ImageDecoder;
@@ -202,36 +238,40 @@ pub(crate) trait ServoImageDecoder<'a>: Sized + std::fmt::Debug {
 }
 
 impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
-    fn make_decoder(format: ImageFormat, buffer: &'a [u8]) -> ImageResult<Self> {
-        let reader = Cursor::new(buffer);
-        let decoder = match format {
-            ImageFormat::Png => {
-                let limits = Limits::default();
-                let png_decoder = png::PngDecoder::with_limits(reader, limits)?;
-                if png_decoder.is_apng().unwrap_or_default() {
-                    let decoder = png_decoder.apng()?;
-                    GenericImageDecoder::Apng(Box::new(decoder))
-                } else {
-                    GenericImageDecoder::Png(Box::new(png_decoder))
-                }
-            },
-            ImageFormat::Gif => GenericImageDecoder::Gif(Box::new(gif::GifDecoder::new(reader)?)),
-            ImageFormat::WebP => {
-                GenericImageDecoder::Webp(Box::new(webp::WebPDecoder::new(reader)?))
-            },
-            ImageFormat::Jpeg => {
-                GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?))
-            },
-            ImageFormat::Bmp => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
-            ImageFormat::Ico => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
-            _ => {
-                return Err(ImageError::Unsupported(
-                    ImageFormatHint::Exact(format).into(),
-                ));
-            },
-        };
-        Ok(DefaultImageDecoder { decoder })
-    }
+   fn make_decoder(format: Option<ImageFormat>, buffer: &'a [u8]) -> ImageResult<Self> {
+    let reader = Cursor::new(buffer);
+
+    let decoder = match format {
+        Some(ImageFormat::Png) => {
+            let limits = Limits::default();
+            let png_decoder = png::PngDecoder::with_limits(reader, limits)?;
+            if png_decoder.is_apng().unwrap_or_default() {
+                let decoder = png_decoder.apng()?;
+                GenericImageDecoder::Apng(Box::new(decoder))
+            } else {
+                GenericImageDecoder::Png(Box::new(png_decoder))
+            }
+        }
+        Some(ImageFormat::Gif) => GenericImageDecoder::Gif(Box::new(gif::GifDecoder::new(reader)?)),
+        Some(ImageFormat::WebP) => GenericImageDecoder::Webp(Box::new(webp::WebPDecoder::new(reader)?)),
+        Some(ImageFormat::Jpeg) => GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?)),
+        Some(ImageFormat::Bmp) => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
+        Some(ImageFormat::Ico) => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
+        Some(fmt) =>  {
+            return Err(ImageError::Unsupported(ImageFormatHint::Exact(fmt).into()))
+        }
+        None => {
+            if is_jxl(buffer) {
+                GenericImageDecoder::Jxl(Box::new(JxlDecoder::new(reader)?))
+            } else {
+                return Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()))
+            }
+        }
+    };
+
+    Ok(DefaultImageDecoder { decoder })
+}
+
 
     fn is_animated(&self) -> bool {
         match &self.decoder {
@@ -240,6 +280,7 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
             GenericImageDecoder::Png(_) |
             GenericImageDecoder::Jpeg(_) |
             GenericImageDecoder::Bmp(_) |
+            GenericImageDecoder::Jxl(_) |
             GenericImageDecoder::Ico(_) => false,
         }
     }
@@ -281,6 +322,7 @@ pub(crate) fn decode_static_image(
         width: rgba.width(),
         height: rgba.height(),
     };
+    debug!("jxl stuff width height is {}x{}", frame.width, frame.height );
     Some(RasterImage {
         metadata: ImageMetadata {
             width: rgba.width(),

@@ -792,9 +792,18 @@ fn try_to_parse_image_data_url(string: &str) -> Option<Url> {
 
     // TODO: Find a better way to test for supported image formats. Currently this type of check is
     // repeated several places in Servo, but should be centralized somehow.
+    #[cfg(feature = "jxl")]
     if !matches!(
         mime_type.subtype.as_str(),
         "png" | "jpeg" | "gif" | "webp" | "bmp" | "ico" | "jxl"
+    ) {
+        return None;
+    }
+
+    #[cfg(not(feature = "jxl"))]
+    if !matches!(
+        mime_type.subtype.as_str(),
+        "png" | "jpeg" | "gif" | "webp" | "bmp" | "ico" 
     ) {
         return None;
     }
