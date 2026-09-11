@@ -10,6 +10,7 @@ use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_base::id::TEST_PIPELINE_ID;
+use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
 use tokio::sync::mpsc::unbounded_channel as unbounded;
 
@@ -224,4 +225,127 @@ async fn test_stale_while_revalidate_not_used_when_request_demands_revalidation(
         },
         "a no-cache request must trigger synchronous validation, not background revalidation"
     );
+}
+
+#[tokio::test]
+async fn http_cache_get_items() {
+    servo_config::prefs::set(Preferences {
+        network_http_cache_size: 4,
+        ..Default::default()
+    });
+    let cache = HttpCache::new(HttpCacheAssignment::Public);
+    let url = ServoUrl::parse(&format!("https://www.servo.org/really_long_request")).unwrap();
+    let request = RequestBuilder::new(
+        None,
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .pipeline_id(Some(TEST_PIPELINE_ID))
+    .origin(url.origin())
+    .build();
+    let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
+    let mut response = Response::new(url, timing);
+    response
+        .headers
+        .insert(CACHE_CONTROL, HeaderValue::from_static("max-age=36000"));
+    *response.body.lock() = ResponseBody::Done(vec![1, 2, 3]);
+    cache.store(&request, &response).await;
+
+    let cache_result = cache.construct_response(&request, &mut None).await;
+
+    assert!(cache_result.is_some());
+    let cache_result = cache_result.unwrap();
+    assert_eq!(
+        &*cache_result.body.lock(),
+        &ResponseBody::Done(vec![1, 2, 3])
+    );
+}
+
+#[tokio::test]
+async fn http_cache_size() {
+    servo_config::prefs::set(Preferences {
+        network_http_cache_size: 4,
+        ..Default::default()
+    });
+    let cache = HttpCache::new(HttpCacheAssignment::Public);
+
+    // Fill requests that are not done
+    for i in 0..4 {
+        let url = ServoUrl::parse(&format!("https://www.servo.org/{i}")).unwrap();
+        let request = RequestBuilder::new(
+            None,
+            UrlWithBlobClaim::new(url.clone(), None),
+            Referrer::NoReferrer,
+        )
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .origin(url.origin())
+        .build();
+        let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
+        let mut response = Response::new(url, timing);
+        response
+            .headers
+            .insert(CACHE_CONTROL, HeaderValue::from_static("max-age=36000"));
+        *response.body.lock() = ResponseBody::Done(vec![1, 2, 3]);
+
+        cache.store(&request, &response).await;
+    }
+
+    assert_eq!(cache.len(), 4);
+}
+
+#[tokio::test]
+async fn http_cache_do_not_evict_unfinished_requests() {
+    servo_config::prefs::set(Preferences {
+        network_http_cache_size: 4,
+        ..Default::default()
+    });
+    let cache = HttpCache::new(HttpCacheAssignment::Public);
+
+    // Store a not yet finished request
+    let not_finished_request = {
+        let url = ServoUrl::parse(&format!("https://www.servo.org/really_long_request")).unwrap();
+        let request = RequestBuilder::new(
+            None,
+            UrlWithBlobClaim::new(url.clone(), None),
+            Referrer::NoReferrer,
+        )
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .origin(url.origin())
+        .build();
+        let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
+        let mut response = Response::new(url, timing);
+        response
+            .headers
+            .insert(CACHE_CONTROL, HeaderValue::from_static("max-age=36000"));
+        *response.body.lock() = ResponseBody::Receiving(vec![1, 2, 3]);
+        cache.store(&request, &response).await;
+        request
+    };
+
+    // Fill requests that are not done
+    for i in 0..12 {
+        let url = ServoUrl::parse(&format!("https://www.servo.org/{i}")).unwrap();
+        let request = RequestBuilder::new(
+            None,
+            UrlWithBlobClaim::new(url.clone(), None),
+            Referrer::NoReferrer,
+        )
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .origin(url.origin())
+        .build();
+        let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
+        let mut response = Response::new(url, timing);
+        response
+            .headers
+            .insert(CACHE_CONTROL, HeaderValue::from_static("max-age=36000"));
+        *response.body.lock() = ResponseBody::Done(vec![1, 2, 3]);
+
+        cache.store(&request, &response).await;
+    }
+
+    let result = cache
+        .construct_response(&not_finished_request, &mut None)
+        .await;
+    println!("cache {:?}", cache);
+    assert!(result.is_some());
 }
