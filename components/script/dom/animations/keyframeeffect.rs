@@ -268,21 +268,25 @@ fn process_a_keyframes_argument(
     rooted!(&in(cx) let iterable = ObjectValue(keyframes));
     let mut keyframes = Vec::new();
     let result = for_of(cx, iterable.handle(), |cx, iterator_element| {
+        // Step 5.3.4 Let nextItem be IteratorValue(next).
+        // Step 5.3.5 Check the completion record of nextItem.
+        // Note: This happens inside the "for_of" call.
+
         // Step 5.3.6 If Type(nextItem) is not Undefined, Null or Object, then throw a TypeError
         // and abort these steps.
-        //
-        // Note: nextItem is later passed to "process a keyframe like object" which cannot handle undefined
-        // or null values. This seems to be a bug in the specification which is tracked by
-        // https://github.com/w3c/csswg-drafts/issues/14113
-        if !iterator_element.is_object() {
+        if !iterator_element.is_null_or_undefined() && !iterator_element.is_object() {
             return Err(ForOfIterationFailure::Other(Error::Type(
-                c"Keyframe must be an object".to_owned(),
+                c"Keyframe must be an object, null or undefined".to_owned(),
             )));
         }
 
         // Step 5.3.7 Append to processed keyframes the result of running the procedure to process a
         // keyframe-like object passing nextItem as the keyframe input with the allow lists flag set to false.
-        keyframes.push(keyframe_from_value(cx, document, iterator_element)?);
+        keyframes.push(process_a_keyframe_like_object(
+            cx,
+            document,
+            iterator_element,
+        )?);
 
         Ok(ControlFlow::Continue(()))
     });
@@ -316,33 +320,11 @@ struct KeyframePropertyDeclaration {
     block: PropertyDeclarationBlock,
 }
 
-/// Step 5 (for iterable keyframes) of <https://drafts.csswg.org/web-animations-1/#process-a-keyframes-argument>.
-fn keyframe_from_value(
-    cx: &mut JSContext,
-    document: &Document,
-    value: HandleValue<'_>,
-) -> Fallible<Keyframe> {
-    // Step 3.4 Let nextItem be IteratorValue(next).
-    // NOTE: This is "current_value"
-    // Step 3.5 Check the completion record of nextItem.
-
-    // Step 3.6 If Type(nextItem) is not Undefined, Null or Object,
-    // then throw a TypeError and abort these steps.
-    if !value.is_null_or_undefined() && !value.is_object() {
-        return Err(Error::Type(c"Invalid keyframe value".to_owned()));
-    }
-
-    // Step 3.7 Append to processed keyframes the result of running the procedure to process
-    // a keyframe-like object passing nextItem as the keyframe input with the allow lists
-    // flag set to false.
-    process_a_keyframe_like_object(cx, document, value)
-}
-
 /// <https://drafts.csswg.org/web-animations-1/#process-a-keyframe-like-object>
 fn process_a_keyframe_like_object(
     cx: &mut JSContext,
     document: &Document,
-    value: HandleValue,
+    keyframe_input: HandleValue,
 ) -> Fallible<Keyframe> {
     // Step 1. Run the procedure to convert an ECMAScript value to a dictionary type [WEBIDL] with keyframe input
     // as the ECMAScript value, and the dictionary type depending on the value of the allow lists flag as follows:
@@ -368,14 +350,25 @@ fn process_a_keyframe_like_object(
     //
     // Note: 'allow lists' is currently never true.
     // Use the following dictionary type:
-    let Ok(keyframe_output) = BaseKeyframe::from_jsval(cx, value, ()) else {
+    let Ok(keyframe_output) = BaseKeyframe::from_jsval(cx, keyframe_input, ()) else {
         return Err(Error::JSFailed);
     };
     let ConversionResult::Success(keyframe_output) = keyframe_output else {
         return Err(Error::Operation(None));
     };
+    let mut keyframe_output = Keyframe {
+        offset: keyframe_output.offset,
+        easing_function: keyframe_output.easing,
+        composite: keyframe_output.composite,
+        declarations: Vec::new(),
+    };
 
-    // From Step 2 onwards our implementation diverges from the specification. The spec
+    // Step 2. If keyframe input is null or undefined, return keyframe output.
+    if keyframe_input.is_null_or_undefined() {
+        return Ok(keyframe_output);
+    }
+
+    // From Step 3 onwards our implementation diverges from the specification. The spec
     // wants us to build a list of animatable CSS properties and a list of properties on
     // the object, then compute the union between the two.
     //
@@ -388,18 +381,13 @@ fn process_a_keyframe_like_object(
         ParsingMode::DEFAULT,
         &urlextradata,
     );
-    rooted!(&in(cx) let object = value.to_object());
+    rooted!(&in(cx) let object = keyframe_input.to_object());
 
     // Steps 2 - 6 are in get_property_declarations
-    let declarations = get_property_declarations(cx, object.handle(), &parser_context)?;
+    keyframe_output.declarations = get_property_declarations(cx, object.handle(), &parser_context)?;
 
     // Step 7. Return keyframe output.
-    Ok(Keyframe {
-        offset: keyframe_output.offset,
-        easing_function: keyframe_output.easing,
-        composite: keyframe_output.composite,
-        declarations,
-    })
+    Ok(keyframe_output)
 }
 
 /// Implements Step 2-6 of  <https://drafts.csswg.org/web-animations-1/#process-a-keyframe-like-object>.
