@@ -113,7 +113,7 @@ pub(crate) fn process_box_area_request(
             .iter()
             .filter(|fragment| {
                 inclusion.contains(BoxAreaInclusion::Inlines) ||
-                    !fragment
+                    fragment
                         .retrieve_box_fragment()
                         .is_none_or(|fragment| !fragment.with_style().is_inline_box())
             })
