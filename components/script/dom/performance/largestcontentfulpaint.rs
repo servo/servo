@@ -41,6 +41,7 @@ impl LargestContentfulPaint {
     pub(crate) fn new_inherited(
         candidate: &LCPCandidate,
         element: Option<&Element>,
+        load_time: Option<CrossProcessInstant>,
         paint_timing_info: PaintTimingInfo,
     ) -> LargestContentfulPaint {
         // From: <https://www.w3.org/TR/largest-contentful-paint/#sec-largest-contentful-paint-interface>
@@ -55,7 +56,7 @@ impl LargestContentfulPaint {
                 Some(render_time),
                 Duration::ZERO,
             ),
-            load_time: None,
+            load_time,
             render_time,
             size: candidate.area,
             url: candidate
@@ -73,6 +74,7 @@ impl LargestContentfulPaint {
         global: &GlobalScope,
         candidate: &LCPCandidate,
         element: Option<&Element>,
+        load_time: Option<CrossProcessInstant>,
         paint_timing_info: PaintTimingInfo,
     ) -> DomRoot<LargestContentfulPaint> {
         reflect_dom_object(
@@ -80,6 +82,7 @@ impl LargestContentfulPaint {
             Box::new(LargestContentfulPaint::new_inherited(
                 candidate,
                 element,
+                load_time,
                 paint_timing_info,
             )),
             global,

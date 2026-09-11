@@ -25,6 +25,7 @@ use net_traits::{
 use num_traits::ToPrimitive;
 use pixels::{CorsStatus, ImageMetadata, Snapshot};
 use script_bindings::cell::DomRefCell;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -105,6 +106,9 @@ struct ImageRequest {
     metadata: Option<ImageMetadata>,
     #[no_trace]
     final_url: Option<ServoUrl>,
+    /// The time the image became completely available, if it has.
+    #[no_trace]
+    load_time: Option<CrossProcessInstant>,
     current_pixel_density: Option<f64>,
 }
 
@@ -151,6 +155,11 @@ impl HTMLImageElement {
 
     pub(crate) fn image_data(&self) -> Option<Image> {
         self.current_request.borrow().image.clone()
+    }
+
+    /// The time the image became completely available, if it has.
+    pub(crate) fn load_time(&self) -> Option<CrossProcessInstant> {
+        self.current_request.borrow().load_time
     }
 
     /// Gets the copy of the raster image data.
@@ -409,6 +418,7 @@ impl HTMLImageElement {
             current_request.final_url = Some(url);
             current_request.image = Some(image);
             current_request.state = State::CompletelyAvailable;
+            current_request.load_time = Some(CrossProcessInstant::now());
         }
 
         self.pending_request.borrow_mut().take();
@@ -1268,6 +1278,7 @@ impl HTMLImageElement {
                 metadata: None,
                 blocker: DomRefCell::new(None),
                 final_url: None,
+                load_time: None,
                 current_pixel_density: None,
             }),
             pending_request: DomRefCell::new(None),
