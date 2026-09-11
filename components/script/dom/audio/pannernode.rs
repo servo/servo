@@ -43,10 +43,8 @@ pub(crate) struct PannerNode {
     orientation_x: Dom<AudioParam>,
     orientation_y: Dom<AudioParam>,
     orientation_z: Dom<AudioParam>,
-    #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     panning_model: Cell<PanningModel>,
-    #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     distance_model: Cell<DistanceModel>,
     ref_distance: Cell<f64>,

@@ -133,10 +133,7 @@ enum FrameStatus {
 }
 
 #[derive(MallocSizeOf)]
-struct FrameHolder(
-    FrameStatus,
-    #[ignore_malloc_size_of = "defined in servo-media"] VideoFrame,
-);
+struct FrameHolder(FrameStatus, VideoFrame);
 
 impl FrameHolder {
     fn new(frame: VideoFrame) -> FrameHolder {
