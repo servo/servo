@@ -12,7 +12,6 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::time::Duration;
 
-
 use euclid::default::{Point2D, Rect, Size2D};
 use image::imageops::{self, FilterType};
 use image::{ImageBuffer, ImageFormat, Rgba};
@@ -552,12 +551,11 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
             else {
                 return None;
             };
-            
+
             if image_decoder.is_animated() {
                 decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
             } else {
                 decoding::decode_static_image(cors_status, image_decoder.decoder())
-
             }
         },
         Err(msg) => {
@@ -565,7 +563,8 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
             None
         },
         Ok(format) => {
-            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(Some(format), buffer)
+            let Ok(image_decoder) =
+                decoding::DefaultImageDecoder::make_decoder(Some(format), buffer)
             else {
                 return None;
             };
@@ -574,7 +573,6 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
                 decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
             } else {
                 decoding::decode_static_image(cors_status, image_decoder.decoder())
-
             }
         },
     }
@@ -732,7 +730,6 @@ fn is_webp(buffer: &[u8]) -> bool {
     let len: usize = u32::from_le_bytes(size) as usize;
     buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
 }
-
 
 fn is_jxl(buffer: &[u8]) -> bool {
     buffer.starts_with(&[0xff, 0x0a]) ||

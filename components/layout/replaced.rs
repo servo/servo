@@ -803,7 +803,7 @@ fn try_to_parse_image_data_url(string: &str) -> Option<Url> {
     #[cfg(not(feature = "jxl"))]
     if !matches!(
         mime_type.subtype.as_str(),
-        "png" | "jpeg" | "gif" | "webp" | "bmp" | "ico" 
+        "png" | "jpeg" | "gif" | "webp" | "bmp" | "ico"
     ) {
         return None;
     }

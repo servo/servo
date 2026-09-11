@@ -13,13 +13,13 @@ use image::metadata::LoopCount;
 use image::{
     AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat, ImageResult, Limits,
 };
-use log::debug;
-
 #[cfg(feature = "jxl")]
 use jxl_image_rs_integration::JxlDecoder;
+use log::debug;
 
 use crate::{
-    CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, Repeat, is_jxl, rgba8_premultiply_inplace,
+    CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, Repeat, is_jxl,
+    rgba8_premultiply_inplace,
 };
 
 // Dummy decoder to satisfy compiler and not have cfgs everywhere.
@@ -32,7 +32,7 @@ pub struct JxlDecoder<R>(std::marker::PhantomData<R>);
 impl<R> JxlDecoder<R> {
     pub fn new(_reader: R) -> Result<Self, image::ImageError> {
         Err(image::ImageError::Unsupported(
-            image::error::ImageFormatHint::Name("jxl".into()).into()
+            image::error::ImageFormatHint::Name("jxl".into()).into(),
         ))
     }
 }
@@ -40,10 +40,18 @@ impl<R> JxlDecoder<R> {
 // Dummy stub implementation for ImageDecoder so match arms compile cleanly
 #[cfg(not(feature = "jxl"))]
 impl<R: std::io::Read> image::ImageDecoder for JxlDecoder<R> {
-    fn dimensions(&self) -> (u32, u32) { (0, 0) }
-    fn color_type(&self) -> image::ColorType { image::ColorType::Rgba8 }
-    fn read_image(self, _: &mut [u8]) -> image::ImageResult<()> { Ok(()) }
-    fn read_image_boxed(self: Box<Self>, _: &mut [u8]) -> image::ImageResult<()> { Ok(()) }
+    fn dimensions(&self) -> (u32, u32) {
+        (0, 0)
+    }
+    fn color_type(&self) -> image::ColorType {
+        image::ColorType::Rgba8
+    }
+    fn read_image(self, _: &mut [u8]) -> image::ImageResult<()> {
+        Ok(())
+    }
+    fn read_image_boxed(self: Box<Self>, _: &mut [u8]) -> image::ImageResult<()> {
+        Ok(())
+    }
 }
 
 enum GenericImageDecoder<'a> {
@@ -54,7 +62,7 @@ enum GenericImageDecoder<'a> {
     Jpeg(Box<jpeg::JpegDecoder<Cursor<&'a [u8]>>>),
     Bmp(Box<bmp::BmpDecoder<Cursor<&'a [u8]>>>),
     Ico(Box<ico::IcoDecoder<Cursor<&'a [u8]>>>),
-    Jxl(Box<JxlDecoder<Cursor<&'a [u8]>>>)
+    Jxl(Box<JxlDecoder<Cursor<&'a [u8]>>>),
 }
 
 impl<'a> std::fmt::Debug for GenericImageDecoder<'a> {
@@ -238,40 +246,47 @@ pub(crate) trait ServoImageDecoder<'a>: Sized + std::fmt::Debug {
 }
 
 impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
-   fn make_decoder(format: Option<ImageFormat>, buffer: &'a [u8]) -> ImageResult<Self> {
-    let reader = Cursor::new(buffer);
+    fn make_decoder(format: Option<ImageFormat>, buffer: &'a [u8]) -> ImageResult<Self> {
+        let reader = Cursor::new(buffer);
 
-    let decoder = match format {
-        Some(ImageFormat::Png) => {
-            let limits = Limits::default();
-            let png_decoder = png::PngDecoder::with_limits(reader, limits)?;
-            if png_decoder.is_apng().unwrap_or_default() {
-                let decoder = png_decoder.apng()?;
-                GenericImageDecoder::Apng(Box::new(decoder))
-            } else {
-                GenericImageDecoder::Png(Box::new(png_decoder))
-            }
-        }
-        Some(ImageFormat::Gif) => GenericImageDecoder::Gif(Box::new(gif::GifDecoder::new(reader)?)),
-        Some(ImageFormat::WebP) => GenericImageDecoder::Webp(Box::new(webp::WebPDecoder::new(reader)?)),
-        Some(ImageFormat::Jpeg) => GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?)),
-        Some(ImageFormat::Bmp) => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
-        Some(ImageFormat::Ico) => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
-        Some(fmt) =>  {
-            return Err(ImageError::Unsupported(ImageFormatHint::Exact(fmt).into()))
-        }
-        None => {
-            if is_jxl(buffer) {
-                GenericImageDecoder::Jxl(Box::new(JxlDecoder::new(reader)?))
-            } else {
-                return Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()))
-            }
-        }
-    };
+        let decoder = match format {
+            Some(ImageFormat::Png) => {
+                let limits = Limits::default();
+                let png_decoder = png::PngDecoder::with_limits(reader, limits)?;
+                if png_decoder.is_apng().unwrap_or_default() {
+                    let decoder = png_decoder.apng()?;
+                    GenericImageDecoder::Apng(Box::new(decoder))
+                } else {
+                    GenericImageDecoder::Png(Box::new(png_decoder))
+                }
+            },
+            Some(ImageFormat::Gif) => {
+                GenericImageDecoder::Gif(Box::new(gif::GifDecoder::new(reader)?))
+            },
+            Some(ImageFormat::WebP) => {
+                GenericImageDecoder::Webp(Box::new(webp::WebPDecoder::new(reader)?))
+            },
+            Some(ImageFormat::Jpeg) => {
+                GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?))
+            },
+            Some(ImageFormat::Bmp) => {
+                GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?))
+            },
+            Some(ImageFormat::Ico) => {
+                GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?))
+            },
+            Some(fmt) => return Err(ImageError::Unsupported(ImageFormatHint::Exact(fmt).into())),
+            None => {
+                if is_jxl(buffer) {
+                    GenericImageDecoder::Jxl(Box::new(JxlDecoder::new(reader)?))
+                } else {
+                    return Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()));
+                }
+            },
+        };
 
-    Ok(DefaultImageDecoder { decoder })
-}
-
+        Ok(DefaultImageDecoder { decoder })
+    }
 
     fn is_animated(&self) -> bool {
         match &self.decoder {
@@ -322,7 +337,7 @@ pub(crate) fn decode_static_image(
         width: rgba.width(),
         height: rgba.height(),
     };
-    debug!("jxl stuff width height is {}x{}", frame.width, frame.height );
+    debug!("jxl stuff width height is {}x{}", frame.width, frame.height);
     Some(RasterImage {
         metadata: ImageMetadata {
             width: rgba.width(),
