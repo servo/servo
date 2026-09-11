@@ -32,7 +32,7 @@ test(function() {
   const instance = new TestBinding();
   assert_equals(descriptors[0].get.call(instance), descriptors[1].get.call(instance));
   assert_equals(descriptors[0].get.call(instance), descriptors[2].get.call(instance));
-  instance.stringAttributeAlias = "first alias";
-  instance.stringAttributeAlias2 = "second alias";
+  assert_equals(descriptors[1].set.call(instance, "first alias"), undefined);
+  assert_equals(descriptors[2].set.call(instance, "second alias"), undefined);
 }, "BindingAlias creates distinct accessors backed by the original attribute");
 </script>
