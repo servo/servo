@@ -25,7 +25,6 @@ use embedder_traits::{
 };
 use fonts::FontContext;
 use indexmap::IndexSet;
-use ipc_channel::router::ROUTER;
 use js::context::{JSContext, NoGC};
 use js::jsapi::{GetNonCCWObjectGlobal, HandleObject, Heap, JSObject};
 use js::jsval::UndefinedValue;
@@ -48,8 +47,8 @@ use net_traits::request::{
 };
 use net_traits::{CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads};
 use profile_traits::{
-    generic_channel as profile_generic_channel, ipc as profile_ipc, mem as profile_mem,
-    time as profile_time,
+    generic_callback as profile_generic_callback, generic_channel as profile_generic_channel,
+    mem as profile_mem, time as profile_time,
 };
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::callback::OwnerWindow;
@@ -2168,7 +2167,9 @@ impl GlobalScope {
                     }
 
                     let origin = self.origin().immutable().clone();
-                    let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
+                    let (tx, rx) =
+                        profile_generic_channel::channel(self.time_profiler_chan().clone())
+                            .unwrap();
 
                     let msg = FileManagerThreadMsg::ActivateBlobURL(f.get_id(), tx, origin);
                     self.send_to_file_manager(msg);
@@ -2204,7 +2205,13 @@ impl GlobalScope {
     }
 
     fn read_file(&self, id: Uuid) -> Result<Vec<u8>, ()> {
-        let recv = self.send_msg(id);
+        let (chan, recv) = profile_generic_callback::GenericCallback::new_blocking(
+            self.time_profiler_chan().clone(),
+        )
+        .expect("Couldn't create read_file callback");
+
+        self.send_msg(id, chan);
+
         GlobalScope::read_msg(recv)
     }
 
@@ -2228,8 +2235,6 @@ impl GlobalScope {
             UnderlyingSourceType::Blob(size),
         )?;
 
-        let recv = self.send_msg(file_id);
-
         let trusted_stream = Trusted::new(&*stream);
         let mut file_listener = FileListener {
             state: Some(FileListenerState::Empty(FileListenerTarget::Stream(
@@ -2238,12 +2243,15 @@ impl GlobalScope {
             task_source: self.task_manager().file_reading_task_source().into(),
         };
 
-        ROUTER.add_typed_route(
-            recv.to_ipc_receiver(),
-            Box::new(move |msg| {
+        let chan = profile_generic_callback::GenericCallback::new(
+            self.time_profiler_chan().clone(),
+            move |msg| {
                 file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
-            }),
-        );
+            },
+        )
+        .expect("Couldn't create get_blob_stream callback");
+
+        self.send_msg(file_id, chan);
 
         Ok(stream)
     }
@@ -2254,8 +2262,6 @@ impl GlobalScope {
         promise: Rc<Promise>,
         callback: FileListenerCallback,
     ) {
-        let recv = self.send_msg(id);
-
         let trusted_promise = TrustedPromise::new(promise);
         let mut file_listener = FileListener {
             state: Some(FileListenerState::Empty(FileListenerTarget::Promise(
@@ -2265,25 +2271,30 @@ impl GlobalScope {
             task_source: self.task_manager().file_reading_task_source().into(),
         };
 
-        ROUTER.add_typed_route(
-            recv.to_ipc_receiver(),
-            Box::new(move |msg| {
+        let chan = profile_generic_callback::GenericCallback::new(
+            self.time_profiler_chan().clone(),
+            move |msg| {
                 file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
-            }),
-        );
+            },
+        )
+        .expect("Couldn't create read_file_async callback");
+
+        self.send_msg(id, chan);
     }
 
-    fn send_msg(&self, id: Uuid) -> profile_ipc::IpcReceiver<FileManagerResult<ReadFileProgress>> {
+    fn send_msg(
+        &self,
+        id: Uuid,
+        chan: profile_generic_callback::GenericCallback<FileManagerResult<ReadFileProgress>>,
+    ) {
         let resource_threads = self.resource_threads();
-        let (chan, recv) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
         let origin = self.origin().immutable().clone();
         let msg = FileManagerThreadMsg::ReadFile(chan, id, origin);
         let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
-        recv
     }
 
     fn read_msg(
-        receiver: profile_ipc::IpcReceiver<FileManagerResult<ReadFileProgress>>,
+        receiver: generic_channel::GenericReceiver<FileManagerResult<ReadFileProgress>>,
     ) -> Result<Vec<u8>, ()> {
         let mut bytes = vec![];
 
