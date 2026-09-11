@@ -140,6 +140,10 @@ use crate::dom::document::accessibility_data::AccessibilityData;
 use crate::dom::document::animation_manager::AnimationManager;
 use crate::dom::document::focus::{DocumentFocusHandler, FocusableArea};
 use crate::dom::document::iframe_collection::IFrameCollection;
+use crate::dom::document::loading::document_loading_handler::{
+    DocumentLoadingHandler, TheEndLoadingPhase,
+};
+use crate::dom::document::loading::pending_script::PendingScript;
 use crate::dom::document::tree_ordered_index_map::TreeOrderedIndexMap;
 use crate::dom::document::websocket::WebSocket;
 use crate::dom::document_embedder_controls::DocumentEmbedderControls;
@@ -304,16 +308,6 @@ pub(crate) enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
-#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
-pub(crate) enum TheEndLoadingPhase {
-    #[default]
-    Initial,
-    ProcessingDeferredScripts,
-    ProcessingAsSoonAsPossibleScripts,
-    WaitingForLoadEventBlockers,
-    Done,
-}
-
 /// Information about a declarative refresh
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum DeclarativeRefresh {
@@ -421,6 +415,8 @@ pub(crate) struct Document {
     focus_handler: DocumentFocusHandler,
     /// A helper to handle showing and hiding user interface controls in the embedding layer.
     embedder_controls: DocumentEmbedderControls,
+    /// A helper used during the document loading process. Is `None` once the `load` event has fired
+    loading_handler: RefCell<Option<DocumentLoadingHandler>>,
     id_map: TreeOrderedIndexMap,
     name_map: TreeOrderedIndexMap,
     tag_map: DomRefCell<HashMapTracedValues<LocalName, Dom<HTMLCollection>, FxBuildHasher>>,
@@ -447,8 +443,6 @@ pub(crate) struct Document {
     ready_state: Cell<DocumentReadyState>,
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
-    #[no_trace]
-    current_the_end_loading_phase: Cell<TheEndLoadingPhase>,
     /// <https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script>
     pending_parsing_blocking_script: DomRefCell<Option<PendingScript>>,
     /// <https://html.spec.whatwg.org/multipage/#script-blocking-style-sheet-set>
@@ -457,12 +451,6 @@ pub(crate) struct Document {
     /// Number of elements that block the rendering of the page.
     /// <https://html.spec.whatwg.org/multipage/#implicitly-potentially-render-blocking>
     render_blocking_element_count: Cell<u32>,
-    /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing>
-    deferred_scripts: PendingInOrderScriptVec,
-    /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible>
-    asap_in_order_scripts_list: PendingInOrderScriptVec,
-    /// <https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible>
-    asap_scripts_set: DomRefCell<Vec<Dom<HTMLScriptElement>>>,
     /// <https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier>
     /// Current identifier of animation frame callback
     animation_frame_ident: Cell<u32>,
@@ -1500,6 +1488,7 @@ impl Document {
         }
 
         self.ready_state.set(DocumentReadyState::Loading);
+        self.initialize_loading_handler();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-current-document-readiness>
@@ -1521,7 +1510,9 @@ impl Document {
         // global object.
         // Note: Handled implicitly by update_with_current_instant.
         match state {
-            DocumentReadyState::Loading => {},
+            DocumentReadyState::Loading => {
+                self.initialize_loading_handler();
+            },
             DocumentReadyState::Complete => {
                 // This isn't part of the specification, but it's useful to have it here to
                 // avoid code duplication.
@@ -1832,6 +1823,26 @@ impl Document {
         self.script_blocking_stylesheet_set
             .borrow_mut()
             .shift_remove(&id);
+    }
+
+    pub(crate) fn loading_handler(&self) -> Ref<'_, Option<DocumentLoadingHandler>> {
+        self.loading_handler.borrow()
+    }
+
+    // TODO(47965): Remove once refactoring is completed
+    fn current_the_end_loading_phase(&self) -> TheEndLoadingPhase {
+        self.loading_handler()
+            .as_ref()
+            .map(|loading_handler| loading_handler.current_the_end_loading_phase())
+            .unwrap_or(TheEndLoadingPhase::Done)
+    }
+
+    // TODO(47965): Remove once refactoring is completed
+    fn set_current_the_end_loading_phase(&self, loading_phase: TheEndLoadingPhase) {
+        self.loading_handler()
+            .as_ref()
+            .expect("Must still be loading")
+            .set_current_the_end_loading_phase(loading_phase);
     }
 
     pub(crate) fn render_blocking_element_count(&self) -> u32 {
@@ -2191,7 +2202,9 @@ impl Document {
                 self.process_pending_parsing_blocking_script(cx);
 
                 // Step 3.
-                self.process_deferred_scripts(cx);
+                if let Some(loading_handler) = self.loading_handler().as_ref() {
+                    loading_handler.process_deferred_scripts(cx);
+                }
             },
             LoadType::PageSource(_) => {
                 // We finished loading the page, so if the `Window` is still waiting for
@@ -2204,7 +2217,9 @@ impl Document {
                 // this is the first opportunity to process them.
 
                 // Step 3.
-                self.process_deferred_scripts(cx);
+                if let Some(loading_handler) = self.loading_handler().as_ref() {
+                    loading_handler.process_deferred_scripts(cx);
+                }
             },
             _ => {},
         }
@@ -2399,6 +2414,14 @@ impl Document {
                 Duration::from_secs(*time),
             );
         }
+
+        // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
+        if self.url().as_str() != "about:srcdoc" {
+            // We have used all relevant information from this struct, hence we can now null it.
+            // This means that if a load-blocking element is reactivated (which can happen when
+            // a link element matches a media environment) will no longer incur any runtime cost.
+            *self.loading_handler.borrow_mut() = None;
+        }
     }
 
     /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
@@ -2516,13 +2539,13 @@ impl Document {
     }
 
     pub(crate) fn start_the_end_loading_phase(&self) {
+        // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
         if self.is_initial_about_blank() {
-            // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
-            self.current_the_end_loading_phase
-                .set(TheEndLoadingPhase::Done);
-        } else {
-            self.current_the_end_loading_phase
-                .set(TheEndLoadingPhase::ProcessingDeferredScripts);
+            // We are not loading anything in this document, so can be nullified again
+            *self.loading_handler.borrow_mut() = None;
+            // Could be `None` when we abort while handling load event
+        } else if let Some(loading_handler) = self.loading_handler().as_ref() {
+            loading_handler.start_the_end_loading_phase();
         }
     }
 
@@ -2545,20 +2568,19 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step 22.d.
     pub(crate) fn pending_parsing_blocking_script_loaded(
         &self,
+        cx: &mut JSContext,
         element: &HTMLScriptElement,
         result: ScriptResult,
-        cx: &mut JSContext,
     ) {
         {
             let mut blocking_script = self.pending_parsing_blocking_script.borrow_mut();
             let entry = blocking_script.as_mut().unwrap();
-            assert!(&*entry.element == element);
-            entry.loaded(result);
+            entry.loaded(element, result);
         }
         self.process_pending_parsing_blocking_script(cx);
     }
 
-    fn process_pending_parsing_blocking_script(&self, cx: &mut JSContext) {
+    pub(crate) fn process_pending_parsing_blocking_script(&self, cx: &mut JSContext) {
         if self.has_a_stylesheet_that_is_blocking_scripts() {
             return;
         }
@@ -2575,108 +2597,8 @@ impl Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
-    pub(crate) fn add_asap_script(&self, script: &HTMLScriptElement) {
-        self.asap_scripts_set
-            .borrow_mut()
-            .push(Dom::from_ref(script));
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#the-end> step 5.
-    /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step 22.d.
-    pub(crate) fn asap_script_loaded(
-        &self,
-        cx: &mut JSContext,
-        element: &HTMLScriptElement,
-        result: ScriptResult,
-    ) {
-        {
-            let mut scripts = self.asap_scripts_set.borrow_mut();
-            let idx = scripts
-                .iter()
-                .position(|entry| &**entry == element)
-                .unwrap();
-            scripts.swap_remove(idx);
-        }
-        element.execute(cx, result);
-        self.wait_until_asap_scripts_have_executed();
-    }
-
-    // https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
-    pub(crate) fn push_asap_in_order_script(&self, script: &HTMLScriptElement) {
-        self.asap_in_order_scripts_list.push(script);
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#the-end> step 5.
-    /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step> 22.c.
-    pub(crate) fn asap_in_order_script_loaded(
-        &self,
-        cx: &mut JSContext,
-        element: &HTMLScriptElement,
-        result: ScriptResult,
-    ) {
-        self.asap_in_order_scripts_list.loaded(element, result);
-        while let Some((element, result)) = self
-            .asap_in_order_scripts_list
-            .take_next_ready_to_be_executed()
-        {
-            element.execute(cx, result);
-        }
-
-        self.wait_until_asap_scripts_have_executed();
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing>
-    pub(crate) fn add_deferred_script(&self, script: &HTMLScriptElement) {
-        self.deferred_scripts.push(script);
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#the-end> step 3.
-    /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step 22.d.
-    pub(crate) fn deferred_script_loaded(
-        &self,
-        cx: &mut JSContext,
-        element: &HTMLScriptElement,
-        result: ScriptResult,
-    ) {
-        self.deferred_scripts.loaded(element, result);
-        self.process_deferred_scripts(cx);
-    }
-
-    /// Step 5 of <https://html.spec.whatwg.org/multipage/#the-end>
-    fn process_deferred_scripts(&self, cx: &mut JSContext) {
-        if self.current_the_end_loading_phase.get() != TheEndLoadingPhase::ProcessingDeferredScripts
-        {
-            return;
-        }
-
-        // Step 5.1. Spin the event loop until the first script in the list of scripts that will execute when the
-        // document has finished parsing has its ready to be parser-executed set to true and the parser's Document
-        // has no style sheet that is blocking scripts.
-        loop {
-            if self.has_a_stylesheet_that_is_blocking_scripts() {
-                return;
-            }
-            // Step 5.3. Remove the first script element from the list of scripts that will execute when the
-            // document has finished parsing (i.e. shift out the first entry in the list).
-            if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed()
-            {
-                // Step 5.2. Execute the script element given by the first script in the list of scripts that will execute when the document has finished parsing.
-                element.execute(cx, result);
-            } else {
-                break;
-            }
-        }
-        // Step 5. While the list of scripts that will execute when the document has finished parsing is not empty:
-        if self.deferred_scripts.is_empty() {
-            self.current_the_end_loading_phase
-                .set(TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts);
-            self.dispatch_dom_content_loaded();
-        }
-    }
-
     /// Step 6 of <https://html.spec.whatwg.org/multipage/#the-end>
-    fn dispatch_dom_content_loaded(&self) {
+    pub(crate) fn dispatch_dom_content_loaded(&self) {
         assert_ne!(
             self.ReadyState(),
             DocumentReadyState::Complete,
@@ -2714,52 +2636,16 @@ impl Document {
             .borrow()
             .maybe_set_tti(InteractiveFlag::DOMContentLoaded);
 
-        self.wait_until_asap_scripts_have_executed();
-    }
-
-    fn has_finished_all_asap_scripts(&self) -> bool {
-        self.asap_scripts_set.borrow().is_empty() && self.asap_in_order_scripts_list.is_empty()
-    }
-
-    /// Step 7 of <https://html.spec.whatwg.org/multipage/#the-end>
-    fn wait_until_asap_scripts_have_executed(&self) {
-        if self.current_the_end_loading_phase.get() !=
-            TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts
-        {
-            return;
-        }
-        // Step 7. Spin the event loop until the set of scripts that will execute as soon as possible
-        // and the list of scripts that will execute in order as soon as possible are empty.
-        if self.has_finished_all_asap_scripts() {
-            let document = Trusted::new(self);
-            self.owner_global()
-                .task_manager()
-                .dom_manipulation_task_source()
-                .queue(task!(transition_away_from_asap_scripts: move |cx| {
-                    let document = document.root();
-                    // Ensure that if this task is fired multiple times, we only progress the
-                    // end of loading phase once.
-                    if document.current_the_end_loading_phase.get() !=
-                        TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts
-                    {
-                        return;
-                    }
-                    // Check again if we still fulfil the goal
-                    if !document.has_finished_all_asap_scripts() {
-                        return;
-                    }
-                    document.current_the_end_loading_phase
-                        .set(TheEndLoadingPhase::WaitingForLoadEventBlockers);
-                    document.wait_until_load_blockers_have_resolved(cx);
-                }));
-        }
+        self.loading_handler
+            .borrow()
+            .as_ref()
+            .expect("Must always still be loading")
+            .wait_until_asap_scripts_have_executed();
     }
 
     /// Step 8 of <https://html.spec.whatwg.org/multipage/#the-end>
     pub(crate) fn wait_until_load_blockers_have_resolved(&self, cx: &mut JSContext) {
-        if self.current_the_end_loading_phase.get() !=
-            TheEndLoadingPhase::WaitingForLoadEventBlockers
-        {
+        if self.current_the_end_loading_phase() != TheEndLoadingPhase::WaitingForLoadEventBlockers {
             return;
         }
         // Step 8. Spin the event loop until there is nothing that delays the load event in the Document.
@@ -2783,8 +2669,7 @@ impl Document {
             }
         }
 
-        self.current_the_end_loading_phase
-            .set(TheEndLoadingPhase::Done);
+        self.set_current_the_end_loading_phase(TheEndLoadingPhase::Done);
         self.queue_document_completion(cx);
     }
 
@@ -2890,11 +2775,8 @@ impl Document {
         // from the network for them. If this resulted in any instances of the fetch algorithm
         // being canceled or any queued tasks or any network data getting discarded,
         // then make document unsalvageable given document and "fetch".
-        self.script_blocking_stylesheet_set.borrow_mut().clear();
+        *self.loading_handler.borrow_mut() = None;
         *self.pending_parsing_blocking_script.borrow_mut() = None;
-        *self.asap_scripts_set.borrow_mut() = vec![];
-        self.asap_in_order_scripts_list.clear();
-        self.deferred_scripts.clear();
 
         let global = self.window.as_global_scope();
         let loads_cancelled = global.fetch_group_mut().terminate(global);
@@ -3984,6 +3866,7 @@ impl Document {
             event_handler: DocumentEventHandler::new(window),
             focus_handler: DocumentFocusHandler::new(window, has_focus),
             embedder_controls: DocumentEmbedderControls::new(window),
+            loading_handler: Default::default(),
             id_map: TreeOrderedIndexMap::id(),
             name_map: TreeOrderedIndexMap::name(),
             // https://dom.spec.whatwg.org/#concept-document-encoding
@@ -4008,13 +3891,9 @@ impl Document {
             // > Each Document has a current document readiness, a string, initially "complete".
             ready_state: Cell::new(DocumentReadyState::Complete),
             current_script: Default::default(),
-            current_the_end_loading_phase: Default::default(),
             pending_parsing_blocking_script: Default::default(),
             script_blocking_stylesheet_set: Default::default(),
             render_blocking_element_count: Default::default(),
-            deferred_scripts: Default::default(),
-            asap_in_order_scripts_list: Default::default(),
-            asap_scripts_set: Default::default(),
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DomRefCell::new(VecDeque::new()),
             running_animation_callbacks: Cell::new(false),
@@ -4331,6 +4210,10 @@ impl Document {
             node.set_owner_doc(&document);
         }
         document
+    }
+
+    pub(crate) fn initialize_loading_handler(&self) {
+        *self.loading_handler.borrow_mut() = Some(DocumentLoadingHandler::new(self));
     }
 
     pub(crate) fn get_redirect_count(&self) -> u16 {
@@ -7053,79 +6936,6 @@ impl AnimationFrameCallback {
                 let _ = callback.Call__(cx, Finite::wrap(now), ExceptionHandling::Report);
             },
         }
-    }
-}
-
-#[derive(Default, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-struct PendingInOrderScriptVec {
-    scripts: DomRefCell<VecDeque<PendingScript>>,
-}
-
-impl PendingInOrderScriptVec {
-    fn is_empty(&self) -> bool {
-        self.scripts.borrow().is_empty()
-    }
-
-    fn push(&self, element: &HTMLScriptElement) {
-        self.scripts
-            .borrow_mut()
-            .push_back(PendingScript::new(element));
-    }
-
-    fn loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
-        let mut scripts = self.scripts.borrow_mut();
-        let entry = scripts
-            .iter_mut()
-            .find(|entry| &*entry.element == element)
-            .unwrap();
-        entry.loaded(result);
-    }
-
-    fn take_next_ready_to_be_executed(&self) -> Option<(DomRoot<HTMLScriptElement>, ScriptResult)> {
-        let mut scripts = self.scripts.borrow_mut();
-        let pair = scripts.front_mut()?.take_result()?;
-        scripts.pop_front();
-        Some(pair)
-    }
-
-    fn clear(&self) {
-        *self.scripts.borrow_mut() = Default::default();
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-struct PendingScript {
-    element: Dom<HTMLScriptElement>,
-    // TODO(sagudev): could this be all no_trace?
-    load: Option<ScriptResult>,
-}
-
-impl PendingScript {
-    fn new(element: &HTMLScriptElement) -> Self {
-        Self {
-            element: Dom::from_ref(element),
-            load: None,
-        }
-    }
-
-    fn new_with_load(element: &HTMLScriptElement, load: Option<ScriptResult>) -> Self {
-        Self {
-            element: Dom::from_ref(element),
-            load,
-        }
-    }
-
-    fn loaded(&mut self, result: ScriptResult) {
-        assert!(self.load.is_none());
-        self.load = Some(result);
-    }
-
-    fn take_result(&mut self) -> Option<(DomRoot<HTMLScriptElement>, ScriptResult)> {
-        self.load
-            .take()
-            .map(|result| (DomRoot::from_ref(&*self.element), result))
     }
 }
 
