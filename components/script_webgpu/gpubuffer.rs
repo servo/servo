@@ -455,8 +455,7 @@ where
 
 impl<D> GPUBuffer<D>
 where
-    D: DomTypes,
-    D::Promise: PromiseHelpers<D> + PartialEq,
+    D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
 {
     pub fn map_failure(

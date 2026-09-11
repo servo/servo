@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, ParserInput, serialize_identifier};
+use cssparser::{Parser, serialize_identifier};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::CSSBinding::PropertyDefinition;
@@ -54,8 +54,7 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
     /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
     fn Supports_(win: &Window, condition: DOMString) -> bool {
         let condition = condition.str();
-        let mut input = ParserInput::new(&condition);
-        let mut input = Parser::new(&mut input);
+        let mut input = Parser::new(&condition);
         let cond = match parse_condition_or_declaration(&mut input) {
             Ok(c) => c,
             Err(..) => return false,

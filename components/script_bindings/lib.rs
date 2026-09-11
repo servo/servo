@@ -49,6 +49,7 @@ pub mod settings_stack;
 pub mod str;
 pub mod structuredclone;
 pub mod trace;
+pub mod traits;
 pub mod utils;
 pub mod weakref;
 pub mod wrap;

@@ -98,9 +98,7 @@ impl<D: Equivalence> GPUShaderModule<D> {
 impl<D> GPUShaderModule<D>
 where
     D: Equivalence,
-    D::Promise: PromiseHelpers<D>,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
     D::GPUDevice: GPUDeviceTrait<D>,
 {
     pub(crate) fn id(&self) -> WebGPUShaderModule {

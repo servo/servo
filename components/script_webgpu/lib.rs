@@ -23,7 +23,11 @@ pub mod gpucomputepassencoder;
 pub mod gpucomputepipeline;
 pub mod gpuconvert;
 pub mod gpudevicelostinfo;
+pub mod gpuerror;
+pub mod gpuinternalerror;
 pub mod gpumapmode;
+pub mod gpuoutofmemoryerror;
+pub mod gpupipelineerror;
 pub mod gpupipelinelayout;
 pub mod gpuqueryset;
 pub mod gpurenderbundle;
@@ -38,6 +42,8 @@ pub mod gpusupportedlimits;
 pub mod gputexture;
 pub mod gputextureusage;
 pub mod gputextureview;
+pub mod gpuuncapturederrorevent;
+pub mod gpuvalidationerror;
 pub mod identityhub;
 pub mod traits;
 pub mod wgsllanguagefeatures;
@@ -82,6 +88,7 @@ pub(crate) mod codegen {
         use js::context::JSContext;
         use js::gc::HandleObject;
         pub(crate) use script_bindings::DomTypes;
+        use script_bindings::codegen::PrototypeList;
         use script_bindings::conversions::IDLInterface;
         use script_bindings::reflector::DomObjectWrap;
         pub(crate) use script_bindings::reflector::Reflector;
@@ -103,7 +110,11 @@ pub(crate) mod codegen {
         use crate::gpucomputepassencoder::GPUComputePassEncoder;
         use crate::gpucomputepipeline::GPUComputePipeline;
         use crate::gpudevicelostinfo::GPUDeviceLostInfo;
+        use crate::gpuerror::GPUError;
+        use crate::gpuinternalerror::GPUInternalError;
         use crate::gpumapmode::GPUMapMode;
+        use crate::gpuoutofmemoryerror::GPUOutOfMemoryError;
+        use crate::gpupipelineerror::GPUPipelineError;
         use crate::gpupipelinelayout::GPUPipelineLayout;
         use crate::gpuqueryset::GPUQuerySet;
         use crate::gpurenderbundle::GPURenderBundle;
@@ -118,10 +129,14 @@ pub(crate) mod codegen {
         use crate::gputexture::GPUTexture;
         use crate::gputextureusage::GPUTextureUsage;
         use crate::gputextureview::GPUTextureView;
+        use crate::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
+        use crate::gpuvalidationerror::GPUValidationError;
+        use crate::traits::Equivalence;
         use crate::wgsllanguagefeatures::WGSLLanguageFeatures;
         include!(concat!(
             env!("OUT_DIR"),
             "/ConcreteBindings/WebGPUBinding.rs"
         ));
+        include!(concat!(env!("OUT_DIR"), "/ConcreteInheritTypes.rs"));
     }
 }

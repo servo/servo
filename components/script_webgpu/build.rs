@@ -31,4 +31,11 @@ fn main() {
             )
             .unwrap();
         });
+
+    let concrete_inherit_bindings =
+        PathBuf::from(env::var_os("DEP_SCRIPT_BINDINGS_CRATE_OUT_DIR").unwrap())
+            .join("WebGPUConcreteInheritTypes.rs");
+    let concrete_path_out =
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("ConcreteInheritTypes.rs");
+    std::fs::copy(concrete_inherit_bindings, concrete_path_out).expect("Could not copy types");
 }

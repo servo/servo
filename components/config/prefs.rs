@@ -47,7 +47,7 @@ pub fn set(preferences: Preferences) {
     }
 
     // Map between Stylo preference names and Servo preference names as the This should be
-    // kept in sync with components/script/dom/bindings/codegen/run.py which generates the
+    // kept in sync with components/script_bindings/codegen/run.py which generates the
     // DOM CSS style accessors.
     stylo_static_prefs::set_pref!("layout.unimplemented", preferences.layout_unimplemented);
     stylo_static_prefs::set_pref!("layout.threads", preferences.layout_threads as i32);
@@ -56,10 +56,6 @@ pub fn set(preferences: Preferences) {
     stylo_static_prefs::set_pref!(
         "layout.css.alpha-color-function.enabled",
         preferences.layout_css_alpha_color_function_enabled
-    );
-    stylo_static_prefs::set_pref!(
-        "layout.css.attr.enabled",
-        preferences.layout_css_attr_enabled
     );
     stylo_static_prefs::set_pref!(
         "layout.css.ellipse-corners.enabled",
@@ -81,6 +77,7 @@ pub fn set(preferences: Preferences) {
         "layout.variable_fonts.enabled",
         preferences.layout_variable_fonts_enabled
     );
+    stylo_static_prefs::set_pref!("layout.flexbox.balance", preferences.layout_flexbox_balance);
 
     *PREFERENCES.write().unwrap() = preferences;
 
@@ -306,11 +303,11 @@ pub struct Preferences {
     pub layout_animations_test_enabled: bool,
     // feature: CSS Multicol | #22397 | Web/CSS/Guides/Multicol_layout
     pub layout_columns_enabled: bool,
+    pub layout_flexbox_balance: bool,
     // feature: CSS Grid | #34479 | Web/CSS/Guides/Grid_layout
     pub layout_grid_enabled: bool,
     pub layout_container_queries_enabled: bool,
     pub layout_css_alpha_color_function_enabled: bool,
-    pub layout_css_attr_enabled: bool,
     pub layout_css_ellipse_corners_enabled: bool,
     pub layout_css_progress_function_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
@@ -560,9 +557,9 @@ impl Preferences {
             layout_columns_enabled: false,
             layout_container_queries_enabled: false,
             layout_css_alpha_color_function_enabled: false,
-            layout_css_attr_enabled: false,
             layout_css_ellipse_corners_enabled: false,
             layout_css_progress_function_enabled: false,
+            layout_flexbox_balance: false,
             layout_grid_enabled: true,
             layout_style_sharing_cache_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.

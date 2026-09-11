@@ -59,7 +59,6 @@ impl<D> GPUQuerySet<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
 {
     pub(crate) fn new_inherited(
         label: USVString,
@@ -152,7 +151,6 @@ impl<D> GPUQuerySetMethods<D> for GPUQuerySet<D>
 where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-destroy>
     fn Destroy(&self) {

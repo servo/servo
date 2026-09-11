@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 use std::mem;
 
-use cssparser::{Parser as CssParser, ParserInput as CssParserInput, ToCss};
+use cssparser::{Parser as CssParser, ToCss};
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::reflector::reflect_dom_object;
@@ -167,8 +167,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
                 url_data: &contents.url_data,
                 for_supports_rule: false,
             };
-            let mut css_parser = CssParserInput::new(&value);
-            let mut css_parser = CssParser::new(&mut css_parser);
+            let mut css_parser = CssParser::new(&value);
 
             let parse_relative = match self
                 .upcast::<CSSRule>()

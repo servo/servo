@@ -649,7 +649,7 @@ impl Element {
             .as_ref()?
             .shadow_root
             .as_ref()
-            .map(|shadow_root| UnrootedDom::from_dom(shadow_root.clone(), no_gc))
+            .map(|shadow_root| shadow_root.as_unrooted(no_gc))
     }
 
     pub(crate) fn is_shadow_host(&self) -> bool {

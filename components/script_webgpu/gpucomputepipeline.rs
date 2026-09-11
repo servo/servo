@@ -11,7 +11,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUComputePipelineDescriptor, GPUComputePipelineMethods, GPUComputePipelineWrap,
 };
-use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
+use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use servo_base::generic_channel::GenericCallback;
 use webgpu_traits::{
@@ -103,9 +103,7 @@ where
 impl<D> GPUComputePipeline<D>
 where
     D: Equivalence,
-    D::Promise: PromiseHelpers<D>,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
     D::GPUDevice: GPUDeviceTrait<D>,
 {
     pub(crate) fn id(&self) -> &WebGPUComputePipeline {

@@ -100,7 +100,6 @@ impl<D: Equivalence> GPUSampler<D> {
 impl<D> GPUSampler<D>
 where
     D: Equivalence,
-    D::GlobalScope: WebGPUGlobalTrait,
     D::GPUDevice: GPUDeviceTrait<D>,
 {
     pub(crate) fn id(&self) -> WebGPUSampler {

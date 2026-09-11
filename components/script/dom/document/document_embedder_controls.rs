@@ -515,21 +515,21 @@ impl ContextMenuNodes {
                 }
             },
             ContextMenuAction::Cut => {
-                window.Document().event_handler().handle_editing_action(
+                window.Document().handle_editing_action(
                     cx,
                     self.text_input_element.as_deref().map(DomRoot::from_ref),
                     EditingActionEvent::Cut,
                 );
             },
             ContextMenuAction::Copy => {
-                window.Document().event_handler().handle_editing_action(
+                window.Document().handle_editing_action(
                     cx,
                     self.text_input_element.as_deref().map(DomRoot::from_ref),
                     EditingActionEvent::Copy,
                 );
             },
             ContextMenuAction::Paste => {
-                window.Document().event_handler().handle_editing_action(
+                window.Document().handle_editing_action(
                     cx,
                     self.text_input_element.as_deref().map(DomRoot::from_ref),
                     EditingActionEvent::Paste,

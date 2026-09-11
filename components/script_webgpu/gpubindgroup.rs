@@ -14,7 +14,6 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUBindGroupDescriptor, GPUBindGroupMethods, GPUBindGroupWrap,
 };
-use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{WebGPU, WebGPUBindGroup, WebGPUDevice, WebGPURequest};
 use wgpu_core::binding_model::BindGroupDescriptor;
@@ -103,8 +102,6 @@ where
     D: Equivalence,
     D::GPUDevice: GPUDeviceTrait<D>,
     D::GPUExternalTexture: GPUExternalTextureTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
-    D::Promise: PromiseHelpers<D>,
 {
     pub fn id(&self) -> &WebGPUBindGroup {
         &self.droppable.bind_group

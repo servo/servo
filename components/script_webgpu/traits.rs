@@ -8,6 +8,7 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
 use script_bindings::codegen::GenericUnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use script_bindings::error::Fallible;
+use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::DomGlobalGeneric;
 use servo_base::generic_channel::GenericCallback;
 use webgpu_traits::{
@@ -33,7 +34,11 @@ use crate::gpucompilationmessage::GPUCompilationMessage;
 use crate::gpucomputepassencoder::GPUComputePassEncoder;
 use crate::gpucomputepipeline::GPUComputePipeline;
 use crate::gpudevicelostinfo::GPUDeviceLostInfo;
+use crate::gpuerror::GPUError;
+use crate::gpuinternalerror::GPUInternalError;
 use crate::gpumapmode::GPUMapMode;
+use crate::gpuoutofmemoryerror::GPUOutOfMemoryError;
+use crate::gpupipelineerror::GPUPipelineError;
 use crate::gpupipelinelayout::GPUPipelineLayout;
 use crate::gpuqueryset::GPUQuerySet;
 use crate::gpurenderbundle::GPURenderBundle;
@@ -48,6 +53,8 @@ use crate::gpusupportedlimits::GPUSupportedLimits;
 use crate::gputexture::GPUTexture;
 use crate::gputextureusage::GPUTextureUsage;
 use crate::gputextureview::GPUTextureView;
+use crate::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
+use crate::gpuvalidationerror::GPUValidationError;
 use crate::identityhub::IdentityHub;
 use crate::wgsllanguagefeatures::WGSLLanguageFeatures;
 
@@ -69,7 +76,11 @@ pub trait Equivalence =  DomTypes<
         GPUComputePassEncoder = GPUComputePassEncoder<Self>,
         GPUComputePipeline = GPUComputePipeline<Self>,
         GPUDeviceLostInfo = GPUDeviceLostInfo<Self>,
+        GPUError = GPUError<Self>,
+        GPUInternalError = GPUInternalError<Self>,
         GPUMapMode = GPUMapMode<Self>,
+        GPUOutOfMemoryError = GPUOutOfMemoryError<Self>,
+        GPUPipelineError = GPUPipelineError<Self>,
         GPUPipelineLayout = GPUPipelineLayout<Self>,
         GPUQuerySet = GPUQuerySet<Self>,
         GPURenderBundle = GPURenderBundle<Self>,
@@ -84,7 +95,11 @@ pub trait Equivalence =  DomTypes<
         GPUTexture = GPUTexture<Self>,
         GPUTextureUsage = GPUTextureUsage<Self>,
         GPUTextureView = GPUTextureView<Self>,
-        WGSLLanguageFeatures = WGSLLanguageFeatures<Self>>;
+        GPUUncapturedErrorEvent = GPUUncapturedErrorEvent<Self>,
+        GPUValidationError = GPUValidationError<Self>,
+        WGSLLanguageFeatures = WGSLLanguageFeatures<Self>,
+        Promise: PromiseHelpers<Self> + PartialEq,
+        GlobalScope: WebGPUGlobalTrait>;
 }
 
 /// The main trait for creating and using promises in script_webgpu.
