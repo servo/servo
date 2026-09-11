@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="match" href="video-control-widget-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-6;totalPixels=0-20">
+    <link rel="help" href="https://github.com/servo/servo/pull/45399">
+    <title>Video Control Widget — Appearance Test</title>
+<style>
+  /* Wrapper styles — must match the reference page exactly */
+  .demo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .demo-item {
+    display: flex;
+    flex-direction: column;
+  }
+  .label {
+    font-family: sans-serif;
+    font-size: 14px;
+    margin: 4px 0;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+  <div class="demo-grid">
+
+    <!-- 1. Video: initial state (no source loaded) -->
+    <div class="demo-item">
+      <span class="label">Video — initial state (paused, no source)</span>
+      <video controls style="display:block; width: 400px; height: 225px; background: black"> </video>
+    </div>
+
+  </div>
+</body>
+</html>
