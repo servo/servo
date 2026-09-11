@@ -1541,9 +1541,7 @@ impl LayoutThread {
             built_display_list,
         );
 
-        if paint_timing_handler.did_lcp_candidate_update() &&
-            let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()
-        {
+        if let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate() {
             self.paint_api.send_lcp_candidate(
                 lcp_candidate.id,
                 lcp_candidate.area,
@@ -1551,7 +1549,6 @@ impl LayoutThread {
                 self.id,
                 stacking_context_tree.paint_info.epoch,
             );
-            paint_timing_handler.unset_lcp_candidate_updated();
         }
 
         let (keys, instance_keys) = self
