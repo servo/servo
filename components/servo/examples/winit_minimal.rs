@@ -149,6 +149,7 @@ impl ApplicationHandler<WakerEvent> for App {
                                 mode,
                             },
                             DevicePoint::default().into(),
+                            /*modifier=*/ false,
                         )));
                     }
                 }
