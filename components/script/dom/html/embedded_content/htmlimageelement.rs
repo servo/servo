@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -74,8 +73,9 @@ use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
 
 /// <https://html.spec.whatwg.org/multipage/#img-req-state>
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf)]
 enum State {
+    #[default]
     Unavailable,
     PartiallyAvailable,
     CompletelyAvailable,
@@ -89,7 +89,7 @@ enum ImageRequestPhase {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#image-request>
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ImageRequest {
     state: State,
@@ -110,7 +110,7 @@ struct ImageRequest {
 pub(crate) struct HTMLImageElement {
     htmlelement: HTMLElement,
     current_request: DomRefCell<ImageRequest>,
-    pending_request: DomRefCell<ImageRequest>,
+    pending_request: DomRefCell<Option<ImageRequest>>,
     form_owner: MutNullableDom<HTMLFormElement>,
     source_set: DomRefCell<SourceSet>,
     /// <https://html.spec.whatwg.org/multipage/#concept-img-dimension-attribute-source>
@@ -402,10 +402,16 @@ impl HTMLImageElement {
 
     // Steps common to when an image has been loaded.
     fn handle_loaded_image(&self, image: Image, url: ServoUrl, cx: &mut js::context::JSContext) {
-        self.current_request.borrow_mut().metadata = Some(image.metadata());
-        self.current_request.borrow_mut().final_url = Some(url);
-        self.current_request.borrow_mut().image = Some(image);
-        self.current_request.borrow_mut().state = State::CompletelyAvailable;
+        {
+            let mut current_request = self.current_request.borrow_mut();
+            current_request.metadata = Some(image.metadata());
+            current_request.final_url = Some(url);
+            current_request.image = Some(image);
+            current_request.state = State::CompletelyAvailable;
+        }
+
+        self.pending_request.borrow_mut().take();
+
         LoadBlocker::terminate(&self.current_request.borrow().blocker, cx);
         // Mark the node dirty
         self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
@@ -443,7 +449,10 @@ impl HTMLImageElement {
                 // If the user agent is able to determine image request's image's width and height,
                 // and image request is the pending request, set image request's state to partially
                 // available.
-                self.pending_request.borrow_mut().state = State::PartiallyAvailable;
+                self.pending_request
+                    .borrow_mut()
+                    .get_or_insert_default()
+                    .state = State::PartiallyAvailable;
                 (false, false)
             },
             (ImageResponse::FailedToLoadOrDecode, ImageRequestPhase::Current) => {
@@ -471,10 +480,11 @@ impl HTMLImageElement {
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending, cx);
 
                 // Step 2. Upgrade the pending request to the current request.
-                mem::swap(
-                    &mut *self.current_request.borrow_mut(),
-                    &mut *self.pending_request.borrow_mut(),
-                );
+                // This is written this way as otherwise crown complains
+                if self.pending_request.borrow().is_some() {
+                    *self.current_request.borrow_mut() =
+                        self.pending_request.borrow_mut().take().unwrap();
+                }
                 self.image_request.set(ImageRequestPhase::Current);
 
                 // Step 3. Set the current request's state to broken.
@@ -515,9 +525,11 @@ impl HTMLImageElement {
     ) {
         match image {
             ImageResponse::Loaded(image, url) => {
-                self.pending_request.borrow_mut().metadata = Some(image.metadata());
-                self.pending_request.borrow_mut().final_url = Some(url);
-                self.pending_request.borrow_mut().image = Some(image);
+                if let Some(pending_request) = self.pending_request.borrow_mut().as_mut() {
+                    pending_request.metadata = Some(image.metadata());
+                    pending_request.final_url = Some(url);
+                    pending_request.image = Some(image);
+                }
                 self.finish_reacting_to_environment_change(
                     selected_source,
                     generation,
@@ -535,7 +547,10 @@ impl HTMLImageElement {
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending, cx);
             },
             ImageResponse::MetadataLoaded(meta) => {
-                self.pending_request.borrow_mut().metadata = Some(meta);
+                self.pending_request
+                    .borrow_mut()
+                    .get_or_insert_default()
+                    .metadata = Some(meta);
             },
         };
     }
@@ -547,16 +562,23 @@ impl HTMLImageElement {
         request: ImageRequestPhase,
         cx: &mut js::context::JSContext,
     ) {
-        let request = match request {
-            ImageRequestPhase::Current => &self.current_request,
-            ImageRequestPhase::Pending => &self.pending_request,
+        match request {
+            ImageRequestPhase::Current => {
+                LoadBlocker::terminate(&self.current_request.borrow().blocker, cx);
+
+                let mut request = self.current_request.safe_borrow_mut(cx);
+                request.state = state;
+                request.image = None;
+                request.metadata = None;
+                request.current_pixel_density = None;
+            },
+            ImageRequestPhase::Pending => {
+                if let Some(pending_request) = &*self.pending_request.borrow() {
+                    LoadBlocker::terminate(&pending_request.blocker, cx);
+                }
+                self.pending_request.borrow_mut().take();
+            },
         };
-        LoadBlocker::terminate(&request.borrow().blocker, cx);
-        let mut request = request.safe_borrow_mut(cx);
-        request.state = state;
-        request.image = None;
-        request.metadata = None;
-        request.current_pixel_density = None;
 
         if matches!(state, State::Broken) {
             self.reject_image_decode_promises();
@@ -585,6 +607,38 @@ impl HTMLImageElement {
             Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
     }
 
+    fn init_pending_image_request(
+        &self,
+        request: &DomRefCell<Option<ImageRequest>>,
+        url: &ServoUrl,
+        src: &USVString,
+        cx: &mut js::context::JSContext,
+    ) {
+        {
+            let mut request = request.safe_borrow_mut(cx);
+            let request = request.get_or_insert_default();
+            request.parsed_url = Some(url.clone());
+            request.source_url = Some(src.clone());
+            request.image = None;
+            request.metadata = None;
+        }
+        let document = self.owner_document();
+        LoadBlocker::terminate(
+            &request
+                .borrow()
+                .as_ref()
+                .expect("Just created a request")
+                .blocker,
+            cx,
+        );
+        *request
+            .safe_borrow_mut(cx)
+            .as_mut()
+            .expect("Just created a request")
+            .blocker
+            .borrow_mut() = Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
     fn prepare_image_request(
         &self,
@@ -600,8 +654,8 @@ impl HTMLImageElement {
                 if self
                     .pending_request
                     .borrow()
-                    .parsed_url
                     .as_ref()
+                    .and_then(|pending_request| pending_request.parsed_url.as_ref())
                     .is_some_and(|parsed_url| *parsed_url == *image_url)
                 {
                     return;
@@ -633,14 +687,17 @@ impl HTMLImageElement {
                         // set the current request to image request. Otherwise, set the pending
                         // request to image request.
                         self.image_request.set(ImageRequestPhase::Pending);
-                        self.init_image_request(
+                        self.init_pending_image_request(
                             &self.pending_request,
                             image_url,
                             selected_source,
                             cx,
                         );
-                        self.pending_request.borrow_mut().current_pixel_density =
-                            Some(selected_pixel_density);
+                        self.pending_request
+                            .borrow_mut()
+                            .as_mut()
+                            .expect("Just created a pending request")
+                            .current_pixel_density = Some(selected_pixel_density);
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
                         // Step 18. If the current request's state is unavailable or broken, then
@@ -661,14 +718,17 @@ impl HTMLImageElement {
                         // set the current request to image request. Otherwise, set the pending
                         // request to image request.
                         self.image_request.set(ImageRequestPhase::Pending);
-                        self.init_image_request(
+                        self.init_pending_image_request(
                             &self.pending_request,
                             image_url,
                             selected_source,
                             cx,
                         );
-                        self.pending_request.borrow_mut().current_pixel_density =
-                            Some(selected_pixel_density);
+                        self.pending_request
+                            .borrow_mut()
+                            .as_mut()
+                            .expect("Just created a pending image request")
+                            .current_pixel_density = Some(selected_pixel_density);
                     },
                 }
             },
@@ -978,7 +1038,7 @@ impl HTMLImageElement {
 
         // Step 13. Set the element's pending request to image request.
         self.image_request.set(ImageRequestPhase::Pending);
-        self.init_image_request(&self.pending_request, &image_url, &selected_source, cx);
+        self.init_pending_image_request(&self.pending_request, &image_url, &selected_source, cx);
 
         // Step 15. If the list of available images contains an entry for key, then set image
         // request's image data to that of the entry. Continue to the next step.
@@ -1147,9 +1207,8 @@ impl HTMLImageElement {
                 // img element's current pixel density to selected pixel density.
                 *this.last_selected_source.borrow_mut() = Some(selected_source);
 
-                {
-                    let mut pending_request = this.pending_request.borrow_mut();
 
+                if let Some(pending_request) = &mut *this.pending_request.borrow_mut() {
                     // Step 16.3. Set the image request's state to completely available.
                     pending_request.state = State::CompletelyAvailable;
 
@@ -1158,10 +1217,13 @@ impl HTMLImageElement {
                     // Step 16.4. Add the image to the list of available images using the key key,
                     // with the ignore higher-layer caching flag set.
                     // Already a part of the list of available images due to Step 15.
-
                     // Step 16.5. Upgrade the pending request to the current request.
-                    mem::swap(&mut *this.current_request.borrow_mut(), &mut *pending_request);
+                } else {
+                    log::error!("Pending request was null");
+                    return
                 }
+                *this.current_request.borrow_mut() = this.pending_request.borrow_mut().take().expect("Should have a pending request");
+
 
                 this.abort_request(State::Unavailable, ImageRequestPhase::Pending, cx);
                 this.image_request.set(ImageRequestPhase::Current);
@@ -1205,16 +1267,7 @@ impl HTMLImageElement {
                 final_url: None,
                 current_pixel_density: None,
             }),
-            pending_request: DomRefCell::new(ImageRequest {
-                state: State::Unavailable,
-                parsed_url: None,
-                source_url: None,
-                image: None,
-                metadata: None,
-                blocker: DomRefCell::new(None),
-                final_url: None,
-                current_pixel_density: None,
-            }),
+            pending_request: DomRefCell::new(None),
             form_owner: Default::default(),
             generation: Default::default(),
             source_set: DomRefCell::new(SourceSet::new()),
