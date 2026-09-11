@@ -3831,7 +3831,7 @@ impl<'dom> LayoutDom<'dom, Document> {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn selection_for_layout(&self) -> Option<LayoutDom<'dom, Selection>> {
+    pub(crate) fn visible_selection_for_layout(&self) -> Option<LayoutDom<'dom, Selection>> {
         unsafe { self.unsafe_get().selection.to_layout() }
     }
 

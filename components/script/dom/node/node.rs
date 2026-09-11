@@ -107,8 +107,8 @@ use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::{
-    ShadowIncluding, UnrootedFollowingFlatTreeNodesTraversal, UnrootedFollowingNodeIterator,
-    UnrootedPrecedingNodeIterator,
+    ShadowIncluding, UnrootedAncestorIterator, UnrootedFollowingFlatTreeNodesTraversal,
+    UnrootedFollowingNodeIterator, UnrootedPrecedingNodeIterator,
 };
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use crate::dom::node::iterators::{
@@ -131,10 +131,6 @@ use crate::drag::drag_gesture::{DragGesture, DragHandler};
 use crate::event_loop::document_loader::DocumentLoader;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode};
-
-//
-// The basic Node structure
-//
 
 /// An HTML node.
 #[dom_struct]
@@ -781,6 +777,25 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#connected>
     pub(crate) fn is_connected(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
+    }
+
+    /// Returns true if this [`Node`] is in the flat tree and false otherwise.
+    ///
+    /// **Performance**: This check isn't cheap. It must walk up the entire ancestor
+    /// chain.
+    pub(crate) fn is_in_flat_tree(&self, no_gc: &NoGC) -> bool {
+        if !self.is_connected() {
+            return false;
+        }
+
+        let mut node = UnrootedDom::from_ref(self, no_gc);
+        loop {
+            match node.parent_in_flat_tree(no_gc) {
+                FlatTreeParent::Parent(parent) => node = parent,
+                FlatTreeParent::NotInFlatTree => return false,
+                FlatTreeParent::RootNode => return true,
+            }
+        }
     }
 
     pub(crate) fn set_in_ua_widget(&self, in_ua_widget: bool) {
@@ -1672,10 +1687,7 @@ impl Node {
         SimpleNodeIterator::new(self.GetParentNode(), |n| n.GetParentNode())
     }
 
-    pub(crate) fn ancestors_unrooted<'a>(
-        &self,
-        no_gc: &'a NoGC,
-    ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + use<'a> {
+    pub(crate) fn ancestors_unrooted<'a>(&self, no_gc: &'a NoGC) -> UnrootedAncestorIterator<'a> {
         UnrootedSimpleNodeIterator::new(
             self.get_parent_node_unrooted(no_gc),
             |node, no_gc| node.get_parent_node_unrooted(no_gc),
@@ -1713,6 +1725,28 @@ impl Node {
                 }
                 node.get_parent_node_unrooted(no_gc)
             },
+            no_gc,
+        )
+    }
+
+    pub(crate) fn ancestors_in_flat_tree_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> UnrootedAncestorIterator<'a> {
+        UnrootedSimpleNodeIterator::new(
+            self.parent_in_flat_tree(no_gc).into_parent(),
+            |node, no_gc| node.parent_in_flat_tree(no_gc).into_parent(),
+            no_gc,
+        )
+    }
+
+    pub(crate) fn inclusive_ancestors_in_flat_tree_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> UnrootedAncestorIterator<'a> {
+        UnrootedSimpleNodeIterator::new(
+            Some(UnrootedDom::from_ref(self, no_gc)),
+            |node, no_gc| node.parent_in_flat_tree(no_gc).into_parent(),
             no_gc,
         )
     }
@@ -2161,20 +2195,6 @@ impl Node {
         }
 
         FlatTreeParent::Parent(parent)
-    }
-
-    pub(crate) fn inclusive_ancestors_in_flat_tree_unrooted<'a>(
-        &self,
-        no_gc: &'a NoGC,
-    ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + use<'a> {
-        UnrootedSimpleNodeIterator::new(
-            Some(UnrootedDom::from_ref(self, no_gc)),
-            move |node, no_gc| match node.parent_in_flat_tree(no_gc) {
-                FlatTreeParent::Parent(parent) => Some(parent),
-                FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => None,
-            },
-            no_gc,
-        )
     }
 
     /// We are marking this as an implemented pseudo element.
@@ -4708,4 +4728,13 @@ pub(crate) enum FlatTreeParent<'a> {
     NotInFlatTree,
     /// This node is in the flat tree, but has no parent node because it is the root node.
     RootNode,
+}
+
+impl<'a> FlatTreeParent<'a> {
+    pub(crate) fn into_parent(self) -> Option<UnrootedDom<'a, Node>> {
+        match self {
+            FlatTreeParent::Parent(parent) => Some(parent),
+            FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => None,
+        }
+    }
 }
