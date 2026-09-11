@@ -86,3 +86,15 @@ bitflags! {
     }
 }
 malloc_size_of::malloc_size_of_is_0!(AccessibilityDamage);
+
+impl From<RestyleDamage> for AccessibilityDamage {
+    fn from(restyle_damage: RestyleDamage) -> Self {
+        AccessibilityDamage::from_bits_retain(restyle_damage.bits())
+    }
+}
+
+impl From<AccessibilityDamage> for RestyleDamage {
+    fn from(accessibility_damage: AccessibilityDamage) -> Self {
+        RestyleDamage::from_bits_retain(accessibility_damage.bits())
+    }
+}

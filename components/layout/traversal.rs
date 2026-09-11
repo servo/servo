@@ -160,8 +160,8 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_above_dirty_root<'dom>(
 
             if propagate && let Some(parent_element) = parent_node.as_element() {
                 let mut element_data = parent_element.element_data_mut();
-                element_data.damage.insert(RestyleDamage::from_bits_retain(
-                    AccessibilityDamage::DescendantHasDamageFromLayout.bits(),
+                element_data.damage.insert(RestyleDamage::from(
+                    AccessibilityDamage::DescendantHasDamageFromLayout,
                 ));
             }
         }
@@ -243,8 +243,8 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root<'dom>(
 
         if descendant_has_accessibility_damage {
             let mut element_data = element.element_data_mut();
-            element_data.damage.insert(RestyleDamage::from_bits_retain(
-                AccessibilityDamage::DescendantHasDamageFromLayout.bits(),
+            element_data.damage.insert(RestyleDamage::from(
+                AccessibilityDamage::DescendantHasDamageFromLayout,
             ));
         }
     }
@@ -601,7 +601,7 @@ impl<'a> ElementDamageSet<'a> {
             BoxDamageAction::None => (AccessibilityDamage::empty(), LayoutDamage::empty()),
         };
 
-        let damage_for_node = RestyleDamage::from_bits_retain(damage_for_node.bits());
+        let damage_for_node = RestyleDamage::from(damage_for_node);
         element.element_data_mut().damage.insert(damage_for_node);
 
         damage_for_parent
