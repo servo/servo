@@ -344,7 +344,7 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         // Step 1. Let recorder be the MediaRecorder object on which the method was invoked. SKIP
 
         // Step 2. If recorder’s state attribute is inactive, abort these steps.
-        if self.state.borrow() == RecordingState::Inactive {
+        if *self.state.borrow() == RecordingState::Inactive {
             return;
         }
 
