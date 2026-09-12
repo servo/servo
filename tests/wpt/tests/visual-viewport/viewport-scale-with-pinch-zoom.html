@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Viewport Scale : Pinch Zoom</title>
+  <link rel=help href="https://github.com/w3c/csswg-drafts/issues/9004">
+  <link rel=help href="https://www.w3.org/TR/2015/WD-mobile-accessibility-mapping-20150226/#zoom-magnification">
+  <link rel="author" title="Shubham Gupta" href="mailto:shubham.gupta@chromium.org">
+  <meta name="assert" content="The page can be pinch zoomed-in and zoomed-out.">
+  <meta name="viewport" content="minimum-scale=0.1, initial-scale=1.0, maximum-scale=10.0">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/visual-viewport/viewport_support.js"></script>
+
+</head>
+
+<body>
+  <div style="font-size: 50px;">Pinch Zoom Test: Zoom In</div>
+  <script>
+    promise_test(async () => {
+      const initialScale = window.visualViewport.scale;
+
+      await pinchZoomIn();
+      assert_greater_than(window.visualViewport.scale, initialScale,
+        "Scale should be greater than initial scale after pinch zoom in");
+      const afterZoomIn = window.visualViewport.scale;
+
+      await pinchZoomOut();
+      assert_less_than(window.visualViewport.scale, afterZoomIn,
+        "Scale should be less than after pinch zoom in scale after pinch zoom out");
+    }) </script>
+</body>
+
+</html>
