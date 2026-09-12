@@ -545,16 +545,6 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         self.validate_and_set_descriptors(new_descriptors)
     }
 
-    /// <https://drafts.csswg.org/css-font-loading/#dom-fontface-stretch>
-    fn Stretch(&self) -> DOMString {
-        self.Width()
-    }
-
-    /// <https://drafts.csswg.org/css-font-loading/#dom-fontface-stretch>
-    fn SetStretch(&self, value: DOMString) -> ErrorResult {
-        self.SetWidth(value)
-    }
-
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontface-width>
     fn Width(&self) -> DOMString {
         self.descriptors.borrow().width.clone()

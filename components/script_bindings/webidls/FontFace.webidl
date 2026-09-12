@@ -31,11 +31,7 @@ interface FontFace {
   attribute CSSOMString style;
   [SetterThrows]
   attribute CSSOMString weight;
-  // TODO: Once we support the `BindingAlias` extended attribute, we should remove the `stretch` attribute,
-  // and instead annotate the `width` attribute with `BindingAlias="stretch"`.
-  [SetterThrows]
-  attribute CSSOMString stretch;
-  [SetterThrows]
+  [SetterThrows, BindingAlias="stretch"]
   attribute CSSOMString width;
   [SetterThrows]
   attribute CSSOMString unicodeRange;
