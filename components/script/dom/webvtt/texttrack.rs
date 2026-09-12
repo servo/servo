@@ -199,7 +199,7 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     fn AddCue(&self, cx: &mut JSContext, cue: &TextTrackCue) -> ErrorResult {
         // FIXME(#22314, dlrobertson) add Step 1 & 2
         // Step 3
-        if let Some(old_track) = cue.get_track() {
+        if let Some(old_track) = cue.get_text_track() {
             // gecko calls RemoveCue when the given cue
             // has an associated track, but doesn't return
             // the error from it, so we wont either.
@@ -208,6 +208,7 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
             }
         }
         // Step 4
+        cue.set_text_track(Some(self));
         self.get_text_track_cue_list(cx).add(cx, cue);
         Ok(())
     }
@@ -221,6 +222,7 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
             None => Err(Error::NotFound(None)),
         }?;
         // Step 2
+        cue.set_text_track(None);
         cues.remove(index);
         Ok(())
     }

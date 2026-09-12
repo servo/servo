@@ -9,7 +9,7 @@ use script_bindings::cell::DomRefCell;
 
 use crate::dom::bindings::codegen::Bindings::TextTrackCueBinding::TextTrackCueMethods;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::texttrack::TextTrack;
@@ -19,7 +19,8 @@ pub(crate) struct TextTrackCue {
     eventtarget: EventTarget,
     /// <https://html.spec.whatwg.org/multipage/#text-track-cue-identifier>
     id: DomRefCell<DOMString>,
-    track: Option<Dom<TextTrack>>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-track>
+    text_track: MutNullableDom<TextTrack>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-cue-start-time>
     start_time: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-cue-end-time>
@@ -35,12 +36,12 @@ impl TextTrackCue {
         id: DOMString,
         start_time: f64,
         end_time: f64,
-        track: Option<&TextTrack>,
+        text_track: Option<&TextTrack>,
     ) -> TextTrackCue {
         TextTrackCue {
             eventtarget: EventTarget::new_inherited(),
             id: DomRefCell::new(id),
-            track: track.map(Dom::from_ref),
+            text_track: MutNullableDom::new(text_track),
             start_time: Cell::new(start_time),
             end_time: Cell::new(end_time),
             pause_on_exit: Cell::new(false),
@@ -52,8 +53,12 @@ impl TextTrackCue {
         self.id.borrow().clone()
     }
 
-    pub(crate) fn get_track(&self) -> Option<DomRoot<TextTrack>> {
-        self.track.as_ref().map(|t| DomRoot::from_ref(&**t))
+    pub(crate) fn get_text_track(&self) -> Option<DomRoot<TextTrack>> {
+        self.text_track.get()
+    }
+
+    pub(crate) fn set_text_track(&self, text_track: Option<&TextTrack>) {
+        self.text_track.set(text_track);
     }
 
     pub(crate) fn start_time(&self) -> f64 {
@@ -86,7 +91,7 @@ impl TextTrackCueMethods<crate::DomTypeHolder> for TextTrackCue {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-track>
     fn GetTrack(&self) -> Option<DomRoot<TextTrack>> {
-        self.get_track()
+        self.get_text_track()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-starttime>

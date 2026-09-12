@@ -902,7 +902,9 @@ impl HTMLMediaElement {
         let mut prepare_an_event =
             |time: f64, event: Atom, text_track_cue: DomRoot<TextTrackCue>| {
                 // Step 1. Let track be the text track with which the text track cue target is associated.
-                let track = text_track_cue.get_track();
+                let track = text_track_cue
+                    .get_text_track()
+                    .expect("Must always have an associated text track");
                 // Step 2. Create a task to fire an event named event at target.
                 //
                 // We create the task in the for-loops below
@@ -911,9 +913,7 @@ impl HTMLMediaElement {
                 // the text track track, and the text track cue target.
                 events.push((time, (event, text_track_cue)));
                 // Step 4. Add track to affected tracks.
-                if let Some(track) = track {
-                    affected_tracks.push(track);
-                }
+                affected_tracks.push(track);
             };
 
         // Step 10. For each text track cue in missed cues,
