@@ -243,10 +243,7 @@ impl Promise {
         promise
     }
 
-    pub(crate) fn new_with_js_promise_rooted(
-        cx: &JSContext,
-        obj: HandleObject,
-    ) -> RootedPromise {
+    pub(crate) fn new_with_js_promise_rooted(cx: &JSContext, obj: HandleObject) -> RootedPromise {
         RootedPromise(Self::new_with_js_promise(cx, obj))
     }
 
