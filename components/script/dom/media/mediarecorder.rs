@@ -337,15 +337,23 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         // TODO: live
         let tracks = stream.get_tracks();
 
-        // TODO
-        // Step 5. If the value of recorder’s state attribute is not inactive, throw an InvalidStateError DOMException and abort these steps.
-        // TODO
-        // Step 6. If the isolation properties of stream disallow access from recorder, throw a SecurityError DOMException and abort these steps.
-        // TODO
+        // Step 5. If the value of recorder’s state attribute is not inactive,
+        // throw an InvalidStateError DOMException and abort these steps.
+        if *self.state.borrow() != RecordingState::Inactive {
+            return Err(Error::InvalidState(Some(
+                "start called when recorder is not inactive".into(),
+            )));
+        }
+
+        // Step 6. If the isolation properties of stream disallow access from recorder,
+        // throw a SecurityError DOMException and abort these steps.
+        // TODO: WebRTC isolation properties is not implemented yet
+        if false {
+            return Err(Error::Security(Some("stream is in peer isolation".into())));
+        }
 
         // Step 7. If stream is inactive, throw a NotSupportedError DOMException and abort these steps.
-        // TODO: check inactive
-        if false {
+        if stream.is_inactive() {
             return Err(Error::NotSupported(Some("stream is inactive".into())));
         }
 

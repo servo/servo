@@ -54,6 +54,12 @@ impl MediaStreamTrack {
     pub(crate) fn ty(&self) -> MediaStreamType {
         self.ty
     }
+
+    /// <https://www.w3.org/TR/mediacapture-streams/#track-ended>
+    pub(crate) fn is_ended(&self) -> bool {
+        // TODO: Stop() method is not implemented
+        todo!()
+    }
 }
 
 impl MediaStreamTrackMethods<crate::DomTypeHolder> for MediaStreamTrack {
