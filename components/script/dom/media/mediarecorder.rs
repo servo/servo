@@ -10,6 +10,7 @@ use script_bindings::{
         },
     },
     error::{Error, Fallible},
+    num::Finite,
     reflector::reflect_dom_object_with_cx,
     root::{Dom, DomRoot},
     str::DOMString,
@@ -29,6 +30,16 @@ const SYNCHRONOUSLY_EXPOSED_CODEC_IDENTIFIERS: &[&str] = &[
 #[dom_struct]
 pub(crate) struct MediaRecorder {
     eventtarget: EventTarget,
+
+    /// The `[[ConstrainedMimeType]]` internal slot.
+    constrained_mime_type: DOMString,
+    /// The `[[ConstrainedBitsPerSecond]]` internal slot.
+    constrained_bits_per_second: Option<u32>,
+    /// The `[[VideoKeyFrameIntervalDuration]]` internal slot.
+    video_key_frame_interval_duration: Option<Finite<f64>>,
+    /// The `[[VideoKeyFrameIntervalCount]]` internal slot.
+    video_key_frame_interval_count: Option<u32>,
+
     stream: Dom<MediaStream>,
     mime_type: DOMString,
     state: RefCell<RecordingState>,
@@ -38,30 +49,81 @@ pub(crate) struct MediaRecorder {
 }
 
 impl MediaRecorder {
-    // TODO: pass whole options
-    fn new_inherited(stream: &MediaStream, mime_type: DOMString) -> Self {
-        MediaRecorder {
-            eventtarget: EventTarget::new_inherited(),
-            stream: Dom::from_ref(stream),
-            mime_type,
-            state: RefCell::new(RecordingState::Inactive),
-            audio_bits_per_second: 0,
-            video_bits_per_second: 0,
-            audio_bitrate_mode: BitrateMode::Variable,
+    /// <https://www.w3.org/TR/mediastream-recording/#dom-mediarecorder-mediarecorder>
+    fn new_inherited(stream: &MediaStream, options: &MediaRecorderOptions) -> Fallible<Self> {
+        // Step 1. Let stream be the constructor’s first argument. SKIP
+        // Step 2. Let options be the constructor’s second argument. SKIP
+
+        // Step 3. Let type be options’ mimeType.
+        let type_ = &options.mimeType;
+        // Step 4. If invoking is type supported with type and the value true returns false,
+        // throw a NotSupportedError DOMException and abort these steps.
+        if !Self::is_type_supported(type_, true) {
+            return Err(Error::NotSupported(Some(
+                "mimeType is not supported".into(),
+            )));
         }
+
+        // Step 5. Let recorder be a newly constructed MediaRecorder object.
+        let mut recorder = MediaRecorder {
+            eventtarget: EventTarget::new_inherited(),
+            // Step 6. Let recorder have a [[ConstrainedMimeType]] internal slot,
+            // initialized to the value of options’ mimeType member.
+            constrained_mime_type: options.mimeType.clone(),
+            // Step 7. Let recorder have a [[ConstrainedBitsPerSecond]] internal slot,
+            // initialized to the value of options’ bitsPerSecond member if it is present, otherwise null.
+            constrained_bits_per_second: options.bitsPerSecond,
+            // Step 8. Let recorder have a [[VideoKeyFrameIntervalDuration]] internal slot,
+            // initialized to the value of options’ videoKeyFrameIntervalDuration member if it is present, otherwise null.
+            video_key_frame_interval_duration: options.videoKeyFrameIntervalDuration,
+            // Step 9. Let recorder have a [[VideoKeyFrameIntervalCount]] internal slot,
+            // initialized to the value of options’ videoKeyFrameIntervalCount member if it is present, otherwise null.
+            video_key_frame_interval_count: options.videoKeyFrameIntervalCount,
+            // Step 10. Initialize recorder’s stream attribute to stream.
+            stream: Dom::from_ref(stream),
+            // Step 11. Initialize recorder’s mimeType attribute to the value of recorder’s [[ConstrainedMimeType]] slot.
+            mime_type: options.mimeType.clone(),
+            // Step 12. Initialize recorder’s state attribute to inactive.
+            state: RefCell::new(RecordingState::Inactive),
+            // Step 13. Initialize recorder’s videoBitsPerSecond attribute to the value of options’ videoBitsPerSecond member,
+            // if it is present. Otherwise, choose a target value the User Agent deems reasonable for video.
+            video_bits_per_second: options.videoBitsPerSecond.unwrap_or_default(), // TODO: UA default
+            // Step 14. Initialize recorder’s audioBitsPerSecond attribute to the value of options’ audioBitsPerSecond member,
+            // if it is present. Otherwise, choose a target value the User Agent deems reasonable for audio.
+            audio_bits_per_second: options.audioBitsPerSecond.unwrap_or_default(), // TODO: UA default
+            audio_bitrate_mode: options.audioBitrateMode,
+        };
+
+        // Step 15. If recorder’s [[ConstrainedBitsPerSecond]] slot is not null, set recorder’s videoBitsPerSecond and
+        // audioBitsPerSecond attributes to values the User Agent deems reasonable for the respective media types,
+        // such that the sum of videoBitsPerSecond and audioBitsPerSecond is close to the value of recorder’s
+        // [[ConstrainedBitsPerSecond]] slot.
+        if let Some(bps) = recorder.constrained_bits_per_second {
+            // TODO: is half reasonable?
+            recorder.video_bits_per_second = bps / 2;
+            recorder.audio_bits_per_second = bps / 2;
+        }
+
+        // Step 16. If recorder supports the BitrateMode specified by the value of options’ audioBitrateMode member,
+        // then initialize recorder’s audioBitrateMode attribute to the value of options’ audioBitrateMode member,
+        // else initialize recorder’s audioBitrateMode attribute to the value "variable".
+        // TODO: how to determine support?
+        if true {
+            recorder.audio_bitrate_mode = BitrateMode::Variable;
+        }
+
+        // Step 17. Return recorder
+        Ok(recorder)
     }
 
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &Window,
         stream: &MediaStream,
-        mime_type: DOMString,
-    ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
-            Box::new(MediaRecorder::new_inherited(stream, mime_type)),
-            global,
-            cx,
-        )
+        options: &MediaRecorderOptions,
+    ) -> Fallible<DomRoot<Self>> {
+        MediaRecorder::new_inherited(stream, options)
+            .map(|recorder| reflect_dom_object_with_cx(Box::new(recorder), global, cx))
     }
 
     /// <https://www.w3.org/TR/mediastream-recording/#abstract-opdef-is-type-supported>
@@ -129,10 +191,13 @@ impl MediaRecorder {
     /// <https://www.w3.org/TR/mediastream-recording/#abstract-opdef-inactivate-the-recorder>
     fn inactivate_recorder(&self) {
         // Step 1. Set recorder’s mimeType attribute to the value of the [[ConstrainedMimeType]] slot.
-        // TODO
+        // TODO: do we need to set
+
         // Step 2. Set recorder’s state attribute to inactive.
-        // TODO
-        // Step 3. If recorder’s [[ConstrainedBitsPerSecond]] slot is not undefined, set recorder’s videoBitsPerSecond and audioBitsPerSecond attributes to values the User Agent deems reasonable for the respective media types, such that the sum of videoBitsPerSecond and audioBitsPerSecond is close to the value of recorder’s [[ConstrainedBitsPerSecond]] slot.
+        *self.state.borrow_mut() = RecordingState::Inactive;
+
+        // Step 3. If recorder’s [[ConstrainedBitsPerSecond]] slot is not undefined,
+        // set recorder’s videoBitsPerSecond and audioBitsPerSecond attributes to values the User Agent deems reasonable for the respective media types, such that the sum of videoBitsPerSecond and audioBitsPerSecond is close to the value of recorder’s [[ConstrainedBitsPerSecond]] slot.
         // TODO
     }
 }
@@ -467,24 +532,6 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         stream: &MediaStream,
         options: &MediaRecorderOptions,
     ) -> Fallible<DomRoot<Self>> {
-        // Step 1. Let stream be the constructor’s first argument. SKIP
-        // Step 2. Let options be the constructor’s second argument. SKIP
-
-        // Step 3. Let type be options’ mimeType.
-        let type_ = &options.mimeType;
-        // Step 4. If invoking is type supported with type and the value true returns false,
-        // throw a NotSupportedError DOMException and abort these steps.
-        if !Self::is_type_supported(type_, true) {
-            return Err(Error::NotSupported(Some(
-                "mimeType is not supported".into(),
-            )));
-        }
-
-        // Step 5-16. let recorder and initialize.
-        let recorder = Self::new(cx, global, stream, options.mimeType.clone());
-        // TODO: detailed steps
-
-        // Step 17. Return recorder
-        Ok(recorder)
+        Self::new(cx, global, stream, options)
     }
 }
