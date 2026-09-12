@@ -19,6 +19,11 @@ use crate::dom::{
     types::{EventTarget, MediaStream},
 };
 
+/// <https://www.w3.org/TR/mediastream-recording/#list-of-synchronously-exposed-codec-identifiers>
+const SYNCHRONOUSLY_EXPOSED_CODEC_IDENTIFIERS: &[&str] = &[
+    "vp8", "vp9", "h264", "avc1", "av1", "av01", "hvc1", "hev1", "avc1", "avc3", "opus", "pcm",
+];
+
 #[dom_struct]
 pub(crate) struct MediaRecorder {
     eventtarget: EventTarget,
@@ -48,6 +53,68 @@ impl MediaRecorder {
             global,
             cx,
         )
+    }
+
+    /// <https://www.w3.org/TR/mediastream-recording/#abstract-opdef-is-type-supported>
+    fn is_type_supported(type_: DOMString, defer_newer_codecs_check: bool) -> bool {
+        // Step 1. if type is empty string, return true (leaving up the choice to UA).
+        if type_.is_empty() {
+            return true;
+        }
+
+        // Step 2. if type is not a valid MIME type stirng, return false.
+        // TODO: is there existing check util
+
+        // Step 3. If MediaRecorder does not support the combination of media type/subtype and container
+        // specified in type, return false.
+        // TODO: how to check
+
+        // Step 4. Let codecStrings be the list result of strictly splitting on "," the string after codecs=
+        // if present in type, or an empty list otherwise.
+        let codec_strings: Vec<String> = type_
+            .str()
+            .split_once("codecs=")
+            .unwrap()
+            .1
+            .split(',')
+            .map(|s| s.to_string())
+            .collect();
+
+        // Step 5. If codecStrings contains more than one audio codec or more than one video codec, return false.
+        // TODO: how to check codec type
+
+        // Step 6. Let codecIdentifiers be an empty list.
+        let mut codec_identifiers = vec![];
+
+        // Step 7. For each codecString in codecStrings, run the following steps:
+        for codec_string in codec_strings {
+            // Step 7.1. Let codecIdentifier be the ASCII lowercase of the first part of strictly splitting codecString on ".".
+            let code_identifier = codec_string.split('.').next().unwrap().to_ascii_lowercase();
+            // Step 7.2. Append codecIdentifier to codecIdentifiers.
+            codec_identifiers.push(code_identifier);
+        }
+
+        // Step 8. For each codecIdentifier in codecIdentifiers that is synchronously exposed, run the following step:
+        for codec_identifier in codec_identifiers.iter() {
+            // Step 8.1. If the MediaRecorder does not support codecIdentifier in combination with the media type/subtype
+            // and container specified in type, then return false.
+            // TODO: define support
+        }
+
+        // Step 9. If any codecIdentifier in codecIdentifiers is not synchronously exposed, return deferNewerCodecsCheck.
+        if codec_identifiers.iter().any(is_synchronously_expoesd) {
+            return defer_newer_codecs_check;
+        }
+
+        // Step 10. Return true.
+        return true;
+
+        /// <https://www.w3.org/TR/mediastream-recording/#abstract-opdef-is-synchronously-exposed>
+        fn is_synchronously_expoesd(code_identifier: &String) -> bool {
+            // Step 1. Return true if any item in the list of synchronously exposed codec identifiers
+            // is an exact match for codecIdentifier, otherwise false.
+            SYNCHRONOUSLY_EXPOSED_CODEC_IDENTIFIERS.contains(&code_identifier.as_str())
+        }
     }
 }
 
@@ -186,8 +253,9 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         todo!()
     }
 
+    /// <https://www.w3.org/TR/mediastream-recording/#dom-mediarecorder-istypesupported>
     fn IsTypeSupported(global: &Window, type_: DOMString) -> bool {
-        todo!()
+        Self::is_type_supported(type_, false)
     }
 
     fn Constructor(
