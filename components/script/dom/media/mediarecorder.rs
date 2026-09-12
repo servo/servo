@@ -3,6 +3,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::EventHandlerBinding::EventHandlerNonNull;
 use script_bindings::codegen::GenericBindings::MediaStreamRecordingBinding::{
     BitrateMode, MediaRecorderMethods, MediaRecorderOptions, RecordingState,
@@ -38,10 +39,10 @@ pub(crate) struct MediaRecorder {
     video_key_frame_interval_count: Option<u32>,
 
     stream: Dom<MediaStream>,
-    mime_type: DOMString,
+    mime_type: DomRefCell<DOMString>,
     state: RefCell<RecordingState>,
-    audio_bits_per_second: u32,
-    video_bits_per_second: u32,
+    audio_bits_per_second: RefCell<u32>,
+    video_bits_per_second: RefCell<u32>,
     audio_bitrate_mode: BitrateMode,
 }
 
@@ -79,15 +80,15 @@ impl MediaRecorder {
             // Step 10. Initialize recorder’s stream attribute to stream.
             stream: Dom::from_ref(stream),
             // Step 11. Initialize recorder’s mimeType attribute to the value of recorder’s [[ConstrainedMimeType]] slot.
-            mime_type: options.mimeType.clone(),
+            mime_type: DomRefCell::new(options.mimeType.clone()),
             // Step 12. Initialize recorder’s state attribute to inactive.
             state: RefCell::new(RecordingState::Inactive),
             // Step 13. Initialize recorder’s videoBitsPerSecond attribute to the value of options’ videoBitsPerSecond member,
             // if it is present. Otherwise, choose a target value the User Agent deems reasonable for video.
-            video_bits_per_second: options.videoBitsPerSecond.unwrap_or_default(), // TODO: UA default
+            video_bits_per_second: RefCell::new(options.videoBitsPerSecond.unwrap_or_default()), // TODO: UA default
             // Step 14. Initialize recorder’s audioBitsPerSecond attribute to the value of options’ audioBitsPerSecond member,
             // if it is present. Otherwise, choose a target value the User Agent deems reasonable for audio.
-            audio_bits_per_second: options.audioBitsPerSecond.unwrap_or_default(), // TODO: UA default
+            audio_bits_per_second: RefCell::new(options.audioBitsPerSecond.unwrap_or_default()), // TODO: UA default
             audio_bitrate_mode: options.audioBitrateMode,
         };
 
@@ -97,8 +98,8 @@ impl MediaRecorder {
         // [[ConstrainedBitsPerSecond]] slot.
         if let Some(bps) = recorder.constrained_bits_per_second {
             // TODO: is half reasonable?
-            recorder.video_bits_per_second = bps / 2;
-            recorder.audio_bits_per_second = bps / 2;
+            *recorder.video_bits_per_second.borrow_mut() = bps / 2;
+            *recorder.audio_bits_per_second.borrow_mut() = bps / 2;
         }
 
         // Step 16. If recorder supports the BitrateMode specified by the value of options’ audioBitrateMode member,
@@ -188,14 +189,20 @@ impl MediaRecorder {
     /// <https://www.w3.org/TR/mediastream-recording/#abstract-opdef-inactivate-the-recorder>
     fn inactivate_recorder(&self) {
         // Step 1. Set recorder’s mimeType attribute to the value of the [[ConstrainedMimeType]] slot.
-        // TODO: do we need to set
+        *self.mime_type.borrow_mut() = self.constrained_mime_type.clone();
 
         // Step 2. Set recorder’s state attribute to inactive.
         *self.state.borrow_mut() = RecordingState::Inactive;
 
         // Step 3. If recorder’s [[ConstrainedBitsPerSecond]] slot is not undefined,
-        // set recorder’s videoBitsPerSecond and audioBitsPerSecond attributes to values the User Agent deems reasonable for the respective media types, such that the sum of videoBitsPerSecond and audioBitsPerSecond is close to the value of recorder’s [[ConstrainedBitsPerSecond]] slot.
-        // TODO
+        // set recorder’s videoBitsPerSecond and audioBitsPerSecond attributes to values the User Agent deems
+        // reasonable for the respective media types, such that the sum of videoBitsPerSecond and audioBitsPerSecond
+        // is close to the value of recorder’s [[ConstrainedBitsPerSecond]] slot.
+        if let Some(bps) = self.constrained_bits_per_second {
+            // TODO: is half reasonable?
+            *self.video_bits_per_second.borrow_mut() = bps / 2;
+            *self.audio_bits_per_second.borrow_mut() = bps / 2;
+        }
     }
 }
 
@@ -205,7 +212,7 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
     }
 
     fn MimeType(&self) -> DOMString {
-        self.mime_type.clone()
+        self.mime_type.borrow().clone()
     }
 
     fn State(&self) -> RecordingState {
@@ -308,11 +315,11 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
     }
 
     fn VideoBitsPerSecond(&self) -> u32 {
-        self.video_bits_per_second
+        *self.video_bits_per_second.borrow()
     }
 
     fn AudioBitsPerSecond(&self) -> u32 {
-        self.audio_bits_per_second
+        *self.audio_bits_per_second.borrow()
     }
 
     fn AudioBitrateMode(&self) -> BitrateMode {
