@@ -215,7 +215,9 @@ impl CspReporting for Option<CspList> {
             }
             // Cross-origin parents go via the constellation (slower)
             if let Some(parent_proxy) = window_proxy.parent() {
-                let Some(parent_origin) = parent_proxy.document_origin() else {
+                let Some((parent_origin, _)) =
+                    parent_proxy.document_origin_and_internal_ancestor_origin_objects_list()
+                else {
                     break;
                 };
                 let parent_origin = parent_origin.immutable().ascii_serialization();
