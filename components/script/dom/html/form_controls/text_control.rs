@@ -9,6 +9,7 @@
 
 use std::cell::Ref;
 
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use servo_base::text::Utf16CodeUnits;
 
@@ -21,6 +22,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::text_input::{
     EmbedderClipboardProvider, SelectionDirection, SelectionState, TextInput,
 };
+use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::Element;
 
@@ -54,12 +56,18 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
-    pub(crate) fn dom_select(&self) {
+    pub(crate) fn dom_select(&self, cx: &mut JSContext) {
         // Step 1: If this element is an input element, and either select() does not apply
         // to this element or the corresponding control has no selectable text, return.
         if !self.element.has_selectable_text() {
             return;
         }
+
+        // Focus the element. This matches the behavior of other browsers. Note that _only_
+        // `select()` causes focus, not setting selectionStart or selectionEnd.
+        self.element
+            .upcast::<Node>()
+            .run_the_focusing_steps(cx, None, FocusTrigger::Other);
 
         // Step 2 : Set the selection range with 0 and infinity.
         self.set_range(
