@@ -65,6 +65,7 @@ use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
+use crate::dom::text_input::CMD_OR_CONTROL;
 use crate::dom::types::{
     CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLElement,
     HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
@@ -2066,6 +2067,11 @@ impl DocumentEventHandler {
             Key::Named(NamedKey::Home) => KeyboardScroll::Home,
             Key::Named(NamedKey::PageDown) => KeyboardScroll::PageDown,
             Key::Named(NamedKey::PageUp) => KeyboardScroll::PageUp,
+            Key::Character(string) if &string == "a" && event.modifiers() == CMD_OR_CONTROL => {
+                document.editing_context(cx.no_gc(), node).select_all(cx);
+                event.upcast::<Event>().mark_as_handled();
+                return;
+            },
             Key::Character(string) if &string == " " => {
                 is_space = true;
                 if event.modifiers().contains(Modifiers::SHIFT) {
