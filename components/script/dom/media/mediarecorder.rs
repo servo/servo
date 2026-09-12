@@ -282,8 +282,36 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         Ok(())
     }
 
-    fn Resume(&self) {
-        todo!()
+    /// <https://www.w3.org/TR/mediastream-recording/#dom-mediarecorder-resume>
+    fn Resume(&self) -> Fallible<()> {
+        let mut state = self.state.borrow_mut();
+
+        // Step 1. If state is inactive, throw an InvalidStateError DOMException and abort these steps.
+        if *state == RecordingState::Inactive {
+            return Err(Error::InvalidState(Some(
+                "resume when state is inactive".into(),
+            )));
+        }
+
+        // Step 2. If state is recording, abort these steps.
+        if *state == RecordingState::Recording {
+            return Ok(());
+        }
+
+        // Step 3. Set state to recording, and queue a task, using the DOM manipulation task source, that runs the following steps:
+        *state = RecordingState::Paused;
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(resume: move |cx| {
+            // Step 3.1. Resume (or continue) gathering data into the current blob.
+            // TODO
+            // Step 3.2. Let target be the MediaRecorder context object. Fire an event named resume at target.
+            // TODO
+                }));
+
+        // Step 4. return undefined.
+        Ok(())
     }
 
     fn RequestData(&self) {
