@@ -30,6 +30,7 @@ class Workflow(str, Enum):
     ANDROID = "android"
     OHOS = "ohos"
     LINT = "lint"
+    PERF_ANALYSIS = "perf-analysis"
 
 
 @dataclass
@@ -84,6 +85,8 @@ class JobConfig(object):
             self.name = "Android"
         elif self.workflow is Workflow.OHOS:
             self.name = "OpenHarmony"
+        elif self.workflow is Workflow.PERF_ANALYSIS:
+            self.name = "Perf analysis"
         modifier = []
         if self.profile != "checked-release":
             modifier.append(self.profile.title())
@@ -159,6 +162,9 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         )
     elif any(word in s for word in ["lint", "tidy"]):
         return JobConfig("Lint", Workflow.LINT)
+    elif any(word in s for word in ["perf-analysis", "perfanalysis", "perf"]):
+        # The release profile is used for stable timings (no debug assertions).
+        return JobConfig("Perf analysis", Workflow.PERF_ANALYSIS, profile="release")
     else:
         return None
 
@@ -529,6 +535,13 @@ class TestParser(unittest.TestCase):
         self.assertTrue(matrix_result["devtools_tests"])
         self.assertFalse(matrix_result["unit_tests"])
         self.assertFalse(matrix_result["wpt"])
+
+    def test_perf_analysis(self):
+        matrix_result = json.loads(Config("perf-analysis").to_json())["matrix"][0]
+
+        self.assertEqual(matrix_result["name"], "Perf analysis (Release)")
+        self.assertEqual(matrix_result["workflow"], "perf-analysis")
+        self.assertEqual(matrix_result["profile"], "release")
 
 
 def run_tests() -> bool:
