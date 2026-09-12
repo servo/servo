@@ -419,23 +419,35 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(pause: move |cx| {
-            let this = this.root();
+                let this = this.root();
+                // Step 4.1. Stop gathering data.
+                // TODO: add a method in media backend
 
-            // Step 4.1. Stop gathering data.
-            // TODO: add a method in media backend
-
-            // Step 4.2. Let blob be the Blob of collected data so far,
-            // then fire a blob event named dataavailable at recorder with blob.
-            BlobEvent::new(cx, this.global().as_window(), "dataavailable".into(), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
-                // TODO: the collected blob
-                todo!(),
-                // TODO: the timecode
-                todo!())
+                // Step 4.2. Let blob be the Blob of collected data so far,
+                // then fire a blob event named dataavailable at recorder with blob.
+                BlobEvent::new(
+                    cx,
+                    this.global().as_window(),
+                    "dataavailable".into(),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    // TODO: the collected blob
+                    todo!(),
+                    // TODO: the timecode
+                    todo!()
+                )
                 .upcast::<Event>()
-                .fire(cx, this.upcast::<EventTarget>());
+                .fire(cx, this.upcast());
 
-            // Step 4.3. Fire an event named stop at recorder.
-            Event::new(cx, this.global(), "stop".into(), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable).fire(cx, this.upcast::<EventTarget>());
+                // Step 4.3. Fire an event named stop at recorder.
+                Event::new(
+                    cx,
+                    &this.global(),
+                    "stop".into(),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable
+                )
+                .fire(cx, this.upcast());
             }));
 
         // Step 5. return undefined. SKIP
@@ -459,14 +471,24 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         // Step 3. Set state to paused, and queue a task, using the DOM manipulation task source,
         // that runs the following steps:
         *state = RecordingState::Paused;
+        let this = Trusted::new(self);
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(pause: move |cx| {
-            // Step 3.1. Stop gathering data into blob (but keep it available so that recording can be resumed in the future).
-            // TODO
-            // Step 3.2. Let target be the MediaRecorder context object. Fire an event named pause at target.
-            // TODO: Context::new(self)
+                let this = this.root();
+                // Step 3.1. Stop gathering data into blob, but keep it available so that recording can be resumed in the future
+                // TODO: blob is not done
+
+                // Step 3.2. Let target be the MediaRecorder context object. Fire an event named pause at target.
+                Event::new(
+                    cx,
+                    &this.global(),
+                    "pause".into(),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable
+                )
+                .fire(cx, this.upcast());
             }));
 
         // Step 4. return undefined.
@@ -491,15 +513,25 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
 
         // Step 3. Set state to recording, and queue a task, using the DOM manipulation task source, that runs the following steps:
         *state = RecordingState::Paused;
+        let this = Trusted::new(self);
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(resume: move |cx| {
-            // Step 3.1. Resume (or continue) gathering data into the current blob.
-            // TODO
-            // Step 3.2. Let target be the MediaRecorder context object. Fire an event named resume at target.
-            // TODO
-                }));
+                let this = this.root();
+                // Step 3.1. Resume (or continue) gathering data into the current blob.
+                // TODO: add a method in backend
+
+                // Step 3.2. Let target be the MediaRecorder context object. Fire an event named resume at target.
+                Event::new(
+                    cx,
+                    &this.global(),
+                    "resume".into(),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable
+                )
+                .fire(cx, this.upcast());
+            }));
 
         // Step 4. return undefined.
         Ok(())
@@ -520,10 +552,11 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
             .queue(task!(request_data: move |cx| {
             // Step 1.1. Let blob be the Blob of collected data so far and let target be the MediaRecorder context object,
             // then fire a blob event named dataavailable at target with blob.
-            // TODO
+            // TODO: chunk field
+
             // Step 1.2. Create a new Blob and gather subsequent data into it.
-            // TODO
-                }));
+            // TODO: replace chunk
+            }));
 
         // Step 2. return undefined.
         Ok(())
