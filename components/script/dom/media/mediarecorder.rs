@@ -9,7 +9,8 @@ use script_bindings::{
             BitrateMode, MediaRecorderMethods, MediaRecorderOptions, RecordingState,
         },
     },
-    root::DomRoot,
+    reflector::reflect_dom_object_with_cx,
+    root::{Dom, DomRoot},
     str::DOMString,
 };
 
@@ -21,19 +22,46 @@ use crate::dom::{
 #[dom_struct]
 pub(crate) struct MediaRecorder {
     eventtarget: EventTarget,
+    stream: Dom<MediaStream>,
+    mime_type: DOMString,
+    state: RecordingState,
+}
+
+impl MediaRecorder {
+    fn new_inherited(stream: &MediaStream, mime_type: DOMString) -> Self {
+        MediaRecorder {
+            eventtarget: EventTarget::new_inherited(),
+            stream: Dom::from_ref(stream),
+            mime_type,
+            state: RecordingState::Inactive,
+        }
+    }
+
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        global: &Window,
+        stream: &MediaStream,
+        mime_type: DOMString,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(
+            Box::new(MediaRecorder::new_inherited(stream, mime_type)),
+            global,
+            cx,
+        )
+    }
 }
 
 impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
     fn Stream(&self) -> DomRoot<MediaStream> {
-        todo!()
+        DomRoot::from_ref(&self.stream)
     }
 
     fn MimeType(&self) -> DOMString {
-        todo!()
+        self.mime_type.clone()
     }
 
     fn State(&self) -> RecordingState {
-        todo!()
+        self.state
     }
 
     fn GetOnstart(
@@ -168,7 +196,7 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         proto: Option<js::gc::HandleObject>,
         stream: &MediaStream,
         options: &MediaRecorderOptions,
-    ) -> DomRoot<MediaRecorder> {
-        todo!()
+    ) -> DomRoot<Self> {
+        Self::new(cx, global, stream, options.mimeType.clone())
     }
 }
