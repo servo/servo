@@ -154,7 +154,7 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         &self,
         cx: &mut JSContext,
     ) -> Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>> {
-        todo!()
+        self.eventtarget.get_event_handler_common(cx, "start")
     }
 
     fn SetOnstart(
@@ -162,14 +162,15 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         cx: &mut JSContext,
         value: Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>>,
     ) {
-        todo!()
+        self.eventtarget
+            .set_event_handler_common(cx, "start", value);
     }
 
     fn GetOnstop(
         &self,
         cx: &mut JSContext,
     ) -> Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>> {
-        todo!()
+        self.eventtarget.get_event_handler_common(cx, "stop")
     }
 
     fn SetOnstop(
@@ -177,14 +178,15 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         cx: &mut JSContext,
         value: Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>>,
     ) {
-        todo!()
+        self.eventtarget.set_event_handler_common(cx, "stop", value);
     }
 
     fn GetOndataavailable(
         &self,
         cx: &mut JSContext,
     ) -> Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>> {
-        todo!()
+        self.eventtarget
+            .get_event_handler_common(cx, "dataavailable")
     }
 
     fn SetOndataavailable(
@@ -192,14 +194,15 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         cx: &mut JSContext,
         value: Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>>,
     ) {
-        todo!()
+        self.eventtarget
+            .set_event_handler_common(cx, "dataavailable", value);
     }
 
     fn GetOnpause(
         &self,
         cx: &mut JSContext,
     ) -> Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>> {
-        todo!()
+        self.eventtarget.get_event_handler_common(cx, "pause")
     }
 
     fn SetOnpause(
@@ -207,14 +210,15 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         cx: &mut JSContext,
         value: Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>>,
     ) {
-        todo!()
+        self.eventtarget
+            .set_event_handler_common(cx, "pause", value);
     }
 
     fn GetOnresume(
         &self,
         cx: &mut JSContext,
     ) -> Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>> {
-        todo!()
+        self.eventtarget.get_event_handler_common(cx, "resume")
     }
 
     fn SetOnresume(
@@ -222,14 +226,15 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         cx: &mut JSContext,
         value: Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>>,
     ) {
-        todo!()
+        self.eventtarget
+            .set_event_handler_common(cx, "resume", value);
     }
 
     fn GetOnerror(
         &self,
         cx: &mut JSContext,
     ) -> Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>> {
-        todo!()
+        self.eventtarget.get_event_handler_common(cx, "error")
     }
 
     fn SetOnerror(
@@ -237,7 +242,7 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         cx: &mut JSContext,
         value: Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>>,
     ) {
-        todo!()
+        self.eventtarget.set_error_event_handler(cx, "error", value);
     }
 
     fn VideoBitsPerSecond(&self) -> u32 {
