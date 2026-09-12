@@ -81,7 +81,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 
 // Named elliptic curves
 const NAMED_CURVE_P256: &str = "P-256";
@@ -218,13 +218,13 @@ impl SubtleCrypto {
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with the result of creating an ArrayBuffer in realm, containing data. If it fails
     /// to create buffer source, reject promise with a JSFailedError.
-    fn resolve_promise_with_data(&self, promise: Rc<Promise>, data: Zeroizing<Vec<u8>>) {
-        let trusted_promise = TrustedPromise::new(promise);
+    fn resolve_promise_with_data(&self, promise: &RootedPromise, data: Zeroizing<Vec<u8>>) {
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
             .queue(task!(resolve_data: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
 
                 rooted!(&in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
                 match create_buffer_source::<ArrayBufferU8>(cx,
@@ -243,7 +243,7 @@ impl SubtleCrypto {
     fn resolve_promise_with_jwk(
         &self,
         cx: &mut js::context::JSContext,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
         jwk: Box<JsonWebKey>,
     ) {
         // NOTE: Serialize the JsonWebKey dictionary by stringifying it, in order to pass it to
@@ -257,13 +257,13 @@ impl SubtleCrypto {
         };
 
         let trusted_subtle = Trusted::new(self);
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
             .queue(task!(resolve_jwk: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
 
                 match JsonWebKey::parse(cx, stringified_jwk.as_bytes()) {
                     Ok(jwk) => {
@@ -273,7 +273,7 @@ impl SubtleCrypto {
                         promise.resolve_native(cx, &*object);
                     },
                     Err(error) => {
-                        subtle.reject_promise_with_error(promise, error);
+                        subtle.reject_promise_with_error(&promise, error);
                         return;
                     },
                 }
@@ -282,25 +282,25 @@ impl SubtleCrypto {
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with a CryptoKey.
-    fn resolve_promise_with_key(&self, promise: Rc<Promise>, key: &CryptoKey) {
+    fn resolve_promise_with_key(&self, promise: &RootedPromise, key: &CryptoKey) {
         let trusted_key = Trusted::new(key);
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
             .queue(task!(resolve_key: move |cx| {
                 let key = trusted_key.root();
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &key);
             }));
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with a CryptoKeyPair.
-    fn resolve_promise_with_key_pair(&self, promise: Rc<Promise>, key_pair: CryptoKeyPair) {
+    fn resolve_promise_with_key_pair(&self, promise: &RootedPromise, key_pair: CryptoKeyPair) {
         let trusted_private_key = key_pair.privateKey.map(|key| Trusted::new(&*key));
         let trusted_public_key = key_pair.publicKey.map(|key| Trusted::new(&*key));
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
@@ -309,33 +309,33 @@ impl SubtleCrypto {
                     privateKey: trusted_private_key.map(|trusted_key| trusted_key.root()),
                     publicKey: trusted_public_key.map(|trusted_key| trusted_key.root()),
                 };
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &key_pair);
             }));
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with a bool value.
-    fn resolve_promise_with_bool(&self, promise: Rc<Promise>, result: bool) {
-        let trusted_promise = TrustedPromise::new(promise);
+    fn resolve_promise_with_bool(&self, promise: &RootedPromise, result: bool) {
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
             .queue(task!(resolve_bool: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &result);
             }));
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to reject
     /// promise with an error.
-    fn reject_promise_with_error(&self, promise: Rc<Promise>, error: Error) {
-        let trusted_promise = TrustedPromise::new(promise);
+    fn reject_promise_with_error(&self, promise: &RootedPromise, error: Error) {
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
             .queue(task!(reject_error: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.reject_error(cx, error);
             }));
     }
@@ -345,13 +345,13 @@ impl SubtleCrypto {
     /// defined by [WebIDL].
     fn resolve_promise_with_encapsulated_key(
         &self,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
         encapsulated_key: EncapsulatedKey,
     ) {
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         self.global().task_manager().crypto_task_source().queue(
             task!(resolve_encapsulated_key: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &encapsulated_key);
             }),
         );
@@ -362,13 +362,13 @@ impl SubtleCrypto {
     /// defined by [WebIDL].
     fn resolve_promise_with_encapsulated_bits(
         &self,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
         encapsulated_bits: EncapsulatedBits,
     ) {
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         self.global().task_manager().crypto_task_source().queue(
             task!(resolve_encapsulated_bits: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &encapsulated_bits);
             }),
         );
@@ -415,9 +415,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(encrypt: move || {
+            .queue(task!(encrypt: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
@@ -499,9 +499,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(decrypt: move || {
+            .queue(task!(decrypt: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
@@ -583,9 +583,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(sign: move || {
+            .queue(task!(sign: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
@@ -671,9 +671,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(sign: move || {
+            .queue(task!(sign: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 9. If the following steps or referenced procedures say to throw an error,
@@ -750,9 +750,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(digest_: move || {
+            .queue(task!(digest_: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -814,7 +814,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .dom_manipulation_task_source()
             .queue(task!(generate_key: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 7. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -947,7 +947,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             task!(derive_key: move |cx| {
                 let subtle = trusted_subtle.root();
                 let base_key = trusted_base_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 11. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1067,10 +1067,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(import_key: move || {
+            .queue(task!(import_key: move |cx| {
                 let subtle = trsuted_subtle.root();
                 let base_key = trusted_base_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 7. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1210,7 +1210,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .dom_manipulation_task_source()
             .queue(task!(import_key: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1276,7 +1276,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .dom_manipulation_task_source()
             .queue(task!(export_key: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 5. If the following steps or referenced procedures say to throw an error,
@@ -1394,7 +1394,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let subtle = trusted_subtle.root();
                 let key = trusted_key.root();
                 let wrapping_key = trusted_wrapping_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1585,7 +1585,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             task!(unwrap_key: move |cx| {
                 let subtle = trusted_subtle.root();
                 let unwrapping_key = trusted_unwrapping_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 11. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1753,7 +1753,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             task!(encapsulate_keys: move |cx| {
                 let subtle = trusted_subtle.root();
                 let encapsulation_key = trusted_encapsulated_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 9. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1879,10 +1879,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let trusted_encapsulation_key = Trusted::new(encapsulation_key);
         let trusted_promise = TrustedPromise::new(promise.clone());
         self.global().task_manager().dom_manipulation_task_source().queue(
-            task!(derive_key: move || {
+            task!(derive_key: move |cx| {
                 let subtle = trusted_subtle.root();
                 let encapsulation_key = trusted_encapsulation_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 7. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1995,7 +1995,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .dom_manipulation_task_source()
             .queue(task!(decapsulate_key: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let decapsulation_key = trusted_decapsulation_key.root();
 
                 // Step 10. If the following steps or referenced procedures say to throw an error,
@@ -2113,9 +2113,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(decapsulate_bits: move || {
+            .queue(task!(decapsulate_bits: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let decapsulation_key = trusted_decapsulation_key.root();
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
@@ -2212,7 +2212,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .dom_manipulation_task_source()
             .queue(task!(get_public_key: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 7. If the following steps or referenced procedures say to throw an error,

@@ -54,7 +54,7 @@ impl XRTest {
         response: Result<GenericSender<MockDeviceMsg>, XRError>,
         trusted: TrustedPromise,
     ) {
-        let promise = trusted.root();
+        let promise = trusted.root(cx);
         if let Ok(sender) = response {
             let device = FakeXRDevice::new(cx, &self.global(), sender);
             self.devices_connected

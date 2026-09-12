@@ -301,7 +301,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                 global.task_manager().dom_manipulation_task_source().queue(
                 task!(rejection_handled_event: move |cx| {
                     let target = target.root();
-                    let root_promise = trusted_promise.root();
+                    let root_promise = trusted_promise.root(cx);
 
                     rooted!(&in(cx) let mut reason = UndefinedValue());
                     unsafe {
@@ -314,7 +314,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                         atom!("rejectionhandled"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable,
-                        root_promise,
+                        &root_promise,
                         reason.handle(),
                     );
 
@@ -479,7 +479,7 @@ pub(crate) fn notify_about_rejected_promises(cx: &mut JSContext, global: &Global
 
             // Step 4.1 For each promise p of list:
             for promise in uncaught_rejections {
-                let promise = promise.root();
+                let promise = promise.root(cx);
 
                 // 4.1.1 If p.[[PromiseIsHandled]] is true, then continue.
                 if promise.get_promise_is_handled() {
@@ -505,7 +505,7 @@ pub(crate) fn notify_about_rejected_promises(cx: &mut JSContext, global: &Global
                     atom!("unhandledrejection"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::Cancelable,
-                    promise.clone(),
+                    &promise,
                     reason.handle(),
                 );
                 event.upcast::<Event>().fire(cx, &target);

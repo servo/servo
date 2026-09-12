@@ -589,7 +589,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             .canvas_blob_task_source()
             .queue(task!(convert_to_blob: move |cx| {
                 let this = trusted_this.root();
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
 
                 let mut encoded: Vec<u8> = vec![];
 

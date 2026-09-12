@@ -1196,7 +1196,7 @@ pub(crate) struct TestBindingCallback {
 
 impl TestBindingCallback {
     pub(crate) fn invoke(self, cx: &mut JSContext) {
-        self.promise.root().resolve_native(cx, &self.value);
+        self.promise.root(cx).resolve_native(cx, &self.value);
     }
 }
 

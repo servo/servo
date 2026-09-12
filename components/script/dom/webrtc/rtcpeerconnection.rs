@@ -671,7 +671,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             desc.sdp,
                         );
                         this.local_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(current_realm, &())
+                        trusted_promise.root(current_realm).resolve_native(current_realm, &())
                     }));
                 }),
             );
@@ -714,7 +714,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             desc.sdp,
                         );
                         this.remote_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(current_realm, &())
+                        trusted_promise.root(current_realm).resolve_native(current_realm, &())
                     }));
                 }),
             );

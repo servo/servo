@@ -31,7 +31,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::Gamepad;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
@@ -254,7 +254,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     return;
                 };
                 task_source.queue(task!(request_session: move |cx| {
-                    this.root().session_obtained(cx, message, trusted.root(), mode, frame_receiver);
+                    this.root().session_obtained(cx, message, &trusted.root(cx), mode, frame_receiver);
                 }));
             }),
         );
@@ -275,7 +275,7 @@ impl XRSystem {
         &self,
         cx: &mut JSContext,
         response: Result<Session, XRError>,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
         mode: XRSessionMode,
         frame_receiver: IpcReceiver<Frame>,
     ) {

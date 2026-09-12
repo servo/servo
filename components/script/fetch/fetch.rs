@@ -51,7 +51,7 @@ use crate::dom::fetchlaterresult::FetchLaterResult;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::Guard;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
@@ -332,7 +332,7 @@ fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) ->
 
 /// <https://fetch.spec.whatwg.org/#abort-fetch>
 fn abort_fetch_call(
-    promise: Rc<Promise>,
+    promise: &RootedPromise,
     request: &Request,
     response_object: Option<&Response>,
     abort_reason: HandleValue,
@@ -367,9 +367,9 @@ pub(crate) fn Fetch(
     input: RequestInfo,
     init: RootedTraceableBox<RequestInit>,
     cx: &mut CurrentRealm,
-) -> Rc<Promise> {
+) -> RootedPromise {
     // Step 1. Let p be a new promise.
-    let promise = Promise::new_in_realm(cx);
+    let promise = Promise::new_in_realm_rooted(cx);
 
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier so we can use it to track errors.
@@ -396,7 +396,7 @@ pub(crate) fn Fetch(
         rooted!(&in(cx) let mut abort_reason = UndefinedValue());
         signal.Reason(abort_reason.handle_mut());
         abort_fetch_call(
-            promise.clone(),
+            &promise,
             &request_object,
             None,
             abort_reason.handle(),
@@ -424,7 +424,7 @@ pub(crate) fn Fetch(
     // Step 9. Let locallyAborted be false.
     // Step 10. Let controller be null.
     let fetch_context = FetchContext {
-        fetch_promise: Some(TrustedPromise::new(promise.clone())),
+        fetch_promise: Some(TrustedPromise::from(&promise)),
         response_object: Trusted::new(&*response),
         request: Trusted::new(&*request_object),
         global: Trusted::new(global),
@@ -661,9 +661,9 @@ impl FetchContext {
             .fetch_promise
             .take()
             .expect("fetch promise is missing")
-            .root();
+            .root(cx);
         abort_fetch_call(
-            promise,
+            &promise,
             &request,
             Some(&self.response_object.root()),
             abort_reason,
@@ -693,7 +693,7 @@ impl FetchResponseListener for FetchContext {
             .fetch_promise
             .take()
             .expect("fetch promise is missing")
-            .root();
+            .root(cx);
 
         let mut realm = enter_auto_realm(cx, &*promise);
         let cx = &mut realm.current_realm();
@@ -702,7 +702,7 @@ impl FetchResponseListener for FetchContext {
             // p with a TypeError and abort these steps.
             Err(error) => {
                 promise.reject_error(cx, Error::Type(cformat!("Network error: {:?}", error)));
-                self.fetch_promise = Some(TrustedPromise::new(promise));
+                self.fetch_promise = Some(TrustedPromise::from(&promise));
                 let response = self.response_object.root();
                 response.set_type(cx, DOMResponseType::Error);
                 response.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
@@ -743,7 +743,7 @@ impl FetchResponseListener for FetchContext {
 
         // Step 12.5. Resolve p with responseObject.
         promise.resolve_native(cx, &self.response_object.root());
-        self.fetch_promise = Some(TrustedPromise::new(promise));
+        self.fetch_promise = Some(TrustedPromise::from(&promise));
     }
 
     fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Bytes) {

@@ -165,7 +165,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     task!(suspend_ok: move |cx| {
                         let base_context = base_context.root();
                         let context = context.root();
-                        let promise = trusted_promise.root();
+                        let promise = trusted_promise.root(cx);
                         promise.resolve_native(cx, &());
                         if base_context.State() != AudioContextState::Suspended {
                             base_context.set_state_attribute(AudioContextState::Suspended);
@@ -184,7 +184,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     .task_manager()
                     .dom_manipulation_task_source()
                     .queue(task!(suspend_error: move |cx| {
-                        let promise = trusted_promise.root();
+                        let promise = trusted_promise.root(cx);
                         promise.reject_error(cx, Error::Type(c"Something went wrong".to_owned()));
                     }));
             },
@@ -221,7 +221,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     task!(suspend_ok: move |cx| {
                         let base_context = base_context.root();
                         let context = context.root();
-                        let promise = trusted_promise.root();
+                        let promise = trusted_promise.root(cx);
                         promise.resolve_native(cx, &());
                         if base_context.State() != AudioContextState::Closed {
                             base_context.set_state_attribute(AudioContextState::Closed);
@@ -240,7 +240,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     .task_manager()
                     .dom_manipulation_task_source()
                     .queue(task!(suspend_error: move |cx| {
-                        let promise = trusted_promise.root();
+                        let promise = trusted_promise.root(cx);
                         promise.reject_error(cx, Error::Type(c"Something went wrong".to_owned()));
                     }));
             },

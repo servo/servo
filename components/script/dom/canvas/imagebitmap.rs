@@ -325,7 +325,7 @@ impl ImageBitmap {
 
                 global_scope.task_manager().bitmap_task_source().queue(
                     task!(resolve_promise: move |cx| {
-                        let promise = trusted_promise.root();
+                        let promise = trusted_promise.root(cx);
                         let image_bitmap = trusted_image_bitmap.root();
 
                         promise.resolve_native(cx, &image_bitmap);
@@ -340,7 +340,7 @@ impl ImageBitmap {
 
             global_scope.task_manager().bitmap_task_source().queue(
                 task!(reject_promise: move |cx| {
-                    let promise = trusted_promise.root();
+                    let promise = trusted_promise.root(cx);
 
                     promise.reject_error(cx, Error::InvalidState(None));
                 }),

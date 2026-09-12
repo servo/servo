@@ -147,7 +147,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
         // given realm’s global object, to perform the below steps:
         global.task_manager().clipboard_task_source().queue(
             task!(write_to_system_clipboard: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 let global = promise.global();
 
                 // Step 3.3.1 Let itemList be an empty sequence<Blob>.
