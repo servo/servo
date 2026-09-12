@@ -18,7 +18,7 @@ interface MediaRecorder : EventTarget {
   undefined stop();
   [Throws] undefined pause();
   [Throws] undefined resume();
-  undefined requestData();
+  [Throws] undefined requestData();
 
   static boolean isTypeSupported(DOMString type);
 };

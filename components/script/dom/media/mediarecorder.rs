@@ -314,8 +314,27 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         Ok(())
     }
 
-    fn RequestData(&self) {
-        todo!()
+    /// <https://www.w3.org/TR/mediastream-recording/#dom-mediarecorder-requestdata>
+    fn RequestData(&self) -> Fallible<()> {
+        // Step 1. If state is inactive throw an InvalidStateError DOMException and terminate these steps.
+        // Otherwise the UA MUST queue a task, using the DOM manipulation task source, that runs the following steps:
+        if *self.state.borrow() == RecordingState::Inactive {
+            return Err(Error::InvalidState(Some(
+                "requestData when state is inactive".into(),
+            )));
+        }
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(request_data: move |cx| {
+            // Step 1.1. Let blob be the Blob of collected data so far and let target be the MediaRecorder context object, then fire a blob event named dataavailable at target with blob. (Note that blob will be empty if no data has been gathered yet.)
+            // TODO
+            // Step 1.2. Create a new Blob and gather subsequent data into it.
+            // TODO
+                }));
+
+        // Step 2. return undefined.
+        Ok(())
     }
 
     /// <https://www.w3.org/TR/mediastream-recording/#dom-mediarecorder-istypesupported>
