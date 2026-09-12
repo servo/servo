@@ -60,7 +60,16 @@ pub fn read_from_disk() -> Result<FontList, Box<dyn Error>> {
 /// Traverses the directory where the font cache file is stored and removes redundant font cache files.
 /// A font cache file becomes redundant when there is an OS update (because the system fonts may be updated as well).
 fn remove_redundant_cache_files() {
-    let base_dir = get_directory().unwrap();
+    let base_dir = match get_directory() {
+        Ok(dir) => dir,
+        Err(error) => {
+            log::debug!(
+                "Couldn't determine font cache directory: {:?}. Skipping cleanup",
+                error
+            );
+            return;
+        },
+    };
     let expected_cache_filename = parse_filename().unwrap();
     let cache_filename_components: Vec<&str> = expected_cache_filename.split('_').collect();
 
