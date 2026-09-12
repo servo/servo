@@ -72,9 +72,9 @@ impl<'a> BackgroundPainter<'a> {
         }
 
         match get_cyclic(&background.background_clip.0, layer_index) {
-            Clip::ContentBox => *fragment_builder.content_rect(),
-            Clip::PaddingBox => *fragment_builder.padding_rect(),
-            Clip::BorderBox | Clip::BorderArea => fragment_builder.border_rect,
+            Clip::ContentBox => *fragment_builder.fragmented_content_rect(),
+            Clip::PaddingBox => *fragment_builder.fragmented_padding_rect(),
+            Clip::BorderBox | Clip::BorderArea => *fragment_builder.fragmented_border_rect(),
         }
     }
 
