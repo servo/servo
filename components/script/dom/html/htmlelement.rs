@@ -650,7 +650,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Step 5: If fragment has no children, then append a new Text node whose data is the empty
         // string and node document is this's node document to fragment.
         if fragment.upcast::<Node>().children_count() == 0 {
-            let text_node = Text::new(cx, DOMString::from("".to_owned()), &document);
+            let text_node = Text::new(cx, DOMString::new(), &document);
 
             fragment
                 .upcast::<Node>()
@@ -1330,7 +1330,7 @@ impl VirtualMethods for HTMLElement {
                     element.update_nonce_internal_slot(nonce.to_owned(), cx.no_gc());
                 },
                 AttributeMutation::Removed => {
-                    element.update_nonce_internal_slot("".to_owned(), cx.no_gc());
+                    element.update_nonce_internal_slot(String::new(), cx.no_gc());
                 },
             },
             _ => {},

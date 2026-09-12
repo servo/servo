@@ -305,7 +305,7 @@ fn matching_links<'a>(
             let content = node
                 .downcast::<HTMLElement>()
                 .map(|element| element.InnerText())
-                .map_or("".to_owned(), String::from)
+                .map_or(String::new(), String::from)
                 .trim()
                 .to_owned();
             if partial {
@@ -1696,7 +1696,7 @@ pub(crate) fn handle_get_text(
                         element
                             .upcast::<Node>()
                             .GetTextContent()
-                            .map_or("".to_owned(), String::from)
+                            .map_or(String::new(), String::from)
                     })
             }),
         )

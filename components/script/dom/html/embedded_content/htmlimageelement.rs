@@ -1648,7 +1648,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
                 let unparsed_url = &current_request.source_url;
                 match *unparsed_url {
                     Some(ref url) => url.clone(),
-                    None => USVString("".to_owned()),
+                    None => USVString(String::new()),
                 }
             },
         }

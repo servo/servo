@@ -63,7 +63,7 @@ impl XRInputSource {
             cx,
             window,
             0,
-            "".into(),
+            String::new(),
             "xr-standard".into(),
             (-1.0, 1.0),
             (0.0, 1.0),

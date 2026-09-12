@@ -153,8 +153,8 @@ impl CspReporting for Option<CspList> {
             redirect_count: 0,
             destination: Destination::None,
             initiator: Initiator::None,
-            nonce: "".to_owned(),
-            integrity_metadata: "".to_owned(),
+            nonce: String::new(),
+            integrity_metadata: String::new(),
             parser_metadata: ParserMetadata::None,
         };
         // TODO: set correct navigation check type for form submission if applicable

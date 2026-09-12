@@ -911,11 +911,7 @@ fn run_blob_data_algorithm(
     bytes: Vec<u8>,
     mime: &[u8],
 ) -> Fallible<FetchedData> {
-    let mime_string = if let Ok(s) = String::from_utf8(mime.to_vec()) {
-        s
-    } else {
-        "".to_string()
-    };
+    let mime_string = String::from_utf8(mime.to_vec()).unwrap_or_default();
     let blob = Blob::new(
         cx,
         root,

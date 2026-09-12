@@ -5757,7 +5757,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             local_name.make_ascii_lowercase();
         }
         let name = LocalName::from(local_name);
-        let value = AttrValue::String("".to_owned());
+        let value = AttrValue::String(String::new());
 
         Ok(Attr::new(
             cx,
@@ -5783,7 +5783,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let context = domname::Context::Attribute;
         let (namespace, prefix, local_name) =
             domname::validate_and_extract(namespace, &qualified_name, context)?;
-        let value = AttrValue::String("".to_owned());
+        let value = AttrValue::String(String::new());
         let qualified_name = LocalName::from(qualified_name);
         Ok(Attr::new(
             cx,

@@ -329,7 +329,7 @@ unsafe extern "C" fn promise_rejection_tracker(
 #[expect(unsafe_code)]
 fn safely_convert_null_to_string(cx: &JSContext, str_: HandleString) -> DOMString {
     DOMString::from(match std::ptr::NonNull::new(*str_) {
-        None => "".to_owned(),
+        None => String::new(),
         Some(str_) => unsafe { jsstr_to_string(cx, str_) },
     })
 }

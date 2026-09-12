@@ -220,7 +220,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
 
         USVString(match *self.get_url().borrow() {
             // Step 2. If this's url is null, return the empty string.
-            None => "".to_owned(),
+            None => String::new(),
             // Step 3. Return the serialization of this's url's origin.
             Some(ref url) => url.origin().ascii_serialization().into_owned(),
         })

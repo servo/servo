@@ -669,7 +669,7 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
                     media,
                     resolved_url.into(),
                     None,
-                    "".to_owned(),
+                    String::new(),
                 );
             },
             ElementStylesheetLoader::Asynchronous(AsynchronousStylesheetLoader {
@@ -689,7 +689,7 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
                         media,
                         resolved_url.into(),
                         None,
-                        "".to_owned()
+                        String::new()
                     );
                 });
                 let _ =
