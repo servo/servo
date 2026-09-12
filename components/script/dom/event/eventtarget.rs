@@ -21,7 +21,7 @@ use js::rust::wrappers2::CompileFunction;
 use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text};
 use libc::c_char;
 use rustc_hash::{FxBuildHasher, FxHashSet};
-use script_bindings::callback::OwnerWindow;
+use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
@@ -88,13 +88,16 @@ pub(crate) static CONTENT_EVENT_HANDLER_NAMES: LazyLock<FxHashSet<&str>> = LazyL
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 #[expect(clippy::enum_variant_names)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum CommonEventHandler {
-    EventHandler(#[conditional_malloc_size_of] Rc<EventHandlerNonNull>),
+    EventHandler(TracedCallback<EventHandlerNonNull>),
 
-    ErrorEventHandler(#[conditional_malloc_size_of] Rc<OnErrorEventHandlerNonNull>),
+    ErrorEventHandler(TracedCallback<OnErrorEventHandlerNonNull>),
 
-    BeforeUnloadEventHandler(#[conditional_malloc_size_of] Rc<OnBeforeUnloadEventHandlerNonNull>),
+    BeforeUnloadEventHandler(TracedCallback<OnBeforeUnloadEventHandlerNonNull>),
 }
+
+impl js::gc::Rootable for CommonEventHandler {}
 
 impl CommonEventHandler {
     fn parent(&self) -> &CallbackFunction<crate::DomTypeHolder> {
@@ -123,11 +126,14 @@ struct InternalRawUncompiledHandler {
 
 /// A representation of an event handler, either compiled or uncompiled raw source, or null.
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 enum InlineEventListener {
     Uncompiled(InternalRawUncompiledHandler),
     Compiled(CommonEventHandler),
     Null,
 }
+
+impl js::gc::Rootable for InlineEventListener {}
 
 /// Get a compiled representation of this event handler, compiling it from its
 /// raw source if necessary.
@@ -138,28 +144,31 @@ fn get_compiled_handler(
     owner: &EventTarget,
     ty: &Atom,
 ) -> Option<CommonEventHandler> {
-    let listener = mem::replace(
+    rooted!(&in(cx) let listener = mem::replace(
         &mut *inline_listener.borrow_mut(),
         InlineEventListener::Null,
-    );
-    let compiled = match listener {
+    ));
+    rooted!(&in(cx) let mut compiled = match &*listener {
         InlineEventListener::Null => None,
         InlineEventListener::Uncompiled(handler) => {
             owner.get_compiled_event_handler(cx, handler, ty)
         },
-        InlineEventListener::Compiled(handler) => Some(handler),
-    };
-    if let Some(ref compiled) = compiled {
+        InlineEventListener::Compiled(handler) => Some(handler.clone()),
+    });
+    if let Some(ref compiled) = *compiled {
         *inline_listener.borrow_mut() = InlineEventListener::Compiled(compiled.clone());
     }
-    compiled
+    compiled.take()
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 enum EventListenerType {
-    Additive(#[conditional_malloc_size_of] Rc<EventListener>),
+    Additive(TracedCallback<EventListener>),
     Inline(RefCell<InlineEventListener>),
 }
+
+impl js::gc::Rootable for EventListenerType {}
 
 impl EventListenerType {
     fn get_compiled_listener(
@@ -181,10 +190,14 @@ impl EventListenerType {
 
 /// A representation of an EventListener/EventHandler object that has previously
 /// been compiled successfully, if applicable.
+#[derive(JSTraceable)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum CompiledEventListener {
-    Listener(Rc<EventListener>),
+    Listener(TracedCallback<EventListener>),
     Handler(CommonEventHandler),
 }
+
+impl js::gc::Rootable for CompiledEventListener {}
 
 impl CompiledEventListener {
     #[expect(unsafe_code)]
@@ -325,6 +338,7 @@ impl CompiledEventListener {
 // https://dom.spec.whatwg.org/#concept-event-listener
 // (as distinct from https://dom.spec.whatwg.org/#callbackdef-eventlistener)
 #[derive(Clone, DenyPublicFields, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 /// A listener in a collection of event listeners.
 pub(crate) struct EventListenerEntry {
     phase: ListenerPhase,
@@ -365,10 +379,13 @@ impl std::cmp::PartialEq for EventListenerEntry {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 /// A mix of potentially uncompiled and compiled event listeners of the same type.
 pub(crate) struct EventListeners(
     #[conditional_malloc_size_of] Vec<Rc<RefCell<EventListenerEntry>>>,
 );
+
+impl js::gc::Rootable for EventListeners {}
 
 impl Deref for EventListeners {
     type Target = Vec<Rc<RefCell<EventListenerEntry>>>;
@@ -537,7 +554,7 @@ impl EventTarget {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handlers-11>
-    fn set_inline_event_listener(&self, ty: Atom, listener: Option<InlineEventListener>) {
+    fn set_inline_event_listener(&self, ty: Atom, listener: Option<&InlineEventListener>) {
         let mut handlers = self.ensure_handlers();
         let entries = match handlers.entry(ty.clone()) {
             Occupied(entry) => entry.into_mut(),
@@ -553,7 +570,8 @@ impl EventTarget {
                 // Replace if there's something to replace with,
                 // but remove entirely if there isn't.
                 Some(listener) => {
-                    entries[idx].borrow_mut().listener = EventListenerType::Inline(listener.into());
+                    entries[idx].borrow_mut().listener =
+                        EventListenerType::Inline(listener.clone().into());
                 },
                 None => {
                     entries.remove(idx).borrow_mut().removed = true;
@@ -564,7 +582,7 @@ impl EventTarget {
                 if let Some(listener) = listener {
                     entries.push(Rc::new(RefCell::new(EventListenerEntry {
                         phase: ListenerPhase::Bubbling,
-                        listener: EventListenerType::Inline(listener.into()),
+                        listener: EventListenerType::Inline(listener.clone().into()),
                         once: false,
                         passive: self.default_passive_value(&ty),
                         removed: false,
@@ -646,7 +664,7 @@ impl EventTarget {
         };
         self.set_inline_event_listener(
             Atom::from(ty),
-            Some(InlineEventListener::Uncompiled(handler)),
+            Some(&InlineEventListener::Uncompiled(handler)),
         );
     }
 
@@ -656,7 +674,7 @@ impl EventTarget {
     fn get_compiled_event_handler(
         &self,
         cx: &mut JSContext,
-        handler: InternalRawUncompiledHandler,
+        handler: &InternalRawUncompiledHandler,
         ty: &Atom,
     ) -> Option<CommonEventHandler> {
         // Step 3.1
@@ -751,15 +769,15 @@ impl EventTarget {
         // Step 1.14
         if is_error {
             Some(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(cx, funobj)
+                TracedCallback::from(OnErrorEventHandlerNonNull::new(cx, funobj))
             }))
         } else if ty == &atom!("beforeunload") {
             Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)
+                TracedCallback::from(OnBeforeUnloadEventHandlerNonNull::new(cx, funobj))
             }))
         } else {
             Some(CommonEventHandler::EventHandler(unsafe {
-                EventHandlerNonNull::new(cx, funobj)
+                TracedCallback::from(EventHandlerNonNull::new(cx, funobj))
             }))
         }
     }
@@ -769,14 +787,14 @@ impl EventTarget {
         &self,
         cx: &mut JSContext,
         ty: &str,
-        listener: Option<Rc<T>>,
+        listener: Option<RootedCallback<T>>,
     ) {
-        let event_listener = listener.map(|listener| {
+        rooted!(&in(cx) let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::EventHandler(unsafe {
-                EventHandlerNonNull::new(cx, listener.callback())
+                TracedCallback::from(EventHandlerNonNull::new(cx, listener.callback()))
             }))
-        });
-        self.set_inline_event_listener(Atom::from(ty), event_listener);
+        }));
+        self.set_inline_event_listener(Atom::from(ty), event_listener.as_ref(cx.no_gc()).as_ref());
     }
 
     #[expect(unsafe_code)]
@@ -784,14 +802,14 @@ impl EventTarget {
         &self,
         cx: &mut JSContext,
         ty: &str,
-        listener: Option<Rc<T>>,
+        listener: Option<RootedCallback<T>>,
     ) {
-        let event_listener = listener.map(|listener| {
+        rooted!(&in(cx) let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(cx, listener.callback())
+                TracedCallback::from(OnErrorEventHandlerNonNull::new(cx, listener.callback()))
             }))
-        });
-        self.set_inline_event_listener(Atom::from(ty), event_listener);
+        }));
+        self.set_inline_event_listener(Atom::from(ty), event_listener.as_ref(cx.no_gc()).as_ref());
     }
 
     #[expect(unsafe_code)]
@@ -799,14 +817,14 @@ impl EventTarget {
         &self,
         cx: &mut JSContext,
         ty: &str,
-        listener: Option<Rc<T>>,
+        listener: Option<RootedCallback<T>>,
     ) {
-        let event_listener = listener.map(|listener| {
+        rooted!(&in(cx) let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback())
+                TracedCallback::from(OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback()))
             }))
-        });
-        self.set_inline_event_listener(Atom::from(ty), event_listener);
+        }));
+        self.set_inline_event_listener(Atom::from(ty), event_listener.as_ref(cx.no_gc()).as_ref());
     }
 
     #[expect(unsafe_code)]
@@ -814,12 +832,16 @@ impl EventTarget {
         &self,
         cx: &mut JSContext,
         ty: &str,
-    ) -> Option<Rc<T>> {
-        let listener = self.get_inline_event_listener(cx, &Atom::from(ty));
+    ) -> Option<RootedCallback<T>> {
+        rooted!(&in(cx) let listener = self.get_inline_event_listener(cx, &Atom::from(ty)));
         unsafe {
-            listener.map(|listener| {
-                CallbackContainer::new(cx, listener.parent().callback_holder().get())
-            })
+            listener
+                .as_ref(cx.no_gc())
+                .as_ref()
+                .map(|listener| {
+                    CallbackContainer::new(cx, listener.parent().callback_holder().get())
+                })
+                .map(RootedCallback::from)
         }
     }
 
@@ -900,8 +922,9 @@ impl EventTarget {
     /// and <https://dom.spec.whatwg.org/#add-an-event-listener>
     pub(crate) fn add_event_listener(
         &self,
+        cx: &JSContext,
         ty: DOMString,
-        listener: Option<Rc<EventListener>>,
+        listener: Option<RootedCallback<EventListener>>,
         options: AddEventListenerOptions,
     ) {
         if let Some(signal) = options.signal.as_ref() {
@@ -914,7 +937,7 @@ impl EventTarget {
                 RemovableDomEventListener {
                     event_target: Dom::from_ref(self),
                     ty: ty.clone(),
-                    listener: listener.clone(),
+                    listener: listener.as_ref().map(|listener| listener.to_traced()),
                     options: options.parent.clone(),
                 },
             ));
@@ -937,19 +960,19 @@ impl EventTarget {
             ListenerPhase::Bubbling
         };
         // Step 4. If listener’s passive is null, then set it to the default passive value given listener’s type and eventTarget.
-        let new_entry = Rc::new(RefCell::new(EventListenerEntry {
+        rooted!(&in(cx) let mut new_entry = Some(RcHolder(Rc::new(RefCell::new(EventListenerEntry {
             phase,
-            listener: EventListenerType::Additive(listener),
+            listener: EventListenerType::Additive(listener.to_traced()),
             once: options.once,
             passive: options.passive.unwrap_or(self.default_passive_value(&ty)),
             removed: false,
-        }));
+        })))));
 
         // Step 5. If eventTarget’s event listener list does not contain
         // an event listener whose type is listener’s type, callback is listener’s callback,
         // and capture is listener’s capture, then append listener to eventTarget’s event listener list.
-        if !entries.contains(&new_entry) {
-            entries.push(new_entry);
+        if !entries.contains(&new_entry.as_ref(cx.no_gc()).as_ref().unwrap().0) {
+            entries.push(new_entry.take().unwrap().0);
             self.notify_listener_added(&ty);
         }
     }
@@ -958,8 +981,9 @@ impl EventTarget {
     /// and <https://dom.spec.whatwg.org/#remove-an-event-listener>
     pub(crate) fn remove_event_listener(
         &self,
+        cx: &JSContext,
         ty: DOMString,
-        listener: &Option<Rc<EventListener>>,
+        listener: &Option<RootedCallback<EventListener>>,
         options: &EventListenerOptions,
     ) {
         let Some(listener) = listener else {
@@ -975,10 +999,10 @@ impl EventTarget {
             } else {
                 ListenerPhase::Bubbling
             };
-            let listener_type = EventListenerType::Additive(listener.clone());
+            rooted!(&in(cx) let listener_type = EventListenerType::Additive(listener.to_traced()));
             if let Some(position) = entries
                 .iter()
-                .position(|e| e.borrow().listener == listener_type && e.borrow().phase == phase)
+                .position(|e| e.borrow().listener == *listener_type && e.borrow().phase == phase)
             {
                 // Step 2. Set listener’s removed to true and remove listener from eventTarget’s event listener list.
                 entries.remove(position).borrow_mut().removed = true;
@@ -1112,21 +1136,23 @@ impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>
     fn AddEventListener(
         &self,
+        cx: &JSContext,
         ty: DOMString,
-        listener: Option<Rc<EventListener>>,
+        listener: Option<RootedCallback<EventListener>>,
         options: AddEventListenerOptionsOrBoolean,
     ) {
-        self.add_event_listener(ty, listener, options.convert())
+        self.add_event_listener(cx, ty, listener, options.convert())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener>
     fn RemoveEventListener(
         &self,
+        cx: &JSContext,
         ty: DOMString,
-        listener: Option<Rc<EventListener>>,
+        listener: Option<RootedCallback<EventListener>>,
         options: EventListenerOptionsOrBoolean,
     ) {
-        self.remove_event_listener(ty, &listener, &options.convert())
+        self.remove_event_listener(cx, ty, &listener, &options.convert())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent>
@@ -1179,3 +1205,8 @@ impl OwnerWindow<crate::DomTypeHolder> for EventTarget {
         self.downcast::<Node>().map(|node| node.owner_window())
     }
 }
+
+#[derive(JSTraceable)]
+struct RcHolder<T: crate::JSTraceable>(Rc<T>);
+
+impl<T: crate::JSTraceable> js::gc::Rootable for RcHolder<T> {}

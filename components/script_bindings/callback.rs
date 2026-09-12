@@ -98,7 +98,7 @@ impl<T: js::conversions::ToJSValConvertible> js::conversions::ToJSValConvertible
 }
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf, PartialEq)]
 pub struct TracedCallback<T>(#[conditional_malloc_size_of] Rc<T>);
 
 impl<T: crate::JSTraceable> js::gc::Rootable for TracedCallback<T> {}
@@ -113,6 +113,18 @@ impl<T> std::ops::Deref for TracedCallback<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<T> TracedCallback<T> {
+    pub fn root(&self) -> RootedCallback<T> {
+        RootedCallback(self.0.clone())
+    }
+}
+
+impl<T> From<Rc<T>> for TracedCallback<T> {
+    fn from(callback: Rc<T>) -> Self {
+        Self(callback)
     }
 }
 
