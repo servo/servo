@@ -85,7 +85,7 @@ pub trait Backend: Send + Sync {
     /// The client context identifier is currently an abstraction of Servo's PipelineId.
     fn resume(&self, _id: &ClientContextId) {}
 
-    fn get_device_monitor(&self) -> Box<dyn MediaDeviceMonitor>;
+    fn get_device_monitor(&self) -> Arc<dyn MediaDeviceMonitor>;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

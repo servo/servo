@@ -117,8 +117,8 @@ impl Backend for DummyBackend {
         SupportsMediaType::No
     }
 
-    fn get_device_monitor(&self) -> Box<dyn MediaDeviceMonitor> {
-        Box::new(DummyMediaDeviceMonitor {})
+    fn get_device_monitor(&self) -> Arc<dyn MediaDeviceMonitor> {
+        Arc::new(DummyMediaDeviceMonitor {})
     }
 }
 
@@ -397,4 +397,6 @@ impl MediaDeviceMonitor for DummyMediaDeviceMonitor {
     fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>> {
         Some(vec![])
     }
+
+    fn add_devicechange_callback(&self, _callback: GenericCallback<()>) {}
 }

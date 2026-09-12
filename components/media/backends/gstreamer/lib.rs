@@ -323,8 +323,8 @@ impl Backend for GStreamerBackend {
         self.media_instance_action(id, &|instance: &dyn MediaInstance| instance.resume());
     }
 
-    fn get_device_monitor(&self) -> Box<dyn MediaDeviceMonitor> {
-        Box::new(GStreamerDeviceMonitor::new())
+    fn get_device_monitor(&self) -> Arc<dyn MediaDeviceMonitor> {
+        GStreamerDeviceMonitor::get()
     }
 }
 

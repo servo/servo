@@ -229,9 +229,9 @@ impl Backend for OhosBackend {
 
     fn get_device_monitor(
         &self,
-    ) -> Box<dyn servo_media_streams::device_monitor::MediaDeviceMonitor> {
+    ) -> Arc<dyn servo_media_streams::device_monitor::MediaDeviceMonitor> {
         warn!("OhosBackend: get_device_monitor not supported");
-        Box::new(OhosDeviceMonitor)
+        Arc::new(OhosDeviceMonitor)
     }
 
     fn mute(&self, id: &ClientContextId, val: bool) {
@@ -275,4 +275,6 @@ impl MediaDeviceMonitor for OhosDeviceMonitor {
     fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>> {
         Some(vec![])
     }
+
+    fn add_devicechange_callback(&self, _callback: GenericCallback<()>) {}
 }
