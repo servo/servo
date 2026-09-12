@@ -1,26 +1,23 @@
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::{
-    codegen::GenericBindings::{
-        EventHandlerBinding::EventHandlerNonNull,
-        MediaStreamRecordingBinding::{
-            BitrateMode, MediaRecorderMethods, MediaRecorderOptions, RecordingState,
-        },
-    },
-    error::{Error, Fallible},
-    num::Finite,
-    reflector::reflect_dom_object_with_cx,
-    root::{Dom, DomRoot},
-    str::DOMString,
+use script_bindings::codegen::GenericBindings::EventHandlerBinding::EventHandlerNonNull;
+use script_bindings::codegen::GenericBindings::MediaStreamRecordingBinding::{
+    BitrateMode, MediaRecorderMethods, MediaRecorderOptions, RecordingState,
 };
+use script_bindings::error::{Error, Fallible};
+use script_bindings::inheritance::Castable;
+use script_bindings::num::Finite;
+use script_bindings::refcounted::Trusted;
+use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::root::{Dom, DomRoot};
+use script_bindings::str::DOMString;
 
-use crate::dom::{
-    Window,
-    bindings::reflector::DomGlobal,
-    types::{EventTarget, MediaStream},
-};
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::types::{BlobEvent, EventTarget, MediaStream};
+use crate::dom::{Event, EventBubbles, EventCancelable, Window};
 
 /// <https://www.w3.org/TR/mediastream-recording/#list-of-synchronously-exposed-codec-identifiers>
 const SYNCHRONOUSLY_EXPOSED_CODEC_IDENTIFIERS: &[&str] = &[
@@ -417,17 +414,29 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         self.inactivate_recorder();
 
         // Step 4. Queue a task, using the DOM manipulation task source, that runs the following steps:
+        let this = Trusted::new(self);
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(pause: move |cx| {
+            let this = this.root();
+
             // Step 4.1. Stop gathering data.
-            // TODO
-            // Step 4.2. Let blob be the Blob of collected data so far, then fire a blob event named dataavailable at recorder with blob.
-            // TODO
+            // TODO: add a method in media backend
+
+            // Step 4.2. Let blob be the Blob of collected data so far,
+            // then fire a blob event named dataavailable at recorder with blob.
+            BlobEvent::new(cx, this.global().as_window(), "dataavailable".into(), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+                // TODO: the collected blob
+                todo!(),
+                // TODO: the timecode
+                todo!())
+                .upcast::<Event>()
+                .fire(cx, this.upcast::<EventTarget>());
+
             // Step 4.3. Fire an event named stop at recorder.
-            // TODO
-                }));
+            Event::new(cx, this.global(), "stop".into(), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable).fire(cx, this.upcast::<EventTarget>());
+            }));
 
         // Step 5. return undefined. SKIP
     }
@@ -509,7 +518,8 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(request_data: move |cx| {
-            // Step 1.1. Let blob be the Blob of collected data so far and let target be the MediaRecorder context object, then fire a blob event named dataavailable at target with blob. (Note that blob will be empty if no data has been gathered yet.)
+            // Step 1.1. Let blob be the Blob of collected data so far and let target be the MediaRecorder context object,
+            // then fire a blob event named dataavailable at target with blob.
             // TODO
             // Step 1.2. Create a new Blob and gather subsequent data into it.
             // TODO
