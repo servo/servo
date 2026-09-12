@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 
 use gstreamer::{
-    Bus as GstBus, DeviceMonitor as GstDeviceMonitor, MessageView,
+    DeviceMonitor as GstDeviceMonitor, MessageView,
     bus::BusWatchGuard as GstBusWatchGuard, prelude::*,
 };
 use servo_base::generic_channel::GenericCallback;
