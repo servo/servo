@@ -16,7 +16,7 @@ interface MediaRecorder : EventTarget {
 
   undefined start(optional unsigned long timeslice);
   undefined stop();
-  undefined pause();
+  [Throws] undefined pause();
   undefined resume();
   undefined requestData();
 

@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -17,6 +17,7 @@ use script_bindings::{
 
 use crate::dom::{
     Window,
+    bindings::reflector::DomGlobal,
     types::{EventTarget, MediaStream},
 };
 
@@ -30,7 +31,7 @@ pub(crate) struct MediaRecorder {
     eventtarget: EventTarget,
     stream: Dom<MediaStream>,
     mime_type: DOMString,
-    state: RecordingState,
+    state: RefCell<RecordingState>,
     audio_bits_per_second: u32,
     video_bits_per_second: u32,
     audio_bitrate_mode: BitrateMode,
@@ -43,7 +44,7 @@ impl MediaRecorder {
             eventtarget: EventTarget::new_inherited(),
             stream: Dom::from_ref(stream),
             mime_type,
-            state: RecordingState::Inactive,
+            state: RefCell::new(RecordingState::Inactive),
             audio_bits_per_second: 0,
             video_bits_per_second: 0,
             audio_bitrate_mode: BitrateMode::Variable,
@@ -136,7 +137,7 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
     }
 
     fn State(&self) -> RecordingState {
-        self.state
+        *self.state.borrow()
     }
 
     fn GetOnstart(
@@ -249,8 +250,36 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         todo!()
     }
 
-    fn Pause(&self) {
-        todo!()
+    /// <https://www.w3.org/TR/mediastream-recording/#dom-mediarecorder-pause>
+    fn Pause(&self) -> Fallible<()> {
+        let mut state = self.state.borrow_mut();
+
+        // Step 1. If state is inactive, throw an InvalidStateError DOMException and abort these steps.
+        if *state == RecordingState::Inactive {
+            return Err(Error::InvalidState(Some(
+                "pause when state is inactive".into(),
+            )));
+        }
+        // Step 2. If state is paused, abort these steps.
+        if *state == RecordingState::Paused {
+            return Ok(());
+        }
+
+        // Step 3. Set state to paused, and queue a task, using the DOM manipulation task source,
+        // that runs the following steps:
+        *state = RecordingState::Paused;
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(pause: move |cx| {
+            // Step 3.1. Stop gathering data into blob (but keep it available so that recording can be resumed in the future).
+            // TODO
+            // Step 3.2. Let target be the MediaRecorder context object. Fire an event named pause at target.
+            // TODO: Context::new(self)
+            }));
+
+        // Step 4. return undefined.
+        Ok(())
     }
 
     fn Resume(&self) {
