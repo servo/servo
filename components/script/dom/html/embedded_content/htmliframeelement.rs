@@ -837,7 +837,7 @@ impl HTMLIFrameElement {
                         .value()
                         .as_tokens()
                         .iter()
-                        .map(|atom| atom.to_string().to_ascii_lowercase())
+                        .map(|atom| atom.to_ascii_lowercase().to_string())
                         .collect();
                     parse_a_sandboxing_directive(&tokens)
                 });
