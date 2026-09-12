@@ -9,6 +9,7 @@ use script_bindings::{
             BitrateMode, MediaRecorderMethods, MediaRecorderOptions, RecordingState,
         },
     },
+    error::{Error, Fallible},
     reflector::reflect_dom_object_with_cx,
     root::{Dom, DomRoot},
     str::DOMString,
@@ -30,15 +31,22 @@ pub(crate) struct MediaRecorder {
     stream: Dom<MediaStream>,
     mime_type: DOMString,
     state: RecordingState,
+    audio_bits_per_second: u32,
+    video_bits_per_second: u32,
+    audio_bitrate_mode: BitrateMode,
 }
 
 impl MediaRecorder {
+    // TODO: pass whole options
     fn new_inherited(stream: &MediaStream, mime_type: DOMString) -> Self {
         MediaRecorder {
             eventtarget: EventTarget::new_inherited(),
             stream: Dom::from_ref(stream),
             mime_type,
             state: RecordingState::Inactive,
+            audio_bits_per_second: 0,
+            video_bits_per_second: 0,
+            audio_bitrate_mode: BitrateMode::Variable,
         }
     }
 
@@ -56,7 +64,7 @@ impl MediaRecorder {
     }
 
     /// <https://www.w3.org/TR/mediastream-recording/#abstract-opdef-is-type-supported>
-    fn is_type_supported(type_: DOMString, defer_newer_codecs_check: bool) -> bool {
+    fn is_type_supported(type_: &DOMString, defer_newer_codecs_check: bool) -> bool {
         // Step 1. if type is empty string, return true (leaving up the choice to UA).
         if type_.is_empty() {
             return true;
@@ -222,15 +230,15 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
     }
 
     fn VideoBitsPerSecond(&self) -> u32 {
-        todo!()
+        self.video_bits_per_second
     }
 
     fn AudioBitsPerSecond(&self) -> u32 {
-        todo!()
+        self.audio_bits_per_second
     }
 
     fn AudioBitrateMode(&self) -> BitrateMode {
-        todo!()
+        self.audio_bitrate_mode
     }
 
     fn Start(&self, timeslice: Option<u32>) {
@@ -255,16 +263,35 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
 
     /// <https://www.w3.org/TR/mediastream-recording/#dom-mediarecorder-istypesupported>
     fn IsTypeSupported(global: &Window, type_: DOMString) -> bool {
-        Self::is_type_supported(type_, false)
+        Self::is_type_supported(&type_, false)
     }
 
+    /// <https://www.w3.org/TR/mediastream-recording/#dom-mediarecorder-mediarecorder>
     fn Constructor(
         cx: &mut JSContext,
         global: &Window,
         proto: Option<js::gc::HandleObject>,
         stream: &MediaStream,
         options: &MediaRecorderOptions,
-    ) -> DomRoot<Self> {
-        Self::new(cx, global, stream, options.mimeType.clone())
+    ) -> Fallible<DomRoot<Self>> {
+        // Step 1. Let stream be the constructor’s first argument. SKIP
+        // Step 2. Let options be the constructor’s second argument. SKIP
+
+        // Step 3. Let type be options’ mimeType.
+        let type_ = &options.mimeType;
+        // Step 4. If invoking is type supported with type and the value true returns false,
+        // throw a NotSupportedError DOMException and abort these steps.
+        if !Self::is_type_supported(type_, true) {
+            return Err(Error::NotSupported(Some(
+                "mimeType is not supported".into(),
+            )));
+        }
+
+        // Step 5-16. let recorder and initialize.
+        let recorder = Self::new(cx, global, stream, options.mimeType.clone());
+        // TODO: detailed steps
+
+        // Step 17. Return recorder
+        Ok(recorder)
     }
 }

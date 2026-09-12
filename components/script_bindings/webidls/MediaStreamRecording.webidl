@@ -1,6 +1,6 @@
 [Exposed=Window]
 interface MediaRecorder : EventTarget {
-  constructor(MediaStream stream, optional MediaRecorderOptions options = {});
+  [Throws] constructor(MediaStream stream, optional MediaRecorderOptions options = {});
   readonly attribute MediaStream stream;
   readonly attribute DOMString mimeType;
   readonly attribute RecordingState state;
