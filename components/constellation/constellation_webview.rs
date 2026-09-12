@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
+use std::rc::Rc;
 
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme, ViewportDetails};
@@ -17,6 +19,7 @@ use servo_constellation_traits::{ScreenshotReadinessResponse, SessionHistoryTrav
 use style_traits::CSSPixel;
 
 use crate::browsingcontext::{BrowsingContext, FullyActiveBrowsingContextsIterator};
+use crate::constellation::BrowsingContextGroup;
 use crate::pipeline::Pipeline;
 use crate::screenshot_readiness_request::{ScreenshotReadinessRequest, ScreenshotRequestState};
 use crate::session_history::{JointSessionHistory, SessionHistoryChange};
@@ -39,6 +42,11 @@ pub(crate) struct ConstellationWebView {
     /// document is active. Between starting the load and it activating,
     /// we store a `SessionHistoryChange` object for the navigation in progress.
     pub pending_changes: Vec<SessionHistoryChange>,
+
+    /// The [`BrowsingContextGroup`] associated with this [`ConstellationWebView`]. Every
+    /// `WebView` has a single [`BrowsingContextGroup`], but that group may be shared amongst
+    /// multiple `WebView`s in the case of `window.open()`.
+    browsing_context_group: Rc<RefCell<BrowsingContextGroup>>,
 
     /// The currently focused browsing context in this webview for key events.
     /// The focused pipeline is the current entry of the focused browsing
@@ -96,6 +104,7 @@ pub(crate) struct ConstellationWebView {
 impl ConstellationWebView {
     pub(crate) fn new(
         webview_id: WebViewId,
+        browsing_context_group: Rc<RefCell<BrowsingContextGroup>>,
         focused_browsing_context_id: BrowsingContextId,
         user_content_manager_id: Option<UserContentManagerId>,
     ) -> Self {
@@ -105,6 +114,7 @@ impl ConstellationWebView {
             active_top_level_pipeline_id: None,
             active_top_level_pipeline_epoch: Epoch::default(),
             pending_changes: Default::default(),
+            browsing_context_group,
             focused_browsing_context_id,
             hovered_browsing_context_id: None,
             last_mouse_move_point: Default::default(),
@@ -116,6 +126,10 @@ impl ConstellationWebView {
             accessibility_active: false,
             screenshot_readiness_requests: Default::default(),
         }
+    }
+
+    pub(crate) fn browsing_context_group(&self) -> Rc<RefCell<BrowsingContextGroup>> {
+        self.browsing_context_group.clone()
     }
 
     /// Set the [`Theme`] on this [`ConstellationWebView`] returning true if the theme changed.
