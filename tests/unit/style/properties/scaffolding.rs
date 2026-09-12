@@ -8,7 +8,10 @@ use std::path::Path;
 
 use serde_json::{self, Value};
 
+// Skip this test when cross-running tests, since we won't have the file on the target device
+// and the test itself should be target independant.
 #[test]
+#[cfg_attr(any(target_os = "android", target_env = "ohos"), ignore)]
 fn properties_list_json() {
     // Four dotdots: /path/to/target(4)/debug(3)/build(2)/style_tests-*(1)/out
     // Do not ascend above the target dir, because it may not be called target
