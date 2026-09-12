@@ -226,10 +226,6 @@ impl VirtualMethods for HTMLBodyElement {
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
         if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(keyboard_event) = event.downcast::<KeyboardEvent>() {
-                let document = self.owner_document();
-                let Some(selection) = document.GetSelection(cx) else {
-                    return;
-                };
                 let key = keyboard_event.key();
                 let mut mods = keyboard_event.modifiers();
                 mods.remove(Modifiers::SHIFT);
@@ -237,7 +233,14 @@ impl VirtualMethods for HTMLBodyElement {
                     CMD_OR_CONTROL,
                     'A',
                     || {
-                        selection.SelectAllChildren(cx, document.upcast::<Node>());
+                        let document = self.owner_document();
+                        let Some(selection) = document.GetSelection(cx) else {
+                            return;
+                        };
+                        // The document is not a doctype so unwrap is okay here
+                        selection
+                            .SelectAllChildren(cx, document.upcast::<Node>())
+                            .unwrap();
                     },
                 );
             }
