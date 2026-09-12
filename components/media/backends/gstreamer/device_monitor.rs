@@ -9,28 +9,34 @@ use gstreamer::prelude::*;
 use servo_base::generic_channel::GenericCallback;
 use servo_media_streams::device_monitor::{MediaDeviceInfo, MediaDeviceKind, MediaDeviceMonitor};
 
+const AUDIO_SOURCE: &str = "Audio/Source";
+const AUDIO_SINK: &str = "Audio/Sink";
+const VIDEO_SOURCE: &str = "Video/Source";
+
 pub struct GStreamerDeviceMonitor {
+    device_monitor: GstDeviceMonitor,
     devices: RefCell<Option<Vec<MediaDeviceInfo>>>,
 }
 
 impl GStreamerDeviceMonitor {
     pub fn new() -> Self {
-        Self {
-            devices: RefCell::new(None),
-        }
-    }
-
-    fn get_devices(&self) -> Result<Vec<MediaDeviceInfo>, ()> {
-        const AUDIO_SOURCE: &str = "Audio/Source";
-        const AUDIO_SINK: &str = "Audio/Sink";
-        const VIDEO_SOURCE: &str = "Video/Source";
         let device_monitor = GstDeviceMonitor::new();
+
         let audio_caps = gstreamer_audio::AudioCapsBuilder::new().build();
         device_monitor.add_filter(Some(AUDIO_SOURCE), Some(&audio_caps));
         device_monitor.add_filter(Some(AUDIO_SINK), Some(&audio_caps));
         let video_caps = gstreamer_video::VideoCapsBuilder::new().build();
         device_monitor.add_filter(Some(VIDEO_SOURCE), Some(&video_caps));
-        let devices = device_monitor
+
+        Self {
+            device_monitor: GstDeviceMonitor::new(),
+            devices: RefCell::new(None),
+        }
+    }
+
+    fn get_devices(&self) -> Result<Vec<MediaDeviceInfo>, ()> {
+        let devices = self
+            .device_monitor
             .devices()
             .iter()
             .filter_map(|device| {
