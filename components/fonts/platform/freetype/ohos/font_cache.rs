@@ -101,7 +101,10 @@ fn parse_file_path() -> Result<String, Box<dyn Error>> {
 
 /// Helper function to obtain the path to the directory where we'll eventually store our cache file in.
 fn get_directory() -> Result<String, Box<dyn Error>> {
-    let binding = opts::get().config_dir.clone().unwrap();
+    let binding = opts::get()
+        .config_dir
+        .clone()
+        .ok_or("Failed to get config dir")?;
     let base_dir = binding
         .to_str()
         .ok_or("Failed to parse base directory's path")?;
