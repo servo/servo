@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-#[cfg(feature = "webxr")]
-use std::rc::Rc;
 use std::{cmp, ptr};
 
 use bitflags::bitflags;
@@ -31,6 +29,8 @@ use webrender_api::ImageKey;
 
 use super::validations::types::TexImageTarget;
 use crate::canvas_context::CanvasContext;
+#[cfg(feature = "webxr")]
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
     WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
 };
@@ -5052,9 +5052,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://immersive-web.github.io/webxr/#dom-webglrenderingcontextbase-makexrcompatible>
     #[cfg(feature = "webxr")]
-    fn MakeXRCompatible(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+    fn MakeXRCompatible(&self, cx: &mut js::context::JSContext) -> RootedPromise {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
-        Promise::new_resolved(cx, &self.global(), ())
+        Promise::new_resolved_rooted(cx, &self.global(), ())
     }
 }
 
