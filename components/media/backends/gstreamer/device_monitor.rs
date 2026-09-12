@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::{
-    sync::{Arc, Mutex, OnceLock, RwLock},
-};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
 use gstreamer::{
     DeviceMonitor as GstDeviceMonitor, MessageView, bus::BusWatchGuard as GstBusWatchGuard,
@@ -21,8 +19,9 @@ static INSTANCE: OnceLock<Arc<GStreamerDeviceMonitor>> = OnceLock::new();
 
 pub struct GStreamerDeviceMonitor {
     monitor: GstDeviceMonitor,
-    watch_guard: Mutex<Option<GstBusWatchGuard>>,
-    devices: RwLock<Option<Vec<MediaDeviceInfo>>>,
+    _watch_guard: GstBusWatchGuard,
+    devices: Arc<RwLock<Option<Vec<MediaDeviceInfo>>>>,
+    callbacks: Arc<Mutex<Vec<GenericCallback<()>>>>,
 }
 
 impl GStreamerDeviceMonitor {
@@ -32,6 +31,8 @@ impl GStreamerDeviceMonitor {
 
     pub fn new() -> Self {
         let monitor = GstDeviceMonitor::new();
+        let devices = Arc::new(RwLock::new(None));
+        let callbacks = Arc::new(Mutex::new(Vec::<GenericCallback<()>>::new()));
 
         // add filters
         let audio_caps = gstreamer_audio::AudioCapsBuilder::new().build();
@@ -40,13 +41,37 @@ impl GStreamerDeviceMonitor {
         let video_caps = gstreamer_video::VideoCapsBuilder::new().build();
         monitor.add_filter(Some(VIDEO_SOURCE), Some(&video_caps));
 
+        // watch changes
+        let watch_guard = monitor
+            .bus()
+            .add_watch({
+                let devices = devices.clone();
+                let callbacks = callbacks.clone();
+                move |_, msg| {
+                    if let MessageView::DeviceAdded(_)
+                    | MessageView::DeviceRemoved(_)
+                    | MessageView::DeviceChanged(_) = msg.view()
+                    {
+                        // evict cache
+                        *devices.write().unwrap() = None;
+
+                        for callback in callbacks.lock().unwrap().iter() {
+                            _ = callback.send(());
+                        }
+                    }
+                    glib::ControlFlow::Continue
+                }
+            })
+            .expect("Failed to add watcher");
+
         // start monitor
         monitor.start().expect("Failed to start monitor");
 
         Self {
             monitor,
-            watch_guard: Default::default(),
-            devices: RwLock::new(None),
+            _watch_guard: watch_guard,
+            devices,
+            callbacks,
         }
     }
 
@@ -91,22 +116,7 @@ impl MediaDeviceMonitor for GStreamerDeviceMonitor {
         Some(devices)
     }
 
-    fn set_devicechange_callback(&self, callback: Option<GenericCallback<()>>) {
-        // old watch automatically cleanup when old guard drops
-        *self.watch_guard.lock().unwrap() = callback.map(|callback| {
-            self.monitor
-                .bus()
-                .add_watch(move |_, msg| {
-                    if let MessageView::DeviceAdded(_)
-                    | MessageView::DeviceRemoved(_)
-                    | MessageView::DeviceChanged(_) = msg.view()
-                    {
-                        // TODO: update to new events
-                        _ = callback.send(());
-                    }
-                    glib::ControlFlow::Continue
-                })
-                .expect("Failed to add watcher")
-        });
+    fn add_devicechange_callback(&self, callback: GenericCallback<()>) {
+        self.callbacks.lock().unwrap().push(callback);
     }
 }

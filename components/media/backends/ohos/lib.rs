@@ -276,5 +276,5 @@ impl MediaDeviceMonitor for OhosDeviceMonitor {
         Some(vec![])
     }
 
-    fn set_devicechange_callback(&self, _callback: Option<GenericCallback<()>>) {}
+    fn add_devicechange_callback(&self, _callback: GenericCallback<()>) {}
 }

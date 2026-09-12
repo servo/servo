@@ -62,7 +62,7 @@ impl MediaDevices {
         .unwrap();
         ServoMedia::get()
             .get_device_monitor()
-            .set_devicechange_callback(Some(callback));
+            .add_devicechange_callback(callback);
 
         this
     }

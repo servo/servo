@@ -20,5 +20,6 @@ pub struct MediaDeviceInfo {
 
 pub trait MediaDeviceMonitor {
     fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>>;
-    fn set_devicechange_callback(&self, callback: Option<GenericCallback<()>>);
+    // TODO: find a way to index and remove callback
+    fn add_devicechange_callback(&self, callback: GenericCallback<()>);
 }
