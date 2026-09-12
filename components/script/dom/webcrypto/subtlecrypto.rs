@@ -2343,16 +2343,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         }
 
         // Step 2.
-        // If operation is "deriveKey", "unwrapKey", "encapsulateKey" or "decapsulateKey":
+        // If operation is "deriveKey" or "unwrapKey":
         //     If the result of checking support for an algorithm with op set to "importKey" and
         //     alg set to additionalAlgorithm is false, return false.
         // If operation is "wrapKey":
         //     If the result of checking support for an algorithm with op set to "exportKey" and
         //     alg set to additionalAlgorithm is false, return false.
-        if matches!(
-            operation,
-            "deriveKey" | "unwrapKey" | "encapsulateKey" | "decapsulateKey"
-        ) && !check_support_for_algorithm(cx, "importKey", &additional_algorithm, None)
+        if matches!(operation, "deriveKey" | "unwrapKey") &&
+            !check_support_for_algorithm(cx, "importKey", &additional_algorithm, None)
         {
             return false;
         }
@@ -2362,18 +2360,61 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             return false;
         }
 
-        // Step 3. Let length be null.
+        // Step 3. If operation is "encapsulateKey" or "decapsulateKey":
+        if matches!(operation, "encapsulateKey" | "decapsulateKey") {
+            // Step 3.1. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg
+            // set to algorithm and op set to "get shared key length".
+            // Step 3.2. If an error occurred, return false.
+            let Ok(normalized_algorithm) =
+                normalize_algorithm::<GetSharedKeyLengthOperation>(cx, &algorithm)
+            else {
+                return false;
+            };
+
+            // Step 3.3. Let sharedKeyLength be the result of performing the get shared key length
+            // algorithm specified by normalizedAlgorithm using algorithm.
+            let shared_key_length = normalized_algorithm.get_shared_key_length();
+
+            // Step 3.4. Let normalizedAdditionalAlgorithm be the result of normalizing an
+            // algorithm, with alg set to additionalAlgorithm and op set to "importKey".
+            // Step 3.5. If an error occurred, return false.
+            let Ok(normalized_additional_algorithm) =
+                normalize_algorithm::<ImportKeyOperation>(cx, &additional_algorithm)
+            else {
+                return false;
+            };
+
+            // Step 3.6. If the result of determining support from operation steps with op set to
+            // "importKey" and normalizedAlgorithm set to normalizedAdditionalAlgorithm, and length
+            // set to null is false, return false.
+            //
+            // NOTE: normalized_additional_algorithm is an ImportKeyAlgorithm value, so we don't
+            // need to explicitly set op to "importKey" when we call the
+            // determine_support_from_operation_steps method.
+            if !normalized_additional_algorithm.determine_support_from_operation_steps(None) {
+                return false;
+            }
+
+            // Step 3.7. If the import key operation specified by normalizedAdditionalAlgorithm
+            // would throw an error for every value of keyData that is a byte sequence whose length
+            // in bits is sharedKeyLength when format is "raw-secret", return false.
+            if normalized_additional_algorithm.will_throw_for_key_data_length(shared_key_length) {
+                return false;
+            }
+        }
+
+        // Step 4. Let length be null.
         let mut length = None;
 
-        // Step 4. If operation is "deriveKey":
+        // Step 5. If operation is "deriveKey":
         if operation == "deriveKey" {
-            // Step 4.1. If the result of checking support for an algorithm with op set to "get key
+            // Step 5.1. If the result of checking support for an algorithm with op set to "get key
             // length" and alg set to additionalAlgorithm is false, return false.
             if !check_support_for_algorithm(cx, "get key length", &additional_algorithm, None) {
                 return false;
             }
 
-            // Step 4.2. Let normalizedAdditionalAlgorithm be the result of normalizing an
+            // Step 5.2. Let normalizedAdditionalAlgorithm be the result of normalizing an
             // algorithm, with alg set to additionalAlgorithm and op set to "get key length".
             let Ok(normalized_additional_algorithm) =
                 normalize_algorithm::<GetKeyLengthOperation>(cx, &additional_algorithm)
@@ -2381,7 +2422,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 return false;
             };
 
-            // Step 4.3. Let length be the result of performing the get key length algorithm
+            // Step 5.3. Let length be the result of performing the get key length algorithm
             // specified by additionalAlgorithm using normalizedAdditionalAlgorithm.'
             match normalized_additional_algorithm.get_key_length() {
                 Ok(key_length) => {
@@ -2390,11 +2431,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Err(_) => return false,
             };
 
-            // Step 4.4. Set operation to "deriveBits".
+            // Step 5.4. Set operation to "deriveBits".
             operation = "deriveBits";
         }
 
-        // Step 5. Return the result of checking support for an algorithm, with op set to
+        // Step 6. Return the result of checking support for an algorithm, with op set to
         // operation, alg set to algorithm, and length set to length.
         check_support_for_algorithm(cx, operation, &algorithm, length)
     }
@@ -6154,6 +6195,41 @@ impl ImportKeyAlgorithm {
             ),
         }
     }
+
+    /// Return whether the import key operation specified by normalized algorithm would throw an
+    /// error for every value of keyData that is a byte sequence whose length in bits is
+    /// sharedKeyLength when format is "raw-secret".
+    fn will_throw_for_key_data_length(&self, key_data_length: u32) -> bool {
+        match self {
+            ImportKeyAlgorithm::RsassaPkcs1V1_5(_) |
+            ImportKeyAlgorithm::RsaPss(_) |
+            ImportKeyAlgorithm::RsaOaep(_) |
+            ImportKeyAlgorithm::Ecdsa(_) |
+            ImportKeyAlgorithm::Ecdh(_) |
+            ImportKeyAlgorithm::Ed25519(_) |
+            ImportKeyAlgorithm::X25519(_) |
+            ImportKeyAlgorithm::Ed448(_) |
+            ImportKeyAlgorithm::X448(_) => true,
+            ImportKeyAlgorithm::AesCtr(_) |
+            ImportKeyAlgorithm::AesCbc(_) |
+            ImportKeyAlgorithm::AesGcm(_) |
+            ImportKeyAlgorithm::AesKw(_) => !matches!(key_data_length, 128 | 192 | 256),
+            ImportKeyAlgorithm::Hmac(algorithm) => {
+                key_data_length == 0 ||
+                    algorithm.length.is_some_and(|length| {
+                        length > key_data_length || length + 8 <= key_data_length
+                    })
+            },
+            ImportKeyAlgorithm::Hkdf(_) | ImportKeyAlgorithm::Pbkdf2(_) => false,
+            ImportKeyAlgorithm::MlKem(_) | ImportKeyAlgorithm::MlDsa(_) => true,
+            ImportKeyAlgorithm::AesOcb(_) => !matches!(key_data_length, 128 | 192 | 256),
+            ImportKeyAlgorithm::ChaCha20Poly1305(_) => key_data_length != 256,
+            ImportKeyAlgorithm::Kmac(algorithm) => algorithm
+                .length
+                .is_some_and(|length| length > key_data_length || length + 8 <= key_data_length),
+            ImportKeyAlgorithm::Argon2(_) => false,
+        }
+    }
 }
 
 /// The value of the key "exportKey" in the internal object supportedAlgorithms
@@ -6582,6 +6658,55 @@ impl DecapsulateAlgorithm {
         match self {
             DecapsulateAlgorithm::MlKem(algorithm) => {
                 ml_kem_operation::decapsulate(algorithm, key, ciphertext)
+            },
+        }
+    }
+}
+
+/// The value of the key "get shared key length" in the internal object supportedAlgorithms
+struct GetSharedKeyLengthOperation {}
+
+impl Operation for GetSharedKeyLengthOperation {
+    type RegisteredAlgorithm = GetSharedKeyLengthAlgorithm;
+}
+
+/// Normalized algorithm for the "get shared key length" operation, used as output of
+/// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
+enum GetSharedKeyLengthAlgorithm {
+    MlKem(Algorithm),
+}
+
+impl NormalizedAlgorithm for GetSharedKeyLengthAlgorithm {
+    fn from_object(
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+        object: HandleObject,
+    ) -> Fallible<Self> {
+        match algorithm_name {
+            CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
+                Ok(GetSharedKeyLengthAlgorithm::MlKem(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
+            },
+            _ => Err(Error::NotSupported(Some(format!(
+                "{} does not support \"get shared key length\" operation",
+                algorithm_name.as_str()
+            )))),
+        }
+    }
+
+    fn name(&self) -> CryptoAlgorithm {
+        match self {
+            GetSharedKeyLengthAlgorithm::MlKem(algorithm) => algorithm.name,
+        }
+    }
+}
+
+impl GetSharedKeyLengthAlgorithm {
+    fn get_shared_key_length(&self) -> u32 {
+        match self {
+            GetSharedKeyLengthAlgorithm::MlKem(_algorithm) => {
+                ml_kem_operation::get_shared_key_length()
             },
         }
     }
