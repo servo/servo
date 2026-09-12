@@ -252,8 +252,87 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
         self.audio_bitrate_mode
     }
 
-    fn Start(&self, timeslice: Option<u32>) {
-        todo!()
+    fn Start(&self, timeslice: Option<u32>) -> Fallible<()> {
+        // Step 1. Let recorder be the MediaRecorder object on which the method was invoked. SKIP
+        // Step 2. Let timeslice be the method’s first argument, if provided, or undefined. SKIP
+
+        // Step 3. Let stream be the value of recorder’s stream attribute.
+        let stream = &self.stream;
+
+        // Step 4. Let tracks be the set of live tracks in stream’s track set.
+        // TODO: live
+        let tracks = stream.get_tracks();
+
+        // TODO
+        // Step 5. If the value of recorder’s state attribute is not inactive, throw an InvalidStateError DOMException and abort these steps.
+        // TODO
+        // Step 6. If the isolation properties of stream disallow access from recorder, throw a SecurityError DOMException and abort these steps.
+        // TODO
+
+        // Step 7. If stream is inactive, throw a NotSupportedError DOMException and abort these steps.
+        // TODO: check inactive
+        if false {
+            return Err(Error::NotSupported(Some("stream is inactive".into())));
+        }
+
+        // Step 8. If the [[ConstrainedMimeType]] slot specifies a media type, container, or codec, then constrain the configuration of recorder to the media type, container, and codec specified in the [[ConstrainedMimeType]] slot.
+        // TODO
+
+        // Step 9. If recorder’s [[ConstrainedBitsPerSecond]] slot is not null, set recorder’s videoBitsPerSecond and audioBitsPerSecond attributes to values the User Agent deems reasonable for the respective media types, for recording all tracks in tracks, such that the sum of videoBitsPerSecond and audioBitsPerSecond is close to the value of recorder’s [[ConstrainedBitsPerSecond]] slot.
+        // TODO
+
+        // Step 10. Let videoBitrate be the value of recorder’s videoBitsPerSecond attribute, and constrain the configuration of recorder to target an aggregate bitrate of videoBitrate bits per second for all video tracks recorder will be recording. videoBitrate is a hint for the encoder and the value might be surpassed, not achieved, or only be achieved over a long period of time.
+        // TODO
+
+        // Step 11. Let audioBitrate be the value of recorder’s audioBitsPerSecond attribute, and constrain the configuration of recorder to target an aggregate bitrate of audioBitrate bits per second for all audio tracks recorder will be recording. audioBitrate is a hint for the encoder and the value might be surpassed, not achieved, or only be achieved over a long period of time.
+        // TODO
+
+        // Step 12. Let videoKeyFrameIntervalDuration be recorder.[[VideoKeyFrameIntervalDuration]], and let videoKeyFrameIntervalCount be recorder.[[VideoKeyFrameIntervalCount]]. The UA SHOULD constrain the configuration of recorder so that the video encoder follows the below rules:
+        // Step 12.1. If videoKeyFrameIntervalDuration is not null and videoKeyFrameIntervalCount is null, the video encoder produces a keyframe on the first frame arriving after videoKeyFrameIntervalDuration milliseconds elapsed since the last key frame.
+        // Step 12.2. If videoKeyFrameIntervalCount is not null and videoKeyFrameIntervalDuration is null, the video encoder produces a keyframe on the first frame arriving after videoKeyFrameIntervalCount frames passed since the last key frame.
+        // Step 12.3. If both videoKeyFrameIntervalDuration and videoKeyFrameIntervalCount are not null, then throw a NotSupportedError DOMException and abort these steps.
+        // Step 12.4. If both videoKeyFrameIntervalDuration and videoKeyFrameIntervalCount are null, the User Agent may emit key frames as it deems fit.
+
+        // Step 13. Constrain the configuration of recorder to encode using the BitrateMode specified by the value of recorder’s audioBitrateMode attribute for all audio tracks recorder will be recording.
+        // TODO
+
+        // Step 14. For each track in tracks, if the User Agent cannot record the track using the current configuration, then throw a NotSupportedError DOMException and abort these steps.
+        // TODO
+
+        // Step 15. Set recorder’s state to recording, and run the following steps in parallel:
+        *self.state.borrow_mut() = RecordingState::Recording;
+        // TODO
+        // Step 15.1. If the container and codecs to use for the recording have not yet been fully specified, the User Agent specifies them in recorder’s current configuration. The User Agent MAY take the sources of the tracks in tracks into account when deciding which container and codecs to use.
+        // Step 15.2. If the User Agent does not support the specified combination of media type/subtype, codecs and container, then it MUST abort the remaining steps and queue a task, using the DOM manipulation task source, that runs the following steps:
+        // Step 15.2.1. Inactivate the recorder with recorder.
+        // Step 15.2.2. Fire an error event named NotSupportedError at recorder.
+        // Step 15.2.3. Fire an event named stop at recorder.
+        // Step 15.3. Start recording all tracks in tracks using the recorder’s current configuration and gather the data into a Blob blob. Queue a task, using the DOM manipulation task source, to run the following steps:
+        // Step 15.3.1. Let extendedMimeType be the value of recorder’s [[ConstrainedMimeType]] slot.
+        // Step 15.3.2. Modify extendedMimeType by adding media type, subtype and codecs parameter reflecting the configuration used by the MediaRecorder to record all tracks in tracks, if not already present. This MAY include the profiles parameter [RFC6381] or further codec-specific parameters.
+        // Step 15.3.3. Set recorder’s mimeType attribute to extendedMimeType.
+        // Step 15.3.4. Fire an event named start at recorder.
+        // Step 15.4. If at any point stream’s isolation properties change so that MediaRecorder is no longer allowed access to it, the UA MUST stop gathering data, discard any data that it has gathered, and queue a task, using the DOM manipulation task source, that runs the following steps:
+        // Step 15.4.1. Inactivate the recorder with recorder.
+        // Step 15.4.2. Fire an error event named SecurityError at recorder.
+        // Step 15.4.3. Fire a blob event named dataavailable at recorder with blob.
+        // Step 15.4.4. Fire an event named stop at recorder.
+        // Step 15.5. If at any point, a track is added to or removed from stream’s track set, the UA MUST stop gathering data, and queue a task, using the DOM manipulation task source, that runs the following steps:
+        // Step 15.5.1. Inactivate the recorder with recorder.
+        // Step 15.5.2. Fire an error event named InvalidModificationError at recorder.
+        // Step 15.5.3. Fire a blob event named dataavailable at recorder with blob.
+        // Step 15.5.4. Fire an event named stop at recorder.
+        // Step 15.6. If the UA at any point is unable to continue gathering data for reasons other than isolation properties or stream’s track set, it MUST stop gathering data, and queue a task, using the DOM manipulation task source, that runs the following steps:
+        // Step 15.6.1. Inactivate the recorder with recorder.
+        // Step 15.6.2. Fire an error event named UnknownError at recorder.
+        // Step 15.6.3. Fire a blob event named dataavailable at recorder with blob.
+        // Step 15.6.4. Fire an event named stop at recorder.
+        // Step 15.7. If timeslice is not undefined, then once a minimum of timeslice milliseconds of data have been collected, or some minimum time slice imposed by the UA, whichever is greater, start gathering data into a new Blob blob, and queue a task, using the DOM manipulation task source, that fires a blob event named dataavailable at recorder with blob.
+        // Step 15.8. If all recorded tracks become ended, then stop gathering data, and queue a task, using the DOM manipulation task source, that runs the following steps:
+        // Step 15.8.1. Inactivate the recorder with recorder.
+        // Step 15.8.2. Fire a blob event named dataavailable at recorder with blob.
+        // Step 15.8.3. Fire an event named stop at recorder.
+        Ok(())
     }
 
     fn Stop(&self) {

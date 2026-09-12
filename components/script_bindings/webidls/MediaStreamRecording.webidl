@@ -14,7 +14,7 @@ interface MediaRecorder : EventTarget {
   readonly attribute unsigned long audioBitsPerSecond;
   readonly attribute BitrateMode audioBitrateMode;
 
-  undefined start(optional unsigned long timeslice);
+  [Throws] undefined start(optional unsigned long timeslice);
   undefined stop();
   [Throws] undefined pause();
   [Throws] undefined resume();
