@@ -47,6 +47,7 @@ pub(crate) struct AudioBuffer {
     /// Aggregates the data from js_channels.
     /// This is `Some<T>` iff the buffers in js_channels are detached.
     #[no_trace]
+    #[conditional_malloc_size_of]
     shared_channels: DomRefCell<Option<Arc<ServoMediaAudioBuffer>>>,
     /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-samplerate>
     sample_rate: f32,
