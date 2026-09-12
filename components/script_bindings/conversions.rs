@@ -203,19 +203,21 @@ impl<T: DomObject> ToJSValConvertible for DomRoot<T> {
 /// obj must point to a valid, non-null JS object.
 #[allow(clippy::result_unit_err)]
 pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()> {
-    let clasp = get_object_class(obj);
-    if is_dom_class(&*clasp) {
-        trace!("plain old dom object");
-        let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
-        return Ok(&(*domjsclass).dom_class);
-    }
-    if is_dom_proxy(obj) {
-        trace!("proxy dom object");
-        let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
-        if dom_class.is_null() {
-            return Err(());
+    unsafe {
+        let clasp = get_object_class(obj);
+        if is_dom_class(&*clasp) {
+            trace!("plain old dom object");
+            let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
+            return Ok(&(*domjsclass).dom_class);
         }
-        return Ok(&*dom_class);
+        if is_dom_proxy(obj) {
+            trace!("proxy dom object");
+            let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
+            if dom_class.is_null() {
+                return Err(());
+            }
+            return Ok(&*dom_class);
+        }
     }
     trace!("not a dom object");
     Err(())
@@ -244,12 +246,14 @@ pub const DOM_OBJECT_SLOT: u32 = 0;
 /// obj must point to a valid non-null JS object.
 pub unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_void {
     let mut value = UndefinedValue();
-    if is_dom_object(obj) {
-        JS_GetReservedSlot(obj, DOM_OBJECT_SLOT, &mut value);
-    } else {
-        debug_assert!(is_dom_proxy(obj));
-        GetProxyReservedSlot(obj, 0, &mut value);
-    };
+    unsafe {
+        if is_dom_object(obj) {
+            JS_GetReservedSlot(obj, DOM_OBJECT_SLOT, &mut value);
+        } else {
+            debug_assert!(is_dom_proxy(obj));
+            GetProxyReservedSlot(obj, 0, &mut value);
+        };
+    }
     if value.is_undefined() {
         ptr::null()
     } else {
@@ -279,23 +283,25 @@ pub unsafe fn private_from_proto_check(
     mut obj: *mut JSObject,
     proto_check: PrototypeCheck,
 ) -> Result<*const libc::c_void, ()> {
-    let dom_class = get_dom_class(obj).or_else(|_| {
-        if IsWrapper(obj) {
-            trace!("found wrapper");
-            obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ false);
-            if obj.is_null() {
-                trace!("unwrapping security wrapper failed");
-                Err(())
+    let dom_class = unsafe {
+        get_dom_class(obj).or_else(|_| {
+            if IsWrapper(obj) {
+                trace!("found wrapper");
+                obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ false);
+                if obj.is_null() {
+                    trace!("unwrapping security wrapper failed");
+                    Err(())
+                } else {
+                    assert!(!IsWrapper(obj));
+                    trace!("unwrapped successfully");
+                    get_dom_class(obj)
+                }
             } else {
-                assert!(!IsWrapper(obj));
-                trace!("unwrapped successfully");
-                get_dom_class(obj)
+                trace!("not a dom wrapper");
+                Err(())
             }
-        } else {
-            trace!("not a dom wrapper");
-            Err(())
-        }
-    })?;
+        })?
+    };
 
     let prototype_matches = match proto_check {
         PrototypeCheck::Derive(f) => (f)(dom_class),
@@ -306,7 +312,7 @@ pub unsafe fn private_from_proto_check(
 
     if prototype_matches {
         trace!("good prototype");
-        Ok(private_from_object(obj))
+        Ok(unsafe { private_from_object(obj) })
     } else {
         trace!("bad prototype");
         Err(())
@@ -344,7 +350,7 @@ pub unsafe fn root_from_object<T>(cx: &mut JSContext, obj: *mut JSObject) -> Res
 where
     T: DomObject + IDLInterface,
 {
-    native_from_object(cx, obj).map(|ptr| unsafe { DomRoot::from_ref(&*ptr) })
+    unsafe { native_from_object(cx, obj).map(|ptr| DomRoot::from_ref(&*ptr)) }
 }
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleValue`.
@@ -429,13 +435,15 @@ unsafe fn private_from_proto_check_static(
     obj: *mut JSObject,
     proto_check: fn(&'static DOMClass) -> bool,
 ) -> Result<*const libc::c_void, ()> {
-    let dom_class = get_dom_class(obj).map_err(|_| ())?;
-    if proto_check(dom_class) {
-        trace!("good prototype");
-        Ok(private_from_object(obj))
-    } else {
-        trace!("bad prototype");
-        Err(())
+    unsafe {
+        let dom_class = get_dom_class(obj).map_err(|_| ())?;
+        if proto_check(dom_class) {
+            trace!("good prototype");
+            Ok(private_from_object(obj))
+        } else {
+            trace!("bad prototype");
+            Err(())
+        }
     }
 }
 
@@ -449,7 +457,7 @@ pub unsafe fn native_from_object_static<T>(obj: *mut JSObject) -> Result<*const 
 where
     T: DomObject + IDLInterface,
 {
-    private_from_proto_check_static(obj, T::derives).map(|ptr| ptr as *const T)
+    unsafe { private_from_proto_check_static(obj, T::derives).map(|ptr| ptr as *const T) }
 }
 
 /// Get a `*const T` for a DOM object accessible from a `HandleValue`.
@@ -550,13 +558,15 @@ pub(crate) unsafe fn windowproxy_from_handlevalue<D: crate::DomTypes>(
         return Err(());
     }
     let object = v.get().to_object();
-    if !IsWindowProxy(object) {
-        return Err(());
+    unsafe {
+        if !IsWindowProxy(object) {
+            return Err(());
+        }
+        let mut value = UndefinedValue();
+        GetProxyReservedSlot(object, 0, &mut value);
+        let ptr = value.to_private() as *const D::WindowProxy;
+        Ok(DomRoot::from_ref(&*ptr))
     }
-    let mut value = UndefinedValue();
-    GetProxyReservedSlot(object, 0, &mut value);
-    let ptr = value.to_private() as *const D::WindowProxy;
-    Ok(DomRoot::from_ref(&*ptr))
 }
 
 #[allow(deprecated)]
