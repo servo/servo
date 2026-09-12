@@ -53,5 +53,8 @@ webrender = { workspace = true }
 webrender_api = { workspace = true }
 wr_malloc_size_of = { workspace = true }
 
+[dev-dependencies]
+servo-allocator = { workspace = true }
+
 [lints]
 workspace = true
