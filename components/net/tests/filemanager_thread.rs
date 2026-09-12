@@ -9,7 +9,6 @@ use std::path::PathBuf;
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern,
 };
-use ipc_channel::ipc;
 use net::async_runtime::init_async_runtime;
 use net::embedder::NetToEmbedderMsg;
 use net::filemanager_thread::FileManager;
@@ -17,6 +16,7 @@ use net_traits::blob_url_store::{BlobTokenCommunicator, BlobURLStoreError};
 use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
 };
+use profile_traits::generic_callback::GenericCallback;
 use servo_base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use servo_base::{Epoch, generic_channel};
 use servo_config::prefs::Preferences;
@@ -101,7 +101,8 @@ fn test_filemanager() {
 
         // Test by reading, expecting same content
         {
-            let (tx2, rx2) = ipc::channel().unwrap();
+            let (tx2, rx2) =
+                GenericCallback::new_blocking(profile_traits::time::ProfilerChan(None)).unwrap();
             filemanager.handle(FileManagerThreadMsg::ReadFile(
                 tx2,
                 selected.id.clone(),
@@ -153,7 +154,8 @@ fn test_filemanager() {
 
         // Test by reading again, expecting read error because we invalidated the id
         {
-            let (tx2, rx2) = ipc::channel().unwrap();
+            let (tx2, rx2) =
+                GenericCallback::new_blocking(profile_traits::time::ProfilerChan(None)).unwrap();
             filemanager.handle(FileManagerThreadMsg::ReadFile(
                 tx2,
                 selected.id.clone(),
