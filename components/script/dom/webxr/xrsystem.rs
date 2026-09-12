@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
@@ -114,10 +113,10 @@ impl Convert<SessionMode> for XRSessionMode {
 
 impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     /// <https://immersive-web.github.io/webxr/#dom-xr-issessionsupported>
-    fn IsSessionSupported(&self, cx: &mut CurrentRealm, mode: XRSessionMode) -> Rc<Promise> {
+    fn IsSessionSupported(&self, cx: &mut CurrentRealm, mode: XRSessionMode) -> RootedPromise {
         // XXXManishearth this should select an XR device first
-        let promise = Promise::new_in_realm(cx);
-        let mut trusted = Some(TrustedPromise::new(promise.clone()));
+        let promise = Promise::new_in_realm_rooted(cx);
+        let mut trusted = Some(TrustedPromise::from(&promise));
         let global = self.global();
         let task_source = global
             .task_manager()
@@ -160,10 +159,10 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         realm: &mut CurrentRealm,
         mode: XRSessionMode,
         init: RootedTraceableBox<XRSessionInit>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let global = self.global();
         let window = global.as_window();
-        let promise = Promise::new_in_realm(realm);
+        let promise = Promise::new_in_realm_rooted(realm);
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {
@@ -231,7 +230,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             first_person_observer_view: pref!(dom_webxr_first_person_observer_view),
         };
 
-        let mut trusted = Some(TrustedPromise::new(promise.clone()));
+        let mut trusted = Some(TrustedPromise::from(&promise));
         let this = Trusted::new(self);
         let task_source = global
             .task_manager()

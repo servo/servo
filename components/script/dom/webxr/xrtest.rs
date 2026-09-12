@@ -18,6 +18,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSender;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
@@ -73,8 +74,8 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         &self,
         cx: &mut CurrentRealm,
         init: &FakeXRDeviceInit,
-    ) -> Rc<Promise> {
-        let p = Promise::new_in_realm(cx);
+    ) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(cx);
 
         let origin = if let Some(ref o) = init.viewerOrigin {
             match get_origin(o) {
@@ -152,7 +153,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
 
         let global = self.global();
         let this = Trusted::new(self);
-        let mut trusted = Some(TrustedPromise::new(p.clone()));
+        let mut trusted = Some(TrustedPromise::from(&p));
 
         let task_source = global
             .task_manager()
@@ -188,9 +189,9 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn DisconnectAllDevices(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn DisconnectAllDevices(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // XXXManishearth implement device disconnection and session ending
-        let p = Promise::new_in_realm(cx);
+        let p = Promise::new_in_realm_rooted(cx);
 
         // restrict borrow scope prior to p.resolve_native(), which can GC
         let is_empty = self.devices_connected.borrow().is_empty();
@@ -209,7 +210,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         self.devices_connected.safe_borrow_mut(cx).clear();
 
         let mut len = rooted_devices.len();
-        let mut trusted = Some(TrustedPromise::new(p.clone()));
+        let mut trusted = Some(TrustedPromise::from(&p));
         let global = self.global();
         let task_source = global
             .task_manager()
