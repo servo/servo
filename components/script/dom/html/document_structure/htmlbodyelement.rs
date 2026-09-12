@@ -7,6 +7,10 @@ use embedder_traits::{EmbedderMsg, LoadStatus};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
+use keyboard_types::{KeyState, Modifiers, ShortcutMatcher};
+use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
+use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use style::attr::AttrValue;
 use style::color::AbsoluteColor;
 
@@ -18,10 +22,17 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits};
+
+#[cfg(target_os = "macos")]
+pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::META;
+#[cfg(not(target_os = "macos"))]
+pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 
 #[dom_struct]
 pub(crate) struct HTMLBodyElement {
@@ -209,6 +220,27 @@ impl VirtualMethods for HTMLBodyElement {
             self.super_type()
                 .unwrap()
                 .attribute_mutated(cx, attr, mutation);
+        }
+    }
+
+    fn handle_event(&self, cx: &mut JSContext, event: &Event) {
+        if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
+            if let Some(keyboard_event) = event.downcast::<KeyboardEvent>() {
+                let document = self.owner_document();
+                let Some(selection) = document.GetSelection(cx) else {
+                    return;
+                };
+                let key = keyboard_event.key();
+                let mut mods = keyboard_event.modifiers();
+                mods.remove(Modifiers::SHIFT);
+                ShortcutMatcher::new(KeyState::Down, key.clone(), mods).shortcut(
+                    CMD_OR_CONTROL,
+                    'A',
+                    || {
+                        selection.SelectAllChildren(cx, document.upcast::<Node>());
+                    },
+                );
+            }
         }
     }
 }
