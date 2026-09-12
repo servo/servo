@@ -900,30 +900,17 @@ impl WindowProxy {
         result
     }
 
-    pub(crate) fn document_origin(&self) -> Option<OriginSnapshot> {
+    pub(crate) fn document_origin_and_internal_ancestor_origin_objects_list(
+        &self,
+    ) -> Option<(OriginSnapshot, Vec<ImmutableOrigin>)> {
         let pipeline_id = self.currently_active()?;
         let (result_sender, result_receiver) = generic_channel::channel().unwrap();
         self.global()
             .script_to_constellation_chan()
-            .send(ScriptToConstellationMessage::GetDocumentOrigin(
+            .send(ScriptToConstellationMessage::GetDocumentOriginDetails(
                 pipeline_id,
                 result_sender,
             ))
-            .ok()?;
-        result_receiver.recv().ok()?
-    }
-
-    pub(crate) fn internal_ancestor_origin_objects_list(&self) -> Option<Vec<ImmutableOrigin>> {
-        let pipeline_id = self.currently_active()?;
-        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
-        self.global()
-            .script_to_constellation_chan()
-            .send(
-                ScriptToConstellationMessage::GetInternalAncestorOriginObjectsList(
-                    pipeline_id,
-                    result_sender,
-                ),
-            )
             .ok()?;
         result_receiver.recv().ok()?
     }
@@ -949,14 +936,7 @@ impl WindowProxy {
         } else if let Some(parent_proxy) = self.parent() {
             // Step 4. Assert: parentDoc is fully active.
             assert!(parent_proxy.currently_active().is_some());
-
-            let origin = parent_proxy
-                .document_origin()
-                .expect("Must always be active");
-            let list = parent_proxy
-                .internal_ancestor_origin_objects_list()
-                .expect("Must always be active");
-            Some((origin, list))
+            parent_proxy.document_origin_and_internal_ancestor_origin_objects_list()
         } else {
             None
         }

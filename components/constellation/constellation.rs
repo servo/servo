@@ -1919,17 +1919,14 @@ where
                     "Document origin retrieval after closure",
                 );
             },
-            ScriptToConstellationMessage::GetInternalAncestorOriginObjectsList(
+            ScriptToConstellationMessage::GetDocumentOriginDetails(
                 pipeline_id,
                 response_sender,
             ) => {
                 self.send_message_to_pipeline(
                     pipeline_id,
-                    ScriptThreadMessage::GetInternalAncestorOriginObjectsList(
-                        pipeline_id,
-                        response_sender,
-                    ),
-                    "Document ancestor origin objects list retrieval after closure",
+                    ScriptThreadMessage::GetDocumentOriginDetails(pipeline_id, response_sender),
+                    "Document ancestor origin details retrieval after closure",
                 );
             },
             ScriptToConstellationMessage::ServiceWorkerAlgorithm(algorithm) => {
