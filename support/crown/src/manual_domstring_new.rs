@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use rustc_hir::{self as hir};
+use rustc_hir::{self as hir, ExprKind};
 use rustc_lint::{LateContext, LateLintPass, Lint, LintContext, LintPass, LintStore};
 use rustc_macros::Diagnostic;
 use rustc_middle::ty;
@@ -105,12 +105,26 @@ impl<'tcx> ManualDOMStringPass {
         }
     }
 
+    fn is_new_string_constructor(&self, cx: &LateContext<'tcx>, expr_kind: &ExprKind<'_>) -> bool {
+        let sym = &self.symbols;
+        if let ExprKind::Call(callee, _args) = expr_kind {
+            let ty = cx.typeck_results().expr_ty(callee);
+            let ty::FnDef(fn_, _def_id) = ty.kind() else {
+                return false;
+            };
+            match_def_path(cx, *fn_, &[sym.alloc, sym.string, sym.Impl, sym.new])
+        } else {
+            false
+        }
+    }
+
     fn maybe_report_for_string_value(
+        &mut self,
         cx: &LateContext<'tcx>,
         span: Span,
         expr_kind: &hir::ExprKind<'_>,
     ) {
-        if is_expr_kind_empty_str(expr_kind) {
+        if is_expr_kind_empty_str(expr_kind) || self.is_new_string_constructor(cx, expr_kind) {
             cx.emit_span_lint(
                 MANUAL_DOMSTRING_NEW,
                 span,
@@ -150,7 +164,7 @@ impl<'tcx> LateLintPass<'tcx> for ManualDOMStringPass {
                 if args.len() != 1 {
                     return;
                 }
-                Self::maybe_report_for_string_value(cx, expr.span, &args[0].kind);
+                self.maybe_report_for_string_value(cx, expr.span, &args[0].kind);
             },
             hir::ExprKind::MethodCall(path, callee, _, _) => {
                 let ty = cx.typeck_results().expr_ty(expr);
@@ -162,7 +176,7 @@ impl<'tcx> LateLintPass<'tcx> for ManualDOMStringPass {
                 if path.ident.name != sym.into {
                     return;
                 }
-                Self::maybe_report_for_string_value(cx, expr.span, &callee.kind);
+                self.maybe_report_for_string_value(cx, expr.span, &callee.kind);
             },
             _ => {},
         }
@@ -176,4 +190,8 @@ symbols! {
     From
     from
     into
+    alloc
+    string
+    Impl
+    new
 }

@@ -20,6 +20,12 @@ impl From<&str> for DOMString {
     }
 }
 
+impl From<std::string::String> for DOMString {
+    fn from(_string: String) -> Self {
+        Self {}
+    }
+}
+
 fn func(str_: DOMString) {}
 
 fn func_with_str(str_: &str) {
@@ -29,6 +35,11 @@ fn func_with_str(str_: &str) {
     func(str_.into());
 }
 
+fn func_with_string(string_: String) {
+    DOMString::from(string_);
+}
+
 fn main() {
     func_with_str("");
+    func_with_string(String::new())
 }

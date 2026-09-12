@@ -5,6 +5,7 @@
 use rustc_ast::ast::LitKind;
 use rustc_hir::def::DefKind;
 use rustc_hir::def_id::{CrateNum, DefId};
+use rustc_hir::definitions::DefPathData;
 use rustc_hir::ExprKind;
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_infer::traits::{EvaluationResult, Obligation, ObligationCause};
@@ -33,10 +34,11 @@ pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool 
         return false;
     }
 
-    other
-        .into_iter()
-        .zip(path)
-        .all(|(e, p)| e.data.get_opt_name().as_ref() == Some(p))
+    other.into_iter().zip(path).all(|(e, p)| {
+        // Impl don't have an operation name, but we still need to match to it
+        (matches!(e.data, DefPathData::Impl) && p.as_str() == "Impl") ||
+            e.data.get_opt_name().as_ref() == Some(p)
+    })
 }
 
 pub fn in_derive_expn(span: Span) -> bool {

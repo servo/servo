@@ -16,20 +16,28 @@ impl DOMString {
 }
 
 impl From<&str> for DOMString {
-    fn from(string: &str) -> Self {
+    fn from(_string: &str) -> Self {
         Self {}
     }
 }
 
-fn func(str_: DOMString) {}
+impl From<std::string::String> for DOMString {
+    fn from(_string: String) -> Self {
+        Self {}
+    }
+}
+
+fn func(_str: DOMString) {}
 
 fn main() {
-    DOMString::from("");
-    //~^ ERROR: 27:5: 27:24: use DOMString::new() instead [crown::manual_domstring_new]
-    let dom_string: DOMString = "".into();
-    //~^ ERROR: 29:33: 29:42: use DOMString::new() instead [crown::manual_domstring_new]
-    func("".into());
-    //~^ ERROR: 31:10: 31:19: use DOMString::new() instead [crown::manual_domstring_new]
+    let _ = DOMString::from("");
+    //~^ 33:13: 33:32: use DOMString::new() instead [crown::manual_domstring_new]
+    let _ = DOMString::from(String::new());
+    //~^ 35:13: 35:43: use DOMString::new() instead [crown::manual_domstring_new]
+    let _: DOMString = "".into();
+    //~^ ERROR: 37:24: 37:33: use DOMString::new() instead [crown::manual_domstring_new]
+    let _ = func("".into());
+    //~^ 39:18: 39:27: use DOMString::new() instead [crown::manual_domstring_new]
     let t = "";
-    DOMString::from(t);
+    let _ = DOMString::from(t);
 }
