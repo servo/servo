@@ -14,6 +14,7 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers2::JS_NewObject;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
+use script_bindings::callback::RootedCallback;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::{MessagePortImpl, PortMessageTask};
@@ -108,7 +109,11 @@ impl MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    fn set_onmessage(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn set_onmessage(
+        &self,
+        cx: &mut JSContext,
+        listener: Option<RootedCallback<EventHandlerNonNull>>,
+    ) {
         let eventtarget = self.upcast::<EventTarget>();
         eventtarget.set_event_handler_common(cx, "message", listener);
     }
@@ -347,7 +352,7 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    fn GetOnmessage(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnmessage(&self, cx: &mut JSContext) -> Option<RootedCallback<EventHandlerNonNull>> {
         if self.detached.get() {
             return None;
         }
@@ -356,7 +361,11 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    fn SetOnmessage(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnmessage(
+        &self,
+        cx: &mut JSContext,
+        listener: Option<RootedCallback<EventHandlerNonNull>>,
+    ) {
         if self.detached.get() {
             return;
         }
