@@ -40,9 +40,13 @@ pub(crate) struct MediaDevices {
 
 impl MediaDevices {
     pub(crate) fn new_inherited() -> MediaDevices {
-        let this = MediaDevices {
+        MediaDevices {
             eventtarget: EventTarget::new_inherited(),
-        };
+        }
+    }
+
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<MediaDevices> {
+        let this = reflect_dom_object_with_cx(Box::new(MediaDevices::new_inherited()), global, cx);
 
         let task_source = this
             .global()
@@ -50,7 +54,7 @@ impl MediaDevices {
             .user_interaction_task_source()
             .to_sendable();
         let callback = GenericCallback::new({
-            let this = Trusted::new(&this);
+            let this: Trusted<MediaDevices> = Trusted::new(&this);
             move |_| {
                 let this = this.clone();
                 task_source.queue(task!(fire_devicechange: move |cx| {
@@ -66,10 +70,6 @@ impl MediaDevices {
 
         this
     }
-
-    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<MediaDevices> {
-        reflect_dom_object_with_cx(Box::new(MediaDevices::new_inherited()), global, cx)
-    }
 }
 
 impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
@@ -82,14 +82,14 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         let p = Promise::new_in_realm(cx);
         let media = ServoMedia::get();
         let stream = MediaStream::new(cx, &self.global());
-        if let Some(constraints) = convert_constraints(&constraints.audio)
-            && let Some(audio) = media.create_audioinput_stream(constraints)
+        if let Some(constraints) = convert_constraints(&constraints.audio) &&
+            let Some(audio) = media.create_audioinput_stream(constraints)
         {
             let track = MediaStreamTrack::new(cx, &self.global(), audio, MediaStreamType::Audio);
             stream.add_track(&track);
         }
-        if let Some(constraints) = convert_constraints(&constraints.video)
-            && let Some(video) = media.create_videoinput_stream(constraints)
+        if let Some(constraints) = convert_constraints(&constraints.video) &&
+            let Some(video) = media.create_videoinput_stream(constraints)
         {
             let track = MediaStreamTrack::new(cx, &self.global(), video, MediaStreamType::Video);
             stream.add_track(&track);

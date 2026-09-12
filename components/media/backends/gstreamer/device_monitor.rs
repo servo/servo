@@ -4,10 +4,8 @@
 
 use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
-use gstreamer::{
-    DeviceMonitor as GstDeviceMonitor, MessageView, bus::BusWatchGuard as GstBusWatchGuard,
-    prelude::*,
-};
+use gstreamer::prelude::*;
+use gstreamer::{BusSyncReply, DeviceMonitor as GstDeviceMonitor, MessageView};
 use servo_base::generic_channel::GenericCallback;
 use servo_media_streams::device_monitor::{MediaDeviceInfo, MediaDeviceKind, MediaDeviceMonitor};
 
@@ -19,7 +17,6 @@ static INSTANCE: OnceLock<Arc<GStreamerDeviceMonitor>> = OnceLock::new();
 
 pub struct GStreamerDeviceMonitor {
     monitor: GstDeviceMonitor,
-    _watch_guard: GstBusWatchGuard,
     devices: Arc<RwLock<Option<Vec<MediaDeviceInfo>>>>,
     callbacks: Arc<Mutex<Vec<GenericCallback<()>>>>,
 }
@@ -42,34 +39,31 @@ impl GStreamerDeviceMonitor {
         monitor.add_filter(Some(VIDEO_SOURCE), Some(&video_caps));
 
         // watch changes
-        let watch_guard = monitor
-            .bus()
-            .add_watch({
-                let devices = devices.clone();
-                let callbacks = callbacks.clone();
-                move |_, msg| {
-                    if let MessageView::DeviceAdded(_)
-                    | MessageView::DeviceRemoved(_)
-                    | MessageView::DeviceChanged(_) = msg.view()
-                    {
-                        // evict cache
-                        *devices.write().unwrap() = None;
+        monitor.bus().set_sync_handler({
+            let devices = devices.clone();
+            let callbacks = callbacks.clone();
+            move |_, msg| {
+                if let MessageView::DeviceAdded(_) |
+                MessageView::DeviceRemoved(_) |
+                MessageView::DeviceChanged(_) = msg.view()
+                {
+                    // TODO: should check whether DeviceChanged is about default device
+                    // evict cache
+                    *devices.write().unwrap() = None;
 
-                        for callback in callbacks.lock().unwrap().iter() {
-                            _ = callback.send(());
-                        }
+                    for callback in callbacks.lock().unwrap().iter() {
+                        _ = callback.send(());
                     }
-                    glib::ControlFlow::Continue
                 }
-            })
-            .expect("Failed to add watcher");
+                BusSyncReply::Pass
+            }
+        });
 
         // start monitor
         monitor.start().expect("Failed to start monitor");
 
         Self {
             monitor,
-            _watch_guard: watch_guard,
             devices,
             callbacks,
         }
