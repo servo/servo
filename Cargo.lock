@@ -9455,6 +9455,7 @@ dependencies = [
  "malloc_size_of_derive",
  "mozjs",
  "num-traits",
+ "serde_core",
  "servo-base",
  "servo-constellation-traits",
  "servo-deny-public-fields",

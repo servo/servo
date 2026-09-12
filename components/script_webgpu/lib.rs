@@ -22,8 +22,10 @@ pub mod gpucompilationmessage;
 pub mod gpucomputepassencoder;
 pub mod gpucomputepipeline;
 pub mod gpuconvert;
+pub mod gpudevice;
 pub mod gpudevicelostinfo;
 pub mod gpuerror;
+pub mod gpuexternaltexture;
 pub mod gpuinternalerror;
 pub mod gpumapmode;
 pub mod gpuoutofmemoryerror;
@@ -94,6 +96,7 @@ pub(crate) mod codegen {
         pub(crate) use script_bindings::reflector::Reflector;
         use script_bindings::root::{Dom, DomRoot, Root};
         use script_bindings::utils::DOMClass;
+        use script_bindings::weakref::WeakReferenceable;
 
         use crate::gpu::GPU;
         use crate::gpuadapter::GPUAdapter;
@@ -109,8 +112,10 @@ pub(crate) mod codegen {
         use crate::gpucompilationmessage::GPUCompilationMessage;
         use crate::gpucomputepassencoder::GPUComputePassEncoder;
         use crate::gpucomputepipeline::GPUComputePipeline;
+        use crate::gpudevice::GPUDevice;
         use crate::gpudevicelostinfo::GPUDeviceLostInfo;
         use crate::gpuerror::GPUError;
+        use crate::gpuexternaltexture::GPUExternalTexture;
         use crate::gpuinternalerror::GPUInternalError;
         use crate::gpumapmode::GPUMapMode;
         use crate::gpuoutofmemoryerror::GPUOutOfMemoryError;
