@@ -53,7 +53,7 @@ use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
 
 /// A reference to a Promise object, treated as a GC root. The Promise will not
-/// be collected by the GC before this RootedPromise is dropped..
+/// be collected by the GC before this RootedPromise is dropped.
 /// RootedPromise must never be stored inside of structs that are traced during a GC
 /// operation (such as reflected DOM objects) because it can lead to permanent
 /// GC cycles that prevent memory from being reclaimed.
@@ -155,13 +155,21 @@ impl Deref for TracedPromise {
 #[derive(JSTraceable)] // TODO: remove this once this is no longer part of Promise.
 #[derive(Default, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+/// Maintains a GC root for the contained value until this object is dropped.
+///
+/// # Safety
+/// The root (and the contained value) is only valid as long as this value
+/// is never moved after it is initialized. It should only be used inside
+/// of a container like Box or Rc and never extracted from it.
 struct PermanentRoot(#[ignore_malloc_size_of = "mozjs value"] Heap<JSVal>);
 
 impl PermanentRoot {
     /// Add a GC root for the provided JS object.
     ///
-    /// SAFETY: This method must only be called on a PermanentRoot that will not
-    /// move for the remainder of its lifetime (e.g. inside of Box, Rc, etc.)
+    /// # Safety
+    /// - This method must only be called on a `PermanentRoot` that will not
+    ///   move for the remainder of its lifetime (e.g. inside of Box, Rc, etc.)
+    /// - This must only be called once per instance of `PermanentRoot`
     #[expect(unsafe_code)]
     unsafe fn init(&self, cx: &JSContext, object: HandleObject) {
         self.0.set(ObjectValue(*object));
@@ -213,7 +221,8 @@ impl Promise {
     }
 
     /// Create a new [Promise] associated with the provided global.
-    /// Deprecated. Use [Promise::new_rooted] instead.
+    ///
+    /// **Deprecated:** Use [Promise::new_rooted] instead.
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
@@ -229,7 +238,8 @@ impl Promise {
     }
 
     /// Create a new [RootedPromise] associated with the provided realm.
-    /// Deprecated. Use [Promise::new_in_realm_rooted] instead.
+    ///
+    /// **Deprecated:** Use [Promise::new_in_realm_rooted] instead.
     pub(crate) fn new_in_realm_rooted(current_realm: &mut CurrentRealm) -> RootedPromise {
         let cx = current_realm.deref_mut();
         rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
@@ -258,10 +268,11 @@ impl Promise {
 
     /// Create a new [Promise] wrapping the provided JS object.
     /// Panics if the provided object is not a JS promise.
-    /// Deprecated. Use [Promise::new_with_js_promise_rooted] instead.
+    ///
+    /// **Deprecated:** Use [Promise::new_with_js_promise_rooted] instead.
     #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_with_js_promise<'a, 'b>(cx: &'a JSContext, obj: HandleObject<'b>) -> Rc<Promise> {
+    pub(crate) fn new_with_js_promise(cx: &JSContext, obj: HandleObject) -> Rc<Promise> {
         unsafe {
             assert!(IsPromiseObject(obj));
         }
@@ -342,8 +353,10 @@ impl Promise {
         constructor(cx, p.handle())
     }
 
-    /// Create a new [Promise] associated with the provided global, resolved with the provided value.
-    /// Deprecated. Use [Promise::new_resolved_rooted] instead.
+    /// Create a new [Promise] associated with the provided global,
+    /// resolved with the provided value.
+    ///
+    /// **Deprecated:** Use [Promise::new_resolved_rooted] instead.
     pub(crate) fn new_resolved(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -352,7 +365,8 @@ impl Promise {
         Self::new_resolved_shared(cx, global, value, Promise::new_with_js_promise)
     }
 
-    /// Create a new [RootedPromise] associated with the provided global, resolved with the provided value.
+    /// Create a new [RootedPromise] associated with the provided global,
+    /// resolved with the provided value.
     pub(crate) fn new_resolved_rooted(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -380,8 +394,10 @@ impl Promise {
         constructor(cx, p.handle())
     }
 
-    /// Create a new [Promise] associated with the provided global, rejected with the provided value.
-    /// Deprecated. Use [Promise::new_rejected_rooted] instead.
+    /// Create a new [Promise] associated with the provided global,
+    /// rejected with the provided value.
+    ///
+    /// **Deprecated:** Use [Promise::new_rejected_rooted] instead.
     pub(crate) fn new_rejected(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -390,7 +406,8 @@ impl Promise {
         Self::new_rejected_shared(cx, global, value, Promise::new_with_js_promise)
     }
 
-    /// Create a new [RootedPromise] associated with the provided global, rejected with the provided value.
+    /// Create a new [RootedPromise] associated with the provided global,
+    /// rejected with the provided value.
     pub(crate) fn new_rejected_rooted(
         cx: &mut JSContext,
         global: &GlobalScope,

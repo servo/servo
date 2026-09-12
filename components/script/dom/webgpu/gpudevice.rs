@@ -431,7 +431,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
-    fn Lost(&self, cx: &mut JSContext) -> RootedPromise {
+    fn Lost(&self, cx: &JSContext) -> RootedPromise {
         self.lost_promise.borrow().root(cx)
     }
 
