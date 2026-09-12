@@ -9,7 +9,9 @@ use js::context::JSContext;
 use js::realm::CurrentRealm;
 use script_bindings::codegen::GenericBindings::EventHandlerBinding::EventHandlerNonNull;
 use script_bindings::inheritance::Castable;
+use script_bindings::refcounted::Trusted;
 use script_bindings::reflector::reflect_dom_object_with_cx;
+use servo_base::generic_channel::GenericCallback;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
@@ -38,9 +40,31 @@ pub(crate) struct MediaDevices {
 
 impl MediaDevices {
     pub(crate) fn new_inherited() -> MediaDevices {
-        MediaDevices {
+        let this = MediaDevices {
             eventtarget: EventTarget::new_inherited(),
-        }
+        };
+
+        let task_source = this
+            .global()
+            .task_manager()
+            .user_interaction_task_source()
+            .to_sendable();
+        let callback = GenericCallback::new({
+            let this = Trusted::new(&this);
+            move |_| {
+                let this = this.clone();
+                task_source.queue(task!(fire_devicechange: move |cx| {
+                    let this = this.root();
+                    this.upcast::<EventTarget>().fire_event(cx, "devicechange".into());
+                }));
+            }
+        })
+        .unwrap();
+        ServoMedia::get()
+            .get_device_monitor()
+            .set_devicechange_callback(Some(callback));
+
+        this
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<MediaDevices> {
