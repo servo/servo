@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use servo_base::generic_channel::GenericCallback;
+
 #[derive(Clone, Copy, Debug)]
 pub enum MediaDeviceKind {
     AudioInput,
@@ -18,4 +20,5 @@ pub struct MediaDeviceInfo {
 
 pub trait MediaDeviceMonitor {
     fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>>;
+    fn set_devicechange_callback(&self, callback: Option<GenericCallback<()>>);
 }

@@ -397,4 +397,6 @@ impl MediaDeviceMonitor for DummyMediaDeviceMonitor {
     fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>> {
         Some(vec![])
     }
+
+    fn set_devicechange_callback(&self, _callback: Option<GenericCallback<()>>) {}
 }

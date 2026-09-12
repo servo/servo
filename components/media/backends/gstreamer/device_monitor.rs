@@ -6,6 +6,7 @@ use std::cell::RefCell;
 
 use gstreamer::DeviceMonitor as GstDeviceMonitor;
 use gstreamer::prelude::*;
+use servo_base::generic_channel::GenericCallback;
 use servo_media_streams::device_monitor::{MediaDeviceInfo, MediaDeviceKind, MediaDeviceMonitor};
 
 pub struct GStreamerDeviceMonitor {
@@ -60,5 +61,9 @@ impl MediaDeviceMonitor for GStreamerDeviceMonitor {
         let devices = self.get_devices().ok()?;
         *self.devices.borrow_mut() = Some(devices.clone());
         Some(devices)
+    }
+
+    fn set_devicechange_callback(&self, callback: Option<GenericCallback<()>>) {
+        // TODO:
     }
 }
