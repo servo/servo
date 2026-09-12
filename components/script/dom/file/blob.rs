@@ -441,9 +441,9 @@ pub(crate) fn normalize_type_string(s: &str) -> String {
         s.to_ascii_lowercase()
         // match s_lower.parse() as Result<Mime, ()> {
         // Ok(_) => s_lower,
-        // Err(_) => "".to_string()
+        // Err(_) => String::new()
     } else {
-        "".to_string()
+        String::new()
     }
 }
 

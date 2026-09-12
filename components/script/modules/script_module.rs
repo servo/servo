@@ -1114,9 +1114,9 @@ pub(crate) fn fetch_a_module_script_graph(
     // metadata is "not-parser-inserted", credentials mode is credentialsMode,
     // referrer policy is the empty string, and fetch priority is "auto".
     let options = ScriptFetchOptions {
-        integrity_metadata: "".into(),
+        integrity_metadata: String::new(),
         credentials_mode,
-        cryptographic_nonce: "".into(),
+        cryptographic_nonce: String::new(),
         parser_metadata: ParserMetadata::NotParserInserted,
         referrer_policy: ReferrerPolicy::EmptyString,
         render_blocking: false,

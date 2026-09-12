@@ -665,7 +665,7 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     fn Referrer(&self) -> USVString {
         let r = self.request.borrow();
         USVString(match r.referrer {
-            Referrer::NoReferrer => String::from(""),
+            Referrer::NoReferrer => String::new(),
             Referrer::Client(_) => String::from("about:client"),
             Referrer::ReferrerUrl(ref u) => {
                 let u_c = u.clone();

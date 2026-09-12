@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
@@ -126,7 +125,7 @@ impl WebSocket {
             clearing_buffer: Cell::new(false),
             callback,
             binary_type: Cell::new(BinaryType::Blob),
-            protocol: DomRefCell::new("".to_owned()),
+            protocol: Default::default(),
         }
     }
 
@@ -575,7 +574,7 @@ impl TaskOnce for CloseTask {
         // Step 3.
         let clean_close = !self.failed;
         let code = self.code.unwrap_or(close_code::NO_STATUS);
-        let reason = DOMString::from(self.reason.unwrap_or("".to_owned()));
+        let reason = DOMString::from(self.reason.unwrap_or_default());
         let close_event = CloseEvent::new(
             cx,
             &ws.global(),
@@ -623,7 +622,7 @@ impl TaskOnce for MessageReceivedTask {
             MessageData::Binary(data) => match ws.binary_type.get() {
                 BinaryType::Blob => {
                     let blob =
-                        Blob::new(cx, &global, BlobImpl::new_from_bytes(data, "".to_owned()));
+                        Blob::new(cx, &global, BlobImpl::new_from_bytes(data, String::new()));
                     blob.to_jsval(cx, message.handle_mut());
                 },
                 BinaryType::Arraybuffer => {

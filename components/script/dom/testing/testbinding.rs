@@ -169,7 +169,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn SetStringAttribute(&self, _: DOMString) {}
     fn UsvstringAttribute(&self) -> USVString {
-        USVString("".to_owned())
+        USVString(String::new())
     }
     fn SetUsvstringAttribute(&self, _: USVString) {}
     fn ByteStringAttribute(&self) -> ByteString {
@@ -184,7 +184,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Blob::new(
             cx,
             &self.global(),
-            BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            BlobImpl::new_from_bytes(vec![], String::new()),
         )
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
@@ -197,7 +197,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn SetUnion2Attribute(&self, _: EventOrString) {}
     fn Union3Attribute(&self) -> EventOrUSVString {
-        EventOrUSVString::USVString(USVString("".to_owned()))
+        EventOrUSVString::USVString(USVString(String::new()))
     }
     fn SetUnion3Attribute(&self, _: EventOrUSVString) {}
     fn Union4Attribute(&self) -> StringOrUnsignedLong {
@@ -300,7 +300,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
     fn GetUsvstringAttributeNullable(&self) -> Option<USVString> {
-        Some(USVString("".to_owned()))
+        Some(USVString(String::new()))
     }
     fn SetUsvstringAttributeNullable(&self, _: Option<USVString>) {}
     fn SetBinaryRenamedAttribute(&self, _: DOMString) {}
@@ -325,7 +325,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Some(Blob::new(
             cx,
             &self.global(),
-            BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            BlobImpl::new_from_bytes(vec![], String::new()),
         ))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
@@ -408,7 +408,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         DOMString::new()
     }
     fn ReceiveUsvstring(&self) -> USVString {
-        USVString("".to_owned())
+        USVString(String::new())
     }
     fn ReceiveByteString(&self) -> ByteString {
         ByteString::new(vec![])
@@ -420,7 +420,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Blob::new(
             cx,
             &self.global(),
-            BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            BlobImpl::new_from_bytes(vec![], String::new()),
         )
     }
     fn ReceiveAny(&self, _: MutableHandleValue) {}
@@ -467,7 +467,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         vec![Blob::new(
             cx,
             &self.global(),
-            BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            BlobImpl::new_from_bytes(vec![], String::new()),
         )]
     }
     fn ReceiveUnionIdentity(&self, arg: UnionTypes::StringOrObject) -> UnionTypes::StringOrObject {
@@ -517,7 +517,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Some(DOMString::new())
     }
     fn ReceiveNullableUsvstring(&self) -> Option<USVString> {
-        Some(USVString("".to_owned()))
+        Some(USVString(String::new()))
     }
     fn ReceiveNullableByteString(&self) -> Option<ByteString> {
         Some(ByteString::new(vec![]))
@@ -529,7 +529,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Some(Blob::new(
             cx,
             &self.global(),
-            BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            BlobImpl::new_from_bytes(vec![], String::new()),
         ))
     }
     fn ReceiveNullableObject(&self, return_value: MutableHandleObject) {
@@ -612,7 +612,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
                 unsignedLongLongValue: 0,
                 unsignedLongValue: 0,
                 unsignedShortValue: 0,
-                usvstringValue: USVString("".to_owned()),
+                usvstringValue: USVString(String::new()),
             }),
             doubleValue: None,
             enumValue: None,

@@ -697,7 +697,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                     )
                 } else {
                     KeyReaction::DispatchInput(
-                        Some("".to_string()),
+                        Some(String::new()),
                         IsComposing::NotComposing,
                         InputType::InsertFromPaste,
                     )

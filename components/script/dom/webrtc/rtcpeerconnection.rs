@@ -295,7 +295,7 @@ impl RTCPeerConnection {
                     cx,
                     &self.global(),
                     self,
-                    USVString::from("".to_owned()),
+                    USVString::from(String::new()),
                     &RTCDataChannelInit::empty(),
                     Some(channel_id),
                 );

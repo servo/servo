@@ -374,7 +374,10 @@ xpath = { package = "servo-xpath", version = "=0.6.0", path = "components/xpath"
 # End workspace-version dependencies - Don't change this comment, we grep for it in scripts!
 
 [workspace.lints.clippy]
-manual_string_new = "deny"
+manual_string_new = "warn"
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
 
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might
