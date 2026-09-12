@@ -1192,9 +1192,12 @@ impl Fragment {
                 .paint_info
                 .scroll_tree
                 .cumulative_node_to_root_transform(state.spatial_id);
-            builder
-                .paint_timing_handler
-                .accumulate_text_rect(tag, rect.to_webrender(), transform);
+            builder.paint_timing_handler.accumulate_text_rect(
+                tag,
+                rect.to_webrender(),
+                transform,
+                &parent_style,
+            );
         }
 
         for text_decoration in state.text_decorations.iter() {
