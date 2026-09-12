@@ -43,7 +43,7 @@ impl ServoJSPrincipals {
     /// `raw` must point to a valid JSPrincipals value.
     #[inline]
     pub unsafe fn from_raw_nonnull(raw: NonNull<JSPrincipals>) -> Self {
-        JS_HoldPrincipals(raw.as_ptr());
+        unsafe { JS_HoldPrincipals(raw.as_ptr()) };
         Self(raw)
     }
 
@@ -110,7 +110,7 @@ impl ServoJSPrincipalsRef<'_> {
     /// [`Self::from_raw_nonnull`].
     #[inline]
     pub unsafe fn from_raw_unchecked(raw: *mut JSPrincipals) -> Self {
-        Self::from_raw_nonnull(NonNull::new_unchecked(raw))
+        unsafe { Self::from_raw_nonnull(NonNull::new_unchecked(raw)) }
     }
 }
 

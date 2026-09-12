@@ -4,9 +4,6 @@
 
 //! Utilities for the implementation of JSAPI proxy handlers.
 
-// This is allowed on the crate level, but we are gradually fixing it over time.
-#![deny(unsafe_op_in_unsafe_fn)]
-
 use std::ffi::{CStr, CString};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_char;
