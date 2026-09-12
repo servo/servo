@@ -2,16 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::error::Error;
-use std::ffi::CStr;
 use std::fs::File;
+use std::os::unix::ffi::OsStrExt;
+use std::path::PathBuf;
 use std::{fs, thread};
 
 use log::error;
-use ohos_deviceinfo_sys::OH_GetIncrementalVersion;
 use postcard::{from_io, to_io};
 use servo_config::opts;
 
 use crate::platform::freetype::ohos::font_list::FontList;
+
+const CACHE_FILENAME_SUFFIX: &str = "_font-cache.bin";
 
 /// Checks if the font file has been cached on the disk. If no such file is found,
 /// or for whatever reason Servo fails to parse the file path, return false.
@@ -70,26 +72,24 @@ fn remove_redundant_cache_files() {
             return;
         },
     };
-    let expected_cache_filename = parse_filename().unwrap();
-    let cache_filename_components: Vec<&str> = expected_cache_filename.split('_').collect();
+    let Ok(expected_cache_filename) = parse_filename() else {
+        log::debug!("Could not determine font cache filename: {:?} Skipping cleanup");
+        return;
+    };
 
     if let Ok(entries) = fs::read_dir(&base_dir) {
         for entry in entries {
             let Ok(entry) = entry else {
                 continue;
             };
-            let Ok(filename) = entry.file_name().into_string() else {
-                continue;
-            };
-            let filename_components: Vec<&str> = filename.split('_').collect();
+            let filename = entry.file_name();
 
-            // check if file is font cache file, and whether or not it is outdated.
-            // Currently, the naming format is <OS_VERSION>_font-cache.bin". So if filename_components[1] == "font-cache"
-            // but filename_components[0] != <OS_VERSION>, then this cache is obsolete.
-            if (filename_components.len() == 2) && // the font cache file only has one `_`. So the vector length from splitting must be 2.
-                        (filename_components[1] == cache_filename_components[1]) && // check if the suffix is the same
-                        (filename_components[0] != cache_filename_components[0])
-                && let Err(e) = fs::remove_file(format!("{}{}", base_dir, filename))
+            // A cache file with a mismatching prefix is obsolete.
+            if filename
+                .as_bytes()
+                .ends_with(CACHE_FILENAME_SUFFIX.as_bytes()) &&
+                filename.as_bytes() != expected_cache_filename.as_bytes() &&
+                let Err(e) = fs::remove_file(entry.path())
             {
                 error!(
                     "Obsolete font cache file found; but failed to remove it: {:?}",
@@ -101,35 +101,30 @@ fn remove_redundant_cache_files() {
 }
 
 /// Helper function to parse the filepath of the cache file.
-fn parse_file_path() -> Result<String, Box<dyn Error>> {
+fn parse_file_path() -> Result<PathBuf, Box<dyn Error>> {
     let base_dir = get_directory()?;
     let cache_filename = parse_filename()?;
 
-    Ok(format!("{}{}", base_dir, cache_filename))
+    Ok(base_dir.join(cache_filename))
 }
 
 /// Helper function to obtain the path to the directory where we'll eventually store our cache file in.
-fn get_directory() -> Result<String, Box<dyn Error>> {
-    let binding = opts::get()
+fn get_directory() -> Result<PathBuf, Box<dyn Error>> {
+    let base_dir = opts::get()
         .config_dir
         .clone()
         .ok_or("Failed to get config dir")?;
-    let base_dir = binding
-        .to_str()
-        .ok_or("Failed to parse base directory's path")?;
 
-    Ok(base_dir.to_string())
+    Ok(base_dir)
 }
 
 /// Helper function to parse the filename.
 /// Currently, the naming format is <OS_VERSION>_font-cache.bin"
 fn parse_filename() -> Result<String, Box<dyn Error>> {
-    let os_version = unsafe {
-        let os_version_c_str = CStr::from_ptr(OH_GetIncrementalVersion());
-        os_version_c_str.to_str()?
-    };
-
-    Ok(format!("{}{}", os_version, "_font-cache.bin"))
+    let filename = ohos_deviceinfo::get_incremental_version()
+        .map(|os_version| [os_version, CACHE_FILENAME_SUFFIX].concat())
+        .ok_or("OH_get_incremental_version failed")?;
+    Ok(filename)
 }
 
 /// This function serializes `FontList` and caches its result into disk.
