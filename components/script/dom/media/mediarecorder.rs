@@ -125,6 +125,16 @@ impl MediaRecorder {
             SYNCHRONOUSLY_EXPOSED_CODEC_IDENTIFIERS.contains(&code_identifier.as_str())
         }
     }
+
+    /// <https://www.w3.org/TR/mediastream-recording/#abstract-opdef-inactivate-the-recorder>
+    fn inactivate_recorder(&self) {
+        // Step 1. Set recorder’s mimeType attribute to the value of the [[ConstrainedMimeType]] slot.
+        // TODO
+        // Step 2. Set recorder’s state attribute to inactive.
+        // TODO
+        // Step 3. If recorder’s [[ConstrainedBitsPerSecond]] slot is not undefined, set recorder’s videoBitsPerSecond and audioBitsPerSecond attributes to values the User Agent deems reasonable for the respective media types, such that the sum of videoBitsPerSecond and audioBitsPerSecond is close to the value of recorder’s [[ConstrainedBitsPerSecond]] slot.
+        // TODO
+    }
 }
 
 impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
@@ -247,7 +257,30 @@ impl MediaRecorderMethods<crate::DomTypeHolder> for MediaRecorder {
     }
 
     fn Stop(&self) {
-        todo!()
+        // Step 1. Let recorder be the MediaRecorder object on which the method was invoked. SKIP
+
+        // Step 2. If recorder’s state attribute is inactive, abort these steps.
+        if self.state.borrow() == RecordingState::Inactive {
+            return;
+        }
+
+        // Step 3. Inactivate the recorder with recorder.
+        self.inactivate_recorder();
+
+        // Step 4. Queue a task, using the DOM manipulation task source, that runs the following steps:
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(pause: move |cx| {
+            // Step 4.1. Stop gathering data.
+            // TODO
+            // Step 4.2. Let blob be the Blob of collected data so far, then fire a blob event named dataavailable at recorder with blob.
+            // TODO
+            // Step 4.3. Fire an event named stop at recorder.
+            // TODO
+                }));
+
+        // Step 5. return undefined. SKIP
     }
 
     /// <https://www.w3.org/TR/mediastream-recording/#dom-mediarecorder-pause>
