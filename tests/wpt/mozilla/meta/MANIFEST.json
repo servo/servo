@@ -13340,6 +13340,24 @@
       }
      ]
     ],
+    "ctrl-a-select-all-without-body.html": [
+     "c02640d5814d9e8d7f2e1b1eea076a570b1d1697",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "ctrl-a-select-all.html": [
+     "cd4a14831ee285203e725f22071848adead5c3b2",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "dblclick-events-fired-every-two-clicks.html": [
      "9ad53ceaf05018bb48e4ff2424da4e45fbca6be6",
      [
