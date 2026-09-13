@@ -24,7 +24,7 @@ promise_test(async t => {
   });
 
   // Call executeTool. If it throws, the test fails automatically.
-  await document.modelContext.executeTool(tool, '{}');
+  await document.modelContext.executeTool(tool);
 
   assert_true(submitFired, 'submit event should have fired');
 }, 'executeTool resolves successfully when submit handler calls form.submit()');

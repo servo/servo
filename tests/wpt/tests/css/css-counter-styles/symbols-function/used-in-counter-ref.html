@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Reference: symbols function, used in counter()</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="stylesheet" href="../counter-style-at-rule/support/test-common.css">
+<style>
+  @counter-style counter {
+    symbols: '*';
+  }
+  .counter {
+    list-style-type: none;
+    counter-reset: a;
+  }
+  .counter li {
+    counter-increment: a;
+    padding-right: .5em;
+  }
+  .counter li::after {
+    content: counter(a, counter);
+  }
+</style>
+<ol class="counter">
+  <li><li><li><li><li>
+</ol>

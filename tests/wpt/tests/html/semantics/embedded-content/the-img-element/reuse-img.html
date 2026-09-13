@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reusing an &lt;img&gt; with multiple srcs</title>
+<link rel="help" href="https://html.spec.whatwg.org/#the-img-element">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+async_test(t => {
+  const image = new window.Image();
+  const events = [];
+  image.onload = t.step_func(() => {
+    events.push("onload");
+    if (events.length === 1) {
+      image.src = "data:image/png;base64,";
+    }
+    if (events.length === 2) {
+      loadedTwice();
+    }
+  });
+  image.onerror = t.step_func(() => {
+    events.push("onerror");
+    if (events.length === 2) {
+      loadedTwice();
+    }
+  });
+
+  image.src = "data:image/gif;base64,R0lGODlhAQABAIAAAMLCwgAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==";
+
+  function loadedTwice() {
+    assert_array_equals(events, ["onload", "onerror"]);
+    t.done();
+  }
+
+}, "onload followed by onerror");
+</script>

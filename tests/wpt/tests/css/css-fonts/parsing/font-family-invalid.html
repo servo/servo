@@ -19,6 +19,15 @@ test_invalid_value('font-family', 'Ahem!, sans-serif');
 test_invalid_value('font-family', 'test@foo, sans-serif');
 test_invalid_value('font-family', '#POUND, sans-serif');
 test_invalid_value('font-family', 'Hawaii 5-0, sans-serif');
+
+// CSS-wide keywords are only valid alone, not in a family-name list.
+test_invalid_value('font-family', 'FirstName, Initial, LastName');
+test_invalid_value('font-family', 'FirstName, inherit, LastName');
+test_invalid_value('font-family', 'FirstName, LastName, unset');
+test_invalid_value('font-family', 'default, FirstName, LastName');
+test_invalid_value('font-family', 'FirstName, LastName, revert');
+test_invalid_value('font-family', 'FirstName, LastName, revert-layer');
+test_invalid_value('font-family', 'FirstName, LastName, revert-rule');
 </script>
 </body>
 </html>

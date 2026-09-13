@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Retained labels collections update when an explicit label is removed</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#dom-lfe-labels">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+test(t => {
+  const container = document.createElement("div");
+  const label = document.createElement("label");
+  const input = document.createElement("input");
+  input.id = "control-for-removed-label";
+  label.htmlFor = input.id;
+  container.append(label);
+  document.body.append(container, input);
+  t.add_cleanup(() => {
+    container.remove();
+    input.remove();
+  });
+
+  const { labels } = input;
+  assert_array_equals(labels, [label]);
+  container.remove();
+  assert_true(input.isConnected, "The control remains in the document");
+  assert_array_equals(labels, [], "The retained list drops the removed label");
+
+  document.body.append(container);
+  assert_array_equals(labels, [label], "The retained list includes the reinserted label");
+}, "A retained labels list updates when an explicit label's subtree is removed and reinserted");
+</script>

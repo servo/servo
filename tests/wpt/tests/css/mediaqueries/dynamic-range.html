@@ -22,13 +22,13 @@ query_should_be_unknown("(video-dynamic-range: invalid)");
 
 test(() => {
   let match_boolean = window.matchMedia("(dynamic-range)");
-  assert_false(match_boolean.matches);
-}, "Check that dynamic-range evaluates to false in the boolean context");
+  assert_true(match_boolean.matches);
+}, "Check that dynamic-range evaluates to true in the boolean context");
 
 test(() => {
   let match_boolean = window.matchMedia("(video-dynamic-range)");
-  assert_false(match_boolean.matches);
-}, "Check that video-dynamic-range evaluates to false in the boolean context");
+  assert_true(match_boolean.matches);
+}, "Check that video-dynamic-range evaluates to true in the boolean context");
 
 test(() => {
   let match_standard = window.matchMedia("(dynamic-range: standard)");

@@ -1,0 +1,23 @@
+<!doctype html>
+<title>CSSImportRule's media returns the associated stylesheet's media</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssimportrule-media">
+<style>
+  @import url("data:text/css,") screen;
+</style>
+<script>
+"use strict";
+
+async_test(t => {
+  window.onload = t.step_func_done(() => {
+    const rule = document.styleSheets[0].cssRules[0];
+    assert_equals(
+      rule.media,
+      rule.styleSheet.media,
+      "media should be the same object as styleSheet.media"
+    );
+    assert_equals(rule.media.mediaText, "screen");
+  });
+});
+</script>

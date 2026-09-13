@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Changing class resets the result of querySelector</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#interface-parentnode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3950 -->
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3953 -->
+
+<svg id="svg">
+  <g id="g" class="a" />
+</svg>
+<div id="div">
+  <span id="span" class="one"></span>
+</div>
+
+<script>
+"use strict";
+
+const g = document.getElementById("g");
+const span = document.getElementById("span");
+
+test(t => {
+  t.add_cleanup(() => {
+    g.setAttributeNS(null, "class", "a");
+  });
+
+  assert_equals(document.querySelector(".a"), g, "initial");
+  g.setAttributeNS(null, "class", "b");
+  assert_equals(document.querySelector(".a"), null, "change class");
+}, "svg simple class");
+
+test(t => {
+  t.add_cleanup(() => {
+    g.setAttributeNS(null, "class", "a");
+  });
+
+  assert_equals(document.querySelector("g.a"), g, "initial");
+  g.setAttributeNS(null, "class", "b");
+  assert_equals(document.querySelector("g.a"), null, "change class");
+}, "svg compound class");
+
+test(t => {
+  t.add_cleanup(() => {
+    g.setAttributeNS(null, "class", "a");
+  });
+
+  assert_equals(document.querySelector("svg g.a"), g, "initial");
+  g.setAttributeNS(null, "class", "b");
+  assert_equals(document.querySelector("svg g.a"), null, "change class");
+}, "svg complex class");
+
+test(t => {
+  t.add_cleanup(() => {
+    span.setAttribute("class", "one");
+  });
+
+  assert_equals(document.querySelector(".one"), span, "initial");
+  span.setAttribute("class", "b");
+  assert_equals(document.querySelector(".one"), null, "querySelectorchange class");
+}, "html simple class");
+
+test(t => {
+  t.add_cleanup(() => {
+    span.setAttribute("class", "one");
+  });
+
+  assert_equals(document.querySelector("span.one"), span, "initial");
+  span.setAttribute("class", "two");
+  assert_equals(document.querySelector("span.one"), null, "change class");
+}, "html compound class");
+
+test(t => {
+  t.add_cleanup(() => {
+    span.setAttribute("class", "one");
+  });
+
+  assert_equals(document.querySelector("div span.one"), span, "initial");
+  span.setAttribute("class", "two");
+  assert_equals(document.querySelector("div span.one"), null, "change class");
+}, "html complex class");
+</script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 12.8px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .row {
+      font-size: 0;
+    }
+
+    .container {
+      width: 80px;
+      height: 80px;
+      border: 1px solid black;
+      margin: 4px;
+      vertical-align: top;
+      display: inline flex;
+      flex-wrap: wrap;
+    }
+
+    .flex-column {
+      flex-direction: column;
+    }
+
+    item {
+      display: block;
+      width: 20px;
+      height: 20px;
+      background: green;
+    }
+  </style>
+</head>
+<body>
+<div class="row">
+  <div class="container" style="justify-content: flex-start"><item></item></div>
+  <div class="container" style="justify-content: flex-end"><item></item></div>
+  <div class="container flex-column" style="justify-content: flex-start"><item></item></div>
+  <div class="container flex-column" style="justify-content: flex-end"><item></item></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Certain actions within the callback does not lead to infinite loop</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+  "use strict";
+
+  promise_test(() => {
+    let called = 0;
+    const div1 = document.createElement("div");
+    document.body.appendChild(div1);
+    const m = new MutationObserver(() => {
+      called++;
+      const div2 = document.createElement("div");
+      document.body.appendChild(div2);
+      m.observe(div2, { attributes: true });
+    });
+    m.observe(div1, { attributes: true });
+    div1.setAttribute("data-test", "test");
+    return Promise.resolve().then(() => {
+      assert_equals(called, 1, "times callback called");
+    });
+  }, "Calling observe in callback should not lead to more calls");
+
+  promise_test(() => {
+    let called = 0;
+    const div1 = document.createElement("div");
+    document.body.appendChild(div1);
+    const m = new MutationObserver(() => {
+      called++;
+      m.disconnect();
+      m.observe(div1, { attributes: true });
+    });
+    m.observe(div1, { attributes: true });
+    div1.setAttribute("data-test", "test");
+    return Promise.resolve().then(() => {
+      assert_equals(called, 1, "times callback called");
+    });
+  }, "Disconnect and re-observe in callback should not lead to more calls");
+</script>

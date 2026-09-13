@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>Adoption agency algorithm with custom furthest-block element</title>
+<link rel="help" href="https://issues.chromium.org/issues/557729858">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm">
+<script>
+// Reparenting the furthest-block element during AAA step 4.14 synchronously
+// runs custom element connectedCallbacks. Calling document.write() within the
+// callback re-enters the parser, appending new formatting elements and forcing
+// the HeapVector to reallocate.
+
+let connections = 0;
+customElements.define("x-div", class extends HTMLDivElement {
+  connectedCallback() {
+    // Connection #1 occurs on initial parse/insertion under <b>.
+    // Connection #2 occurs when AAA step 4.14 reparents furthest_block
+    // into common_ancestor, at which point Bookmark has already been captured.
+    if (++connections !== 2) return;
+
+    // Re-enter the parser and append 14 formatting elements to the AFE.
+    // The second group includes an attribute ('a') to bypass the Noah's Ark
+    // rule, which would otherwise discard duplicate formatting elements.
+    // Growing from 3 to 17 entries exceeds the existing vector capacity (16),
+    // forcing a HeapVector reallocation that invalidates the Bookmark pointer.
+    document.write(
+      "<big><code><em><font><s><small><strike><strong><tt><u>" +
+      "<big a><code a><em a><font a>"
+    );
+  }
+}, {extends: "div"});
+
+// 1. "<b><i>": Push 2 formatting elements to the AFE.
+// 2. "<marquee>": Appends an AFE marker.
+// 3. 10 formatting elements: Grow the AFE HeapVector capacity to 16.
+// 4. "</marquee>": Pops elements up to the marker, leaving 2 elements in the AFE
+//    while preserving the allocated capacity of 16.
+// 5. "<b>": Pushes a 3rd element to the AFE.
+// 6. "<div is=x-div>": Parsed as a child of <b> (connection #1).
+// 7. "</b>": Triggers AAA for <b> with <div is=x-div> as furthest_block.
+document.write(
+  "<b><i><marquee><big><code><em><font><s><small><strike><strong><tt><u>" +
+  "</marquee><b><div is=x-div></b>"
+);
+</script>
+</html>

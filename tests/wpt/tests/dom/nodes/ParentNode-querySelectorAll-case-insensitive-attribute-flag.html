@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Case insensitive attribute flag tests</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#attribute-case">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="testContainer">
+  <div class="CasE">Test div with CasE class</div>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const elements = document.querySelectorAll("div[class=CasE i]");
+  assert_equals(elements.length, 1, "Selector with lowercase 'i' flag should match the element");
+}, "Case-insensitive attribute selector with lowercase flag 'i' should work");
+
+test(() => {
+  const elements = document.querySelectorAll("div[class=CasE I]");
+  assert_equals(elements.length, 1, "Selector with uppercase 'I' flag should match the element");
+}, "Case-insensitive attribute selector with uppercase flag 'I' should work");
+</script>

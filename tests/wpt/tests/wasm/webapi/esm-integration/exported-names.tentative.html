@@ -10,7 +10,8 @@ assert_array_equals(Object.getOwnPropertyNames(mod).sort(),
                     ["func", "glob", "mem", "tab"]);
 assert_true(mod.func instanceof Function);
 assert_true(mod.mem instanceof WebAssembly.Memory);
-assert_true(mod.glob instanceof WebAssembly.Global);
+assert_false(mod.glob instanceof WebAssembly.Global);
+assert_equals(typeof mod.glob, "number");
 assert_true(mod.tab instanceof WebAssembly.Table);
 assert_throws_js(TypeError, () => { mod.func = 2; });
 done();

@@ -25,8 +25,9 @@
 
       test((t) => {
         const options = noSanitizerPolicy.createParserOptions({});
-        assert_equals(options.sanitizer(), null, "sanitizer() method should return null when not provided");
-      }, "TrustedParserOptions.sanitizer() is null when createParserOptions returns empty object");
+        assert_true(options instanceof TrustedHTMLParserOptions, "should return a TrustedHTMLParserOptions");
+        assert_false("sanitizer" in options, "TrustedHTMLParserOptions has no public sanitizer member");
+      }, "TrustedHTMLParserOptions has no public members when createParserOptions returns null/empty");
 
       test((t) => {
         const target = document.createElement("div");
@@ -35,7 +36,7 @@
           noSanitizerPolicy.createParserOptions({})
         );
         assert_not_equals(target.querySelector("#test-span"), null);
-      }, "Element.setHTMLUnsafe: when TrustedParserOptions has null sanitizer, no sanitization occurs");
+      }, "Element.setHTMLUnsafe: when TrustedHTMLParserOptions has null sanitizer, no sanitization occurs");
     </script>
   </body>
 </html>

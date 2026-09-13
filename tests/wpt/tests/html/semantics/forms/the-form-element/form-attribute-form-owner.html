@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Form owner association</title>
+<link rel="author" title="Jamie Treworgy" href="mailto:jamie@treworgy.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+test(t => {
+
+  let form = document.createElement("form");
+  form.id = "form1";
+  document.body.appendChild(form);
+  form = document.getElementById("form1");
+  t.add_cleanup(() => form.remove());
+
+  const redherring = document.createElement("div");
+  redherring.id = "form2";
+  t.add_cleanup(() => redherring.remove());
+  document.body.appendChild(redherring);
+
+  const elementNames = ["button", "input", "select", "textarea", "fieldset", "object", "output"];
+  elementNames.forEach(e => {
+    const el = document.createElement(e);
+    t.add_cleanup(() => el.remove());
+    document.body.appendChild(el);
+    assert_equals(el.form, null, `${e} without form attribute`);
+    el.setAttribute("form", "form1");
+    assert_equals(el.form, form, `${e} with valid form attribute`);
+    el.setAttribute("form", "form2");
+    assert_equals(el.form, null, `${e} with invalid form attribute`);
+  });
+}, "`form` property of elements connected via 'form' attribute is correct");
+
+test(t => {
+  const form = document.createElement("form");
+  const input = document.createElement("input");
+  t.add_cleanup(() => {
+    form.remove();
+    input.remove();
+  });
+  input.setAttribute("form", "namespaced-id");
+  document.body.append(form, input);
+
+  form.setAttributeNS("https://example.com/", "id", "namespaced-id");
+  assert_equals(input.form, null, "a namespaced ID does not associate the control");
+}, "The form attribute only matches null-namespace ID attributes");
+
+test(t => {
+  const host = document.createElement("div");
+  t.add_cleanup(() => host.remove());
+  document.body.append(host);
+
+  const root = host.attachShadow({ mode: "open" });
+  const form = document.createElement("form");
+  form.id = "shadow-form";
+  const input = document.createElement("input");
+  input.setAttribute("form", form.id);
+  root.append(form, input);
+
+  assert_equals(input.form, form);
+}, "The form attribute associates controls within a shadow root");
+
+
+async_test(t => {
+
+  const form = document.createElement("form");
+  form.id = "form1";
+  const button = document.createElement("button");
+  t.add_cleanup(() => {
+    form.remove();
+    button.remove();
+  });
+  button.setAttribute("form", "form1");
+
+  document.body.appendChild(form);
+  document.body.appendChild(button);
+  form.addEventListener("submit", t.step_func_done(ev => {
+    ev.preventDefault();
+    assert_equals(ev.target, form);
+  }));
+
+  button.click();
+
+
+}, "clicking a button with .click() should trigger a submit (form connected via 'form' attribute)");
+
+</script>

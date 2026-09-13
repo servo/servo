@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Inherited visibility can be unset</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+
+<style>
+  #parent {
+    visibility: hidden;
+  }
+  #child {
+    visibility: visible;
+  }
+  div#child {
+    visibility: unset;
+  }
+</style>
+
+<body>
+  <div id="parent">
+      <div id="child">Hello, Dave!</div>
+  </div>
+</body>
+
+<script>
+"use strict";
+
+test(() => {
+  const element = document.querySelector("#parent");
+  assert_equals(getComputedStyle(element).visibility, "hidden");
+}, "Sanity check: Parent is actually visibly hidden");
+
+test(() => {
+  const element = document.querySelector("#child");
+  assert_equals(getComputedStyle(element).visibility, "hidden");
+}, "computed visibility gets unset and inherits from parent");
+</script>

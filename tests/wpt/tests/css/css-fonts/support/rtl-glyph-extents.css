@@ -1,0 +1,22 @@
+@font-face {
+  font-family: rtl-ink-overflow;
+  src: url("fonts/rtl-ink-overflow.ttf");
+}
+body {
+  margin: 40px;
+  background: white;
+  color: black;
+  font-family: rtl-ink-overflow;
+}
+.column { width: 240px; }
+.glyph {
+  direction: ltr;
+  unicode-bidi: bidi-override;
+  text-align: left;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.small { font-size: 20px; }
+.medium { font-size: 40px; }
+.large { font-size: 60px; }
+.extra-large { font-size: 140px; }

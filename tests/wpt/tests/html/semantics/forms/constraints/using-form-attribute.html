@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forms outside the form element that use the form="" attribute still get validated</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input id="the-input" type="text" form="the-form" required>
+<form id="the-form"></form>
+
+<script>
+"use strict";
+
+test(() => {
+  const el = document.querySelector("#the-input");
+  const form = document.querySelector("#the-form");
+
+  let firedInvalid = false;
+  el.addEventListener("invalid", () => {
+    firedInvalid = true;
+  });
+
+  assert_false(form.checkValidity(), "checkValidity");
+  assert_false(form.reportValidity(), "reportValidity");
+  assert_true(firedInvalid, "fired invalid event");
+});
+</script>

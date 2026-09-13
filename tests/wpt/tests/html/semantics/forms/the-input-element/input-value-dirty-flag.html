@@ -1,0 +1,114 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Input value and checked dirty flag semantics, and type property reflection</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#the-value-attribute">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#concept-input-checked-dirty-flag">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#dom-input-type">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+test(() => {
+  const input = document.createElement("input");
+
+  assert_equals(input.value, "", "value should be empty string if uninitialized");
+  assert_equals(input.defaultValue, "", "defaultValue should be empty string if uninitialized");
+  assert_equals(input.getAttribute("value"), null, "value attribute should be null (uninitialized)");
+
+  input.defaultValue = "abc";
+
+  assert_equals(
+    input.value,
+    "abc",
+    "setting defaultValue should also change value if dirty value flag is false"
+  );
+  assert_equals(input.defaultValue, "abc", "defaultValue should equal set string");
+  assert_equals(input.getAttribute("value"), "abc", "value attribute should equal set string");
+
+  input.value = "def";
+  // dirty value flag is now true
+
+  assert_equals(input.value, "def", "value should be changed by setter");
+  assert_equals(input.defaultValue, "abc", "defaultValue should not change");
+  assert_equals(input.getAttribute("value"), "abc", "value attribute should not change");
+
+  input.defaultValue = "abc2";
+
+  assert_equals(
+    input.value,
+    "def",
+    "value should not change when setting defaultValue if dirty value flag is true"
+  );
+  assert_equals(input.defaultValue, "abc2", "defaultValue should equal new set string");
+
+  input.value = null;
+
+  assert_equals(input.value, "", "setting value to null should result in empty string");
+  assert_equals(input.getAttribute("value"), "abc2", "value attribute should not change after setting value");
+}, "Input value/defaultValue dirty value flag semantics");
+
+test(() => {
+  const input = document.createElement("input");
+
+  assert_equals(input.checked, false, "checkedness is false by default");
+
+  input.setAttribute("checked", "checked");
+  assert_equals(
+    input.checked,
+    true,
+    "checked property must return the current checkedness"
+  );
+
+  input.removeAttribute("checked");
+  assert_equals(
+    input.checked,
+    false,
+    "dirty checkedness is still false so removing the attribute changes checkedness"
+  );
+
+  input.checked = false;
+  // dirty checkedness flag is now true
+
+  assert_equals(
+    input.checked,
+    false,
+    "on setting, the checked property must set the element's checkedness to the new value"
+  );
+
+  input.setAttribute("checked", "checked");
+  assert_equals(
+    input.checked,
+    false,
+    "checkedness should not change because dirty checkedness is now true"
+  );
+}, "Input checked/defaultChecked dirty checkedness semantics");
+
+test(() => {
+  const input = document.createElement("input");
+
+  assert_false(input.hasAttribute("type"));
+  assert_equals(input.getAttribute("type"), null);
+  assert_equals(input.type, "text", "type should default to 'text'");
+}, "Input type defaults to 'text' on the property despite no attribute");
+
+test(() => {
+  const input = document.createElement("input");
+  input.type = "checkbox";
+
+  assert_equals(
+    input.getAttribute("type"),
+    "checkbox",
+    "setting type property should set the type attribute"
+  );
+}, "Setting input type property sets the attribute");
+
+test(() => {
+  const div = document.createElement("div");
+  div.innerHTML = '<input id="input" type="checkbox">';
+  const input = div.querySelector("#input");
+
+  assert_equals(input.type, "checkbox");
+  assert_equals(input.getAttribute("type"), "checkbox");
+}, "Parsed input type attribute is reflected in both property and attribute");
+</script>

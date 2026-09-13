@@ -8,7 +8,7 @@ interface InteractionContentfulPaint : PerformanceEntry {
     readonly attribute LargestContentfulPaint largestContentfulPaint;
     readonly attribute unsigned long long interactionId;
 
-    object toJSON();
+    [Default] object toJSON();
 };
 
 InteractionContentfulPaint includes PaintTimingMixin;
@@ -18,6 +18,8 @@ interface PerformanceSoftNavigation : PerformanceEntry {
     readonly attribute NavigationType navigationType;
     readonly attribute unsigned long long interactionId;
     InteractionContentfulPaint? getLargestInteractionContentfulPaint();
+
+    [Default] object toJSON();
 };
 
 PerformanceSoftNavigation includes PaintTimingMixin;

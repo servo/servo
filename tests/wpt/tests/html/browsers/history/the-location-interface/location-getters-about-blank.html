@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Location properties on an about:blank page</title>
+<!-- Context: https://github.com/jsdom/jsdom/issues/3431 -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe></iframe>
+
+<script>
+"use strict";
+
+test(() => {
+  const l = frames[0].location;
+
+  assert_equals(l.href, "about:blank", "href");
+  assert_equals(l.origin, "null", "origin");
+  assert_equals(l.protocol, "about:", "protocol");
+  assert_equals(l.host, "", "host");
+  assert_equals(l.hostname, "", "hostname");
+  assert_equals(l.port, "", "port");
+  assert_equals(l.pathname, "blank", "pathname");
+  assert_equals(l.search, "", "search");
+  assert_equals(l.hash, "", "hash");
+});
+</script>

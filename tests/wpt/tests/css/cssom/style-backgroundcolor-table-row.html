@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSSOM: Setting style.backgroundColor on table rows</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-elementcssinlinestyle-mixin">
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/1965 -->
+
+<table>
+  <thead>
+    <tr><th>Time</th></tr>
+    <tr><th>Customer Name</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>...</td><td>Ricki</td></tr>
+    <tr><td>...</td><td>Ricki</td></tr>
+    <tr><td>...</td><td>Anna</td></tr>
+  </tbody>
+</table>
+
+<script>
+"use strict";
+
+test(() => {
+  const rows = document.querySelectorAll("tr");
+  for (const tr of rows) {
+    tr.style.backgroundColor = "pink";
+    assert_equals(tr.style.getPropertyValue("background-color"), "pink");
+  }
+});
+</script>

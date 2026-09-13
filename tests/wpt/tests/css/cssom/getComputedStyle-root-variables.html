@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>getComputedStyle with CSS variables on :root</title>
+<link rel="help" href="https://drafts.csswg.org/css-variables-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3563 -->
+
+<style>
+  :root { --test-var: red; }
+</style>
+
+<body>
+
+<script>
+"use strict";
+
+test(() => {
+  const computedStyles = window.getComputedStyle(document.body);
+  assert_equals(computedStyles.getPropertyValue("--test-var"), "red");
+}, "getComputedStyle should return CSS variables defined on :root");
+</script>

@@ -1,0 +1,70 @@
+<!doctype html>
+<title>@import with layer and media query should preserve both</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#at-import">
+<script>
+"use strict";
+
+async function insertRule(t, cssText) {
+  const style = document.createElement("style");
+  style.textContent = cssText;
+  const loaded = new Promise(resolve => {
+    style.onload = resolve;
+    style.onerror = resolve;
+  });
+  document.head.append(style);
+  t.add_cleanup(() => {
+    style.remove();
+  });
+  await loaded;
+  return style.sheet.cssRules[0];
+}
+
+const cases = [
+  {
+    title: "@import with bare layer keyword and media query",
+    cssText: '@import "data:text/css," layer screen;',
+    expectedLayerName: "",
+    expectedMediaText: "screen"
+  },
+  {
+    title: "@import with layer() function and media query",
+    cssText: '@import "data:text/css," layer(foo) screen;',
+    expectedLayerName: "foo",
+    expectedMediaText: "screen"
+  },
+  {
+    title: "@import with layer and compound media query",
+    cssText: '@import "data:text/css," layer screen, print;',
+    expectedLayerName: "",
+    expectedMediaText: "screen, print"
+  },
+  {
+    title: "@import with layer() and compound media query",
+    cssText: '@import "data:text/css," layer(bar) screen and (color);',
+    expectedLayerName: "bar",
+    expectedMediaText: "screen and (color)"
+  },
+  {
+    title: "@import with layer alone (no media query)",
+    cssText: '@import "data:text/css," layer;',
+    expectedLayerName: "",
+    expectedMediaText: ""
+  },
+  {
+    title: "@import with layer() alone (no media query)",
+    cssText: '@import "data:text/css," layer(baz);',
+    expectedLayerName: "baz",
+    expectedMediaText: ""
+  }
+];
+
+for (const { title, cssText, expectedLayerName, expectedMediaText } of cases) {
+  promise_test(async t => {
+    const rule = await insertRule(t, cssText);
+    assert_equals(rule.layerName, expectedLayerName, "layerName");
+    assert_equals(rule.media.mediaText, expectedMediaText, "media.mediaText");
+  }, title);
+}
+</script>

@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<title>SVGMetadataElement interface</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#InterfaceSVGMetadataElement">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+  <metadata id="metadata">
+    Hello <em id="em">world</em>
+  </metadata>
+</svg>
+
+<script>
+"use strict";
+
+test(() => {
+  const svg = document.getElementById("svg");
+  const metadata = document.getElementById("metadata");
+  const em = document.getElementById("em");
+  assert_true(metadata instanceof SVGMetadataElement);
+  assert_false(metadata instanceof SVGGraphicsElement);
+  assert_equals(metadata.ownerSVGElement, svg);
+  assert_equals(metadata.viewportElement, svg);
+
+  assert_true(em instanceof HTMLElement);
+  assert_equals(em.namespaceURI, "http://www.w3.org/1999/xhtml");
+}, "Basic properties");
+
+test(() => {
+  const desc = document.createElementNS("http://www.w3.org/2000/svg", "metadata");
+  assert_true(desc instanceof SVGMetadataElement);
+  assert_false(desc instanceof SVGGraphicsElement);
+  assert_equals(desc.ownerSVGElement, null);
+  assert_equals(desc.viewportElement, null);
+}, "Detached");
+
+</script>

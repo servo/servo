@@ -1,0 +1,101 @@
+<!doctype html>
+<title>CSSRule type property for all rule types</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssrule-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @import url("data:text/css,");
+  @namespace url("http://www.w3.org/1999/xhtml");
+  div { color: green }
+  @media screen { div { color: red } }
+  @supports (color: green) { div { color: blue } }
+  @font-face { font-family: test; src: local("test") }
+  @page { margin: 1cm }
+  @keyframes test { from { opacity: 0 } to { opacity: 1 } }
+  @counter-style thumbs { system: cyclic; symbols: "\1F44D" }
+  @layer foo { div { color: purple } }
+  @layer bar;
+  @container (min-width: 0px) { div { color: orange } }
+  @scope (div) { :scope { color: pink } }
+</style>
+<script>
+"use strict";
+
+const rules = document.styleSheets[0].cssRules;
+
+function findRule(constructor) {
+  for (let i = 0; i < rules.length; i++) {
+    if (rules[i] instanceof constructor) {
+      return rules[i];
+    }
+  }
+  return null;
+}
+
+test(() => {
+  assert_equals(findRule(CSSStyleRule).type, CSSRule.STYLE_RULE);
+  assert_equals(CSSRule.STYLE_RULE, 1);
+}, "CSSStyleRule.type is STYLE_RULE (1)");
+
+test(() => {
+  assert_equals(findRule(CSSImportRule).type, CSSRule.IMPORT_RULE);
+  assert_equals(CSSRule.IMPORT_RULE, 3);
+}, "CSSImportRule.type is IMPORT_RULE (3)");
+
+test(() => {
+  assert_equals(findRule(CSSNamespaceRule).type, CSSRule.NAMESPACE_RULE);
+  assert_equals(CSSRule.NAMESPACE_RULE, 10);
+}, "CSSNamespaceRule.type is NAMESPACE_RULE (10)");
+
+test(() => {
+  assert_equals(findRule(CSSMediaRule).type, CSSRule.MEDIA_RULE);
+  assert_equals(CSSRule.MEDIA_RULE, 4);
+}, "CSSMediaRule.type is MEDIA_RULE (4)");
+
+test(() => {
+  assert_equals(findRule(CSSSupportsRule).type, CSSRule.SUPPORTS_RULE);
+  assert_equals(CSSRule.SUPPORTS_RULE, 12);
+}, "CSSSupportsRule.type is SUPPORTS_RULE (12)");
+
+test(() => {
+  assert_equals(findRule(CSSFontFaceRule).type, CSSRule.FONT_FACE_RULE);
+  assert_equals(CSSRule.FONT_FACE_RULE, 5);
+}, "CSSFontFaceRule.type is FONT_FACE_RULE (5)");
+
+test(() => {
+  assert_equals(findRule(CSSPageRule).type, CSSRule.PAGE_RULE);
+  assert_equals(CSSRule.PAGE_RULE, 6);
+}, "CSSPageRule.type is PAGE_RULE (6)");
+
+test(() => {
+  assert_equals(findRule(CSSKeyframesRule).type, CSSRule.KEYFRAMES_RULE);
+  assert_equals(CSSRule.KEYFRAMES_RULE, 7);
+}, "CSSKeyframesRule.type is KEYFRAMES_RULE (7)");
+
+test(() => {
+  const keyframesRule = findRule(CSSKeyframesRule);
+  assert_equals(keyframesRule.cssRules[0].type, CSSRule.KEYFRAME_RULE);
+  assert_equals(CSSRule.KEYFRAME_RULE, 8);
+}, "CSSKeyframeRule.type is KEYFRAME_RULE (8)");
+
+test(() => {
+  assert_equals(findRule(CSSCounterStyleRule).type, CSSRule.COUNTER_STYLE_RULE);
+  assert_equals(CSSRule.COUNTER_STYLE_RULE, 11);
+}, "CSSCounterStyleRule.type is COUNTER_STYLE_RULE (11)");
+
+test(() => {
+  assert_equals(findRule(CSSLayerBlockRule).type, 0);
+}, "CSSLayerBlockRule.type is 0 (no constant defined)");
+
+test(() => {
+  assert_equals(findRule(CSSLayerStatementRule).type, 0);
+}, "CSSLayerStatementRule.type is 0 (no constant defined)");
+
+test(() => {
+  assert_equals(findRule(CSSContainerRule).type, 0);
+}, "CSSContainerRule.type is 0 (no constant defined)");
+
+test(() => {
+  assert_equals(findRule(CSSScopeRule).type, 0);
+}, "CSSScopeRule.type is 0 (no constant defined)");
+</script>

@@ -60,6 +60,48 @@
     ).execute();
 
     new SRIScriptTest(
+        true,
+        "Same-origin with malformed integrity (? before -).",
+        `${same_origin_prefix}script.js?${token()}`,
+        "?-="
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with malformed integrity (- at start).",
+        `${same_origin_prefix}script.js?${token()}`,
+        "-hash"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with malformed integrity (no hash after -).",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with malformed integrity (no -).",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with malformed integrity (- only).",
+        `${same_origin_prefix}script.js?${token()}`,
+        "-"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with malformed integrity (-? only).",
+        `${same_origin_prefix}script.js?${token()}`,
+        "-?"
+    ).execute();
+
+    new SRIScriptTest(
         false,
         "Same-origin with incorrect hash.",
         `${same_origin_prefix}script.js?${token()}`,
@@ -258,6 +300,66 @@
         {
             href: "style.css?4.5",
             integrity: "sha256-..."
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with malformed integrity (? before -)",
+        {
+            href: "style.css?4.6",
+            integrity: "?-="
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with malformed integrity (- at start)",
+        {
+            href: "style.css?4.7",
+            integrity: "-hash"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with malformed integrity (no hash after -)",
+        {
+            href: "style.css?4.8",
+            integrity: "sha256-"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with malformed integrity (no -)",
+        {
+            href: "style.css?4.9",
+            integrity: "sha256"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with malformed integrity (- only)",
+        {
+            href: "style.css?4.10",
+            integrity: "-"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with malformed integrity (-? only)",
+        {
+            href: "style.css?4.11",
+            integrity: "-?"
         }
     );
 

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>:scope selector with colon-prefixed classes or IDs</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3692 -->
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3818 -->
+
+<div class="sm:block" id="parentDiv">
+  <span id="targetSpan"></span>
+</div>
+<div id=":r3:"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("parentDiv");
+  const expectedSpan = document.getElementById("targetSpan");
+
+  const result = div.querySelectorAll(":scope > span");
+
+  assert_array_equals(result, [expectedSpan]);
+}, ":scope child selector on element with colon-prefixed class");
+
+test(() => {
+  const div = document.getElementById(":r3:");
+  const result = div.querySelector(":scope");
+
+  assert_equals(result, null);
+}, ":scope selector on element with colon-prefixed ID");
+
+</script>

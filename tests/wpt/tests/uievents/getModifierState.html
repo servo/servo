@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<title>The getModifierState operation</title>
+<link rel="help" href="https://w3c.github.io/uievents/#dom-keyboardevent-getmodifierstate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const kbEvent = new KeyboardEvent("eventName", { modifierCapsLock: true });
+  const mouseEvent = new MouseEvent("eventName", { modifierCapsLock: true });
+  assert_equals(kbEvent.getModifierState("CapsLock"), true);
+  assert_equals(mouseEvent.getModifierState("CapsLock"), true);
+}, "getModifierState true");
+
+test(() => {
+  const kbEvent = new KeyboardEvent("eventName", { modifierCapsLock: false });
+  const mouseEvent = new MouseEvent("eventName", { modifierCapsLock: false });
+  assert_equals(kbEvent.getModifierState("CapsLock"), false);
+  assert_equals(kbEvent.getModifierState("Fn"), false);
+  assert_equals(mouseEvent.getModifierState("CapsLock"), false);
+  assert_equals(mouseEvent.getModifierState("Fn"), false);
+}, "getModifierState false");
+
+test(() => {
+  const kbEvent = new KeyboardEvent("eventName", { ctrlKey: true });
+  const mouseEvent = new MouseEvent("eventName", { ctrlKey: true });
+  assert_equals(kbEvent.getModifierState("Control"), true);
+  assert_equals(mouseEvent.getModifierState("Control"), true);
+}, "getModifierState Control true");
+
+test(() => {
+  const kbEvent = new KeyboardEvent("eventName", { ctrlKey: false });
+  const mouseEvent = new MouseEvent("eventName", { ctrlKey: false });
+  assert_equals(kbEvent.getModifierState("Control"), false);
+  assert_equals(mouseEvent.getModifierState("Control"), false);
+}, "getModifierState Control false");
+
+test(() => {
+  const kbEvent = new KeyboardEvent("eventName", { altKey: true });
+  const mouseEvent = new MouseEvent("eventName", { altKey: true });
+  assert_equals(kbEvent.getModifierState("Alt"), true);
+  assert_equals(mouseEvent.getModifierState("Alt"), true);
+}, "getModifierState Alt true");
+
+test(() => {
+  const kbEvent = new KeyboardEvent("eventName", { altKey: false });
+  const mouseEvent = new MouseEvent("eventName", { altKey: false });
+  assert_equals(kbEvent.getModifierState("Alt"), false);
+  assert_equals(mouseEvent.getModifierState("Alt"), false);
+}, "getModifierState Alt false");
+
+test(() => {
+  const kbEvent = new KeyboardEvent("eventName");
+  const mouseEvent = new MouseEvent("eventName");
+  assert_equals(kbEvent.getModifierState("Invalid"), false);
+  assert_equals(mouseEvent.getModifierState("Invalid"), false);
+}, "getModifierState invalid modifier");
+</script>

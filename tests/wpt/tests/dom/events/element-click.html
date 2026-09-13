@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLElement.click() and querySelectoAll</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#activation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3931 -->
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3947 -->
+
+<button id="button"></button>
+<div id="target"></div>
+<div></div>
+
+<script>
+"use strict";
+
+const button = document.getElementById("button");
+const target = document.getElementById("target");
+
+function toggleSync() {
+  target.classList.toggle("foo");
+}
+
+test(t => {
+  t.add_cleanup(() => {
+    target.classList.remove("foo");
+    button.removeEventListener("click", toggleSync);
+  });
+
+  button.addEventListener("click", toggleSync);
+  const targetQuerySelectorAll = document.querySelectorAll(".foo");
+  assert_equals(targetQuerySelectorAll.length, 0, "initial");
+
+  button.click();
+  assert_equals(targetQuerySelectorAll.length, 0, "1st click");
+
+  button.click();
+  assert_equals(targetQuerySelectorAll.length, 0, "2nd click");
+}, "static querySelectorAll");
+
+test(t => {
+  t.add_cleanup(() => {
+    target.classList.remove("foo");
+    button.removeEventListener("click", toggleSync);
+  });
+
+  button.addEventListener("click", toggleSync);
+  assert_equals(document.querySelectorAll(".foo").length, 0, "initial");
+
+  button.click();
+  assert_equals(document.querySelectorAll(".foo").length, 1, "1st click");
+
+  button.click();
+  assert_equals(document.querySelectorAll(".foo").length, 0, "2nd click");
+}, "dynamic querySelectorAll, toggle sync");
+
+promise_test(async t => {
+  t.add_cleanup(() => {
+    target.classList.remove("foo");
+    button.removeEventListener("click", toggleSync);
+  });
+
+  let resolveToggle;
+  const toggled = new Promise(resolve => {
+    resolveToggle = resolve;
+  });
+  function toggleAsync() {
+    toggleSync();
+    t.step_timeout(() => {
+      toggleSync();
+      resolveToggle();
+    }, 0);
+  }
+  button.addEventListener("click", toggleAsync);
+  t.add_cleanup(() => button.removeEventListener("click", toggleAsync));
+  assert_equals(document.querySelectorAll(".foo").length, 0, "initial");
+
+  button.click();
+  assert_equals(document.querySelectorAll(".foo").length, 1, "after click");
+
+  await toggled;
+  assert_equals(document.querySelectorAll(".foo").length, 0, "after timeout");
+}, "dynamic querySelectorAll, toggle async");
+</script>

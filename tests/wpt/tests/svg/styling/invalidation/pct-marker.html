@@ -1,0 +1,39 @@
+<!doctype html>
+<html class="reftest-wait">
+  <title>Invalidation of marker with percentage units</title>
+  <link rel="match" href="pct-marker-ref.html">
+  <link rel="help" href="https://www.w3.org/TR/css3-values/#percentages">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/common/rendering-utils.js"></script>
+  <style>
+    svg {
+      width: 100%;
+      display: block;
+    }
+  </style>
+
+  <div id="toggler" style="width: 500px; overflow: hidden">
+    <svg height="120">
+      <defs>
+        <marker id="m"
+                markerUnits="userSpaceOnUse"
+                markerWidth="20%"
+                markerHeight="40"
+                refX="0"
+                refY="0">
+          <rect width="4000" height="40" fill="green"/>
+        </marker>
+      </defs>
+      <path d="M0 50 L1 50" marker-start="url(#m)"/>
+    </svg>
+  </div>
+  <script>
+    function doTest() {
+      const toggler = document.querySelector("#toggler");
+      toggler.getBoundingClientRect();
+      toggler.style.width = "200px";
+      takeScreenshot();
+    }
+    document.documentElement.addEventListener("TestRendered", doTest);
+  </script>
+</html>

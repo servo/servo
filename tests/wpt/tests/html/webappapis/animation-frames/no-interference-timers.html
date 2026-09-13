@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>requestAnimationFrame/cancelAnimationFrame: must not interfere with timers, or vice-versa</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(t => {
+  // https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#animation-frames
+  // requires incrementing animation frame callback identifiers by 1 each time, and starting at 1.
+  // We can thus test that pretty rigorously.
+  //
+  // However https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers
+  // only requires "a user-agent-defined integer that is greater than zero" for timers, so we can't
+  // test much there.
+  //
+  // The main content of the test is that the RAF IDs don't get perturbed by interleaving with
+  // setTimeout/setInterval calls, anyway.
+
+  t.step_timeout(() => {}, 0);
+  const firstRafId = window.requestAnimationFrame(() => {});
+
+  t.step_timeout(() => {}, 0);
+  const rafId1 = window.requestAnimationFrame(() => {});
+  t.step_timeout(() => {}, 0);
+  const interval = window.setInterval(() => {}, 0);
+  t.add_cleanup(() => clearInterval(interval));
+  const rafId2 = window.requestAnimationFrame(() => {});
+
+  assert_equals(firstRafId, 1);
+  assert_equals(rafId1, 2);
+  assert_equals(rafId2, 3);
+}, "Animation frame IDs must be unaffected by timer IDs");
+
+async_test(t => {
+  window.clearTimeout(window.requestAnimationFrame(t.step_func_done()));
+}, "Animation frame callbacks must still be invoked even if passed to clearTimeout");
+
+async_test(t => {
+  window.clearInterval(window.requestAnimationFrame(t.step_func_done()));
+}, "Animation frame callbacks must still be invoked even if passed to clearInterval");
+
+async_test(t => {
+  window.cancelAnimationFrame(t.step_timeout(t.step_func_done()));
+}, "setTimeout callbacks must still be invoked even if passed to cancelAnimationFrame");
+
+async_test(t => {
+  const interval = window.setInterval(t.step_func_done());
+  t.add_cleanup(() => clearInterval(interval));
+  window.cancelAnimationFrame(interval);
+}, "setInterval callbacks must still be invoked even if passed to cancelAnimationFrame");
+</script>

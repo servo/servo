@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>'flow-start' and 'flow-end' match 'flex-start' and 'flex-end' with wrap reversal</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#align-justify-content">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#align-items-property">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#align-self-property">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-wrap-property">
+  <link rel="match" href="flow-start-flow-end-wrap-reverse-ref.html">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 12.8px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .row {
+      font-size: 0;
+    }
+
+    .container {
+      display: inline flex;
+      flex-wrap: wrap-reverse;
+      width: 80px;
+      height: 80px;
+      border: 1px solid black;
+      margin: 4px;
+      vertical-align: top;
+    }
+
+    item {
+      display: block;
+      width: 20px;
+      height: 20px;
+      background: green;
+    }
+
+    .column {
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+<div class="row">
+  <div class="container" style="align-items: flow-start"><item></item></div>
+  <div class="container" style="align-items: flow-end"><item></item></div>
+  <div class="container"><item style="align-self: flow-start"></item></div>
+  <div class="container"><item style="align-self: flow-end"></item></div>
+</div>
+<div class="row">
+  <div class="container column" style="align-items: flow-start"><item></item></div>
+  <div class="container column" style="align-items: flow-end"><item></item></div>
+  <div class="container column"><item style="align-self: flow-start"></item></div>
+  <div class="container column"><item style="align-self: flow-end"></item></div>
+</div>
+<div class="row">
+  <div class="container" style="align-content: flow-start"><item></item></div>
+  <div class="container" style="align-content: flow-end"><item></item></div>
+  <div class="container column" style="align-content: flow-start"><item></item></div>
+  <div class="container column" style="align-content: flow-end"><item></item></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/1289 -->
+<meta charset="utf-8">
+<title>Setting location.hash on about:blank</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-location-hash">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe></iframe>
+
+<script>
+"use strict";
+
+test(() => {
+  const l = frames[0].location;
+  assert_equals(l.href, "about:blank");
+
+  l.hash = "#baz";
+  assert_equals(l.hash, "#baz");
+  assert_equals(l.href, "about:blank#baz");
+}, "Setting hash on an about:blank iframe location");
+</script>

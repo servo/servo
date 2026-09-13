@@ -1,0 +1,20 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/intersection-observer/#calculate-intersection-rect-algo">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<style>
+  #wrapper { display: contents; }
+  #target { width: 100px; height: 100px; background: green; }
+</style>
+<div id="wrapper"><div id="target"></div></div>
+<script>
+// An ancestor with display: contents generates no box, so walking from the target
+// to its containing block has to step over it rather than stop or spin.
+let t = async_test("A target is observed through an ancestor with display: contents");
+new IntersectionObserver(t.step_func_done(function(entries) {
+  assert_equals(entries.length, 1);
+  assert_true(entries[0].isIntersecting);
+})).observe(document.querySelector("#target"));
+</script>

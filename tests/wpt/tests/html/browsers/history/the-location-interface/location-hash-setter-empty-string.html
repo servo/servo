@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Location hash setter with the empty string</title>
+<!-- Context: https://github.com/jsdom/jsdom/issues/3494 -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_equals(location.hash, "", "Initially no hash");
+  assert_false(location.href.includes("#"), "Initially no # in href");
+
+  location.hash = "test";
+  assert_equals(location.hash, "#test", "hash after setting to a non-empty value");
+  assert_true(location.href.includes("#"), "Setting a hash to a non-empty value causes # in href");
+
+  location.hash = "";
+  assert_equals(location.hash, "", "hash after setting to empty string");
+  assert_true(location.href.endsWith("#"), "Setting hash to an empty value leaves # in the href");
+});
+</script>

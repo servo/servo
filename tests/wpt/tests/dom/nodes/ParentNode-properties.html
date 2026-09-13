@@ -1,0 +1,117 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ParentNode: children, firstElementChild, lastElementChild, childElementCount</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#interface-parentnode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container">
+  <a id="a_id" name="a_name">link</a>
+  text
+  <div id="div_id">div</div>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_equals(document.children.length, 1);
+  assert_equals(document.children[0].nodeName, "HTML");
+  assert_equals(document.children.item(0).nodeName, "HTML");
+  assert_equals(document.children[1], undefined);
+  assert_equals(document.children.item(1), null);
+  document.documentElement.id = "html_id";
+  assert_equals(document.children.namedItem("html_id"), document.documentElement);
+  assert_equals(document.children.namedItem("foo"), null);
+  document.documentElement.removeAttribute("id");
+  assert_true(document.children instanceof HTMLCollection);
+}, "Document.children");
+
+test(() => {
+  const parent = document.getElementById("container");
+  assert_equals(parent.children.length, 2);
+  assert_equals(parent.children[0].nodeName, "A");
+  assert_equals(parent.children.item(0).nodeName, "A");
+  assert_equals(parent.children[1].nodeName, "DIV");
+  assert_equals(parent.children.item(1).nodeName, "DIV");
+  assert_equals(parent.children[2], undefined);
+  assert_equals(parent.children.item(2), null);
+  assert_equals(parent.children.namedItem("a_name").nodeName, "A");
+  assert_equals(parent.children.namedItem("foo"), null);
+  assert_true(parent.children instanceof HTMLCollection);
+}, "Element.children");
+
+test(() => {
+  const fragment = document.createDocumentFragment();
+  const a = document.createElement("a");
+  a.id = "frag_a";
+  a.setAttribute("name", "frag_a_name");
+  const div = document.createElement("div");
+  div.id = "frag_div";
+  fragment.appendChild(a);
+  fragment.appendChild(document.createTextNode(" text "));
+  fragment.appendChild(div);
+
+  assert_equals(fragment.children.length, 2);
+  assert_equals(fragment.children[0].nodeName, "A");
+  assert_equals(fragment.children.item(0).nodeName, "A");
+  assert_equals(fragment.children[1].nodeName, "DIV");
+  assert_equals(fragment.children.item(1).nodeName, "DIV");
+  assert_equals(fragment.children[2], undefined);
+  assert_equals(fragment.children.item(2), null);
+  assert_equals(fragment.children.namedItem("frag_a_name").nodeName, "A");
+  assert_equals(fragment.children.namedItem("foo"), null);
+  assert_true(fragment.children instanceof HTMLCollection);
+}, "DocumentFragment.children");
+
+test(() => {
+  assert_equals(document.firstElementChild.nodeName, "HTML");
+}, "Document.firstElementChild");
+
+test(() => {
+  const parent = document.getElementById("container");
+  assert_equals(parent.firstElementChild.nodeName, "A");
+  assert_equals(document.createElement("div").firstElementChild, null);
+}, "Element.firstElementChild");
+
+test(() => {
+  const fragment = document.createDocumentFragment();
+  assert_equals(fragment.firstElementChild, null);
+  fragment.appendChild(document.createElement("span"));
+  assert_equals(fragment.firstElementChild.nodeName, "SPAN");
+}, "DocumentFragment.firstElementChild");
+
+test(() => {
+  assert_equals(document.lastElementChild.nodeName, "HTML");
+}, "Document.lastElementChild");
+
+test(() => {
+  const parent = document.getElementById("container");
+  assert_equals(parent.lastElementChild.nodeName, "DIV");
+  assert_equals(document.createElement("div").lastElementChild, null);
+}, "Element.lastElementChild");
+
+test(() => {
+  const fragment = document.createDocumentFragment();
+  assert_equals(fragment.lastElementChild, null);
+  fragment.appendChild(document.createElement("span"));
+  fragment.appendChild(document.createElement("em"));
+  assert_equals(fragment.lastElementChild.nodeName, "EM");
+}, "DocumentFragment.lastElementChild");
+
+test(() => {
+  assert_equals(document.childElementCount, 1);
+}, "Document.childElementCount");
+
+test(() => {
+  const parent = document.getElementById("container");
+  assert_equals(parent.childElementCount, 2);
+}, "Element.childElementCount");
+
+test(() => {
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(document.createElement("span"));
+  fragment.appendChild(document.createElement("em"));
+  assert_equals(fragment.childElementCount, 2);
+}, "DocumentFragment.childElementCount");
+</script>

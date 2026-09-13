@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="match" href="interestfor-pseudo-element-contents-appearance-ref.html">
+
+<div class="container">
+  <button class="contents" interestfor="target">Button 1</button>
+</div>
+
+<div class="container">
+  <a href="#" class="contents" interestfor="target">Link 1</a>
+</div>
+
+<div class="container">
+  <button class="pseudo-contents" interestfor="target">Button 2</button>
+</div>
+
+<div class="container">
+  <a href="#" class="pseudo-contents" interestfor="target">Link 2</a>
+</div>
+
+<div class="container">
+  <button class="contents pseudo-contents" interestfor="target">Button 3</button>
+</div>
+
+<div class="container">
+  <a href="#" class="contents pseudo-contents" interestfor="target">Link 3</a>
+</div>
+
+<div id="target"></div>
+
+<style>
+  .container {
+    font-family: monospace;
+    font-size: 14px;
+    margin-bottom: 10px;
+    border: 1px solid gray;
+    padding: 5px;
+  }
+  button, a {
+    font: inherit;
+    color: inherit;
+  }
+  .contents {
+    display: contents;
+  }
+  [interestfor]::interest-button {
+    content: " [btn]";
+  }
+  .pseudo-contents::interest-button {
+    display: contents;
+    content: " [pseudo-contents]";
+  }
+</style>

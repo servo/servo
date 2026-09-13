@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTL glyph ink overflow at different font sizes</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#ink">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#direction">
+<link rel="match" href="rtl-glyph-extents-ref.html">
+<meta name="assert" content="Isolated glyphs with left or right ink overhang render without clipping in RTL text, just as in LTR text, at different font sizes.">
+<link rel="stylesheet" href="support/rtl-glyph-extents.css">
+<style>.glyph { direction: rtl; }</style>
+<div class="column">
+  <div class="glyph small">&#x627;</div>
+  <div class="glyph medium">&#x627;</div>
+  <div class="glyph large">&#x627;</div>
+  <div class="glyph extra-large">&#x627;</div>
+  <div class="glyph medium">&#x628;</div>
+  <div class="glyph medium">&#x62a;</div>
+</div>

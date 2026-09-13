@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector matches nodes inserted by innerHTML</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#the-innerhtml-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3964 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  assert_equals(div.innerHTML, "", "initial");
+
+  div.innerHTML = '<div id="inner-div"><span id="inner-span"></span></div>';
+  assert_equals(div.querySelector("div"), div.firstElementChild, "inner div");
+  assert_equals(div.querySelector("span"), div.firstElementChild.firstElementChild, "inner span");
+});
+</script>

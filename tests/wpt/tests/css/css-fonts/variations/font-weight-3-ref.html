@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS reference file: synthetic bold for a variable font whose font-weight descriptor is normal</title>
+<!-- Based on font-slant-3-ref.html (the 'slnt' axis variant) by Jonathan Kew. -->
+<style>
+@font-face {
+  font-family: test;
+  /* Version of Inter subset with the variation axes stripped,
+     so the browser's synthetic bold should take effect. */
+  src: url(resources/Inter.no-var.subset.ttf);
+  font-style: normal;
+  font-weight: normal;
+  font-stretch: normal;
+}
+.test {
+  font: 32px/1.5 test;
+}
+</style>
+<body>
+<p>Test passes if the first line is normal weight and the following two lines are displayed with synthetic bold.</p>
+<div class="test" style="font-weight: normal">nt</div>
+<div class="test" style="font-weight: bold">nt</div>
+<div class="test" style="font-weight: 900">nt</div>

@@ -1,0 +1,43 @@
+<!doctype html>
+<title>CSSKeyframesRule.appendRule() should silently ignore invalid input</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#dom-csskeyframesrule-appendrule">
+<script>
+"use strict";
+
+function getKeyframesRule(t) {
+  const style = document.createElement("style");
+  style.textContent = "@keyframes test {}";
+  document.head.append(style);
+  t.add_cleanup(() => {
+    style.remove();
+  });
+  return style.sheet.cssRules[0];
+}
+
+test(t => {
+  const rule = getKeyframesRule(t);
+  rule.appendRule("from { opacity: 0 } garbage");
+  assert_equals(rule.cssRules.length, 0, "Trailing garbage after keyframe should be rejected");
+}, "appendRule with trailing garbage after keyframe block is silently ignored");
+
+test(t => {
+  const rule = getKeyframesRule(t);
+  rule.appendRule("from { opacity: 0 } @media all {}");
+  assert_equals(rule.cssRules.length, 0, "Extra at-rule after keyframe should be rejected");
+}, "appendRule with trailing at-rule after keyframe block is silently ignored");
+
+test(t => {
+  const rule = getKeyframesRule(t);
+  rule.appendRule("from { opacity: 0 } to { opacity: 1 }");
+  assert_equals(rule.cssRules.length, 0, "Two keyframes in one appendRule should be rejected");
+}, "appendRule with two keyframe entries is silently ignored");
+
+test(t => {
+  const rule = getKeyframesRule(t);
+  rule.appendRule("from { opacity: 0 }");
+  assert_equals(rule.cssRules.length, 1, "Valid keyframe should be accepted");
+  assert_equals(rule.cssRules[0].keyText, "0%");
+}, "appendRule with valid single keyframe works normally");
+</script>

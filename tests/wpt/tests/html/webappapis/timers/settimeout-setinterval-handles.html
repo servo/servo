@@ -1,0 +1,41 @@
+<!doctype html>
+<title>Handles returned by setTimeout and setInterval</title>
+<link rel="author" title="Alvaro Dias" href="mailto:alvarorahul@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout">
+<link rel="help" href="https://heycam.github.io/webidl/#es-operations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(() => {
+  const a = setTimeout(noop);
+  const b = setInterval(noop);
+
+  clearTimeout(a);
+  clearInterval(b);
+
+  assert_true(typeof a === "number");
+  assert_true(typeof b === "number");
+
+  assert_true(a > 0);
+  assert_true(b > 0);
+
+  function noop() {
+    // no-op
+  }
+}, "setTimeout and setInterval should return numeric handles integer that is greater than zero");
+
+test(t => {
+  const handles = [];
+  t.add_cleanup(() => handles.forEach(clearTimeout));
+  for (const schedule of [setTimeout, setInterval, setTimeout, setInterval]) {
+    const handle = schedule(t.unreached_func("Cleared timer must not fire"), 0);
+    assert_true(Number.isInteger(handle));
+    assert_greater_than(handle, 0);
+    assert_false(handles.includes(handle), "Active timer handles must be distinct");
+    handles.push(handle);
+  }
+}, "Timeouts and intervals share a set of unique active handles");
+</script>

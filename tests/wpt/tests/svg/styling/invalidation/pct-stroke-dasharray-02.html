@@ -1,0 +1,31 @@
+<!doctype html>
+<html class="reftest-wait">
+  <title>Invalidation of stroke-dasharray with percentage units</title>
+  <link rel="match" href="pct-stroke-dasharray-02-ref.html">
+  <link rel="help" href="https://www.w3.org/TR/css3-values/#percentages">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/common/rendering-utils.js"></script>
+  <style>
+    svg {
+      width: 100%;
+      display: block;
+    }
+  </style>
+
+  <div id="toggler" style="width: 500px; overflow: hidden">
+    <svg height="120">
+      <text x="10" y="90" font-size="90" fill="none" stroke="green"
+        stroke-width="5"
+        stroke-dasharray="4%">Hello</text>
+    </svg>
+  </div>
+  <script>
+    function doTest() {
+      const toggler = document.querySelector("#toggler");
+      toggler.getBoundingClientRect();
+      toggler.style.width = "200px";
+      takeScreenshot();
+    }
+    document.documentElement.addEventListener("TestRendered", doTest);
+  </script>
+</html>

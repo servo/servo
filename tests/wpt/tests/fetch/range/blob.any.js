@@ -107,6 +107,18 @@ const unsupportedBlobRange = [
     range: "byte=0-"
   },
   {
+    name: "Blob range unit is case-sensitive",
+    data: ["The range unit must be lowercase"],
+    type: "text/plain",
+    range: "BYTES=0-5"
+  },
+  {
+    name: "Blob range unit is case-sensitive #2",
+    data: ["The range unit must be lowercase"],
+    type: "text/plain",
+    range: "ByTes=0-5"
+  },
+  {
     name: "Blob range with incorrect range header #2",
     data: ["A"],
     type: "text/plain",
@@ -117,6 +129,24 @@ const unsupportedBlobRange = [
     data: ["A"],
     type: "text/plain",
     range: "bytes\t \t"
+  },
+  {
+    name: "Blob range with U+000C where HTTP tab or space is allowed",
+    data: ["U+000C is not HTTP tab or space"],
+    type: "text/plain",
+    range: "bytes=\u000C0-5"
+  },
+  {
+    name: "Blob range with U+000C before the dash",
+    data: ["U+000C is not HTTP tab or space"],
+    type: "text/plain",
+    range: "bytes=0\u000C-5"
+  },
+  {
+    name: "Blob range with U+000B where HTTP tab or space is allowed",
+    data: ["U+000B is not HTTP tab or space"],
+    type: "text/plain",
+    range: "bytes=\u000B0-5"
   },
   {
     name: "Blob range request with multiple range values",
@@ -165,6 +195,24 @@ const unsupportedBlobRange = [
     data: ["Range end must be an ASCII digit"],
     type: "text/plain",
     range: "bytes=5-x",
+  },
+  {
+    name: "Blob range start must not be signed",
+    data: ["Range start must be an ASCII digit"],
+    type: "text/plain",
+    range: "bytes=+0-5",
+  },
+  {
+    name: "Blob range start must not be signed #2",
+    data: ["Range start must be an ASCII digit"],
+    type: "text/plain",
+    range: "bytes=+5-",
+  },
+  {
+    name: "Blob range end must not be signed",
+    data: ["Range end must be an ASCII digit"],
+    type: "text/plain",
+    range: "bytes=0-+5",
   },
   {
     name: "Blob range should include '-'",

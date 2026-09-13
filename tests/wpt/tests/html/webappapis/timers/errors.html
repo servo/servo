@@ -1,0 +1,61 @@
+<!doctype html>
+<title>setTimeout/setInterval with throwing code</title>
+<link rel="author" title="Sebstian Mayr" href="mailto:wpt@smayr.name">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+"use strict";
+setup({ allow_uncaught_exception: true });
+
+function setupListener(t, errorMessage, promiseResolve, optionalIntervalHandle) {
+  const listener = t.step_func(event => {
+    assert_equals(event.constructor.name, "ErrorEvent");
+    assert_equals(event.error.message, errorMessage);
+    promiseResolve();
+  });
+
+  window.addEventListener("error", listener);
+  t.add_cleanup(() => {
+    window.removeEventListener("error", listener);
+    clearInterval(optionalIntervalHandle);
+  });
+}
+
+promise_test(t => {
+  return new Promise(resolve => {
+    setTimeout("throw new Error('test1')", 10);
+
+    setupListener(t, "test1", resolve);
+  });
+}, "setTimeout, string argument");
+
+promise_test(t => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      throw new Error("test2");
+    }, 10);
+
+    setupListener(t, "test2", resolve);
+  });
+}, "setTimeout, function argument");
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const i = setInterval("throw new Error('test3')", 10);
+
+    setupListener(t, "test3", resolve, i);
+  });
+}, "setInterval, string argument");
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const i = setInterval(() => {
+      throw new Error("test4");
+    }, 10);
+
+    setupListener(t, "test4", resolve, i);
+  });
+}, "setInterval, function argument");
+</script>

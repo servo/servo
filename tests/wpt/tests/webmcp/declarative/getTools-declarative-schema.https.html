@@ -35,7 +35,7 @@
       required: ["query"]
     };
 
-    const tool = await waitForFormToolSchemaToMatch(JSON.stringify(expected_schema_obj));
+    const tool = await waitForFormToolSchemaToMatch(expected_schema_obj);
 
     assert_equals(tool.name, "search_tool", "Tool name matches");
     assert_equals(tool.description, "Search the web", "Tool description matches");

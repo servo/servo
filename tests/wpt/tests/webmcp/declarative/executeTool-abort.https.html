@@ -39,7 +39,7 @@ promise_test(async t => {
   const tool = tools.find(t => t.name === 'submit_test');
 
   const controller = new AbortController();
-  const executionPromise = document.modelContext.executeTool(tool, '{}', { signal: controller.signal });
+  const executionPromise = document.modelContext.executeTool(tool, {}, { signal: controller.signal });
 
   await toolActivatedPromise;
 

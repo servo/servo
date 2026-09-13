@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XMLHttpRequest: send() Document containing lone surrogate</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+// Test that XHR.send() with a Document containing a lone surrogate
+// does not throw and properly encodes the surrogate as U+FFFD
+
+async_test(t => {
+  // Create a document with a lone surrogate in the body
+  const doc = document.implementation.createHTMLDocument("");
+  doc.body.textContent = "Hello \uD800 World"; // \uD800 is a lone high surrogate
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "resources/content.py");
+  xhr.onload = t.step_func_done(() => {
+    assert_equals(xhr.status, 200);
+    // The lone surrogate should be encoded as U+FFFD (replacement character)
+    // which in UTF-8 is 0xEF 0xBF 0xBD
+    assert_true(xhr.responseText.includes("Hello \uFFFD World"), "Response should contain the text");
+  });
+  xhr.onerror = t.unreached_func("XHR should not error");
+
+  // This should not throw even though the document contains a lone surrogate
+  xhr.send(doc);
+}, "send() with Document containing lone surrogate should not throw");
+</script>

@@ -31,7 +31,7 @@ promise_test(async t => {
   await promise_rejects_js(
     t,
     TypeError,
-    document.modelContext.executeTool(invalidTool, '{}'),
+    document.modelContext.executeTool(invalidTool),
     "executeTool() must reject with TypeError if 'origin' member is omitted"
   );
 }, "executeTool() rejects with TypeError when the required 'origin' dictionary member is omitted");
@@ -47,13 +47,32 @@ promise_test(async t => {
   const tool = tools.find(t => t.name === "json-test-tool");
   assert_true(!!tool, "Legitimate tool must be successfully discovered");
 
-  await promise_rejects_dom(
+  const circularObject = {};
+  circularObject.self = circularObject;
+  await promise_rejects_js(
     t,
-    "UnknownError",
-    document.modelContext.executeTool(tool, "invalid-json"),
-    "executeTool() must reject with UnknownError for invalid JSON input"
+    TypeError,
+    document.modelContext.executeTool(tool, circularObject),
+    "executeTool() must reject with TypeError for circular JSON input"
   );
-}, "executeTool() rejects with UnknownError for invalid JSON arguments");
+
+  const undefinedToJSON = {
+    toJSON: () => undefined
+  };
+  await promise_rejects_js(
+    t,
+    TypeError,
+    document.modelContext.executeTool(tool, undefinedToJSON),
+    "executeTool() must reject with TypeError when toJSON returns undefined"
+  );
+
+  await promise_rejects_js(
+    t,
+    TypeError,
+    document.modelContext.executeTool(tool, BigInt(42)),
+    "executeTool() must reject with TypeError for non-serializable types JSON input"
+  );
+}, "executeTool() rejects with TypeError for invalid JSON arguments");
 
 promise_test(async t => {
   const dummyTool = {
@@ -66,7 +85,7 @@ promise_test(async t => {
   await promise_rejects_dom(
     t,
     "UnknownError",
-    document.modelContext.executeTool(dummyTool, "{}"),
+    document.modelContext.executeTool(dummyTool),
     "executeTool() must reject with UnknownError for non-existent tool object"
   );
 }, "executeTool() rejects with UnknownError when a non-existent tool object is supplied");

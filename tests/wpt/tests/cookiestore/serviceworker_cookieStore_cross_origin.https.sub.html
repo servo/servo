@@ -27,7 +27,9 @@ promise_test(async t => {
     name: 'cookie-name',
     value: 'cookie-value',
   }, kCorsBase);
-  t.add_cleanup(async () => { await cookieStore.delete('cookie-name'); });
+  t.add_cleanup(async () => {
+    await cookieStore.delete({ name: 'cookie-name', domain: '{{host}}' });
+  });
 
   await waitForMessage();
 

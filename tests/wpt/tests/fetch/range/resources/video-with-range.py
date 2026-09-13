@@ -18,14 +18,21 @@ def main(request, response):
         status = 206
     else:
         status = 200
+    response_range_overridden = False
     for rewrite in rewrites:
         req_start, req_end = rewrite['request']
         if start == req_start or req_start == '*':
             if end == req_end or req_end == '*':
                 if 'response' in rewrite:
                     start, end = rewrite['response']
+                    response_range_overridden = True
                 if 'status' in rewrite:
                     status = rewrite['status']
+
+    if status == 200 and not response_range_overridden:
+        # By default, a server ignoring the range request must return the entire resource.
+        start = None
+        end = None
 
     start = int(start or 0)
     end = int(end or total_size)

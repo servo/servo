@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Text: 'hyphenate-limit-lines' limits the number of successive hyphenated lines</title>
+<style>
+#container > div {
+  border: black solid 1px;
+  font-family: monospace;
+  font-size: 32px;
+  line-height: 1;
+  width: 6ch;
+  margin-bottom: 1em;
+}
+</style>
+<body lang="en">
+  <div id="container">
+    <div>imple-<br>menta-<br>tion</div>
+    <div>imple-<br>menta-<br>tion</div>
+    <div>imple-<br>mentation</div>
+    <div>implementation</div>
+  </div>
+</body>

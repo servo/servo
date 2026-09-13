@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="match" href="interestfor-pseudo-element-flex-appearance-ref.html">
+
+<div class="flex row">
+  <button interestfor="target">Button 1</button>
+</div>
+
+<div class="flex col">
+  <button interestfor="target">Button 2</button>
+</div>
+
+<div class="flex row">
+  <a href="#" interestfor="target">Link 1</a>
+</div>
+
+<div class="flex col">
+  <a href="#" interestfor="target">Link 2</a>
+</div>
+
+<div class="flex row space-evenly">
+  <button interestfor="target">Button 3</button>
+  <button interestfor="target">Button 4</button>
+</div>
+
+<div id="target"></div>
+
+<style>
+  .flex {
+    display: flex;
+    border: 1px solid gray;
+    width: 300px;
+  }
+  .row {
+    flex-direction: row;
+  }
+  .col {
+    flex-direction: column;
+  }
+  .space-evenly {
+    justify-content: space-evenly;
+  }
+  button, a {
+    font: inherit;
+    color: inherit;
+  }
+  [interestfor]::interest-button {
+    content: '\24D8' / '';
+  }
+</style>

@@ -1,13 +1,11 @@
 .fake-interest-button {
-  position: absolute;
-  position-anchor: auto;
-  position-area: inline-end;
+  display: inline-block;
+  vertical-align: middle;
   color: inherit;
   background-color: transparent;
   box-sizing: border-box;
   min-inline-size: 24px;
   min-block-size: max(24px, 1lh);
-  margin-block: min(-24px, -1lh);
   align-content: center;
   text-align: center;
   user-select: none;

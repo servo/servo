@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>insertRule with font-face rule</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3979 -->
+
+<style></style>
+
+<script>
+"use strict";
+
+test(() => {
+  const styleSheet = document.styleSheets[0];
+
+  styleSheet.insertRule(
+    "@font-face{font-family:fcicons;font-style:normal;font-weight:400;" +
+    "src:url(\"data:application/x-font-ttf;charset=utf-8;base64,AAA=\") format(\"truetype\")}",
+    0
+  );
+
+  assert_equals(styleSheet.cssRules.length, 1, "Stylesheet should have one rule");
+  assert_equals(styleSheet.cssRules[0].constructor.name, "CSSFontFaceRule");
+}, "insertRule with font-face rule should not throw");
+</script>

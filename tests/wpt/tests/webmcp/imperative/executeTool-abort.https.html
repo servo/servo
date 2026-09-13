@@ -23,7 +23,7 @@ promise_test(async t => {
   }, { signal: regController.signal });
 
   const [tool] = await document.modelContext.getTools();
-  const result = await document.modelContext.executeTool(tool, '{}');
+  const result = await document.modelContext.executeTool(tool);
   assert_equals(result, 'success');
   assert_true(received_signal instanceof AbortSignal, 'options.signal should be an AbortSignal instance');
   assert_false(received_signal.aborted, 'signal should not be aborted');
@@ -63,7 +63,7 @@ promise_test(async t => {
   const [tool] = await document.modelContext.getTools();
 
   const controller = new AbortController();
-  const executionPromise = document.modelContext.executeTool(tool, '{}', { signal: controller.signal });
+  const executionPromise = document.modelContext.executeTool(tool, {}, { signal: controller.signal });
 
   const { promise: toolCancelPromise, resolve: resolveToolCancel } = Promise.withResolvers();
   window.addEventListener('toolcancel', e => {
@@ -103,7 +103,7 @@ promise_test(async t => {
   const [tool] = await document.modelContext.getTools();
   const signal = AbortSignal.abort('already aborted');
   let executionRejectionValue = null;
-  document.modelContext.executeTool(tool, '{}', { signal }).catch(e => executionRejectionValue = e);
+  document.modelContext.executeTool(tool, {}, { signal }).catch(e => executionRejectionValue = e);
 
   // Await a Promise that resolved synchronously, so that we guarantee that in
   // the next microtask, `execute_promise` has already rejected. This asserts
@@ -133,7 +133,7 @@ promise_test(async t => {
   const [tool] = await document.modelContext.getTools();
   const controller = new AbortController();
   const executePromise =
-      document.modelContext.executeTool(tool, '{}', { signal: controller.signal });
+      document.modelContext.executeTool(tool, {}, { signal: controller.signal });
 
   // By the time this `abort()` is processed, the tool will have already started
   // running and the abort handler will have already been registered.
@@ -184,8 +184,8 @@ promise_test(async t => {
   const c1 = new AbortController();
   const c2 = new AbortController();
 
-  const execPromise1 = document.modelContext.executeTool(tool, '{}', { signal: c1.signal });
-  const execPromise2 = document.modelContext.executeTool(tool, '{}', { signal: c2.signal });
+  const execPromise1 = document.modelContext.executeTool(tool, {}, { signal: c1.signal });
+  const execPromise2 = document.modelContext.executeTool(tool, {}, { signal: c2.signal });
 
   await Promise.all([exec1Started, exec2Started]);
 

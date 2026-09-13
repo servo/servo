@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html class="reftest-wait" lang="ja">
 <head>
 <meta charset="UTF-8">
 <title>CSS Reference: text-combine-upright, no compression for single full-width character</title>
@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="support/width-test.css">
 <link rel="stylesheet" href="support/tcy.css">
 <style>
-.test { writing-mode: vertical-rl; }
+.test { display: none; writing-mode: vertical-rl; }
 .test > p { border: 1px solid black; }
 </style>
 </head>
@@ -17,5 +17,6 @@
   <p><span class="fake-tcy">０</span></p>
   <p><span class="fake-tcy">０</span></p>
 </div>
+<script src="support/wait-for-width-test-font.js"></script>
 </body>
 </html>

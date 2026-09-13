@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSSOM: Setting style.backgroundColor to oklch()</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-elementcssinlinestyle-mixin">
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3691 -->
+
+<div id="test"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("test");
+
+  div.style.backgroundColor = "oklch(76% .23 150)";
+  assert_equals(div.style.backgroundColor, "oklch(0.76 0.23 150)");
+
+}, "Setting style.backgroundColor using oklch()");
+
+</script>

@@ -9,5 +9,5 @@
 promise_test(async (t) => {
   await ensureLanguageModel();
   const model = await createLanguageModel();
-  assert_regexp_match(await model.prompt(undefined), /undefined/);
+  assert_equals(typeof await model.prompt(undefined), 'string');
 }, 'LanguageModel.prompt() allows undefined input');

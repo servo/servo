@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS @layers basic example</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layering">
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3785 -->
+
+<style>
+  @layer foo, bar;
+  @layer foo {
+    p {
+      color: yellow;
+    }
+  }
+
+  @layer bar {
+    p {
+      background-color: black;
+    }
+  }
+
+  p {
+    font-size: 4rem;
+  }
+</style>
+
+<p id="testP">Test paragraph</p>
+
+<script>
+"use strict";
+
+test(() => {
+  const p = document.getElementById("testP");
+  const styles = window.getComputedStyle(p);
+
+  assert_equals(styles.color, "rgb(255, 255, 0)");
+  assert_equals(styles.backgroundColor, "rgb(0, 0, 0)");
+  assert_equals(styles.fontSize, "64px");
+});
+</script>

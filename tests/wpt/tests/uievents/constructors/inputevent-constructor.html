@@ -7,6 +7,7 @@ test(function() {
   var e = new InputEvent('type');
   assert_equals(e.data, null, '.data');
   assert_false(e.isComposing, '.isComposing');
+  assert_equals(e.inputType, '', '.inputType');
 }, 'InputEvent constructor without InputEventInit.');
 
 test(function() {
@@ -22,4 +23,8 @@ test(function() {
 test(function() {
   assert_equals(new InputEvent('type', { data: 'data' }).data, 'data', '.data');
 }, 'InputEvent construtor with InputEventInit where data is non empty string');
+test(() => {
+  const event = new InputEvent("type", { inputType: "insertText" });
+  assert_equals(event.inputType, "insertText", ".inputType");
+}, "InputEvent constructor with an explicit inputType");
 </script>

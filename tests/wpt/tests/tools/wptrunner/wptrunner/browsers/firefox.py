@@ -228,6 +228,7 @@ def env_options():
 
 
 def get_bool_pref(default_prefs, extra_prefs, pref):
+    """Resolve a boolean preference for run info purposes."""
     for key, value in extra_prefs + default_prefs:
         if pref == key:
             if isinstance(value, str):
@@ -271,8 +272,9 @@ def run_info_extras(logger, default_prefs=None, **kwargs):
           "swgl": bool_pref("gfx.webrender.software"),
           "useDrawSnapshot": bool_pref("reftest.use-draw-snapshot"),
           "privateBrowsing": bool_pref("browser.privatebrowsing.autostart"),
-          "remoteAsyncEvents": (bool_pref("remote.events.async.mouse.enabled") or
-                                bool_pref("remote.events.async.wheel.enabled")),
+          "remoteAsyncMouseEvents": bool_pref("remote.events.async.mouse.enabled"),
+          "remoteAsyncTouchEvents": bool_pref("remote.events.async.touch.enabled"),
+          "remoteAsyncWheelEvents": bool_pref("remote.events.async.wheel.enabled"),
           "incOriginInit": os.environ.get("MOZ_ENABLE_INC_ORIGIN_INIT") == "1",
           "openh264": prefers_openh264(),
           }
@@ -307,7 +309,9 @@ def update_properties():
             "useDrawSnapshot",
             "asan",
             "tsan",
-            "remoteAsyncEvents",
+            "remoteAsyncMouseEvents",
+            "remoteAsyncTouchEvents",
+            "remoteAsyncWheelEvents",
             "sessionHistoryInParent",
             "openh264",
             "subsuite",
@@ -796,6 +800,11 @@ class ProfileCreator:
         }
 
     def _get_default_prefs(self):
+        """Preferences that are applied to the profile of a test run.
+
+        These are not visible to "run_info_extras", which only sees preferences
+        given via "--setpref", so a run info flag does not reflect them.
+        """
         prefs = {
             "dom.file.createInChild": True,
             "places.history.enabled": False,
@@ -816,7 +825,8 @@ class ProfileCreator:
                 }
             )
         else:
-            # Except for wdspec dispatch wheel scroll as widget event by default.
+            # Dispatch wheel scroll as widget event by default. It stays
+            # disabled for wdspec until it can be enabled for all input sources.
             prefs["remote.events.async.wheel.enabled"] = True
 
         if self.debug_test:

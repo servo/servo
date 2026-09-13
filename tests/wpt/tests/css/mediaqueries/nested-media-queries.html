@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Nested media queries</title>
+<link rel="help" href="https://drafts.csswg.org/mediaqueries/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3988 -->
+
+<style>
+  @media (min-width:0px) {
+    @media (orientation: landscape){
+      .test-class {
+        min-height:48px;
+      }
+    }
+  }
+</style>
+
+<div id="div" class="test-class"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_equals(document.styleSheets.length, 1, "Stylesheet should be parsed");
+  assert_equals(document.styleSheets[0].cssRules.length, 1, "Stylesheet should have one top-level rule");
+
+  const outerMedia = document.styleSheets[0].cssRules[0];
+  assert_equals(outerMedia.constructor.name, "CSSMediaRule", "Top-level rule should be a CSSMediaRule");
+  assert_equals(outerMedia.conditionText, "(min-width: 0px)");
+
+  const innerMedia = outerMedia.cssRules[0];
+  assert_equals(innerMedia.constructor.name, "CSSMediaRule", "Nested rule should be a CSSMediaRule");
+  assert_equals(innerMedia.conditionText, "(orientation: landscape)");
+
+  const styleRule = innerMedia.cssRules[0];
+  assert_equals(styleRule.constructor.name, "CSSStyleRule", "Innermost rule should be a CSSStyleRule");
+  assert_equals(styleRule.selectorText, ".test-class");
+  assert_equals(styleRule.style.minHeight, "48px");
+}, "Nested media queries should parse correctly");
+</script>

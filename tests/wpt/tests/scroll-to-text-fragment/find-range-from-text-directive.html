@@ -144,6 +144,11 @@ let test_cases = [
     description: 'match doesn\'t immediately follow first prefix instance'
   },
   {
+    fragment: '#:~:text=search-,Two,flatten',
+    expect_to_scroll: true,
+    description: 'Generated content matching prefix does not prevent a later match'
+  },
+  {
     // Step 2.3.1
     fragment: '#:~:text=jum,over',
     expect_to_scroll: false,

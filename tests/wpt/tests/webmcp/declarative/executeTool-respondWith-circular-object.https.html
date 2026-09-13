@@ -27,7 +27,7 @@ promise_test(async t => {
   await promise_rejects_dom(
     t,
     'UnknownError',
-    document.modelContext.executeTool(tool, '{}'),
+    document.modelContext.executeTool(tool),
     'executeTool() should reject with UnknownError when respondWith is passed a circular object'
   );
 }, 'Declarative tool executeTool() rejects when respondWith() receives a circular object');

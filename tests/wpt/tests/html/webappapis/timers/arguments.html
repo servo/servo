@@ -1,0 +1,28 @@
+<!doctype html>
+<title>setTimeout/setInterval with additional arguments</title>
+<link rel="author" title="Sebstian Mayr" href="mailto:wpt@smayr.name">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+"use strict";
+
+async_test(t => {
+  setTimeout((a, b, c) => {
+    assert_equals(a, 1);
+    assert_equals(b, 2);
+    assert_equals(c, 3);
+    t.done();
+  }, 100, 1, 2, 3);
+}, "setTimeout");
+
+async_test(t => {
+  setInterval((a, b, c) => {
+    assert_equals(a, 1);
+    assert_equals(b, 2);
+    assert_equals(c, 3);
+    t.done();
+  }, 100, 1, 2, 3);
+}, "setInterval");
+</script>

@@ -45,11 +45,6 @@ test_font_face_src(
   'url("fonts/Ahem.ttf" cross-origin(anonymous)) format("truetype")',
   true);
 
-test_font_face_src(
-  "unknown modifier in @font-face src",
-  'url("fonts/Ahem.ttf" foobar(baz))',
-  true);
-
 // Invalid modifiers
 test_font_face_src(
   "duplicate cross-origin in @font-face src",
@@ -57,7 +52,7 @@ test_font_face_src(
   false);
 
 test_font_face_src(
-  "duplicate unknown modifier in @font-face src",
-  'url("fonts/Ahem.ttf" foobar(baz) foobar(qux))',
+  "unknown modifier in @font-face src",
+  'url("fonts/Ahem.ttf" foobar(baz))',
   false);
 </script>

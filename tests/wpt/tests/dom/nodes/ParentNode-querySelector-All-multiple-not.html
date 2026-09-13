@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>:not() with multiple selectors in the list</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3297 -->
+
+<div id="container">
+  <div id="container-inner-1"></div>
+  <div id="container-inner-2">
+    <p>Foo</p>
+    <button>Bar</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+test(() => {
+  const container = document.getElementById("container");
+  assert_equals(container.querySelectorAll(":not(svg, svg *)").length, 4);
+});
+</script>

@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<title>SVGAnimatedString interface</title>
+<link rel="author" title="Timothy Gu" href="mailto:timothygu99@gmail.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGAnimatedString">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg class=" abc  def  "></svg>
+
+<script>
+"use strict";
+
+test(() => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const animStr = svg.className;
+  assert_true(animStr instanceof SVGAnimatedString);
+}, "Basic properties");
+
+test(() => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const animStr = svg.className;
+  assert_equals(animStr.baseVal, "");
+  assert_equals(animStr.animVal, "");
+  assert_equals(svg.getAttribute("class"), null);
+  animStr.baseVal = "class";
+  assert_equals(animStr.baseVal, "class");
+  assert_equals(animStr.animVal, "class");
+  assert_equals(svg.getAttribute("class"), "class");
+  animStr.baseVal = "";
+  assert_equals(animStr.baseVal, "");
+  assert_equals(animStr.animVal, "");
+  assert_equals(svg.getAttribute("class"), "");
+}, "Setting baseStr");
+
+test(() => {
+  const svg = document.querySelector("svg");
+  const animStr = svg.className;
+  assert_equals(animStr.baseVal, " abc  def  ");
+  assert_equals(animStr.animVal, " abc  def  ");
+  assert_equals(svg.getAttribute("class"), " abc  def  ");
+  animStr.baseVal = "abc def";
+  assert_equals(animStr.baseVal, "abc def");
+  assert_equals(animStr.animVal, "abc def");
+  assert_equals(svg.getAttribute("class"), "abc def");
+  animStr.baseVal = "";
+  assert_equals(animStr.baseVal, "");
+  assert_equals(animStr.animVal, "");
+  assert_equals(svg.getAttribute("class"), "");
+}, "Setting baseStr of an element declared via HTML");
+
+</script>

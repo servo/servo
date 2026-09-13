@@ -40,7 +40,7 @@ promise_test(async t => {
   iframe.remove();
 
   // Calling executeTool() should reject with InvalidStateError.
-  await promise_rejects_dom(t, 'InvalidStateError', iDOMException, iframe_modelContext.executeTool(tool, '{}'));
+  await promise_rejects_dom(t, 'InvalidStateError', iDOMException, iframe_modelContext.executeTool(tool));
 }, 'executeTool() throws `InvalidStateError` in detached frame');
 </script>
 </body>

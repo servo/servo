@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>volumechange and ratechange are fired from a queued media element task</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/media.html#dom-media-volume">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/media.html#dom-media-muted">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/media.html#dom-media-defaultplaybackrate">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/media.html#dom-media-playbackrate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<script>
+"use strict";
+
+function testQueuedTask(eventName, mutate, description) {
+  promise_test(async t => {
+    const el = document.createElement("audio");
+    let fired = false;
+
+    const eventPromise = new Promise(resolve => {
+      el.addEventListener(eventName, t.step_func(() => {
+        fired = true;
+        resolve();
+      }), { once: true });
+    });
+
+    mutate(el);
+
+    assert_false(fired, `${eventName} must not fire synchronously`);
+
+    await Promise.resolve();
+
+    assert_false(fired, `${eventName} must be queued as a task, not a microtask`);
+
+    await eventPromise;
+  }, description);
+}
+
+testQueuedTask(
+  "volumechange",
+  el => {
+    el.muted = true;
+  },
+  "setting muted queues a task to fire volumechange"
+);
+
+testQueuedTask(
+  "volumechange",
+  el => {
+    el.volume = 0.5;
+  },
+  "setting volume queues a task to fire volumechange"
+);
+
+testQueuedTask(
+  "ratechange",
+  el => {
+    el.playbackRate = 2;
+  },
+  "setting playbackRate queues a task to fire ratechange"
+);
+
+testQueuedTask(
+  "ratechange",
+  el => {
+    el.defaultPlaybackRate = 2;
+  },
+  "setting defaultPlaybackRate queues a task to fire ratechange"
+);
+</script>

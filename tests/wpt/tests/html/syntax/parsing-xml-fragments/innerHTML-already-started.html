@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+<title>XML fragment parser: script already started</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/xhtml.html#xml-scripting-support-disabled">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// Test for:
+// https://html.spec.whatwg.org/multipage/xhtml.html#xml-scripting-support-disabled,
+// "If the parser was created as part of the XML fragment parsing algorithm,
+// then the element's already started must be set to true."
+//
+// These tests create an XML document and parse a probe-string containing a
+// script. Due to the "already started" clause in the "Parsing XML documents"
+// chapter in HTML, these scripts should not execute.
+test(_ => {
+  window.mark = 0;
+  const xml = document.implementation.createDocument(
+      'http://www.w3.org/2000/svg', 'svg', null);
+  xml.documentElement.innerHTML =
+      "<script>window.mark = 1;</sc" + "ript><text>control</text>";
+  document.body.appendChild(document.importNode(xml.documentElement, true));
+  assert_equals(window.mark, 0);
+}, "XML fragment parsing via innerHTML, svg script, append importNode result");
+
+test(_ => {
+  window.mark = 0;
+  const xml = document.implementation.createDocument(
+      'http://www.w3.org/2000/svg', 'svg', null);
+  xml.documentElement.innerHTML =
+      "<script>window.mark = 1;</sc" + "ript><text>control</text>";
+  document.body.appendChild(document.adoptNode(xml.documentElement));
+  assert_equals(window.mark, 0);
+}, "XML fragment parsing via innerHTML, svg script, append adoptNode result");
+
+test(_ => {
+  window.mark = 0;
+  const xml = document.implementation.createDocument(
+      'http://www.w3.org/1999/xhtml', 'html', null);
+  xml.documentElement.innerHTML =
+      "<body xmlns='http://www.w3.org/1999/xhtml'><script>window.mark = 1;</sc" + "ript></body>";
+  document.body.appendChild(document.importNode(xml.documentElement, true));
+  assert_equals(window.mark, 0);
+}, "XML fragment parsing via innerHTML, xhtml root, append importNode result");
+
+test(_ => {
+  window.mark = 0;
+  const xml = document.implementation.createDocument(
+      'http://www.w3.org/1999/xhtml', 'html', null);
+  xml.documentElement.innerHTML =
+      "<body xmlns='http://www.w3.org/1999/xhtml'><script>window.mark = 1;</sc" + "ript></body>";
+  const script = xml.getElementsByTagNameNS(
+      'http://www.w3.org/1999/xhtml', 'script')[0];
+  document.body.appendChild(document.importNode(script, true));
+  assert_equals(window.mark, 0);
+}, "XML fragment parsing via innerHTML, xhtml script, append importNode result");
+
+test(_ => {
+  window.mark = 0;
+  const xml = document.implementation.createDocument(
+      'http://www.w3.org/1999/xhtml', 'html', null);
+  xml.documentElement.innerHTML =
+      "<body xmlns='http://www.w3.org/1999/xhtml'><script>window.mark = 1;</sc" + "ript></body>";
+  const script = xml.getElementsByTagNameNS(
+      'http://www.w3.org/1999/xhtml', 'script')[0];
+  document.body.appendChild(document.adoptNode(script));
+  assert_equals(window.mark, 0);
+}, "XML fragment parsing via innerHTML, xhtml script, append adoptNode result");
+</script>
+</body>
+</html>

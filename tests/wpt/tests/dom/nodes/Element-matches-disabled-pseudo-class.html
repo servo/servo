@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<title>:disabled pseudo-class with fieldset</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3603 -->
+
+<fieldset id="disabled-fieldset" disabled>
+  <input id="input-in-disabled-fieldset">
+  <select id="select-in-disabled-fieldset"></select>
+  <button id="button-in-disabled-fieldset">Button</button>
+  <textarea id="textarea-in-disabled-fieldset"></textarea>
+</fieldset>
+
+<fieldset id="enabled-fieldset">
+  <input id="input-in-enabled-fieldset">
+  <select id="select-in-enabled-fieldset"></select>
+  <button id="button-in-enabled-fieldset">Button</button>
+  <textarea id="textarea-in-enabled-fieldset"></textarea>
+</fieldset>
+
+<input id="disabled-input" disabled>
+<input id="enabled-input">
+
+<fieldset id="fieldset-with-legend">
+  <legend>A Legend</legend>
+</fieldset>
+
+<script>
+"use strict";
+
+test(() => {
+  const input = document.getElementById("input-in-disabled-fieldset");
+  assert_true(input.matches(":disabled"));
+}, "Input in disabled fieldset should match :disabled pseudo-class");
+
+test(() => {
+  const select = document.getElementById("select-in-disabled-fieldset");
+  assert_true(select.matches(":disabled"));
+}, "Select in disabled fieldset should match :disabled pseudo-class");
+
+test(() => {
+  const button = document.getElementById("button-in-disabled-fieldset");
+  assert_true(button.matches(":disabled"));
+}, "Button in disabled fieldset should match :disabled pseudo-class");
+
+test(() => {
+  const textarea = document.getElementById("textarea-in-disabled-fieldset");
+  assert_true(textarea.matches(":disabled"));
+}, "Textarea in disabled fieldset should match :disabled pseudo-class");
+
+test(() => {
+  const fieldset = document.getElementById("disabled-fieldset");
+  assert_true(fieldset.matches(":disabled"));
+}, "Disabled fieldset itself should match :disabled pseudo-class");
+
+test(() => {
+  const input = document.getElementById("input-in-enabled-fieldset");
+  assert_true(input.matches(":enabled"));
+  assert_false(input.matches(":disabled"));
+}, "Input in enabled fieldset should match :enabled pseudo-class");
+
+test(() => {
+  const disabledResults = document.querySelectorAll(":disabled");
+  const disabledElementIds = Array.from(disabledResults).map(el => el.id);
+
+  const expectedIds = [
+    "disabled-fieldset",
+    "input-in-disabled-fieldset",
+    "select-in-disabled-fieldset",
+    "button-in-disabled-fieldset",
+    "textarea-in-disabled-fieldset",
+    "disabled-input"
+  ];
+
+  assert_array_equals(disabledElementIds, expectedIds);
+}, "querySelectorAll(':disabled') should select all disabled elements in DOM order");
+
+test(() => {
+  const enabledResults = document.querySelectorAll(":enabled");
+  const enabledElementIds = Array.from(enabledResults).map(el => el.id);
+
+  // Expected enabled elements in DOM order - exclude elements in disabled fieldset and disabled input
+  const expectedEnabledIds = [
+    "enabled-fieldset",
+    "input-in-enabled-fieldset",
+    "select-in-enabled-fieldset",
+    "button-in-enabled-fieldset",
+    "textarea-in-enabled-fieldset",
+    "enabled-input"
+  ];
+
+  // Verify each expected ID is in the results
+  for (const id of expectedEnabledIds) {
+    assert_true(enabledElementIds.includes(id));
+  }
+
+  // Verify no disabled elements are in the enabled results
+  assert_false(enabledElementIds.includes("disabled-fieldset"));
+  assert_false(enabledElementIds.includes("input-in-disabled-fieldset"));
+  assert_false(enabledElementIds.includes("select-in-disabled-fieldset"));
+  assert_false(enabledElementIds.includes("button-in-disabled-fieldset"));
+  assert_false(enabledElementIds.includes("textarea-in-disabled-fieldset"));
+  assert_false(enabledElementIds.includes("disabled-input"));
+}, "querySelectorAll(':enabled') should not select elements in disabled fieldset");
+
+test(() => {
+  const enabledInput = document.querySelector("input:enabled");
+  assert_equals(enabledInput.id, "input-in-enabled-fieldset");
+}, "querySelector('input:enabled') should return the first enabled input");
+
+test(() => {
+  const disabledInputs = document.querySelectorAll("input:disabled");
+  const disabledInputIds = Array.from(disabledInputs).map(input => input.id);
+
+  const expectedIds = ["input-in-disabled-fieldset", "disabled-input"];
+  assert_array_equals(disabledInputIds, expectedIds);
+}, "querySelectorAll('input:disabled') should select inputs with disabled attribute and in disabled fieldset");
+
+// Regression test for https://github.com/jsdom/jsdom/issues/3232
+test(() => {
+  const fieldset = document.getElementById("fieldset-with-legend");
+  assert_false(fieldset.matches(":disabled"), "Fieldset with legend should not match :disabled");
+  assert_true(fieldset.matches(":enabled"), "Fieldset with legend should match :enabled");
+}, "Fieldset with legend should not be considered disabled by default");
+</script>

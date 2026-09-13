@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script src="routines.js"></script>
+</head>
+<body>
+<script>
+
+// The worker classifies each frame it receives, so all this has to do is watch
+// for the verdicts. Bandwidth estimation pads by replaying the last packet
+// sent, and its padding can reach a receive-side transform, so the accepted
+// frame can arrive more than once and empty frames can show up. Neither says
+// anything about the write rules, so neither is counted here.
+const kAccepted = 6000;
+const kStragglers = 1000;
+
+["audio", "video"].forEach(kind => {
+  ["control", "clone", "constructed", "twice", "reordered"].forEach(mode => {
+    promise_test(async t => {
+      const worker =
+          await createWorker("RTCRtpScriptTransform-write-rules-worker.js");
+
+      const localStream = await getNoiseStream({[kind]: true});
+      t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
+
+      await createConnections(t, (firstConnection) => {
+        const sender =
+            firstConnection.addTrack(localStream.getTracks()[0], localStream);
+        sender.transform =
+            new RTCRtpScriptTransform(worker, {name: "sender", mode});
+      }, (secondConnection) => {
+        secondConnection.ontrack = (trackEvent) => {
+          trackEvent.receiver.transform =
+              new RTCRtpScriptTransform(worker, {name: "receiver", mode});
+        };
+      });
+
+      assert_equals(await nextMessageOrTimeout(t, worker, kAccepted),
+        "accepted", "the accepted frame should arrive");
+
+      // The worker only speaks up once for the acceptable frame, so anything
+      // further is a frame that should not have made it through.
+      assert_equals(await nextMessageOrTimeout(t, worker, kStragglers),
+        undefined, "no frame other than the accepted one should arrive");
+    }, `writeEncodedData only passes on frames it accepts (${mode}, ${kind}).`);
+  });
+});
+
+</script>
+</body>
+</html>

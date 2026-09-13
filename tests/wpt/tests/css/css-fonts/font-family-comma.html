@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Font family names with comma</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-prop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/cssstyle/issues/309 -->
+
+<div id="div"></div>
+<script>
+"use strict";
+
+const div = document.getElementById("div");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.fontFamily = "";
+  });
+  div.style.fontFamily = "Arial,";
+  assert_equals(div.style.fontFamily, "");
+}, "Comma after");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.fontFamily = "";
+  });
+  div.style.fontFamily = ",Arial";
+  assert_equals(div.style.fontFamily, "");
+}, "Comma before");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.fontFamily = "";
+  });
+  div.style.fontFamily = "Arial,Arial";
+  assert_equals(div.style.fontFamily, "Arial, Arial");
+}, "Comma in between");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.fontFamily = "";
+  });
+  div.style.fontFamily = ",,";
+  assert_equals(div.style.fontFamily, "");
+}, "Only commas");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.fontFamily = "";
+  });
+  div.style.fontFamily = '"Arial,"';
+  assert_equals(div.style.fontFamily, '"Arial,"');
+}, "Quoted comma");
+</script>

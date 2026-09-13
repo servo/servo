@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>querySelector with :nth-child inside shadow root</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style id="zero"></style>
+<div id="shadowRootContainer"></div>
+<div id="first"><button>hello</button></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const hostElement = document.getElementById("shadowRootContainer");
+  const shadowRoot = hostElement.attachShadow({ mode: "open" });
+  shadowRoot.innerHTML =
+    `<style id="zero"></style>` +
+    `<div id="first"><button>hello</button></div>` +
+    `<div id="second"></div>` +
+    `<nav id="third"></nav>`;
+
+  const el = shadowRoot.querySelector("div:nth-child(2)");
+  assert_equals(el.id, "first");
+}, "div:nth-child(2) should select #first when preceded by a style inside shadow root");
+</script>

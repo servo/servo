@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<title>SVGSymbolElement interface</title>
+<link rel="author" title="Timothy Gu" href="mailto:timothygu99@gmail.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#InterfaceSVGSymbolElement">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+  <symbol id="circ" viewBox="1 2 5 6" requiredExtensions="a b" systemLanguage="c,d" class="e f">
+    <g id="g">
+      <circle id="myCircle" cx="0" cy="0" r="5" />
+    </g>
+  </symbol>
+</svg>
+
+<script>
+"use strict";
+{
+  const svg = document.getElementById("svg");
+  const sym = document.getElementById("circ");
+
+  test(() => {
+    assert_true(sym instanceof SVGSymbolElement);
+    assert_true(sym instanceof SVGGraphicsElement);
+    assert_true(sym instanceof SVGElement);
+  }, "Inheritance chain");
+
+  test(() => {
+    assert_equals(sym.ownerSVGElement, svg);
+    assert_equals(sym.viewportElement, svg);
+
+    assert_true(sym.className instanceof SVGAnimatedString);
+    assert_equals(sym.className.baseVal, "e f");
+  }, "SVGElement inherited properties");
+
+  test(() => {
+    assert_true(sym.viewBox instanceof SVGAnimatedRect);
+    assert_equals(sym.viewBox.baseVal.x, 1);
+    assert_equals(sym.viewBox.baseVal.y, 2);
+    assert_equals(sym.viewBox.baseVal.width, 5);
+    assert_equals(sym.viewBox.baseVal.height, 6);
+  }, "SVGFitToViewBox mixin properties");
+
+  test(() => {
+    assert_true(sym.requiredExtensions instanceof SVGStringList);
+    assert_array_equals(sym.requiredExtensions, ["a", "b"]);
+
+    assert_true(sym.systemLanguage instanceof SVGStringList);
+    assert_array_equals(sym.systemLanguage, ["c", "d"]);
+  }, "SVGTests mixin properties");
+
+  test(() => {
+    const g = document.getElementById("g");
+    const circ = document.getElementById("myCircle");
+
+    assert_equals(g.ownerSVGElement, svg);
+    assert_equals(g.viewportElement, sym);
+    assert_equals(circ.ownerSVGElement, svg);
+    assert_equals(circ.viewportElement, sym);
+  }, "Viewport of children");
+}
+
+test(() => {
+  const sym = document.createElementNS("http://www.w3.org/2000/svg", "symbol");
+  assert_true(sym instanceof SVGSymbolElement);
+  assert_true(sym instanceof SVGGraphicsElement);
+  assert_true(sym instanceof SVGElement);
+
+  assert_equals(sym.ownerSVGElement, null, "ownerSVGElement");
+  assert_equals(sym.viewportElement, null, "viewportElement");
+
+  assert_equals(sym.viewBox.baseVal.x, 0, "viewBox.baseVal.x");
+  assert_equals(sym.viewBox.baseVal.y, 0, "viewBox.baseVal.y");
+  assert_equals(sym.viewBox.baseVal.width, 0, "viewBox.baseVal.width");
+  assert_equals(sym.viewBox.baseVal.height, 0, "viewBox.baseVal.height");
+
+  assert_array_equals(sym.requiredExtensions, [], "requiredExtensions");
+  assert_array_equals(sym.systemLanguage, [], "systemLanguage");
+}, "Detached");
+
+</script>

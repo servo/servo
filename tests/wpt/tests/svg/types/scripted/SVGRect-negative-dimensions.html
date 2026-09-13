@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Rectangles created by SVG allow negative dimensions but reject non-finite values</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#__svg__SVGSVGElement__createSVGRect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+for (const property of ["x", "y", "width", "height"]) {
+  test(() => {
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "svg").createSVGRect();
+    rect[property] = -1;
+    assert_equals(rect[property], -1);
+    for (const otherProperty of ["x", "y", "width", "height"]) {
+      if (otherProperty !== property) {
+        assert_equals(rect[otherProperty], 0, `Setting ${property} does not change ${otherProperty}`);
+      }
+    }
+    for (const value of [NaN, Infinity, -Infinity]) {
+      assert_throws_js(TypeError, () => {
+        rect[property] = value;
+      });
+      assert_equals(rect[property], -1);
+    }
+  }, `A rectangle's ${property} accepts negatives and rejects non-finite numbers`);
+}
+</script>

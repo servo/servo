@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>innerHTML to empty string</title>
+<link rel="help" href="https://w3c.github.io/DOM-Parsing/#dom-element-innerhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  "use strict";
+
+  test(() => {
+    const doc = document.createElement("html");
+
+    doc.innerHTML = `<head><title>foo</title></head><body></body>`;
+
+    doc.innerHTML = "";
+
+    assert_true(doc.getElementsByTagName("body")[0] instanceof HTMLBodyElement);
+
+  }, "Setting innerHTML to empty string");
+</script>

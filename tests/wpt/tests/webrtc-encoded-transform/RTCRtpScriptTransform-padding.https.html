@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script src="routines.js"></script>
+</head>
+<body>
+<script>
+
+// Bandwidth estimation can result in padding-only packets, especially when we
+// deliberately starve the pacer by dropping everything but the first packet
+// (see worker code). Test that such packets do not reach receive-side transforms
+// as a frame with no data in it.
+const kWindow = 8000;
+
+promise_test(async t => {
+  const worker = await createWorker("RTCRtpScriptTransform-padding-worker.js");
+
+  const localStream = await getNoiseStream({audio: true});
+  t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
+
+  await createConnections(t, (firstConnection) => {
+    const sender =
+        firstConnection.addTrack(localStream.getTracks()[0], localStream);
+    sender.transform = new RTCRtpScriptTransform(worker, {name: "sender"});
+  }, (secondConnection) => {
+    secondConnection.ontrack = (trackEvent) => {
+      trackEvent.receiver.transform =
+          new RTCRtpScriptTransform(worker, {name: "receiver"});
+    };
+  });
+
+  assert_equals(await nextMessageOrTimeout(t, worker, kWindow),
+    "frame", "the written frame should arrive");
+
+  // The worker only speaks up once for the frame we wrote, so anything further
+  // is padding that reached the transform.
+  assert_equals(await nextMessageOrTimeout(t, worker, kWindow),
+    undefined, "a padding-only packet is not a frame, and should not be" +
+               " handed to a transform");
+}, "Padding is not delivered to a receive-side transform as an empty frame.");
+
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting value for custom property</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#cssstyledeclaration">
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-elementcssinlinestyle-mixin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3878 -->
+
+<div id="div" class="div"></div>
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.setProperty("--x", 0);
+  div.style.setProperty("--x", 1);
+  assert_equals(div.style.getPropertyValue("--x"), "1", 'Property value is "1"');
+  assert_equals(div.style.length, 1, "style.length is 1");
+  assert_equals(div.style.item(0), "--x", 'style.item(0) is "--x"');
+  assert_equals(div.style.item(1), "", "style.item(1) is empty string");
+});
+</script>

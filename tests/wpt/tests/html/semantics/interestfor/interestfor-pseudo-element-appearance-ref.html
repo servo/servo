@@ -8,16 +8,14 @@
     <span class=before>::before</span>
     <span class=content>Button</span>
     <span class=after>::after</span>
-    <span class=fake-interest-button>::interest-button</span>
-  </button>
+  </button><span class=fake-interest-button>::interest-button</span>
 </div>
 <div class=example>
   <a href=# class=invoker>
     <span class=before>::before</span>
     <span class=content>Link</span>
     <span class=after>::after</span>
-    <span class=fake-interest-button>::interest-button</span>
-  </a>
+  </a><span class=fake-interest-button>::interest-button</span>
 </div>
 <div class=example>
   <img src=/images/blue.png usemap=#map1 width=40 height=40>
@@ -41,6 +39,9 @@
 
 <style>
   .example {
+    font-family: monospace;
+    font-size: 14px;
+    color: black;
     anchor-scope: --anchor;
     width: 400px;
     height: 50px;
@@ -53,6 +54,10 @@
   }
   .example:not(.defaultcontent) span:not(.fake-interest-button, .invoker) {
     border: 1px solid lime;
+  }
+  button, a {
+    font: inherit;
+    color: inherit;
   }
 </style>
 

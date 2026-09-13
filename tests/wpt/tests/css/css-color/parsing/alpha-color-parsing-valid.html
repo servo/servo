@@ -15,6 +15,11 @@ test_valid_value("color", "alpha(from blue / 1)");
 test_valid_value("color", "alpha(from green / 0)");
 test_valid_value("color", "alpha(from rgba(0, 0, 0, 0.5) / 1)");
 
+// Explicit opaque alpha must be preserved even when the origin is unresolved.
+test_valid_value("color", "alpha(from currentcolor / 1)");
+test_valid_value("color", "alpha(from currentcolor / 100%)");
+test_valid_value("color", "alpha(from alpha(from currentcolor / 0.5) / 1)");
+
 // Percentage alpha.
 test_valid_value("color", "alpha(from red / 50%)");
 test_valid_value("color", "alpha(from red / 0%)");

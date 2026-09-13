@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>A percentage stroke-dasharray is updated when the viewport changes (&lt;path>)</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeDashing">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#Units">
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<svg id="root" height="200" width="200" viewBox="0 0 200 200">
+  <path d="M0,12.5h100" stroke-dasharray="50%"
+        stroke="green" stroke-width="25"/>
+  <path d="M0,37.5h100" stroke-dasharray="calc(25% + 25px)"
+        stroke="green" stroke-width="25"/>
+</svg>
+<script>
+  waitForAtLeastOneFrame().then(() => {
+    document.getElementById("root").setAttribute("viewBox", "0 0 100 100");
+    takeScreenshot();
+  });
+</script>

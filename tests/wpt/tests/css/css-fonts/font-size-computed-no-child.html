@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Computed font-size value of a document without child element</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-size-prop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="div"></div>
+
+<script>
+"use strict";
+const div = document.getElementById("div");
+
+test(() => {
+  const iframe = document.createElement("iframe");
+  div.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  doc.documentElement.replaceChildren();
+  assert_equals(doc.documentElement.firstElementChild, null);
+  assert_equals(iframe.contentWindow.getComputedStyle(doc.documentElement).fontSize, "16px");
+  iframe.remove();
+}, "Initial font-size value of html document without child element");
+
+test(() => {
+  const iframe = document.createElement("iframe");
+  div.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  doc.documentElement.replaceChildren();
+  doc.documentElement.style.fontSize = "large";
+  assert_equals(doc.documentElement.firstElementChild, null);
+  assert_equals(iframe.contentWindow.getComputedStyle(doc.documentElement).fontSize, "18px");
+  iframe.remove();
+}, "Set font-size to html document without child element");
+
+test(() => {
+  const iframe = document.createElement("iframe");
+  div.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  doc.documentElement.replaceChildren();
+  doc.documentElement.style.fontSize = "calc(1em - 2px)";
+  assert_equals(doc.documentElement.firstElementChild, null);
+  assert_equals(iframe.contentWindow.getComputedStyle(doc.documentElement).fontSize, "14px");
+  iframe.remove();
+}, "Set calc font-size to html document without child element");
+</script>

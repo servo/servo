@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The sheet property should be null for disconnected style elements</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#update-a-style-block">
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-linkstyle-interface">
+
+<style id="remove-me">p.foo { color: blue; }</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  const el = document.createElement("style");
+  el.textContent = "p.bar { color: red; }";
+  assert_equals(el.sheet, null);
+}, "Never-connected style elements should have a null sheet property");
+
+test(() => {
+  const el = document.querySelector("style");
+  assert_not_equals(el.sheet, null, "It starts out with a sheet");
+  el.remove();
+  assert_equals(el.sheet, null);
+  assert_array_equals(document.styleSheets, []);
+}, "After removing a style element, it should have a null sheet property");
+</script>

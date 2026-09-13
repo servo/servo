@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Specified and computed values of border-color</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-color">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3972 -->
+
+<div id="div"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.setProperty("border-color", "gray");
+  assert_equals(div.style.getPropertyValue("border-color"), "gray", "specified");
+  assert_equals(window.getComputedStyle(div).getPropertyValue("border-color"), "rgb(128, 128, 128)", "computed");
+});
+</script>
