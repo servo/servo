@@ -13,18 +13,17 @@ use js::rust::HandleObject;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
-use crate::dom::StatelessWorkletThreadPool;
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::promise::Promise;
 use crate::dom::types::{TestWorkletGlobalScope, WorkletGlobalScope};
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
+use crate::dom::{RootedPromise, StatelessWorkletThreadPool};
 
 #[dom_struct]
 pub(crate) struct TestWorklet {
@@ -75,7 +74,7 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
         realm: &mut CurrentRealm,
         module_url: USVString,
         options: &WorkletOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         self.worklet.AddModule(realm, module_url, options)
     }
 
