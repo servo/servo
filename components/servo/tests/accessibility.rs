@@ -903,6 +903,9 @@ fn test_accessibility_build_initial_tree_after_scroll() {
     let load_webview = webview.clone();
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
+    // A scroll injected before the scene is built is silently dropped, and the
+    // tree asserted below would be the one built without it.
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
     webview.notify_scroll_event(
         Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(20.0, 40.0))),
         WebViewPoint::Device(DevicePoint::new(250.0, 250.0)),
@@ -1061,6 +1064,11 @@ fn build_webview_and_tree(
 
     let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
     let tree = build_tree(updates);
+
+    // Neither load status nor accessibility updates imply a built WebRender
+    // scene, and callers inject input as soon as this returns.
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
     (servo_test, delegate, webview, tree)
 }
 
