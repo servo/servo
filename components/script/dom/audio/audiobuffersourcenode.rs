@@ -169,7 +169,7 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
                 self.source_node
                     .node()
                     .message(AudioNodeMessage::AudioBufferSourceNode(
-                        AudioBufferSourceNodeMessage::SetBuffer((*buffer).clone()),
+                        AudioBufferSourceNodeMessage::SetBuffer(buffer),
                     ));
             }
         }
@@ -259,7 +259,7 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
                 self.source_node
                     .node()
                     .message(AudioNodeMessage::AudioBufferSourceNode(
-                        AudioBufferSourceNodeMessage::SetBuffer((*buffer).clone()),
+                        AudioBufferSourceNodeMessage::SetBuffer(buffer),
                     ));
             }
         }
@@ -286,7 +286,7 @@ impl ConvertWithCx<AudioBufferSourceNodeOptions> for AudioBufferSourceOptions {
             buffer: self
                 .buffer
                 .as_ref()
-                .and_then(|b| (*b.as_ref()?.get_channels(cx)).clone()),
+                .and_then(|b| b.as_ref()?.get_channels(cx).map(|buffer| (*buffer).clone())),
             detune: *self.detune,
             loop_enabled: self.loop_,
             loop_end: Some(*self.loopEnd),
