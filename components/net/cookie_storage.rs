@@ -305,7 +305,7 @@ fn reg_host(url: &str) -> String {
         .and_then(|url| url.strip_suffix(']'))
         .unwrap_or(url);
     if let Ok(address) = host_for_ip_parse.parse::<IpAddr>() {
-        return address.to_string().to_lowercase();
+        return address.to_string();
     }
 
     reg_suffix(url).to_lowercase()
