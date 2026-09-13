@@ -394,18 +394,6 @@ impl Promise {
         constructor(cx, p.handle())
     }
 
-    /// Create a new [Promise] associated with the provided global,
-    /// rejected with the provided value.
-    ///
-    /// **Deprecated:** Use [Promise::new_rejected_rooted] instead.
-    pub(crate) fn new_rejected(
-        cx: &mut JSContext,
-        global: &GlobalScope,
-        value: impl ToJSValConvertible,
-    ) -> Rc<Promise> {
-        Self::new_rejected_shared(cx, global, value, Promise::new_with_js_promise)
-    }
-
     /// Create a new [RootedPromise] associated with the provided global,
     /// rejected with the provided value.
     pub(crate) fn new_rejected_rooted(
