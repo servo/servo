@@ -315,7 +315,7 @@ impl UnderlyingSourceContainer {
             },
             UnderlyingSource::Transform(_, start_promise) => {
                 // Let startAlgorithm be an algorithm that returns startPromise.
-                Some(Ok(start_promise.root()))
+                Some(Ok(start_promise.root(cx)))
             },
             _ => None,
         }

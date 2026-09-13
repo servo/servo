@@ -425,9 +425,9 @@ impl WritableStreamDefaultWriter {
 
 impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStreamDefaultWriter {
     /// <https://streams.spec.whatwg.org/#default-writer-closed>
-    fn Closed(&self) -> RootedPromise {
+    fn Closed(&self, cx: &JSContext) -> RootedPromise {
         // Return this.[[closedPromise]].
-        return self.closed_promise.borrow().root();
+        return self.closed_promise.borrow().root(cx);
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-desired-size>
@@ -442,9 +442,9 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-ready>
-    fn Ready(&self) -> RootedPromise {
+    fn Ready(&self, cx: &JSContext) -> RootedPromise {
         // Return this.[[readyPromise]].
-        return self.ready_promise.borrow().root();
+        return self.ready_promise.borrow().root(cx);
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-abort>

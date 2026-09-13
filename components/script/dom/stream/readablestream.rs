@@ -373,7 +373,7 @@ impl PipeTo {
             *state = PipeToState::PendingReady;
         }
 
-        let ready_promise = self.writer.Ready();
+        let ready_promise = self.writer.Ready(cx);
         if ready_promise.is_fulfilled() {
             self.read_chunk(cx, global);
         } else {
@@ -388,7 +388,7 @@ impl PipeTo {
             // Note: if the writer is not ready,
             // in order to ensure progress we must
             // also react to the closure of the source(because source may close empty).
-            let closed_promise = self.reader.Closed();
+            let closed_promise = self.reader.Closed(cx);
             closed_promise.append_native_handler(cx, &handler);
         }
     }
@@ -407,7 +407,7 @@ impl PipeTo {
 
         // Note: in order to ensure progress we must
         // also react to the closure of the destination.
-        let ready_promise = self.writer.Closed();
+        let ready_promise = self.writer.Closed(cx);
         ready_promise.append_native_handler(cx, &handler);
     }
 

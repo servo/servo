@@ -563,7 +563,7 @@ impl WritableStreamDefaultController {
             },
             UnderlyingSinkType::Transform(_, start_promise) => {
                 // Let startAlgorithm be an algorithm that returns startPromise.
-                Ok(start_promise.root())
+                Ok(start_promise.root(cx))
             },
         }
     }

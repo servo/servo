@@ -220,7 +220,8 @@ impl BaseAudioContext {
             .borrow_mut()
             .pop_front()
             .map(|(promises, result)| {
-                let promises: Vec<RootedPromise> = promises.iter().map(|p| p.root()).collect();
+                let promises: Vec<RootedPromise> =
+                    promises.iter().map(|promise| promise.root(cx)).collect();
                 (promises, result)
             })
             .expect("there should be at least one list of in flight resume promises");
@@ -593,7 +594,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                                 .decode_resolvers
                                 .safe_borrow_mut(cx.no_gc())
                                 .remove(&uuid_)
-                                .map(|resolver| (resolver.promise.root(), resolver.success_callback))
+                                .map(|resolver| (resolver.promise.root(cx), resolver.success_callback))
                                 .expect("resolver should exist");
 
                             if let Some(callback) = success_callback {
@@ -609,7 +610,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                                 .decode_resolvers
                                 .safe_borrow_mut(cx.no_gc())
                                 .remove(&uuid)
-                                .map(|resolver| (resolver.promise.root(), resolver.error_callback))
+                                .map(|resolver| (resolver.promise.root(cx), resolver.error_callback))
                                 .expect("resolver should exist");
 
                             if let Some(callback) = error_callback {

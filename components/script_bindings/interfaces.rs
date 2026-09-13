@@ -95,7 +95,7 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
 
 pub trait HeapTracedPromiseHelpers<D: DomTypes> {
     type StackRoot;
-    fn root(&self) -> Self::StackRoot;
+    fn root(&self, cx: &JSContext) -> Self::StackRoot;
 }
 
 pub trait StackRootPromiseHelpers<D: DomTypes> {

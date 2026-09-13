@@ -125,7 +125,7 @@ impl DefaultTeeUnderlyingSource {
             self.canceled_1.clone(),
             self.canceled_2.clone(),
             self.clone_for_branch_2.clone(),
-            &self.cancel_promise.root(),
+            &self.cancel_promise.root(cx),
             self,
         );
 
@@ -164,7 +164,7 @@ impl DefaultTeeUnderlyingSource {
                     self.resolve_cancel_promise(cx, global);
                 }
                 // Return cancelPromise.
-                Some(Ok(self.cancel_promise.root()))
+                Some(Ok(self.cancel_promise.root(cx)))
             },
             DefaultTeeCancelAlgorithm::Cancel2Algorithm => {
                 // Set canceled_2 to true.
@@ -178,7 +178,7 @@ impl DefaultTeeUnderlyingSource {
                     self.resolve_cancel_promise(cx, global);
                 }
                 // Return cancelPromise.
-                Some(Ok(self.cancel_promise.root()))
+                Some(Ok(self.cancel_promise.root(cx)))
             },
         }
     }
