@@ -278,7 +278,8 @@ impl AttributeStorage {
         unsafe { self.0.borrow_for_layout() }
     }
 
-    /// Reserve room for exactly `additional` more attributes.
+    /// Reserve room for at least `additional` more attributes.
+    #[inline]
     pub(crate) fn reserve_exact(&self, additional: usize) {
         self.0.borrow_mut().reserve_exact(additional);
     }
