@@ -19,7 +19,6 @@ use servo_constellation_traits::{
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
 
-use crate::dom::{RootedPromise, TracedPromise};
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
 };
@@ -35,6 +34,7 @@ use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::types::MessageEvent;
+use crate::dom::{RootedPromise, TracedPromise};
 
 #[dom_struct]
 pub(crate) struct ServiceWorkerContainer {

@@ -13,7 +13,6 @@ use js::rust::HandleObject;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
-use crate::dom::{RootedPromise, StatelessWorkletThreadPool};
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
@@ -24,6 +23,7 @@ use crate::dom::types::{TestWorkletGlobalScope, WorkletGlobalScope};
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
+use crate::dom::{RootedPromise, StatelessWorkletThreadPool};
 
 #[dom_struct]
 pub(crate) struct TestWorklet {
