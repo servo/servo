@@ -763,6 +763,7 @@ class CommandBase(object):
         use_crown: bool = False,
         capture_output: bool = False,
         target_override: Optional[str] = None,
+        subcommand: str | None = None,
         **_kwargs: Any,
     ) -> CompletedProcess[bytes] | int:
         env = cast(dict[str, str], env or self.build_env())
@@ -834,10 +835,14 @@ class CommandBase(object):
         # but uv venv on Windows only provides a `python`, not `python3`.
         env["PYTHON3"] = "python"
 
-        if capture_output:
-            return subprocess.run(["cargo", command] + args + cargo_args, env=env, capture_output=capture_output)
+        command_args = [command]
+        if subcommand:
+            command_args.append(subcommand)
 
-        return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
+        if capture_output:
+            return subprocess.run(["cargo"] + command_args + args + cargo_args, env=env, capture_output=capture_output)
+
+        return call(["cargo"] + command_args + args + cargo_args, env=env, verbose=verbose)
 
     def android_adb_path(self, env: dict[str, Any]) -> str:
         if "ANDROID_SDK_ROOT" in env:

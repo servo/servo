@@ -8,3 +8,9 @@ fail-fast = false
 
 [profile.ci.junit]
 path = "junit.xml"
+
+# The default is to use the amount of cores on the host,
+# which is not a good fit for mobile ohos devices.
+[[profile.default.overrides]]
+platform = 'cfg(target_env = "ohos")'
+test-threads = 4
