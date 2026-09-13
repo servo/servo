@@ -220,7 +220,8 @@ impl BaseAudioContext {
             .borrow_mut()
             .pop_front()
             .map(|(promises, result)| {
-                let promises: Vec<RootedPromise> = promises.iter().map(|promise| promise.root(cx)).collect();
+                let promises: Vec<RootedPromise> =
+                    promises.iter().map(|promise| promise.root(cx)).collect();
                 (promises, result)
             })
             .expect("there should be at least one list of in flight resume promises");
