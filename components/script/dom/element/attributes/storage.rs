@@ -278,6 +278,12 @@ impl AttributeStorage {
         unsafe { self.0.borrow_for_layout() }
     }
 
+    /// Reserve room for at least `additional` more attributes.
+    #[inline]
+    pub(crate) fn reserve_exact(&self, additional: usize) {
+        self.0.borrow_mut().reserve_exact(additional);
+    }
+
     /// Push raw attribute data.
     pub(crate) fn push_raw(&self, data: ContentAttributeData) {
         self.0.borrow_mut().push(AttributeEntry::Raw(data));
