@@ -750,9 +750,6 @@ impl GlobalScope {
         Some(key)
     }
 
-    /// A sender to the event loop of this global scope. This either sends to the Worker event loop
-    /// or the ScriptThread event loop in the case of a `Window`. This can be `None` for dedicated
-    /// workers that are not currently handling a message.
     pub(crate) fn webview_id(&self) -> Option<WebViewId> {
         if let Some(window) = self.downcast::<Window>() {
             return Some(window.webview_id());
