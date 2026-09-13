@@ -27,6 +27,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_config::prefs;
 use servo_constellation_traits::BlobImpl;
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -1018,12 +1019,12 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Record::new()
     }
 
-    fn ReturnResolvedPromise(&self, cx: &mut JSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_resolved(cx, &self.global(), v)
+    fn ReturnResolvedPromise(&self, cx: &mut JSContext, v: HandleValue) -> RootedPromise {
+        Promise::new_resolved_rooted(cx, &self.global(), v)
     }
 
-    fn ReturnRejectedPromise(&self, cx: &mut JSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_rejected(cx, &self.global(), v)
+    fn ReturnRejectedPromise(&self, cx: &mut JSContext, v: HandleValue) -> RootedPromise {
+        Promise::new_rejected_rooted(cx, &self.global(), v)
     }
 
     fn PromiseResolveNative(&self, cx: &mut JSContext, p: &Promise, v: HandleValue) {
@@ -1055,7 +1056,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         realm: &mut CurrentRealm,
         resolve: Option<Rc<SimpleCallback>>,
         reject: Option<Rc<SimpleCallback>>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
             realm,
@@ -1064,7 +1065,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             reject.map(SimpleHandler::new_boxed),
         );
 
-        let p = Promise::new_in_realm(realm);
+        let p = Promise::new_in_realm_rooted(realm);
         p.append_native_handler(realm, &handler);
         return p;
 
@@ -1088,8 +1089,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
     }
 
-    fn PromiseAttribute(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        Promise::new_in_realm(cx)
+    fn PromiseAttribute(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        Promise::new_in_realm_rooted(cx)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}
@@ -1135,23 +1136,23 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
     }
 
-    fn MethodThrowToRejectPromise(&self) -> Fallible<Rc<Promise>> {
+    fn MethodThrowToRejectPromise(&self) -> Fallible<RootedPromise> {
         Err(Error::Type(c"test".to_owned()))
     }
 
-    fn GetGetterThrowToRejectPromise(&self) -> Fallible<Rc<Promise>> {
+    fn GetGetterThrowToRejectPromise(&self) -> Fallible<RootedPromise> {
         Err(Error::Type(c"test".to_owned()))
     }
 
-    fn MethodInternalThrowToRejectPromise(&self, _arg: u64) -> Rc<Promise> {
+    fn MethodInternalThrowToRejectPromise(&self, _arg: u64) -> RootedPromise {
         unreachable!("Method should already throw")
     }
 
-    fn StaticThrowToRejectPromise(_: &GlobalScope) -> Fallible<Rc<Promise>> {
+    fn StaticThrowToRejectPromise(_: &GlobalScope) -> Fallible<RootedPromise> {
         Err(Error::Type(c"test".to_owned()))
     }
 
-    fn StaticInternalThrowToRejectPromise(_: &GlobalScope, _arg: u64) -> Rc<Promise> {
+    fn StaticInternalThrowToRejectPromise(_: &GlobalScope, _arg: u64) -> RootedPromise {
         unreachable!("Method should already throw")
     }
 
