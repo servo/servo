@@ -20,6 +20,16 @@ impl<T> GenericReceiver<T>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
+    pub(crate) fn new(
+        receiver: generic_channel::GenericReceiver<T>,
+        time_profile_chan: ProfilerChan,
+    ) -> Self {
+        Self {
+            receiver,
+            time_profile_chan,
+        }
+    }
+
     pub fn recv(&self) -> Result<T, generic_channel::ReceiveError> {
         time_profile!(
             ProfilerCategory::IpcReceiver,
