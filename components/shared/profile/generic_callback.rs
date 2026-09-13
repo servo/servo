@@ -7,30 +7,23 @@ use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{SendError, SendResult};
 
 use crate::generic_channel::GenericReceiver;
-use crate::time::{ProfilerCategory, ProfilerChan};
-use crate::time_profile;
+use crate::time::ProfilerChan;
 
 #[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
-pub struct GenericCallback<T>
+pub struct GenericCallback<T>(servo_base::generic_channel::GenericCallback<T>)
 where
-    T: Serialize + Send + 'static,
-{
-    callback: servo_base::generic_channel::GenericCallback<T>,
-    time_profiler_chan: ProfilerChan,
-}
+    T: Serialize + Send + 'static;
 
 impl<T> GenericCallback<T>
 where
     T: for<'de> Deserialize<'de> + Serialize + Send + 'static,
 {
     pub fn new<F: FnMut(Result<T, SendError>) + Send + 'static>(
-        time_profiler_chan: ProfilerChan,
         callback: F,
     ) -> Result<Self, SendError> {
-        Ok(GenericCallback {
-            callback: servo_base::generic_channel::GenericCallback::new(callback)?,
-            time_profiler_chan,
-        })
+        Ok(GenericCallback(
+            servo_base::generic_channel::GenericCallback::new(callback)?,
+        ))
     }
 
     pub fn new_blocking(
@@ -38,20 +31,12 @@ where
     ) -> Result<(Self, GenericReceiver<T>), SendError> {
         let (callback, receiver) = servo_base::generic_channel::GenericCallback::new_blocking()?;
         Ok((
-            GenericCallback {
-                callback,
-                time_profiler_chan: time_profiler_chan.clone(),
-            },
+            GenericCallback(callback),
             GenericReceiver::new(receiver, time_profiler_chan),
         ))
     }
 
     pub fn send(&self, value: T) -> SendResult {
-        time_profile!(
-            ProfilerCategory::IpcReceiver,
-            None,
-            self.time_profiler_chan.clone(),
-            move || self.callback.send(value)
-        )
+        self.0.send(value)
     }
 }

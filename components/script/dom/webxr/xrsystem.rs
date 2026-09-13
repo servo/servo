@@ -123,28 +123,27 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             .dom_manipulation_task_source()
             .to_sendable();
 
-        let callback =
-            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |message| {
-                // router doesn't know this is only called once
-                let trusted = if let Some(trusted) = trusted.take() {
-                    trusted
-                } else {
-                    error!("supportsSession callback called twice!");
-                    return;
-                };
-                let message: Result<(), webxr_api::Error> = if let Ok(message) = message {
-                    message
-                } else {
-                    error!("supportsSession callback given incorrect payload");
-                    return;
-                };
-                if let Ok(()) = message {
-                    task_source.queue(trusted.resolve_task(true));
-                } else {
-                    task_source.queue(trusted.resolve_task(false));
-                };
-            })
-            .expect("Could not create callback");
+        let callback = ProfileGenericCallback::new(move |message| {
+            // router doesn't know this is only called once
+            let trusted = if let Some(trusted) = trusted.take() {
+                trusted
+            } else {
+                error!("supportsSession callback called twice!");
+                return;
+            };
+            let message: Result<(), webxr_api::Error> = if let Ok(message) = message {
+                message
+            } else {
+                error!("supportsSession callback given incorrect payload");
+                return;
+            };
+            if let Ok(()) = message {
+                task_source.queue(trusted.resolve_task(true));
+            } else {
+                task_source.queue(trusted.resolve_task(false));
+            };
+        })
+        .expect("Could not create callback");
 
         if let Some(mut r) = global.as_window().webxr_registry() {
             r.supports_session(mode.convert(), callback);

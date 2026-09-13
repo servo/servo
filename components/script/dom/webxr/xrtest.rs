@@ -160,20 +160,19 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             .dom_manipulation_task_source()
             .to_sendable();
 
-        let callback =
-            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |message| {
-                let trusted = trusted
-                    .take()
-                    .expect("SimulateDeviceConnection callback called twice");
-                let this = this.clone();
-                let message =
-                    message.expect("SimulateDeviceConnection callback given incorrect payload");
+        let callback = ProfileGenericCallback::new(move |message| {
+            let trusted = trusted
+                .take()
+                .expect("SimulateDeviceConnection callback called twice");
+            let this = this.clone();
+            let message =
+                message.expect("SimulateDeviceConnection callback given incorrect payload");
 
-                task_source.queue(task!(request_session: move |cx| {
-                    this.root().device_obtained(cx, message, trusted);
-                }));
-            })
-            .expect("Could not create callback");
+            task_source.queue(task!(request_session: move |cx| {
+                this.root().device_obtained(cx, message, trusted);
+            }));
+        })
+        .expect("Could not create callback");
         if let Some(mut r) = global.as_window().webxr_registry() {
             r.simulate_device_connection(init, callback);
         }
@@ -217,17 +216,16 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             .dom_manipulation_task_source()
             .to_sendable();
 
-        let callback =
-            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |_| {
-                len -= 1;
-                if len == 0 {
-                    let trusted = trusted
-                        .take()
-                        .expect("DisconnectAllDevices disconnected more devices than expected");
-                    task_source.queue(trusted.resolve_task(()));
-                }
-            })
-            .expect("Could not create callback");
+        let callback = ProfileGenericCallback::new(move |_| {
+            len -= 1;
+            if len == 0 {
+                let trusted = trusted
+                    .take()
+                    .expect("DisconnectAllDevices disconnected more devices than expected");
+                task_source.queue(trusted.resolve_task(()));
+            }
+        })
+        .expect("Could not create callback");
 
         for device in rooted_devices {
             device.disconnect(callback.clone());

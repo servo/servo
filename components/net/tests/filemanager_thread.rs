@@ -47,12 +47,9 @@ fn test_filemanager() {
     {
         // Try to select a dummy file "components/net/tests/test.jpeg"
         let (result_sender, result_receiver) = crossbeam_channel::unbounded();
-        let callback = profile_traits::generic_callback::GenericCallback::new(
-            profile_traits::time::ProfilerChan(None),
-            move |msg| {
-                result_sender.send(msg.unwrap()).unwrap();
-            },
-        )
+        let callback = profile_traits::generic_callback::GenericCallback::new(move |msg| {
+            result_sender.send(msg.unwrap()).unwrap();
+        })
         .unwrap();
         let control_id = EmbedderControlId {
             webview_id: TEST_WEBVIEW_ID,

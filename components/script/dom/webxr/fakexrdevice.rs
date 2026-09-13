@@ -311,14 +311,13 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
             .dom_manipulation_task_source()
             .to_sendable();
 
-        let callback =
-            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |_| {
-                let trusted = trusted
-                    .take()
-                    .expect("disconnect callback called multiple times");
-                task_source.queue(trusted.resolve_task(()));
-            })
-            .expect("Could not create callback");
+        let callback = ProfileGenericCallback::new(move |_| {
+            let trusted = trusted
+                .take()
+                .expect("disconnect callback called multiple times");
+            task_source.queue(trusted.resolve_task(()));
+        })
+        .expect("Could not create callback");
         self.disconnect(callback);
         p
     }
