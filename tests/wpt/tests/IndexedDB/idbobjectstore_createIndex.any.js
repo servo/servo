@@ -79,7 +79,7 @@ async_test(t => {
     open_rq.onsuccess = function () {
         t.done();
     }
-}, "Create two object stores each with index of the same name");
+}, "Check index names need only be unique if they are in the same object store");
 
 async_test(t => {
     let db, aborted;
