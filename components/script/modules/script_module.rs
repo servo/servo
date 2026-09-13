@@ -6,7 +6,7 @@
 //! related to `type=module` for script thread or worker threads.
 
 use std::borrow::Cow;
-use std::cell::{OnceCell, RefCell};
+use std::cell::OnceCell;
 use std::collections::hash_map::Entry;
 use std::ffi::CStr;
 use std::fmt::Debug;
@@ -58,7 +58,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::{
     CSSStyleSheetInit, CSSStyleSheetMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::MediaListOrString;
-use crate::dom::bindings::error::{Error, ErrorToJsval, report_pending_exception};
+use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
@@ -85,17 +85,6 @@ use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::IntroductionType;
 use crate::tasks::task::NonSendTaskBox;
 use crate::unminify::{ScriptSource, unminify_js};
-
-pub(crate) fn gen_type_error(
-    cx: &mut JSContext,
-    global: &GlobalScope,
-    error: Error,
-) -> RethrowError {
-    rooted!(&in(cx) let mut thrown = UndefinedValue());
-    error.to_jsval(cx, global, thrown.handle_mut());
-
-    RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
-}
 
 #[derive(JSTraceable)]
 pub(crate) struct ModuleObject(RootedTraceableBox<Heap<*mut JSObject>>);
@@ -352,9 +341,11 @@ impl ModuleTree {
         if let Err(error) = sheet.ReplaceSync(cx, USVString::from(source.to_owned())) {
             // If this throws an exception, catch it, and set script's parse error to that exception,
             // and return script.
-            let css_error = gen_type_error(cx, global, error);
+            throw_dom_exception(cx, global, error);
 
-            let _ = script.parse_error.set(css_error);
+            let _ = script
+                .parse_error
+                .set(RethrowError::from_pending_exception(cx));
             return script;
         }
 
@@ -1079,15 +1070,7 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
             true
         },
         Err(error) => {
-            let resolution_error = gen_type_error(cx, &global_scope, error);
-
-            unsafe {
-                JS_SetPendingException(
-                    cx,
-                    resolution_error.handle(),
-                    ExceptionStackBehavior::Capture,
-                );
-            }
+            throw_dom_exception(cx, &global_scope, error);
             false
         },
     }
@@ -1325,7 +1308,6 @@ fn fetch_the_descendants_and_link_module_script(
     // Step 3. Let state be Record
     // { [[ErrorToRethrow]]: null, [[Destination]]: destination, [[PerformFetch]]: null, [[FetchClient]]: fetchClient }.
     let state = Box::new(LoadState {
-        error_to_rethrow: RefCell::new(None),
         destination,
         fetch_client,
         module_script: DomRefCell::new(Some(module_script.clone())),

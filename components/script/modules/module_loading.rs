@@ -8,24 +8,24 @@
 
 #![expect(unsafe_code)]
 
-use std::cell::RefCell;
 use std::ffi::c_void;
 use std::ptr;
 use std::rc::Rc;
 
 use js::context::{JSContext, RawJSContext};
+use js::error::throw_type_error;
 use js::jsapi::{
-    CallArgs, GetErrorType, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JSExnType,
-    JSObject, JSScript, ModuleType, SetFunctionNativeReserved,
+    CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JSObject, JSScript,
+    ModuleType, SetFunctionNativeReserved,
 };
 use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::Handle;
 use js::rust::wrappers2::{
     AddPromiseReactions, FinishLoadingDynamicImportedModule, FinishLoadingImportedModule,
-    FinishLoadingImportedModuleFailed, GetModuleNamespace, GetModuleRequestType, IsPromiseObject,
-    JS_GetScriptPrivate, LoadRequestedModules1, ModuleEvaluate, ModuleLink,
-    NewFunctionWithReserved,
+    FinishLoadingImportedModuleFailed, FinishLoadingImportedModuleFailedWithPendingException,
+    GetModuleNamespace, GetModuleRequestType, IsPromiseObject, JS_GetScriptPrivate,
+    LoadRequestedModules1, ModuleEvaluate, ModuleLink, NewFunctionWithReserved,
 };
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{Destination, Referrer, RequestClient};
@@ -34,7 +34,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::settings_stack::run_a_callback;
 
 use crate::DomTypeHolder;
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::error::throw_dom_exception;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
@@ -43,7 +43,7 @@ use crate::dom::promise::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::modules::script_module::{
     ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
-    fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
+    fetch_a_single_module_script, module_script_from_reference_private,
 };
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::IntroductionType;
@@ -64,8 +64,6 @@ impl Callback for OnRejectedHandler {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct LoadState {
-    #[ignore_malloc_size_of = "mozjs"]
-    pub(crate) error_to_rethrow: RefCell<Option<RethrowError>>,
     #[no_trace]
     pub(crate) destination: Destination,
     #[no_trace]
@@ -156,20 +154,10 @@ unsafe extern "C" fn on_load_requested_modules_rejected(
     // https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
     // Step 7. Upon rejection of loadingPromise, run the following steps:
 
-    // Note: When the error is thrown on the SpiderMonkey side, which happens when encountering
-    // an unsupported attribute inside `InnerModuleLoading`, state.[[ErrorToRethrow]] doesn't
-    // contain the expected error, we need to use the value passed down.
-    if unsafe { GetErrorType(error.as_ref(cx)) } == JSExnType::JSEXN_SYNTAXERR {
-        module_script.set_rethrow_error(RethrowError::new(Heap::boxed(*error.as_ref(cx))));
-        on_complete(cx, Some(module_script));
-        return true;
-    }
-
     // Step 7.1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to
     // state.[[ErrorToRethrow]] and run onComplete given moduleScript.
-    let error_to_rethrow = state.error_to_rethrow.borrow().as_ref().cloned();
-    if let Some(error) = error_to_rethrow {
-        module_script.set_rethrow_error(error);
+    if !error.is_undefined() {
+        module_script.set_rethrow_error(RethrowError::new(Heap::boxed(*error.as_ref(cx))));
         on_complete(cx, Some(module_script));
     } else {
         // Step 7.2. Otherwise, run onComplete given null.
@@ -183,7 +171,6 @@ struct ImportRequest {
     referrer: RootedTraceableBox<Heap<*mut JSScript>>,
     module_request: RootedTraceableBox<Heap<*mut JSObject>>,
     payload: RootedTraceableBox<Heap<JSVal>>,
-    host_defined: RootedTraceableBox<Heap<JSVal>>,
 }
 
 fn load_state_from_handle_value<'a>(reference_private: Handle<'a, JSVal>) -> Option<&'a LoadState> {
@@ -253,50 +240,22 @@ fn finish_loading_imported_module(
     referrer: Handle<*mut JSScript>,
     module_request: Handle<*mut JSObject>,
     payload: Handle<JSVal>,
-    result: Result<Rc<ModuleTree>, RethrowError>,
+    module_record: Handle<*mut JSObject>,
 ) {
-    match result {
-        Ok(module_tree) => {
-            let module_handle = module_tree
-                .get_record()
-                .map(|module| module.handle())
-                .unwrap();
+    rooted!(&in(cx) let object = payload.to_object());
+    let is_promise = unsafe { IsPromiseObject(object.handle()) };
 
-            if payload.is_object() {
-                rooted!(&in(cx) let object = payload.to_object());
-                let is_promise = unsafe { IsPromiseObject(object.handle()) };
-
-                if is_promise {
-                    unsafe {
-                        FinishLoadingDynamicImportedModule(
-                            cx,
-                            referrer,
-                            module_request,
-                            payload,
-                            module_handle,
-                        )
-                    };
-                    let promise = Promise::new_with_js_promise(cx, object.handle());
-                    let record = ModuleObject::new(module_handle);
-                    return continue_dynamic_import(cx, promise, record);
-                }
-            }
-
-            assert!(unsafe {
-                FinishLoadingImportedModule(
-                    cx,
-                    referrer,
-                    module_request,
-                    payload,
-                    module_handle,
-                    true,
-                )
-            });
-        },
-        Err(error) => {
-            unsafe { FinishLoadingImportedModuleFailed(cx, payload, error.handle()) };
-        },
+    if is_promise {
+        unsafe {
+            FinishLoadingDynamicImportedModule(cx, referrer, module_request, payload, module_record)
+        };
+        let promise = Promise::new_with_js_promise(cx, object.handle());
+        return continue_dynamic_import(cx, promise, ModuleObject::new(module_record));
     }
+
+    assert!(unsafe {
+        FinishLoadingImportedModule(cx, referrer, module_request, payload, module_record, true)
+    });
 }
 
 /// <https://tc39.es/ecma262/#sec-ContinueDynamicImport>
@@ -459,8 +418,6 @@ pub(crate) fn host_load_imported_module(
         global_scope = owner.root();
     }
 
-    let global = &global_scope.clone();
-
     // Step 7. If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
     // Note: Spidermonkey removed the API for iterating through a module's requested modules,
     // preventing upfront validation.
@@ -473,59 +430,39 @@ pub(crate) fn host_load_imported_module(
     // Step 7.1.5. If the result of running the module type allowed steps given moduleType and settingsObject is false:
     if !module_type_allowed(&global_scope, module_type) {
         // Step 7.1.5.1. Let error be a new TypeError exception.
-        let error = gen_type_error(
-            cx,
-            global,
-            Error::Type(c"Found invalid module type attribute".to_owned()),
-        );
+        throw_type_error(cx, c"Found invalid module type attribute");
 
-        // Step 7.1.5.2. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null, set
-        // loadState.[[ErrorToRethrow]] to error.
-        if let Some(load_state) = load_state {
-            load_state
-                .error_to_rethrow
-                .borrow_mut()
-                .get_or_insert(error.clone());
-        }
+        // Step 7.1.5.2. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
+        // set loadState.[[ErrorToRethrow]] to error.
+        // Note: ErrorToRethrow is retrieved inside the rejection handler of loadingPromise.
 
         // Step 7.1.5.3. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, ThrowCompletion(error)).
-        finish_loading_imported_module(cx, referrer, module_request, payload, Err(error));
+        unsafe { FinishLoadingImportedModuleFailedWithPendingException(cx, payload) };
 
         // Step 7.1.5.4. Return.
         return;
     }
 
-    // Step 8 Let url be the result of resolving a module specifier given referencingScript and moduleRequest.[[Specifier]],
+    // Step 8. Let url be the result of resolving a module specifier given referencingScript and moduleRequest.[[Specifier]],
     // catching any exceptions. If they throw an exception, let resolutionError be the thrown exception.
-    let url = ModuleTree::resolve_module_specifier(global, referencing_script, specifier);
+    let url = ModuleTree::resolve_module_specifier(&global_scope, referencing_script, specifier);
 
-    // Step 9 If the previous step threw an exception, then:
-    if let Err(error) = url {
-        let resolution_error = gen_type_error(cx, &global_scope, error);
+    // Step 9. If the previous step threw an exception, then:
+    if let Err(resolution_error) = url {
+        throw_dom_exception(cx, &global_scope, resolution_error);
 
         // Step 9.1. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
         // set loadState.[[ErrorToRethrow]] to resolutionError.
-        load_state.as_ref().inspect(|load_state| {
-            load_state
-                .error_to_rethrow
-                .borrow_mut()
-                .get_or_insert(resolution_error.clone());
-        });
+        // Note: ErrorToRethrow is retrieved inside the rejection handler of loadingPromise.
 
         // Step 9.2. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, ThrowCompletion(resolutionError)).
-        finish_loading_imported_module(
-            cx,
-            referrer,
-            module_request,
-            payload,
-            Err(resolution_error),
-        );
+        unsafe { FinishLoadingImportedModuleFailedWithPendingException(cx, payload) };
 
         // Step 9.3. Return.
         return;
     };
 
-    let url = ensure_blob_referenced_by_url_is_kept_alive(global, url.unwrap());
+    let url = ensure_blob_referenced_by_url_is_kept_alive(&global_scope, url.unwrap());
 
     // Step 10. Let fetchOptions be the result of getting the descendant script fetch options given
     // originalFetchOptions, url, and settingsObject.
@@ -545,11 +482,11 @@ pub(crate) fn host_load_imported_module(
         ),
     };
 
+    let is_dynamic_import = load_state.is_none();
     let request = ImportRequest {
         referrer: RootedTraceableBox::from_box(Heap::boxed(*referrer.as_ref(cx))),
         module_request: RootedTraceableBox::from_box(Heap::boxed(*module_request.as_ref(cx))),
         payload: RootedTraceableBox::from_box(Heap::boxed(*payload.as_ref(cx))),
-        host_defined: RootedTraceableBox::from_box(Heap::boxed(*host_defined.as_ref(cx))),
     };
 
     let on_single_fetch_complete =
@@ -558,45 +495,67 @@ pub(crate) fn host_load_imported_module(
             let cx = &mut realm;
 
             // Step 1. Let completion be null.
-            let completion = match module_tree {
-                // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
-                None => Err(gen_type_error(
-                    cx,
-                    &global_scope,
-                    Error::Type(c"Module fetching failed".to_owned()),
-                )),
-                Some(module_tree) => {
-                    // Step 3. Otherwise, if moduleScript's parse error is not null, then:
-                    // Step 3.1 Let parseError be moduleScript's parse error.
-                    if let Some(parse_error) = module_tree.get_parse_error() {
-                        // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
-                        // set loadState.[[ErrorToRethrow]] to parseError.
-                        let load_state =
-                            load_state_from_handle_value(request.host_defined.handle());
-                        load_state.inspect(|load_state| {
-                            load_state
-                                .error_to_rethrow
-                                .borrow_mut()
-                                .get_or_insert(parse_error.clone());
-                        });
 
-                        // Step 3.2 Set completion to ThrowCompletion(parseError).
-                        Err(parse_error.clone())
+            match module_tree {
+                // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
+                None => {
+                    if is_dynamic_import {
+                        throw_type_error(cx, c"Module fetching failed");
+                        unsafe {
+                            FinishLoadingImportedModuleFailedWithPendingException(
+                                cx,
+                                request.payload.handle(),
+                            )
+                        };
                     } else {
-                        // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
-                        Ok(module_tree)
+                        // A null moduleScript means that a network error was encountered, and
+                        // state.[[ErrorToRethrow]] isn't set, so pass an undefined value.
+                        // See rejection handler of loadingPromise.
+                        rooted!(&in(cx) let error = UndefinedValue());
+                        unsafe {
+                            FinishLoadingImportedModuleFailed(
+                                cx,
+                                request.payload.handle(),
+                                error.handle(),
+                            )
+                        };
                     }
                 },
-            };
+                Some(module_tree) => {
+                    // Step 3. Otherwise, if moduleScript's parse error is not null, then:
+                    // Step 3.1. Let parseError be moduleScript's parse error.
+                    if let Some(parse_error) = module_tree.get_parse_error() {
+                        // Step 3.3. If loadState is not undefined and loadState.[[ErrorToRethrow]]
+                        // is null, set loadState.[[ErrorToRethrow]] to parseError.
+                        // Note: ErrorToRethrow is retrieved inside the rejection handler of loadingPromise.
 
-            // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
-            finish_loading_imported_module(
-                cx,
-                request.referrer.handle(),
-                request.module_request.handle(),
-                request.payload.handle(),
-                completion,
-            );
+                        // Step 3.2. Set completion to ThrowCompletion(parseError).
+                        // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
+                        unsafe {
+                            FinishLoadingImportedModuleFailed(
+                                cx,
+                                request.payload.handle(),
+                                parse_error.handle(),
+                            )
+                        };
+                    } else {
+                        // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
+                        let completion = module_tree
+                            .get_record()
+                            .map(|module| module.handle())
+                            .unwrap();
+
+                        // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
+                        finish_loading_imported_module(
+                            cx,
+                            request.referrer.handle(),
+                            request.module_request.handle(),
+                            request.payload.handle(),
+                            completion,
+                        );
+                    }
+                },
+            }
         };
 
     // Step 14 Fetch a single imported module script given url, fetchClient, destination, fetchOptions, settingsObject,
@@ -607,7 +566,7 @@ pub(crate) fn host_load_imported_module(
         cx,
         url,
         fetch_client,
-        global,
+        &global_scope,
         destination,
         fetch_options,
         fetch_referrer,
