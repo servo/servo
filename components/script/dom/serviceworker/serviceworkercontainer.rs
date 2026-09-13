@@ -167,7 +167,7 @@ impl ServiceWorkerContainer {
                     .pending_algorithm_results
                     .borrow_mut()
                     .pop_front()
-                    .map(|promise| promise.root());
+                    .map(|promise| promise.root(cx));
                 let Some(promise) = promise else {
                     debug_assert!(false, "No pending algorithm result.");
                     return;
@@ -179,7 +179,7 @@ impl ServiceWorkerContainer {
                     .pending_algorithm_results
                     .borrow_mut()
                     .pop_front()
-                    .map(|promise| promise.root());
+                    .map(|promise| promise.root(cx));
                 let Some(promise) = promise else {
                     debug_assert!(false, "No pending algorithm result.");
                     return;
