@@ -2203,6 +2203,7 @@ fn create_element_for_token(
     let element = Element::create(cx, name, is, document, creator, creation_mode, None);
 
     // Step 11. Append each attribute in the given token to element.
+    element.attrs().reserve_exact(attrs.len());
     for attr in attrs {
         element.set_attribute_from_parser(cx, attr.name, attr.value);
     }

@@ -267,6 +267,8 @@ impl Element {
         target_element: &Element,
     ) {
         // Step 2.5. For each attribute of node’s attribute list:
+        let attribute_count = self.attrs().borrow().len();
+        target_element.attrs().reserve_exact(attribute_count);
         for attr in self.attrs().borrow().iter() {
             // Step 2.5.1. Let copyAttribute be the result of cloning a single node given attribute, document, and null.
             let new_value = self.compute_attribute_value_with_style_fast_path(attr);
