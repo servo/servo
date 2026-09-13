@@ -4,7 +4,6 @@
 
 use std::collections::VecDeque;
 use std::default::Default;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -20,6 +19,7 @@ use servo_constellation_traits::{
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
 
+use crate::dom::{RootedPromise, TracedPromise};
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
 };
@@ -43,8 +43,7 @@ pub(crate) struct ServiceWorkerContainer {
 
     /// Pending results for
     /// <https://w3c.github.io/ServiceWorker/#algorithms>
-    #[conditional_malloc_size_of]
-    pending_algorithm_results: DomRefCell<VecDeque<Rc<Promise>>>,
+    pending_algorithm_results: DomRefCell<VecDeque<TracedPromise>>,
 
     /// Handler of algorithm results.
     #[no_trace]
@@ -71,7 +70,7 @@ impl ServiceWorkerContainer {
 
     /// <https://w3c.github.io/ServiceWorker/#reject-job-promise>
     /// <https://w3c.github.io/ServiceWorker/#resolve-job-promise>
-    fn handle_job_result(&self, cx: &mut JSContext, result: JobResult, promise: Rc<Promise>) {
+    fn handle_job_result(&self, cx: &mut JSContext, result: JobResult, promise: &RootedPromise) {
         let global = self.global();
         match result {
             // <https://w3c.github.io/ServiceWorker/#reject-job-promise>
@@ -136,7 +135,7 @@ impl ServiceWorkerContainer {
         &self,
         cx: &mut JSContext,
         registration_info: Option<ServiceWorkerRegistrationInfo>,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         // Step 8.1 Let registration be the result of running Match Service Worker Registration given storage key and clientURL.
         // Note: the `registration_info` argument is the result from the parallel algorithm run.
@@ -164,18 +163,20 @@ impl ServiceWorkerContainer {
     fn handle_algorithm_result(&self, cx: &mut JSContext, result: ServiceWorkerAlgorithmResult) {
         match result {
             ServiceWorkerAlgorithmResult::Job(job_result) => {
-                let Some(promise) = self.pending_algorithm_results.borrow_mut().pop_front() else {
+                rooted!(&in(cx) let rooted = self.pending_algorithm_results.borrow_mut().pop_front());
+                let Some(ref promise) = *rooted else {
                     debug_assert!(false, "No pending algorithm result.");
                     return;
                 };
-                self.handle_job_result(cx, job_result, promise);
+                self.handle_job_result(cx, job_result, &promise.root());
             },
             ServiceWorkerAlgorithmResult::MatchServiceWorkerRegistration(registration_info) => {
-                let Some(promise) = self.pending_algorithm_results.borrow_mut().pop_front() else {
+                rooted!(&in(cx) let rooted = self.pending_algorithm_results.borrow_mut().pop_front());
+                let Some(ref promise) = *rooted else {
                     debug_assert!(false, "No pending algorithm result.");
                     return;
                 };
-                self.handle_match_registration_result(cx, registration_info, promise);
+                self.handle_match_registration_result(cx, registration_info, &promise.root());
             },
             ServiceWorkerAlgorithmResult::MessageFromWorker {
                 message,
@@ -225,11 +226,11 @@ impl ServiceWorkerContainer {
     /// Setup the callback to the backend service, if this hasn't been done already.
     fn get_or_setup_callback(
         &self,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
     ) -> GenericCallback<ServiceWorkerAlgorithmResult> {
         self.pending_algorithm_results
             .borrow_mut()
-            .push_back(promise);
+            .push_back(promise.to_traced());
         if let Some(cb) = self.callback.borrow_mut().as_ref() {
             return cb.clone();
         }
@@ -272,7 +273,7 @@ impl ServiceWorkerContainer {
         storage_key: ImmutableOrigin,
         scope: ServoUrl,
         script_url: ServoUrl,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         let global = self.global();
         let result_handler = self.get_or_setup_callback(promise);
@@ -326,12 +327,12 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         realm: &mut CurrentRealm,
         script_url: USVString,
         options: &RegistrationOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // A: Step 2.
         let global = self.global();
 
         // A: Step 1
-        let promise = Promise::new_in_realm(realm);
+        let promise = Promise::new_in_realm_rooted(realm);
         let USVString(ref script_url) = script_url;
 
         // A: Step 3
@@ -406,7 +407,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             return promise;
         }
 
-        let result_handler = self.get_or_setup_callback(promise.clone());
+        let result_handler = self.get_or_setup_callback(&promise);
 
         let scope_things =
             ServiceWorkerRegistration::create_scope_things(&global, script_url.clone());
@@ -459,13 +460,13 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistration>
-    fn GetRegistration(&self, realm: &mut CurrentRealm, client_url: USVString) -> Rc<Promise> {
+    fn GetRegistration(&self, realm: &mut CurrentRealm, client_url: USVString) -> RootedPromise {
         // Step 1: Let client be this’s service worker client.
         let global = self.global();
 
         // Step 7: Let promise be a new promise.
         // Note: done here so it can be used to handle failure of the below steps.
-        let promise = Promise::new_in_realm(realm);
+        let promise = Promise::new_in_realm_rooted(realm);
 
         // Step 2: Let client storage key be the result of running obtain a storage key given client.
         let Some(storage_key) = global.obtain_storage_key() else {
@@ -495,7 +496,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             return promise;
         }
 
-        let result_handler = self.get_or_setup_callback(promise.clone());
+        let result_handler = self.get_or_setup_callback(&promise);
 
         // Step 8: Run the following substeps in parallel:
         // Note: continues in parallel in the service worker manager,
