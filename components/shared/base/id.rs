@@ -338,14 +338,6 @@ namespace_id! {BrowsingContextId, BrowsingContextIndex, "BrowsingContext"}
 size_of_test!(BrowsingContextId, 8);
 size_of_test!(Option<BrowsingContextId>, 8);
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct BrowsingContextGroupId(pub u32);
-impl fmt::Display for BrowsingContextGroupId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "BrowsingContextGroup{:?}", self)
-    }
-}
-
 impl BrowsingContextId {
     pub fn from_string(str: &str) -> Option<BrowsingContextId> {
         let re = Regex::new(r"^BrowsingContext\((\d+),(\d+)\)$").ok()?;
