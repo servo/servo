@@ -8,8 +8,8 @@ mod common;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
+use std::sync::{Arc, Mutex};
 
 use dpi::PhysicalSize;
 use embedder_traits::{RefreshDriver, UrlRequest};
@@ -22,6 +22,7 @@ use hyper::{Request as HyperRequest, Response as HyperResponse};
 use image::RgbaImage;
 use itertools::Itertools;
 use net::test_util::{make_body, make_server, replace_host_table};
+use servo::profile_traits::mem::MemoryReportResult;
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
@@ -29,6 +30,7 @@ use servo::{
     MouseMoveEvent, PrefValue, RenderingContext, Scroll, SimpleDialog, Theme, WebView,
     WebViewBuilder, WebViewDelegate, WebViewPoint, WebViewVector,
 };
+use servo_base::generic_channel::GenericCallback;
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
 use surfman::{Error, Surface, SurfaceTexture};
@@ -39,6 +41,35 @@ use crate::common::{
     ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
     show_webview_and_wait_for_rendering_to_be_ready,
 };
+
+/// The size of the display lists WebRender is holding.
+fn retained_display_list_bytes(servo_test: &ServoTest) -> usize {
+    let report: Arc<Mutex<Option<MemoryReportResult>>> = Arc::default();
+    let report_from_callback = report.clone();
+    let callback = GenericCallback::new(move |result| {
+        if let Ok(result) = result {
+            *report_from_callback.lock().unwrap() = Some(result);
+        }
+    })
+    .expect("Should be able to create a memory report callback");
+    servo_test.servo().create_memory_report(callback);
+
+    let waiting = report.clone();
+    servo_test.spin(move || waiting.lock().unwrap().is_none());
+
+    let result = report
+        .lock()
+        .unwrap()
+        .take()
+        .expect("Should have a memory report once the spin loop ends");
+    result
+        .results
+        .iter()
+        .flat_map(|process| process.reports.iter())
+        .filter(|report| report.path == ["webrender", "display-list"])
+        .map(|report| report.size)
+        .sum()
+}
 
 /// Wait for the WebRender scene to reflect the current state of the WebView
 /// by triggering a screenshot, waiting for it to be ready, and then throwing
@@ -232,6 +263,58 @@ fn test_create_webview_http_custom_host() {
 fn test_create_webview_and_immediately_drop_webview_before_shutdown() {
     let servo_test = ServoTest::new();
     WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone()).build();
+}
+
+#[test]
+fn test_closing_a_webview_removes_its_pipelines_from_the_scene() {
+    let servo_test = ServoTest::new();
+    let page_url = Url::parse(
+        "data:text/html,<!DOCTYPE html>\
+            <style>div{width:100px;height:20px;background:red;margin:2px}</style>\
+            <div></div><div></div><div></div><div></div><div></div>",
+    )
+    .unwrap();
+
+    // Both `WebView`s share the rendering context:
+    // `Paint::remove_webview` drops the painter after last `WebView` is gone,
+    // so a closed `WebView`'s state is only observable while another is alive.
+    let kept_delegate = Rc::new(WebViewDelegateImpl::default());
+    let kept = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(kept_delegate.clone())
+        .url(page_url.clone())
+        .build();
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &kept, &kept_delegate);
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &kept);
+
+    let baseline = retained_display_list_bytes(&servo_test);
+
+    let closed_delegate = Rc::new(WebViewDelegateImpl::default());
+    let closed = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(closed_delegate.clone())
+        .url(page_url)
+        .build();
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &closed, &closed_delegate);
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &closed);
+
+    let with_both = retained_display_list_bytes(&servo_test);
+    assert!(
+        with_both > baseline,
+        "A second loaded WebView should add retained display lists \
+         ({baseline} bytes to {with_both} bytes)"
+    );
+
+    drop(closed);
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &kept);
+
+    // Compare against the baseline rather than `with_both`: the root display
+    // list is rebuilt on removal, so a plain decrease would pass even if the
+    // closed WebView's pipelines were never removed.
+    let after = retained_display_list_bytes(&servo_test);
+    assert!(
+        after.abs_diff(baseline) < with_both.abs_diff(baseline) / 2,
+        "Closing a WebView should return the scene to its single-WebView size \
+         (baseline {baseline}, with both {with_both}, after closing {after} bytes)"
+    );
 }
 
 #[test]
