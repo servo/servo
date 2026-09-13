@@ -113,6 +113,8 @@ pub(crate) struct HTMLInputElement {
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-fe-checked>
+    checkedness: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
     checked_changed: Cell<bool>,
     #[no_trace]
@@ -165,6 +167,7 @@ impl HTMLInputElement {
             input_type: DomRefCell::new(InputType::new_text()),
             is_textual_or_password: Cell::new(true),
             placeholder: DomRefCell::new(DOMString::new()),
+            checkedness: Cell::new(false),
             checked_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
@@ -1097,9 +1100,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-checked>
     fn Checked(&self) -> bool {
-        self.upcast::<Element>()
-            .state()
-            .contains(ElementState::CHECKED)
+        self.checkedness.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-checked>
@@ -1705,8 +1706,14 @@ impl HTMLInputElement {
     }
 
     fn update_checked_state(&self, cx: &mut JSContext, checked: bool, dirty: bool) {
-        self.upcast::<Element>()
-            .set_state(ElementState::CHECKED, checked);
+        self.checkedness.set(checked);
+        if matches!(
+            *self.input_type(),
+            InputType::Checkbox(_) | InputType::Radio(_)
+        ) {
+            self.upcast::<Element>()
+                .set_state(ElementState::CHECKED, checked);
+        }
 
         if dirty {
             self.checked_changed.set(true);
@@ -2147,6 +2154,14 @@ impl VirtualMethods for HTMLInputElement {
                 self.input_type()
                     .as_specific()
                     .update_placeholder_contents(cx, self);
+
+                self.upcast::<Element>().set_state(
+                    ElementState::CHECKED,
+                    matches!(
+                        *self.input_type(),
+                        InputType::Checkbox(_) | InputType::Radio(_)
+                    ) && self.checkedness.get(),
+                );
             },
             local_name!("value") if !self.value_dirty.get() => {
                 // This is only run when the `value` or `defaultValue` attribute is set. It
@@ -2406,9 +2421,8 @@ impl VirtualMethods for HTMLInputElement {
         }
         let elem = copy.downcast::<HTMLInputElement>().unwrap();
         elem.value_dirty.set(self.value_dirty.get());
+        elem.checkedness.set(self.Checked());
         elem.checked_changed.set(self.checked_changed.get());
-        elem.upcast::<Element>()
-            .set_state(ElementState::CHECKED, self.Checked());
         // The spec does not mention cloning the indeterminate state, but other browsers
         // do it and there are WPT tests expecting cloned nodes to preserve this attribute.
         elem.upcast::<Element>()
