@@ -67,6 +67,11 @@ impl MediaStream {
     pub(crate) fn add_track(&self, track: &MediaStreamTrack) {
         self.tracks.borrow_mut().push(Dom::from_ref(track))
     }
+
+    /// <https://www.w3.org/TR/mediacapture-streams/#stream-inactive>
+    pub(crate) fn is_inactive(&self) -> bool {
+        self.tracks.borrow().iter().all(|track| track.is_ended())
+    }
 }
 
 impl MediaStreamMethods<crate::DomTypeHolder> for MediaStream {
