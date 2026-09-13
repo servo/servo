@@ -121,6 +121,9 @@ impl<'dom> LayoutElement<'dom> for ServoLayoutElement<'dom> {
         if self.element.style_data().is_none() {
             unsafe { self.element.initialize_style_data() };
         }
+        if self.element.mapped_attribute_declarations().is_pending() {
+            unsafe { self.element.initialize_mapped_attribute_declarations() };
+        }
 
         let node = self.element.upcast::<Node>();
         if node.layout_data().is_none() {

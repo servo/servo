@@ -4560,7 +4560,12 @@ impl Document {
             entry.hint.insert(RestyleHint::RESTYLE_STYLE_ATTRIBUTE);
         }
 
-        if vtable_for(el.upcast()).attribute_affects_presentational_hints(attr) ||
+        let affects_presentational_hints =
+            vtable_for(el.upcast()).attribute_affects_presentational_hints(attr);
+        if affects_presentational_hints {
+            el.clear_mapped_attribute_declarations();
+        }
+        if affects_presentational_hints ||
             el.check_style_on_self_or_eager_pseudos(|style| {
                 if let Some(ref attribute_references) = style.attribute_references {
                     return attribute_references.contains_key(attr.local_name());
