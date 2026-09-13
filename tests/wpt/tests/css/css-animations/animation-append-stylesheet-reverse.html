@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Animations Test: Appending a stylesheet link to head with animation-fill-mode: both</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-fill-mode">
+<link rel="help" href="https://github.com/servo/servo/issues/47958">
+<link rel="match" href="animation-append-stylesheet-reverse-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .target {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  .animate {
+    animation-duration: 100s;
+    animation-fill-mode: both;
+    animation-name: anim;
+  }
+
+  @keyframes anim {
+    from, to {
+      background-color: green;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="target" class="target"></div>
+  <script>
+    document.getElementById('target').classList.add('animate');
+
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'data:text/css,';
+    document.head.appendChild(link);
+  </script>
+</body>
+</html>
