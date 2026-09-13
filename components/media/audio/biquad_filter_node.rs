@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::f64::consts::{PI, SQRT_2};
 
 use malloc_size_of_derive::MallocSizeOf;
@@ -411,5 +412,9 @@ impl AudioNodeEngine for BiquadFilterNode {
                 },
             }
         }
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
