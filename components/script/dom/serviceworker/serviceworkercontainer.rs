@@ -163,20 +163,20 @@ impl ServiceWorkerContainer {
     fn handle_algorithm_result(&self, cx: &mut JSContext, result: ServiceWorkerAlgorithmResult) {
         match result {
             ServiceWorkerAlgorithmResult::Job(job_result) => {
-                rooted!(&in(cx) let rooted = self.pending_algorithm_results.borrow_mut().pop_front());
-                let Some(ref promise) = *rooted else {
+                let promise = self.pending_algorithm_results.borrow_mut().pop_front().map(|promise| promise.root());
+                let Some(promise) = promise else {
                     debug_assert!(false, "No pending algorithm result.");
                     return;
                 };
-                self.handle_job_result(cx, job_result, &promise.root());
+                self.handle_job_result(cx, job_result, &promise);
             },
             ServiceWorkerAlgorithmResult::MatchServiceWorkerRegistration(registration_info) => {
-                rooted!(&in(cx) let rooted = self.pending_algorithm_results.borrow_mut().pop_front());
-                let Some(ref promise) = *rooted else {
+                let promise = self.pending_algorithm_results.borrow_mut().pop_front().map(|promise| promise.root());
+                let Some(promise) = promise else {
                     debug_assert!(false, "No pending algorithm result.");
                     return;
                 };
-                self.handle_match_registration_result(cx, registration_info, &promise.root());
+                self.handle_match_registration_result(cx, registration_info, &promise);
             },
             ServiceWorkerAlgorithmResult::MessageFromWorker {
                 message,
