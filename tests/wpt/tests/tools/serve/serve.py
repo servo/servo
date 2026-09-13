@@ -970,6 +970,7 @@ class RoutesBuilder:
             ("GET", "/.well-known/web-app-origin-association", handlers.PythonScriptHandler),
             ("*", "/.well-known/web-identity", handlers.PythonScriptHandler),
             ("*", "/.well-known/device-bound-sessions", handlers.PythonScriptHandler),
+            ("*", "/.well-known/email-verification", handlers.PythonScriptHandler),
             ("*", "*.py", handlers.PythonScriptHandler),
             ("GET", "*", handlers.FileHandler)
         ]
@@ -1150,18 +1151,25 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
     for scheme, ports in ports.items():
         assert len(ports) == {"http": 2, "https": 2}.get(scheme, 1)
 
-        # If trying to start HTTP/2.0 server, check compatibility
-        if scheme == 'h2' and not http2_compatible():
-            logger.error('Cannot start HTTP/2.0 server as the environment is not compatible. ' +
-                         'Requires OpenSSL 1.0.2+')
-            continue
+        # Skip HTTP/2 server if it is disabled or if incompatible.
+        if scheme == "h2":
+            if not kwargs.get("h2", True):
+                logging.warning("HTTP/2 server disabled")
+                continue
+
+            if not http2_compatible():
+                logger.error("Cannot start HTTP/2 server as the environment is not compatible. " +
+                             "Requires OpenSSL 1.0.2+")
+                continue
 
         # Skip WebTransport over HTTP/3 server unless it is enabled explicitly.
         if scheme == "webtransport-h3" and not kwargs.get("webtransport_h3"):
+            logging.warning("WebTransport over HTTP/3 server disabled")
             continue
 
         # Skip over DNS unless it is enabled explicitly.
         if scheme == "dns" and not kwargs.get("dns"):
+            logging.info("DNS server disabled")
             continue
 
         for port in ports:
@@ -1430,6 +1438,7 @@ class ConfigBuilder(config.ConfigBuilder):
             "https": [8443, 8444],
             "https-local": ["auto"],
             "https-public": ["auto"],
+            "h2": [9000],
             "ws": ["auto"],
             "wss": ["auto"],
             "webtransport-h3": ["auto"],
@@ -1498,12 +1507,6 @@ class ConfigBuilder(config.ConfigBuilder):
 def build_config(logger, override_path=None, config_cls=ConfigBuilder, **kwargs):
     rv = config_cls(logger)
 
-    enable_http2 = kwargs.get("h2")
-    if enable_http2 is None:
-        enable_http2 = True
-    if enable_http2:
-        rv._default["ports"]["h2"] = [9000]
-
     if override_path and os.path.exists(override_path):
         with open(override_path) as f:
             override_obj = json.load(f)
@@ -1552,10 +1555,10 @@ def get_parser():
                         help="Path to script file to inject, useful for testing polyfills.")
     parser.add_argument("--alias_file",
                         help="File with entries for aliases/multiple doc roots. In form of `/ALIAS_NAME/, DOC_ROOT\\n`")
-    parser.add_argument("--h2", action="store_true", default=None,
+    parser.add_argument("--h2", action="store_true", default=True,
                         help=argparse.SUPPRESS)
-    parser.add_argument("--no-h2", action="store_false", dest="h2", default=None,
-                        help="Disable the HTTP/2.0 server")
+    parser.add_argument("--no-h2", action="store_false", dest="h2",
+                        help="Disable the HTTP/2 server")
     parser.add_argument("--webtransport-h3", action="store_true",
                         help="Enable WebTransport over HTTP/3 server")
     parser.add_argument("--dns", action="store_true",

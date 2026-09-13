@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>element.insertAdjacentHTML error cases</title>
+<link rel="help" href="https://w3c.github.io/DOM-Parsing/#widl-Element-insertAdjacentHTML-void-DOMString-position-DOMString-text">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="element"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const el = document.querySelector("#element");
+
+  assert_throws_dom("SyntaxError", () => {
+    el.insertAdjacentHTML("invalid", "test");
+  });
+}, "Throws when given an invalid position");
+
+test(() => {
+  const el = document.createElement("span");
+
+  assert_throws_dom("NoModificationAllowedError", () => {
+    el.insertAdjacentHTML("beforebegin", "test");
+  });
+}, "Throws when inserting using \"beforebegin\" into an element whose parent is null");
+
+test(() => {
+  const el = document.createElement("span");
+
+  assert_throws_dom("NoModificationAllowedError", () => {
+    el.insertAdjacentHTML("afterend", "test");
+  });
+}, "Throws when inserting using \"afterend\" into an element whose parent is null");
+
+test(() => {
+  const el = document.createElement("span");
+
+  el.insertAdjacentHTML("afterbegin", "foo");
+  el.insertAdjacentHTML("beforeend", "bar");
+
+  assert_equals(el.textContent, "foobar");
+}, "Does not throw when inserting using \"afterbegin\" and \"beforeend\" into an element whose parent is null");
+
+test(() => {
+  const el = document.querySelector("html");
+
+  assert_throws_dom("NoModificationAllowedError", () => {
+    el.insertAdjacentHTML("beforebegin", "test");
+  });
+}, "Throws when inserting using \"beforebegin\" into an element whose parent is a document");
+
+test(() => {
+  const el = document.querySelector("html");
+
+  assert_throws_dom("NoModificationAllowedError", () => {
+    el.insertAdjacentHTML("afterend", "test");
+  });
+}, "Throws when inserting using \"afterend\" into an element whose parent is a document");
+
+test(() => {
+  const el = document.querySelector("html");
+
+  el.insertAdjacentHTML("afterbegin", "foo");
+  el.insertAdjacentHTML("beforeend", "bar");
+
+  assert_true(el.textContent.startsWith("foo"));
+  assert_true(el.textContent.endsWith("bar"));
+}, "Does not throw when inserting using \"afterbegin\" and \"beforeend\" into an element whose parent is a document");
+
+</script>

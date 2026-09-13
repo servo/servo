@@ -30,6 +30,7 @@ dictionary ModelContextTool {
 dictionary ToolAnnotations {
   boolean readOnlyHint = false;
   boolean untrustedContentHint = false;
+  boolean consequentialHint = false;
 };
 
 dictionary ToolExecuteCallbackOptions {

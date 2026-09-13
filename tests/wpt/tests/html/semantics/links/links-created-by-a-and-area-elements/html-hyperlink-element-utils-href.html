@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>HTMLHyperlinkElementUtils href setter</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/#dom-hyperlink-href">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+
+  const a = document.createElement("a");
+  a.setAttribute("href", "mycustomprotocol:abc");
+
+  assert_equals(a.protocol, "mycustomprotocol:");
+
+  a.href = "otherprot:test.js";
+  assert_equals(a.protocol, "otherprot:");
+
+}, "setting href IDL attribute also resets protocol on URLs with non-relative flag set");
+
+test(() => {
+
+  const a = document.createElement("a");
+  a.setAttribute("href", "mycustomprotocol:abc");
+
+  assert_equals(a.protocol, "mycustomprotocol:");
+
+  a.setAttribute("href", "otherprot:test.js");
+  assert_equals(a.protocol, "otherprot:");
+
+}, "setting href content attribute also resets protocol on URLs with non-relative flag set");
+
+</script>

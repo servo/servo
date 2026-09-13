@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Selector: pseudo-classes (:checked)</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#pseudo-classes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<select id="select" multiple>
+  <option id="option" selected>Your only option</option>
+</select>
+
+<script>
+  "use strict";
+
+  test(() => {
+    const selectEl = document.querySelector("#select");
+    const optionEl = document.querySelector("#option");
+
+    const query1 = selectEl.querySelector(":checked");
+
+    assert_equals(query1, optionEl);
+
+    selectEl.lastElementChild.selected = false;
+
+    const query2 = selectEl.querySelector(":checked");
+
+    assert_equals(query2, null);
+  }, "The result of a previous query is invalidated when the selection changes");
+</script>

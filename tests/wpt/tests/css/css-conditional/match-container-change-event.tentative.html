@@ -297,4 +297,28 @@ promise_test(async t => {
   assert_false(list.matches,
     "Reassigned into the 50px container's slot.");
 }, "change event fires when slot reassignment changes the flat-tree container.");
+
+promise_test(async t => {
+  let wrapper = createTestElement(`
+    <div>
+      <div class="size-container" style="width: 200px">
+        <div id="mv">
+          <div id="target"></div>
+        </div>
+      </div>
+      <div id="narrow" class="size-container" style="width: 50px"></div>
+    </div>
+  `);
+  let mv = wrapper.querySelector("#mv");
+  let target = wrapper.querySelector("#target");
+  let narrow = wrapper.querySelector("#narrow");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  let watcher = createChangeWatcher(t, list);
+  let eventPromise = watcher.wait_for("change");
+  narrow.moveBefore(mv, null);
+  await eventPromise;
+  assert_false(list.matches,
+    "Moved under the 50px container.");
+}, "change event fires when moveBefore() changes the query container.");
 </script>

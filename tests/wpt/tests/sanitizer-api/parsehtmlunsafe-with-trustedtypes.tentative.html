@@ -45,7 +45,7 @@
           sanitizer: { removeElements: ["span"] },
         });
 
-        // Pass a TrustedParserOptions object directly
+        // Pass a TrustedHTMLParserOptions object directly
         const policy = trustedTypes.createPolicy("test", {
           createParserOptions: (options) => options,
         });
@@ -57,7 +57,7 @@
         );
         assert_equals(doc.querySelector("#forbidden"), null);
         assert_not_equals(doc.querySelector("#allowed"), null);
-      }, "Document.parseHTMLUnsafe: passing TrustedParserOptions directly works");
+      }, "Document.parseHTMLUnsafe: passing TrustedHTMLParserOptions directly works");
 
       for (const value of [null, undefined]) {
         test((t) => {

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSRule selectorText</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#parsing-css-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/cssstyle/issues/193 -->
+
+<style>
+@namespace svg url("http://www.w3.org/2000/svg");
+
+a {
+  color: orangered;
+  text-decoration: underline dashed;
+  font-weight: bold;
+}
+
+svg|a {
+  fill: blueviolet;
+  text-decoration: underline solid;
+  text-transform: uppercase;
+}
+</style>
+
+<p>
+  <a href="#">This is an ordinary HTML link</a>
+</p>
+
+<svg width="250px" viewBox="0 0 250 20" xmlns="http://www.w3.org/2000/svg">
+  <a href="#">
+    <text x="0" y="15">This is a link created in SVG</text>
+  </a>
+</svg>
+
+<script>
+"use strict";
+const { cssRules } = document.styleSheets[0];
+
+test(() => {
+  assert_equals(cssRules.length, 3, "length should be 3");
+}, "cssRules");
+
+test(() => {
+  const expectedRules = [
+    {
+      selectorText: undefined,
+      type: 10
+    },
+    {
+      selectorText: "a",
+      type: 1
+    },
+    {
+      selectorText: "svg|a",
+      type: 1
+    }
+  ];
+  for (let i = 0; i < cssRules.length; i++) {
+    const rule = cssRules[i];
+    const expected = expectedRules[i];
+    assert_equals(rule.selectorText, expected.selectorText, "selectorText matches");
+    assert_equals(rule.type, expected.type, "type matches");
+  }
+}, "Each cssRule");
+</script>

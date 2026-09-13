@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>background shorthand overwritten</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background">
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3944 -->
+
+<div id="with-overwrite" style="background:linear-gradient(rgb(0 0 255 / 0.5), rgb(255 255 0 / 0.5)) center center;background-position:top"></div>
+<div id="without-overwrite" style="background-image:linear-gradient(rgb(0 0 255 / 0.5), rgb(255 255 0 / 0.5));background-position:top"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("with-overwrite");
+  assert_equals(div.style.backgroundPosition, "center top", "style");
+}, "overwrite, specified");
+
+test(() => {
+  const div = document.getElementById("with-overwrite");
+  assert_equals(window.getComputedStyle(div).backgroundPosition, "50% 0%", "computed");
+}, "overwrite, computed");
+
+test(() => {
+  const div = document.getElementById("without-overwrite");
+  assert_equals(div.style.backgroundPosition, "center top", "style");
+}, "without overwrite, specified");
+
+test(() => {
+  const div = document.getElementById("without-overwrite");
+  assert_equals(window.getComputedStyle(div).backgroundPosition, "50% 0%", "computed");
+}, "without overwrite, computed");
+</script>

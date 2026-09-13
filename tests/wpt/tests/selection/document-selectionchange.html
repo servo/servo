@@ -1,0 +1,117 @@
+<!DOCTYPE HTML>
+<title>selectionchange event on document</title>
+<link rel="author" title="Piotr Oleś" href="mailto:piotrek.oles@gmail.com">
+<link rel="help" href="https://w3c.github.io/selection-api/#selectionchange-event">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="example">test <span>nested</span></div>
+
+<script>
+  "use strict";
+
+  function tick(t) {
+    return new Promise(resolve => {
+      t.step_timeout(resolve, 0);
+    });
+  }
+
+  async function setupTest(t) {
+    const target = document.getElementById("example");
+    const selection = document.getSelection();
+
+    // Clean-up the state
+    selection.removeAllRanges();
+    await tick(t);
+
+    // Add event listeners and increment count on each event
+    let events = 0;
+    document.addEventListener("selectionchange", () => {
+      events++;
+    });
+
+    function getEventsCount() {
+      return events;
+    }
+
+    return { target, selection, getEventsCount };
+  }
+
+  promise_test(async t => {
+    const { target, selection, getEventsCount } = await setupTest(t);
+
+    selection.setBaseAndExtent(target, 0, target, 1);
+    assert_equals(getEventsCount(), 0, "Should be 0 events as they're scheduled");
+    await tick(t);
+    assert_equals(getEventsCount(), 1, "Should be 1 event");
+
+    selection.setBaseAndExtent(target, 0, target, 1);
+    await tick(t);
+    assert_equals(getEventsCount(), 1, "Should be 1 event because we called setBaseAndExtent with the same arguments");
+
+    selection.setBaseAndExtent(target, 0, target, 2);
+    await tick(t);
+    assert_equals(getEventsCount(), 2, "Should be 2 events");
+  }, `triggers selectionchange event on setBaseAndExtent`);
+
+  promise_test(async t => {
+    const { target, selection, getEventsCount } = await setupTest(t);
+
+    selection.selectAllChildren(target);
+    await tick(t);
+    assert_equals(getEventsCount(), 1, "Should be 1 event");
+
+    selection.selectAllChildren(target);
+    await tick(t);
+    assert_equals(getEventsCount(), 1, "Should be 1 event because we called selectAllChildren with the same arguments");
+  }, `triggers selectionchange event on selectAllChildren`);
+
+  promise_test(async t => {
+    const { target, selection, getEventsCount } = await setupTest(t);
+
+    selection.selectAllChildren(target);
+    await tick(t);
+    assert_equals(getEventsCount(), 1, "Should be 1 event");
+
+    selection.removeAllRanges();
+    await tick(t);
+    assert_equals(getEventsCount(), 2, "Should be 2 events");
+
+    selection.removeAllRanges();
+    await tick(t);
+    assert_equals(getEventsCount(), 2, "Should be 2 events because we called removeAllRanges with the same arguments");
+  }, `triggers selectionchange event on removeAllRanges`);
+
+  promise_test(async t => {
+    const { target, selection, getEventsCount } = await setupTest(t);
+
+    selection.setBaseAndExtent(target, 0, target, 1);
+    await tick(t);
+    assert_equals(getEventsCount(), 1, "Should be 1 event");
+
+    selection.collapseToStart();
+    await tick(t);
+    assert_equals(getEventsCount(), 2, "Should be 2 events");
+
+    selection.collapseToStart();
+    await tick(t);
+    assert_equals(getEventsCount(), 2, "Should be 2 events because we called collapseToStart with the same arguments");
+  }, `triggers selectionchange event on collapseToStart`);
+
+  promise_test(async t => {
+    const { target, selection, getEventsCount } = await setupTest(t);
+
+    selection.setBaseAndExtent(target, 0, target, 1);
+    await tick(t);
+    assert_equals(getEventsCount(), 1, "Should be 1 event");
+
+    selection.collapseToEnd();
+    await tick(t);
+    assert_equals(getEventsCount(), 2, "Should be 2 events");
+
+    selection.collapseToEnd();
+    await tick(t);
+    assert_equals(getEventsCount(), 2, "Should be 2 events because we called collapseToEnd with the same arguments");
+  }, `triggers selectionchange event on collapseToEnd`);
+</script>

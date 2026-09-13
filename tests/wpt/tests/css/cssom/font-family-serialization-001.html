@@ -129,6 +129,18 @@
     assert_equals(SetFontFamilyAndSerializeSpecified('"default"'), '"default"');
   }, "Specified: quoted 'default' stays quoted");
 
+  test(function() {
+    assert_equals(SetFontFamilyAndSerializeSpecified('"revert"'), '"revert"');
+  }, "Specified: quoted 'revert' stays quoted");
+
+  test(function() {
+    assert_equals(SetFontFamilyAndSerializeSpecified('"revert-layer"'), '"revert-layer"');
+  }, "Specified: quoted 'revert-layer' stays quoted");
+
+  test(function() {
+    assert_equals(SetFontFamilyAndSerializeSpecified('"revert-rule"'), '"revert-rule"');
+  }, "Specified: quoted 'revert-rule' stays quoted");
+
   // Names with special characters: must stay quoted.
 
   test(function() {

@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>form indexed property names</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form id="form">
+  <input type="radio" value="1">
+  <input type="radio" value="2">
+  <input type="text" value="3">
+</form>
+
+<script>
+"use strict";
+
+test(() => {
+  const form = document.getElementById("form");
+  const ownKeys = Object.getOwnPropertyNames(form);
+  assert_array_equals(ownKeys, ["0", "1", "2"]);
+});
+</script>

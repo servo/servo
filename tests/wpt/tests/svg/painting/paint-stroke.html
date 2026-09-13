@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Paint stroke</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/painting.html#SpecifyingPaint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/4077 -->
+
+<svg>
+  <path id="target" />
+</svg>
+
+<script>
+"use strict";
+const target = document.getElementById("target");
+
+test(t => {
+  t.add_cleanup(() => {
+    target.style.stroke = null;
+  });
+  target.style.stroke = "none";
+  assert_equals(target.style.getPropertyValue("stroke"), "none");
+}, "Keyword none");
+
+test(t => {
+  t.add_cleanup(() => {
+    target.style.stroke = null;
+  });
+  target.style.stroke = "context-stroke";
+  assert_equals(target.style.getPropertyValue("stroke"), "context-stroke");
+}, "Keyword context-stroke");
+
+test(t => {
+  t.add_cleanup(() => {
+    target.style.stroke = null;
+  });
+  target.style.stroke = "green";
+  assert_equals(target.style.getPropertyValue("stroke"), "green");
+}, "Color name");
+
+test(t => {
+  t.add_cleanup(() => {
+    target.style.stroke = null;
+  });
+  target.style.stroke = "rgb(0 128 0)";
+  assert_equals(target.style.getPropertyValue("stroke"), "rgb(0, 128, 0)");
+}, "RGB color");
+
+test(t => {
+  t.add_cleanup(() => {
+    target.style.stroke = null;
+  });
+  target.style.stroke = 'url("foo/bar")';
+  assert_equals(target.style.getPropertyValue("stroke"), 'url("foo/bar")');
+}, "URL");
+
+test(t => {
+  t.add_cleanup(() => {
+    target.style.stroke = null;
+  });
+  target.style.stroke = 'url("foo/bar") none';
+  assert_equals(target.style.getPropertyValue("stroke"), 'url("foo/bar") none');
+}, "URL with keyword none as fallback");
+
+test(t => {
+  t.add_cleanup(() => {
+    target.style.stroke = null;
+  });
+  target.style.stroke = 'url("foo/bar") green';
+  assert_equals(target.style.getPropertyValue("stroke"), 'url("foo/bar") green');
+}, "URL with color as fallback");
+
+test(t => {
+  t.add_cleanup(() => {
+    target.style.stroke = null;
+  });
+  target.style.stroke = "linear-gradient(to top, green, blue)";
+  assert_equals(target.style.getPropertyValue("stroke"), "");
+}, "Gradient, gradient is not included in SVG paint");
+</script>

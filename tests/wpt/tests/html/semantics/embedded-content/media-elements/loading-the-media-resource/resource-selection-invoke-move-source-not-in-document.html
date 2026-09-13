@@ -1,0 +1,18 @@
+<!doctype html>
+<title>invoking resource selection by moving &lt;source> in video not in a document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  // moveBefore() requires a shared shadow-including root, so v and holder
+  // hang off a common (disconnected) root rather than being unrelated trees
+  var root = document.createElement('div');
+  var v = root.appendChild(document.createElement('video'));
+  var holder = root.appendChild(document.createElement('div'));
+  var source = holder.appendChild(document.createElement('source'));
+  v.onloadstart = t.step_func(function() { t.done(); });
+  v.moveBefore(source, undefined);
+  window.onload = t.step_func(function() { assert_unreached(); });
+});
+</script>

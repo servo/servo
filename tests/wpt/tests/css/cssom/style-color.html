@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting style.color to various different types</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-elementcssinlinestyle-mixin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Test for https://github.com/jsdom/jsdom/issues/2639 -->
+<!-- Test for https://github.com/jsdom/jsdom/issues/825 -->
+
+<body>
+  <p id="paragraph">Hello CSS Style</p>
+</body>
+
+<script>
+"use strict";
+
+test(() => {
+  const element = document.querySelector("#paragraph");
+  element.style.color = "";
+  element.style.color = "rgba(255, 255, 255, 0.5)";
+
+  assert_equals(element.style.color, "rgba(255, 255, 255, 0.5)");
+}, "Setting a color with a decimal transparency should update the style");
+
+test(() => {
+  const element = document.querySelector("#paragraph");
+  element.style.color = "";
+  element.style.color = "rgb(0%, 100%, 100%)";
+
+  assert_equals(element.style.color, "rgb(0, 255, 255)");
+}, "Setting a color with a nil value and percentages should update the style");
+
+test(() => {
+  const element = document.querySelector("#paragraph");
+  element.style.color = "";
+  element.style.color = "rgb(0, 100%, 100%)";
+
+  assert_equals(element.style.color, "");
+}, "Setting a mixed percent and value color should NOT update the style");
+
+test(() => {
+  const element = document.querySelector("#paragraph");
+  element.style.color = "";
+  element.style.color = "hsl(0, 100%, 50%)";
+
+  assert_equals(element.style.color, "rgb(255, 0, 0)");
+}, "Setting an hsl color should update the style");
+
+</script>

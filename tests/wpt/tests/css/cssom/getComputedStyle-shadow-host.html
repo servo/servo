@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>getComputedStyle() in shadow host</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-selector">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3661 -->
+
+<div id="div"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  window.customElements.define("x-foo", class extends window.HTMLElement {
+    constructor() {
+      super();
+      const style = document.createElement("style");
+      style.textContent = ":host { color: red }";
+      this.attachShadow({ mode: "open" }).appendChild(style);
+    }
+  });
+
+  const div = document.getElementById("div");
+  const elm = document.createElement("x-foo");
+  div.appendChild(elm);
+  assert_equals(window.getComputedStyle(elm).color, "rgb(255, 0, 0)");
+});
+</script>

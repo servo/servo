@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>requestAnimationFrame from inside requestAnimationFrame must be delayed, not sync</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+async_test(t => {
+  requestAnimationFrame(t.step_func(firstTimestamp => {
+    requestAnimationFrame(t.step_func_done(secondTimestamp => {
+      assert_greater_than(secondTimestamp, firstTimestamp);
+    }));
+  }));
+}, "A nested animation callback runs in a later rendering update");
+</script>

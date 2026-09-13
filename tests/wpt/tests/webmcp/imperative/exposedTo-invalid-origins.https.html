@@ -90,7 +90,7 @@ promise_test(async t => {
 
   // 6. Execute the cached RegisteredTool.
   // This must execute callback2 and resolve to 'callback2', not callback3.
-  const result = await document.modelContext.executeTool(tool, '{}');
+  const result = await document.modelContext.executeTool(tool);
   assert_equals(result, 'callback2', 'Executing the cached RegisteredTool must run callback2');
 }, 'Aborting a signal from a rejected registration must not unregister a later valid tool with the same name');
 </script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Computed value of the border-color with currentcolor specified</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-color">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/pull/4119 -->
+
+<style>
+#grandparent {
+  color: red;
+}
+#parent {
+  color: currentcolor;
+}
+#child {
+  border-color: currentcolor;
+}
+</style>
+<div id="grandparent">
+  <div id="parent">
+    <div id="child"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const child = document.getElementById("child");
+  assert_equals(window.getComputedStyle(child).getPropertyValue("color"), "rgb(255, 0, 0)", "color");
+  assert_equals(window.getComputedStyle(child).getPropertyValue("border-color"), "rgb(255, 0, 0)", "border-color");
+});
+</script>

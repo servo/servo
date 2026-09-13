@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: form submit with invalid inputs</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+function prepareForm(onSubmitHandler) {
+  // Create form with submit handler
+  const form = document.createElement("FORM");
+  form.addEventListener("submit", onSubmitHandler);
+  document.body.appendChild(form);
+
+  // Create required text input element
+  const textInput = document.createElement("INPUT");
+  textInput.type = "text";
+  textInput.required = true;
+  form.appendChild(textInput);
+
+  // Create submit button
+  const submitInput = document.createElement("INPUT");
+  submitInput.type = "submit";
+  form.appendChild(submitInput);
+
+  return form;
+}
+
+test(() => {
+  let isSubmitted = false;
+  const form = prepareForm(event => {
+    event.preventDefault();
+    isSubmitted = true;
+  });
+
+  form.querySelector("input[type=text]").value = "valid";
+  form.querySelector("input[type=submit]").click();
+
+  assert_true(isSubmitted, "Form is submitted");
+}, "Form can be submitted when it contains valid inputs");
+
+test(() => {
+  let isSubmitted = false;
+  const form = prepareForm(event => {
+    event.preventDefault();
+    isSubmitted = true;
+  });
+
+  form.querySelector("input[type=submit]").click();
+
+  assert_false(isSubmitted, "Invalid form should not be submitted");
+}, "Form can't be submitted when it contains invalid inputs");
+
+test(() => {
+  let isSubmitted = false;
+  const form = prepareForm(event => {
+    event.preventDefault();
+    isSubmitted = true;
+  });
+
+  form.noValidate = true;
+  form.querySelector("input[type=submit]").click();
+
+  assert_true(isSubmitted, "Form is submitted");
+}, "Form can be submitted when it contains invalid inputs and has novalidate attribute");
+</script>

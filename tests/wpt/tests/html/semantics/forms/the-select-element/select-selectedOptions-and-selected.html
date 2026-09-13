@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTMLSelectElement's selectedOptions and HTMLOptionElement's selected</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#dom-select-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select id="sel">
+  <option id="opt1" value="x" data-foo="a" selected="selected">1st opt</option>
+  <option id="opt2" value="y" data-foo="b">2nd opt</option>
+</select>
+
+<script>
+"use strict";
+test(() => {
+  const select = document.getElementById("sel");
+  const opt1 = document.getElementById("opt1");
+
+  assert_equals(select.selectedOptions.length, 1);
+  assert_equals(select.selectedOptions[0], opt1);
+});
+</script>

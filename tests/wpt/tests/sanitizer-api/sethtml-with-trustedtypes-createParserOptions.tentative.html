@@ -71,7 +71,7 @@
           );
           assert_equals(node.querySelector("#forbidden"), null);
           assert_not_equals(node.querySelector("#allowed"), null);
-        }, `${target}.setHTMLUnsafe: passing a TrustedParserOptions overrides default policy`);
+        }, `${target}.setHTMLUnsafe: passing a TrustedHTMLParserOptions overrides default policy`);
 
         test((t) => {
           const node = createTarget(target, t);
@@ -96,7 +96,7 @@
               noSanitizerPolicy.createParserOptions({}),
             );
           });
-        }, `${target}.setHTMLUnsafe: TrustedParserOptions without sanitizer still requires createHTML`);
+        }, `${target}.setHTMLUnsafe: TrustedHTMLParserOptions without sanitizer still requires createHTML`);
 
         test((t) => {
           const node = createTarget(target, t);
@@ -129,6 +129,40 @@
           assert_not_equals(node.querySelector("#allowed"), null);
         }, `${target}.setHTMLUnsafe: default policy createParserOptions with sanitizer prevents createHTML from running`);
       }
+
+
+      test((t) => {
+        const policy = trustedTypes.createPolicy("runscripts-reflect-policy", {
+          createParserOptions: (options) => options,
+        });
+        const optionsDefault = policy.createParserOptions({});
+        assert_true(optionsDefault instanceof TrustedHTMLParserOptions);
+        assert_false("runScripts" in optionsDefault, "TrustedHTMLParserOptions has no public runScripts member");
+
+        const optionsTrue = policy.createParserOptions({ runScripts: true });
+        assert_true(optionsTrue instanceof TrustedHTMLParserOptions);
+        assert_false("runScripts" in optionsTrue, "TrustedHTMLParserOptions has no public runScripts member");
+
+        const optionsFalse = policy.createParserOptions({ runScripts: false });
+        assert_true(optionsFalse instanceof TrustedHTMLParserOptions);
+        assert_false("runScripts" in optionsFalse, "TrustedHTMLParserOptions has no public runScripts member");
+
+        const div = document.createElement("div");
+        document.body.appendChild(div);
+        t.add_cleanup(() => div.remove());
+
+        window.did_run = false;
+        t.add_cleanup(() => { delete window.did_run; });
+
+        div.setHTMLUnsafe("<script>window.did_run = true;<" + "/script>", optionsDefault);
+        assert_false(window.did_run, "runScripts defaults to false in TrustedHTMLParserOptions");
+
+        div.setHTMLUnsafe("<script>window.did_run = true;<" + "/script>", optionsFalse);
+        assert_false(window.did_run, "runScripts false is respected in TrustedHTMLParserOptions");
+
+        div.setHTMLUnsafe("<script>window.did_run = true;<" + "/script>", optionsTrue);
+        assert_true(window.did_run, "runScripts true is respected in TrustedHTMLParserOptions");
+      }, "TrustedHTMLParserOptions applies runScripts option without exposing public members");
     </script>
   </body>
 </html>

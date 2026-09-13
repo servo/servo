@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An image is incomplete immediately after setting src</title>
+<link rel="help" href="https://html.spec.whatwg.org/#the-img-element">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+for (const src of ["file-does-not-exist.png", "http://malformed:url"]) {
+  test(() => {
+    const img = document.createElement("img");
+    img.src = src;
+    assert_false(img.complete);
+  }, `complete is false immediately after setting src to ${src}`);
+}
+</script>

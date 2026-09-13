@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>:has() pseudo-class with :where()</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#logical-combination">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3792 -->
+
+<style type="text/css">
+  div.foo:has(div:where(.bar)) div:where(.baz) {
+    background-color: rgb(226 232 240);
+  }
+</style>
+
+<div class="foo">
+  <div>
+    <div class="bar">
+    </div>
+  </div>
+  <div>
+    <div class="baz">
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const div = document.querySelector(".baz");
+test(() => {
+  assert_equals(window.getComputedStyle(div).backgroundColor, "rgb(226, 232, 240)", "match background-color");
+}, "getComputedStyle()");
+</script>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>border shorthands</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-shorthands">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/cssstyle/issues/251 -->
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3971 -->
+
+<div id="div"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.border = "1px solid #ffffff";
+  assert_equals(div.style.length > 0, true, "length");
+  assert_equals(div.style.border, "1px solid rgb(255, 255, 255)", "border");
+  assert_equals(div.style.borderWidth, "1px", "border-width");
+  assert_equals(div.style.borderStyle, "solid", "border-style");
+  assert_equals(div.style.borderColor, "rgb(255, 255, 255)", "border-color");
+  assert_equals(div.style.cssText, "border: 1px solid rgb(255, 255, 255);", "cssText");
+}, "Set border as 1px solid #ffffff");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.borderTop = "1px solid #ffffff";
+  assert_equals(div.style.length > 0, true, "length");
+  assert_equals(div.style.borderTop, "1px solid rgb(255, 255, 255)", "border-top");
+  assert_equals(div.style.borderTopWidth, "1px", "border-top-width");
+  assert_equals(div.style.borderTopStyle, "solid", "border-top-style");
+  assert_equals(div.style.borderTopColor, "rgb(255, 255, 255)", "border-top-color");
+  assert_equals(div.style.cssText, "border-top: 1px solid rgb(255, 255, 255);", "cssText");
+  assert_equals(div.outerHTML, '<div style="border-top: 1px solid rgb(255, 255, 255);"></div>', "outerHTML");
+}, "Set borderTop as 1px solid #ffffff");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.borderRight = "1px solid #ffffff";
+  assert_equals(div.style.length > 0, true, "length");
+  assert_equals(div.style.borderRight, "1px solid rgb(255, 255, 255)", "border-right");
+  assert_equals(div.style.borderRightWidth, "1px", "border-right-width");
+  assert_equals(div.style.borderRightStyle, "solid", "border-right-style");
+  assert_equals(div.style.borderRightColor, "rgb(255, 255, 255)", "border-right-color");
+  assert_equals(div.style.cssText, "border-right: 1px solid rgb(255, 255, 255);", "cssText");
+  assert_equals(div.outerHTML, '<div style="border-right: 1px solid rgb(255, 255, 255);"></div>', "outerHTML");
+}, "Set borderRight as 1px solid #ffffff");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.borderBottom = "1px solid #ffffff";
+  assert_equals(div.style.length > 0, true, "length");
+  assert_equals(div.style.borderBottom, "1px solid rgb(255, 255, 255)", "border-bottom");
+  assert_equals(div.style.borderBottomWidth, "1px", "border-bottom-width");
+  assert_equals(div.style.borderBottomStyle, "solid", "border-bottom-style");
+  assert_equals(div.style.borderBottomColor, "rgb(255, 255, 255)", "border-bottom-color");
+  assert_equals(div.style.cssText, "border-bottom: 1px solid rgb(255, 255, 255);", "cssText");
+  assert_equals(div.outerHTML, '<div style="border-bottom: 1px solid rgb(255, 255, 255);"></div>', "outerHTML");
+}, "Set borderBottom as 1px solid #ffffff");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.borderLeft = "1px solid #ffffff";
+  assert_equals(div.style.length > 0, true, "length");
+  assert_equals(div.style.borderLeft, "1px solid rgb(255, 255, 255)", "border-left");
+  assert_equals(div.style.borderLeftWidth, "1px", "border-left-width");
+  assert_equals(div.style.borderLeftStyle, "solid", "border-left-style");
+  assert_equals(div.style.borderLeftColor, "rgb(255, 255, 255)", "border-left-color");
+  assert_equals(div.style.cssText, "border-left: 1px solid rgb(255, 255, 255);", "cssText");
+  assert_equals(div.outerHTML, '<div style="border-left: 1px solid rgb(255, 255, 255);"></div>', "outerHTML");
+}, "Set borderLeft as 1px solid #ffffff");
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.setProperty("border", "2px solid gray");
+  assert_equals(div.style.getPropertyValue("border"), "2px solid gray", "specified");
+  const style = window.getComputedStyle(div);
+  assert_equals(style.getPropertyValue("border-width"), "2px", "border-width");
+  assert_equals(style.getPropertyValue("border-style"), "solid", "border-style");
+  assert_equals(style.getPropertyValue("border-color"), "rgb(128, 128, 128)", "border-color");
+  assert_equals(style.getPropertyValue("border"), "2px solid rgb(128, 128, 128)", "border");
+}, "Computed value of border shorthand");
+</script>

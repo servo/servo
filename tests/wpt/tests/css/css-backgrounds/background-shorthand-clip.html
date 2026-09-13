@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>background shorthand and background clip</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/4153 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.cssText = "background: red; background-clip: border-box;";
+  // Chrome fails; returns "background: border-box red;"
+  assert_equals(div.style.cssText, "background: red;");
+}, "putting background-clip initial value after background shorthand");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.cssText = "background: red; background-clip: content-box;";
+  // Chrome fails; returns "background: content-box red;"
+  assert_equals(div.style.cssText, "background: padding-box content-box red;");
+}, "putting background-clip value after background shorthand");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.cssText = "background: content-box red; background-clip: padding-box;";
+  assert_equals(div.style.cssText, "background: content-box padding-box red;");
+}, "overwrite background-clip value after background shorthand with one <visual-box>");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.cssText = "background: border-box content-box red; background-clip: padding-box;";
+  assert_equals(div.style.cssText, "background: border-box padding-box red;");
+}, "overwrite background-clip value after background shorthand with two <visual-box>");
+</script>

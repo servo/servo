@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Post-connection steps in a shadow tree</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-insert">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+test(t => {
+  const host = document.createElement("div");
+  const shadowRoot = host.attachShadow({ mode: "closed" });
+  const script = document.createElement("script");
+
+  window.shadowTreeScriptExecutions = 0;
+  t.add_cleanup(() => {
+    delete window.shadowTreeScriptExecutions;
+    host.remove();
+  });
+
+  script.text = "window.shadowTreeScriptExecutions++";
+  shadowRoot.append(script);
+  assert_equals(window.shadowTreeScriptExecutions, 0, "script does not run while disconnected");
+
+  document.body.append(host);
+  assert_equals(window.shadowTreeScriptExecutions, 1, "script runs when its shadow-including tree becomes connected");
+}, "Script post-connection steps run in a newly-connected shadow tree");
+</script>

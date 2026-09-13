@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>click() should do nothing on disabled elements</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<button id="el1" disabled>hello</button>
+
+<fieldset disabled>
+  <input id="el2" type="text">
+  <input id="el3" type="checkbox">
+</fieldset>
+
+<button id="el4">hi</button>
+
+<script>
+"use strict";
+
+async_test(t => {
+
+  const element = document.querySelector("#el1");
+  element.addEventListener("click", t.unreached_func("click event should never happen"));
+
+  element.click();
+  t.step_timeout(() => t.done(), 500);
+
+}, "clicking a disabled button should not cause a click event");
+
+async_test(t => {
+
+  const element = document.querySelector("#el2");
+  element.addEventListener("click", t.unreached_func("click event should never happen"));
+
+  element.click();
+  t.step_timeout(() => t.done(), 500);
+
+}, "clicking a disabled text input should not cause a click event");
+
+async_test(t => {
+
+  const element = document.querySelector("#el3");
+  element.addEventListener("click", t.unreached_func("click event should never happen"));
+
+  element.click();
+  t.step_timeout(() => {
+    assert_equals(element.checked, false);
+    t.done();
+  }, 500);
+
+}, "clicking a disabled checkbox should not cause a click event or cause the checkbox to become checked");
+
+test(() => {
+
+  const element = document.querySelector("#el4");
+  let counter = 0;
+  element.addEventListener("click", () => {
+    ++counter;
+  });
+
+  element.click();
+  assert_equals(counter, 1, "First click must trigger the event listener");
+
+  element.disabled = true;
+  element.click();
+  assert_equals(counter, 1, "Second click, while disabled, must not trigger the event listener");
+
+  element.disabled = false;
+  element.click();
+  assert_equals(counter, 2, "Third click, no longer disabled, must trigger the event listener");
+
+}, "clicking a button that was disabled then re-enabled should cause a click event");
+
+</script>

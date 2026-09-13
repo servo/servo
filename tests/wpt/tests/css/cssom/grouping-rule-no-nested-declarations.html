@@ -1,0 +1,57 @@
+<!doctype html>
+<title>Grouping rules outside nesting context should not produce CSSNestedDeclarations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-nesting-1/#nested-declarations-rule">
+<script>
+"use strict";
+
+function getRules(t, cssText) {
+  const style = document.createElement("style");
+  style.textContent = cssText;
+  document.head.append(style);
+  t.add_cleanup(() => {
+    style.remove();
+  });
+  return style.sheet.cssRules;
+}
+
+test(t => {
+  const rules = getRules(t, "@media all { --z: 1; }");
+  assert_equals(rules.length, 1, "Should have one top-level rule");
+  const mediaRule = rules[0];
+  assert_equals(mediaRule.constructor.name, "CSSMediaRule");
+  assert_equals(mediaRule.cssRules.length, 0, "Bare declaration should be dropped");
+}, "Bare declaration inside top-level @media produces no child rules");
+
+test(t => {
+  const rules = getRules(t, "@media all { color: green; background: red; }");
+  assert_equals(rules.length, 1);
+  assert_equals(rules[0].cssRules.length, 0, "Multiple declarations should be dropped");
+}, "Multiple bare declarations inside top-level @media produce no child rules");
+
+test(t => {
+  const rules = getRules(t, "@supports (color: green) { --x: 1; }");
+  assert_equals(rules.length, 1);
+  assert_equals(rules[0].cssRules.length, 0, "Declaration should be dropped");
+}, "Bare declaration inside top-level @supports produces no child rules");
+
+test(t => {
+  const rules = getRules(t, "@media all { .foo { color: green } --z: 1; }");
+  assert_equals(rules.length, 1);
+  const mediaRule = rules[0];
+  assert_equals(mediaRule.cssRules.length, 1, "Only the style rule should be a child");
+  assert_equals(mediaRule.cssRules[0].constructor.name, "CSSStyleRule");
+}, "Declaration after style rule inside top-level @media is dropped, not wrapped");
+
+test(t => {
+  const rules = getRules(t, ".parent { @media all { --z: 1; } }");
+  assert_equals(rules.length, 1);
+  const parentRule = rules[0];
+  assert_equals(parentRule.cssRules.length, 1, "Should have one nested @media rule");
+  const mediaRule = parentRule.cssRules[0];
+  assert_equals(mediaRule.constructor.name, "CSSMediaRule");
+  assert_equals(mediaRule.cssRules.length, 1, "Should wrap as CSSNestedDeclarations");
+  assert_equals(mediaRule.cssRules[0].constructor.name, "CSSNestedDeclarations");
+}, "Declaration inside @media in nesting context is correctly wrapped as CSSNestedDeclarations");
+</script>

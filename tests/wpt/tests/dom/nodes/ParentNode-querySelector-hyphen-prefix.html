@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Hyphen prefix in class/ID selectors</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3620 -->
+
+<div id="-abc" class="-xyz"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const element = document.querySelector("#-abc");
+  assert_not_equals(element, null);
+}, "ID selector with hyphen-prefix followed by letters");
+
+test(() => {
+  const element = document.querySelector(".-xyz");
+  assert_not_equals(element, null);
+}, "Class selector with hyphen-prefix followed by letters");
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => {
+    document.querySelector("#-123");
+  });
+}, "ID selector with hyphen-prefix followed by numbers");
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => {
+    document.querySelector(".-123");
+  });
+}, "Class selector with hyphen-prefix followed by numbers");
+</script>

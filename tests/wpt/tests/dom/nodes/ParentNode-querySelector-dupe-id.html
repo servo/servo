@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector with duplicated ID</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-queryselector">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/4188 -->
+
+<script>
+"use strict";
+test(() => {
+  const html = '<html><div id="test1"><div id="test2"></div></div></html>';
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const root = doc.documentElement;
+  const test1 = root.querySelector("#test1");
+  const test1Clone = test1.cloneNode(true);
+  const test2 = test1Clone.querySelector("#test2");
+  assert_not_equals(test2, null);
+  assert_equals(
+    test2,
+    test1Clone.querySelector("[id=test2]"),
+    "ID selector and attribute selector points to the same node"
+  );
+  assert_equals(
+    test2,
+    test1Clone.querySelectorAll("#test2")[0],
+    "querySelector and querySelectorAll[0] points to the same node"
+  );
+}, "Sanity: returns a non-null value");
+
+test(() => {
+  const html = '<html><div id="test1"><div id="test2"></div></div></html>';
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const root = doc.documentElement;
+  const test1 = root.querySelector("#test1");
+  const test1Clone = test1.cloneNode(true);
+  root.appendChild(test1Clone);
+  const test2 = test1Clone.querySelector("#test2");
+  assert_not_equals(test2, null);
+  assert_equals(
+    test2,
+    test1Clone.querySelector("[id=test2]"),
+    "ID selector and attribute selector points to the same node"
+  );
+}, "Returns a non-null value for connected cloned node with duplicated ID");
+</script>

@@ -22,7 +22,7 @@ test_valid_value("justify-self", "last baseline");
 
 // <overflow-position>? [ <self-position> | left | right ]
 // <overflow-position> = unsafe | safe
-// <self-position> = center | start | end | self-start | self-end | flex-start | flex-end
+// <self-position> = center | start | end | self-start | self-end | flex-start | flex-end | flow-start | flow-end
 test_valid_value("justify-self", "center");
 test_valid_value("justify-self", "start");
 test_valid_value("justify-self", "end");
@@ -30,6 +30,10 @@ test_valid_value("justify-self", "self-start");
 test_valid_value("justify-self", "self-end");
 test_valid_value("justify-self", "flex-start");
 test_valid_value("justify-self", "flex-end");
+test_valid_value("justify-self", "flow-start");
+test_valid_value("justify-self", "flow-end");
+test_valid_value("justify-self", "safe flow-start");
+test_valid_value("justify-self", "unsafe flow-end");
 test_valid_value("justify-self", "unsafe center");
 test_valid_value("justify-self", "safe self-end");
 test_valid_value("justify-self", "left");

@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<title>SVGSwitchElement interface</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#InterfaceSVGSwitchElement">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+  <switch id="switch" requiredExtensions="a b" systemLanguage="c,d" class="e f">
+    <text systemLanguage="ar">مرحبا</text>
+    <text systemLanguage="de,nl">Hallo!</text>
+  </switch>
+</svg>
+
+<script>
+"use strict";
+{
+  const svg = document.getElementById("svg");
+  const sw = document.getElementById("switch");
+
+  test(() => {
+    assert_true(sw instanceof SVGSwitchElement);
+    assert_true(sw instanceof SVGGraphicsElement);
+    assert_true(sw instanceof SVGElement);
+  }, "Inheritance chain");
+
+  test(() => {
+    assert_equals(sw.ownerSVGElement, svg);
+    assert_equals(sw.viewportElement, svg);
+
+    assert_true(sw.className instanceof SVGAnimatedString);
+    assert_equals(sw.className.baseVal, "e f");
+  }, "SVGElement inherited properties");
+
+  test(() => {
+    assert_true(sw.requiredExtensions instanceof SVGStringList);
+    assert_array_equals(sw.requiredExtensions, ["a", "b"]);
+
+    assert_true(sw.systemLanguage instanceof SVGStringList);
+    assert_array_equals(sw.systemLanguage, ["c", "d"]);
+  }, "SVGTests mixin properties");
+}
+
+test(() => {
+  const sw = document.createElementNS("http://www.w3.org/2000/svg", "switch");
+  assert_true(sw instanceof SVGSwitchElement);
+  assert_true(sw instanceof SVGGraphicsElement);
+  assert_true(sw instanceof SVGElement);
+
+  assert_equals(sw.ownerSVGElement, null, "ownerSVGElement");
+  assert_equals(sw.viewportElement, null, "viewportElement");
+
+  assert_array_equals(sw.requiredExtensions, [], "requiredExtensions");
+  assert_array_equals(sw.systemLanguage, [], "systemLanguage");
+}, "Detached");
+
+</script>

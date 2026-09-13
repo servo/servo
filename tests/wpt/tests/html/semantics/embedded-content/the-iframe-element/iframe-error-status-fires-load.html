@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>iframe with error HTTP status should fire load event</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-iframe-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+
+  iframe.onload = t.step_func_done(() => {
+    assert_true(true, "load event should fire for 404 response");
+    assert_true(Boolean(iframe.contentDocument), "iframe should have a contentDocument");
+  });
+
+  iframe.onerror = t.step_func(() => {
+    assert_unreached("error event should not fire for 404 response");
+  });
+
+  iframe.src = "/common/blank.html?pipe=status(404)";
+  document.body.append(iframe);
+}, "iframe should fire load event for 404 response and display error page");
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+
+  iframe.onload = t.step_func_done(() => {
+    assert_true(true, "load event should fire for 503 response");
+    assert_true(Boolean(iframe.contentDocument), "iframe should have a contentDocument");
+  });
+
+  iframe.onerror = t.step_func(() => {
+    assert_unreached("error event should not fire for 503 response");
+  });
+
+  iframe.src = "/common/blank.html?pipe=status(503)";
+  document.body.append(iframe);
+}, "iframe should fire load event for 503 response and display error page");
+</script>
+</body>

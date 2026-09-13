@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>border-radius shorthand</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-radius">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/4153 -->
+
+<style>
+#div {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+}
+</style>
+
+<div id="div"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("div");
+  const cs = window.getComputedStyle(div);
+  assert_equals(cs.borderRadius, "12px", "shorthand");
+  assert_equals(cs.getPropertyValue("border-radius"), "12px", "get value");
+}, "shorthand");
+
+test(() => {
+  const div = document.getElementById("div");
+  const cs = window.getComputedStyle(div);
+  assert_equals(cs.borderRadius, "12px", "shorthand");
+  assert_equals(cs.borderTopLeftRadius, "12px", "longhand");
+}, "longhand from shorthand");
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.borderRadius = "14px";
+  const cs = window.getComputedStyle(div);
+  assert_equals(cs.borderRadius, "14px", "shorthand");
+  assert_equals(cs.getPropertyValue("border-radius"), "14px", "get value");
+}, "inline style");
+</script>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Specified and resolved values of color</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#the-color-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3887 -->
+
+<body>
+  <div id="parent">
+    <div id="div">Test</div>
+  </div>
+</body>
+
+<script>
+"use strict";
+
+const parentNode = document.getElementById("parent");
+const div = document.getElementById("div");
+const initialColor = window.getComputedStyle(document.documentElement).color;
+
+test(() => {
+  assert_equals(div.style.color, "", "Initial value of specified value is empty string.");
+  assert_false(
+    /canvastext/i.test(initialColor),
+    "Initial color is not system color keyword."
+  );
+  assert_true(
+    initialColor.startsWith("rgb(") && initialColor.endsWith(")"),
+    "Initial color is in rgb() format."
+  );
+  assert_equals(
+    window.getComputedStyle(div).color,
+    initialColor,
+    "Initial value of resolved value is in rgb() format."
+  );
+}, "Sanity check");
+
+test(() => {
+  div.style.color = "CanvasText";
+  assert_equals(
+    div.style.color,
+    "canvastext",
+    "Specified value for system color keyword is lower cased."
+  );
+  assert_equals(
+    window.getComputedStyle(div).color,
+    initialColor,
+    "Resolved value for system color keyword is in rgb() format."
+  );
+}, "System color keyword");
+
+test(() => {
+  div.style.color = "green";
+  assert_equals(
+    div.style.color,
+    "green",
+    "Specified value for color keyword is as is."
+  );
+  assert_equals(
+    window.getComputedStyle(div).color,
+    "rgb(0, 128, 0)",
+    "Resolved value for color keyword is in rgb() format."
+  );
+}, "Color keyword");
+
+test(() => {
+  div.style.color = "#008000";
+  assert_equals(
+    div.style.color,
+    "rgb(0, 128, 0)",
+    "Specified value for hex color notation is in rgb() format."
+  );
+  assert_equals(
+    window.getComputedStyle(div).color,
+    "rgb(0, 128, 0)",
+    "Resolved value for hex color notation is in rgb() format."
+  );
+}, "Hex color notation");
+
+test(() => {
+  div.style.color = "rgb(0 128 0 / 1)";
+  assert_equals(
+    div.style.color,
+    "rgb(0, 128, 0)",
+    "Specified value for color function is in legacy rgb() format."
+  );
+  assert_equals(
+    window.getComputedStyle(div).color,
+    "rgb(0, 128, 0)",
+    "Resolved value for color function is in rgb() format."
+  );
+}, "Color function");
+
+test(() => {
+  parentNode.style.color = "blue";
+  div.style.color = "inherit";
+  assert_equals(
+    div.style.color,
+    "inherit",
+    "Specified value for global CSS keyword is as is."
+  );
+  assert_equals(
+    window.getComputedStyle(div).color,
+    "rgb(0, 0, 255)",
+    "Resolved value for global keyword is in rgb() format."
+  );
+}, "Global keyword");
+</script>

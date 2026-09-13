@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>parser-assigned form owner and fragment parsing</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#create-an-element-for-the-token">
+<link rel="help" href="https://github.com/whatwg/html/issues/12257">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host"></div>
+
+<script>
+
+// The parser's form element pointer makes a form control associate with a form
+// even when the control does not end up as a descendant of it, which is only
+// observable with badly nested markup such as the markup below.
+//
+// This only applies when the form element is connected, so it does not happen
+// during a fragment parse, where the form element is in the fragment. Form
+// association by ancestry is unaffected: only markup that leaves the control
+// outside the form, as below, can tell the difference.
+//
+// The document cases are split so that a failure identifies which kind of
+// document is affected. See https://github.com/whatwg/html/issues/12257.
+
+const MARKUP = "<div><form></div><input type=text></form>";
+
+function assertOwner(root, expectAssociated, kind) {
+  let input = root.querySelector("input");
+  let form = root.querySelector("form");
+  assert_equals(input.closest("form"), null, "setup: <input> is not a descendant of the <form>");
+  if (expectAssociated) {
+    assert_equals(input.form, form, `the parser associates the <input> with the <form> (${kind})`);
+  } else {
+    assert_equals(input.form, null, `the parser does not associate the <input> with the <form> (${kind})`);
+  }
+}
+
+test((t) => {
+  let iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  let doc = iframe.contentDocument;
+  doc.open();
+  doc.write(MARKUP);
+  doc.close();
+  assertOwner(doc, true, "navigable's document");
+}, "parser-assigned form owner in a document parse");
+
+test((t) => {
+  let doc = new DOMParser().parseFromString(MARKUP, "text/html");
+  assertOwner(doc, true, "DOMParser document");
+}, "parser-assigned form owner in a DOMParser document");
+
+test((t) => {
+  let div = document.createElement("div");
+  div.innerHTML = MARKUP;
+  assertOwner(div, false, "disconnected context element");
+}, "parser-assigned form owner in a fragment parse, disconnected context");
+
+test((t) => {
+  let div = document.getElementById("host");
+  div.innerHTML = MARKUP;
+  assertOwner(div, false, "connected context element");
+}, "parser-assigned form owner in a fragment parse, connected context");
+
+</script>

@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<title>SVGNumber interface</title>
+<link rel="author" title="Timothy Gu" href="mailto:timothygu99@gmail.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGNumber">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const svgNum = svg.createSVGNumber();
+  assert_true(svgNum instanceof SVGNumber);
+  assert_equals(typeof svgNum.value, "number");
+}, "Basic properties");
+
+test(() => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const svgNum = svg.createSVGNumber();
+  assert_throws_js(TypeError, () => {
+    svgNum.value = 3.402824e38;
+  });
+  assert_throws_js(TypeError, () => {
+    svgNum.value = -3.402824e38;
+  });
+}, "Supported range");
+
+</script>

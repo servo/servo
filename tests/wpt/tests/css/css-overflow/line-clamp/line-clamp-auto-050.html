@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp auto updates after a descendant shrinks</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-050-ref.html">
+<meta name="assert" content="A shrinking descendant moves an automatic line-clamp target to a later line.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 4lh;
+  font: 20px / 20px monospace;
+  width: 12ch;
+  background: yellow;
+}
+.line-box-sizer {
+  display: inline-block;
+  width: 1ch;
+  height: 2lh;
+  background: orange;
+}
+</style>
+
+<div class="clamp">
+  Line 1<br>
+  <span class="line-box-sizer"></span>
+  Line 2<br>
+  Line 3<br>
+  Line 4<br>
+  Line 5
+</div>
+
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.querySelector(".line-box-sizer").style.height = "1lh";
+    takeScreenshot();
+  });
+});
+</script>

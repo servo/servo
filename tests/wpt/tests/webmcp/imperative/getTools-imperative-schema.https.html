@@ -41,25 +41,23 @@
     assert_equals(registeredTool.description, "Search the web", "Tool description matches registered tool");
 
     assert_true(!!registeredTool.inputSchema, "inputSchema should be non-empty");
-    const schema = JSON.parse(registeredTool.inputSchema);
-
-    assert_equals(schema.type, "object", "Schema should be an object");
+    assert_equals(registeredTool.inputSchema.type, "object", "Schema should be an object");
 
     // 'query' property validation (required string)
-    assert_true("query" in schema.properties, "Schema should contain 'query' property");
-    assert_equals(schema.properties.query.type, "string", "Query property type should be string");
-    assert_equals(schema.properties.query.description, "The search query", "Query property description is correct");
-    assert_array_equals(schema.required, ["query"], "Query should be a required property");
+    assert_true("query" in registeredTool.inputSchema.properties, "Schema should contain 'query' property");
+    assert_equals(registeredTool.inputSchema.properties.query.type, "string", "Query property type should be string");
+    assert_equals(registeredTool.inputSchema.properties.query.description, "The search query", "Query property description is correct");
+    assert_array_equals(registeredTool.inputSchema.required, ["query"], "Query should be a required property");
 
     // 'limit' property validation (optional number)
-    assert_true("limit" in schema.properties, "Schema should contain 'limit' property");
-    assert_equals(schema.properties.limit.type, "number", "Limit property type should be number");
-    assert_equals(schema.properties.limit.description, "Max results count", "Limit property description is correct");
+    assert_true("limit" in registeredTool.inputSchema.properties, "Schema should contain 'limit' property");
+    assert_equals(registeredTool.inputSchema.properties.limit.type, "number", "Limit property type should be number");
+    assert_equals(registeredTool.inputSchema.properties.limit.description, "Max results count", "Limit property description is correct");
 
     // 'safe_search' property validation (optional boolean)
-    assert_true("safe_search" in schema.properties, "Schema should contain 'safe_search' property");
-    assert_equals(schema.properties.safe_search.type, "boolean", "safe_search property type should be boolean");
-    assert_equals(schema.properties.safe_search.description, "Enable safe search filtering", "safe_search property description is correct");
+    assert_true("safe_search" in registeredTool.inputSchema.properties, "Schema should contain 'safe_search' property");
+    assert_equals(registeredTool.inputSchema.properties.safe_search.type, "boolean", "safe_search property type should be boolean");
+    assert_equals(registeredTool.inputSchema.properties.safe_search.description, "Enable safe search filtering", "safe_search property description is correct");
   }, "Test that getTools() returns the correct inputSchema for an imperative tool");
 </script>
 </body>

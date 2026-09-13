@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>MutationObserver overlapping registrations</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  "use strict";
+
+  test(() => {
+    const firstTarget = document.createElement("div");
+    const secondTarget = document.createElement("div");
+    const firstObserver = new MutationObserver(() => {});
+    const secondObserver = new MutationObserver(() => {});
+
+    firstObserver.observe(firstTarget, { attributes: true });
+    secondObserver.observe(secondTarget, { attributes: true });
+
+    firstTarget.setAttribute("data-value", "after");
+    assert_equals(firstObserver.takeRecords().length, 1, "the first observer receives the mutation");
+    assert_equals(secondObserver.takeRecords().length, 0, "the second observer does not receive the mutation");
+
+    firstObserver.disconnect();
+    secondObserver.disconnect();
+  }, "Observers registered on separate targets do not share registrations");
+
+  test(() => {
+    for (const [targetRequestsOldValue, ancestorRequestsOldValue] of [[false, true], [true, false]]) {
+      const ancestor = document.createElement("div");
+      const target = ancestor.appendChild(document.createElement("div"));
+      target.setAttribute("data-value", "before");
+
+      const observer = new MutationObserver(() => {});
+      observer.observe(target, { attributes: true, attributeOldValue: targetRequestsOldValue });
+      observer.observe(ancestor, {
+        attributes: true,
+        attributeOldValue: ancestorRequestsOldValue,
+        subtree: true
+      });
+
+      target.setAttribute("data-value", "after");
+      const records = observer.takeRecords();
+      assert_equals(records.length, 1, "the observer receives one record");
+      assert_equals(records[0].oldValue, "before", "the record includes the requested old value");
+      observer.disconnect();
+    }
+  }, "An observer matching through multiple registrations receives one record with the requested old value");
+
+  test(() => {
+    const ancestor = document.createElement("div");
+    const target = ancestor.appendChild(document.createElement("div"));
+    target.setAttribute("data-value", "before");
+
+    const overlappingObserver = new MutationObserver(() => {});
+    overlappingObserver.observe(target, { attributes: true });
+
+    const ancestorObserver = new MutationObserver(() => {});
+    ancestorObserver.observe(ancestor, { attributes: true, subtree: true });
+
+    overlappingObserver.observe(ancestor, { attributes: true, attributeOldValue: true, subtree: true });
+
+    target.setAttribute("data-value", "after");
+    const overlappingRecords = overlappingObserver.takeRecords();
+    const ancestorRecords = ancestorObserver.takeRecords();
+
+    assert_equals(overlappingRecords.length, 1, "the overlapping observer receives one record");
+    assert_equals(overlappingRecords[0].oldValue, "before", "the overlapping observer receives the old value");
+    assert_equals(ancestorRecords.length, 1, "the ancestor observer receives one record");
+    assert_equals(ancestorRecords[0].oldValue, null, "the ancestor observer does not receive the old value");
+
+    overlappingObserver.disconnect();
+    ancestorObserver.disconnect();
+  }, "Distinct observers matching the same mutation receive records using their own options");
+</script>

@@ -1,0 +1,75 @@
+<!doctype html>
+<title>CSSKeyframeRule keyText getter and setter</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#dom-csskeyframerule-keytext">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes test {
+    from { opacity: 0 }
+    to { opacity: 1 }
+    50% { opacity: 0.5 }
+    25%, 75% { opacity: 0.3 }
+  }
+</style>
+<script>
+"use strict";
+
+const rules = document.styleSheets[0].cssRules[0].cssRules;
+
+test(() => {
+  assert_equals(rules[0].keyText, "0%");
+}, "getter normalizes 'from' to '0%'");
+
+test(() => {
+  assert_equals(rules[1].keyText, "100%");
+}, "getter normalizes 'to' to '100%'");
+
+test(() => {
+  assert_equals(rules[2].keyText, "50%");
+}, "getter preserves percentage values");
+
+test(() => {
+  assert_equals(rules[3].keyText, "25%, 75%");
+}, "getter normalizes comma-separated selectors");
+
+test(() => {
+  rules[0].keyText = "10%";
+  assert_equals(rules[0].keyText, "10%");
+}, "setter accepts a valid percentage");
+
+test(() => {
+  rules[0].keyText = "from";
+  assert_equals(rules[0].keyText, "0%");
+}, "setter normalizes 'from' to '0%'");
+
+test(() => {
+  rules[0].keyText = "to";
+  assert_equals(rules[0].keyText, "100%");
+}, "setter normalizes 'to' to '100%'");
+
+test(() => {
+  rules[0].keyText = "10%, 90%";
+  assert_equals(rules[0].keyText, "10%, 90%");
+}, "setter accepts comma-separated percentages");
+
+test(() => {
+  rules[0].keyText = "from, to";
+  assert_equals(rules[0].keyText, "0%, 100%");
+}, "setter normalizes comma-separated from/to");
+
+test(() => {
+  rules[0].keyText = "50%";
+  assert_throws_dom("SyntaxError", () => {
+    rules[0].keyText = "invalid";
+  });
+  assert_equals(rules[0].keyText, "50%", "value unchanged after invalid set");
+}, "setter throws SyntaxError for invalid selector");
+
+test(() => {
+  rules[0].keyText = "50%";
+  assert_throws_dom("SyntaxError", () => {
+    rules[0].keyText = "";
+  });
+  assert_equals(rules[0].keyText, "50%", "value unchanged after empty set");
+}, "setter throws SyntaxError for empty string");
+</script>

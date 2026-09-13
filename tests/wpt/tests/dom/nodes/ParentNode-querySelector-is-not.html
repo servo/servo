@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector with :is():not()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3686 -->
+
+<script>
+"use strict";
+test(() => {
+  assert_equals(document.querySelector(":is([a],b):not(.c)"), null, "does not throw");
+  assert_equals(document.querySelector(":is(a,[b]):not(.c)"), null, "does not throw");
+  assert_equals(document.querySelector(":is(a,b):not(.c)"), null, "does not throw");
+  assert_equals(document.querySelector(":is(a,b):not([c])"), null, "does not throw");
+  assert_equals(document.querySelector(":is(a):not([b],.c)"), null, "does not throw");
+  assert_equals(document.querySelector(":is(a,[b])"), null, "does not throw");
+  assert_equals(document.querySelector(":is(a,[b]):first-child"), null, "does not throw");
+  assert_equals(document.querySelector(":is([b]):not(.c)"), null, "does not throw");
+}, "querySelector with :is():not() combined");
+</script>

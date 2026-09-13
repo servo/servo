@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<title>background-position with multiple values</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-position">
+<!-- Regression test for https://github.com/jsdom/cssstyle/issues/209 -->
+
+<div id="test"></div>
+
+<script>
+"use strict";
+
+const div = document.getElementById("test");
+
+test(() => {
+  div.style.backgroundPosition = null;
+  assert_equals(div.style.backgroundPosition, "");
+}, "Sanity check");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundPosition = null;
+  });
+
+  div.style.backgroundPosition = "10";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "left right";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "top bottom";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "10px left";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "top 10px";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "left right top";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "10px 20px 30px";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "left 10px right";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "top 10px bottom";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "left 10px 20px";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "10px top 20px";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "center 10px center";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "center center 10px";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "left bottom right top";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "10px 20px 30px 40px";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "center 10px center 20px";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "left 10px right 20px";
+  assert_equals(div.style.backgroundPosition, "");
+
+  div.style.backgroundPosition = "right 10px left 20px";
+  assert_equals(div.style.backgroundPosition, "");
+}, "Invalid values");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundPosition = null;
+  });
+
+  div.style.backgroundPosition = "center";
+  assert_equals(div.style.backgroundPosition, "center center");
+
+  div.style.backgroundPosition = "left";
+  assert_equals(div.style.backgroundPosition, "left center");
+
+  div.style.backgroundPosition = "right";
+  assert_equals(div.style.backgroundPosition, "right center");
+
+  div.style.backgroundPosition = "top";
+  assert_equals(div.style.backgroundPosition, "center top");
+
+  div.style.backgroundPosition = "bottom";
+  assert_equals(div.style.backgroundPosition, "center bottom");
+
+  div.style.backgroundPosition = "10px";
+  assert_equals(div.style.backgroundPosition, "10px center");
+
+  div.style.backgroundPosition = "10%";
+  assert_equals(div.style.backgroundPosition, "10% center");
+}, "1 value");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundPosition = null;
+  });
+
+  div.style.backgroundPosition = "center center";
+  assert_equals(div.style.backgroundPosition, "center center");
+
+  div.style.backgroundPosition = "left top";
+  assert_equals(div.style.backgroundPosition, "left top");
+
+  div.style.backgroundPosition = "left center";
+  assert_equals(div.style.backgroundPosition, "left center");
+
+  div.style.backgroundPosition = "top center";
+  assert_equals(div.style.backgroundPosition, "center top");
+
+  div.style.backgroundPosition = "top left";
+  assert_equals(div.style.backgroundPosition, "left top");
+
+  div.style.backgroundPosition = "left 10px";
+  assert_equals(div.style.backgroundPosition, "left 10px");
+
+  div.style.backgroundPosition = "10px top";
+  assert_equals(div.style.backgroundPosition, "10px top");
+
+  div.style.backgroundPosition = "left 10%";
+  assert_equals(div.style.backgroundPosition, "left 10%");
+
+  div.style.backgroundPosition = "10% top";
+  assert_equals(div.style.backgroundPosition, "10% top");
+}, "2 values");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundPosition = null;
+  });
+
+  div.style.backgroundPosition = "left 10px top";
+  assert_equals(div.style.backgroundPosition, "left 10px top");
+
+  div.style.backgroundPosition = "left top 10px";
+  assert_equals(div.style.backgroundPosition, "left top 10px");
+
+  div.style.backgroundPosition = "top 10px left";
+  assert_equals(div.style.backgroundPosition, "left top 10px");
+
+  div.style.backgroundPosition = "top left 10px";
+  assert_equals(div.style.backgroundPosition, "left 10px top");
+}, "3 values");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundPosition = null;
+  });
+
+  div.style.backgroundPosition = "left 10px top 20px";
+  assert_equals(div.style.backgroundPosition, "left 10px top 20px");
+
+  div.style.backgroundPosition = "top 10px left 20px";
+  assert_equals(div.style.backgroundPosition, "left 20px top 10px");
+}, "4 values");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundPosition = null;
+  });
+
+  div.style.backgroundPosition = "left, top, 10px";
+  assert_equals(div.style.backgroundPosition, "left center, center top, 10px center");
+
+  div.style.backgroundPosition = "left top, right bottom";
+  assert_equals(div.style.backgroundPosition, "left top, right bottom");
+
+  div.style.backgroundPosition = "top left, bottom right";
+  assert_equals(div.style.backgroundPosition, "left top, right bottom");
+
+  div.style.backgroundPosition = "left 10px top, right 20px bottom";
+  assert_equals(div.style.backgroundPosition, "left 10px top, right 20px bottom");
+
+  div.style.backgroundPosition = "top 10px left, bottom right 20px";
+  assert_equals(div.style.backgroundPosition, "left top 10px, right 20px bottom");
+
+  div.style.backgroundPosition = "left 10px top 20px, right 30px bottom 40px";
+  assert_equals(div.style.backgroundPosition, "left 10px top 20px, right 30px bottom 40px");
+
+  div.style.backgroundPosition = "top 10px left 20px, bottom 30px right 40px";
+  assert_equals(div.style.backgroundPosition, "left 20px top 10px, right 40px bottom 30px");
+}, "Multiple background positions");
+</script>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>document.evaluate() with a node-set result type for a non-node-set expression throws</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- https://github.com/jsdom/jsdom/issues/4147 -->
+
+<script>
+"use strict";
+
+const nodeSetTypes = [
+  "UNORDERED_NODE_ITERATOR_TYPE",
+  "ORDERED_NODE_ITERATOR_TYPE",
+  "UNORDERED_NODE_SNAPSHOT_TYPE",
+  "ORDERED_NODE_SNAPSHOT_TYPE",
+  "ANY_UNORDERED_NODE_TYPE",
+  "FIRST_ORDERED_NODE_TYPE"
+];
+
+for (const name of nodeSetTypes) {
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      document.evaluate("string(/)", document, null, XPathResult[name], null);
+    });
+  }, `evaluate("string(/)") with ${name} throws TypeError`);
+}
+</script>

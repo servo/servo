@@ -33,7 +33,7 @@ promise_test(async t => {
 
   // `executeTool()` should reject since the tool execution failed.
   await promise_rejects_dom(t, 'UnknownError',
-      document.modelContext.executeTool(tool, '{}'),
+      document.modelContext.executeTool(tool),
       'executeTool() rejects when the tool execution throws');
 
   assert_false(errorFired, 'window.onerror/error event should not be fired');
@@ -66,7 +66,7 @@ promise_test(async t => {
 
   // `executeTool()` should reject since serializing the return value throws a TypeError.
   await promise_rejects_dom(t, 'UnknownError',
-      document.modelContext.executeTool(tool, '{}'),
+      document.modelContext.executeTool(tool),
       'executeTool() rejects when the tool execution returns a circular object');
 
   assert_false(errorFired, 'window.onerror/error event should not be fired');

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>querySelector with :scope on element with numeric ID</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <!-- Regression test for https://github.com/jsdom/jsdom/issues/3321 -->
+</head>
+<body>
+  <div id="9a">
+    <b id="target_b"/>
+  </div>
+
+  <script>
+  //<![CDATA[
+  "use strict";
+
+  test(() => {
+    const scopeElement = document.getElementById("9a");
+    assert_not_equals(scopeElement, null, "Element with numeric ID '9a' should exist");
+
+    const result = scopeElement.querySelector(":scope > b");
+    assert_not_equals(result, null, "querySelector should find the child 'b' element");
+    assert_equals(result.id, "target_b", "querySelector should return the correct 'b' element");
+  });
+  //]]>
+  </script>
+</body>
+</html>

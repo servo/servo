@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>element.closest() with #null and .null selectors</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3466 -->
+
+<p id="testP">Some text</p>
+
+<script>
+"use strict";
+
+test(() => {
+  const p = document.getElementById("testP");
+  assert_equals(p.closest("#null"), null);
+}, "element.closest('#null') should return null");
+
+test(() => {
+  const p = document.getElementById("testP");
+  assert_equals(p.closest(".null"), null);
+}, "element.closest('.null') should return null");
+
+</script>

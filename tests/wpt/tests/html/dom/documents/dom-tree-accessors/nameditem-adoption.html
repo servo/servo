@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Document named properties across adoption</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+test(() => {
+  const otherDocument = document.implementation.createHTMLDocument();
+  const object = document.createElement("object");
+  object.id = "adopted";
+  document.body.append(object);
+  assert_equals(document.adopted, object, "before adoption");
+
+  otherDocument.adoptNode(object);
+  assert_equals(document.adopted, undefined, "removed from old document by adoption");
+  assert_equals(otherDocument.adopted, undefined, "not yet inserted into new document");
+
+  otherDocument.body.append(object);
+  assert_equals(otherDocument.adopted, object, "after insertion into new document");
+}, "Named properties follow adoption between documents.");
+
+</script>

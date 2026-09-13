@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp auto after text unwraps</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-053-ref.html">
+<meta name="assert" content="Automatic line-clamp stops using line boxes removed by incremental text unwrapping.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 3lh;
+  font: 20px / 20px monospace;
+  width: 10ch;
+  background: yellow;
+}
+.final {
+  width: 18ch;
+}
+</style>
+<div class="clamp">
+  Line one<br>
+  wrapping text here<br>
+  Line three<br>
+  Line four
+</div>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.querySelector(".clamp").classList.add("final");
+  takeScreenshot();
+}));
+</script>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM: Computed style cache invalidation on style element insertion and removal</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style id="initial-style">
+  #target-remove {
+    color: rgb(0, 0, 255);
+  }
+</style>
+
+<div id="target-insert">Insert Test</div>
+<div id="target-remove">Remove Test</div>
+
+<script>
+"use strict";
+test(() => {
+  const target = document.getElementById("target-insert");
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 0)", "The initial color should be black");
+
+  const style = document.createElement("style");
+  style.textContent = "#target-insert { color: rgb(255, 0, 0); }"; // red
+  document.head.appendChild(style);
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)", "The computed color should be red");
+
+  style.remove();
+}, "Styles should be recomputed correctly after a <style> element is inserted.");
+
+test(() => {
+  const target = document.getElementById("target-remove");
+  const style = document.getElementById("initial-style");
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)", "The initial color should be blue");
+
+  style.remove();
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 0)", "The computed color should revert to black");
+}, "Styles should be recomputed correctly after a <style> element is removed.");
+</script>

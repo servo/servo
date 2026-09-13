@@ -19,12 +19,13 @@
 // DocumentFragment). So for a context element in a non-HTML namespace, CDATA
 // sections are allowed even if that element is an integration point.
 //
-// The input "x<![CDATA[y]]>" is used because:
-// 1. "x" is emitted as a character token first
-// 2. After processing "x", the tree builder sets tokenizer flags
-// 3. "<![CDATA[y]]>" is then tokenized with those flags
+// The input "x<![CDATA[y]]>" exercises the flag as the tree builder leaves it after
+// processing a token: "x" is emitted as a character token first, and "<![CDATA[y]]>"
+// is tokenized afterwards. The tests at the end of this file use "<![CDATA[y]]>" on
+// its own, where no token precedes the CDATA section, so the flag has to be set when
+// the fragment parser is created.
 //
-// If CDATA is allowed, "y" becomes text content (textContent === "xy").
+// If CDATA is allowed, "y" becomes text content.
 // If CDATA is disallowed, "<![CDATA[y]]>" becomes a bogus comment.
 
 // MathML text integration points: still in the MathML namespace, so CDATA is allowed.
@@ -71,4 +72,32 @@ test(function() {
         "CDATA should be parsed as a bogus comment for an HTML context element");
     assert_equals(el.lastChild.data, "[CDATA[y]]", "bogus comment data");
 }, "CDATA not allowed when fragment-parsing with <div> context (HTML element)");
+
+// A CDATA section at the very start of the fragment is tokenized before any token has
+// reached the tree builder, so the flag cannot be set by processing a preceding token.
+for (const [namespace, tagName, description] of [
+    ["http://www.w3.org/1998/Math/MathML", "ms", "MathML text integration point"],
+    ["http://www.w3.org/2000/svg", "title", "SVG HTML integration point"],
+    ["http://www.w3.org/2000/svg", "path", "non-integration-point SVG element"],
+    ["http://www.w3.org/1998/Math/MathML", "annotation-xml", "non-integration-point MathML element"],
+]) {
+    test(function() {
+        const el = document.createElementNS(namespace, tagName);
+        el.innerHTML = "<![CDATA[y]]>";
+        assert_equals(el.textContent, "y",
+            "CDATA should be parsed as character data because the adjusted current node is not in the HTML namespace");
+        assert_equals(el.childNodes.length, 1, "should have a single text node");
+        assert_equals(el.firstChild.nodeType, Node.TEXT_NODE, "child should be a text node");
+    }, "CDATA allowed at the start of a fragment with <" + tagName + "> context (" + description + ")");
+}
+
+// Control: the same input with an HTML context element is still a bogus comment.
+test(function() {
+    const el = document.createElement("div");
+    el.innerHTML = "<![CDATA[y]]>";
+    assert_equals(el.childNodes.length, 1, "should have a single comment node");
+    assert_equals(el.firstChild.nodeType, Node.COMMENT_NODE,
+        "CDATA should be parsed as a bogus comment for an HTML context element");
+    assert_equals(el.firstChild.data, "[CDATA[y]]", "bogus comment data");
+}, "CDATA not allowed at the start of a fragment with <div> context (HTML element)");
 </script>

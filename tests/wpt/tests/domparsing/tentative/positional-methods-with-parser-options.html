@@ -96,7 +96,7 @@
           const trusted_options = trusted_policy.createParserOptions({
             runScripts: true,
           });
-          assert_true(trusted_options.runScripts);
+          assert_true(trusted_options instanceof TrustedHTMLParserOptions);
           object[method_name](
             "<span>html;</span><p>forbidden</p><script>window.did_run = true;<" +
               "/script>",
@@ -106,7 +106,7 @@
           check_position(target, pos, ref);
           assert_equals(target.querySelector("p"), null);
           assert_equals(window.did_run, !safe && target_type !== "template.content");
-        }, `TrustedParserOptions overrides default policy: ${variant}`);
+        }, `TrustedHTMLParserOptions overrides default policy: ${variant}`);
       }
     }
 

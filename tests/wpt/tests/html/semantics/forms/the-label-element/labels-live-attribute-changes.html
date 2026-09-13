@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Labels collections remain live after attribute changes</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#dom-lfe-labels">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+test(t => {
+  const label = document.createElement("label");
+  const input1 = document.createElement("input");
+  const input2 = document.createElement("input");
+  label.htmlFor = "live-labels-1";
+  input1.id = "live-labels-1";
+  input2.id = "live-labels-2";
+  document.body.append(label, input1, input2);
+  t.add_cleanup(() => {
+    label.remove();
+    input1.remove();
+    input2.remove();
+  });
+
+  const labels1 = input1.labels;
+  const labels2 = input2.labels;
+  assert_array_equals(labels1, [label]);
+  assert_array_equals(labels2, []);
+
+  label.htmlFor = "live-labels-2";
+  assert_array_equals(labels1, [], "Changing 'for' should update the old control's labels.");
+  assert_array_equals(labels2, [label], "Changing 'for' should update the new control's labels.");
+
+  input2.id = "live-labels-3";
+  assert_array_equals(labels2, [], "Changing the control's ID should update its labels.");
+
+  input2.id = "live-labels-2";
+  assert_array_equals(labels2, [label], "Restoring the control's ID should update its labels.");
+
+  label.remove();
+  input1.remove();
+  input2.remove();
+}, "The labels NodeList stays live when label associations change.");
+
+</script>

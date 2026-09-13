@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelectorAll with :not() pseudo-class and descendant selector</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3340 -->
+
+<div id="container">
+  <p id="p1">
+    <table>
+      <tbody>
+        <tr>
+          <td>
+            <p id="p2"></p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </p>
+  <p id="p3"></p>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const container = document.getElementById("container");
+  const result = container.querySelectorAll("p:not(table p)");
+
+  // Browsers parse the invalid HTML `<p><table>...</table></p><p>`
+  // such that the first <p> is closed before the <table>,
+  // and the closing </p> tag creates a *new* empty <p> element after the table.
+  // Thus, the query should match p#p1, the empty p after the table, and p#p3.
+  const resultIDs = Array.from(result, el => el.id);
+  assert_array_equals(resultIDs, ["p1", "", "p3"]);
+});
+</script>

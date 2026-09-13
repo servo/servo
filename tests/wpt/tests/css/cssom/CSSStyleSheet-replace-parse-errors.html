@@ -1,0 +1,50 @@
+<!doctype html>
+<title>CSSStyleSheet replace() and replaceSync() with parse errors</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylesheet-replace">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylesheet-replacesync">
+<script>
+"use strict";
+
+for (const method of ["replace", "replaceSync"]) {
+  promise_test(async () => {
+    const sheet = new CSSStyleSheet();
+    await sheet[method]("p { color: red; }");
+    assert_equals(sheet.cssRules.length, 1, "setup: should have 1 rule");
+
+    await sheet[method]("!@#$%garbage");
+    assert_equals(sheet.cssRules.length, 0, "garbage input should result in no rules");
+  }, `${method}() with completely invalid CSS clears existing rules`);
+
+  promise_test(async () => {
+    const sheet = new CSSStyleSheet();
+    await sheet[method]("p { color: red; }");
+    assert_equals(sheet.cssRules.length, 1, "setup: should have 1 rule");
+
+    await sheet[method]("");
+    assert_equals(sheet.cssRules.length, 0, "empty string should result in no rules");
+  }, `${method}() with empty string clears existing rules`);
+
+  promise_test(async () => {
+    const sheet = new CSSStyleSheet();
+    await sheet[method]("p { color: red; } @invalid; div { color: blue; }");
+    assert_equals(sheet.cssRules.length, 2, "valid rules should survive around invalid at-rule");
+    assert_equals(sheet.cssRules[0].selectorText, "p");
+    assert_equals(sheet.cssRules[1].selectorText, "div");
+  }, `${method}() with mixed valid and invalid CSS keeps valid rules`);
+
+  promise_test(async () => {
+    const sheet = new CSSStyleSheet();
+    await sheet[method]("p { color: red; }");
+    assert_equals(sheet.cssRules.length, 1, "setup: should have 1 rule");
+
+    await sheet[method]("!@#$%garbage");
+    assert_equals(sheet.cssRules.length, 0, "garbage clears rules");
+
+    await sheet[method]("div { color: blue; }");
+    assert_equals(sheet.cssRules.length, 1, "sheet is usable again after garbage input");
+    assert_equals(sheet.cssRules[0].selectorText, "div");
+  }, `${method}() sheet remains usable after parse error`);
+}
+</script>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>border shorthand containing keywords or var()</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#propdef-border">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/4112 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.border = "inherit";
+  div.style.borderWidth = "initial";
+  assert_equals(div.style.border, "", "border");
+  assert_equals(div.style.borderWidth, "initial", "border-width");
+}, "border shorthand with CSS wide keywords");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.borderBottom = "var(--border-width, 1px)";
+  div.style.borderColor = "rgba(117,117,117,1)";
+  assert_equals(div.style.border, "", "border");
+  assert_equals(div.style.borderBottom, "", "border-bottom");
+  assert_equals(div.style.borderColor, "rgb(117, 117, 117)", "border-color");
+}, "border related properties with var()");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.border = "inherit";
+  div.style.borderTopWidth = "medium";
+  assert_equals(div.style.border, "", "border shorthand should clear");
+  assert_equals(div.style.borderTop, "", "border-top should clear");
+  assert_equals(div.style.borderTopWidth, "medium", "border-top-width");
+}, "border shorthand clears when longhand is set to its initial value");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.border = "inherit";
+  div.style.borderTop = "1px solid red";
+  assert_equals(div.style.border, "", "border");
+  assert_equals(div.style.borderWidth, "", "border-width");
+  assert_equals(div.style.borderStyle, "", "border-style");
+  assert_equals(div.style.borderColor, "", "border-color");
+  assert_equals(div.style.borderTop, "1px solid red", "border-top");
+}, "border shorthand clears when position shorthand overrides inherited border");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.cssText = "border: inherit";
+  assert_equals(div.style.border, "inherit", "border");
+  assert_equals(div.style.cssText, "border: inherit;", "cssText");
+}, "border: inherit set via cssText");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.cssText = "border-top: inherit";
+  assert_equals(div.style.borderTop, "inherit", "border-top");
+  assert_equals(div.style.cssText, "border-top: inherit;", "cssText");
+}, "border-top: inherit set via cssText");
+</script>

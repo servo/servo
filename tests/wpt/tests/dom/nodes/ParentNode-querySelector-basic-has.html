@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Basic :has() support in querySelector</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3506 -->
+
+<p id="p-with-span">
+  <span>123</span>
+</p>
+<p></p>
+
+<script>
+"use strict";
+
+test(() => {
+  const expectedP = document.getElementById("p-with-span");
+  assert_equals(document.querySelector("p:has(span)"), expectedP);
+});
+
+</script>

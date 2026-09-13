@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<body>
+<script>
+'use strict';
+
+// This page is loaded on a host whose parent domain is not a public suffix, so
+// that a cookie set on the parent domain can be told apart from one set on the
+// host itself.
+const kHost = '{{domains[www]}}';
+const kParent = '{{host}}';
+
+promise_test(async t => {
+  t.add_cleanup(async () => {
+    await cookieStore.delete({ name: 'a', domain: kParent });
+    await cookieStore.delete({ name: 'a', domain: kHost });
+    await cookieStore.delete({ name: 'a' });
+  });
+
+  // A domain attribute always produces a cookie that is not host-only, even
+  // when it equals the host, so these are three distinct cookies.
+  await cookieStore.set({ name: 'a', value: 'parent', domain: kParent });
+  await cookieStore.set({ name: 'a', value: 'host', domain: kHost });
+  await cookieStore.set({ name: 'a', value: 'host-only' });
+
+  assert_equals((await cookieStore.getAll('a')).length, 3,
+                'the three cookies must be stored separately');
+
+  // Repeated so that a delete matching more than the targeted cookie fails
+  // here whatever order the implementation enumerates the cookies in.
+  for (let i = 0; i < 3; ++i) {
+    await cookieStore.delete({ name: 'a', domain: kHost });
+  }
+
+  const values = (await cookieStore.getAll('a')).map(cookie => cookie.value);
+  values.sort();
+  assert_array_equals(values, ['host-only', 'parent']);
+}, 'cookieStore.delete() with a domain removes only the cookie set on that ' +
+   'domain');
+</script>
+</body>

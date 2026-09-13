@@ -20,6 +20,9 @@
     cursor: none;
     content-visibility: hidden;
     contain: size;
+    container-type: size;
+    container-name: test;
+    contain-intrinsic-size: 700px 100px;
     corner-shape: notch;
     corner-top-left-shape: scoop;
     corner-top-right-shape: bevel;
@@ -43,6 +46,10 @@
     assert_equals(getComputedStyle(el_with_negatives).cursor, "pointer", "cursor");
     assert_equals(getComputedStyle(el_with_negatives).contentVisibility, "visible", "content-visibility");
     assert_equals(getComputedStyle(el_with_negatives).contain, "none", "contain");
+    assert_equals(getComputedStyle(el_with_negatives).containerType, "normal", "container-type");
+    assert_equals(getComputedStyle(el_with_negatives).containerName, "none", "container-name");
+    assert_equals(getComputedStyle(el_with_negatives).containIntrinsicWidth, "none", "contain-intrinsic-width");
+    assert_equals(getComputedStyle(el_with_negatives).containIntrinsicHeight, "none", "contain-intrinsic-height");
     assert_equals(getComputedStyle(el_with_negatives).cornerShape, "superellipse(1)", "corner-shape");
     assert_equals(getComputedStyle(el_with_negatives).cornerTopLeftShape, "superellipse(1)", "corner-top-left-shape");
     assert_equals(getComputedStyle(el_with_negatives).cornerTopRightShape, "superellipse(1)", "corner-top-right-shape");

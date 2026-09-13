@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>querySelector with nested :nth-child() without tag names</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3026 -->
+
+<main>
+  <div> <!-- :nth-child(1) of main -->
+    <div> <!-- :nth-child(1) of div -->
+      <p>
+        <a href="#" id="targetLink">link</a>
+      </p>
+    </div>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+test(() => {
+  const selector = "main > :nth-child(1) > :nth-child(1) a";
+  const expectedLink = document.getElementById("targetLink");
+  assert_equals(document.querySelector(selector), expectedLink);
+});
+</script>

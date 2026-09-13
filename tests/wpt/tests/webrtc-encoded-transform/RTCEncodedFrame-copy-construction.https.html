@@ -43,6 +43,23 @@ promise_test(async t => {
    assert_json_equals(clone.getMetadata(), frame.getMetadata());
 }, "RTCEncodedAudioFrame copy construction on main thread.");
 
+// Every metadata field the spec defines for each kind, with a sample value of
+// the right type. Fields the original frame does not have exercise the "set a
+// field that isn't there yet" half of the constructor's metadata steps.
+const allMetadata = {
+  video: {
+    synchronizationSource: 1, payloadType: 2, contributingSources: [3],
+    rtpTimestamp: 4, receiveTime: 5, captureTime: 6, senderCaptureTimeOffset: 7,
+    mimeType: "video/VP8", frameId: 8, dependencies: [9], width: 10, height: 11,
+    spatialIndex: 12, temporalIndex: 13, timestamp: 14,
+  },
+  audio: {
+    synchronizationSource: 1, payloadType: 2, contributingSources: [3],
+    rtpTimestamp: 4, receiveTime: 5, captureTime: 6, senderCaptureTimeOffset: 7,
+    mimeType: "audio/opus", sequenceNumber: 8, audioLevel: 0.5,
+  },
+};
+
 function different(value) {
    switch (typeof value) {
      case "number": return value + 1;
@@ -81,6 +98,23 @@ function different(value) {
     }
   }, `${constr} copy construction metadata override on main thread.`);
 
+  Object.keys(allMetadata[kind]).forEach(key => {
+    promise_test(async t => {
+      const frame = reuse[kind];
+      const oldData = frame.getMetadata();
+      // Spec says "For each {[[key]],[[value]]} pair of options.[metadata], set
+      // [[metadata]].[[key]] to a deep copy of [[value]]", which includes keys
+      // the original frame's metadata does not have at all.
+      const metadata = {[key]: allMetadata[kind][key]};
+      const clone = new window[constr](frame, {metadata});
+      const newData = clone.getMetadata();
+      assert_json_equals(newData[key], metadata[key], `${key} was set`);
+      delete newData[key];
+      delete oldData[key];
+      assert_json_equals(newData, oldData, `only ${key} changed`);
+    }, `${constr} copy construction metadata override/addition on main thread (${key}).`);
+  });
+
   promise_test(async t => {
     const frame = reuse[kind];
     assert_greater_than(frame.data.byteLength, 0);
@@ -92,13 +126,107 @@ function different(value) {
   }, `${constr} structuredClone on main thread.`);
 
   promise_test(async t => {
+    // We're going to modify this frame, so don't mess up the original
+    const frame = structuredClone(reuse[kind]);
+    assert_greater_than(frame.data.byteLength, 0);
+    const length = frame.data.byteLength;
+    new Uint8Array(frame.data).fill(0xa5);
+
+    // Clone should also be modified...
+    const clone = structuredClone(frame);
+    assert_true(new Uint8Array(clone.data).every(b => b == 0xa5));
+    assert_equals(clone.data.byteLength, length);
+    assert_equals(frame.data.byteLength, length);
+
+    // ...but deep copy should have happened
+    new Uint8Array(frame.data).fill(0xb5);
+    assert_true(new Uint8Array(clone.data).every(b => b == 0xa5));
+    new Uint8Array(clone.data).fill(0xc5);
+    assert_true(new Uint8Array(frame.data).every(b => b == 0xb5));
+  }, `${constr} structuredClone after in-place modification on main thread.`);
+
+  promise_test(async t => {
     const frame = reuse[kind];
+    const pinned = frame.data;
+    assert_equals(frame.data, pinned, "the data getter is stable");
+
+    const clone = new window[constr](frame);
+    assert_not_equals(clone.data, pinned, "clone gets a buffer of its own");
+    assert_true(areArrayBuffersEqual(clone.data, pinned), "with equal contents");
+    assert_equals(frame.data, pinned, "original keeps the same buffer");
+
+    const sclone = structuredClone(frame);
+    assert_not_equals(sclone.data, pinned, "structured clone too");
+    assert_equals(frame.data, pinned, "original still keeps the same buffer");
+    assert_greater_than(pinned.byteLength, 0, "and it is not detached");
+  }, `${constr} copying leaves original data buffer alone on main thread.`);
+
+  promise_test(async t => {
+    const frame = reuse[kind];
+    // Spec serialization step 1: "If forStorage is true, then throw a
+    // DataCloneError". pushState serializes for storage.
+    assert_throws_dom("DataCloneError", () => history.pushState(frame, ""));
+  }, `${constr} cannot be serialized for storage on main thread.`);
+
+  promise_test(async t => {
+    // Two frames, one buffer between them. We're replacing their buffers, so
+    // don't mess up the original.
+    const frame1 = structuredClone(reuse[kind]);
+    const frame2 = structuredClone(reuse[kind]);
+    const shared = new ArrayBuffer(16);
+    new Uint8Array(shared).fill(0xa5);
+    frame1.data = shared;
+    frame2.data = shared;
+
+    const [clone1, clone2] = structuredClone([frame1, frame2]);
+    // Serializing one buffer twice in a single clone has to preserve its
+    // identity rather than duplicating it.
+    assert_equals(clone1.data, clone2.data, "the clones share one buffer");
+    assert_not_equals(clone1.data, shared, "which is not the original buffer");
+    assert_true(new Uint8Array(clone1.data).every(b => b == 0xa5),
+                "and has the original contents");
+  }, `${constr} structuredClone keeps a buffer shared between frames shared on main thread.`);
+
+  promise_test(async t => {
+    // We might erroneously replace this frame's buffer, so clone just in case
+    const frame = structuredClone(reuse[kind]);
+    const original = frame.data;
+
+    // data is a plain `ArrayBuffer` in the webidl, so a view is not a value it
+    // can take...
+    assert_throws_js(TypeError, () => { frame.data = new Uint8Array(16); },
+                     "an ArrayBufferView is not an ArrayBuffer");
+    // ...and, absent [AllowResizable], neither is a resizable buffer.
+    assert_throws_js(TypeError,
+                     () => { frame.data = new ArrayBuffer(16, {maxByteLength: 64}); },
+                     "a resizable ArrayBuffer is rejected");
+    // Note: [AllowShared] is tested in RTCEncodedFrame-shared-buffer.https.html
+    // because SharedArrayBuffer needs cross-origin isolation.
+    assert_equals(frame.data, original, "and the buffer is left alone");
+  }, `${constr} data rejects buffers it cannot take on main thread.`);
+
+
+  promise_test(async t => {
+    // We're going to transfer this frame, so don't mess up the original
+    const frame = structuredClone(reuse[kind]);
     assert_greater_than(frame.data.byteLength, 0);
     const length = frame.data.byteLength;
     const clone = structuredClone(frame, {transfer: [frame.data]});
     assert_equals(frame.data.byteLength, 0, "was transferred");
     assert_equals(clone.data.byteLength, length);
-  }, `${constr} structuredClone transfer on main thread.`);
+    assert_throws_dom("DataCloneError", () => {structuredClone(frame)});
+  }, `${constr} structuredClone of transferred frame throws DataCloneError on main thread.`);
+
+  promise_test(async t => {
+    // We're going to transfer this frame, so don't mess up the original
+    const frame = structuredClone(reuse[kind]);
+    assert_greater_than(frame.data.byteLength, 0);
+    const length = frame.data.byteLength;
+    const clone = structuredClone(frame, {transfer: [frame.data]});
+    assert_equals(frame.data.byteLength, 0, "was transferred");
+    assert_equals(clone.data.byteLength, length);
+    assert_throws_dom("DataCloneError", () => {new window[constr](frame)});
+  }, `${constr} copy c'tor using transferred frame throws DataCloneError on main thread.`);
 
 });
 </script>

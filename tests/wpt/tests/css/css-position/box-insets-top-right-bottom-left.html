@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Box insets: top, right, bottom and left</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#insets">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Regression test for https://github.com/jsdom/cssstyle/issues/281 -->
+
+<div id="div"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.top = "10px";
+  assert_equals(div.style.top, "10px");
+}, "Position top");
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.top = "-10px";
+  assert_equals(div.style.top, "-10px");
+}, "Position top negative value");
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.right = "20px";
+  assert_equals(div.style.right, "20px");
+}, "Position right");
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.right = "-20px";
+  assert_equals(div.style.right, "-20px");
+}, "Position right negative value");
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.bottom = "30px";
+  assert_equals(div.style.bottom, "30px");
+}, "Position bottom");
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.bottom = "-30px";
+  assert_equals(div.style.bottom, "-30px");
+}, "Position bottom negative value");
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.left = "40px";
+  assert_equals(div.style.left, "40px");
+}, "Position left");
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.left = "-40px";
+  assert_equals(div.style.left, "-40px");
+}, "Position left negative value");
+</script>

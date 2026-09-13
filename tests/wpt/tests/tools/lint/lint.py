@@ -16,11 +16,6 @@ from typing import (Any, Callable, Dict, IO, Iterable, List, Optional, Sequence,
 
 from urllib.parse import urlsplit, urljoin, parse_qs
 
-try:
-    from xml.etree import cElementTree as ElementTree
-except ImportError:
-    from xml.etree import ElementTree as ElementTree  # type: ignore
-
 from . import fnmatch
 from . import rules
 from .. import localpaths
@@ -457,26 +452,36 @@ def check_parsed(repo_root: Text, path: Text, f: IO[bytes]) -> List[rules.Error]
 
     required_elements: List[Text] = []
 
-    testharnessreport_nodes: List[ElementTree.Element] = []
+    testharnessreport_nodes = source_file.root.findall(
+        ".//{http://www.w3.org/1999/xhtml}script[@src='/resources/testharnessreport.js']"
+    )
+
     if source_file.testharness_nodes:
         if test_type not in ("testharness", "manual"):
             errors.append(rules.TestharnessInOtherType.error(path, (test_type,)))
+
         if len(source_file.testharness_nodes) > 1:
             errors.append(rules.MultipleTestharness.error(path))
 
-        testharnessreport_nodes = source_file.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src='/resources/testharnessreport.js']")
         if not testharnessreport_nodes:
             errors.append(rules.MissingTestharnessReport.error(path))
-        else:
-            if len(testharnessreport_nodes) > 1:
-                errors.append(rules.MultipleTestharnessReport.error(path))
 
         required_elements.extend(key for key, value in {"testharness": True,
                                                         "testharnessreport": len(testharnessreport_nodes) > 0,
                                                         "timeout": len(source_file.timeout_nodes) > 0}.items()
                                  if value)
 
-    testdriver_vendor_nodes: List[ElementTree.Element] = []
+    if testharnessreport_nodes:
+        if not source_file.testharness_nodes:
+            errors.append(rules.TestharnessReportWithoutTestharness.error(path))
+
+        if len(testharnessreport_nodes) > 1:
+            errors.append(rules.MultipleTestharnessReport.error(path))
+
+    testdriver_vendor_nodes = source_file.root.findall(
+        ".//{http://www.w3.org/1999/xhtml}script[@src='/resources/testdriver-vendor.js']"
+    )
+
     if source_file.testdriver_nodes:
         if test_type not in {"testharness", "reftest", "print-reftest", "crashtest", "support"}:
             errors.append(rules.TestdriverInUnsupportedType.error(path, (test_type,)))
@@ -484,16 +489,19 @@ def check_parsed(repo_root: Text, path: Text, f: IO[bytes]) -> List[rules.Error]
         if len(source_file.testdriver_nodes) > 1:
             errors.append(rules.MultipleTestdriver.error(path))
 
-        testdriver_vendor_nodes = source_file.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src='/resources/testdriver-vendor.js']")
         if not testdriver_vendor_nodes:
             errors.append(rules.MissingTestdriverVendor.error(path))
-        else:
-            if len(testdriver_vendor_nodes) > 1:
-                errors.append(rules.MultipleTestdriverVendor.error(path))
 
         required_elements.append("testdriver")
         if len(testdriver_vendor_nodes) > 0:
             required_elements.append("testdriver-vendor")
+
+    if testdriver_vendor_nodes:
+        if not source_file.testdriver_nodes:
+            errors.append(rules.TestdriverVendorWithoutTestdriver.error(path))
+
+        if len(testdriver_vendor_nodes) > 1:
+            errors.append(rules.MultipleTestdriverVendor.error(path))
 
     if required_elements:
         seen_elements = defaultdict(bool)

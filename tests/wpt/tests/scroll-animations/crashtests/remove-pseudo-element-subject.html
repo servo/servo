@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Remove a pseudo-element subject from a view timeline</title>
+</head>
+<style>
+  @keyframes anim {
+    from { background-color: green; }
+    to { background-color: blue; }
+  }
+  #target:before {
+    content: "Hi";
+    border: 1px solid;
+    display: block;
+    width: 100px;
+    height: 100px;
+    background-color: lightgoldenrodyellow;
+    animation: anim linear;
+    animation-timeline: view();
+  }
+  #container {
+    height: 300px;
+    width: 300px;
+    overflow: scroll;
+  }
+  .spacer {
+    height: 200px;
+  }
+</style>
+<body>
+  <div id="container">
+    <div class="spacer"></div>
+    <div id="target"></div>
+    <div class="spacer"></div>
+  </div>
+</body>
+<script>
+  window.onload = async () => {
+    const anim = document.getAnimations()[0];
+    const timeline = anim.timeline;
+    await anim.ready;
+    target.remove();
+    timeline.subject;
+    document.documentElement.classList.remove('test-wait');
+  };
+</script>
+</html>

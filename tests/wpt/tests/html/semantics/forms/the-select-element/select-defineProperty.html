@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Defining properties on a HTMLSelectElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3565 -->
+
+<select></select>
+
+<script>
+"use strict";
+
+test(() => {
+  const select = document.querySelector("select");
+
+  let called = false;
+  // eslint-disable-next-line accessor-pairs
+  Object.defineProperty(select, "test123", {
+    set() {
+      called = true;
+    }
+  });
+
+  select.test123 = 123;
+
+  assert_true(called);
+});
+</script>

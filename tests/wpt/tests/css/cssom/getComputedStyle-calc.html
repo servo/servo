@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>getComputedStyle() returns resolved calculated values</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/4193 -->
+
+<div style="width: 200px">
+  <div id="target"></div>
+</div>
+
+<script>
+"use strict";
+
+const values = new Map([
+  [
+    "calc(100% - 40px)", {
+      computed: "160px",
+      specified: "calc(100% - 40px)"
+    }
+  ],
+  [
+    "calc(var(--gap) - 4px)", {
+      computed: "16px",
+      specified: "calc(var(--gap) - 4px)"
+    }
+  ],
+  [
+    "calc(608px - env(safe-area-inset-top))", {
+      computed: "608px",
+      specified: "calc(608px - env(safe-area-inset-top))"
+    }
+  ],
+  [
+    "calc(-1 * 8px)", {
+      computed: "-8px",
+      specified: "calc(-8px)"
+    }
+  ],
+  [
+    "calc(8px * 2)", {
+      computed: "16px",
+      specified: "calc(16px)"
+    }
+  ]
+]);
+
+for (const [key, value] of values) {
+  test(() => {
+    const div = document.getElementById("target");
+    div.style = `--gap: 20px; margin-left: ${key}`;
+    const res = window.getComputedStyle(div).marginLeft;
+    assert_not_equals(res, value.specified, "Does not match specified value");
+    assert_equals(res, value.computed, "Matches computed value");
+  }, `getComputedStyle() returns computed value for ${key}`);
+}
+</script>

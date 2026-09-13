@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<title>canvas.onpaint should fire when a non-drawable child of a drawable element is removed from the DOM</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  canvas {
+    background: blue;
+  }
+  div, span {
+    width: 50px;
+    height: 50px;
+    background: green;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="drawable_parent" drawable>
+    <div id="nondrawable_child"></div>
+  </div>
+  <div id="drawable_parent_inline" drawable>
+    <span id="nondrawable_span">text</span>
+  </div>
+  <div id="drawable_mixed_parent" drawable>
+    <div id="drawable_sibling" drawable></div>
+    <div id="nondrawable_target"></div>
+  </div>
+  <div id="drawable_deep_root" drawable>
+    <div id="nondrawable_wrapper">
+      <div id="nondrawable_leaf"></div>
+    </div>
+  </div>
+</canvas>
+
+<script>
+  'use strict';
+
+  async function waitForOneFrame() {
+    await new Promise(requestAnimationFrame);
+    await new Promise(setTimeout);
+  }
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = (event) => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    nondrawable_child.remove();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a non-drawable child is removed.');
+    assert_array_equals(lastChanged, [drawable_parent],
+      'The parent drawable element should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire when a non-drawable child of a drawable element is removed');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = (event) => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    nondrawable_span.remove();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a non-drawable inline child is removed.');
+    assert_array_equals(lastChanged, [drawable_parent_inline],
+      'The parent drawable element should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire when a non-drawable inline child of a drawable element is removed');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = (event) => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    nondrawable_target.remove();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a non-drawable child is removed from a mixed container.');
+    assert_array_equals(lastChanged, [drawable_mixed_parent],
+      'The parent drawable element should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire when a non-drawable child is removed from a drawable element with mixed children');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = (event) => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    nondrawable_leaf.remove();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a deep non-drawable descendant is removed.');
+    assert_array_equals(lastChanged, [drawable_deep_root],
+      'The ancestor drawable element should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire when a deep non-drawable descendant of a drawable element is removed');
+</script>

@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<title>SVGSVGElement interface</title>
+<link rel="author" title="Timothy Gu" href="mailto:timothygu99@gmail.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#InterfaceSVGSVGElement">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg style="font-size: 100px" onclick="onClickTestVar = 1">
+  <unknownElement />
+</svg>
+
+<script>
+"use strict";
+
+test(() => {
+  const svg = document.querySelector("svg");
+  assert_true(svg instanceof SVGSVGElement);
+  const unknownElement = svg.children[0];
+  assert_true(unknownElement instanceof SVGElement);
+  assert_equals(unknownElement.namespaceURI, "http://www.w3.org/2000/svg");
+  assert_equals(unknownElement.localName, "unknownelement");
+  assert_equals(unknownElement.ownerSVGElement, svg);
+  assert_equals(unknownElement.viewportElement, svg);
+}, "Inheritance");
+
+test(() => {
+  const svg = document.querySelector("svg");
+  assert_true(svg instanceof SVGSVGElement);
+  assert_true(svg.style instanceof CSSStyleDeclaration);
+  assert_equals(svg.getAttribute("style"), "font-size: 100px");
+  assert_equals(svg.style.fontSize, "100px");
+  svg.setAttribute("style", "background-color: yellow;");
+  assert_equals(svg.getAttribute("style"), "background-color: yellow;");
+  assert_equals(svg.style.backgroundColor, "yellow");
+  assert_equals(svg.style.fontSize, "");
+}, "style data attribute");
+
+test(() => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  assert_true(svg.style instanceof CSSStyleDeclaration);
+  assert_equals(svg.style.backgroundColor, "");
+  svg.style.backgroundColor = "black";
+  assert_equals(svg.style.backgroundColor, "black");
+  assert_equals(svg.getAttribute("style"), "background-color: black;");
+}, "style IDL attribute");
+
+test(() => {
+  const svg = document.querySelector("svg");
+  assert_true(svg instanceof SVGSVGElement);
+  assert_true(typeof svg.onclick === "function");
+  window.onClickTestVar = 0;
+  svg.onclick();
+  assert_equals(window.onClickTestVar, 1);
+}, "event handler data attribute");
+
+test(() => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  assert_true(svg.dataset instanceof DOMStringMap);
+  assert_equals(svg.dataset.foo, undefined);
+  svg.dataset.foo = "value";
+  assert_equals(svg.dataset.foo, "value");
+  assert_equals(svg.getAttribute("data-foo"), "value");
+}, "dataset attribute");
+
+async_test(t => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  document.body.appendChild(svg);
+  t.add_cleanup(() => {
+    document.body.removeChild(svg);
+  });
+
+  // Make element focusable.
+  svg.tabIndex = 0;
+
+  svg.addEventListener("focus", function focusCallback() {
+    t.step(() => {
+      svg.removeEventListener("focus", focusCallback);
+      svg.addEventListener("blur", () => {
+        t.done();
+      });
+      svg.blur();
+    });
+  });
+  svg.focus();
+}, "blur()/focus()/tabIndex operations/attribute");
+
+</script>

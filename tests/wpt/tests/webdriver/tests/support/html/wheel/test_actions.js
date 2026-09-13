@@ -200,10 +200,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const iframe = document.getElementById("iframe");
-  const iframeOrigin = urlParams.get("iframe_origin") || window.location.origin;
+  const iframeOrigin = urlParams.get("iframe_origin");
   const iframeParams = new URLSearchParams();
   iframeParams.set("events", registeredEvents.join(","));
-  iframe.src = `${iframeOrigin}/webdriver/tests/support/html/wheel/test_actions_inner_frame.html?${iframeParams}`;
+  const iframePath = iframeOrigin
+    ? `${iframeOrigin}/webdriver/tests/support/html/wheel/test_actions_inner_frame.html`
+    : "test_actions_inner_frame.html";
+  iframe.src = `${iframePath}?${iframeParams}`;
 
   initializeHandlers();
   initializeFilters();

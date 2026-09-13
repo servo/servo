@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Firefox bug 2064785 - ruby ::before whitespace-flag re-entry UAF</title>
+<style>
+  #p::before { display: ruby; content: "a"; }
+  #p.swap::before { content: " "; }
+</style>
+</head>
+<body>
+<div id="p"></div>
+<script>
+  const p = document.getElementById('p');
+
+  // Flush initial layout with ::before ruby content "a"
+  document.body.offsetHeight;
+
+  // Add class so that ::before content becomes " "
+  p.classList.add('swap');
+
+  // Force reflow with the generated content that is now whitespace-only
+  document.body.offsetHeight;
+</script>
+</body>
+</html>

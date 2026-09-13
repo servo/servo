@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Clicking on javascript: URL links that return undefined causes side effects</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#javascript-protocol">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+setup({ allow_uncaught_exception: true });
+
+for (const encoded of [false, true]) {
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      delete window.javascriptURLDone;
+    });
+    let ran = false;
+    const completed = new Promise(resolve => {
+      window.javascriptURLDone = () => {
+        ran = true;
+        resolve();
+      };
+    });
+    const code = "window.javascriptURLDone(); void 0";
+    location.href = `javascript:${encoded ? encodeURIComponent(code) : code}`;
+    assert_false(ran, "Execution is asynchronous");
+    await completed;
+  }, `javascript: URL side effects with percent encoding: ${encoded}`);
+}
+promise_test(async t => {
+  let errorDelivered = false;
+  const errorPromise = new Promise(resolve => {
+    function listener(ev) {
+      errorDelivered = true;
+      resolve(ev.error);
+    }
+    window.addEventListener("error", listener, { once: true });
+    t.add_cleanup(() => window.removeEventListener("error", listener));
+  });
+  location.href = "javascript:%+#@?";
+  assert_false(errorDelivered, "Syntax errors are reported asynchronously");
+  assert_true(await errorPromise instanceof SyntaxError);
+}, "A javascript: URL with invalid code reports a SyntaxError");
+</script>

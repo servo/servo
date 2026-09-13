@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Form.elements should update on form.id change</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<form name="test">
+  <input name="internal" form="testForm" type="hidden" />
+</form>
+<input name="external" form="testForm" type="hidden" />
+
+<script>
+"use strict";
+
+test(() => {
+  const { 0: form } = document.forms;
+  const { elements } = form;
+
+  assert_equals(elements.length, 0, "without an ID");
+
+  form.id = "testForm";
+  assert_equals(elements.length, 2, "with a matching ID");
+
+  form.id = "";
+  assert_equals(elements.length, 0, "after changing to an empty ID");
+}, "`form.elements` should update on form ID changes");
+
+</script>

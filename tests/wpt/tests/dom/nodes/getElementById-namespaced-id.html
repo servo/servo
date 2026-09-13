@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Namespaced ID attributes do not affect ID lookup</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-id">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+const namespace = "https://example.com/attributes";
+
+for (const operation of ["append", "change", "remove", "replace"]) {
+  test(t => {
+    const form = document.createElement("form");
+    form.id = "owner";
+    if (operation !== "append") {
+      form.setAttributeNS(namespace, "id", "owner");
+    }
+    const input = document.createElement("input");
+    input.name = "field";
+    input.required = true;
+    input.setAttribute("form", "owner");
+    t.add_cleanup(() => {
+      form.remove();
+      input.remove();
+    });
+    document.body.append(form, input);
+
+    if (operation === "append" || operation === "change") {
+      form.setAttributeNS(namespace, "id", "unrelated");
+    } else if (operation === "remove") {
+      form.removeAttributeNS(namespace, "id");
+    } else {
+      const attribute = document.createAttributeNS(namespace, "id");
+      attribute.value = "unrelated";
+      form.setAttributeNodeNS(attribute);
+    }
+
+    assert_equals(document.getElementById("owner"), form);
+    assert_equals(document.getElementById("unrelated"), null);
+    assert_equals(input.form, form);
+    assert_array_equals(Array.from(form.elements), [input]);
+    assert_false(form.checkValidity());
+    assert_true(new FormData(form).has("field"));
+  }, `${operation} a namespaced ID preserves ID lookup and form association`);
+}
+</script>

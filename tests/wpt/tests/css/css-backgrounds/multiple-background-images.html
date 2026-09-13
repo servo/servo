@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Multiple background-images in getComputedStyle</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-image">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/1166 -->
+
+<style id="sheet"></style>
+
+<div id="div"></div>
+<p id="p"></p>
+
+<script>
+"use strict";
+
+const greenURL = new URL("/images/green.png", location.href).href;
+const redURL = new URL("/images/red.png", location.href).href;
+// Use absolute URLs to isolate background-image list parsing and serialization.
+document.getElementById("sheet").textContent = `
+  p { background-image: url(${greenURL}); }
+  div { background-image: url(${greenURL}), url(${redURL}); }
+`;
+
+test(() => {
+  const p = document.getElementById("p");
+  const styles = window.getComputedStyle(p);
+  assert_equals(styles.backgroundImage, `url("${greenURL}")`);
+}, "Single background-image should be parsed");
+
+test(() => {
+  const div = document.getElementById("div");
+  const styles = window.getComputedStyle(div);
+  assert_equals(styles.backgroundImage, `url("${greenURL}"), url("${redURL}")`);
+}, "Multiple background-images should be parsed");
+</script>

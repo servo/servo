@@ -36,7 +36,7 @@ promise_test(async t => {
   // Execute the tool. This asynchronously fires the `submit` event at the form.
   // The tool execution should resolve successfully even if the form is removed
   // from the document during submission.
-  const promise = document.modelContext.executeTool(tool, '{}');
+  const promise = document.modelContext.executeTool(tool);
   await promise;
 
   assert_true(submitFired);

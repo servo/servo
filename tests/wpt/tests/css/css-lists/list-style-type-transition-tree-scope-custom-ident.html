@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: a list-style-type counter-style name from another tree scope is a different value</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#propdef-list-style-type">
+<link rel="help" href="https://drafts.csswg.org/css-scoping-1/#shadow-names">
+<link rel="help" href="https://drafts.csswg.org/css-transitions-1/#starting">
+<meta name="assert" content="Changing which tree scope declares an author-defined list-style-type starts a transition.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @counter-style custom { system: cyclic; symbols: "*"; }
+  #host.from-document::part(item) { list-style-type: custom; }
+</style>
+<div id="host" class="from-shadow">
+  <template shadowrootmode="open">
+    <style>
+      @counter-style custom { system: cyclic; symbols: "*"; }
+      #item {
+        display: list-item;
+        transition: list-style-type 100s allow-discrete;
+      }
+      :host(.from-shadow) #item { list-style-type: custom; }
+    </style>
+    <div id="item" part="item">x</div>
+  </template>
+</div>
+<script>
+test(() => {
+  const host = document.getElementById('host');
+  const item = host.shadowRoot.getElementById('item');
+  assert_equals(getComputedStyle(item).listStyleType, 'custom');
+
+  host.className = 'from-document';
+  getComputedStyle(item).listStyleType;
+  const transitions = item.getAnimations().map(a => a.transitionProperty);
+  assert_array_equals(transitions, ['list-style-type']);
+}, 'Transition when an author-defined list-style-type moves to another tree scope');
+</script>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebSocket send() data isolation</title>
+<link rel="help" href="https://websockets.spec.whatwg.org/#dom-websocket-send">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+// These tests verify that `send()` on a WebSocket correctly copies its input data,
+// so that subsequent modifications to the input do not affect what gets sent.
+
+// We use an echo server that sends back what it receives.
+const echoURL = "ws://{{host}}:{{ports[ws][0]}}/echo";
+
+promise_test(async () => {
+  const ws = new WebSocket(echoURL);
+  await new Promise((resolve, reject) => {
+    ws.onopen = resolve;
+    ws.onerror = () => reject(new Error("WebSocket connection failed"));
+  });
+
+  const input = new Uint8Array([1, 2, 3, 4]);
+
+  const messagePromise = new Promise((resolve, reject) => {
+    ws.onmessage = e => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(new Uint8Array(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(e.data);
+    };
+    ws.onerror = () => reject(new Error("WebSocket error"));
+  });
+
+  ws.send(input);
+  input[0] = 99;
+
+  const result = await messagePromise;
+  ws.close();
+
+  assert_array_equals(
+    Array.from(result),
+    [1, 2, 3, 4],
+    "Sent data should not be affected by modifying the input Uint8Array"
+  );
+}, "Modifying a Uint8Array after send() does not affect the sent data");
+
+promise_test(async () => {
+  const ws = new WebSocket(echoURL);
+  await new Promise((resolve, reject) => {
+    ws.onopen = resolve;
+    ws.onerror = () => reject(new Error("WebSocket connection failed"));
+  });
+
+  const input = new Uint8Array([5, 6, 7, 8]);
+  const inputBuffer = input.buffer;
+
+  const messagePromise = new Promise((resolve, reject) => {
+    ws.onmessage = e => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(new Uint8Array(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(e.data);
+    };
+    ws.onerror = () => reject(new Error("WebSocket error"));
+  });
+
+  ws.send(inputBuffer);
+  input[0] = 99;
+
+  const result = await messagePromise;
+  ws.close();
+
+  assert_array_equals(
+    Array.from(result),
+    [5, 6, 7, 8],
+    "Sent data should not be affected by modifying the underlying ArrayBuffer"
+  );
+}, "Modifying an ArrayBuffer after send() does not affect the sent data");
+
+promise_test(async () => {
+  const ws = new WebSocket(echoURL);
+  await new Promise((resolve, reject) => {
+    ws.onopen = resolve;
+    ws.onerror = () => reject(new Error("WebSocket connection failed"));
+  });
+
+  // Test with a view into a larger buffer (exercises offset handling)
+  const largerBuffer = new ArrayBuffer(16);
+  const view = new Uint8Array(largerBuffer, 4, 4);
+  view.set([10, 11, 12, 13]);
+
+  const messagePromise = new Promise((resolve, reject) => {
+    ws.onmessage = e => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(new Uint8Array(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(e.data);
+    };
+    ws.onerror = () => reject(new Error("WebSocket error"));
+  });
+
+  ws.send(view);
+  view[0] = 99;
+
+  const result = await messagePromise;
+  ws.close();
+
+  assert_array_equals(
+    Array.from(result),
+    [10, 11, 12, 13],
+    "Sent data should not be affected by modifying a typed array view"
+  );
+}, "Modifying a typed array view after send() does not affect the sent data");
+</script>

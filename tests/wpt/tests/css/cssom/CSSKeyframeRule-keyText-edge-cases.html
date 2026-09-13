@@ -1,0 +1,139 @@
+<!doctype html>
+<title>CSSKeyframeRule keyText edge cases</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#dom-csskeyframerule-keytext">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes test {
+    0% { opacity: 0 }
+  }
+</style>
+<script>
+"use strict";
+
+const rule = document.styleSheets[0].cssRules[0].cssRules[0];
+
+function setAndObserve(value) {
+  let threw = false;
+  try {
+    rule.keyText = value;
+  } catch {
+    threw = true;
+  }
+  return { threw, keyText: rule.keyText };
+}
+
+// Out-of-range percentages
+
+test(() => {
+  rule.keyText = "0%";
+  const result = setAndObserve("150%");
+  assert_true(
+    result.threw || result.keyText === "0%",
+    `expected throw or no change, got keyText=${result.keyText}, threw=${result.threw}`
+  );
+}, "setter rejects 150%");
+
+test(() => {
+  rule.keyText = "0%";
+  const result = setAndObserve("-5%");
+  assert_true(
+    result.threw || result.keyText === "0%",
+    `expected throw or no change, got keyText=${result.keyText}, threw=${result.threw}`
+  );
+}, "setter rejects -5%");
+
+// Valid percentage formats
+
+test(() => {
+  rule.keyText = "0%";
+  const result = setAndObserve(".5%");
+  assert_false(result.threw, "should not throw for .5%");
+  assert_equals(result.keyText, "0.5%");
+}, "setter accepts and normalizes .5%");
+
+test(() => {
+  rule.keyText = "0%";
+  const result = setAndObserve("1e1%");
+  assert_false(result.threw, "should not throw for 1e1%");
+  assert_equals(result.keyText, "10%");
+}, "setter accepts and normalizes 1e1%");
+
+test(() => {
+  rule.keyText = "0%";
+  const result = setAndObserve("100.0%");
+  assert_false(result.threw, "should not throw for 100.0%");
+  assert_equals(result.keyText, "100%");
+}, "setter accepts and normalizes 100.0%");
+
+test(() => {
+  rule.keyText = "0%";
+  const result = setAndObserve("0.0%");
+  assert_false(result.threw, "should not throw for 0.0%");
+  assert_equals(result.keyText, "0%");
+}, "setter accepts and normalizes 0.0%");
+
+// Case insensitivity
+
+test(() => {
+  rule.keyText = "0%";
+  const result = setAndObserve("FROM");
+  assert_false(result.threw, "should not throw for FROM");
+  assert_equals(result.keyText, "0%");
+}, "setter accepts and normalizes FROM");
+
+test(() => {
+  rule.keyText = "0%";
+  const result = setAndObserve("To");
+  assert_false(result.threw, "should not throw for To");
+  assert_equals(result.keyText, "100%");
+}, "setter accepts and normalizes To");
+
+test(() => {
+  rule.keyText = "0%";
+  const result = setAndObserve("From, TO");
+  assert_false(result.threw, "should not throw for From, TO");
+  assert_equals(result.keyText, "0%, 100%");
+}, "setter accepts and normalizes mixed-case From, TO");
+
+// Whitespace
+
+test(() => {
+  rule.keyText = " 50% ";
+  assert_equals(rule.keyText, "50%");
+}, "setter trims whitespace");
+
+test(() => {
+  rule.keyText = " 25% , 75% ";
+  assert_equals(rule.keyText, "25%, 75%");
+}, "setter trims whitespace in comma-separated selectors");
+
+// Getter normalization for parsed stylesheets
+
+test(() => {
+  const style = document.createElement("style");
+  style.textContent = "@keyframes test2 { .5% { opacity: 0 } }";
+  document.head.appendChild(style);
+  const r = document.styleSheets[document.styleSheets.length - 1].cssRules[0].cssRules[0];
+  assert_equals(r.keyText, "0.5%");
+  style.remove();
+}, "getter normalizes .5% from parsed stylesheet");
+
+test(() => {
+  const style = document.createElement("style");
+  style.textContent = "@keyframes test3 { 100.0% { opacity: 0 } }";
+  document.head.appendChild(style);
+  const r = document.styleSheets[document.styleSheets.length - 1].cssRules[0].cssRules[0];
+  assert_equals(r.keyText, "100%");
+  style.remove();
+}, "getter normalizes 100.0% from parsed stylesheet");
+
+test(() => {
+  const style = document.createElement("style");
+  style.textContent = "@keyframes test4 { 1e1% { opacity: 0 } }";
+  document.head.appendChild(style);
+  const r = document.styleSheets[document.styleSheets.length - 1].cssRules[0].cssRules[0];
+  assert_equals(r.keyText, "10%");
+  style.remove();
+}, "getter normalizes 1e1% from parsed stylesheet");
+</script>

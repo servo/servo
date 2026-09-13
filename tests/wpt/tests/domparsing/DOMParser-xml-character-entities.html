@@ -1,0 +1,42 @@
+<!doctype html>
+<title>DOMParser should only parse XML character entities when parsing XML files</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+function checkMetadata(doc, contentType) {
+  assert_true(doc instanceof Document, "Should be Document");
+  //  assert_equals(doc.URL, document.URL, "URL");
+  //  assert_equals(doc.documentURI, document.URL, "documentURI");
+  assert_equals(doc.characterSet, "UTF-8", "characterSet");
+  assert_equals(doc.charset, "UTF-8", "charset");
+  assert_equals(doc.inputEncoding, "UTF-8", "inputEncoding");
+  assert_equals(doc.contentType, contentType, "contentType");
+  assert_equals(doc.location, null, "location");
+}
+
+const allowedTypes = ["text/xml", "application/xml", "application/xhtml+xml", "image/svg+xml"];
+
+allowedTypes.forEach(type => {
+  test(() => {
+    const p = new DOMParser();
+    const doc = p.parseFromString("<foo>&amp;<bar>&#215;</bar></foo>", type);
+    assert_true(doc instanceof Document, "Should be Document");
+    checkMetadata(doc, type);
+    assert_equals(doc.documentElement.namespaceURI, null);
+    assert_equals(doc.documentElement.localName, "foo");
+    assert_equals(doc.documentElement.tagName, "foo");
+  }, "Should parse XML character entities correctly in type " + type);
+
+  test(() => {
+    const p = new DOMParser();
+    const doc = p.parseFromString("<foo>&times;<bar>&#215;</bar></foo>", type);
+    checkMetadata(doc, type);
+    assert_equals(doc.documentElement.namespaceURI, "http://www.mozilla.org/newlayout/xml/parsererror.xml");
+    assert_equals(doc.documentElement.localName, "parsererror");
+    assert_equals(doc.documentElement.tagName, "parsererror");
+  }, "Should return an error document for undefined (HTML) character entities in type " + type);
+
+});
+</script>

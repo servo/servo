@@ -51,5 +51,53 @@
     "Install element is not allowed in a sandboxed iframe");
   testInstallInSandbox("web-app-installation *",
     "Install element is not allowed in a sandboxed iframe even with permissions policy");
+
+  function testPrefixedInstallInSandbox(allow, testLabel) {
+    const testId = testLabel.replace(/\s+/g, '-');
+    promise_test(async (t) => {
+      const iframe = document.createElement("iframe");
+      iframe.sandbox = "allow-scripts allow-same-origin";
+      if (allow) iframe.allow = allow;
+      iframe.srcdoc = `
+        <!DOCTYPE html>
+        <body>
+        <script>
+          const el = document.createElementNS("http://www.w3.org/1999/xhtml", "x:install");
+          el.id = "install-element";
+          el.onvalidationstatuschange = () => {
+            if (el.invalidReason === "unsuccessful_registration" ||
+                el.invalidReason === "intersection_changed") {
+              return;
+            }
+            window.parent.postMessage({
+              test: "${testId}",
+              isValid: el.isValid,
+              invalidReason: el.invalidReason
+            }, "*");
+          };
+          document.body.appendChild(el);
+        <\/script>
+        </body>
+      `;
+      const result = await new Promise((resolve) => {
+        window.addEventListener("message", function handler(e) {
+          if (e.data.test === testId) {
+            window.removeEventListener("message", handler);
+            resolve(e.data);
+          }
+        });
+        document.body.appendChild(iframe);
+      });
+      assert_false(result.isValid,
+        "Prefixed install element should not be valid in a sandboxed iframe");
+      assert_equals(result.invalidReason, "illegal_sandbox",
+        "invalidReason should be 'illegal_sandbox'");
+    }, testLabel);
+  }
+
+  testPrefixedInstallInSandbox(null,
+    "Prefixed install element is not allowed in a sandboxed iframe");
+  testPrefixedInstallInSandbox("web-app-installation *",
+    "Prefixed install element is not allowed in a sandboxed iframe even with permissions policy");
 </script>
 </body>

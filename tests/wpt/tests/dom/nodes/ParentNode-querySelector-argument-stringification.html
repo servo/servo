@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector/querySelectorAll argument stringification</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-queryselector">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container">
+  <strong>bold</strong>
+  <em>italic 1</em>
+  <em>italic 2</em>
+  <p>paragraph</p>
+</div>
+
+<script>
+"use strict";
+
+const container = document.getElementById("container");
+
+test(() => {
+  const result = container.querySelector(["strong"]);
+  assert_equals(result.textContent, "bold");
+}, "querySelector stringifies Array argument via toString()");
+
+test(() => {
+  const results = container.querySelectorAll(["strong", "em"]);
+  assert_equals(
+    results.length,
+    3,
+    "Array.toString() produces 'strong,em' matching both element types"
+  );
+}, "querySelectorAll stringifies Array argument via toString()");
+
+test(() => {
+  const result = container.querySelector({ toString() {
+    return "p";
+  } });
+  assert_equals(result.textContent, "paragraph");
+}, "querySelector stringifies object with custom toString()");
+</script>

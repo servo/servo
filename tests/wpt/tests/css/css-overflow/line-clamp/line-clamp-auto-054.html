@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp auto after a nested descendant grows</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-054-ref.html">
+<meta name="assert" content="A nested descendant change updates the automatic clamp root.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 3lh;
+  font: 20px / 20px monospace;
+  width: 10ch;
+  background: yellow;
+}
+.line-box-sizer {
+  display: inline-block;
+  width: 1ch;
+  height: 1lh;
+  background: orange;
+}
+.final {
+  height: 2lh;
+}
+</style>
+<div class="clamp">
+  Line 1
+  <div>
+    Nested
+    <span class="line-box-sizer"></span>
+    line<br>
+    Nested line
+  </div>
+  Line 4
+</div>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.querySelector(".line-box-sizer").classList.add("final");
+  takeScreenshot();
+}));
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>input.stepUp/Down work over decimal floats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input type=number id=inputNumber>
+
+<script>
+"use strict";
+
+const inputNumber = document.getElementById("inputNumber");
+
+test(() => {
+  inputNumber.value = 1.2;
+  inputNumber.step = 0.3;
+  assert_equals(inputNumber.value, "1.2");
+
+  // Using IEEE 794 binary64, 1.2 - 0.3 = 0.8999999999999999.
+  inputNumber.stepDown();
+  assert_equals(inputNumber.value, "0.9");
+});
+</script>

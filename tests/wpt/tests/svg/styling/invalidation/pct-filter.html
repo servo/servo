@@ -1,0 +1,45 @@
+<!doctype html>
+<html class="reftest-wait">
+  <title>Invalidation of filter with percentage units</title>
+  <link rel="match" href="pct-filter-ref.html">
+  <link rel="help" href="https://www.w3.org/TR/css3-values/#percentages">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/common/rendering-utils.js"></script>
+  <style>
+    svg {
+      width: 100%;
+      display: block;
+    }
+  </style>
+
+  <div id="toggler" style="width: 500px; overflow: hidden">
+    <svg height="120">
+      <defs>
+        <filter id="f"
+                filterUnits="userSpaceOnUse"
+                primitiveUnits="userSpaceOnUse"
+                x="0"
+                y="0"
+                width="4000"
+                height="50">
+          <feFlood
+            x="0"
+            y="0"
+            width="20%"
+            height="40"
+            flood-color="green"/>
+        </filter>
+      </defs>
+      <path d="M0 50 L1 50" filter="url(#f)"/>
+    </svg>
+  </div>
+  <script>
+    function doTest() {
+      const toggler = document.querySelector("#toggler");
+      toggler.getBoundingClientRect();
+      toggler.style.width = "200px";
+      takeScreenshot();
+    }
+    document.documentElement.addEventListener("TestRendered", doTest);
+  </script>
+</html>
