@@ -14,6 +14,7 @@ use js::context::JSContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
+use script_bindings::cell::DomRefCell;
 use script_traits::Painter;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::PipelineId;
@@ -25,7 +26,7 @@ use stylo_atoms::Atom;
 use crate::dom::Window;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::trace::CustomTraceable;
+use crate::dom::bindings::trace::{CustomTraceable, HashMapTracedValues};
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -35,6 +36,7 @@ use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
+use crate::modules::script_module::{ModuleRequest, ModuleStatus};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::job_queue_microtask_checkpoint;
 use crate::tasks::task::TaskCanceller;
@@ -66,6 +68,11 @@ pub(crate) struct WorkletGlobalScope {
 
     #[conditional_malloc_size_of]
     closing: Arc<AtomicBool>,
+
+    /// module map is used when importing JavaScript modules
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
+    #[ignore_malloc_size_of = "mozjs"]
+    module_map: DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>,
 }
 
 impl WorkletGlobalScope {
@@ -150,7 +157,14 @@ impl WorkletGlobalScope {
             )),
             origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
             closing,
+            module_map: Default::default(),
         }
+    }
+
+    pub(crate) fn module_map(
+        &self,
+    ) -> &DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>> {
+        &self.module_map
     }
 
     pub(crate) fn origin(&self) -> MutableOrigin {

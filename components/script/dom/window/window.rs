@@ -201,6 +201,7 @@ use crate::event_loop::webdriver_handlers::find_node_by_unique_id_in_document;
 use crate::fetch::fetch;
 use crate::fetch::network_listener::{ResourceTimingListener, submit_timing};
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
+use crate::modules::script_module::{ModuleRequest, ModuleStatus};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::UserMicrotask;
 use crate::runtime::script_runtime::Runtime;
@@ -505,6 +506,14 @@ pub(crate) struct Window {
 }
 
 impl Window {
+    pub(crate) fn with_module_map<T>(
+        &self,
+        f: impl FnOnce(&DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>) -> T,
+    ) -> T {
+        let document = self.Document();
+        f(document.module_map())
+    }
+
     pub(crate) fn script_thread(&self) -> Rc<ScriptThread> {
         Weak::upgrade(&self.weak_script_thread)
             .expect("Weak reference should always be upgradable when a ScriptThread is running")

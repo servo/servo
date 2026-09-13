@@ -248,11 +248,6 @@ pub(crate) struct GlobalScope {
     /// Timers (milliseconds) used by the Console API.
     console_timers: DomRefCell<HashMap<DOMString, Instant>>,
 
-    /// module map is used when importing JavaScript modules
-    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
-    #[ignore_malloc_size_of = "mozjs"]
-    module_map: DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>,
-
     /// For providing instructions to an optional devtools server.
     #[no_trace]
     devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
@@ -793,7 +788,6 @@ impl GlobalScope {
             indexeddb: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             console_timers: DomRefCell::new(Default::default()),
-            module_map: DomRefCell::new(Default::default()),
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
@@ -2435,7 +2429,15 @@ impl GlobalScope {
         &self,
         f: impl FnOnce(&DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>) -> T,
     ) -> T {
-        f(&self.module_map)
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            f(worker.module_map())
+        } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+            f(worklet.module_map())
+        } else if let Some(window) = self.downcast::<Window>() {
+            window.with_module_map(f)
+        } else {
+            unreachable!("Unsupported global type retrieving module map")
+        }
     }
 
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
