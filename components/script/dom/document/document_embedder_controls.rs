@@ -150,9 +150,8 @@ impl DocumentEmbedderControls {
                 .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, request)),
             EmbedderControlRequest::FilePicker(file_picker_request) => {
                 let main_thread_sender = self.window.main_thread_script_chan().clone();
-                let callback = profile_traits::generic_callback::GenericCallback::new(
-                    self.window.as_global_scope().time_profiler_chan().clone(),
-                    move |result| {
+                let callback =
+                    profile_traits::generic_callback::GenericCallback::new(move |result| {
                         let Ok(embedder_control_response) = result else {
                             return;
                         };
@@ -164,9 +163,8 @@ impl DocumentEmbedderControls {
                         ) {
                             warn!("Could not send FileManager response to main thread: {error}")
                         }
-                    },
-                )
-                .expect("Could not create callback");
+                    })
+                    .expect("Could not create callback");
                 self.window
                     .as_global_scope()
                     .resource_threads()

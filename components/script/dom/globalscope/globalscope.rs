@@ -2240,12 +2240,9 @@ impl GlobalScope {
             task_source: self.task_manager().file_reading_task_source().into(),
         };
 
-        let chan = profile_generic_callback::GenericCallback::new(
-            self.time_profiler_chan().clone(),
-            move |msg| {
-                file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
-            },
-        )
+        let chan = profile_generic_callback::GenericCallback::new(move |msg| {
+            file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
+        })
         .expect("Couldn't create get_blob_stream callback");
 
         self.send_msg(file_id, chan);
@@ -2268,12 +2265,9 @@ impl GlobalScope {
             task_source: self.task_manager().file_reading_task_source().into(),
         };
 
-        let chan = profile_generic_callback::GenericCallback::new(
-            self.time_profiler_chan().clone(),
-            move |msg| {
-                file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
-            },
-        )
+        let chan = profile_generic_callback::GenericCallback::new(move |msg| {
+            file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
+        })
         .expect("Couldn't create read_file_async callback");
 
         self.send_msg(id, chan);

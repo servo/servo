@@ -233,14 +233,13 @@ impl XRSession {
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
-        let callback =
-            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |message| {
-                let this = this.clone();
-                task_source.queue(task!(xr_event_callback: move |cx| {
-                    this.root().event_callback(cx, message.unwrap());
-                }))
-            })
-            .expect("Could not create callback");
+        let callback = ProfileGenericCallback::new(move |message| {
+            let this = this.clone();
+            task_source.queue(task!(xr_event_callback: move |cx| {
+                this.root().event_callback(cx, message.unwrap());
+            }))
+        })
+        .expect("Could not create callback");
 
         // request animation frame
         self.session.borrow_mut().set_event_dest(callback);
@@ -1070,19 +1069,18 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             .dom_manipulation_task_source()
             .to_sendable();
 
-        let callback =
-            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |message| {
-                let this = this.clone();
-                task_source.queue(task!(update_session_framerate: move |cx| {
-                    let session = this.root();
-                    session.apply_nominal_framerate(cx, message.unwrap());
-                    rooted!(&in(cx) let promise = session.update_framerate_promise.borrow_mut().take());
-                    if let Some(ref promise) = *promise {
-                        promise.resolve_native(cx, &());
-                    };
-                }));
-            })
-            .expect("Could not create callback");
+        let callback = ProfileGenericCallback::new(move |message| {
+            let this = this.clone();
+            task_source.queue(task!(update_session_framerate: move |cx| {
+                let session = this.root();
+                session.apply_nominal_framerate(cx, message.unwrap());
+                rooted!(&in(cx) let promise = session.update_framerate_promise.borrow_mut().take());
+                if let Some(ref promise) = *promise {
+                    promise.resolve_native(cx, &());
+                };
+            }));
+        })
+        .expect("Could not create callback");
 
         self.session.borrow_mut().update_frame_rate(*rate, callback);
 

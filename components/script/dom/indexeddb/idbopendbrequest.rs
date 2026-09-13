@@ -246,7 +246,7 @@ impl IDBOpenDBRequest {
         let response_listener = OpenRequestListener {
             open_request: Trusted::new(self),
         };
-        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
+        let callback = GenericCallback::new(move |message| {
             let response_listener = response_listener.clone();
             task_source.queue(task!(request_callback: move |cx| {
                 response_listener.handle_delete_db(cx, message.unwrap());

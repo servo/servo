@@ -521,8 +521,7 @@ impl IDBRequest {
                 );
             }));
         };
-        let callback = GenericCallback::new(global.time_profiler_chan().clone(), closure)
-            .expect("Could not create callback");
+        let callback = GenericCallback::new(closure).expect("Could not create callback");
         let operation = operation_fn(callback);
 
         if matches!(
