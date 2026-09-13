@@ -281,7 +281,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
             // re-initializing document.fonts.ready.
             self.flush_author_font_set(cx);
         }
-        self.promise.borrow().root()
+        self.promise.borrow().root(cx)
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-add>
