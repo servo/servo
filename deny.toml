@@ -242,9 +242,3 @@ skip = [
     "zerovec",
     "zerovec-derive",
 ]
-
-# github.com organizations to allow git sources for
-[sources.allow-org]
-github = [
-    "servo",
-]

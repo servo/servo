@@ -2586,7 +2586,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3135,7 +3135,7 @@ dependencies = [
  "vec_map",
  "wasm-bindgen",
  "web-sys",
- "windows 0.61.3",
+ "windows 0.62.2",
 ]
 
 [[package]]
@@ -3154,7 +3154,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4051,7 +4051,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.61.2",
+ "windows-core 0.62.2",
 ]
 
 [[package]]
@@ -6591,7 +6591,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7740,7 +7740,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7797,7 +7797,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7959,7 +7959,8 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.40.0"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eeee001a77567bb05e71652718d3ff76d8697c151ac523e68e9513194eb2b75a"
 dependencies = [
  "bitflags 2.13.1",
  "cssparser",
@@ -9774,7 +9775,8 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.3"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "170fb83ab34de17dc69aa7c67482b22218ddb85da56546f9bd6b929e32a05930"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -10269,8 +10271,9 @@ dependencies = [
 
 [[package]]
 name = "stylo"
-version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "631d138475c566e37168f8394380e8ec89a6089dc806c7a76d355d73e9006553"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -10325,8 +10328,9 @@ dependencies = [
 
 [[package]]
 name = "stylo_atoms"
-version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "706e5fd9b66b8c1aa1e73e2acecdbec7b274d5bba7fe8946139696184e54978b"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -10334,8 +10338,9 @@ dependencies = [
 
 [[package]]
 name = "stylo_derive"
-version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01adb19a78d0d078d2132494616a61fbe4ec78545af4ea7368796b11ceb8e888"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -10346,8 +10351,9 @@ dependencies = [
 
 [[package]]
 name = "stylo_dom"
-version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "117715ee78843f4df7523ee970002622ecad6f0049f18147e04a3bf56c70d24d"
 dependencies = [
  "bitflags 2.13.1",
  "stylo_malloc_size_of",
@@ -10355,8 +10361,9 @@ dependencies = [
 
 [[package]]
 name = "stylo_malloc_size_of"
-version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29c7312cba289bd0015f64397a25af604ac551426b503dde9d64a0deed59751e"
 dependencies = [
  "app_units",
  "cssparser",
@@ -10372,16 +10379,18 @@ dependencies = [
 
 [[package]]
 name = "stylo_static_prefs"
-version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75e76005daba1feda388038f018ecbcdcddaabac66b02d1a10ad3379fdd1455d"
 dependencies = [
  "toml 1.1.4+spec-1.1.0",
 ]
 
 [[package]]
 name = "stylo_traits"
-version = "0.20.0"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b78fba4e24b86d98bc5c92b2655d39baea1d4fbefb0c4172394492a99768cfd9"
 dependencies = [
  "app_units",
  "bitflags 2.13.1",
@@ -10569,7 +10578,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -10822,7 +10831,8 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8c81cee0d28327337a94f3f32a1a77c03bbfd926510f3b42956f9d914e7810c"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -10835,7 +10845,8 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?rev=b3e6425100df710c7f30125e27a8fb897a709c5e#b3e6425100df710c7f30125e27a8fb897a709c5e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ba1f5563024b63bb6acb4558452d9ba737518c1d11fcc1861febe98d1e31cf4"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -12293,7 +12304,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
