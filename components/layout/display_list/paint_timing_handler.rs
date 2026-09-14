@@ -8,10 +8,12 @@ use app_units::Au;
 use euclid::Rect;
 use layout_api::LCPCandidate;
 use paint_api::display_list::PaintTimingReport;
+use servo_arc::Arc as ServoArc;
 use servo_base::id::LCPCandidateID;
 use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
+use style::properties::ComputedValues;
 use webrender_api::units::{LayoutRect, LayoutSize};
 
 use crate::fragment_tree::Tag;
@@ -49,6 +51,8 @@ struct TextRecord {
     /// <https://w3c.github.io/paint-timing/#set-of-owned-text-nodes>
     /// Collection of border_boxes of all Text nodes accumulated
     border_boxes: Vec<LayoutRect>,
+    /// The containing element's computed style
+    style: ServoArc<ComputedValues>,
 }
 
 enum LCPCandidateType<'a> {
@@ -133,6 +137,7 @@ impl PaintTimingHandler {
         tag: Tag,
         rect: LayoutRect,
         transform: FastLayoutTransform,
+        style: &ServoArc<ComputedValues>,
     ) {
         let border_box = transform_f32_rectangle(rect.to_rect(), transform)
             .unwrap_or_default()
@@ -145,6 +150,7 @@ impl PaintTimingHandler {
             .or_insert(TextRecord {
                 tag,
                 border_boxes: vec![border_box],
+                style: ServoArc::clone(style),
             });
     }
 
@@ -335,8 +341,18 @@ impl PaintTimingHandler {
             // Note: Satisfied, as the display-list builder only visits the
             // connected DOM tree of the fully-active document being laid out.
 
-            // TODO Step 5.2. If textNode has alpha channel value <=0 or opacity
-            // value <=0, continue.
+            // Step 5.2. If textNode has alpha channel value <=0 or opacity
+            // value <=0:
+            if record.style.clone_color().alpha <= 0.0 || record.style.clone_opacity() <= 0.0 {
+                // Step 5.2.1. If textNode's text-shadow value is none,
+                // textNode's stroke-color value is transparent and textNode's
+                // stroke-image value is none, continue.
+                // TODO: Update when we implement the `stroke-color`/`stroke-image`
+                // properties, as of now they are default (`transparent`/`none`)
+                if record.style.get_inherited_text().text_shadow.0.is_empty() {
+                    continue;
+                }
+            }
             // Step 5.3. Let intersectionRect be the union of the border boxes of
             // all Text nodes in textNode’s set of owned text nodes,
             // intersected with the visual viewport.
