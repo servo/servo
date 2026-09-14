@@ -73,7 +73,7 @@ fn remove_redundant_cache_files() {
         },
     };
     let Ok(expected_cache_filename) = parse_filename() else {
-        log::debug!("Could not determine font cache filename: {:?} Skipping cleanup");
+        log::debug!("Could not determine font cache filename. Skipping cleanup");
         return;
     };
 
