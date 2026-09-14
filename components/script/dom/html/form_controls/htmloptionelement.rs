@@ -89,6 +89,8 @@ impl HTMLOptionElement {
 
     pub(crate) fn set_selectedness(&self, no_gc: &NoGC, selected: bool) {
         self.selectedness.set(selected);
+        self.upcast::<Element>()
+            .set_state(ElementState::CHECKED, selected);
         // Bump the tree version so that any live HTMLCollection (e.g. selectedOptions)
         // rooted at an ancestor invalidates its cached length and cursor.
         self.upcast::<Node>().rev_version(no_gc);
