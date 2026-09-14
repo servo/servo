@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use embedder_traits::{DualRumbleEffectParams, EmbedderMsg, GamepadSupportedHapticEffects};
@@ -24,7 +23,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::window::Window;
 use crate::tasks::task_source::SendableTaskSource;
 
@@ -37,9 +36,9 @@ impl HapticEffectListener {
     fn handle_stopped(&self, stopped_successfully: bool) {
         let context = self.context.clone();
         self.task_source
-            .queue(task!(handle_haptic_effect_stopped: move || {
+            .queue(task!(handle_haptic_effect_stopped: move |cx| {
                 let actuator = context.root();
-                actuator.handle_haptic_effect_stopped(stopped_successfully);
+                actuator.handle_haptic_effect_stopped(cx, stopped_successfully);
             }));
     }
 
@@ -61,8 +60,7 @@ pub(crate) struct GamepadHapticActuator {
     /// <https://www.w3.org/TR/gamepad/#dfn-effects>
     effects: Vec<GamepadHapticEffectType>,
     /// <https://www.w3.org/TR/gamepad/#dfn-playingeffectpromise>
-    #[conditional_malloc_size_of]
-    playing_effect_promise: DomRefCell<Option<Rc<Promise>>>,
+    playing_effect_promise: DomRefCell<Option<TracedPromise>>,
     /// The current sequence ID for playing effects,
     /// incremented on every call to playEffect() or reset().
     /// Used to ensure that promises are resolved correctly.
@@ -126,8 +124,8 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         cx: &mut CurrentRealm,
         type_: GamepadHapticEffectType,
         params: &GamepadEffectParameters,
-    ) -> Rc<Promise> {
-        let playing_effect_promise = Promise::new_in_realm(cx);
+    ) -> RootedPromise {
+        let playing_effect_promise = Promise::new_in_realm_rooted(cx);
 
         // <https://www.w3.org/TR/gamepad/#dfn-valid-effect>
         match type_ {
@@ -196,8 +194,13 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         self.sequence_id.set(self.sequence_id.get().wrapping_add(1));
 
-        if let Some(promise) = self.playing_effect_promise.borrow_mut().take() {
-            let trusted_promise = TrustedPromise::new(promise);
+        let previous_promise = self
+            .playing_effect_promise
+            .borrow_mut()
+            .take()
+            .map(|promise| promise.root(cx));
+        if let Some(promise) = previous_promise {
+            let trusted_promise = TrustedPromise::from(&promise);
             self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move |cx| {
                     let promise = trusted_promise.root(cx);
@@ -212,7 +215,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             return playing_effect_promise;
         }
 
-        *self.playing_effect_promise.borrow_mut() = Some(playing_effect_promise.clone());
+        *self.playing_effect_promise.borrow_mut() = Some(playing_effect_promise.to_traced());
         self.effect_sequence_id.set(self.sequence_id.get());
 
         let context = Trusted::new(self);
@@ -249,8 +252,8 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
     }
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
-    fn Reset(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn Reset(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {
@@ -260,8 +263,13 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         self.sequence_id.set(self.sequence_id.get().wrapping_add(1));
 
-        if let Some(promise) = self.playing_effect_promise.borrow_mut().take() {
-            let trusted_promise = TrustedPromise::new(promise);
+        let previous_promise = self
+            .playing_effect_promise
+            .borrow_mut()
+            .take()
+            .map(|promise| promise.root(cx));
+        if let Some(previous_promise) = previous_promise {
+            let trusted_promise = TrustedPromise::from(&previous_promise);
             self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move |cx| {
                     let promise = trusted_promise.root(cx);
@@ -271,7 +279,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             );
         }
 
-        *self.playing_effect_promise.borrow_mut() = Some(promise);
+        *self.playing_effect_promise.borrow_mut() = Some(promise.to_traced());
 
         self.reset_sequence_id.set(self.sequence_id.get());
 
@@ -294,7 +302,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         );
         self.global().as_window().send_to_embedder(event);
 
-        self.playing_effect_promise.borrow().clone().unwrap()
+        promise
     }
 }
 
@@ -305,7 +313,11 @@ impl GamepadHapticActuator {
         if self.effect_sequence_id.get() != self.sequence_id.get() || !completed_successfully {
             return;
         }
-        let playing_effect_promise = self.playing_effect_promise.borrow_mut().take();
+        let playing_effect_promise = self
+            .playing_effect_promise
+            .borrow_mut()
+            .take()
+            .map(|promise| promise.root(cx));
         if let Some(promise) = playing_effect_promise {
             let message = DOMString::from_static("complete");
             promise.resolve_native(cx, &message);
@@ -314,15 +326,23 @@ impl GamepadHapticActuator {
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
     /// We are in the task queued by the "in-parallel" steps.
-    pub(crate) fn handle_haptic_effect_stopped(&self, stopped_successfully: bool) {
+    pub(crate) fn handle_haptic_effect_stopped(
+        &self,
+        cx: &mut JSContext,
+        stopped_successfully: bool,
+    ) {
         if !stopped_successfully {
             return;
         }
 
-        let playing_effect_promise = self.playing_effect_promise.borrow_mut().take();
+        let playing_effect_promise = self
+            .playing_effect_promise
+            .borrow_mut()
+            .take()
+            .map(|promise| promise.root(cx));
 
         if let Some(promise) = playing_effect_promise {
-            let trusted_promise = TrustedPromise::new(promise);
+            let trusted_promise = TrustedPromise::from(&promise);
             let sequence_id = self.sequence_id.get();
             let reset_sequence_id = self.reset_sequence_id.get();
             self.global().task_manager().gamepad_task_source().queue(
@@ -349,7 +369,12 @@ impl GamepadHapticActuator {
         self.global().task_manager().gamepad_task_source().queue(
             task!(stop_playing_effect: move |cx| {
                 let actuator = this.root();
-                let Some(promise) = actuator.playing_effect_promise.borrow_mut().take() else {
+                let playing_effect_promise = actuator
+                    .playing_effect_promise
+                    .borrow_mut()
+                    .take()
+                    .map(|promise| promise.root(cx));
+                let Some(promise) = playing_effect_promise else {
                     return;
                 };
                 let message = DOMString::from_static("preempted");
