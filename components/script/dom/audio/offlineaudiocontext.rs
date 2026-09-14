@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::Builder;
 
@@ -31,7 +30,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -40,8 +39,7 @@ pub(crate) struct OfflineAudioContext {
     channel_count: u32,
     length: u32,
     rendering_started: Cell<bool>,
-    #[conditional_malloc_size_of]
-    pending_rendering_promise: DomRefCell<Option<Rc<Promise>>>,
+    pending_rendering_promise: DomRefCell<Option<TracedPromise>>,
 }
 
 impl OfflineAudioContext {
@@ -137,15 +135,15 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-startrendering>
-    fn StartRendering(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn StartRendering(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
         if self.rendering_started.get() {
             promise.reject_error(cx, Error::InvalidState(None));
             return promise;
         }
         self.rendering_started.set(true);
 
-        *self.pending_rendering_promise.safe_borrow_mut(cx.no_gc()) = Some(promise.clone());
+        *self.pending_rendering_promise.safe_borrow_mut(cx.no_gc()) = Some(promise.to_traced());
 
         let processed_audio = Arc::new(Mutex::new(Vec::new()));
         let processed_audio_ = processed_audio.clone();
@@ -198,6 +196,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
                             .safe_borrow_mut(cx.no_gc()))
                             .take()
                             .unwrap()
+                            .root(cx)
                     };
                     promise.resolve_native(cx, &buffer);
                     let global = &this.global();
