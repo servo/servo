@@ -114,6 +114,8 @@ pub(crate) struct HTMLInputElement {
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
     /// <https://html.spec.whatwg.org/multipage/#concept-fe-checked>
+    /// The checkedness of an input is independent of its checked state as every input type can be
+    /// checked, but only checkboxes and radio buttons are in the checked state when they are checked.
     checkedness: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
     checked_changed: Cell<bool>,
