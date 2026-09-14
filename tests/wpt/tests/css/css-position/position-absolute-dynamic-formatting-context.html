@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Position: a laid-out formatting context keeps its box when it becomes absolutely positioned</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#position-property">
+<link rel="author" href="mailto:102797145+mxmgorin@users.noreply.github.com" title="Maksim Gorin">
+<meta name="assert" content="An element that has already been laid out in flow still generates a box after its position is changed to absolute or fixed, whatever formatting context it establishes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Each case is laid out in flow before being taken out; the resulting box
+// determines the incremental path, making these displays more interesting
+// than a single div.
+const DISPLAYS = ["block", "flex", "grid", "flow-root", "inline-flex"];
+const POSITIONS = ["absolute", "fixed"];
+
+function laidOutElement(t, tagName, display) {
+  const element = document.createElement(tagName);
+  element.style.display = display;
+  element.style.width = "50px";
+  element.style.height = "60px";
+  document.body.appendChild(element);
+  t.add_cleanup(() => element.remove());
+  // Forces layout, so the change below is incremental rather than part of the
+  // element's initial layout.
+  assert_equals(element.getBoundingClientRect().height, 60,
+                "the element has a box while it is in flow");
+  return element;
+}
+
+for (const position of POSITIONS) {
+  for (const display of DISPLAYS) {
+    test(t => {
+      const element = laidOutElement(t, "div", display);
+      element.style.position = position;
+      element.style.width = "200px";
+      element.style.height = "100px";
+      const rect = element.getBoundingClientRect();
+      assert_equals(rect.width, 200, "width");
+      assert_equals(rect.height, 100, "height");
+    }, `display: ${display} keeps its box when position becomes ${position}`);
+  }
+
+  // A block-level replaced element is an independent formatting context too, and
+  // reaches the same path as the containers above.
+  test(t => {
+    const canvas = laidOutElement(t, "canvas", "block");
+    canvas.style.position = position;
+    canvas.style.width = "200px";
+    canvas.style.height = "100px";
+    const rect = canvas.getBoundingClientRect();
+    assert_equals(rect.width, 200, "width");
+    assert_equals(rect.height, 100, "height");
+  }, `a block-level canvas keeps its box when position becomes ${position}`);
+}
+</script>
