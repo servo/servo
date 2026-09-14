@@ -9,7 +9,9 @@ use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::domstring::DOMString;
 use script_bindings::root::DomRoot;
 use stylo_atoms::Atom;
+use stylo_dom::ElementState;
 
+use crate::dom::Element;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::element::AttributeMutation;
@@ -206,6 +208,8 @@ pub(crate) fn radio_group_updated(
 ) {
     if input.Checked() {
         broadcast_radio_checked(cx, input, group);
+    } else {
+        input.update_indeterminate_state();
     }
 }
 
@@ -248,6 +252,10 @@ pub(crate) fn broadcast_radio_checked(
         if broadcaster != &*r && r.Checked() {
             r.SetChecked(cx, false);
         }
+
+        // The radio button triggering the broadcast is checked, so the group is not indeterminate
+        r.upcast::<Element>()
+            .set_state(ElementState::INDETERMINATE, false);
     }
 }
 
