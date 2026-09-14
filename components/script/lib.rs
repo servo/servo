@@ -23,6 +23,9 @@ extern crate stylo_atoms;
 #[macro_use]
 mod tasks;
 
+#[macro_use]
+extern crate script_bindings;
+
 pub(crate) mod conversions;
 mod css;
 mod fetch;
