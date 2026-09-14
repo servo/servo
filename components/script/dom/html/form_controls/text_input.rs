@@ -23,13 +23,10 @@ use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::inputevent::{HitTestResult, InputEvent};
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::text_control::TextControlElement;
@@ -199,7 +196,7 @@ pub enum InputEventType {
 }
 
 impl InputEventType {
-    fn as_str(&self) -> &str {
+    pub(crate) fn as_str(&self) -> &str {
         match *self {
             Self::InsertText => "insertText",
             Self::InsertLineBreak => "insertLineBreak",
@@ -1146,41 +1143,6 @@ impl<T: ClipboardProvider> TextInput<T> {
                     .with_input_type(InputEventType::InsertFromPaste)
             },
         _ => ClipboardEventReaction::empty(),)
-    }
-
-    /// <https://w3c.github.io/uievents/#event-type-input>
-    pub(crate) fn queue_input_event(
-        &self,
-        target: &EventTarget,
-        data: Option<String>,
-        is_composing: IsComposing,
-        input_type: InputEventType,
-    ) {
-        let global = target.global();
-        let target = Trusted::new(target);
-        global.task_manager().user_interaction_task_source().queue(
-            task!(fire_input_event: move |cx| {
-                let target = target.root();
-                let global = target.global();
-                let window = global.as_window();
-                let event = InputEvent::new(
-                    cx,
-                    window,
-                    None,
-                    atom!("input"),
-                    true,
-                    false,
-                    Some(window),
-                    0,
-                    data.map(DOMString::from),
-                    is_composing.into(),
-                    input_type.as_str().into(),
-                );
-                let event = event.upcast::<Event>();
-                event.set_composed(true);
-                event.fire(cx, &target);
-            }),
-        );
     }
 }
 
