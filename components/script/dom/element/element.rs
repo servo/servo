@@ -41,7 +41,7 @@ use selectors::matching::ElementSelectorFlags;
 use selectors::sink::Push;
 use servo_arc::Arc as ServoArc;
 use style::applicable_declarations::ApplicableDeclarationBlock;
-use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::longhands::{
@@ -60,7 +60,7 @@ use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
-use style::values::{AtomIdent, AtomString, CSSFloat, GenericAtomIdent, computed, specified};
+use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
@@ -119,7 +119,7 @@ use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::attributes::storage::{
-    AttrRef, AttrValueRef, AttributeEntry, AttributeStorage, ContentAttributeData,
+    AttrName, AttrRef, AttrValueRef, AttributeEntry, AttributeStorage, ContentAttributeData,
 };
 use crate::dom::element::create::create_element;
 use crate::dom::eventtarget::EventTarget;
@@ -2043,12 +2043,7 @@ impl Element {
         // and push a clone into the RefCell. This avoids holding a RefCell borrow
         // while attribute_mutated callbacks run (they may call get_attribute() etc.).
         let data = ContentAttributeData {
-            identifier: AttrIdentifier {
-                local_name: GenericAtomIdent(local_name),
-                name: GenericAtomIdent(name),
-                namespace: GenericAtomIdent(namespace),
-                prefix: prefix.map(GenericAtomIdent),
-            },
+            identifier: AttrName::new(local_name, name, namespace, prefix),
             value,
         };
         let attr_ref = AttrRef::Raw(&data);

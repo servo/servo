@@ -19,6 +19,7 @@ pub mod size_of {
 
     use crate::dom::characterdata::CharacterData;
     use crate::dom::element::Element;
+    use crate::dom::element::storage::ContentAttributeData;
     use crate::dom::eventtarget::EventTarget;
     use crate::dom::html::htmldivelement::HTMLDivElement;
     use crate::dom::html::htmlelement::HTMLElement;
@@ -56,6 +57,10 @@ pub mod size_of {
 
     pub fn Text() -> usize {
         size_of::<Text>()
+    }
+
+    pub fn ContentAttributeData() -> usize {
+        size_of::<ContentAttributeData>()
     }
 }
 
