@@ -148,7 +148,7 @@ unsafe impl<T: JSTraceable + Eq + Hash> CustomTraceable for indexmap::IndexSet<T
 
 // XXXManishearth Check if the following three are optimized to no-ops
 // if e.trace() is a no-op (e.g it is an unsafe_no_jsmanaged_fields type)
-unsafe impl<T: JSTraceable + 'static> CustomTraceable for SmallVec<[T; 1]> {
+unsafe impl<T: JSTraceable + 'static, const N: usize> CustomTraceable for SmallVec<[T; N]> {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
         for e in self.iter() {
