@@ -183,7 +183,7 @@ impl TextTrackListMethods<crate::DomTypeHolder> for TextTrackList {
         // > When no tracks match the given argument, the method must return null.
         let id_str = String::from(id);
         self.iter(no_gc)
-            .find(|track| track.id() == id_str)
+            .find(|track| *track.id() == id_str)
             .map(|track| track.as_rooted())
     }
 
