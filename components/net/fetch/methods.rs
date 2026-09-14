@@ -16,7 +16,7 @@ use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName, RANGE};
 use http::{HeaderValue, Method, StatusCode};
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc;
 use log::{debug, trace, warn};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::{self, Mime};
@@ -37,6 +37,7 @@ use net_traits::{
     WebSocketNetworkEvent, set_default_accept_language,
 };
 use parking_lot::Mutex;
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
@@ -72,13 +73,13 @@ pub enum Data {
 }
 
 pub struct WebSocketChannel {
-    pub sender: IpcSender<WebSocketNetworkEvent>,
+    pub sender: ProfileGenericCallback<WebSocketNetworkEvent>,
     pub receiver: Option<CallbackSetter<WebSocketDomAction>>,
 }
 
 impl WebSocketChannel {
     pub fn new(
-        sender: IpcSender<WebSocketNetworkEvent>,
+        sender: ProfileGenericCallback<WebSocketNetworkEvent>,
         receiver: Option<CallbackSetter<WebSocketDomAction>>,
     ) -> Self {
         Self { sender, receiver }

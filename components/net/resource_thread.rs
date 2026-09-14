@@ -32,6 +32,7 @@ use net_traits::{
     WebSocketNetworkEvent,
 };
 use parking_lot::{Mutex, RwLock};
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
     perform_memory_report,
@@ -901,7 +902,7 @@ impl CoreResourceManager {
     fn websocket_connect(
         &self,
         mut request: RequestBuilder,
-        event_sender: IpcSender<WebSocketNetworkEvent>,
+        event_sender: ProfileGenericCallback<WebSocketNetworkEvent>,
         action_receiver: CallbackSetter<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
         cancellation_listener: Arc<CancellationListener>,

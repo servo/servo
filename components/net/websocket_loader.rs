@@ -22,10 +22,10 @@ use headers::{
 };
 use http::HeaderMap;
 use http::header::{self, HeaderName, HeaderValue};
-use ipc_channel::ipc::IpcSender;
 use log::{debug, trace, warn};
 use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData, WebSocketDomAction, WebSocketNetworkEvent};
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use servo_base::generic_channel::CallbackSetter;
 use servo_url::ServoUrl;
 use tokio::net::TcpStream;
@@ -210,7 +210,7 @@ fn setup_dom_listener(
 /// on the WS tokio runtime.
 async fn run_ws_loop(
     mut dom_receiver: UnboundedReceiver<DomMsg>,
-    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
+    resource_event_sender: ProfileGenericCallback<WebSocketNetworkEvent>,
     mut stream: WebSocketStream<ConnectStream>,
 ) {
     loop {
@@ -304,7 +304,7 @@ async fn run_ws_loop(
 /// listening loop will be started.
 pub(crate) async fn start_websocket(
     http_state: Arc<HttpState>,
-    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
+    resource_event_sender: ProfileGenericCallback<WebSocketNetworkEvent>,
     protocols: &[String],
     client: &net_traits::request::Request,
     tls_config: TlsConfig,
