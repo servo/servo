@@ -1105,7 +1105,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-checked>
     fn SetChecked(&self, cx: &mut JSContext, checked: bool) {
-        self.update_checked_state(cx, checked, true);
+        self.update_checkedness(cx, checked, true);
         self.value_changed(cx);
     }
 
@@ -1705,15 +1705,9 @@ impl HTMLInputElement {
             .filter(|name| !name.is_empty())
     }
 
-    fn update_checked_state(&self, cx: &mut JSContext, checked: bool, dirty: bool) {
+    fn update_checkedness(&self, cx: &mut JSContext, checked: bool, dirty: bool) {
         self.checkedness.set(checked);
-        if matches!(
-            *self.input_type(),
-            InputType::Checkbox(_) | InputType::Radio(_)
-        ) {
-            self.upcast::<Element>()
-                .set_state(ElementState::CHECKED, checked);
-        }
+        self.update_checked_state();
 
         if dirty {
             self.checked_changed.set(true);
@@ -1724,6 +1718,14 @@ impl HTMLInputElement {
         }
 
         self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+    }
+
+    fn update_checked_state(&self) {
+        let should_checked_state_apply = matches!(
+            *self.input_type(),
+            InputType::Checkbox(_) | InputType::Radio(_)
+        ) && self.Checked();
+        self.upcast::<Element>().set_state(ElementState::CHECKED, should_checked_state_apply);
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
@@ -1752,7 +1754,7 @@ impl HTMLInputElement {
 
         let input_type = &*self.input_type();
         if matches!(input_type, InputType::Radio(_) | InputType::Checkbox(_)) {
-            self.update_checked_state(cx, self.DefaultChecked(), false);
+            self.update_checkedness(cx, self.DefaultChecked(), false);
             self.checked_changed.set(false);
         }
 
@@ -1774,7 +1776,7 @@ impl HTMLInputElement {
         // Step 2. Set value to empty string.
         self.textinput.borrow_mut().set_content(DOMString::new());
         // Step 3. Set checkedness based on presence of content attribute.
-        self.update_checked_state(cx, self.DefaultChecked(), false);
+        self.update_checkedness(cx, self.DefaultChecked(), false);
         // Step 4. Empty selected files
         if self.input_type().as_specific().get_files().is_some() {
             let window = self.owner_window();
@@ -2044,7 +2046,7 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                self.update_checked_state(cx, checked_state, false);
+                self.update_checkedness(cx, checked_state, false);
             },
             local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
@@ -2153,13 +2155,7 @@ impl VirtualMethods for HTMLInputElement {
                     .as_specific()
                     .update_placeholder_contents(cx, self);
 
-                self.upcast::<Element>().set_state(
-                    ElementState::CHECKED,
-                    matches!(
-                        *self.input_type(),
-                        InputType::Checkbox(_) | InputType::Radio(_)
-                    ) && self.checkedness.get(),
-                );
+                self.update_checked_state();
             },
             local_name!("value") if !self.value_dirty.get() => {
                 // This is only run when the `value` or `defaultValue` attribute is set. It
