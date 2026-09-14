@@ -17,8 +17,7 @@ macro_rules! task {
             task: F,
         }
         #[expect(unsafe_code)]
-        #[warn(clippy::crate_in_macro_def)]
-        unsafe impl<F> crate::JSTraceable for $name<F> {
+        unsafe impl<F> js::gc::Traceable for $name<F> {
             #[expect(unsafe_code)]
             unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
                 unsafe { $(self.$field.trace(tracer);)* }
@@ -66,8 +65,7 @@ macro_rules! task {
             task: F,
         }
         #[expect(unsafe_code)]
-        #[expect(clippy::crate_in_macro_def)]
-        unsafe impl<F> crate::JSTraceable for $name<F> {
+        unsafe impl<F> js::gc::Traceable for $name<F> {
             #[expect(unsafe_code)]
             unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
                 unsafe { $(self.$field.trace(tracer);)* }
