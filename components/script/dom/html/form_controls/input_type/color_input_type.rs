@@ -230,10 +230,10 @@ impl SpecificInputType for ColorInputType {
                 // https://html.spec.whatwg.org/multipage/#attr-input-colorspace
                 // > Whenever the element's alpha or colorspace attributes are changed,
                 // the user agent must run update a color well control color given the element.
-                let mut textinput = input.textinput_mut();
-                let mut value = textinput.get_content();
+                let mut text_input = input.text_input_mut();
+                let mut value = text_input.get_content();
                 Self::update_a_color_well_control_color(input, &mut value);
-                textinput.set_content(value);
+                text_input.set_content(value);
             },
             _ => {},
         }

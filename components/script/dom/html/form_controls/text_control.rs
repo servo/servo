@@ -42,15 +42,18 @@ pub(crate) trait TextControlElement:
 
 pub(crate) struct TextControlSelection<'a, E: TextControlElement> {
     element: &'a E,
-    textinput: &'a DomRefCell<TextInput<EmbedderClipboardProvider>>,
+    text_input: &'a DomRefCell<TextInput<EmbedderClipboardProvider>>,
 }
 
 impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     pub(crate) fn new(
         element: &'a E,
-        textinput: &'a DomRefCell<TextInput<EmbedderClipboardProvider>>,
+        text_input: &'a DomRefCell<TextInput<EmbedderClipboardProvider>>,
     ) -> Self {
-        TextControlSelection { element, textinput }
+        TextControlSelection {
+            element,
+            text_input,
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
@@ -231,11 +234,11 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
 
         // Save the original selection state to later pass to set_selection_range, because we will
         // change the selection state in order to replace the text in the range.
-        let original_selection_state = self.textinput.borrow().selection_state();
+        let original_selection_state = self.text_input.borrow().selection_state();
 
         // Step 5: If start is greater than the length of the relevant value of the text
         // control, then set it to the length of the relevant value of the text control.
-        let content_length = self.textinput.borrow().len_utf16();
+        let content_length = self.text_input.borrow().len_utf16();
         if start > content_length {
             start = content_length;
         }
@@ -260,14 +263,14 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
             // Step: 10: Insert the value of the first argument into the text of the
             // relevant value of the text control, immediately before the startth code
             // unit.
-            let mut textinput = self.textinput.borrow_mut();
-            textinput.set_selection_range_utf16(start, end, SelectionDirection::None);
-            textinput.replace_selection(&replacement);
+            let mut text_input = self.text_input.borrow_mut();
+            text_input.set_selection_range_utf16(start, end, SelectionDirection::None);
+            text_input.replace_selection(&replacement);
         }
 
         // Step 11: Let *new length* be the length of the value of the first argument.
         //
-        // Must come before the textinput.replace_selection() call, as replacement gets moved in
+        // Must come before the text_input.replace_selection() call, as replacement gets moved in
         // that call.
         let new_length = replacement.len_utf16();
 
@@ -343,15 +346,15 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     fn start(&self) -> Utf16CodeUnits {
-        self.textinput.borrow().selection_start_utf16()
+        self.text_input.borrow().selection_start_utf16()
     }
 
     fn end(&self) -> Utf16CodeUnits {
-        self.textinput.borrow().selection_end_utf16()
+        self.text_input.borrow().selection_end_utf16()
     }
 
     fn direction(&self) -> SelectionDirection {
-        self.textinput.borrow().selection_direction()
+        self.text_input.borrow().selection_direction()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-selection-range>
@@ -363,7 +366,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         original_selection_state: Option<SelectionState>,
     ) {
         let original_selection_state =
-            original_selection_state.unwrap_or_else(|| self.textinput.borrow().selection_state());
+            original_selection_state.unwrap_or_else(|| self.text_input.borrow().selection_state());
 
         // To set the selection range with an integer or null start, an integer or null or
         // the special value infinity end, and optionally a string direction, run the
@@ -390,7 +393,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // the direction argument was not given, set direction to "none".
         //
         // Step 5: Set the selection direction of the text control to direction.
-        self.textinput.borrow_mut().set_selection_range_utf16(
+        self.text_input.borrow_mut().set_selection_range_utf16(
             start,
             end,
             direction.unwrap_or(SelectionDirection::None),
@@ -400,7 +403,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // modified (in either extent or direction), then queue an element task on the
         // user interaction task source given the element to fire an event named select at
         // the element, with the bubbles attribute initialized to true.
-        if self.textinput.borrow().selection_state() == original_selection_state {
+        if self.text_input.borrow().selection_state() == original_selection_state {
             return;
         }
 

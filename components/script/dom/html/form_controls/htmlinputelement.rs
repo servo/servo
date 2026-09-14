@@ -120,7 +120,7 @@ pub(crate) struct HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
     checked_changed: Cell<bool>,
     #[no_trace]
-    textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
+    text_input: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
@@ -174,7 +174,7 @@ impl HTMLInputElement {
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DomRefCell::new(TextInput::new(
+            text_input: DomRefCell::new(TextInput::new(
                 Lines::Single,
                 DOMString::new(),
                 EmbedderClipboardProvider {
@@ -750,15 +750,15 @@ impl HTMLInputElement {
         // https://html.spec.whatwg.org/multipage/#limiting-user-input-length%3A-the-maxlength-attribute%3Asuffering-from-being-too-long
         // https://html.spec.whatwg.org/multipage/#setting-minimum-input-length-requirements%3A-the-minlength-attribute%3Asuffering-from-being-too-short
         let value_dirty = self.value_dirty.get();
-        let textinput = self.textinput.borrow();
-        let edit_by_user = !textinput.was_last_change_by_set_content();
+        let text_input = self.text_input.borrow();
+        let edit_by_user = !text_input.was_last_change_by_set_content();
 
         if value.is_empty() || !value_dirty || !edit_by_user || !self.does_minmaxlength_apply() {
             return ValidationFlags::empty();
         }
 
         let mut failed_flags = ValidationFlags::empty();
-        let Utf16CodeUnits(value_len) = textinput.len_utf16();
+        let Utf16CodeUnits(value_len) = text_input.len_utf16();
         let min_length = self.MinLength();
         let max_length = self.MaxLength();
 
@@ -848,7 +848,7 @@ impl HTMLInputElement {
             },
             KeyReaction::DispatchInput(text, is_composing, input_type) => {
                 if event.IsTrusted() {
-                    self.textinput.borrow().queue_input_event(
+                    self.text_input.borrow().queue_input_event(
                         self.upcast(),
                         text,
                         is_composing,
@@ -889,8 +889,8 @@ impl HTMLInputElement {
         }
     }
 
-    pub(crate) fn textinput_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
-        self.textinput.borrow_mut()
+    pub(crate) fn text_input_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
+        self.text_input.borrow_mut()
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
@@ -949,8 +949,8 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
             return None;
         }
         #[expect(unsafe_code)]
-        let textinput = unsafe { element.textinput.borrow_for_layout() };
-        textinput.selection_for_layout
+        let text_input = unsafe { element.text_input.borrow_for_layout() };
+        text_input.selection_for_layout
     }
 }
 
@@ -975,11 +975,11 @@ impl TextControlElement for HTMLInputElement {
     // Types omitted which could theoretically be included if they were
     // rendered as a text control: file
     fn has_selectable_text(&self) -> bool {
-        self.is_textual_or_password() && !self.textinput.borrow().get_content().is_empty()
+        self.is_textual_or_password() && !self.text_input.borrow().get_content().is_empty()
     }
 
     fn has_uncollapsed_selection(&self) -> bool {
-        self.textinput.borrow().has_uncollapsed_selection()
+        self.text_input.borrow().has_uncollapsed_selection()
     }
 
     fn set_dirty_value_flag(&self, value: bool) {
@@ -987,13 +987,13 @@ impl TextControlElement for HTMLInputElement {
     }
 
     fn select_all(&self) {
-        self.textinput.borrow_mut().select_all();
+        self.text_input.borrow_mut().select_all();
         self.maybe_update_shared_selection();
     }
 
     fn maybe_update_shared_selection(&self) {
         let selection = {
-            let mut text_input = self.textinput.borrow_mut();
+            let mut text_input = self.text_input.borrow_mut();
             let selection_range = text_input.selection_start()..text_input.selection_end();
             let enabled = self.is_textual_or_password() && self.upcast::<Element>().focus_state();
 
@@ -1146,7 +1146,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
     fn Value(&self) -> DOMString {
         match self.value_mode() {
-            ValueMode::Value => self.textinput.borrow().get_content(),
+            ValueMode::Value => self.text_input.borrow().get_content(),
             ValueMode::Default => self
                 .upcast::<Element>()
                 .get_attribute_string_value(&local_name!("value"))
@@ -1186,17 +1186,17 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                     // attribute's current state defines one.
                     self.sanitize_value(&mut value);
 
-                    let mut textinput = self.textinput.borrow_mut();
+                    let mut text_input = self.text_input.borrow_mut();
 
                     // Step 5. If the element's value (after applying the value sanitization algorithm)
                     // is different from oldValue, and the element has a text entry cursor position,
                     // move the text entry cursor position to the end of the text control,
                     // unselecting any selected text and resetting the selection direction to "none".
-                    if textinput.get_content() != value {
+                    if text_input.get_content() != value {
                         // Step 2. Set the element's value to the new value.
-                        textinput.set_content(value);
+                        text_input.set_content(value);
 
-                        textinput.clear_selection_to_end();
+                        text_input.clear_selection_to_end();
                     }
                 }
 
@@ -1756,7 +1756,7 @@ impl HTMLInputElement {
         // We set the value and sanitize all in one go.
         let mut value = self.DefaultValue();
         self.sanitize_value(&mut value);
-        self.textinput.borrow_mut().set_content(value);
+        self.text_input.borrow_mut().set_content(value);
 
         let input_type = &*self.input_type();
         if matches!(input_type, InputType::Radio(_) | InputType::Checkbox(_)) {
@@ -1780,7 +1780,7 @@ impl HTMLInputElement {
         self.value_dirty.set(false);
         self.checked_changed.set(false);
         // Step 2. Set value to empty string.
-        self.textinput.borrow_mut().set_content(DOMString::new());
+        self.text_input.borrow_mut().set_content(DOMString::new());
         // Step 3. Set checkedness based on presence of content attribute.
         self.update_checkedness(cx, self.DefaultChecked(), false);
         // Step 4. Empty selected files
@@ -1793,10 +1793,10 @@ impl HTMLInputElement {
         // Step 5. Invoke the value sanitization algorithm iff the type attribute's
         // current state defines one.
         {
-            let mut textinput = self.textinput.borrow_mut();
-            let mut value = textinput.get_content();
+            let mut text_input = self.text_input.borrow_mut();
+            let mut value = text_input.get_content();
             self.sanitize_value(&mut value);
-            textinput.set_content(value);
+            text_input.set_content(value);
         }
 
         self.value_changed(cx);
@@ -1807,7 +1807,7 @@ impl HTMLInputElement {
             self.upcast::<Element>().set_placeholder_shown_state(false);
         } else {
             let has_placeholder = !self.placeholder.borrow().is_empty();
-            let has_value = !self.textinput.borrow().is_empty();
+            let has_value = !self.text_input.borrow().is_empty();
             self.upcast::<Element>()
                 .set_placeholder_shown_state(has_placeholder && !has_value);
         }
@@ -1841,7 +1841,7 @@ impl HTMLInputElement {
     }
 
     fn selection(&self) -> TextControlSelection<'_, Self> {
-        TextControlSelection::new(self, &self.textinput)
+        TextControlSelection::new(self, &self.text_input)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#implicit-submission>
@@ -2124,24 +2124,26 @@ impl VirtualMethods for HTMLInputElement {
                         self.input_type().as_specific().signal_type_change(cx, self);
 
                         // Step 6
-                        let mut textinput = self.textinput.borrow_mut();
-                        let mut value = textinput.get_content();
+                        let mut text_input = self.text_input.borrow_mut();
+                        let mut value = text_input.get_content();
                         self.sanitize_value(&mut value);
-                        textinput.set_content(value);
+                        text_input.set_content(value);
                         self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
 
                         // Set or remove the length restrictions depending on whether they apply
                         if self.does_minmaxlength_apply() {
-                            textinput.set_min_length(self.MinLength().to_u32().map(Utf16CodeUnits));
-                            textinput.set_max_length(self.MaxLength().to_u32().map(Utf16CodeUnits));
+                            text_input
+                                .set_min_length(self.MinLength().to_u32().map(Utf16CodeUnits));
+                            text_input
+                                .set_max_length(self.MaxLength().to_u32().map(Utf16CodeUnits));
                         } else {
-                            textinput.set_min_length(None);
-                            textinput.set_max_length(None);
+                            text_input.set_min_length(None);
+                            text_input.set_max_length(None);
                         }
 
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
-                            textinput.clear_selection_to_start();
+                            text_input.clear_selection_to_start();
                         }
                     },
                     AttributeMutation::Removed => {
@@ -2171,29 +2173,29 @@ impl VirtualMethods for HTMLInputElement {
                 let mut value = value.map_or(DOMString::new(), DOMString::from);
 
                 self.sanitize_value(&mut value);
-                self.textinput.borrow_mut().set_content(value);
+                self.text_input.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
             },
             local_name!("maxlength") if self.does_minmaxlength_apply() => match *attr.value() {
                 AttrValue::Int(_, value) => {
-                    let mut textinput = self.textinput.borrow_mut();
+                    let mut text_input = self.text_input.borrow_mut();
 
                     if value < 0 {
-                        textinput.set_max_length(None);
+                        text_input.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(Utf16CodeUnits(value as u32)))
+                        text_input.set_max_length(Some(Utf16CodeUnits(value as u32)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
             },
             local_name!("minlength") if self.does_minmaxlength_apply() => match *attr.value() {
                 AttrValue::Int(_, value) => {
-                    let mut textinput = self.textinput.borrow_mut();
+                    let mut text_input = self.text_input.borrow_mut();
 
                     if value < 0 {
-                        textinput.set_min_length(None);
+                        text_input.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(Utf16CodeUnits(value as u32)))
+                        text_input.set_min_length(Some(Utf16CodeUnits(value as u32)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -2315,9 +2317,9 @@ impl VirtualMethods for HTMLInputElement {
             self.input_type().is_textual_or_password()
         {
             if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
-                // This can't be inlined, as holding on to textinput.borrow_mut()
+                // This can't be inlined, as holding on to text_input.borrow_mut()
                 // during self.implicit_submission will cause a panic.
-                let action = self.textinput.borrow_mut().handle_keydown(keyevent);
+                let action = self.text_input.borrow_mut().handle_keydown(keyevent);
                 self.handle_key_reaction(cx, action, event);
             }
         } else if (event.type_() == atom!("compositionstart") ||
@@ -2328,7 +2330,7 @@ impl VirtualMethods for HTMLInputElement {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
                     let action = self
-                        .textinput
+                        .text_input
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
                     self.handle_key_reaction(cx, action, event);
@@ -2336,7 +2338,7 @@ impl VirtualMethods for HTMLInputElement {
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
-                        .textinput
+                        .text_input
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
                     self.handle_key_reaction(cx, action, event);
@@ -2350,7 +2352,7 @@ impl VirtualMethods for HTMLInputElement {
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
             let reaction = self
-                .textinput
+                .text_input
                 .borrow_mut()
                 .handle_clipboard_event(clipboard_event);
             let flags = reaction.flags;
@@ -2359,7 +2361,7 @@ impl VirtualMethods for HTMLInputElement {
                     .fire_clipboard_event(cx, None, ClipboardEventType::Change);
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {
-                self.textinput.borrow().queue_input_event(
+                self.text_input.borrow().queue_input_event(
                     self.upcast(),
                     reaction.text,
                     IsComposing::NotComposing,
@@ -2391,14 +2393,14 @@ impl VirtualMethods for HTMLInputElement {
     ) {
         // Only respond to mouse events if we are displayed as text input or a password. If the
         // placeholder is displayed, also don't do any interactive mouse event handling.
-        if !self.input_type().is_textual_or_password() || self.textinput.borrow().is_empty() {
+        if !self.input_type().is_textual_or_password() || self.text_input.borrow().is_empty() {
             if let Some(super_type) = self.super_type() {
                 super_type.handle_mousedown_event(cx, mouse_event, hit_test_result);
             }
             return;
         }
 
-        if self.textinput.borrow_mut().handle_mousedown_event(
+        if self.text_input.borrow_mut().handle_mousedown_event(
             self.upcast(),
             mouse_event,
             hit_test_result,
@@ -2427,9 +2429,9 @@ impl VirtualMethods for HTMLInputElement {
         // do it and there are WPT tests expecting cloned nodes to preserve this attribute.
         elem.upcast::<Element>()
             .set_state(ElementState::INDETERMINATE, self.Indeterminate());
-        elem.textinput
+        elem.text_input
             .borrow_mut()
-            .set_content(self.textinput.borrow().get_content());
+            .set_content(self.text_input.borrow().get_content());
         self.value_changed(cx);
     }
 }
