@@ -419,12 +419,12 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         self.element.is_body_element_of_html_element_root()
     }
 
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(
+    fn synthesize_presentational_hints_for_legacy_attributes<'a, V>(
         &self,
         _visited_handling: VisitedHandlingMode,
         hints: &mut V,
     ) where
-        V: Push<ApplicableDeclarationBlock>,
+        V: Push<ApplicableDeclarationBlock<'a>>,
     {
         self.element
             .synthesize_presentational_hints_for_legacy_attributes(hints);

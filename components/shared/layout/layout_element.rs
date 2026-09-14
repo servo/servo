@@ -132,6 +132,10 @@ pub trait LayoutElement<'dom>: Copy + Debug + Send + Sync {
     /// Note that, like `Self::is_body_element_of_html_element_root`, this accesses the parent.
     /// As in that case, since this is an immutable borrow, we do not violate thread safety.
     fn is_root(&self) -> bool;
+
+    /// Resolves and caches the style declarations mapped from attributes (presentational hints),
+    /// if they hadn't been cached yet. Returns true if the resolution was needed.
+    fn ensure_mapped_attribute_declarations(&self) -> bool;
 }
 
 /// An element that can be passed to `stylo` and `selectors` that allows accessing the
