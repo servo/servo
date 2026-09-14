@@ -7,7 +7,6 @@ use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use ipc_channel::router::ROUTER;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSObject;
@@ -23,7 +22,7 @@ use net_traits::request::{
 use net_traits::{
     CoreResourceMsg, FetchChannels, MessageData, WebSocketDomAction, WebSocketNetworkEvent,
 };
-use profile_traits::ipc as ProfiledIpc;
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{DomObject, reflect_weak_referenceable_dom_object_with_proto};
 use servo_base::generic_channel::{LazyCallback, lazy_callback};
@@ -272,8 +271,6 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
         // Create the interface for communication with the resource thread
         let (dom_action_sender, resource_action_receiver) = lazy_callback();
-        let (resource_event_sender, dom_event_receiver) =
-            ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
         // Step 12. Establish a WebSocket connection given urlRecord, protocols, and client.
         let ws = WebSocket::new(cx, global, proto, url_record.clone(), dom_action_sender);
@@ -299,18 +296,9 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         .cache_mode(CacheMode::NoCache)
         .redirect_mode(RedirectMode::Error);
 
-        let channels = FetchChannels::WebSocket {
-            event_sender: resource_event_sender,
-            action_receiver: resource_action_receiver,
-        };
-        let _ = global
-            .core_resource_thread()
-            .send(CoreResourceMsg::Fetch(request, channels));
-
         let task_source = global.task_manager().websocket_task_source().to_sendable();
-        ROUTER.add_typed_route(
-            dom_event_receiver.to_ipc_receiver(),
-            Box::new(move |message| match message.unwrap() {
+        let resource_event_sender =
+            ProfileGenericCallback::new(move |message| match message.unwrap() {
                 WebSocketNetworkEvent::ReportCSPViolations(violations) => {
                     let task = ReportCSPViolationTask {
                         websocket: address.clone(),
@@ -338,8 +326,16 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 WebSocketNetworkEvent::Close(code, reason) => {
                     close_the_websocket_connection(address.clone(), &task_source, code, reason);
                 },
-            }),
-        );
+            })
+            .expect("Couldn't create web socket callback.");
+
+        let channels = FetchChannels::WebSocket {
+            event_sender: resource_event_sender,
+            action_receiver: resource_action_receiver,
+        };
+        let _ = global
+            .core_resource_thread()
+            .send(CoreResourceMsg::Fetch(request, channels));
 
         Ok(ws)
     }

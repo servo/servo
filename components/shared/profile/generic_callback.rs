@@ -9,7 +9,7 @@ use servo_base::generic_channel::{SendError, SendResult};
 use crate::generic_channel::GenericReceiver;
 use crate::time::ProfilerChan;
 
-#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
+#[derive(Debug, Serialize, Deserialize, MallocSizeOf)]
 pub struct GenericCallback<T>(servo_base::generic_channel::GenericCallback<T>)
 where
     T: Serialize + Send + 'static;
@@ -38,5 +38,14 @@ where
 
     pub fn send(&self, value: T) -> SendResult {
         self.0.send(value)
+    }
+}
+
+impl<T> Clone for GenericCallback<T>
+where
+    T: Serialize + Send + 'static,
+{
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
     }
 }

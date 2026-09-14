@@ -21,6 +21,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use parking_lot::RwLock;
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::mem::ReportsChan;
 use rand::{Rng, rng};
 use request::RequestId;
@@ -450,7 +451,7 @@ pub struct TlsSecurityInfo {
     pub used_private_dns: bool,
 }
 
-impl FetchTaskTarget for IpcSender<WebSocketNetworkEvent> {
+impl FetchTaskTarget for ProfileGenericCallback<WebSocketNetworkEvent> {
     fn process_request_body(&mut self, _: &Request) {}
     fn process_response(&mut self, _: &Request, response: &Response) {
         if response.is_network_error() {
@@ -680,7 +681,7 @@ pub enum WebSocketNetworkEvent {
 pub enum FetchChannels {
     ResponseMsg(GenericCallback<FetchResponseMsg>),
     WebSocket {
-        event_sender: IpcSender<WebSocketNetworkEvent>,
+        event_sender: ProfileGenericCallback<WebSocketNetworkEvent>,
         action_receiver: CallbackSetter<WebSocketDomAction>,
     },
     /// If the fetch is just being done to populate the cache,
