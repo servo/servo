@@ -52,57 +52,96 @@ pub fn is_cjk(codepoint: char) -> bool {
 
 /// Equivalent to either `Range`, `RangeTo`, `RangeFrom`, or `RangeFull`
 #[derive(Clone, Copy, Eq, PartialEq, MallocSizeOf)]
-pub struct RangeAny<T> {
-    /// `None` means zero
-    pub start: Option<T>,
-    /// `None` means the full available length
-    pub end: Option<T>,
+pub struct RangeAny<T>(RangeAnyInner<T>);
+
+#[derive(Clone, Copy, Eq, PartialEq, MallocSizeOf)]
+enum RangeAnyInner<T> {
+    Range { start: T, end: T },
+    RangeFrom { start: T },
+    RangeTo { end: T },
+    RangeFull,
 }
+
+size_of_test!(RangeAny<u32>, 12);
+size_of_test!(Option<RangeAny<u32>>, 12);
 
 impl<T: fmt::Debug> fmt::Debug for RangeAny<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match (&self.start, &self.end) {
-            (Some(start), Some(end)) => write!(f, "{start:?}..{end:?}"),
-            (Some(start), None) => write!(f, "{start:?}.."),
-            (None, Some(end)) => write!(f, "..{end:?}"),
-            (None, None) => write!(f, ".."),
+        match &self.0 {
+            RangeAnyInner::Range { start, end } => write!(f, "{start:?}..{end:?}"),
+            RangeAnyInner::RangeFrom { start } => write!(f, "{start:?}.."),
+            RangeAnyInner::RangeTo { end, .. } => write!(f, "..{end:?}"),
+            RangeAnyInner::RangeFull => write!(f, ".."),
         }
     }
 }
 
 impl<T> RangeAny<T> {
+    pub fn new(start: Option<T>, end: Option<T>) -> Self {
+        Self(match (start, end) {
+            (Some(start), Some(end)) => RangeAnyInner::Range { start, end },
+            (Some(start), None) => RangeAnyInner::RangeFrom { start },
+            (None, Some(end)) => RangeAnyInner::RangeTo { end },
+            (None, None) => RangeAnyInner::RangeFull,
+        })
+    }
+
+    /// Returns a `RangeAny` that represents the range from the start to the given end.
+    pub fn from_start_to(end: T) -> Self {
+        Self(RangeAnyInner::RangeTo { end })
+    }
+
     /// Returns a `RangeAny` that represents the full range: both bounds unset
     pub fn full() -> Self {
-        Self {
-            start: None,
-            end: None,
+        Self(RangeAnyInner::RangeFull)
+    }
+
+    // Note: for a fully-generic general purpose container we’d return `Option<&T>`
+    // and remove the `Copy` bound, but Servo only uses `RangeAny` with `Utf*CodeUnits` types
+    // that implement `Copy`, so relying on `Copy` makes callers less verbose.
+    pub fn start(&self) -> Option<T>
+    where
+        T: Copy,
+    {
+        match self.0 {
+            RangeAnyInner::Range { start, .. } | RangeAnyInner::RangeFrom { start } => Some(start),
+            RangeAnyInner::RangeTo { .. } | RangeAnyInner::RangeFull => None,
+        }
+    }
+
+    pub fn end(&self) -> Option<T>
+    where
+        T: Copy,
+    {
+        match self.0 {
+            RangeAnyInner::Range { end, .. } | RangeAnyInner::RangeTo { end, .. } => Some(end),
+            RangeAnyInner::RangeFrom { .. } | RangeAnyInner::RangeFull => None,
         }
     }
 
     /// Apply `Option::map` to each bound of this range
-    pub fn map<U>(self, f: impl Fn(T) -> U + Copy) -> RangeAny<U> {
-        let Self { start, end } = self;
-        RangeAny {
-            start: start.map(f),
-            end: end.map(f),
-        }
+    pub fn map<U>(&self, f: impl Fn(T) -> U + Copy) -> RangeAny<U>
+    where
+        T: Copy,
+    {
+        RangeAny::new(self.start().map(f), self.end().map(f))
     }
 
     /// Returns the intersection of two ranges, if it is non-empty
-    pub fn intersect(self, other: Self) -> Option<Self>
+    pub fn intersect(&self, other: Self) -> Option<Self>
     where
-        T: Ord,
+        T: Copy + Ord,
     {
         // TODO: https://github.com/rust-lang/rust/issues/144273
         // let start = a.start.reduce(b.start, std::cmp::max);
         // let end = a.end.reduce(b.end, std::cmp::min);
-        let start = match (self.start, other.start) {
+        let start = match (self.start(), other.start()) {
             (None, None) => None,
             (None, Some(b)) => Some(b),
             (Some(a), None) => Some(a),
             (Some(a), Some(b)) => Some(a.max(b)),
         };
-        let end = match (self.end, other.end) {
+        let end = match (self.end(), other.end()) {
             (None, None) => None,
             (None, Some(b)) => Some(b),
             (Some(a), None) => Some(a),
@@ -112,7 +151,7 @@ impl<T> RangeAny<T> {
             .as_ref()
             .is_none_or(|start| end.as_ref().is_none_or(|end| start < end))
         {
-            Some(RangeAny { start, end })
+            Some(Self::new(start, end))
         } else {
             // `max()..min()` producing a "backwards" range means the intersection is empty
             None
@@ -122,53 +161,67 @@ impl<T> RangeAny<T> {
 
 impl<T> From<Range<T>> for RangeAny<T> {
     fn from(value: Range<T>) -> Self {
-        Self {
-            start: Some(value.start),
-            end: Some(value.end),
-        }
+        Self::new(Some(value.start), Some(value.end))
     }
+}
+
+/// A marker to make callers acknowledge that a method computes 32-bit offsets or lengths,
+/// and trying to compute past `u32::MAX` code units may result in integer overflow.
+///
+/// The default Rust behavior for integer overflow is panic on debug mode,
+/// and silent wrapping (which for offsets or lengths returns a wrong value) in release mode.
+pub struct AssumeUnder4GB;
+
+fn infallible_u32_to_usize(value: u32) -> usize {
+    const _: () = assert!(usize::BITS >= u32::BITS, "16-bit targets are not supported");
+    value as usize
 }
 
 macro_rules! unicode_length_type {
     ($( #[$doc:meta] )+ $type_name:ident) => {
         $( #[$doc] )+
         #[derive(Clone, Copy, Default, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-        pub struct $type_name(pub usize);
+        pub struct $type_name(pub u32);
 
         impl $type_name {
-            pub fn zero() -> Self {
-                Self(0)
-            }
+            const ZERO: Self = Self(0);
 
-            pub fn one() -> Self {
-                Self(1)
-            }
-
+            #[inline]
             pub fn saturating_sub(self, value: Self) -> Self {
                 Self(self.0.saturating_sub(value.0))
+            }
+
+            #[inline]
+            pub fn to_usize_range(range: &Range<Self>) -> Range<usize> {
+                usize::from(range.start)..usize::from(range.end)
             }
         }
 
         impl From<u32> for $type_name {
+            #[inline]
             fn from(value: u32) -> Self {
-                Self(value as usize)
+                Self(value)
             }
         }
 
-        impl From<isize> for $type_name {
-            fn from(value: isize) -> Self {
-                Self(value as usize)
+        impl From<$type_name> for usize {
+            #[inline]
+            fn from(value: $type_name) -> usize {
+                infallible_u32_to_usize(value.0)
             }
         }
 
         impl Add for $type_name {
             type Output = Self;
+
+            #[inline]
             fn add(self, other: Self) -> Self {
                 Self(self.0 + other.0)
             }
         }
 
         impl AddAssign for $type_name {
+            #[inline]
             fn add_assign(&mut self, other: Self) {
                 *self = Self(self.0 + other.0)
             }
@@ -176,20 +229,24 @@ macro_rules! unicode_length_type {
 
         impl Sub for $type_name {
             type Output = Self;
+
+            #[inline]
             fn sub(self, value: Self) -> Self {
                 Self(self.0 - value.0)
             }
         }
 
         impl SubAssign for $type_name {
+            #[inline]
             fn sub_assign(&mut self, other: Self) {
                 *self = Self(self.0 - other.0)
             }
         }
 
         impl Sum for $type_name {
+            #[inline]
             fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-                iter.fold(Self::zero(), |a, b| Self(a.0 + b.0))
+                iter.fold(Self::ZERO, |a, b| Self(a.0 + b.0))
             }
         }
 
@@ -227,8 +284,21 @@ unicode_length_type! {
     Utf32CodeUnitsOrNodeOffset
 }
 
+impl Utf8CodeUnits {
+    /// Returns the length of `string` in UTF-8 code units (bytes)
+    pub fn length_of(_: AssumeUnder4GB, string: &str) -> Self {
+        Self(string.len() as u32)
+    }
+
+    pub fn length_of_char(char: char) -> Self {
+        // Never overflows, the value is always in 1..=4
+        Self(char.len_utf8() as u32)
+    }
+}
+
 impl Utf16CodeUnits {
-    pub fn length_of(string: &str) -> Self {
+    /// Returns the length of `string` in UTF-16 code units
+    pub fn length_of(_: AssumeUnder4GB, string: &str) -> Self {
         Self(string.bytes().map(len_utf16_for_utf8_byte).sum())
 
         // TODO: after upgrading to a Rust version (1.99?) that includes that PR,
@@ -238,24 +308,59 @@ impl Utf16CodeUnits {
         // Self(string.encode_utf16().count())
     }
 
+    pub fn length_of_char(char: char) -> Self {
+        // Never overflows, the value is always in 1 or 2
+        Self(char.len_utf16() as u32)
+    }
+
+    /// Convert this UTF-16 offset in `string` to an UTF-8 (byte) offset
+    pub fn to_utf8_code_units_in(self, _: AssumeUnder4GB, string: &str) -> Utf8CodeUnits {
+        self.to_utf8_code_units_in_iter(AssumeUnder4GB, std::iter::once(string))
+    }
+
+    /// Convert this UTF-16 offset in an iterator of strings, to an UTF-8 (byte) offset
+    pub fn to_utf8_code_units_in_iter<S>(
+        self,
+        _: AssumeUnder4GB,
+        iter: impl IntoIterator<Item = S>,
+    ) -> Utf8CodeUnits
+    where
+        S: AsRef<str>,
+    {
+        let mut current_utf16_offset = Utf16CodeUnits(0);
+        let mut current_utf8_offset = Utf8CodeUnits(0);
+        for string in iter {
+            for utf8_byte in string.as_ref().bytes() {
+                current_utf16_offset.0 += len_utf16_for_utf8_byte(utf8_byte);
+                if current_utf16_offset > self {
+                    return current_utf8_offset;
+                }
+                current_utf8_offset.0 += len_utf8_for_utf8_byte(utf8_byte);
+            }
+        }
+        current_utf8_offset
+    }
+
+    /// Convert this UTF-16 offset in `string` to an UTF-32 offset
+    ///
+    /// Note: this never overflows since the return value is always less than or equal to self as
+    /// one UTF-32 code unit corresponds to one or two UTF-16 code units.
     pub fn to_utf32_code_units_in(self, string: &str) -> Utf32CodeUnits {
         let mut current_utf16_offset = Utf16CodeUnits(0);
         let mut current_utf32_offset = Utf32CodeUnits(0);
         for utf8_byte in string.bytes() {
-            if current_utf16_offset >= self {
+            let len_utf16 = len_utf16_for_utf8_byte(utf8_byte);
+            current_utf16_offset.0 += len_utf16;
+            if current_utf16_offset > self {
                 break;
             }
-            increment_offsets_for_utf8_byte(
-                utf8_byte,
-                &mut current_utf16_offset,
-                &mut current_utf32_offset,
-            );
+            current_utf32_offset.0 += len_utf16_to_len_utf32_for_utf8_byte(len_utf16);
         }
         current_utf32_offset
     }
 }
 
-fn len_utf16_for_utf8_byte(byte: u8) -> usize {
+fn len_utf16_for_utf8_byte(byte: u8) -> u32 {
     if byte < 0b1000_0000 {
         // 0b0xxx_xxxx: ASCII-compatible U+0000 to U+007F
         1
@@ -275,26 +380,45 @@ fn len_utf16_for_utf8_byte(byte: u8) -> usize {
     }
 }
 
-fn increment_offsets_for_utf8_byte(
-    utf8_byte: u8,
-    utf16_offset: &mut Utf16CodeUnits,
-    utf32_offset: &mut Utf32CodeUnits,
-) {
-    let len_utf16 = len_utf16_for_utf8_byte(utf8_byte);
-    utf16_offset.0 += len_utf16;
-    // `len_utf16 != 0` means this byte is the first byte of the UTF-8 byte sequence
-    // for one `char` /  UTF-32 code unit
-    utf32_offset.0 += (len_utf16 != 0) as usize;
+fn len_utf8_for_utf8_byte(byte: u8) -> u32 {
+    if byte < 0b1000_0000 {
+        // 0b0xxx_xxxx: ASCII-compatible U+0000 to U+007F
+        1
+    } else if byte < 0b1100_0000 {
+        // 0b10xx_xxxx: UTF-8 continuation byte, already accounted for by its non-continuation byte
+        0
+    } else if byte < 0b1110_0000 {
+        // 0b110x_xxxx: start of a 2-byte UTF-8 sequence for U+0080 to U+07FF
+        2
+    } else if byte < 0b1111_0000 {
+        // 0b1110_xxxx: start of a 3-byte UTF-8 sequence for U+0800 to U+FFFF
+        3
+    } else {
+        // 0b1111_0xxx: start of a 4-byte UTF-8 sequence for U+010000 to U+10FFFF
+        4
+    }
+}
+
+fn len_utf16_to_len_utf32_for_utf8_byte(len_utf16: u32) -> u32 {
+    if len_utf16 != 0 {
+        // First byte of the UTF-8 byte sequence for one code point / UTF-32 code unit
+        1
+    } else {
+        // UTF-8 continuation byte
+        0
+    }
 }
 
 impl Utf32CodeUnits {
-    pub fn length_of(string: &str) -> Self {
+    /// Returns the length of `string` in UTF-32 code units (`char` count)
+    pub fn length_of(_: AssumeUnder4GB, string: &str) -> Self {
         // `std::str::Chars::count` is optimized in:
         // https://github.com/rust-lang/rust/blob/main/library/core/src/str/count.rs
-        Self(string.chars().count())
+        Self(string.chars().count() as u32)
     }
 
-    pub fn to_utf8_code_units_in(self, string: &str) -> Utf8CodeUnits {
+    /// Convert this UTF-32 (`char`) offset in `string` to an UTF-8 (byte) offset
+    pub fn to_utf8_code_units_in(self, _: AssumeUnder4GB, string: &str) -> Utf8CodeUnits {
         let mut current_utf32_offset = Utf32CodeUnits(0);
         for (current_utf8_offset, utf8_byte) in string.bytes().enumerate() {
             if (utf8_byte & 0b1100_0000) == 0b1000_0000 {
@@ -302,33 +426,33 @@ impl Utf32CodeUnits {
                 continue;
             }
             if current_utf32_offset >= self {
-                return Utf8CodeUnits(current_utf8_offset);
+                return Utf8CodeUnits(current_utf8_offset as u32);
             }
             current_utf32_offset.0 += 1;
         }
-        Utf8CodeUnits(string.len())
+        Utf8CodeUnits(string.len() as u32)
     }
 
-    pub fn to_utf16_code_units_in(self, string: &str) -> Utf16CodeUnits {
+    /// Convert this UTF-32 (`char`) offset in `string` to an UTF-16 offset
+    pub fn to_utf16_code_units_in(self, _: AssumeUnder4GB, string: &str) -> Utf16CodeUnits {
         let mut current_utf32_offset = Utf32CodeUnits(0);
         let mut current_utf16_offset = Utf16CodeUnits(0);
         for utf8_byte in string.bytes() {
             if current_utf32_offset >= self {
                 break;
             }
-            increment_offsets_for_utf8_byte(
-                utf8_byte,
-                &mut current_utf16_offset,
-                &mut current_utf32_offset,
-            );
+            let len_utf16 = len_utf16_for_utf8_byte(utf8_byte);
+            current_utf16_offset.0 += len_utf16;
+            current_utf32_offset.0 += len_utf16_to_len_utf32_for_utf8_byte(len_utf16);
         }
         current_utf16_offset
     }
 }
 
 impl Utf32CodeUnitsOrNodeOffset {
-    pub fn to_utf16_code_units_in(self, string: &str) -> Utf16CodeUnits {
-        Utf32CodeUnits(self.0).to_utf16_code_units_in(string)
+    /// Convert this UTF-32 (`char`) offset in `string` to an UTF-16 offset
+    pub fn to_utf16_code_units_in(self, _: AssumeUnder4GB, string: &str) -> Utf16CodeUnits {
+        Utf32CodeUnits(self.0).to_utf16_code_units_in(AssumeUnder4GB, string)
     }
 }
 
@@ -357,13 +481,28 @@ mod test {
 
     #[test]
     fn test_utf16_length() {
-        assert_eq!(Utf16CodeUnits::length_of(""), Utf16CodeUnits(0));
-        assert_eq!(Utf16CodeUnits::length_of("a"), Utf16CodeUnits(1));
-        assert_eq!(Utf16CodeUnits::length_of("é"), Utf16CodeUnits(1));
-        assert_eq!(Utf16CodeUnits::length_of("字"), Utf16CodeUnits(1));
-        assert_eq!(Utf16CodeUnits::length_of("\u{1F4A9}"), Utf16CodeUnits(2));
         assert_eq!(
-            Utf16CodeUnits::length_of("\u{1F4A9}字éa"),
+            Utf16CodeUnits::length_of(AssumeUnder4GB, ""),
+            Utf16CodeUnits(0)
+        );
+        assert_eq!(
+            Utf16CodeUnits::length_of(AssumeUnder4GB, "a"),
+            Utf16CodeUnits(1)
+        );
+        assert_eq!(
+            Utf16CodeUnits::length_of(AssumeUnder4GB, "é"),
+            Utf16CodeUnits(1)
+        );
+        assert_eq!(
+            Utf16CodeUnits::length_of(AssumeUnder4GB, "字"),
+            Utf16CodeUnits(1)
+        );
+        assert_eq!(
+            Utf16CodeUnits::length_of(AssumeUnder4GB, "\u{1F4A9}"),
+            Utf16CodeUnits(2)
+        );
+        assert_eq!(
+            Utf16CodeUnits::length_of(AssumeUnder4GB, "\u{1F4A9}字éa"),
             Utf16CodeUnits(5)
         );
     }
@@ -389,10 +528,10 @@ mod test {
         );
 
         // This 16-bit offset splits the would-be surrogate pair. We return the 32-bit position
-        // after the whole pair. Should this be an error instead?
+        // before the whole pair. Should this be an error instead?
         assert_eq!(
             Utf16CodeUnits(4).to_utf32_code_units_in(s),
-            Utf32CodeUnits(4)
+            Utf32CodeUnits(3)
         );
 
         assert_eq!(
@@ -416,35 +555,35 @@ mod test {
     fn test_utf32_to_utf16() {
         let string = "aé字\u{1F4A9}";
         assert_eq!(
-            Utf32CodeUnits(0).to_utf16_code_units_in(string),
+            Utf32CodeUnits(0).to_utf16_code_units_in(AssumeUnder4GB, string),
             Utf16CodeUnits(0),
         );
         assert_eq!(
-            Utf32CodeUnits(1).to_utf16_code_units_in(string),
+            Utf32CodeUnits(1).to_utf16_code_units_in(AssumeUnder4GB, string),
             Utf16CodeUnits(1),
         );
         assert_eq!(
-            Utf32CodeUnits(2).to_utf16_code_units_in(string),
+            Utf32CodeUnits(2).to_utf16_code_units_in(AssumeUnder4GB, string),
             Utf16CodeUnits(2),
         );
         assert_eq!(
-            Utf32CodeUnits(3).to_utf16_code_units_in(string),
+            Utf32CodeUnits(3).to_utf16_code_units_in(AssumeUnder4GB, string),
             Utf16CodeUnits(3),
         );
 
         assert_eq!(
-            Utf32CodeUnits(4).to_utf16_code_units_in(string),
+            Utf32CodeUnits(4).to_utf16_code_units_in(AssumeUnder4GB, string),
             Utf16CodeUnits(5),
         );
 
         // This 32-bit offset is out of bounds. We clamp to the nearest valid 16-bit offset,
         // a.k.a the UTF-16 length. Should this be an error instead?
         assert_eq!(
-            Utf32CodeUnits(6).to_utf16_code_units_in(string),
+            Utf32CodeUnits(6).to_utf16_code_units_in(AssumeUnder4GB, string),
             Utf16CodeUnits(5),
         );
         assert_eq!(
-            Utf32CodeUnits(1000).to_utf16_code_units_in(string),
+            Utf32CodeUnits(1000).to_utf16_code_units_in(AssumeUnder4GB, string),
             Utf16CodeUnits(5),
         );
     }
