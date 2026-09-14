@@ -37,6 +37,7 @@ use crate::JSTraceable;
 use crate::error::Error;
 use crate::reflector::Reflector;
 use crate::str::USVString;
+use crate::tasks::TaskBox;
 
 /// Trace the `JSObject` held by `reflector`.
 ///
@@ -88,6 +89,7 @@ macro_rules! unsafe_no_jsmanaged_fields(
 
 unsafe_no_jsmanaged_fields!(USVString);
 unsafe_no_jsmanaged_fields!(Error);
+unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 
 /// A trait to allow tracing only DOM sub-objects.
 ///
