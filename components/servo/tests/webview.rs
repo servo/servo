@@ -37,21 +37,8 @@ use webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePoint, DeviceVect
 
 use crate::common::{
     ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
-    show_webview_and_wait_for_rendering_to_be_ready,
+    show_webview_and_wait_for_rendering_to_be_ready, wait_for_webview_scene_to_be_up_to_date,
 };
-
-/// Wait for the WebRender scene to reflect the current state of the WebView
-/// by triggering a screenshot, waiting for it to be ready, and then throwing
-/// away the results.
-fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &WebView) {
-    let waiting = Rc::new(Cell::new(true));
-    let callback_waiting = waiting.clone();
-    webview.take_screenshot(None, move |result| {
-        assert!(result.is_ok());
-        callback_waiting.set(false);
-    });
-    servo_test.spin(move || waiting.get());
-}
 
 fn open_context_menu_at_point(webview: &WebView, point: DevicePoint) {
     let point = point.into();

@@ -96,6 +96,7 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) last_accesskit_tree_updates: RefCell<Vec<accesskit::TreeUpdate>>,
     pub(crate) console_messages: RefCell<Vec<(ConsoleLogLevel, String)>>,
     pub(crate) fullscreen: Cell<bool>,
+    pub(crate) crashes: Cell<usize>,
 }
 
 #[allow(dead_code)] // Used by some tests and not others
@@ -110,6 +111,7 @@ impl WebViewDelegateImpl {
         self.last_accesskit_tree_updates.borrow_mut().clear();
         self.console_messages.borrow_mut().clear();
         self.fullscreen.set(false);
+        self.crashes.set(0);
     }
 }
 
@@ -168,6 +170,10 @@ impl WebViewDelegate for WebViewDelegateImpl {
 
     fn notify_fullscreen_state_changed(&self, _webview: WebView, fullscreen: bool) {
         self.fullscreen.set(fullscreen);
+    }
+
+    fn notify_crashed(&self, _webview: WebView, _reason: String, _backtrace: Option<String>) {
+        self.crashes.set(self.crashes.get() + 1);
     }
 }
 
@@ -241,4 +247,20 @@ pub(crate) fn show_webview_and_wait_for_rendering_to_be_ready(
     // Wait for at least one frame after the load completes.
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.new_frame_ready.get());
+}
+
+/// Wait for the WebRender scene to reflect the current state of the WebView
+/// by triggering a screenshot, waiting for it to be ready, and then throwing
+/// away the results.
+// Used by some unit tests only. Since they compile into different binaries,
+// it will be flagged as unused for certain unit tests.
+#[allow(dead_code)]
+pub fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &WebView) {
+    let waiting = Rc::new(Cell::new(true));
+    let callback_waiting = waiting.clone();
+    webview.take_screenshot(None, move |result| {
+        assert!(result.is_ok());
+        callback_waiting.set(false);
+    });
+    servo_test.spin(move || waiting.get());
 }
