@@ -445,7 +445,7 @@ pub struct Constellation<STF, SWF> {
 
     /// The random number generator and probability for closing pipelines.
     /// This is for testing the hardening of the constellation.
-    random_pipeline_closure: Option<(SmallRng, f32)>,
+    random_pipeline_closure: Option<Box<(SmallRng, f32)>>,
 
     /// Phantom data that keeps the Rust type system happy.
     phantom: PhantomData<(STF, SWF)>,
@@ -455,7 +455,7 @@ pub struct Constellation<STF, SWF> {
     pub(crate) webgl_threads: Option<servo_canvas_traits::webgl::WebGLThreads>,
 
     /// The XR device registry
-    pub(crate) webxr_registry: Option<webxr_api::Registry>,
+    pub(crate) webxr_registry: Option<Box<webxr_api::Registry>>,
 
     /// Lazily initialized channels for canvas paint thread.
     canvas: OnceCell<(Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>)>,
@@ -711,11 +711,11 @@ where
                             .map(|seed| SmallRng::seed_from_u64(seed as u64))
                             .unwrap_or_else(make_rng);
                         warn!("Randomly closing pipelines using seed {random_pipeline_closure_seed:?}.");
-                        (rng, probability)
+                        Box::new((rng, probability))
                     }),
                     #[cfg(feature = "webgl")]
                     webgl_threads: state.webgl_threads,
-                    webxr_registry: state.webxr_registry,
+                    webxr_registry: state.webxr_registry.map(|registry| Box::new(registry)),
                     canvas: OnceCell::new(),
                     pending_approval_navigations: Default::default(),
                     pressed_mouse_buttons: MouseButtons::empty(),
@@ -6116,8 +6116,8 @@ where
     // Randomly close a pipeline -if --random-pipeline-closure-probability is set
     fn maybe_close_random_pipeline(&mut self) {
         match self.random_pipeline_closure {
-            Some((ref mut rng, probability)) => {
-                if probability <= rng.random::<f32>() {
+            Some(rng_and_probability) => {
+                if rng_and_probability.1 <= rng_and_probability.0.random::<f32>() {
                     return;
                 }
             },
@@ -6126,7 +6126,7 @@ where
         // In order to get repeatability, we sort the pipeline ids.
         let mut pipeline_ids: Vec<&PipelineId> = self.pipelines.keys().collect();
         pipeline_ids.sort_unstable();
-        if let Some((ref mut rng, probability)) = self.random_pipeline_closure &&
+        if let Some(rng_and_probability) = self.random_pipeline_closure &&
             let Some(pipeline_id) = pipeline_ids.choose(rng) &&
             let Some(pipeline) = self.pipelines.get(pipeline_id)
         {
@@ -6134,7 +6134,7 @@ where
                 .webviews
                 .values()
                 .any(|webview| webview.pipeline_is_pending(pipeline.id)) &&
-                probability <= rng.random::<f32>()
+                rng_and_probability.1 <= rng_and_probability.0.random::<f32>()
             {
                 // We tend not to close pending pipelines, as that almost always
                 // results in pipelines being closed early in their lifecycle,
