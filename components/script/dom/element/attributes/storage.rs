@@ -6,44 +6,141 @@ use std::cell::Ref;
 use std::ops::Deref;
 
 use devtools_traits::AttrInfo;
-use html5ever::{LocalName, Namespace, Prefix};
+use html5ever::{LocalName, Namespace, Prefix, ns};
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::str::DOMString;
 use style::attr::{AttrIdentifier, AttrValue};
+use style::values::GenericAtomIdent;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::root::{LayoutDom, ToLayout};
 use crate::dom::element::Element;
 use crate::dom::node::node::NodeTraits;
 
+/// The empty namespace, so that [`AttrName::namespace`] can hand out a reference
+/// for unqualified attributes without storing one per attribute.
+static EMPTY_NAMESPACE: Namespace = ns!();
+
+/// The name of a content attribute.
+#[derive(Clone, MallocSizeOf)]
+pub(crate) enum AttrName {
+    /// Common case: `name == local_name`, empty namespace, no prefix.
+    Unqualified(LocalName),
+    /// Namespaced and/or prefixed.
+    Qualified(Box<AttrIdentifier>),
+}
+
+impl AttrName {
+    /// Build a name from the four parts of an [`AttrIdentifier`], picking the
+    /// compact representation when they allow it.
+    pub(crate) fn new(
+        local_name: LocalName,
+        name: LocalName,
+        namespace: Namespace,
+        prefix: Option<Prefix>,
+    ) -> Self {
+        if prefix.is_none() && name == local_name && namespace == ns!() {
+            AttrName::Unqualified(local_name)
+        } else {
+            AttrName::Qualified(Box::new(AttrIdentifier {
+                local_name: GenericAtomIdent(local_name),
+                name: GenericAtomIdent(name),
+                namespace: GenericAtomIdent(namespace),
+                prefix: prefix.map(GenericAtomIdent),
+            }))
+        }
+    }
+
+    #[inline]
+    pub(crate) fn local_name(&self) -> &LocalName {
+        match self {
+            AttrName::Unqualified(local_name) => local_name,
+            AttrName::Qualified(identifier) => &identifier.local_name.0,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn name(&self) -> &LocalName {
+        match self {
+            AttrName::Unqualified(local_name) => local_name,
+            AttrName::Qualified(identifier) => &identifier.name.0,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn namespace(&self) -> &Namespace {
+        match self {
+            AttrName::Unqualified(_) => &EMPTY_NAMESPACE,
+            AttrName::Qualified(identifier) => &identifier.namespace.0,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn prefix(&self) -> Option<&Prefix> {
+        match self {
+            AttrName::Unqualified(_) => None,
+            AttrName::Qualified(identifier) => Some(&identifier.prefix.as_ref()?.0),
+        }
+    }
+
+    /// Decompose into the parts `Attr::new` takes.
+    pub(crate) fn into_parts(self) -> (LocalName, LocalName, Namespace, Option<Prefix>) {
+        match self {
+            AttrName::Unqualified(local_name) => (local_name.clone(), local_name, ns!(), None),
+            AttrName::Qualified(identifier) => {
+                let AttrIdentifier {
+                    local_name,
+                    name,
+                    namespace,
+                    prefix,
+                } = *identifier;
+                (local_name.0, name.0, namespace.0, prefix.map(|p| p.0))
+            },
+        }
+    }
+
+    /// Materialize a stylo [`AttrIdentifier`].
+    pub(crate) fn as_identifier(&self) -> AttrIdentifier {
+        match self {
+            AttrName::Unqualified(local_name) => AttrIdentifier {
+                local_name: GenericAtomIdent(local_name.clone()),
+                name: GenericAtomIdent(local_name.clone()),
+                namespace: GenericAtomIdent(ns!()),
+                prefix: None,
+            },
+            AttrName::Qualified(identifier) => (**identifier).clone(),
+        }
+    }
+}
+
 /// Lightweight attribute storage that avoids allocating a full DOM `Attr` node.
 #[derive(MallocSizeOf)]
 pub(crate) struct ContentAttributeData {
-    pub identifier: AttrIdentifier,
+    pub identifier: AttrName,
     pub value: AttrValue,
 }
 
 impl ContentAttributeData {
     #[inline]
     pub(crate) fn local_name(&self) -> &LocalName {
-        &self.identifier.local_name.0
+        self.identifier.local_name()
     }
 
     #[inline]
     pub(crate) fn name(&self) -> &LocalName {
-        &self.identifier.name.0
+        self.identifier.name()
     }
 
     #[inline]
     pub(crate) fn namespace(&self) -> &Namespace {
-        &self.identifier.namespace.0
+        self.identifier.namespace()
     }
 
     #[inline]
     pub(crate) fn prefix(&self) -> Option<&Prefix> {
-        Some(&self.identifier.prefix.as_ref()?.0)
+        self.identifier.prefix()
     }
 
     #[inline]
@@ -153,11 +250,11 @@ impl<'a> AttrRef<'a> {
         }
     }
 
-    /// Returns the `AttrIdentifier` for this attribute.
-    pub(crate) fn identifier(&self) -> &AttrIdentifier {
+    /// Materializes the stylo `AttrIdentifier` for this attribute.
+    pub(crate) fn as_identifier(&self) -> AttrIdentifier {
         match self {
-            AttrRef::Raw(data) => &data.identifier,
-            AttrRef::Dom(attr) => attr.identifier(),
+            AttrRef::Raw(data) => data.identifier.as_identifier(),
+            AttrRef::Dom(attr) => attr.identifier().clone(),
         }
     }
 }
@@ -328,12 +425,7 @@ impl AttributeStorage {
         let data = {
             let mut entries = self.0.borrow_mut();
             let placeholder = AttributeEntry::Raw(ContentAttributeData {
-                identifier: AttrIdentifier {
-                    local_name: style::values::GenericAtomIdent(html5ever::local_name!("")),
-                    name: style::values::GenericAtomIdent(html5ever::local_name!("")),
-                    namespace: style::values::GenericAtomIdent(html5ever::ns!()),
-                    prefix: None,
-                },
+                identifier: AttrName::Unqualified(html5ever::local_name!("")),
                 value: AttrValue::String(String::new()),
             });
             let old = std::mem::replace(&mut entries[index], placeholder);
@@ -344,14 +436,15 @@ impl AttributeStorage {
         };
 
         let doc = element.owner_document();
+        let (local_name, name, namespace, prefix) = data.identifier.into_parts();
         let attr = Attr::new(
             cx,
             &doc,
-            data.identifier.local_name.0,
+            local_name,
             data.value,
-            data.identifier.name.0,
-            data.identifier.namespace.0,
-            data.identifier.prefix.map(|p| p.0),
+            name,
+            namespace,
+            prefix,
             Some(element),
         );
 
