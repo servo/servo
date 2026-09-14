@@ -825,7 +825,6 @@ fn test_accessibility_bounds_updated_after_renderer_scroll() {
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let main = find_first_matching_node(root, |node| node.role() == Role::Main)
         .expect("Document should contain a main element");
-    let main_id = main.locate().0; // Maps to layout's NodeId
     assert_rect_eq(
         main.raw_bounds().expect("main should have bounds"),
         Rect::new(10.0, 100.0, 110.0, 150.0),
@@ -863,7 +862,6 @@ fn test_accessibility_bounds_updated_after_script_scroll() {
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let main = find_first_matching_node(root, |node| node.role() == Role::Main)
         .expect("Document should contain a main element");
-    let main_id = main.locate().0; // Maps to layout's NodeId
     assert_rect_eq(
         main.raw_bounds().expect("main should have bounds"),
         Rect::new(10.0, 100.0, 110.0, 150.0),
@@ -972,8 +970,7 @@ fn test_accessibility_bounds_are_computed_for_inline_elements() {
     let url = "data:text/html,<!DOCTYPE html>\
                <h1>We really <em>really <strong>really</strong></em> like owls</h1>";
 
-    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
-
+    let (_, _, _, tree) = build_webview_and_tree(url);
     let root = assert_tree_structure_and_get_root_web_area(&tree);
 
     let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
@@ -984,7 +981,6 @@ fn test_accessibility_bounds_are_computed_for_inline_elements() {
     );
     assert!(heading.has_bounds());
 
-    let heading_children: Vec<_> = heading.children().collect();
     let em = find_first_matching_node(heading, |node| node.role() == GenericContainer)
         .expect("Heading should have one GenericContainer child");
     assert!(em.has_bounds());
