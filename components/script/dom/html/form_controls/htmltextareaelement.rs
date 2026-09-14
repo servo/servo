@@ -57,7 +57,7 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 pub(crate) struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[no_trace]
-    textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
+    text_input: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     placeholder: RefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
@@ -75,8 +75,8 @@ impl LayoutDom<'_, HTMLTextAreaElement> {
     pub(crate) fn selection_for_layout(self) -> Option<RangeAny<Utf32CodeUnits>> {
         let element = self.unsafe_get();
         #[expect(unsafe_code)]
-        let textinput = unsafe { element.textinput.borrow_for_layout() };
-        textinput.selection_for_layout
+        let text_input = unsafe { element.text_input.borrow_for_layout() };
+        text_input.selection_for_layout
     }
 
     pub(crate) fn get_cols(self) -> u32 {
@@ -120,7 +120,7 @@ impl HTMLTextAreaElement {
                 document,
             ),
             placeholder: Default::default(),
-            textinput: DomRefCell::new(TextInput::new(
+            text_input: DomRefCell::new(TextInput::new(
                 Lines::Multiple,
                 DOMString::new(),
                 EmbedderClipboardProvider {
@@ -154,8 +154,8 @@ impl HTMLTextAreaElement {
         )
     }
 
-    pub(crate) fn textinput_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
-        self.textinput.borrow_mut()
+    pub(crate) fn text_input_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
+        self.text_input.borrow_mut()
     }
 
     pub(crate) fn auto_directionality(&self) -> String {
@@ -202,7 +202,7 @@ impl HTMLTextAreaElement {
             .perform_validation_and_update(cx, ValidationFlags::all());
 
         let placeholder_shown =
-            self.textinput.borrow().is_empty() && !self.placeholder.borrow().is_empty();
+            self.text_input.borrow().is_empty() && !self.placeholder.borrow().is_empty();
         self.upcast::<Element>()
             .set_placeholder_shown_state(placeholder_shown);
 
@@ -255,11 +255,11 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 
     fn has_selectable_text(&self) -> bool {
-        !self.textinput.borrow().get_content().is_empty()
+        !self.text_input.borrow().get_content().is_empty()
     }
 
     fn has_uncollapsed_selection(&self) -> bool {
-        self.textinput.borrow().has_uncollapsed_selection()
+        self.text_input.borrow().has_uncollapsed_selection()
     }
 
     fn set_dirty_value_flag(&self, value: bool) {
@@ -267,13 +267,13 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 
     fn select_all(&self) {
-        self.textinput.borrow_mut().select_all();
+        self.text_input.borrow_mut().select_all();
         self.maybe_update_shared_selection();
     }
 
     fn maybe_update_shared_selection(&self) {
         let selection = {
-            let mut text_input = self.textinput.borrow_mut();
+            let mut text_input = self.text_input.borrow_mut();
             let selection_range = text_input.selection_start()..text_input.selection_end();
             let enabled = self.upcast::<Element>().focus_state();
 
@@ -416,7 +416,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-value>
     fn Value(&self) -> DOMString {
-        self.textinput.borrow().get_content()
+        self.text_input.borrow().get_content()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-value>
@@ -425,7 +425,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         let old_api_value = self.Value();
 
         // Step 2:  Set this element's raw value to the new value.
-        self.textinput.borrow_mut().set_content(value);
+        self.text_input.borrow_mut().set_content(value);
 
         // Step 3: Set this element's dirty value flag to true.
         self.value_dirty.set(true);
@@ -435,14 +435,14 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         // unselecting any selected text and resetting the selection direction to
         // "none".
         if old_api_value != self.Value() {
-            self.textinput.borrow_mut().clear_selection_to_end();
+            self.text_input.borrow_mut().clear_selection_to_end();
             self.handle_text_content_changed(cx);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-textlength>
     fn TextLength(&self) -> u32 {
-        self.textinput.borrow().len_utf16().0
+        self.text_input.borrow().len_utf16().0
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -555,18 +555,20 @@ impl HTMLTextAreaElement {
     /// Used by WebDriver to clear the textarea element.
     pub(crate) fn clear(&self) {
         self.value_dirty.set(false);
-        self.textinput.borrow_mut().set_content(DOMString::new());
+        self.text_input.borrow_mut().set_content(DOMString::new());
     }
 
     pub(crate) fn reset(&self, cx: &mut JSContext) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         self.value_dirty.set(false);
-        self.textinput.borrow_mut().set_content(self.DefaultValue());
+        self.text_input
+            .borrow_mut()
+            .set_content(self.DefaultValue());
         self.handle_text_content_changed(cx);
     }
 
     fn selection(&self) -> TextControlSelection<'_, Self> {
-        TextControlSelection::new(self, &self.textinput)
+        TextControlSelection::new(self, &self.text_input)
     }
 
     fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction, event: &Event) {
@@ -574,7 +576,7 @@ impl HTMLTextAreaElement {
             KeyReaction::TriggerDefaultAction => (),
             KeyReaction::DispatchInput(text, is_composing, input_type) => {
                 if event.IsTrusted() {
-                    self.textinput.borrow().queue_input_event(
+                    self.text_input.borrow().queue_input_event(
                         self.upcast(),
                         text,
                         is_composing,
@@ -631,24 +633,24 @@ impl VirtualMethods for HTMLTextAreaElement {
             },
             local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
-                    let mut textinput = self.textinput.borrow_mut();
+                    let mut text_input = self.text_input.borrow_mut();
 
                     if value < 0 {
-                        textinput.set_max_length(None);
+                        text_input.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(Utf16CodeUnits(value as u32)))
+                        text_input.set_max_length(Some(Utf16CodeUnits(value as u32)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
             },
             local_name!("minlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
-                    let mut textinput = self.textinput.borrow_mut();
+                    let mut text_input = self.text_input.borrow_mut();
 
                     if value < 0 {
-                        textinput.set_min_length(None);
+                        text_input.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(Utf16CodeUnits(value as u32)))
+                        text_input.set_min_length(Some(Utf16CodeUnits(value as u32)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -755,8 +757,8 @@ impl VirtualMethods for HTMLTextAreaElement {
         let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
         el.value_dirty.set(self.value_dirty.get());
         {
-            let mut textinput = el.textinput.borrow_mut();
-            textinput.set_content(self.textinput.borrow().get_content());
+            let mut text_input = el.text_input.borrow_mut();
+            text_input.set_content(self.text_input.borrow().get_content());
         }
         el.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
@@ -775,9 +777,9 @@ impl VirtualMethods for HTMLTextAreaElement {
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
         if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(keyboard_event) = event.downcast::<KeyboardEvent>() {
-                // This can't be inlined, as holding on to textinput.borrow_mut()
+                // This can't be inlined, as holding on to text_input.borrow_mut()
                 // during self.implicit_submission will cause a panic.
-                let action = self.textinput.borrow_mut().handle_keydown(keyboard_event);
+                let action = self.text_input.borrow_mut().handle_keydown(keyboard_event);
                 self.handle_key_reaction(cx, action, event);
             }
         } else if event.type_() == atom!("compositionstart") ||
@@ -787,14 +789,14 @@ impl VirtualMethods for HTMLTextAreaElement {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
                     let action = self
-                        .textinput
+                        .text_input
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
                     self.handle_key_reaction(cx, action, event);
                     self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
-                        .textinput
+                        .text_input
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
                     self.handle_key_reaction(cx, action, event);
@@ -805,7 +807,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
             let reaction = self
-                .textinput
+                .text_input
                 .borrow_mut()
                 .handle_clipboard_event(clipboard_event);
 
@@ -815,7 +817,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     .fire_clipboard_event(cx, None, ClipboardEventType::Change);
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {
-                self.textinput.borrow().queue_input_event(
+                self.text_input.borrow().queue_input_event(
                     self.upcast(),
                     reaction.text,
                     IsComposing::NotComposing,
@@ -845,14 +847,14 @@ impl VirtualMethods for HTMLTextAreaElement {
         hit_test_result: &HitTestResult,
     ) {
         // If the placeholder is displayed, don't do any interactive mouse event handling.
-        if self.textinput.borrow().is_empty() {
+        if self.text_input.borrow().is_empty() {
             if let Some(super_type) = self.super_type() {
                 super_type.handle_mousedown_event(cx, mouse_event, hit_test_result);
             }
             return;
         }
 
-        if self.textinput.borrow_mut().handle_mousedown_event(
+        if self.text_input.borrow_mut().handle_mousedown_event(
             self.upcast(),
             mouse_event,
             hit_test_result,
@@ -910,9 +912,9 @@ impl Validatable for HTMLTextAreaElement {
     ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
 
-        let textinput = self.textinput.borrow();
-        let Utf16CodeUnits(value_len) = textinput.len_utf16();
-        let last_edit_by_user = !textinput.was_last_change_by_set_content();
+        let text_input = self.text_input.borrow();
+        let Utf16CodeUnits(value_len) = text_input.len_utf16();
+        let last_edit_by_user = !text_input.was_last_change_by_set_content();
         let value_dirty = self.value_dirty.get();
 
         // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing

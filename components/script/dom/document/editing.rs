@@ -67,7 +67,7 @@ impl Document {
                 "copy" => {
                     // Step 4.1 Call the write content to the clipboard algorithm,
                     // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
-                    if let Some(clipboard_data) = clipboard_event.get_clipboard_data() {
+                    if let Some(clipboard_data) = clipboard_event.clipboard_data() {
                         let drag_data_store =
                             clipboard_data.data_store().expect("This shouldn't fail");
                         self.write_content_to_the_clipboard(&drag_data_store);
@@ -76,7 +76,7 @@ impl Document {
                 "cut" => {
                     // Step 4.1 Call the write content to the clipboard algorithm,
                     // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
-                    if let Some(clipboard_data) = clipboard_event.get_clipboard_data() {
+                    if let Some(clipboard_data) = clipboard_event.clipboard_data() {
                         let drag_data_store =
                             clipboard_data.data_store().expect("This shouldn't fail");
                         self.write_content_to_the_clipboard(&drag_data_store);

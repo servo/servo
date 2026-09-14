@@ -80,7 +80,7 @@ impl ClipboardEvent {
         self.clipboard_data.set(clipboard_data);
     }
 
-    pub(crate) fn get_clipboard_data(&self) -> Option<DomRoot<DataTransfer>> {
+    pub(crate) fn clipboard_data(&self) -> Option<DomRoot<DataTransfer>> {
         self.clipboard_data.get()
     }
 }
