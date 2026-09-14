@@ -23,7 +23,7 @@ use objc2_core_text::{
     kCTFontSlantTrait, kCTFontSymbolicTrait, kCTFontWeightTrait, kCTFontWidthTrait,
 };
 use skrifa::Tag;
-use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
+use style::values::computed::font::{FontStyle, FontWeight, FontWidth};
 use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::core_text_font_cache::CoreTextFontCache;
@@ -546,8 +546,8 @@ pub(crate) fn font_template_descriptor_from_ctfont_attributes(
     // > The value returned is a CFNumberRef object representing a float between -1.0
     // > and 1.0. The value of 0.0 corresponds to regular glyph spacing, and negative
     // > values represent condensed glyph spacing.
-    let font_stretch = get_f64_trait(unsafe { kCTFontWidthTrait }).unwrap_or(0.);
-    let stretch = FontStretch::from_percentage(font_stretch as f32 + 1.0);
+    let font_width = get_f64_trait(unsafe { kCTFontWidthTrait }).unwrap_or(0.);
+    let width = FontWidth::from_percentage(font_width as f32 + 1.0);
 
-    FontTemplateDescriptor::new(weight, stretch, style)
+    FontTemplateDescriptor::new(weight, width, style)
 }

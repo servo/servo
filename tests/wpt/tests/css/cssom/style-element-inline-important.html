@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Element CSS inline style with !important</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-elementcssinlinestyle-mixin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3940 -->
+
+<p class="element-with-inline-style" style="word-spacing: 1px !important;">Inline Style Test</p>
+
+<script>
+"use strict";
+
+test(() => {
+  const p = document.querySelector(".element-with-inline-style");
+  assert_equals(p.style.cssText, "word-spacing: 1px !important;", "cssText");
+  assert_equals(p.style.getPropertyValue("word-spacing"), "1px", "value");
+  assert_equals(p.style.getPropertyPriority("word-spacing"), "important", "priority");
+});
+</script>

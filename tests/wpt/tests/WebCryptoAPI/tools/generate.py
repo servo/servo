@@ -63,6 +63,24 @@ ALGORITHMS = (
         ("decapsulateBits", "decapsulateKey"),
     ),
     (
+        "MLKEM768-P256",
+        '"CryptoKeyPair"',
+        ("decapsulateBits", "decapsulateKey", "encapsulateBits", "encapsulateKey"),
+        ("decapsulateBits", "decapsulateKey"),
+    ),
+    (
+        "MLKEM768-X25519",
+        '"CryptoKeyPair"',
+        ("decapsulateBits", "decapsulateKey", "encapsulateBits", "encapsulateKey"),
+        ("decapsulateBits", "decapsulateKey"),
+    ),
+    (
+        "MLKEM1024-P384",
+        '"CryptoKeyPair"',
+        ("decapsulateBits", "decapsulateKey", "encapsulateBits", "encapsulateKey"),
+        ("decapsulateBits", "decapsulateKey"),
+    ),
+    (
         "X25519",
         '"CryptoKeyPair"',
         ("deriveKey", "deriveBits"),
@@ -95,6 +113,11 @@ GROUPS = (
     ("Ed448", ("Ed448",), True),
     ("ML-DSA", ("ML-DSA-44", "ML-DSA-65", "ML-DSA-87"), True),
     ("ML-KEM", ("ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"), True),
+    (
+        "Hybrid-KEM",
+        ("MLKEM768-P256", "MLKEM768-X25519", "MLKEM1024-P384"),
+        True,
+    ),
     ("X25519", ("X25519",), False),
     ("X448", ("X448",), True),
     ("kmac", ("KMAC128", "KMAC256"), True),

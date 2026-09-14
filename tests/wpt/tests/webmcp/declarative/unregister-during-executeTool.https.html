@@ -33,7 +33,7 @@ promise_test(async t => {
   const tool = tools.find(t => t.name === 'endless_tool');
   assert_true(!!tool, 'Tool should be registered');
 
-  const execute_promise = document.modelContext.executeTool(tool, '{}');
+  const execute_promise = document.modelContext.executeTool(tool);
 
   // Wait deterministically for the form to submit and call respondWith().
   await submitted_promise;
@@ -79,7 +79,7 @@ promise_test(async t => {
   const tool = tools.find(t => t.name === 'endless_tool_attr');
   assert_true(!!tool, 'Tool should be registered');
 
-  const execute_promise = document.modelContext.executeTool(tool, '{}');
+  const execute_promise = document.modelContext.executeTool(tool);
 
   // Wait deterministically for the form to submit and call respondWith().
   await submitted_promise;

@@ -9,7 +9,6 @@
 mod actions;
 mod capabilities;
 mod script_argument_extraction;
-mod server;
 mod session;
 mod timeout;
 mod user_prompt;
@@ -43,7 +42,6 @@ use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use server::{Session, SessionTeardownKind, WebDriverHandler};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_config::prefs::{self, PrefValue, Preferences};
@@ -61,8 +59,8 @@ use webdriver::capabilities::CapabilitiesMatching;
 use webdriver::command::{
     ActionsParameters, AddCookieParameters, GetParameters, JavascriptCommandParameters,
     LocatorParameters, NewSessionParameters, NewWindowParameters, SendKeysParameters,
-    SwitchToFrameParameters, SwitchToWindowParameters, TimeoutsParameters, WebDriverCommand,
-    WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
+    SetPermissionParameters, SwitchToFrameParameters, SwitchToWindowParameters, TimeoutsParameters,
+    WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
 };
 use webdriver::common::{
     Cookie, Date, LocatorStrategy, Parameters, ShadowRoot, WebElement, WebFrame, WebWindow,
@@ -73,6 +71,7 @@ use webdriver::response::{
     CloseWindowResponse, CookieResponse, CookiesResponse, ElementRectResponse, NewSessionResponse,
     NewWindowResponse, TimeoutsResponse, ValueResponse, WebDriverResponse, WindowRectResponse,
 };
+use webdriver::server::{Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PendingActions, PointerInputState};
 use crate::session::{PageLoadStrategy, WebDriverSession};
@@ -146,7 +145,7 @@ pub fn start_server(
         .name("WebDriverHttpServer".to_owned())
         .spawn(move || {
             let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
-            match server::start(
+            match webdriver::server::start(
                 SocketAddr::V4(address),
                 vec![],
                 vec![],
@@ -1944,10 +1943,6 @@ impl Handler {
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
         let timeouts = self.session()?.session_timeouts();
 
-        // FIXME: The specification says that all of these values can be `null`, but the `webdriver` crate
-        // only supports setting `script` as null. When set to null, report these values as being the
-        // default ones for now.
-        // Waiting for version bump together with geckodriver.
         let timeouts = TimeoutsResponse {
             script: timeouts.script,
             page_load: timeouts.page_load,
@@ -2667,6 +2662,28 @@ impl Handler {
             browsing_cotext_id,
         ))
     }
+
+    /// <https://www.w3.org/TR/permissions/#webdriver-command-set-permission>
+    fn handle_set_permission(
+        &self,
+        parameters: SetPermissionParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
+
+        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
+            self.browsing_context_id()?,
+            WebDriverScriptCommand::SetPermission(
+                parameters.descriptor.name,
+                parameters.state,
+                sender,
+            ),
+        ))?;
+
+        match wait_for_oneshot_response(receiver)? {
+            Ok(()) => Ok(WebDriverResponse::Void),
+            Err(status) => Err(WebDriverError::new(status, "failed to set permission")),
+        }
+    }
 }
 
 impl WebDriverHandler<ServoExtensionRoute> for Handler {
@@ -2779,6 +2796,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::TakeElementScreenshot(ref x) => {
                 self.handle_take_element_screenshot(x)
             },
+            WebDriverCommand::SetPermission(params) => self.handle_set_permission(params),
             WebDriverCommand::Extension(extension) => match extension {
                 ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
                 ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),

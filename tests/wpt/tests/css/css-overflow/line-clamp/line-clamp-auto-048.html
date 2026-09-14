@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` with empty block with set height</title>
+<link rel="author" title="Seva Alipov" href="mailto:salipov@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2043002">
+<link rel="match" href="reference/line-clamp-auto-048-ref.html">
+<style>
+.clamp-auto-3lh {
+  line-clamp: auto;
+  max-height: 3lh;
+  font: 16px / 32px serif;
+  background-color: yellow;
+}
+.with-height {
+  height: 3lh;
+  background-color: red;
+}
+</style>
+
+<div class=clamp-auto-3lh>
+  Line 1<br>
+  <div class="with-height"></div>
+  Line 3<br>
+  Line 4<br>
+</div>

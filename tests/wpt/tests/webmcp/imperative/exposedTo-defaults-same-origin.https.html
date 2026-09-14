@@ -41,7 +41,7 @@ promise_test(async t => {
   assert_true(toolsAreEqual(tool, {
     name: 'parent_tool_default',
     description: 'Parent tool with default exposure',
-    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } }),
+    inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
     annotations: { readOnlyHint: true, untrustedContentHint: false, consequentialHint: false },
     origin: self.origin
   }), 'Tool details should match');
@@ -90,7 +90,7 @@ promise_test(async t => {
   assert_true(toolsAreEqual(tool, {
     name: 'parent_tool_empty',
     description: 'Parent tool with empty exposedTo',
-    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } }),
+    inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
     origin: self.origin
   }), 'Tool details should match');
 
@@ -143,7 +143,7 @@ promise_test(async t => {
   }), 'Tool details should match');
 
   // Parent executes iframe's tool.
-  const result = await document.modelContext.executeTool(tool, '{}');
+  const result = await document.modelContext.executeTool(tool);
   assert_equals(result, 'hello from iframe', 'Parent should get correct result from iframe tool');
 
   // Unregister tool.
@@ -182,7 +182,7 @@ promise_test(async t => {
   }), 'Tool details should match');
 
   // Parent executes iframe's tool.
-  const result = await document.modelContext.executeTool(tool, '{}');
+  const result = await document.modelContext.executeTool(tool);
   assert_equals(result, 'hello from iframe', 'Parent should get correct result from iframe tool');
 
   // Unregister tool.

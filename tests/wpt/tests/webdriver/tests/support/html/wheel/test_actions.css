@@ -1,0 +1,154 @@
+div {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-width: 800px;
+}
+
+#container {
+  display: flex;
+  gap: 25px;
+  margin-bottom: 50px;
+}
+
+#container > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+#container h3 {
+  margin: 0;
+}
+
+#container .detail {
+  font-size: small;
+  color: #666;
+  margin: 0;
+}
+
+#not-scrollable {
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+}
+
+#not-scrollable-content {
+  width: 200px;
+  height: 100px;
+  background-color: #ccc;
+}
+
+#scrollable {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+}
+
+#scrollable-content {
+  width: 600px;
+  height: 1000px;
+  background-color: blue;
+}
+
+iframe {
+  width: 100px;
+  height: 100px;
+}
+
+custom-scroll-element {
+  display: block;
+  width: 100px;
+  height: 100px;
+}
+
+#eventsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+#eventsTable th {
+  background-color: #333;
+  color: white;
+  padding: 8px;
+  text-align: left;
+  position: sticky;
+  top: 0;
+}
+
+#eventsTable td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+#eventsTable tr:hover {
+  background-color: #f5f5f5;
+}
+
+.event-wheel {
+  background-color: #d1ecf1;
+}
+
+.event-scroll {
+  background-color: #d4edda;
+}
+
+.event-scrollend {
+  background-color: #fff3cd;
+}
+
+#tableContainer {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+}
+
+#legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin: 10px 0;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #999;
+  border-radius: 3px;
+}
+
+.marker {
+  position: absolute;
+  pointer-events: none;
+  width: 3px;
+  height: 3px;
+}
+
+#filterControls {
+  display: flex;
+  gap: 20px;
+  margin: 10px 0;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+#filterControls label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}

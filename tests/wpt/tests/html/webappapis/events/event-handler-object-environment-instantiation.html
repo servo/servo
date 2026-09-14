@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="UTF-8" />
+<title>Inline handler correct ObjectEnvironment instantiation</title>
+<link rel="author" title="ExE Boss" href="https://ExE-Boss.tech" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#getting-the-current-value-of-the-event-handler" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  "use strict";
+
+  window.element = document.element = {
+    get [Symbol.unscopables]() {
+      return assert_unreached("get element[Symbol.unscopables]()");
+    },
+    onclickCalled: null
+  };
+
+</script>
+<div id="foo" onclick='
+  assert_equals(element, window.element, "element === window.element");
+  assert_equals(onclickCalled, false);
+  onclickCalled = true;
+'></div>
+<script>
+  "use strict";
+
+  test(() => {
+    const foo = document.getElementById("foo");
+    foo.onclickCalled = false;
+    foo.click();
+    assert_equals(foo.onclickCalled, true);
+  });
+
+</script>

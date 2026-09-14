@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>getComputedStyle() returns live values</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3562 -->
+
+<div id="div"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("div");
+  const computedStyles = window.getComputedStyle(div);
+  assert_equals(computedStyles.backgroundColor, "rgba(0, 0, 0, 0)", "before");
+
+  div.style.setProperty("background-color", "red");
+  assert_equals(computedStyles.backgroundColor, "rgb(255, 0, 0)", "after");
+});
+</script>

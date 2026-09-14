@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector with namespace selectors and namespace attribute selectors</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#scope-match-a-selectors-string">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/2159 -->
+
+<script>
+"use strict";
+const domStr = `<?xml version="1.0"?>
+<cp:coreProperties
+  xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
+  xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xml:lang="en"
+  id="target">
+  <dc:title></dc:title>
+</cp:coreProperties>`;
+
+const doc = new window.DOMParser().parseFromString(domStr, "application/xml");
+const target = doc.getElementById("target");
+
+test(() => {
+  assert_equals(doc.querySelector("coreProperties"), target);
+}, "match selector without prefix");
+
+test(() => {
+  assert_equals(doc.querySelector("*|coreProperties"), target);
+}, "match namespace selector with universal prefix");
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => doc.querySelector("cp|coreProperties"));
+}, "throws on specified namespace selector");
+
+test(() => {
+  assert_equals(doc.querySelector(":is(cp|coreProperties)"), null);
+}, "does not throw on specified namespace selector if forgiven");
+
+test(() => {
+  assert_equals(doc.querySelector("[lang]"), null);
+}, "does not match attriubte selector without prefix");
+
+test(() => {
+  assert_equals(doc.querySelector("[*|lang]"), target);
+}, "match namespace attriubte selector with universal prefix");
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => doc.querySelector("[xml|lang]"));
+}, "throws on specified namespace attriubte selector");
+
+test(() => {
+  assert_equals(doc.querySelector(":is([xml|lang])"), null);
+}, "does not throw on specified namespace attriubte selector if forgiven");
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Connected styles load imports with no browsing context</title>
+<!-- https://github.com/whatwg/html/issues/4547 -->
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+promise_test(async () => {
+  const doc = document.implementation.createHTMLDocument();
+  const style = doc.createElement("style");
+  style.textContent = '@import url("/css/support/a-green.css");';
+  const loaded = new Promise((resolve, reject) => {
+    style.onload = resolve;
+    style.onerror = () => reject(new Error("Imported stylesheet failed to load"));
+  });
+  doc.head.append(style);
+  await loaded;
+}, "Connected style elements load imports even without a browsing context");
+</script>

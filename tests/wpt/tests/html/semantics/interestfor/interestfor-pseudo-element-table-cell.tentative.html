@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container">
+  <button id="btn" class="table-cell" interestfor="target">Button</button>
+</div>
+<div id="target">Target</div>
+
+<div id="container2">
+  <button id="btn2" class="table-row" interestfor="target">Button 2</button>
+</div>
+
+<style>
+  #container, #container2 {
+    width: 300px;
+  }
+  button {
+    appearance: none;
+    width: 100px;
+    height: 50px;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  .table-cell { display: table-cell; }
+  .table-row { display: table-row; }
+  [interestfor]::interest-button {
+    display: inline-block;
+    width: 40px;
+    height: 50px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    content: "";
+  }
+</style>
+
+<script>
+test(() => {
+  const btn = document.getElementById('btn');
+  assert_equals(getComputedStyle(btn).display, 'table-cell');
+
+  const btnRect = btn.getBoundingClientRect();
+  assert_equals(btnRect.width, 100);
+  assert_equals(btnRect.height, 50);
+
+  // Table box fixup wraps the table-cell in an anonymous table (a block-level box).
+  // The ::interest-button layout box is placed outside that anonymous table, below it.
+  const elBelow = document.elementFromPoint(btnRect.left + 10, btnRect.bottom + 10);
+  assert_equals(elBelow, btn, "pseudo-element hit-test below the table returns originating button");
+
+  // Since the anonymous table is block-level, to the right of the button is empty (container).
+  const elRight = document.elementFromPoint(btnRect.right + 10, btnRect.top + 10);
+  assert_not_equals(elRight, btn, "pseudo-element is not to the right of the table-cell button");
+}, "::interest-button on a display:table-cell button with inline-block pseudo");
+
+test(() => {
+  const btn2 = document.getElementById('btn2');
+  assert_equals(getComputedStyle(btn2).display, 'table-row');
+
+  const btn2Rect = btn2.getBoundingClientRect();
+  // Table box fixup wraps the table-row in an anonymous table.
+  // The ::interest-button layout box is placed outside that anonymous table, below it.
+  const elBelow = document.elementFromPoint(btn2Rect.left + 10, btn2Rect.bottom + 10);
+  assert_equals(elBelow, btn2, "pseudo-element hit-test below the table returns originating button");
+
+  const elRight = document.elementFromPoint(btn2Rect.right + 10, btn2Rect.top + 10);
+  assert_not_equals(elRight, btn2, "pseudo-element is not to the right of the table-row button");
+}, "::interest-button on a display:table-row button with inline-block pseudo");
+</script>

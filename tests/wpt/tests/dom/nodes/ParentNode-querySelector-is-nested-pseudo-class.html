@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Nested :is pseudo-class selectors</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3432 -->
+
+<div id="container">
+  <button id="button1">Button 1</button>
+  <input id="input1" type="text">
+  <input id="input2" type="submit" value="Submit">
+  <button id="button2" type="submit">Button 2</button>
+  <button id="button3" disabled>Button 3</button>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const elements = document.querySelectorAll(":is(:is(input), button)");
+  const elementIds = Array.from(elements).map(el => el.id);
+
+  const expectedIds = ["button1", "input1", "input2", "button2", "button3"];
+  assert_array_equals(elementIds, expectedIds);
+}, "Simple nested :is selector should match all inputs and buttons");
+
+test(() => {
+  const selector = ":is(:is(button, input)[type=submit], button:not([type])):not([disabled])";
+  const elements = document.querySelectorAll(selector);
+  const elementIds = Array.from(elements).map(el => el.id);
+
+  const expectedIds = ["button1", "input2", "button2"];
+  assert_array_equals(elementIds, expectedIds);
+}, "Complex nested :is selector with attribute and :not selectors should work");
+</script>

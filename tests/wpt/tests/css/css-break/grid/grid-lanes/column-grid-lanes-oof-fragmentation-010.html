@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>
+  Nested OOF follows fragmented column grid-lanes fill-reverse placement.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0;
+    height: 100px;
+    width: 100px;
+  }
+  .grid-lanes {
+    background: green;
+    display: grid-lanes;
+    grid-lanes-direction: column fill-reverse;
+    grid-template-columns: 25px 25px;
+    height: 200px;
+    width: 50px;
+    position: relative;
+  }
+  .item {
+    background: red;
+    height: 125px;
+    width: 25px;
+  }
+  .abs {
+    background: green;
+    height: 125px;
+    position: absolute;
+    width: 25px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div class="item">
+      <div class="abs"></div>
+    </div>
+    <div class="item">
+      <div class="abs"></div>
+    </div>
+  </div>
+</div>

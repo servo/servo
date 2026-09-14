@@ -720,7 +720,7 @@ pub(crate) fn handle_get_inner_or_outer_html(
                 return Some(html_dom_string.to_string());
             };
         }
-        Some("".to_owned())
+        Some(String::new())
     });
 
     reply.send(selector).unwrap();

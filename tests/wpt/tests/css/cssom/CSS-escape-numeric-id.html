@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS.escape() method for ID selectors starting with digits</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-css.escape()-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3919 -->
+
+<div id="baz" class="foo"></div>
+<div id="000" class="foo"></div>
+
+<script>
+"use strict";
+
+const baz = document.getElementById("baz");
+const zero = document.getElementById("000");
+
+test(() => {
+  assert_equals(baz, document.querySelector("#baz"), "ID matches");
+  assert_equals(baz, document.querySelector("#baz.foo"), "ID and class matches");
+  assert_equals(zero, baz.nextElementSibling, "zero exists next to baz");
+  assert_throws_dom("SyntaxError", () => document.querySelector("#000"), "Throws for unescaped numeric ID");
+}, "Sanity check");
+
+test(() => {
+  assert_equals(zero, document.querySelector(`#${CSS.escape("000")}`), "ID matches");
+  assert_equals(zero, document.querySelector(`#${CSS.escape("000")}.foo`), "ID and class matches");
+}, "ID selector matches with CSS.escape()");
+</script>

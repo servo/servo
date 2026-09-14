@@ -173,7 +173,7 @@ macro_rules! make_enumerated_getter(
                     // Step 1.1. If the attribute has a missing value default state defined, then return that
                     // missing value default state.
                     // Step 1.2 Otherwise, return no state.
-                    return DOMString::from($missing);
+                    return DOMString::from_static($missing);
                 },
                 Some(value) => {
                     // Step 2. If the attribute's value is an ASCII case-insensitive match for one of the keywords
@@ -189,13 +189,13 @@ macro_rules! make_enumerated_getter(
                     // Step 3. If the attribute has an empty value default state defined and the attribute's value
                     // is the empty string, then return that empty value default state.
                     if value.is_empty() {
-                        return DOMString::from($empty)
+                        return DOMString::from_static($empty)
                     }
 
                     // Step 4. If the attribute has an invalid value default state defined, then return that invalid
                     // value default state.
                     // Step 5. Return no state.
-                    return DOMString::from($invalid);
+                    return DOMString::from_static($invalid);
                 }
             }
         }

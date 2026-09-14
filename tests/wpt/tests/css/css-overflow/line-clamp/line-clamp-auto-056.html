@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp auto across balanced trial reflows</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-056-ref.html">
+<meta name="assert" content="Automatic line-clamp is recomputed after incremental text-wrap balance trial reflows.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 3lh;
+  font: 20px / 20px monospace;
+  width: 10ch;
+  text-wrap: balance;
+  background: yellow;
+}
+.final {
+  width: 14ch;
+}
+</style>
+<div class="clamp">
+  Balanced text changes its lines after the container width changes significantly.
+</div>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.querySelector(".clamp").classList.add("final");
+  takeScreenshot();
+}));
+</script>

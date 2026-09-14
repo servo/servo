@@ -116,8 +116,9 @@ async function waitForMediaFrameLoaded(t, iframe) {
 // or 'audio'). If `frameType` is 'nested', an intermediate iframe is inserted
 // between the test page and the media element frame, so the test page and the
 // media element frame are always separated by at least one frame boundary on
-// origin `base`.
-async function createMediaIframe(t, frameType, base, mediaType) {
+// origin `base`. If `hidden` is set, the iframe is hidden (using the given
+// visibility type) before being inserted into the DOM, so it is never rendered.
+async function createMediaIframe(t, frameType, base, mediaType, hidden = null) {
   if (document.readyState !== 'complete') {
     await new Promise(resolve => window.addEventListener('load', resolve));
   }
@@ -130,6 +131,10 @@ async function createMediaIframe(t, frameType, base, mediaType) {
     iframe.id = 'media-frame';
     iframe.allow = 'media-playback-while-not-visible \'none\'; autoplay *';
     iframe.src = base + 'media-frame.html?media=' + mediaType;
+  }
+
+  if (hidden) {
+    hideFrame(iframe, hidden);
   }
 
   document.body.appendChild(iframe);

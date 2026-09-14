@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name='timeout' content='long'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="helper.js"></script>
+</head>
+<body>
+<script>
+
+// SharedArrayBuffer needs a cross-origin isolated page (see the .headers file)
+[["video", "RTCEncodedVideoFrame"],
+ ["audio", "RTCEncodedAudioFrame"]].forEach(([kind, constr]) => {
+  promise_test(async t => {
+    assert_true(self.crossOriginIsolated, "page should be cross-origin isolated");
+    const frame = await createRTCEncodedFrameFromScratch(kind);
+    const original = frame.data;
+
+    // data is declared as a plain `ArrayBuffer` with no [AllowShared], so
+    // shared memory is not a value it can take.
+    assert_throws_js(TypeError, () => { frame.data = new SharedArrayBuffer(16); });
+    assert_equals(frame.data, original, "and the buffer is left alone");
+  }, `${constr} data rejects a SharedArrayBuffer.`);
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Cascading Test: Invalidate style when implicit @scope sheet is removed</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-styles">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target">
+  <style id="scope_sheet">
+    @scope { --matches-scope: true; }
+  </style>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--matches-scope"), "true");
+  }, "Implicit @scope rule initially matches");
+
+  test(() => {
+    scope_sheet.remove();
+    assert_equals(getComputedStyle(target).getPropertyValue("--matches-scope"), "");
+  }, "@scope rule no longer matches after sheet removal");
+</script>

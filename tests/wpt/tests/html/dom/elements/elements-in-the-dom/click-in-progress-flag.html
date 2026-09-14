@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<title>Elements respect click in progress flag</title>
+<link rel="author" title="jeffcarp" href="mailto:gcarpenterv@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/#run-synthetic-click-activation-steps">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  document.body.appendChild(div);
+  const events = [];
+  let depth = 0;
+
+  div.addEventListener("click", e => {
+    events.push("click");
+    // This prevents an infinite loop if not implemented
+    if (depth++ === 0) {
+      e.target.click();
+    }
+  });
+
+  div.click();
+
+  // elements do not allow recursive synthetic clicks
+  assert_array_equals(events, ["click"]);
+
+}, "elements respect 'click in progress' flag");
+</script>

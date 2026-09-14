@@ -58,7 +58,7 @@ browser.test.runTests([
     await browser.alarms.create('alarm1', {delayInMinutes: 10});
     await browser.alarms.create('alarm2', {delayInMinutes: 10});
     const cleared = await browser.alarms.clearAll();
-    browser.test.assertTrue(cleared, 'clearAll should return true');
+    browser.test.assertEq(undefined, cleared, 'clearAll should return undefined');
     const alarms = await browser.alarms.getAll();
     browser.test.assertEq(alarms.length, 0,
                           'Alarms array should be empty after clearAll');

@@ -101,17 +101,18 @@ pub(crate) struct HTMLLinkElement {
 
     /// <https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts>
     parser_inserted: Cell<bool>,
-    /// The number of loads that this link element has triggered (could be more
-    /// than one because of imports) and have not yet finished.
-    pending_loads: Cell<u32>,
     /// Whether any of the loads have failed.
     any_failed_load: Cell<bool>,
-    /// A monotonically increasing counter that keeps track of which stylesheet to apply.
-    request_generation_id: Cell<RequestGenerationId>,
     /// <https://html.spec.whatwg.org/multipage/#explicitly-enabled>
     is_explicitly_enabled: Cell<bool>,
     /// Whether the previous type matched with the destination
     previous_type_matched: Cell<bool>,
+    /// The number of loads that this link element has triggered (could be more
+    /// than one because of imports) and have not yet finished.
+    pending_loads: Cell<u32>,
+    /// A monotonically increasing counter that keeps track of which stylesheet to apply.
+    request_generation_id: Cell<RequestGenerationId>,
+
     /// Whether the previous media environment matched with the media query
     previous_media_environment_matched: Cell<bool>,
     /// Line number this element was created on
@@ -211,7 +212,7 @@ impl HTMLLinkElement {
                     cx,
                     &self.owner_window(),
                     Some(self.upcast::<Element>()),
-                    "text/css".into(),
+                    DOMString::from_static("text/css"),
                     Some(self.Href().into()),
                     None, // todo handle title
                     sheet,
@@ -991,9 +992,9 @@ impl HTMLLinkElement {
         let document = self.owner_document();
         let global = document.global();
 
-        // A module preload destination is "json", "style", or a script-like destination.
+        // A module preload destination is "json", "style", "text" or a script-like destination.
         let is_a_modulepreload_destination = match destination {
-            Destination::Json | Destination::Style => true,
+            Destination::Json | Destination::Style | Destination::Text => true,
             // https://fetch.spec.whatwg.org/#ref-for-request-destination-script-like
             // While "xslt" can cause script execution, it is not relevant here.
             Destination::Xslt => false,
@@ -1112,11 +1113,14 @@ impl StylesheetOwner for HTMLLinkElement {
         self.parser_inserted() ||
             self.blocking
                 .get()
-                .is_some_and(|list| list.Contains("render".into()))
+                .is_some_and(|list| list.Contains(DOMString::from_static("render")))
     }
 
     fn referrer_policy(&self, cx: &mut js::context::JSContext) -> ReferrerPolicy {
-        if self.RelList(cx).Contains("noreferrer".into()) {
+        if self
+            .RelList(cx)
+            .Contains(DOMString::from_static("noreferrer"))
+        {
             return ReferrerPolicy::NoReferrer;
         }
 

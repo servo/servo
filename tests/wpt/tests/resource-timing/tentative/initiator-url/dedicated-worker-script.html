@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Resource Timing - initiatorUrl for a dedicated worker's script</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../../resources/test-initiator.js"></script>
+<script src="../../resources/initiator-url-dedicated-worker-start.js"></script>
+<script>
+// Covers a dedicated worker's script for both classic and module workers, each
+// started directly from this document, from a separate JavaScript file, and
+// through setTimeout() with a callback defined in that separate file.
+const documentUrl = getUrl(
+    "/resource-timing/tentative/initiator-url/dedicated-worker-script.html");
+const separateScriptUrl = getUrl(
+    "/resource-timing/resources/initiator-url-dedicated-worker-start.js");
+const scriptUrl = label => getUrl(
+    "/resource-timing/resources/initiator-url-worker.js?label=" + label);
+
+// Start classic and module workers here in the document.
+new Worker(scriptUrl("classic-worker-from-document"));
+new Worker(scriptUrl("module-worker-from-document"), {type: "module"});
+
+// The initiator should be this document.
+initiator_url_test(
+    scriptUrl("classic-worker-from-document"),
+    documentUrl,
+    "a classic worker's script started from the document",
+    "classic worker (document) script timeout");
+
+initiator_url_test(
+    scriptUrl("module-worker-from-document"),
+    documentUrl,
+    "a module worker's script started from the document",
+    "module worker (document) script timeout");
+
+// These workers are started immediately by the separate script, so the
+// initiator should be that script.
+initiator_url_test(
+    scriptUrl("classic-worker-from-js"),
+    separateScriptUrl,
+    "a classic worker's script started from a separate script",
+    "classic worker (separate script) script timeout");
+
+initiator_url_test(
+    scriptUrl("module-worker-from-js"),
+    separateScriptUrl,
+    "a module worker's script started from a separate script",
+    "module worker (separate script) script timeout");
+
+// This document schedules the callback, so it remains the initiator even
+// though the callback is defined in the separate script.
+setTimeout(startDedicatedWorkers, 0);
+
+initiator_url_test(
+    scriptUrl("classic-worker-from-setTimeout"),
+    documentUrl,
+    "a classic worker's script started through setTimeout with an external " +
+        "callback",
+    "classic worker (setTimeout) script timeout");
+
+initiator_url_test(
+    scriptUrl("module-worker-from-setTimeout"),
+    documentUrl,
+    "a module worker's script started through setTimeout with an external " +
+        "callback",
+    "module worker (setTimeout) script timeout");
+</script>

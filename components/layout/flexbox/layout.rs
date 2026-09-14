@@ -547,7 +547,7 @@ impl FlexContainer {
         };
         let extra_space_from_main_gap = main_gap * (item_infos.len() as i32 - 1);
         let mut container_max_content_size = extra_space_from_main_gap;
-        let mut container_min_content_size = if self.config.flex_wrap == FlexWrap::Nowrap {
+        let mut container_min_content_size = if self.config.flex_wrap == FlexWrap::NOWRAP {
             extra_space_from_main_gap
         } else {
             Au::zero()
@@ -585,7 +585,7 @@ impl FlexContainer {
             // > item’s flex base size if the item is not growable, floored by the item’s flex
             // > base size if the item is not shrinkable, and then further clamped by the item’s
             // > min and max main sizes.
-            if self.config.flex_wrap == FlexWrap::Nowrap {
+            if self.config.flex_wrap == FlexWrap::NOWRAP {
                 container_min_content_size += (*outer_flex_base_size +
                     Au::from_f32_px(
                         min_flex_factors.flex_grow_or_shrink_factor * chosen_min_flex_fraction,
@@ -2091,8 +2091,9 @@ impl FlexItem<'_> {
             //  the cross-start and cross-end directions are swapped.”
             let flex_wrap = flex_context.containing_block.style.get_position().flex_wrap;
             let flex_wrap_reverse = match flex_wrap {
-                FlexWrap::Nowrap | FlexWrap::Wrap => false,
-                FlexWrap::WrapReverse => true,
+                FlexWrap::NOWRAP | FlexWrap::WRAP => false,
+                FlexWrap::WRAP_REVERSE => true,
+                _ => unreachable!("FlexWrap::BALANCE should be disabled"),
             };
             // “if the block-start or inline-start margin (whichever is in the cross axis) is auto,
             //  set it to zero. Set the opposite margin so that the outer cross size of the item

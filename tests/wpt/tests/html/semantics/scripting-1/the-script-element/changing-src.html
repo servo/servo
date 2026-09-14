@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Changing the src of a script element should re-load it</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#prepare-a-script">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<script>
+"use strict";
+
+async_test(t => {
+
+  const script = document.createElement("script");
+  document.body.appendChild(script);
+
+  script.onload = () => {
+    assert_equals(window.scriptExecuted, true);
+    t.done();
+  };
+
+  script.src = "changing-src.js";
+
+}, "adding a src attribute after inserting the script into the document causes the script to load and execute");
+
+</script>
+
+</body>

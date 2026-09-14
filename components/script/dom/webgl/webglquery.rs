@@ -54,7 +54,7 @@ impl Drop for DroppableWebGLQuery {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLQuery {
     webgl_object: WebGLObject,
     gl_target: Cell<Option<u32>>,

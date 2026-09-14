@@ -37,14 +37,13 @@ use crate::dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID, UUID};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{descriptor_permission_state, PermissionAlgorithm};
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::tasks::task::TaskOnce;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use profile_traits::{generic_channel};
 use std::collections::HashMap;
 use std::ffi::CStr;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 const KEY_CONVERSION_ERROR: &str =
@@ -114,7 +113,12 @@ struct BluetoothContext<T: AsyncBluetoothListener + DomObject> {
 }
 
 pub(crate) trait AsyncBluetoothListener {
-    fn handle_response(&self, cx: &mut JSContext, result: BluetoothResponse, promise: &Rc<Promise>);
+    fn handle_response(
+        &self,
+        cx: &mut JSContext,
+        result: BluetoothResponse,
+        promise: &RootedPromise,
+    );
 }
 
 impl<T> BluetoothContext<T>
@@ -122,7 +126,11 @@ where
     T: AsyncBluetoothListener + DomObject,
 {
     fn response(&mut self, cx: &mut JSContext, response: BluetoothResponseResult) {
-        let promise = self.promise.take().expect("bt promise is missing").root();
+        let promise = self
+            .promise
+            .take()
+            .expect("Bluetooth promise is missing")
+            .root(cx);
 
         // JSAutoRealm needs to be manually made.
         // Otherwise, Servo will crash.
@@ -166,7 +174,7 @@ impl Bluetooth {
     fn request_bluetooth_devices(
         &self,
         cx: &mut JSContext,
-        p: &Rc<Promise>,
+        p: &RootedPromise,
         filters: &Option<Vec<BluetoothLEScanFilterInit>>,
         optional_services: &[BluetoothServiceUUID],
         sender: GenericCallback<BluetoothResponseResult>,
@@ -241,7 +249,7 @@ impl Bluetooth {
 }
 
 pub(crate) fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
-    promise: &Rc<Promise>,
+    promise: &RootedPromise,
     receiver: &T,
 ) -> GenericCallback<BluetoothResponseResult> {
     let task_source = receiver
@@ -250,7 +258,7 @@ pub(crate) fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
         .networking_task_source()
         .to_sendable();
     let context = Arc::new(Mutex::new(BluetoothContext {
-        promise: Some(TrustedPromise::new(promise.clone())),
+        promise: Some(TrustedPromise::from(promise)),
         receiver: Trusted::new(receiver),
     }));
     GenericCallback::new(move |message| {
@@ -290,12 +298,12 @@ pub(crate) fn get_gatt_children<T, F>(
     instance_id: String,
     connected: bool,
     child_type: GATTType,
-) -> Rc<Promise>
+) -> RootedPromise
 where
     T: AsyncBluetoothListener + DomObject + 'static,
     F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID>,
 {
-    let p = Promise::new_in_realm(cx);
+    let p = Promise::new_in_realm_rooted(cx);
 
     let result_uuid = if let Some(u) = uuid {
         // Step 1.
@@ -531,8 +539,8 @@ impl Convert<Error> for BluetoothError {
 
 impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice>
-    fn RequestDevice(&self, cx: &mut CurrentRealm, option: &RequestDeviceOptions) -> Rc<Promise> {
-        let p = Promise::new_in_realm(cx);
+    fn RequestDevice(&self, cx: &mut CurrentRealm, option: &RequestDeviceOptions) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(cx);
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
@@ -549,8 +557,8 @@ impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability>
-    fn GetAvailability(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let p = Promise::new_in_realm(cx);
+    fn GetAvailability(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(cx);
         // Step 1. We did not override the method
         // Step 2 - 3. in handle_response
         let sender = response_async(&p, self);
@@ -573,7 +581,7 @@ impl AsyncBluetoothListener for Bluetooth {
         &self,
         cx: &mut JSContext,
         response: BluetoothResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
@@ -635,7 +643,7 @@ impl PermissionAlgorithm for Bluetooth {
     /// <https://webbluetoothcg.github.io/web-bluetooth/#query-the-bluetooth-permission>
     fn permission_query(
         cx: &mut JSContext,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
         descriptor: &BluetoothPermissionDescriptor,
         status: &BluetoothPermissionResult,
     ) {
@@ -725,7 +733,7 @@ impl PermissionAlgorithm for Bluetooth {
     /// <https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission>
     fn permission_request(
         cx: &mut JSContext,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
         descriptor: &BluetoothPermissionDescriptor,
         status: &BluetoothPermissionResult,
     ) {

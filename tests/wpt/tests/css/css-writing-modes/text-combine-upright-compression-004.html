@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html class="reftest-wait" lang="ja">
 <head>
 <meta charset="UTF-8">
 <title>CSS Test: text-combine-upright, compression of four characters</title>
@@ -7,10 +7,11 @@
 <link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#text-combine-compression">
 <link rel="match" href="text-combine-upright-compression-004-ref.html">
 <meta name="assert" content="text-combine-upright should try applying 'qwid' feature if the width is wider than 1em">
+<meta name="fuzzy" content="maxDifference=0-255; totalPixels=0-1300">
 <link rel="stylesheet" href="support/width-test.css">
 <link rel="stylesheet" href="support/tcy.css">
 <style>
-.test { writing-mode: vertical-rl; }
+.test { display: none; writing-mode: vertical-rl; }
 .test > p { border: 1px solid black; }
 </style>
 </head>
@@ -20,5 +21,6 @@
   <p><span class="tcy">0000</span></p>
   <p><span class="fake-tcy">4444</span></p>
 </div>
+<script src="support/wait-for-width-test-font.js"></script>
 </body>
 </html>

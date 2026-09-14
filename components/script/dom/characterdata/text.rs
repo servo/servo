@@ -18,7 +18,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
-use crate::dom::live_range_text_split_steps;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 
@@ -86,8 +85,8 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         let new_data = cdata.SubstringData(offset, count).unwrap();
         // Step 5: Let newNode be the result of creating a text node given node’s node document and newData.
         let node = self.upcast::<Node>();
-        let owner_doc = node.owner_doc();
-        let new_text_node = owner_doc.CreateTextNode(cx, new_data);
+        let document = node.owner_doc();
+        let new_text_node = document.CreateTextNode(cx, new_data);
         // Step 6: Let parent be node’s parent.
         let parent = node.GetParentNode();
         // Step 7: If parent is non-null:
@@ -99,10 +98,10 @@ impl TextMethods<crate::DomTypeHolder> for Text {
                 .unwrap();
 
             // Steps 7.2-7.5: The live range update steps.
-            if let Some(selection) = owner_doc.selection() {
+            if let Some(selection) = document.selection() {
                 selection.text_split_steps(node, offset, parent, new_node);
             }
-            live_range_text_split_steps(parent, node, offset, new_node);
+            document.live_range_text_split_steps(cx.no_gc(), parent, node, offset, new_node);
         }
         // Step 8.
         cdata.DeleteData(cx, offset, count).unwrap();

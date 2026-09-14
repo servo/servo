@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-rule">
-<link rel="match" href="position-try-order-include-base-ref.html">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
 <style>
     .testbox {
-        width: 50px;
+        width: 100px;
         height: 50px;
     }
     .anchor {
         anchor-name: --my-anchor;
         position: absolute;
-        top: 100px;
-        background-color: red;
+        background-color: green;
+    }
+    .hidden {
+      position: fixed;
+      top: 100px;
+      background-color: red;
     }
     @position-try --custom-bottom {
         top: anchor(bottom);
@@ -24,6 +28,8 @@
         background-color: green;
     }
 </style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="hidden testbox"></div>
 <div class="anchor testbox"></div>
 <div class="infobox testbox">
 </div>

@@ -171,6 +171,12 @@ pub(crate) fn decapsulate(
     Ok(shared_key)
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-get-shared-key-length>
+pub(crate) fn get_shared_key_length() -> u32 {
+    // Step 1. Return 256.
+    256
+}
+
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-generate-key>
 pub(crate) fn generate_key(
     cx: &mut JSContext,

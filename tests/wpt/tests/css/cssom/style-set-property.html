@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting style.setProperty and style[property] to various types</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstylerule-interface">
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-elementcssinlinestyle-mixin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/cssstyle/issues/129 -->
+<!-- regression test for https://github.com/jsdom/cssstyle/issues/189 -->
+<!-- regression test for https://github.com/jsdom/cssstyle/issues/196 -->
+
+<style>
+.div {
+  background-color: red;
+  width: 50%;
+  height: 3rem;
+}
+</style>
+<div id="div" class="div"></div>
+<script>
+"use strict";
+
+const cssRule = document.styleSheets[0].cssRules[0];
+
+test(() => {
+  const value = cssRule.style.getPropertyValue("background-color");
+  assert_equals(value, "red");
+}, "initial value of cssRule.style");
+
+test(() => {
+  cssRule.style.setProperty("background-color", "blue");
+  const value = cssRule.style.getPropertyValue("background-color");
+  assert_equals(value, "blue");
+}, "set new value for cssRule.style.setProperty");
+
+test(() => {
+  cssRule.style.setProperty("background-color", "yellow");
+  cssRule.style.setProperty("background-color", "");
+  const value = cssRule.style.getPropertyValue("background-color");
+  assert_equals(value, "");
+}, "set empty string for cssRule.style.setProperty");
+
+test(() => {
+  cssRule.style.setProperty("background-color", "purple");
+  cssRule.style.setProperty("background-color", null);
+  const value = cssRule.style.getPropertyValue("background-color");
+  assert_equals(value, "");
+}, "set null for cssRule.style.setProperty");
+
+test(() => {
+  cssRule.style.setProperty("background-color", "green");
+  cssRule.style.setProperty("background-color", undefined);
+  const value = cssRule.style.getPropertyValue("background-color");
+  assert_equals(value, "green");
+}, "set undefined for cssRule.style.setProperty");
+
+const div = document.getElementById("div");
+
+test(() => {
+  const value = div.style.getPropertyValue("background-color");
+  assert_equals(value, "");
+}, "initial value of div.style");
+
+test(() => {
+  div.style.setProperty("background-color", "blue");
+  const value = div.style.getPropertyValue("background-color");
+  assert_equals(value, "blue");
+}, "set new value for div.style.setProperty");
+
+test(() => {
+  div.style.setProperty("background-color", "yellow");
+  div.style.setProperty("background-color", "");
+  const value = div.style.getPropertyValue("background-color");
+  assert_equals(value, "");
+}, "set empty string for div.style.setProperty");
+
+test(() => {
+  div.style.setProperty("background-color", "purple");
+  div.style.setProperty("background-color", null);
+  const value = div.style.getPropertyValue("background-color");
+  assert_equals(value, "");
+}, "set null for div.style.setProperty");
+
+test(() => {
+  div.style.setProperty("background-color", "green");
+  div.style.setProperty("background-color", undefined);
+  const value = div.style.getPropertyValue("background-color");
+  assert_equals(value, "green");
+}, "set undefined for div.style.setProperty");
+
+test(() => {
+  div.style.backgroundColor = "blue";
+  const value = div.style.getPropertyValue("background-color");
+  assert_equals(value, "blue");
+}, "set new value for div.style[property]");
+
+test(() => {
+  div.style.backgroundColor = "yellow";
+  div.style.backgroundColor = "";
+  const value = div.style.getPropertyValue("background-color");
+  assert_equals(value, "");
+}, "set empty string for div.style[property]");
+
+test(() => {
+  div.style.backgroundColor = "purple";
+  div.style.backgroundColor = null;
+  const value = div.style.getPropertyValue("background-color");
+  assert_equals(value, "");
+}, "set null for div.style[property]");
+
+test(() => {
+  div.style.backgroundColor = "green";
+  div.style.backgroundColor = undefined;
+  const value = div.style.getPropertyValue("background-color");
+  assert_equals(value, "green");
+}, "set undefined for div.style[property]");
+
+/* tests from https://github.com/jsdom/cssstyle/issues/129 */
+test(() => {
+  assert_throws_js(TypeError, () => {
+    div.style.opacity = Symbol("1");
+  });
+}, "set Symbol for div.style[property]");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    div.style.opacity = { toString: () => [0] };
+  });
+}, "set Object.toString for div.style[property]");
+
+test(() => {
+  div.style.opacity = BigInt(1);
+  const value = div.style.getPropertyValue("opacity");
+  assert_equals(value, "1");
+}, "set BigInt for div.style[property]");
+
+test(() => {
+  div.style.setProperty("--custom", undefined);
+  const value = div.style.getPropertyValue("--custom");
+  assert_equals(value, "undefined");
+}, "set undefined for div.style.setProperty custom property");
+
+test(() => {
+  div.style.setProperty("--custom", true);
+  const value = div.style.getPropertyValue("--custom");
+  assert_equals(value, "true");
+}, "set true for div.style.setProperty custom property");
+
+test(() => {
+  div.style.setProperty("--custom", {
+    toString: () => null
+  });
+  const value = div.style.getPropertyValue("--custom");
+  assert_equals(value, "null");
+}, "set toString() returning null for div.style.setProperty custom property");
+
+test(() => {
+  div.style.setProperty("--custom", {
+    toString: () => " "
+  });
+  const value = div.style.getPropertyValue("--custom");
+  assert_equals(value, "");
+}, "set toString() returning whitespace for div.style.setProperty custom property");
+</script>

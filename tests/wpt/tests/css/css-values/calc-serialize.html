@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Serialization of min() and max() with nested calc()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/4225 -->
+
+<div id="target"></div>
+
+<script>
+"use strict";
+
+const el = document.getElementById("target");
+
+test(() => {
+  el.style.width = "min(180px, calc(80vw - 24px))";
+  assert_equals(el.style.width, "min(180px, -24px + 80vw)", "Serialized min");
+}, "min() with nested calc()");
+
+test(() => {
+  el.style.width = "min(180px, calc(80vw - 24px + 1em))";
+  assert_equals(el.style.width, "min(180px, 1em - 24px + 80vw)", "Serialized min");
+}, "min() with nested complex calc()");
+
+test(() => {
+  el.style.width = "max(10px, calc(1vw + 1px))";
+  assert_equals(el.style.width, "max(10px, 1px + 1vw)", "Serialized max");
+}, "max() with nested calc()");
+
+test(() => {
+  el.style.width = "max(10px, calc(1vw + 1px - 1em))";
+  assert_equals(el.style.width, "max(10px, -1em + 1px + 1vw)", "Serialized max");
+}, "max() with nested complex calc()");
+</script>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>System color keyword to lower case</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#css-system-colors">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Test for https://github.com/jsdom/jsdom/pull/3892 -->
+
+<style>
+  #ancestorDiv {
+    color: GrayText;
+  }
+</style>
+<body>
+<div id="ref"></div>
+<div id="div"></div>
+<div id="ancestorDiv">
+  <div id="parentDiv">
+    <div id="childDiv"></div>
+  </div>
+</div>
+<script>
+"use strict";
+
+const ref = document.getElementById("ref");
+ref.style.backgroundColor = "mark";
+const div = document.getElementById("div");
+const ancestorDiv = document.getElementById("ancestorDiv");
+const parentDiv = document.getElementById("parentDiv");
+const childDiv = document.getElementById("childDiv");
+const markedBg = window.getComputedStyle(ref).backgroundColor;
+const rootText = window.getComputedStyle(document.documentElement).color;
+const grayText = window.getComputedStyle(ancestorDiv).color;
+
+test(() => {
+  div.style.backgroundColor = "";
+  assert_equals(div.style.getPropertyValue("background-color"), "");
+  assert_equals(window.getComputedStyle(div).backgroundColor, "rgba(0, 0, 0, 0)");
+  assert_not_equals(window.getComputedStyle(div).backgroundColor, markedBg);
+  div.style.backgroundColor = "mark";
+  assert_equals(div.style.getPropertyValue("background-color"), "mark");
+  assert_not_equals(window.getComputedStyle(div).backgroundColor, "rgba(0, 0, 0, 0)");
+  assert_equals(window.getComputedStyle(div).backgroundColor, markedBg);
+  div.style.backgroundColor = null;
+  assert_equals(div.style.getPropertyValue("background-color"), "");
+  assert_equals(window.getComputedStyle(div).backgroundColor, "rgba(0, 0, 0, 0)");
+  assert_not_equals(window.getComputedStyle(div).backgroundColor, markedBg);
+
+  // grayText
+  assert_true(rootText.startsWith("rgb(") && rootText.endsWith(")"));
+  assert_true(grayText.startsWith("rgb(") && grayText.endsWith(")"));
+  assert_not_equals(rootText, grayText);
+}, "Sanity check");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundColor = null;
+  });
+  div.style.backgroundColor = "marK";
+  assert_equals(div.style.getPropertyValue("background-color"), "mark");
+  assert_equals(window.getComputedStyle(div).backgroundColor, markedBg);
+}, "Color with upper cased letter");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundColor = null;
+  });
+  div.style.backgroundColor = "mar\u212A";
+  assert_equals(div.style.getPropertyValue("background-color"), "");
+  assert_equals(window.getComputedStyle(div).backgroundColor, "rgba(0, 0, 0, 0)");
+}, "Color with upper cased kelvin sign");
+
+test(t => {
+  t.add_cleanup(() => {
+    parentDiv.style.color = null;
+    childDiv.style.color = null;
+  });
+  childDiv.style.color = "INHERIT";
+  assert_equals(childDiv.style.getPropertyValue("color"), "inherit");
+  assert_equals(window.getComputedStyle(childDiv).color, grayText);
+
+  parentDiv.style.color = "LinkText";
+  const parentColor = window.getComputedStyle(parentDiv).color;
+  assert_equals(parentDiv.style.getPropertyValue("color"), "linktext");
+  assert_not_equals(parentColor, grayText);
+  assert_equals(window.getComputedStyle(childDiv).color, parentColor);
+}, "Color with inherit keyword, with system color applied to parent");
+</script>
+</body>

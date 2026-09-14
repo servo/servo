@@ -34,63 +34,169 @@ use js::rust::wrappers2::{
     SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
+use script_bindings::interfaces::{
+    HeapTracedPromiseHelpers, PromiseHelpers, StackRootPromiseHelpers,
+};
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_bindings::settings_stack::run_a_script;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
+use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, Dom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskRunnable;
+use crate::runtime::job_queue::MicrotaskRunnable;
 
-pub(crate) struct RootedPromise(Rc<Promise>);
+/// A reference to a Promise object, treated as a GC root. The Promise will not
+/// be collected by the GC before this RootedPromise is dropped.
+/// RootedPromise must never be stored inside of structs that are traced during a GC
+/// operation (such as reflected DOM objects) because it can lead to permanent
+/// GC cycles that prevent memory from being reclaimed.
+#[derive(Clone)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub(crate) struct RootedPromise(Rc<(Promise, PermanentRoot)>);
 
-impl Deref for RootedPromise {
-    type Target = Rc<Promise>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl StackRootPromiseHelpers<crate::DomTypeHolder> for RootedPromise {
+    type HeapTraced = TracedPromise;
+    fn to_traced(&self) -> TracedPromise {
+        RootedPromise::to_traced(self)
     }
 }
 
-impl From<RootedPromise> for Rc<Promise> {
-    fn from(root: RootedPromise) -> Self {
-        root.0
+impl Deref for RootedPromise {
+    type Target = Promise;
+    fn deref(&self) -> &Self::Target {
+        &self.0.0
     }
 }
 
 impl RootedPromise {
+    /// Obtain a TracedPromise object that references the same underlying Promise.
     pub(crate) fn to_traced(&self) -> TracedPromise {
-        TracedPromise(self.0.clone())
+        TracedPromise(self.duplicate_unrooted())
+    }
+}
+
+impl From<&'_ RootedPromise> for TrustedPromise {
+    fn from(promise: &'_ RootedPromise) -> Self {
+        TrustedPromise::new(promise.duplicate_unrooted())
+    }
+}
+
+impl js::conversions::FromJSValConvertible for RootedPromise {
+    type Config = ();
+
+    fn from_jsval(
+        cx: &mut JSContext,
+        value: HandleValue,
+        _option: Self::Config,
+    ) -> Result<ConversionResult<Self>, ()> {
+        if value.get().is_null() {
+            return Ok(ConversionResult::Failure(c"null not allowed".into()));
+        }
+
+        let mut realm = CurrentRealm::assert(cx);
+        let global_scope = GlobalScope::from_current_realm(&mut realm);
+
+        let promise = Promise::new_resolved_rooted(cx, &global_scope, value);
+        Ok(ConversionResult::Success(promise))
     }
 }
 
 impl ToJSValConvertible for RootedPromise {
     fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue<'_>) {
-        self.0.to_jsval(cx, rval)
+        self.0.0.to_jsval(cx, rval)
     }
 }
 
+/// A reference to a Promise object. The Promise will not be collected by the GC
+/// as long as the TracedPromise is reachable while tracing the GC heap.
+/// TracedPromise must only be stored inside of structs that are traced during a GC
+/// operation (such as reflected DOM objects), as enforced by the `crown` linter.
 #[derive(Clone, MallocSizeOf, JSTraceable)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct TracedPromise(#[conditional_malloc_size_of] Rc<Promise>);
 
-impl js::rust::Rootable for TracedPromise {}
-
-impl TracedPromise {
-    pub(crate) fn root(&self) -> RootedPromise {
-        RootedPromise(self.0.clone())
+impl std::cmp::PartialEq for TracedPromise {
+    fn eq(&self, other: &Self) -> bool {
+        *self.0 == **other
     }
 }
 
-impl std::ops::Deref for TracedPromise {
-    type Target = Rc<Promise>;
+impl HeapTracedPromiseHelpers<crate::DomTypeHolder> for TracedPromise {
+    type StackRoot = RootedPromise;
+    fn root(&self, cx: &JSContext) -> RootedPromise {
+        TracedPromise::root(self, cx)
+    }
+}
+
+impl js::rust::Rootable for TracedPromise {}
+
+impl TracedPromise {
+    /// Obtain a [RootedPromise] for the underlying promise.
+    pub(crate) fn root(&self, cx: &JSContext) -> RootedPromise {
+        self.duplicate(cx)
+    }
+}
+
+impl Deref for TracedPromise {
+    type Target = Promise;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+/// A manual GC root that will exist until this PermanentRoot is dropped.
+#[derive(JSTraceable)] // TODO: remove this once this is no longer part of Promise.
+#[derive(Default, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+/// Maintains a GC root for the contained value until this object is dropped.
+///
+/// # Safety
+/// The root (and the contained value) is only valid as long as this value
+/// is never moved after it is initialized. It should only be used inside
+/// of a container like Box or Rc and never extracted from it.
+struct PermanentRoot(#[ignore_malloc_size_of = "mozjs value"] Heap<JSVal>);
+
+impl PermanentRoot {
+    /// Add a GC root for the provided JS object.
+    ///
+    /// # Safety
+    /// - This method must only be called on a `PermanentRoot` that will not
+    ///   move for the remainder of its lifetime (e.g. inside of Box, Rc, etc.)
+    /// - This must only be called once per instance of `PermanentRoot`
+    #[expect(unsafe_code)]
+    unsafe fn init(&self, cx: &JSContext, object: HandleObject) {
+        self.0.set(ObjectValue(*object));
+        unsafe {
+            assert!(AddRawValueRoot(
+                cx,
+                self.0.get_unsafe(),
+                c"Promise::root".as_ptr(),
+            ));
+        }
+    }
+}
+
+impl Drop for PermanentRoot {
+    #[expect(unsafe_code)]
+    fn drop(&mut self) {
+        let js_root = self.0.get();
+        if js_root.is_undefined() {
+            return;
+        }
+        let object = js_root.to_object();
+        assert!(!object.is_null());
+        if let Some(cx) = Runtime::get() {
+            unsafe {
+                RemoveRawValueRoot(cx.as_ptr(), self.0.get_unsafe());
+            }
+        }
     }
 }
 
@@ -102,57 +208,28 @@ pub(crate) struct Promise {
     /// the SpiderMonkey GC, an explicit root for the reflector is stored while any
     /// native instance exists. This ensures that the reflector will never be GCed
     /// while native code could still interact with its native representation.
-    #[ignore_malloc_size_of = "SM handles JS values"]
-    permanent_js_root: Heap<JSVal>,
-}
-
-/// Private helper to enable adding new methods to `Rc<Promise>`.
-trait PromiseHelper {
-    fn initialize(&self, cx: &mut JSContext);
-}
-
-impl PromiseHelper for Rc<Promise> {
-    #[expect(unsafe_code)]
-    fn initialize(&self, cx: &mut JSContext) {
-        let obj = self.reflector().get_jsobject();
-        self.permanent_js_root.set(ObjectValue(*obj));
-        unsafe {
-            assert!(AddRawValueRoot(
-                cx,
-                self.permanent_js_root.get_unsafe(),
-                c"Promise::root".as_ptr(),
-            ));
-        }
-    }
-}
-
-// Promise objects are stored inside Rc values, so Drop is run when the last Rc is dropped,
-// rather than when SpiderMonkey runs a GC. This makes it safe to interact with the JS engine unlike
-// Drop implementations for other DOM types.
-impl Drop for Promise {
-    #[expect(unsafe_code)]
-    fn drop(&mut self) {
-        unsafe {
-            let object = self.permanent_js_root.get().to_object();
-            assert!(!object.is_null());
-            if let Some(cx) = Runtime::get() {
-                RemoveRawValueRoot(cx.as_ptr(), self.permanent_js_root.get_unsafe());
-            }
-        }
-    }
+    /// FIXME(#47747) Deprecated and planned for removal.
+    permanent_js_root: Option<PermanentRoot>,
 }
 
 impl Promise {
+    /// Create a new [RootedPromise] associated with the provided global.
     pub(crate) fn new_rooted(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
-        RootedPromise(Self::new(cx, global))
+        let mut realm = enter_auto_realm(cx, global);
+        let cx = &mut realm.current_realm();
+        Promise::new_in_realm_rooted(cx)
     }
 
+    /// Create a new [Promise] associated with the provided global.
+    ///
+    /// **Deprecated:** Use [Promise::new_rooted] instead.
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         Promise::new_in_realm(cx)
     }
 
+    /// Create a new [Promise] associated with the provided realm.
     pub(crate) fn new_in_realm(current_realm: &mut CurrentRealm) -> Rc<Promise> {
         let cx = current_realm.deref_mut();
         rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
@@ -160,38 +237,77 @@ impl Promise {
         Promise::new_with_js_promise(cx, obj.handle())
     }
 
-    #[expect(dead_code)]
+    /// Create a new [RootedPromise] associated with the provided realm.
+    ///
+    /// **Deprecated:** Use [Promise::new_in_realm_rooted] instead.
     pub(crate) fn new_in_realm_rooted(current_realm: &mut CurrentRealm) -> RootedPromise {
-        RootedPromise(Self::new_in_realm(current_realm))
+        let cx = current_realm.deref_mut();
+        rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
+        Promise::create_js_promise(cx, obj.handle_mut());
+        Promise::new_with_js_promise_rooted(cx, obj.handle())
     }
 
-    pub(crate) fn duplicate(&self, cx: &mut JSContext) -> RootedPromise {
+    /// Create a new [RootedPromise] wrapping the same underlying [Promise].
+    pub(crate) fn duplicate(&self, cx: &JSContext) -> RootedPromise {
         Promise::new_with_js_promise_rooted(cx, self.reflector().get_jsobject())
     }
 
     #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_with_js_promise(cx: &mut JSContext, obj: HandleObject) -> Rc<Promise> {
+    fn duplicate_unrooted(&self) -> Rc<Promise> {
+        let promise = Promise {
+            reflector: Reflector::new(),
+            permanent_js_root: None,
+        };
+        let promise = Rc::new(promise);
+        unsafe {
+            promise.init_reflector_without_associated_memory(self.reflector().get_jsobject().get());
+        }
+        promise
+    }
+
+    /// Create a new [Promise] wrapping the provided JS object.
+    /// Panics if the provided object is not a JS promise.
+    ///
+    /// **Deprecated:** Use [Promise::new_with_js_promise_rooted] instead.
+    #[expect(unsafe_code)]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn new_with_js_promise(cx: &JSContext, obj: HandleObject) -> Rc<Promise> {
         unsafe {
             assert!(IsPromiseObject(obj));
         }
         let promise = Promise {
             reflector: Reflector::new(),
-            permanent_js_root: Heap::default(),
+            permanent_js_root: Some(PermanentRoot::default()),
         };
         let promise = Rc::new(promise);
         unsafe {
             promise.init_reflector_without_associated_memory(obj.get());
+            promise.permanent_js_root.as_ref().unwrap().init(cx, obj);
         }
-        promise.initialize(cx);
         promise
     }
 
-    pub(crate) fn new_with_js_promise_rooted(
-        cx: &mut JSContext,
-        obj: HandleObject,
-    ) -> RootedPromise {
-        RootedPromise(Self::new_with_js_promise(cx, obj))
+    /// Create a new [RootedPromise] wrapping the provided JS object.
+    /// Panics if the provided object is not a JS promise.
+    #[expect(unsafe_code)]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn new_with_js_promise_rooted(cx: &JSContext, obj: HandleObject) -> RootedPromise {
+        unsafe {
+            assert!(IsPromiseObject(obj));
+        }
+        let promise = Promise {
+            reflector: Reflector::new(),
+            permanent_js_root: None,
+        };
+        let promise = Rc::new((promise, PermanentRoot::default()));
+        unsafe {
+            promise
+                .0
+                .init_reflector_without_associated_memory(obj.get());
+            promise.1.init(cx, obj);
+        }
+        RootedPromise(promise)
     }
 
     #[expect(unsafe_code)]
@@ -219,50 +335,73 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn new_resolved(
+    fn new_resolved_shared<F, T>(
         cx: &mut JSContext,
         global: &GlobalScope,
         value: impl ToJSValConvertible,
-    ) -> Rc<Promise> {
+        constructor: F,
+    ) -> T
+    where
+        F: for<'a, 'b> Fn(&'a JSContext, HandleObject<'b>) -> T,
+    {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut rval = UndefinedValue());
         value.to_jsval(cx, rval.handle_mut());
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseResolve(cx, rval.handle()) });
         assert!(!p.handle().is_null());
-        Promise::new_with_js_promise(cx, p.handle())
+        constructor(cx, p.handle())
     }
 
+    /// Create a new [Promise] associated with the provided global,
+    /// resolved with the provided value.
+    ///
+    /// **Deprecated:** Use [Promise::new_resolved_rooted] instead.
+    pub(crate) fn new_resolved(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        value: impl ToJSValConvertible,
+    ) -> Rc<Promise> {
+        Self::new_resolved_shared(cx, global, value, Promise::new_with_js_promise)
+    }
+
+    /// Create a new [RootedPromise] associated with the provided global,
+    /// resolved with the provided value.
     pub(crate) fn new_resolved_rooted(
         cx: &mut JSContext,
         global: &GlobalScope,
         value: impl ToJSValConvertible,
     ) -> RootedPromise {
-        RootedPromise(Self::new_resolved(cx, global, value))
+        Self::new_resolved_shared(cx, global, value, Promise::new_with_js_promise_rooted)
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn new_rejected(
+    fn new_rejected_shared<F, T>(
         cx: &mut JSContext,
         global: &GlobalScope,
         value: impl ToJSValConvertible,
-    ) -> Rc<Promise> {
+        constructor: F,
+    ) -> T
+    where
+        F: for<'a, 'b> Fn(&'a JSContext, HandleObject<'b>) -> T,
+    {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut rval = UndefinedValue());
         value.to_jsval(cx, rval.handle_mut());
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseReject(cx, rval.handle()) });
         assert!(!p.handle().is_null());
-        Promise::new_with_js_promise(cx, p.handle())
+        constructor(cx, p.handle())
     }
 
-    #[expect(dead_code)]
+    /// Create a new [RootedPromise] associated with the provided global,
+    /// rejected with the provided value.
     pub(crate) fn new_rejected_rooted(
         cx: &mut JSContext,
         global: &GlobalScope,
         value: impl ToJSValConvertible,
     ) -> RootedPromise {
-        RootedPromise(Self::new_rejected(cx, global, value))
+        Self::new_rejected_shared(cx, global, value, Promise::new_with_js_promise_rooted)
     }
 
     pub(crate) fn resolve_native<T>(&self, cx: &mut JSContext, val: &T)
@@ -699,11 +838,18 @@ pub(crate) fn wait_for_all_promise(
     promise
 }
 
-impl script_bindings::interfaces::PromiseHelpers<crate::DomTypeHolder> for Promise {
+impl PromiseHelpers<crate::DomTypeHolder> for Promise {
+    type StackRoot = RootedPromise;
+    type HeapTraced = TracedPromise;
+
     fn new_in_realm(
         cx: &mut CurrentRealm,
     ) -> Rc<<crate::DomTypeHolder as script_bindings::DomTypes>::Promise> {
         Promise::new_in_realm(cx)
+    }
+
+    fn new_in_realm_rooted(cx: &mut CurrentRealm) -> RootedPromise {
+        Promise::new_in_realm_rooted(cx)
     }
 
     fn reject_error(&self, cx: &mut js::context::JSContext, error: script_bindings::error::Error) {

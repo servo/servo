@@ -1,0 +1,15 @@
+import json
+
+def main(request, response):
+  response.headers.set(b"Content-Type", b"application/json")
+  response.headers.set(b"Access-Control-Allow-Origin", b"*")
+
+  port = request.server.config.ports["https"][0]
+  hostname = request.url_parts.hostname
+  base_url = f"https://{hostname}:{port}"
+
+  return json.dumps({
+    "issuance_endpoint": f"{base_url}/fedcm/support/delegation-issuance.py",
+    "jwks_uri": f"{base_url}/fedcm/support/delegation-jwks.py",
+    "signing_alg_values_supported": ["EdDSA", "ES256", "RS256"]
+  })

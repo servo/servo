@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<body>
+<div id="target1"></div>
+<div id="target2"></div>
+<script>
+onload = async () => {
+  // Case 1: Disconnected element starts transition, then appended to new document.
+  const v1 = document.createElement("input");
+  const t1 = v1.startViewTransition();
+  const doc1 = new Document();
+  doc1.appendChild(v1);
+
+  // Case 2: Connected element starts transition, then appended to new document.
+  const t2 = target1.startViewTransition();
+  const doc2 = new Document();
+  doc2.appendChild(target1);
+
+  // Case 3: Connected element starts transition, then removed.
+  const t3 = target2.startViewTransition();
+  target2.remove();
+
+  try { await t1.finished; } catch (e) {}
+  try { await t2.finished; } catch (e) {}
+  try { await t3.finished; } catch (e) {}
+
+  document.documentElement.classList.remove("test-wait");
+};
+</script>
+</body>
+</html>

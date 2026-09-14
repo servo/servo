@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<title>Canvas paint events should fire in reverse tree order across iframes</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<canvas id="outer" width="300" height="300" layoutsubtree>
+  <div drawable style="width: 300px; height: 300px;">
+    <canvas id="inner" width="200" height="200" layoutsubtree>
+      <div drawable style="width: 200px; height: 200px;">
+        <iframe id="innerFrame" style="width: 100px; height: 100px;" srcdoc="<!doctype html>
+          <canvas id='iframeCanvas' width='50' height='50' layoutsubtree>
+            <div id='target' drawable style='width: 50px; height: 50px;'></div>
+          </canvas>"></iframe>
+      </div>
+    </canvas>
+  </div>
+</canvas>
+
+<script>
+  'use strict';
+
+  async function waitForLoad() {
+    if (document.readyState === 'complete') return;
+    await new Promise(resolve => window.addEventListener('load', resolve));
+  }
+
+  function waitForPaint(canvas) {
+    return new Promise(resolve => {
+      canvas.addEventListener('paint', resolve, {once: true});
+      canvas.requestPaint();
+    });
+  }
+
+  promise_test(async t => {
+    await waitForLoad();
+
+    const iframeCanvas = innerFrame.contentDocument.getElementById('iframeCanvas');
+    let paint_order = [];
+
+    iframeCanvas.addEventListener('paint', () => paint_order.push('iframeCanvas'));
+    inner.addEventListener('paint', () => paint_order.push('inner'));
+    outer.addEventListener('paint', () => paint_order.push('outer'));
+
+    await Promise.all([
+      waitForPaint(iframeCanvas),
+      waitForPaint(inner),
+      waitForPaint(outer),
+    ]);
+
+    assert_array_equals(
+        paint_order,
+        ['iframeCanvas', 'inner', 'outer'],
+        'Paint events should fire in reverse tree order across frames');
+  }, 'Paint events fire in reverse tree order across frames');
+
+  promise_test(async t => {
+    await waitForLoad();
+
+    const iframeCanvas = innerFrame.contentDocument.getElementById('iframeCanvas');
+    const iframeDiv = innerFrame.contentDocument.getElementById('target');
+    let paint_order = [];
+
+    iframeCanvas.onpaint = () => {
+      paint_order.push('iframeCanvas');
+      const ctx = iframeCanvas.getContext('2d');
+      ctx.reset();
+      ctx.drawElementImage(iframeCanvas.firstElementChild, 0, 0);
+    };
+    inner.onpaint = () => {
+      paint_order.push('inner');
+      const ctx = inner.getContext('2d');
+      ctx.reset();
+      ctx.drawElementImage(inner.firstElementChild, 0, 0);
+    };
+    outer.onpaint = () => {
+      paint_order.push('outer');
+      const ctx = outer.getContext('2d');
+      ctx.reset();
+      ctx.drawElementImage(outer.firstElementChild, 0, 0);
+    };
+
+    // Draw initial content.
+    await Promise.all([
+      waitForPaint(iframeCanvas),
+      waitForPaint(inner),
+      waitForPaint(outer),
+    ]);
+
+    paint_order = [];
+
+    // Trigger change in iframe canvas content.
+    iframeDiv.style.background = 'pink';
+
+    await Promise.all([
+      new Promise(resolve => iframeCanvas.addEventListener('paint', resolve, {once: true})),
+      new Promise(resolve => inner.addEventListener('paint', resolve, {once: true})),
+      new Promise(resolve => outer.addEventListener('paint', resolve, {once: true})),
+    ]);
+
+    assert_array_equals(
+        paint_order,
+        ['iframeCanvas', 'inner', 'outer'],
+        'Paint events should fire in reverse tree order across frames when invalidated');
+  }, 'Paint events fire in reverse tree order across frames on content invalidation');
+</script>

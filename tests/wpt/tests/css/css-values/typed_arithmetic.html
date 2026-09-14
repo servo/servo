@@ -10,11 +10,16 @@
 :root {
   font-size: 10px;
 }
+#parent {
+  container: my-container / inline-size;
+  width: 100px;
+  line-height: 20px;
+}
 #target {
   font-size: 10px;
 }
 </style>
-<div style="width: 100px; container: my-container / inline-size;">
+<div id="parent">
   <div id="target"></div>
 </div>
 <script>
@@ -58,8 +63,15 @@ test_math_used("calc(10% * 10% / 1px * 1deg / 1deg)", "1px", {"prop": "line-heig
 test_math_used("calc(1px * 2deg / 1deg)", "2px", {"prop": "line-height"});
 // 1px * 3deg / 1deg / 1px -> 3.
 test_math_used("calc(1px * 3deg / 1deg / 1px)", "3", {"prop": "line-height"});
+// 1lh -> 20px; 20px / 1px -> 20
+// (lh unit in the line-height property uses the inherited value)
+test_math_used("calc(1lh / 1px)", "20", {"prop": "line-height"});
 // 50% -> 50px; 1px * (50px / 1px)^1 -> 50px
 test_math_used("calc(1px * pow(50% / 1px, 1))", "50px", {"prop": "width"});
+
+// https://github.com/w3c/csswg-drafts/issues/14300
+test_math_used("calc(10% / 20%)", "0.5", {"prop": "opacity"});
+test_invalid_value("z-index", "calc(10% / 20%)");
 
 test_invalid_value("width", "calc((1% * 1deg) / 1px)");
 test_invalid_value("width", "calc((1% * 1% * 1%) / 1px)");
@@ -78,6 +90,4 @@ test_math_used("calc(20cqw / 1rem)", "2", {"prop": "z-index"});
 
 testComputedValueGreaterOrLowerThan("animation-duration", "calc(2s / (10s - 10s) * 1s)", REALLY_LARGE);
 testTransformValuesCloseTo("rotate(calc((40em - 40px) / 1px * 1deg - 0.5turn))", 0.0001, "rotate(180deg)", "subtraction of angle unit: deg minus turn");
-test_invalid_value("width", "calc(1px * 1px" + " * 2".repeat(200) + ")");
-test_invalid_value("width", "calc(1px + 1em" + " + 1em".repeat(200) + ")");
 </script>

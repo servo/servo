@@ -44,18 +44,19 @@ interface LanguageModel : EventTarget {
   // **DEPRECATED**: This attribute is only available in extension contexts.
   attribute EventHandler onquotaoverflow;
 
-  // **EXPERIMENTAL**: Only available in extension and experimental contexts.
+  // **DEPRECATED**: This attribute is only available in extension contexts.
   readonly attribute unsigned long topK;
-  // **EXPERIMENTAL**: Only available in extension and experimental contexts.
+  // **DEPRECATED**: This attribute is only available in extension contexts.
   readonly attribute float temperature;
 
+  // **EXPERIMENTAL**: Only available in experimental contexts.
   readonly attribute LanguageModelSamplingMode samplingMode;
 
   Promise<LanguageModel> clone(optional LanguageModelCloneOptions options = {});
 };
 LanguageModel includes DestroyableModel;
 
-// **EXPERIMENTAL**: Only available in extension and experimental contexts.
+// **DEPRECATED**: Only available in extension contexts.
 [Exposed=Window, SecureContext]
 interface LanguageModelParams {
   readonly attribute unsigned long defaultTopK;
@@ -79,15 +80,20 @@ dictionary LanguageModelTool {
 dictionary LanguageModelCreateCoreOptions {
   // Note: these two have custom out-of-range handling behavior, not in the IDL layer.
   // They are unrestricted double so as to allow +Infinity without failing.
-  // **EXPERIMENTAL**: Only available in extension and experimental contexts.
+  // **DEPRECATED**: Only available in extension contexts.
   unrestricted double topK;
-  // **EXPERIMENTAL**: Only available in extension and experimental contexts.
+  // **DEPRECATED**: Only available in extension contexts.
   unrestricted double temperature;
 
-  LanguageModelSamplingMode samplingMode = "default";
+  // **EXPERIMENTAL**: Only available in experimental contexts.
+  LanguageModelSamplingMode samplingMode;
 
+  // The expected types and languages for the session.
   sequence<LanguageModelExpected> expectedInputs;
   sequence<LanguageModelExpected> expectedOutputs;
+
+  // Tools that the language model can use.
+  // **EXPERIMENTAL**: Only available in experimental contexts.
   sequence<LanguageModelTool> tools;
 };
 
@@ -139,7 +145,7 @@ dictionary LanguageModelMessageContent {
   required LanguageModelMessageValue value;
 };
 
-enum LanguageModelSamplingMode { "most-predictable", "predictable", "balanced", "creative", "most-creative" };
+enum LanguageModelSamplingMode { "most-predictable", "predictable", "slightly-predictable", "balanced", "slightly-creative", "creative", "most-creative" };
 
 enum LanguageModelMessageRole { "system", "user", "assistant" };
 

@@ -27,6 +27,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_config::prefs;
 use servo_constellation_traits::BlobImpl;
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -169,7 +170,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn SetStringAttribute(&self, _: DOMString) {}
     fn UsvstringAttribute(&self) -> USVString {
-        USVString("".to_owned())
+        USVString(String::new())
     }
     fn SetUsvstringAttribute(&self, _: USVString) {}
     fn ByteStringAttribute(&self) -> ByteString {
@@ -184,7 +185,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Blob::new(
             cx,
             &self.global(),
-            BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            BlobImpl::new_from_bytes(vec![], String::new()),
         )
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
@@ -197,7 +198,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn SetUnion2Attribute(&self, _: EventOrString) {}
     fn Union3Attribute(&self) -> EventOrUSVString {
-        EventOrUSVString::USVString(USVString("".to_owned()))
+        EventOrUSVString::USVString(USVString(String::new()))
     }
     fn SetUnion3Attribute(&self, _: EventOrUSVString) {}
     fn Union4Attribute(&self) -> StringOrUnsignedLong {
@@ -300,7 +301,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
     fn GetUsvstringAttributeNullable(&self) -> Option<USVString> {
-        Some(USVString("".to_owned()))
+        Some(USVString(String::new()))
     }
     fn SetUsvstringAttributeNullable(&self, _: Option<USVString>) {}
     fn SetBinaryRenamedAttribute(&self, _: DOMString) {}
@@ -325,7 +326,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Some(Blob::new(
             cx,
             &self.global(),
-            BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            BlobImpl::new_from_bytes(vec![], String::new()),
         ))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
@@ -408,7 +409,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         DOMString::new()
     }
     fn ReceiveUsvstring(&self) -> USVString {
-        USVString("".to_owned())
+        USVString(String::new())
     }
     fn ReceiveByteString(&self) -> ByteString {
         ByteString::new(vec![])
@@ -420,7 +421,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Blob::new(
             cx,
             &self.global(),
-            BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            BlobImpl::new_from_bytes(vec![], String::new()),
         )
     }
     fn ReceiveAny(&self, _: MutableHandleValue) {}
@@ -467,7 +468,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         vec![Blob::new(
             cx,
             &self.global(),
-            BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            BlobImpl::new_from_bytes(vec![], String::new()),
         )]
     }
     fn ReceiveUnionIdentity(&self, arg: UnionTypes::StringOrObject) -> UnionTypes::StringOrObject {
@@ -517,7 +518,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Some(DOMString::new())
     }
     fn ReceiveNullableUsvstring(&self) -> Option<USVString> {
-        Some(USVString("".to_owned()))
+        Some(USVString(String::new()))
     }
     fn ReceiveNullableByteString(&self) -> Option<ByteString> {
         Some(ByteString::new(vec![]))
@@ -529,7 +530,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Some(Blob::new(
             cx,
             &self.global(),
-            BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            BlobImpl::new_from_bytes(vec![], String::new()),
         ))
     }
     fn ReceiveNullableObject(&self, return_value: MutableHandleObject) {
@@ -612,7 +613,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
                 unsignedLongLongValue: 0,
                 unsignedLongValue: 0,
                 unsignedShortValue: 0,
-                usvstringValue: USVString("".to_owned()),
+                usvstringValue: USVString(String::new()),
             }),
             doubleValue: None,
             enumValue: None,
@@ -705,7 +706,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOverloaded_(&self, _: DOMString) {}
 
     fn PassOverloadedDict(&self, _: &Node) -> DOMString {
-        "node".into()
+        DOMString::from_static("node")
     }
 
     fn PassOverloadedDict_(&self, u: &TestURLLike) -> DOMString {
@@ -713,40 +714,40 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn PassOverloadedUnionOfObjectAndString(&self, _: ObjectOrString) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfObjectAndString_(&self, _: bool) -> DOMString {
-        "boolean".into()
+        DOMString::from_static("boolean")
     }
     fn PassOverloadedUnionOfObjectAndNumber(&self, _: ObjectOrLong) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfObjectAndNumber_(&self, _: bool) -> DOMString {
-        "boolean".into()
+        DOMString::from_static("boolean")
     }
     fn PassOverloadedUnionOfObjectAndBoolean(&self, _: ObjectOrBoolean) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfObjectAndBoolean_(&self, _: i32) -> DOMString {
-        "number".into()
+        DOMString::from_static("number")
     }
     fn PassOverloadedUnionOfStringAndNumber(&self, _: StringOrLong) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfStringAndNumber_(&self, _: bool) -> DOMString {
-        "boolean".into()
+        DOMString::from_static("boolean")
     }
     fn PassOverloadedUnionOfStringAndBoolean(&self, _: StringOrBoolean) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfStringAndBoolean_(&self, _: i32) -> DOMString {
-        "number".into()
+        DOMString::from_static("number")
     }
     fn PassOverloadedUnionOfNumberAndBoolean(&self, _: LongOrBoolean) -> DOMString {
-        "union".into()
+        DOMString::from_static("union")
     }
     fn PassOverloadedUnionOfNumberAndBoolean_(&self, _: DOMString) -> DOMString {
-        "string".into()
+        DOMString::from_static("string")
     }
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}
@@ -1018,12 +1019,12 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Record::new()
     }
 
-    fn ReturnResolvedPromise(&self, cx: &mut JSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_resolved(cx, &self.global(), v)
+    fn ReturnResolvedPromise(&self, cx: &mut JSContext, v: HandleValue) -> RootedPromise {
+        Promise::new_resolved_rooted(cx, &self.global(), v)
     }
 
-    fn ReturnRejectedPromise(&self, cx: &mut JSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_rejected(cx, &self.global(), v)
+    fn ReturnRejectedPromise(&self, cx: &mut JSContext, v: HandleValue) -> RootedPromise {
+        Promise::new_rejected_rooted(cx, &self.global(), v)
     }
 
     fn PromiseResolveNative(&self, cx: &mut JSContext, p: &Promise, v: HandleValue) {
@@ -1041,7 +1042,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ResolvePromiseDelayed(&self, cx: &mut JSContext, p: &Promise, value: DOMString, delay: u64) {
         let promise = p.duplicate(cx);
         let cb = TestBindingCallback {
-            promise: TrustedPromise::from(promise),
+            promise: TrustedPromise::from(&promise),
             value,
         };
         let _ = self.global().schedule_callback(
@@ -1055,7 +1056,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         realm: &mut CurrentRealm,
         resolve: Option<Rc<SimpleCallback>>,
         reject: Option<Rc<SimpleCallback>>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
             realm,
@@ -1064,7 +1065,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             reject.map(SimpleHandler::new_boxed),
         );
 
-        let p = Promise::new_in_realm(realm);
+        let p = Promise::new_in_realm_rooted(realm);
         p.append_native_handler(realm, &handler);
         return p;
 
@@ -1088,8 +1089,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
     }
 
-    fn PromiseAttribute(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        Promise::new_in_realm(cx)
+    fn PromiseAttribute(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        Promise::new_in_realm_rooted(cx)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}
@@ -1135,23 +1136,23 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
     }
 
-    fn MethodThrowToRejectPromise(&self) -> Fallible<Rc<Promise>> {
+    fn MethodThrowToRejectPromise(&self) -> Fallible<RootedPromise> {
         Err(Error::Type(c"test".to_owned()))
     }
 
-    fn GetGetterThrowToRejectPromise(&self) -> Fallible<Rc<Promise>> {
+    fn GetGetterThrowToRejectPromise(&self) -> Fallible<RootedPromise> {
         Err(Error::Type(c"test".to_owned()))
     }
 
-    fn MethodInternalThrowToRejectPromise(&self, _arg: u64) -> Rc<Promise> {
+    fn MethodInternalThrowToRejectPromise(&self, _arg: u64) -> RootedPromise {
         unreachable!("Method should already throw")
     }
 
-    fn StaticThrowToRejectPromise(_: &GlobalScope) -> Fallible<Rc<Promise>> {
+    fn StaticThrowToRejectPromise(_: &GlobalScope) -> Fallible<RootedPromise> {
         Err(Error::Type(c"test".to_owned()))
     }
 
-    fn StaticInternalThrowToRejectPromise(_: &GlobalScope, _arg: u64) -> Rc<Promise> {
+    fn StaticInternalThrowToRejectPromise(_: &GlobalScope, _arg: u64) -> RootedPromise {
         unreachable!("Method should already throw")
     }
 
@@ -1196,7 +1197,7 @@ pub(crate) struct TestBindingCallback {
 
 impl TestBindingCallback {
     pub(crate) fn invoke(self, cx: &mut JSContext) {
-        self.promise.root().resolve_native(cx, &self.value);
+        self.promise.root(cx).resolve_native(cx, &self.value);
     }
 }
 

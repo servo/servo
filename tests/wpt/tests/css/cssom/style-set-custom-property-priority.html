@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting priority for custom property</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty">
+<link rel="help" href="https://drafts.csswg.org/css-variables-1/#custom-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/cssstyle/issues/225 -->
+
+<style>
+:root {
+  --foo: green !important;
+  --foo: red;
+}
+</style>
+<div id="parentDiv">
+  <div id="div" class="div"></div>
+</div>
+<script>
+"use strict";
+
+const parentDiv = document.getElementById("parentDiv");
+const div = document.getElementById("div");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.color = null;
+  });
+  div.style.color = "var(--foo)";
+  assert_equals(
+    window.getComputedStyle(document.documentElement).getPropertyPriority("--foo"),
+    "",
+    "Priority of --foo in document.documentElement is empty"
+  );
+  assert_equals(window.getComputedStyle(div).getPropertyPriority("--foo"), "", "Priority of --foo in div is empty");
+  // Firefox fails, it gets "green "
+  assert_equals(window.getComputedStyle(div).getPropertyValue("--foo"), "green", "Value is green");
+  assert_equals(window.getComputedStyle(div).color, "rgb(0, 128, 0)", "Computed color is rgb(0, 128, 0)");
+}, "Sanity check");
+
+test(t => {
+  t.add_cleanup(() => {
+    parentDiv.style.removeProperty("--foo");
+    div.style.color = null;
+  });
+  parentDiv.style.setProperty("--foo", "blue");
+  div.style.color = "var(--foo)";
+  assert_equals(window.getComputedStyle(div).getPropertyPriority("--foo"), "", "Priority is empty");
+  assert_equals(window.getComputedStyle(div).getPropertyValue("--foo"), "blue", "Value is blue");
+  assert_equals(window.getComputedStyle(div).color, "rgb(0, 0, 255)", "Computed color is rgb(0, 0, 255)");
+}, "Set custom property to parent");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.removeProperty("--foo");
+    div.style.color = null;
+  });
+  div.style.setProperty("--foo", "purple", "important");
+  div.style.color = "var(--foo)";
+  assert_equals(div.style.getPropertyPriority("--foo"), "important", "Priority of specified value is impotant");
+  assert_equals(window.getComputedStyle(div).getPropertyPriority("--foo"), "", "Priority of computed value is empty");
+  assert_equals(window.getComputedStyle(div).getPropertyValue("--foo"), "purple", "Value is purple");
+  assert_equals(window.getComputedStyle(div).color, "rgb(128, 0, 128)", "Computed color is rgb(128, 0, 128)");
+}, "Set custom property with priority to self");
+</script>

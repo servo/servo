@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>querySelector on multi-level query selecting</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/#3928 -->
+
+<div>
+  <span id="span1">Actions</span>
+  <ul>
+    <li>
+      <a href="/">
+        <span id="span2">Link</span>
+      </a>
+    </li>
+  </ul>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const target = document.getElementById("span2");
+  const anchor = document.querySelector("a");
+  const span = anchor.querySelector("span");
+  assert_equals(span, target);
+});
+</script>

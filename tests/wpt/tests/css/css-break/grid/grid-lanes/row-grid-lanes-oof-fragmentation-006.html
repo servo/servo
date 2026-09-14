@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>
+  Row grid-lanes OOF static position with forced row break.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns: 2; height: 100px; width: 100px; column-gap: 0; column-fill: auto; background: red;">
+  <div style="position: relative; display: grid-lanes; grid-template-rows: 50px 100px; height: 200px; width: 50px;">
+    <div style="position: absolute; background: green; width: 50px; height: 100px;"></div>
+    <div style="grid-row: 2; break-before: column; height: 50px; background: green;"></div>
+    <div style="grid-row: 2; position: absolute; width: 50px; height: 50px; background: green; align-self: end;"></div>
+  </div>
+</div>

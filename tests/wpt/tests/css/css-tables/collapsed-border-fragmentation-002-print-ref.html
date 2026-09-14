@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Collapsed borders in the block direction restart below a repeated header</title>
+<style>
+@page {
+  size: 5in 3in;
+  margin: 0.5in;
+}
+
+:root {
+  print-color-adjust: exact;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: white;
+}
+
+p {
+  margin: 0 0 12px;
+  height: 36px;
+  font: 12px/1.5 sans-serif;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 0;
+}
+
+th, td {
+  width: 100px;
+  height: 50px;
+  padding: 0;
+  border: none;
+}
+
+th {
+  height: 30px;
+}
+
+td + td {
+  border-inline-start: 8px solid black;
+}
+</style>
+<table>
+  <thead>
+    <tr><th></th><th></th></tr>
+  </thead>
+  <tbody>
+    <tr><td></td><td></td></tr>
+    <tr><td></td><td></td></tr>
+    <tr><td></td><td></td></tr>
+  </tbody>
+</table>

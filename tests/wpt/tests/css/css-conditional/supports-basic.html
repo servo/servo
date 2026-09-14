@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Basic @supports rule parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-3/#at-supports">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/2026 -->
+
+<style>
+  @supports (text-decoration-style: solid) {
+    ul.toc a:hover, ul.toc a:focus {
+    }
+  }
+</style>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_equals(document.styleSheets.length, 1, "Stylesheet should be parsed");
+  assert_equals(document.styleSheets[0].cssRules.length, 1, "Stylesheet should have one rule");
+
+  const rule = document.styleSheets[0].cssRules[0];
+  assert_equals(rule.constructor.name, "CSSSupportsRule");
+  assert_equals(rule.conditionText, "(text-decoration-style: solid)");
+}, "@supports rule should parse correctly");
+</script>

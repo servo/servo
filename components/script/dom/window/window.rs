@@ -47,7 +47,7 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType, HitTestFlags, Layout,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType, HitTestFlags, LCPCandidate, Layout,
     LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
     PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
     ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
@@ -62,7 +62,6 @@ use net_traits::image_cache::{
 use net_traits::request::{Origin, Referrer, RequestClient};
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
-use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
@@ -174,7 +173,7 @@ use crate::dom::navigator::Navigator;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
 use crate::dom::performance::performance::Performance;
 use crate::dom::performanceresourcetiming::InitiatorType;
-use crate::dom::promise::Promise;
+use crate::dom::promise::RootedPromise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::selection::Selection;
@@ -203,7 +202,7 @@ use crate::fetch::fetch;
 use crate::fetch::network_listener::{ResourceTimingListener, submit_timing};
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::UserMicrotask;
+use crate::runtime::job_queue::UserMicrotask;
 use crate::runtime::script_runtime::Runtime;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::SendableTaskSource;
@@ -1721,7 +1720,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         realm: &mut CurrentRealm,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
             image,
@@ -1732,6 +1731,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             options,
             realm,
         )
+        .duplicate(realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -1744,7 +1744,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         sw: i32,
         sh: i32,
         options: &ImageBitmapOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
             image,
@@ -1755,6 +1755,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             options,
             realm,
         )
+        .duplicate(realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window>
@@ -2235,7 +2236,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         realm: &mut CurrentRealm,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         fetch::Fetch(self.upcast(), input, init, realm)
     }
 
@@ -2256,9 +2257,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     fn RunningAnimationCount(&self) -> u32 {
-        self.document
-            .get()
-            .map_or(0, |d| d.animations().running_animation_count() as u32)
+        self.document.get().map_or(0, |document| {
+            document.animation_manager().running_animation_count() as u32
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-name>
@@ -2272,7 +2273,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn Name(&self) -> DOMString {
         match self.undiscarded_window_proxy() {
             Some(proxy) => proxy.get_name(),
-            None => "".into(),
+            None => DOMString::new(),
         }
     }
 
@@ -2731,8 +2732,8 @@ impl Window {
             origin: self.origin().immutable().clone(),
             reflow_goal,
             animation_timeline_value: document.current_animation_timeline_value(),
-            animations: document.animations().sets.clone(),
-            animating_images: document.image_animation_manager().animating_images(),
+            animations: document.animation_manager().sets(),
+            animating_images: document.animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
             halt_lcp: self.has_dispatched_scroll_event.get() ||
                 self.has_dispatched_input_event.get(),
@@ -2759,10 +2760,8 @@ impl Window {
             reflow_result.pending_svg_elements_for_serialization,
         );
 
-        if let Some(candidate) = &reflow_result.lcp_candidate &&
-            let Some(node_address) = reflow_result.lcp_node_address
-        {
-            self.process_lcp_candidate_post_reflow(candidate, node_address, &document);
+        if let Some(candidate) = reflow_result.lcp_candidate {
+            self.process_lcp_candidate_post_reflow(candidate, &document);
         }
 
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
@@ -2960,7 +2959,7 @@ impl Window {
         self.layout_reflow(QueryMsg::ResolvedFontStyleQuery);
 
         let document = self.Document();
-        let animations = document.animations().sets.clone();
+        let animations = document.animation_manager().sets();
         self.layout.borrow().query_resolved_font_style(
             node.to_trusted_node_address(),
             &value,
@@ -3129,7 +3128,7 @@ impl Window {
         self.layout_reflow(QueryMsg::ResolvedStyleQuery(property.clone()));
 
         let document = self.Document();
-        let animations = document.animations().sets.clone();
+        let animations = document.animation_manager().sets();
         DOMString::from(self.layout.borrow().query_resolved_style(
             element,
             pseudo,
@@ -3737,15 +3736,14 @@ impl Window {
 
     /// Resolve the LCP candidate OpaqueNode to a DOM Element and store it on the document.
     #[expect(unsafe_code)]
-    fn process_lcp_candidate_post_reflow(
-        &self,
-        candidate: &LCPCandidate,
-        node_address: UntrustedNodeAddress,
-        document: &Document,
-    ) {
+    fn process_lcp_candidate_post_reflow(&self, candidate: LCPCandidate, document: &Document) {
+        let Some(node) = candidate.node else {
+            return;
+        };
+        let node_address = UntrustedNodeAddress(node.id() as *const c_void);
         let node = unsafe { from_untrusted_node_address(node_address) };
         if let Some(element) = DomRoot::downcast::<Element>(node) {
-            document.store_lcp_candidate(candidate.id, &element);
+            document.store_lcp_candidate(candidate, &element);
         }
     }
 

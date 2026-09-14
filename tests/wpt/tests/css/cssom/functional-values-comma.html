@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Functional values comma spacing</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#serializing-css-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="target"></div>
+<script>
+"use strict";
+
+const target = document.getElementById("target");
+
+function test_serialization(property, input, expected, description) {
+  test(() => {
+    target.style = "";
+    target.style[property] = input;
+    assert_equals(target.style.getPropertyValue(property), expected);
+  }, description);
+}
+
+test_serialization(
+  "color",
+  "rgb(255,255,255)",
+  "rgb(255, 255, 255)",
+  "rgb(): commas should be followed by a single space"
+);
+
+test_serialization(
+  "color",
+  "rgba(0,0,0,0.5)",
+  "rgba(0, 0, 0, 0.5)",
+  "rgba(): commas should be followed by a single space"
+);
+
+test_serialization(
+  "color",
+  "rgb(255, 255, 255)",
+  "rgb(255, 255, 255)",
+  "rgb(): already spaced input should remain correctly spaced"
+);
+
+test_serialization(
+  "padding",
+  "clamp(10px,20%,3em)",
+  "clamp(10px, 20%, 3em)",
+  "clamp(): commas should be followed by a single space"
+);
+
+test_serialization(
+  "width",
+  "min(50%,100px)",
+  "min(50%, 100px)",
+  "min(): commas should be followed by a single space"
+);
+
+test_serialization(
+  "width",
+  "min(50%,  100px)",
+  "min(50%, 100px)",
+  "min(): multiple spaces should be collapsed to a single space"
+);
+
+test_serialization(
+  "background-image",
+  "linear-gradient(to right,red,blue)",
+  "linear-gradient(to right, red, blue)",
+  "linear-gradient(): commas should be followed by a single space"
+);
+</script>

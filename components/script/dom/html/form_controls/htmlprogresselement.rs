@@ -84,7 +84,7 @@ impl HTMLProgressElement {
         );
 
         // FIXME: This should use ::-moz-progress-bar
-        progress_bar.SetId(cx, "-servo-progress-bar".into());
+        progress_bar.SetId(cx, DOMString::from_static("-servo-progress-bar"));
         root.upcast::<Node>()
             .AppendChild(cx, progress_bar.upcast::<Node>())
             .unwrap();

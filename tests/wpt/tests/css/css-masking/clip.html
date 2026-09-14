@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Deprecated clip property</title>
+<link rel="help" href="https://drafts.csswg.org/css-masking-1/#clip-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/cssstyle/issues/256 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("clip", "auto");
+  assert_equals(div.style.getPropertyValue("clip"), "auto");
+}, "auto keyword");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("clip", "rect(1px, 2px, 3px, 4px)");
+  assert_equals(div.style.getPropertyValue("clip"), "rect(1px, 2px, 3px, 4px)");
+}, "rect() length");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("clip", "rect(-1px, -2px, -3px, -4px)");
+  assert_equals(div.style.getPropertyValue("clip"), "rect(-1px, -2px, -3px, -4px)");
+}, "rect() negative length");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("clip", "rect(1%, 2%, 3%, 4%)");
+  assert_equals(div.style.getPropertyValue("clip"), "");
+}, "rect() percentage");
+</script>

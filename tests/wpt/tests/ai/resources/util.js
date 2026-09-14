@@ -109,13 +109,15 @@ async function testAbortPromise(t, method) {
   }
 };
 
-async function testCreateMonitorWithAbortAt(
-    t, loadedToAbortAt, method, options = {}) {
+async function testCreateMonitorWithAbortAt(t, eventIndexToAbortAt, method,
+                                            options = {}) {
   const {promise: eventPromise, resolve} = Promise.withResolvers();
   let hadEvent = false;
+  let eventCount = 0;
   function monitor(m) {
     m.addEventListener('downloadprogress', e => {
-      if (e.loaded != loadedToAbortAt) {
+      if (eventCount !== eventIndexToAbortAt) {
+        eventCount++;
         return;
       }
 
@@ -144,7 +146,6 @@ async function testCreateMonitorWithAbortAt(
 
 async function testCreateMonitorWithAbort(t, method, options = {}) {
   await testCreateMonitorWithAbortAt(t, 0, method, options);
-  await testCreateMonitorWithAbortAt(t, 1, method, options);
 }
 
 // The method should take the AbortSignal as an option and return a
@@ -284,6 +285,12 @@ async function createEmbedder(options = {}) {
 }
 
 async function createProofreader(options = {}) {
+  if (!options.monitor) {
+    const availability = await Proofreader.availability(options);
+    assert_implements_optional(
+        availability !== 'unavailable',
+        'Proofreader is not available for the given options');
+  }
   await test_driver.bless();
   return await Proofreader.create(options);
 }

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>form element pointer inside template contents</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inbody">
+<link rel="help" href="https://github.com/whatwg/html/issues/12257">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<script>
+
+// The form element pointer makes a form control associate with a form even when
+// the control does not end up as a descendant of it, which is only observable
+// with badly nested markup such as the markup below. It is deliberately not
+// used inside template contents, so the same markup there leaves the control
+// with no form owner. The tree is identical either way; only the form owner
+// differs. Association by ancestry is unaffected and is tested elsewhere.
+
+const MARKUP = "<div><form></div><input></form>";
+
+function parseDocument(t, markup) {
+  let iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  let doc = iframe.contentDocument;
+  doc.open();
+  doc.write(markup);
+  doc.close();
+  return doc;
+}
+
+test((t) => {
+  let doc = parseDocument(t, MARKUP);
+  let input = doc.querySelector("input");
+  let form = doc.querySelector("form");
+  assert_equals(input.closest("form"), null, "setup: <input> is not a descendant of the <form>");
+  assert_equals(input.form, form, "the parser associates the <input> with the <form>");
+}, "form element pointer outside a template");
+
+test((t) => {
+  let doc = parseDocument(t, `<template>${MARKUP}</template>`);
+  let content = doc.querySelector("template").content;
+  let input = content.querySelector("input");
+  assert_equals(content.querySelectorAll("form").length, 1, "setup: the <form> is still in the tree");
+  assert_equals(input.closest("form"), null, "setup: <input> is not a descendant of the <form>");
+  assert_equals(input.form, null, "the form element pointer is not used inside template contents");
+}, "form element pointer inside template contents");
+
+test((t) => {
+  // A form outside the template must not be picked up inside its contents, and
+  // must not cause the <form> inside the contents to be dropped either.
+  let doc = parseDocument(t, `<form id=outer><template>${MARKUP}</template></form>`);
+  let content = doc.querySelector("template").content;
+  let input = content.querySelector("input");
+  assert_equals(content.querySelectorAll("form").length, 1, "the <form> inside the template is not dropped by the <form> outside it");
+  assert_equals(input.form, null, "the <input> does not associate with the <form> outside the template");
+}, "form element pointer outside a template is not used inside its contents");
+
+</script>

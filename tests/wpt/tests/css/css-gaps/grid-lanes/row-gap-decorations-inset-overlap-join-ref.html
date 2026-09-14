@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(2, 80px);
+    grid-lanes-direction: row;
+    gap: 20px;
+    width: max-content;
+    background: #cdd5e0;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-row: 1; width: 60px; }
+  .b { grid-row: 2; width: 60px; }
+  .span { grid-row: 1 / -1; width: 60px; background: #8a6df0; }
+  .row-rule { position: absolute; height: 0; border-top: 8px solid blue; }
+  .col-rule { position: absolute; width: 0; border-left: 12px solid gold; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="span"></div>
+</div>
+<div class="col-rule" style="left: 64px; top: 0; height: 94px;"></div>
+<div class="col-rule" style="left: 64px; top: 86px; height: 94px;"></div>
+<div class="row-rule" style="left: 0; top: 86px; width: 76px;"></div>

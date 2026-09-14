@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Range geometry for sub-ranges of scaled SVG text</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-range-getboundingclientrect">
+<link rel="help" href="https://svgwg.org/svg2-draft/text.html#__svg__SVGTextContentElement__getEndPositionOfChar">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  svg { overflow: visible; }
+</style>
+
+<svg id="scaleX-0_5" width="600" height="80" viewBox="0 0 600 80">
+  <text x="0" y="50" font-size="28" font-family="sans-serif"
+        transform="scale(0.5 1)">selectable</text>
+</svg>
+<svg id="scaleX-1" width="600" height="80" viewBox="0 0 600 80">
+  <text x="0" y="50" font-size="28" font-family="sans-serif">selectable</text>
+</svg>
+<svg id="scaleX-1_7" width="600" height="80" viewBox="0 0 600 80">
+  <text x="0" y="50" font-size="28" font-family="sans-serif"
+        transform="scale(1.7 1)">selectable</text>
+</svg>
+<svg id="scaleX-3" width="600" height="80" viewBox="0 0 600 80">
+  <text x="0" y="50" font-size="28" font-family="sans-serif"
+        transform="scale(3 1)">selectable</text>
+</svg>
+<svg id="scale-uniform-2" width="600" height="80" viewBox="0 0 600 80">
+  <text x="0" y="50" font-size="28" font-family="sans-serif"
+        transform="scale(2 2)">selectable</text>
+</svg>
+<!-- viewBox is half of the element size -->
+<svg id="viewbox-scaled" width="600" height="80" viewBox="0 0 300 80"
+     preserveAspectRatio="none">
+  <text x="0" y="50" font-size="28" font-family="sans-serif">selectable</text>
+</svg>
+
+<script>
+// Project a point given in the <text> element's user space to client
+// coordinates, using the same CTM the glyphs are painted with.
+function projectX(textEl, userX, userY) {
+  const pt = textEl.ownerSVGElement.createSVGPoint();
+  pt.x = userX;
+  pt.y = userY;
+  return pt.matrixTransform(textEl.getScreenCTM()).x;
+}
+
+function fullRangeRect(textEl) {
+  const node = textEl.firstChild;
+  const range = document.createRange();
+  range.setStart(node, 0);
+  range.setEnd(node, node.length);
+  return range.getBoundingClientRect();
+}
+
+const referenceHeight = fullRangeRect(document.querySelector("#scaleX-1 text")).height;
+
+function checkSubRanges(svgId) {
+  const textEl = document.querySelector(`#${svgId} text`);
+  const node = textEl.firstChild;
+  const n = node.length;
+  const verticalScale = textEl.getScreenCTM().d;
+
+  // Allow some tolerance, since different browsers have slightly different results.
+  const tolerance = expected => Math.max(1, 0.05 * Math.abs(expected));
+
+  for (let start = 0; start < n; start++) {
+    for (let end = start + 1; end <= n; end++) {
+      const range = document.createRange();
+      range.setStart(node, start);
+      range.setEnd(node, end);
+      const rect = range.getBoundingClientRect();
+
+      const startPos = textEl.getStartPositionOfChar(start);
+      const endPos = textEl.getEndPositionOfChar(end - 1);
+      const expectedLeft = projectX(textEl, startPos.x, startPos.y);
+      const expectedRight = projectX(textEl, endPos.x, endPos.y);
+      const expectedHeight = referenceHeight * verticalScale;
+
+      assert_approx_equals(rect.right, expectedRight, tolerance(expectedRight),
+          `right edge of Range[${start}..${end}]`);
+      assert_approx_equals(rect.left, expectedLeft, tolerance(expectedLeft),
+          `left edge of Range[${start}..${end}]`);
+
+      assert_approx_equals(rect.height, expectedHeight, tolerance(expectedHeight),
+          `height of Range[${start}..${end}]`);
+    }
+  }
+}
+
+for (const id of ["scaleX-0_5", "scaleX-1", "scaleX-1_7", "scaleX-3",
+                  "scale-uniform-2", "viewbox-scaled"]) {
+  test(() => checkSubRanges(id),
+       `Range sub-range geometry matches glyph positions (${id})`);
+}
+</script>

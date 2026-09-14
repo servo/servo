@@ -80,7 +80,7 @@ fn remove_redundant_cache_files() {
             if (filename_components.len() == 2) && // the font cache file only has one `_`. So the vector length from splitting must be 2.
                         (filename_components[1] == cache_filename_components[1]) && // check if the suffix is the same
                         (filename_components[0] != cache_filename_components[0])
-                && let Err(e) = fs::remove_file(format!("{}{}", &base_dir, filename))
+                && let Err(e) = fs::remove_file(format!("{}{}", base_dir, filename))
             {
                 error!(
                     "Obsolete font cache file found; but failed to remove it: {:?}",
@@ -101,7 +101,10 @@ fn parse_file_path() -> Result<String, Box<dyn Error>> {
 
 /// Helper function to obtain the path to the directory where we'll eventually store our cache file in.
 fn get_directory() -> Result<String, Box<dyn Error>> {
-    let binding = opts::get().config_dir.clone().unwrap();
+    let binding = opts::get()
+        .config_dir
+        .clone()
+        .ok_or("Failed to get config dir")?;
     let base_dir = binding
         .to_str()
         .ok_or("Failed to parse base directory's path")?;

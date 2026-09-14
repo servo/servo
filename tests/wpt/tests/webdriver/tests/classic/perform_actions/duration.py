@@ -2,7 +2,6 @@ import pytest
 
 from tests.classic.perform_actions.support.refine import wait_for_events
 
-
 # A move or scroll action with a duration greater than zero has to be split into
 # multiple incremental events.
 DURATION = 200

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="stylesheet" href="resources/interest-button-styles.css">
+
+<div class="container">
+  <button class="contents">Button 1</button><span class="fake-interest-button"> [btn]</span>
+</div>
+
+<div class="container">
+  <a href="#" class="contents">Link 1</a><span class="fake-interest-button"> [btn]</span>
+</div>
+
+<div class="container">
+  <button>Button 2</button><span class="contents"> [pseudo-contents]</span>
+</div>
+
+<div class="container">
+  <a href="#">Link 2</a><span class="contents"> [pseudo-contents]</span>
+</div>
+
+<div class="container">
+  <button class="contents">Button 3</button><span class="contents"> [pseudo-contents]</span>
+</div>
+
+<div class="container">
+  <a href="#" class="contents">Link 3</a><span class="contents"> [pseudo-contents]</span>
+</div>
+
+<div id="target"></div>
+
+<style>
+  .container {
+    font-family: monospace;
+    font-size: 14px;
+    margin-bottom: 10px;
+    border: 1px solid gray;
+    padding: 5px;
+  }
+  button, a {
+    font: inherit;
+    color: inherit;
+  }
+  .contents {
+    display: contents;
+  }
+</style>

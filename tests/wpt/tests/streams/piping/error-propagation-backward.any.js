@@ -628,3 +628,20 @@ promise_test(t => {
   });
 
 }, 'Errors must be propagated backward: erroring via the controller errors once pending write completes');
+
+promise_test(async t => {
+  const rs = recordingReadableStream();
+  const ws = recordingWritableStream();
+
+  const pipePromise = rs.pipeTo(ws, { preventCancel: true });
+
+  await flushAsyncEvents();
+
+  ws.controller.error(error1);
+  rs.controller.enqueue('a');
+
+  await promise_rejects_exactly(t, error1, pipePromise);
+
+  assert_array_equals(rs.eventsWithoutPulls, []);
+  assert_array_equals(ws.events, []);
+}, 'Errors must be propagated backward: erroring writable stream before chunk enqueued does not write chunk');

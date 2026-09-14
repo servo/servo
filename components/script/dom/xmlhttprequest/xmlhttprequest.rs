@@ -997,7 +997,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                         self.text_response()
                     },
                     // Step 2
-                    _ => "".to_owned(),
+                    _ => String::new(),
                 }))
             },
             // Step 1

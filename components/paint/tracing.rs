@@ -53,7 +53,6 @@ mod from_constellation {
                 Self::GenerateImageKeysForPipeline(..) => target!("GenerateImageKeysForPipeline"),
                 Self::DelayNewFrameForCanvas(..) => target!("DelayFramesForCanvas"),
                 Self::ScreenshotReadinessReponse(..) => target!("ScreenshotReadinessResponse"),
-                Self::SendLCPCandidate(..) => target!("SendLCPCandidate"),
             }
         }
     }

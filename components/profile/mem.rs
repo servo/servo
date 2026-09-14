@@ -34,6 +34,7 @@ impl Profiler {
 
         if servo_allocator::is_tracking_unmeasured() && std::env::var(LOG_FILE_VAR).is_err() {
             eprintln!("Allocation tracking is enabled but {LOG_FILE_VAR} is unset.");
+            servo_allocator::disable_unmeasured_tracking();
         }
 
         // Always spawn the memory profiler. If there is no timer thread it won't receive regular

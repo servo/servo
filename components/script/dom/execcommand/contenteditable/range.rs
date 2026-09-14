@@ -4,6 +4,7 @@
 
 use js::context::{JSContext, NoGC};
 use script_bindings::inheritance::Castable;
+use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -300,9 +301,12 @@ impl Range {
                             .current_state(cx, context_object)
                             .is_some_and(|value| value != bool_) =>
                     {
-                        override_state
-                            .command
-                            .execute(cx, context_object, selection, "".into());
+                        override_state.command.execute(
+                            cx,
+                            context_object,
+                            selection,
+                            DOMString::new(),
+                        );
                     },
                     BoolOrOptionalString::OptionalString(optional_string) => {
                         match override_state.command {
@@ -344,7 +348,7 @@ impl Range {
                                         .map(|value| {
                                             legacy_font_size_for(value as f32, context_object)
                                         })
-                                        .unwrap_or("7".into());
+                                        .unwrap_or(DOMString::from_static("7"));
                                     // Step 2.6. Take the action for "fontSize", with value equal to override.
                                     CommandName::FontSize.execute(
                                         cx,

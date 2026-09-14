@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Scope becoming display: none during transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.scope {
+  width: 200px;
+  height: 200px;
+  background: lightblue;
+}
+.named-scope {
+  view-transition-name: scope;
+}
+.child {
+  width: 100px;
+  height: 100px;
+  background: coral;
+  view-transition-name: child;
+}
+.hidden {
+  display: none;
+}
+</style>
+</head>
+<body>
+<div id="container"></div>
+<script>
+function createTestElement(html) {
+  const container = document.getElementById("container");
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = html;
+  const el = wrapper.firstElementChild;
+  container.appendChild(el);
+  el.getBoundingClientRect(); // Force layout so element is initially rendered.
+  return el;
+}
+
+promise_test(async t => {
+  const scope = createTestElement('<div class="scope"><div class="child"></div></div>');
+  t.add_cleanup(() => { scope.remove(); });
+
+  const vt = scope.startViewTransition(() => {
+    scope.classList.add("hidden");
+  });
+  await promise_rejects_dom(t, "InvalidStateError", vt.ready);
+  await vt.finished;
+}, "Scope with named child becoming display: none during update callback skips transition and rejects ready");
+
+promise_test(async t => {
+  const scope = createTestElement('<div class="scope"><div class="child"></div></div>');
+  t.add_cleanup(() => { scope.remove(); });
+
+  const vt = scope.startViewTransition();
+  await vt.ready;
+  scope.classList.add("hidden");
+  await vt.finished;
+}, "Scope with named child becoming display: none during animation skips transition");
+
+promise_test(async t => {
+  const scope = createTestElement('<div class="scope named-scope"><div></div></div>');
+  t.add_cleanup(() => { scope.remove(); });
+
+  const vt = scope.startViewTransition(() => {
+    scope.classList.add("hidden");
+  });
+  await promise_rejects_dom(t, "InvalidStateError", vt.ready);
+  await vt.finished;
+}, "Named scope becoming display: none during update callback skips transition and rejects ready");
+
+promise_test(async t => {
+  const scope = createTestElement('<div class="scope named-scope"><div></div></div>');
+  t.add_cleanup(() => { scope.remove(); });
+
+  const vt = scope.startViewTransition();
+  await vt.ready;
+  scope.classList.add("hidden");
+  await vt.finished;
+}, "Named scope becoming display: none during animation skips transition");
+</script>
+</body>
+</html>

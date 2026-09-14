@@ -1,0 +1,74 @@
+<!doctype html>
+<title>WebGL drawingBufferToneMapping</title>
+<link rel=help href=https://github.com/w3c-cg/ColorWeb-CG/blob/main/webgl-drawing-buffer-tone-map.md>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<div id=log></div>
+<script>
+'use strict';
+
+for (const contextType of ['webgl', 'webgl2']) {
+  function createContext() {
+    const canvas = document.createElement('canvas');
+    return canvas.getContext(contextType);
+  }
+
+  test(() => {
+    const gl = createContext();
+    assert_true(!!gl, 'Context creation should succeed');
+    assert_equals(typeof gl.drawingBufferToneMapping, 'function',
+        'drawingBufferToneMapping must be a function');
+    assert_equals(gl.getError(), gl.NO_ERROR);
+  }, `${contextType}: interface presence`);
+
+  test(() => {
+    const gl = createContext();
+    const defaultToneMapping = gl.drawingBufferToneMapping();
+    assert_equals(defaultToneMapping.mode, 'standard');
+    assert_equals(gl.getError(), gl.NO_ERROR);
+
+    // Verify a fresh dictionary copy is returned.
+    const secondCall = gl.drawingBufferToneMapping();
+    assert_not_equals(defaultToneMapping, secondCall);
+    assert_equals(secondCall.mode, 'standard');
+  }, `${contextType}: default value is standard`);
+
+  test(() => {
+    const gl = createContext();
+    // gl.drawingBufferToneMapping(undefined) acts as getter.
+    assert_equals(gl.drawingBufferToneMapping(undefined).mode, 'standard');
+
+    // Setter with mode: 'extended'.
+    assert_equals(gl.drawingBufferToneMapping({mode: 'extended'}).mode, 'extended');
+    assert_equals(gl.drawingBufferToneMapping().mode, 'extended');
+    assert_equals(gl.drawingBufferToneMapping(undefined).mode, 'extended');
+
+    // Setter with mode: 'standard'.
+    assert_equals(gl.drawingBufferToneMapping({mode: 'standard'}).mode, 'standard');
+    assert_equals(gl.drawingBufferToneMapping().mode, 'standard');
+
+    // Setter with empty dictionary defaults mode to 'standard'.
+    gl.drawingBufferToneMapping({mode: 'extended'});
+    assert_equals(gl.drawingBufferToneMapping({}).mode, 'standard');
+    assert_equals(gl.drawingBufferToneMapping().mode, 'standard');
+
+    assert_equals(gl.getError(), gl.NO_ERROR);
+  }, `${contextType}: setting and getting modes`);
+
+  test(() => {
+    const gl = createContext();
+    assert_throws_js(TypeError, () => {
+      gl.drawingBufferToneMapping({mode: 'invalid'});
+    }, 'Invalid mode string should throw TypeError');
+
+    assert_throws_js(TypeError, () => {
+      gl.drawingBufferToneMapping({mode: null});
+    }, 'Null mode should throw TypeError');
+
+    // Verify that throwing did not alter the existing tone mapping.
+    assert_equals(gl.drawingBufferToneMapping().mode, 'standard');
+    assert_equals(gl.getError(), gl.NO_ERROR);
+  }, `${contextType}: invalid mode throws TypeError`);
+}
+</script>

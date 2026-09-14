@@ -39,3 +39,26 @@ test(() => {
   let event = new SubmitEvent('bar');
   assert_equals(event.submitter, null);
 }, 'Successful SubmitEvent constructor; missing dictionary');
+
+promise_test(async t => {
+  const host = document.body.appendChild(document.createElement('div'));
+  t.add_cleanup(() => host.remove());
+  const root = host.attachShadow({mode: 'open'});
+  const form = document.createElement('form');
+  form.id = 'form';
+  const button = document.createElement('button');
+  button.setAttribute('form', form.id);
+  root.append(form, button);
+
+  const event = await new Promise(resolve => {
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      resolve(event);
+    }, {once: true});
+    button.click();
+  });
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  assert_equals(event.submitter, button);
+  assert_true(event.composed);
+}, 'SubmitEvent.submitter remains set after dispatch in a shadow tree');

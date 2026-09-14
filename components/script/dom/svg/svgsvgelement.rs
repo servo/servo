@@ -4,7 +4,7 @@
 
 use atomic_refcell::AtomicRefCell;
 use base64::Engine as _;
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::{JSContext, NoGC};
@@ -235,8 +235,7 @@ impl VirtualMethods for SVGSVGElement {
         match *name {
             local_name!("width") | local_name!("height") => {
                 let value = &value.str();
-                let parser_input = &mut ParserInput::new(value);
-                let parser = &mut Parser::new(parser_input);
+                let parser = &mut Parser::new(value);
                 let doc = self.owner_document();
                 let url = doc.url().into_url().into();
                 let context = ParserContext::new(

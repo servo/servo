@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XMLHttpRequest: response is null during LOADING for responseType json</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+async_test(t => {
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", "resources/json-with-bom.py");
+  xhr.responseType = "json";
+
+  let sawLoading = false;
+
+  xhr.onreadystatechange = t.step_func(() => {
+    if (xhr.readyState === XMLHttpRequest.LOADING) {
+      sawLoading = true;
+      assert_equals(xhr.response, null, "response must be null during LOADING for json responseType");
+    }
+
+    if (xhr.readyState === XMLHttpRequest.DONE) {
+      assert_true(sawLoading, "Should have seen LOADING state");
+      assert_not_equals(xhr.response, null, "response must not be null during DONE");
+      assert_equals(xhr.response.key, "value", "response must contain parsed JSON");
+      t.done();
+    }
+  });
+
+  xhr.onerror = t.unreached_func("XHR should not error");
+  xhr.send();
+}, "xhr.response must be null during LOADING state for responseType json");
+</script>

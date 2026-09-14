@@ -16,6 +16,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::PointerEventBinding::PointerEventMethods;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::traits::DomEventTrait;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use stylo_atoms::Atom;
 
@@ -1452,4 +1453,18 @@ fn inner_invoke(
 
     // Step 3.
     found
+}
+
+impl DomEventTrait for Event {
+    fn new_inherited() -> Self {
+        Event::new_inherited()
+    }
+
+    fn init_event(&self, type_: style::Atom, bubbles: bool, cancelable: bool) {
+        Event::init_event(self, type_, bubbles, cancelable);
+    }
+
+    fn IsTrusted(&self) -> bool {
+        script_bindings::codegen::GenericBindings::EventBinding::EventMethods::<crate::DomTypeHolder>::IsTrusted(self)
+    }
 }

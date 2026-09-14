@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    #preview {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      position: relative;
+    }
+
+    .item-1 {
+      background: #fbc4c4;
+      height: 60px;
+    }
+
+    .item-2 {
+      background: #bae0fd;
+      height: 120px;
+    }
+
+    .item-3 {
+      background: #d4b8f0;
+      height: 80px;
+    }
+
+    .item-4 {
+      background: #fde8a0;
+      height: 15px;
+      margin-top: -60px;
+      grid-column: span 2;
+    }
+
+    .item-5 {
+      background: #b5ead7;
+      height: 20px;
+      left: 0;
+      position: absolute;
+      top: 68px;
+      width: calc((100% - 16px) / 3);
+    }
+  </style>
+</head>
+<body>
+  <div id="preview">
+    <div class="item-1">1</div>
+    <div class="item-2">2</div>
+    <div class="item-3">3</div>
+    <div class="item-4">4</div>
+    <div class="item-5">5</div>
+  </div>
+</body>
+</html>

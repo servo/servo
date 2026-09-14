@@ -57,7 +57,8 @@ promise_test(async t => {
 
   // Verify the values recorded during the DOM callback.
   assert_false(contain_style_during_callback.includes("size"), "Containment should not include size in computed style");
-  assert_true(contain_style_during_callback.includes("layout"), "Containment should include layout");
+  assert_false(contain_style_during_callback.includes("layout"), "Containment should not include layout in computed style");
+  assert_equals(contain_style_during_callback, "none", "contain should be none in computed style");
   assert_false(cis_style_during_callback.includes("auto"), "containIntrinsicSize should not include auto in computed style");
   assert_equals(cis_style_during_callback, "none", "containIntrinsicSize should be none");
 

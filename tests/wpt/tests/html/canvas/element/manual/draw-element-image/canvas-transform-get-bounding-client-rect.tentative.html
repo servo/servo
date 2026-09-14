@@ -22,6 +22,8 @@
     'use strict';
 
     const runTest = () => {
+      const canvas = document.getElementById('canvas');
+
       test(() => {
         const target = document.getElementById('target');
         let rect = target.getBoundingClientRect();
@@ -29,13 +31,13 @@
         assert_equals(rect.top, 20);
 
         // Translate.
-        target.setCanvasTransform(new DOMMatrix().translate(30, 40));
+        canvas.updateElementGeometry(target, {canvasTransform: new DOMMatrix().translate(30, 40)});
         rect = target.getBoundingClientRect();
         assert_equals(rect.left, 40);
         assert_equals(rect.top, 60);
 
         // Scale and translate.
-        target.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+        canvas.updateElementGeometry(target, {canvasTransform: new DOMMatrix().translate(50, 60).scale(2, 3)});
         rect = target.getBoundingClientRect();
         assert_equals(rect.left, 60);
         assert_equals(rect.top, 80);
@@ -48,7 +50,7 @@
         // Canvas transform translates by (30, 40), giving [-20..180, 15..115].
         // Adding canvas position (10, 20) yields rect left = -10, top = 35.
         // If canvas transform were applied after CSS transform, left would be 20, top would be 75.
-        target.setCanvasTransform(new DOMMatrix().translate(30, 40));
+        canvas.updateElementGeometry(target, {canvasTransform: new DOMMatrix().translate(30, 40)});
         target.style.transform = 'scale(2)';
         rect = target.getBoundingClientRect();
         assert_approx_equals(rect.left, 10 + 30 - 50, 0.01);
@@ -58,7 +60,7 @@
 
         // Compound with CSS translate and transform properties: Canvas transform
         // applies before all CSS transforms, including individual transform properties.
-        target.setCanvasTransform(new DOMMatrix().translate(30, 40));
+        canvas.updateElementGeometry(target, {canvasTransform: new DOMMatrix().translate(30, 40)});
         target.style.translate = '5px 10px';
         target.style.transform = 'scale(2)';
         rect = target.getBoundingClientRect();
@@ -70,13 +72,13 @@
         // Reset.
         target.style.translate = '';
         target.style.transform = '';
-        target.setCanvasTransform(new DOMMatrix());
+        canvas.clearElementGeometry(target);
         rect = target.getBoundingClientRect();
         assert_equals(rect.left, 10);
         assert_equals(rect.top, 20);
         assert_equals(rect.width, 100);
         assert_equals(rect.height, 50);
-      }, 'setCanvasTransform() affects getBoundingClientRect() on canvas child');
+      }, 'updateElementGeometry() affects getBoundingClientRect() on canvas child');
 
       test(() => {
         const nestedInline = document.getElementById('nested-inline');
@@ -87,7 +89,7 @@
         assert_equals(rect.height, 25);
 
         // Translate.
-        nestedInline.setCanvasTransform(new DOMMatrix().translate(30, 40));
+        canvas.updateElementGeometry(nestedInline, {canvasTransform: new DOMMatrix().translate(30, 40)});
         rect = nestedInline.getBoundingClientRect();
         assert_equals(rect.left, 10 + 30);
         assert_equals(rect.top, 20 + 40);
@@ -95,7 +97,7 @@
         assert_equals(rect.height, 25);
 
         // Scale and translate.
-        nestedInline.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+        canvas.updateElementGeometry(nestedInline, {canvasTransform: new DOMMatrix().translate(50, 60).scale(2, 3)});
         rect = nestedInline.getBoundingClientRect();
         assert_equals(rect.left, 10 + 50);
         assert_equals(rect.top, 20 + 60);
@@ -103,7 +105,7 @@
         assert_equals(rect.height, 3 * 25);
 
         // Test that canvas transform is unaffected by CSS margin.
-        nestedInline.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+        canvas.updateElementGeometry(nestedInline, {canvasTransform: new DOMMatrix().translate(50, 60).scale(2, 3)});
         nestedInline.style.marginLeft = '12px';
         rect = nestedInline.getBoundingClientRect();
         assert_equals(rect.left, 10 + 50);
@@ -113,13 +115,13 @@
 
         // Reset.
         nestedInline.style.marginLeft = '0';
-        nestedInline.setCanvasTransform(new DOMMatrix());
+        canvas.clearElementGeometry(nestedInline);
         rect = nestedInline.getBoundingClientRect();
         assert_equals(rect.left, 10);
         assert_equals(rect.top, 20);
         assert_equals(rect.width, 25);
         assert_equals(rect.height, 25);
-      }, 'setCanvasTransform() affects getBoundingClientRect() on an inline nested drawable');
+      }, 'updateElementGeometry() affects getBoundingClientRect() on an inline nested drawable');
 
       test(() => {
         const nestedInlineFragmented = document.getElementById('nested-inline-fragmented');
@@ -130,7 +132,7 @@
         assert_equals(rect.height, 50);
 
         // Translate.
-        nestedInlineFragmented.setCanvasTransform(new DOMMatrix().translate(30, 40));
+        canvas.updateElementGeometry(nestedInlineFragmented, {canvasTransform: new DOMMatrix().translate(30, 40)});
         rect = nestedInlineFragmented.getBoundingClientRect();
         assert_equals(rect.left, 10 + 30);
         assert_equals(rect.top, 20 + 40);
@@ -138,7 +140,7 @@
         assert_equals(rect.height, 50);
 
         // Scale and translate.
-        nestedInlineFragmented.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+        canvas.updateElementGeometry(nestedInlineFragmented, {canvasTransform: new DOMMatrix().translate(50, 60).scale(2, 3)});
         rect = nestedInlineFragmented.getBoundingClientRect();
         assert_equals(rect.left, 10 + 50);
         assert_equals(rect.top, 20 + 60);
@@ -146,7 +148,7 @@
         assert_equals(rect.height, 3 * 50);
 
         // Test that canvas transform is unaffected by CSS margin.
-        nestedInlineFragmented.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+        canvas.updateElementGeometry(nestedInlineFragmented, {canvasTransform: new DOMMatrix().translate(50, 60).scale(2, 3)});
         nestedInlineFragmented.style.marginLeft = '12px';
         rect = nestedInlineFragmented.getBoundingClientRect();
         assert_equals(rect.left, 10 + 50);
@@ -156,13 +158,13 @@
 
         // Reset.
         nestedInlineFragmented.style.marginLeft = '0';
-        nestedInlineFragmented.setCanvasTransform(new DOMMatrix());
+        canvas.clearElementGeometry(nestedInlineFragmented);
         rect = nestedInlineFragmented.getBoundingClientRect();
         assert_equals(rect.left, 10);
         assert_equals(rect.top, 20);
         assert_equals(rect.width, 75);
         assert_equals(rect.height, 50);
-      }, 'setCanvasTransform() affects getBoundingClientRect() on a fragmented inline nested drawable');
+      }, 'updateElementGeometry() affects getBoundingClientRect() on a fragmented inline nested drawable');
 
       test(() => {
         const target = document.getElementById('target');
@@ -170,14 +172,14 @@
 
         // When ancestor has a canvas transform set, a nested drawable without its own
         // canvas transform does not inherit the ancestor's canvas transform.
-        target.setCanvasTransform(new DOMMatrix().translate(100, 200));
+        canvas.updateElementGeometry(target, {canvasTransform: new DOMMatrix().translate(100, 200)});
         let rect = nestedBlock.getBoundingClientRect();
         assert_equals(rect.left, 10);
         assert_equals(rect.top, 20);
 
         // When the nested drawable also sets a canvas transform, it is relative to
         // the canvas and does not include the ancestor's canvas transform.
-        nestedBlock.setCanvasTransform(new DOMMatrix().translate(30, 40));
+        canvas.updateElementGeometry(nestedBlock, {canvasTransform: new DOMMatrix().translate(30, 40)});
         rect = nestedBlock.getBoundingClientRect();
         assert_equals(rect.left, 10 + 30);
         assert_equals(rect.top, 20 + 40);
@@ -185,9 +187,9 @@
         assert_equals(rect.height, 30);
 
         // Reset.
-        target.setCanvasTransform(new DOMMatrix());
-        nestedBlock.setCanvasTransform(new DOMMatrix());
-      }, 'setCanvasTransform() on ancestor and nested drawable');
+        canvas.clearElementGeometry(target);
+        canvas.clearElementGeometry(nestedBlock);
+      }, 'updateElementGeometry() on ancestor and nested drawable');
 
       test(() => {
         const nestedBlock = document.getElementById('nested-block');
@@ -198,13 +200,13 @@
         assert_equals(rect.height, 30);
 
         // Translate.
-        nestedBlock.setCanvasTransform(new DOMMatrix().translate(30, 40));
+        canvas.updateElementGeometry(nestedBlock, {canvasTransform: new DOMMatrix().translate(30, 40)});
         rect = nestedBlock.getBoundingClientRect();
         assert_equals(rect.left, 10 + 30);
         assert_equals(rect.top, 20 + 40);
 
         // Scale and translate.
-        nestedBlock.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+        canvas.updateElementGeometry(nestedBlock, {canvasTransform: new DOMMatrix().translate(50, 60).scale(2, 3)});
         rect = nestedBlock.getBoundingClientRect();
         assert_equals(rect.left, 10 + 50);
         assert_equals(rect.top, 20 + 60);
@@ -212,7 +214,7 @@
         assert_equals(rect.height, 3 * 30);
 
         // Test that canvas transform is unaffected by CSS margin.
-        nestedBlock.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+        canvas.updateElementGeometry(nestedBlock, {canvasTransform: new DOMMatrix().translate(50, 60).scale(2, 3)});
         nestedBlock.style.marginLeft = '12px';
         rect = nestedBlock.getBoundingClientRect();
         assert_equals(rect.left, 10 + 50);
@@ -224,7 +226,7 @@
         // Test that canvas transform applies before CSS transform.
         // If canvas transform applied after CSS transform, the translation of
         // 50, 60 would be scaled 2x.
-        nestedBlock.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+        canvas.updateElementGeometry(nestedBlock, {canvasTransform: new DOMMatrix().translate(50, 60).scale(2, 3)});
         nestedBlock.style.transform = 'scale(2)';
         nestedBlock.style.transformOrigin = 'top left';
         rect = nestedBlock.getBoundingClientRect();
@@ -237,13 +239,13 @@
         nestedBlock.style.marginLeft = '';
         nestedBlock.style.transform = '';
         nestedBlock.style.transformOrigin = '';
-        nestedBlock.setCanvasTransform(new DOMMatrix());
+        canvas.clearElementGeometry(nestedBlock);
         rect = nestedBlock.getBoundingClientRect();
         assert_equals(rect.left, 10);
         assert_equals(rect.top, 20);
         assert_equals(rect.width, 20);
         assert_equals(rect.height, 30);
-      }, 'setCanvasTransform() affects getBoundingClientRect() on a block nested drawable');
+      }, 'updateElementGeometry() affects getBoundingClientRect() on a block nested drawable');
 
       test(() => {
         const target = document.getElementById('target');
@@ -251,7 +253,7 @@
 
         // A non-drawable descendant inherits its ancestor's canvas transform.
         const initialRect = nestedNonDrawable.getBoundingClientRect();
-        target.setCanvasTransform(new DOMMatrix().translate(100, 200));
+        canvas.updateElementGeometry(target, {canvasTransform: new DOMMatrix().translate(100, 200)});
         let rect = nestedNonDrawable.getBoundingClientRect();
         assert_equals(rect.left, initialRect.left + 100);
         assert_equals(rect.top, initialRect.top + 200);
@@ -259,7 +261,7 @@
         assert_equals(rect.height, initialRect.height);
 
         // Reset.
-        target.setCanvasTransform(new DOMMatrix());
+        canvas.clearElementGeometry(target);
         rect = nestedNonDrawable.getBoundingClientRect();
         assert_equals(rect.left, initialRect.left);
         assert_equals(rect.top, initialRect.top);
@@ -267,11 +269,13 @@
 
       test(() => {
         const outside = document.getElementById('outside');
-        outside.setCanvasTransform(new DOMMatrix().translate(50, 50));
+        assert_throws_dom('InvalidStateError', () => {
+          canvas.updateElementGeometry(outside, {canvasTransform: new DOMMatrix().translate(50, 50)});
+        });
         const rect = outside.getBoundingClientRect();
         assert_equals(rect.left, 10);
         assert_equals(rect.top, 10);
-      }, 'setCanvasTransform() does not affect getBoundingClientRect() outside canvas subtree');
+      }, 'updateElementGeometry() does not affect getBoundingClientRect() outside canvas subtree');
     }
   </script>
 </body>

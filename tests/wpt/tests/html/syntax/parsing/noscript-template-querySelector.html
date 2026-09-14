@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector on template fragments with noscript elements</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<template id="template1"><noscript><div></div></noscript></template>
+<template id="template2"><noscript><div id="noScriptContent"></div></noscript></template>
+
+<script>
+"use strict";
+test(() => {
+  const fragment = document.querySelector("#template1").content;
+  const noscriptNode = fragment.querySelector("noscript");
+
+  assert_equals(noscriptNode.childNodes[0].nodeType, Node.TEXT_NODE, "Is a text node");
+  assert_equals(noscriptNode.textContent, "<div></div>");
+}, "noscript child should be text node.");
+
+test(() => {
+  const fragment = document.querySelector("#template1").content;
+  const noscriptNode = fragment.querySelector("noscript");
+  assert_equals(noscriptNode.innerHTML, "&lt;div&gt;&lt;/div&gt;");
+}, "noscript contents are escaped when serialized in a template");
+
+test(() => {
+  const fragment = document.querySelector("#template2").content;
+  const noscriptChildNode = fragment.querySelector("#noScriptContent");
+  assert_equals(noscriptChildNode, null);
+}, "noscript child should be unreachable");
+</script>

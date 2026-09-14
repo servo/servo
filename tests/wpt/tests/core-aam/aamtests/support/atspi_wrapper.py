@@ -4,9 +4,16 @@ from typing import Any, Optional, List, Dict
 import gi
 
 gi.require_version("Atspi", "2.0")
-from gi.repository import Atspi
+from gi.repository import Atspi, GLib
 
 from .api_wrapper import ApiWrapper
+
+# The roles browsers use for the root of a web document.
+DOCUMENT_ROLES = [Atspi.Role.DOCUMENT_WEB, Atspi.Role.DOCUMENT_FRAME]
+
+# The document attributes browsers use to expose the url of a web document.
+# Firefox uses "DocURL", Chromium family browsers use "URI".
+DOCUMENT_URL_ATTRIBUTES = ["DocURL", "URI"]
 
 
 class AtspiWrapper(ApiWrapper[Atspi.Accessible]):
@@ -26,7 +33,7 @@ class AtspiWrapper(ApiWrapper[Atspi.Accessible]):
         if self.test_url != url or not self.document:
             self.test_url = url
             self.document = self._poll_for(
-                self._find_fully_loaded_tab, f"Timeout looking for url: {self.test_url}"
+                self._find_fully_loaded_document, f"Timeout looking for url: {self.test_url}"
             )
 
         test_node = self._find_node_by_id(self.document, dom_id);
@@ -97,49 +104,119 @@ class AtspiWrapper(ApiWrapper[Atspi.Accessible]):
                 return app
         return None
 
-    def _find_fully_loaded_tab(self) -> Optional[Atspi.Accessible]:
-        """Find the tab with the test url. Only returns the tab when the tab is ready.
+    def _find_fully_loaded_document(self) -> Optional[Atspi.Accessible]:
+        """Find the document with the test url. Only returns it when it is ready.
 
-        :param url: The url of the test.
         :return: Atspi.Accessible representing test document or None.
         """
-        stack = [self.root]
+        for document in self._find_documents():
+            if self._is_ready(document, self.test_url):
+                return document
+
+        return None
+
+    def _find_documents(self) -> List[Atspi.Accessible]:
+        """Find the web documents the browser exposes.
+
+        :return: A list of Atspi.Accessible, which may be empty.
+        """
+        documents = self._query_documents(self.root)
+        if documents is None:
+            documents = self._walk_documents(self.root)
+
+        return documents
+
+    def _query_documents(
+        self, root: Atspi.Accessible
+    ) -> Optional[List[Atspi.Accessible]]:
+        """Find the web documents in a subtree with the Collection interface.
+
+        The Collection interface lets the browser do the searching, which saves
+        walking the whole tree over the bus.
+
+        :param root: The root node to search from.
+        :return: A list of Atspi.Accessible, or None if the browser does not
+                 answer Collection queries.
+        """
+        collection = Atspi.Accessible.get_collection_iface(root)
+        if not collection:
+            return None
+
+        rule = Atspi.MatchRule.new(
+            Atspi.StateSet.new([]),
+            Atspi.CollectionMatchType.ALL,
+            {},
+            Atspi.CollectionMatchType.ALL,
+            DOCUMENT_ROLES,
+            Atspi.CollectionMatchType.ANY,
+            [],
+            Atspi.CollectionMatchType.ALL,
+            False,
+        )
+
+        try:
+            return Atspi.Collection.get_matches(
+                collection, rule, Atspi.CollectionSortOrder.CANONICAL, 0, True
+            )
+        except GLib.Error:
+            return None
+
+    def _walk_documents(self, root: Atspi.Accessible) -> List[Atspi.Accessible]:
+        """Find the web documents in a subtree by walking the tree.
+
+        :param root: The root node to search from.
+        :return: A list of Atspi.Accessible, which may be empty.
+        """
+        documents = []
+        stack = [root]
         while stack:
             node = stack.pop()
-            if Atspi.Accessible.get_role_name(node) == "frame":
-                relationset = Atspi.Accessible.get_relation_set(node)
-                for relation in relationset:
-                    if relation.get_relation_type() == Atspi.RelationType.EMBEDS:
-                        tab = relation.get_target(0)
-                        if self._is_ready(tab, self.test_url):
-                            return tab
+            if Atspi.Accessible.get_role(node) in DOCUMENT_ROLES:
+                documents.append(node)
                 continue
 
             for i in range(Atspi.Accessible.get_child_count(node)):
                 child = Atspi.Accessible.get_child_at_index(node, i)
                 stack.append(child)
 
-        return None
+        return documents
 
-    def _is_ready(self, tab: Atspi.Accessible, url: str) -> bool:
-        """Test whether tab is fully loaded.
+    def _is_ready(self, document: Atspi.Accessible, url: str) -> bool:
+        """Test whether a document is the test document, fully loaded.
 
-        :param tab: Atspi.Accessible representing test document.
+        :param document: Atspi.Accessible representing a web document.
         :param url: The url of the test.
         :return: Boolean.
         """
         # Firefox uses the "BUSY" state to indicate the page is not ready.
         if self.product_name == "firefox":
-            state_set = Atspi.Accessible.get_state_set(tab)
-            return not Atspi.StateSet.contains(state_set, Atspi.StateType.BUSY)
+            state_set = Atspi.Accessible.get_state_set(document)
+            if Atspi.StateSet.contains(state_set, Atspi.StateType.BUSY):
+                return False
 
-        # Chromium family browsers do not use "BUSY", but you can
-        # tell if the document can be queried by URL attribute. If the 'URI'
-        # attribute is not here, we need to query for a new accessible object.
-        document = Atspi.Accessible.get_document_iface(tab)
-        document_attributes = Atspi.Document.get_document_attributes(document)
+        # The url tells the test document apart from the other documents the
+        # browser exposes, such as one a previous navigation left behind.
+        # Chromium family browsers do not use "BUSY", but only expose the url
+        # once the document can be queried. If it is not here, we need to query
+        # for a new accessible object.
+        return self._document_url(document) == url
 
-        return "URI" in document_attributes and document_attributes["URI"] == url
+    def _document_url(self, document: Atspi.Accessible) -> Optional[str]:
+        """Get the url a web document was loaded from.
+
+        :param document: Atspi.Accessible representing a web document.
+        :return: The url, or None if the document does not expose one.
+        """
+        document_iface = Atspi.Accessible.get_document_iface(document)
+        if not document_iface:
+            return None
+
+        attributes = Atspi.Document.get_document_attributes(document_iface)
+        for name in DOCUMENT_URL_ATTRIBUTES:
+            if name in attributes:
+                return attributes[name]
+
+        return None
 
     def _find_node_by_id(
         self, root: Atspi.Accessible, dom_id: str

@@ -45,6 +45,10 @@ enum MonitorTypeSurfacesEnum {
   "exclude"
 };
 
+enum AudioSelectionPreferenceEnum {
+  "preferred"
+};
+
 dictionary DisplayMediaStreamOptions {
   (boolean or MediaTrackConstraints) video = true;
   (boolean or MediaTrackConstraints) audio = false;
@@ -54,6 +58,7 @@ dictionary DisplayMediaStreamOptions {
   WindowAudioPreferenceEnum windowAudio;
   SurfaceSwitchingPreferenceEnum surfaceSwitching;
   MonitorTypeSurfacesEnum monitorTypeSurfaces;
+  AudioSelectionPreferenceEnum audioSelection;
 };
 
 partial dictionary MediaTrackSupportedConstraints {

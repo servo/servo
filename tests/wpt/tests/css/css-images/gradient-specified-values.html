@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Specified values of gradients</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#gradients">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Regression test for https://github.com/jsdom/cssstyle/pull/232 -->
+
+<div id="div">Test</div>
+
+<script>
+"use strict";
+
+const div = document.getElementById("div");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundImage = null;
+  });
+  div.style.backgroundImage = "linear-gradient(blue, green)";
+  assert_equals(div.style.backgroundImage, "linear-gradient(blue, green)");
+}, "Named colors");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundImage = null;
+  });
+  div.style.backgroundImage = "linear-gradient(rgb(0 0 255), rgb(0 128 0))";
+  assert_equals(div.style.backgroundImage, "linear-gradient(rgb(0, 0, 255), rgb(0, 128, 0))");
+}, "RGB colors");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundImage = null;
+  });
+  div.style.backgroundImage = "linear-gradient(#0000ff, #008000)";
+  assert_equals(div.style.backgroundImage, "linear-gradient(rgb(0, 0, 255), rgb(0, 128, 0))");
+}, "Hex colors");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundImage = null;
+  });
+  div.style.backgroundImage = "linear-gradient(hsl(240 100% 50%), hsl(120 100% 25%))";
+  assert_equals(div.style.backgroundImage, "linear-gradient(rgb(0, 0, 255), rgb(0, 128, 0))");
+}, "HSL colors");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundImage = null;
+  });
+  div.style.backgroundImage = "linear-gradient(hwb(240 0 0), hwb(120 0 50))";
+  assert_equals(div.style.backgroundImage, "linear-gradient(rgb(0, 0, 255), rgb(0, 128, 0))");
+}, "HWB colors");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundImage = null;
+  });
+  div.style.backgroundImage = "linear-gradient(to bottom, blue, green)";
+  assert_equals(div.style.backgroundImage, "linear-gradient(blue, green)");
+}, "Gradient line of linear-gradient()");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundImage = null;
+  });
+  div.style.backgroundImage = "radial-gradient(ellipse farthest-corner at center, blue, green)";
+  assert_equals(div.style.backgroundImage, "radial-gradient(blue, green)");
+}, "Gradient line of radial-gradient()");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundImage = null;
+  });
+  div.style.backgroundImage = "conic-gradient(at center, blue, green)";
+  assert_equals(div.style.backgroundImage, "conic-gradient(blue, green)");
+}, "Gradient line of conic-gradient()");
+</script>

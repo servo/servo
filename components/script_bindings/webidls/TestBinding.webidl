@@ -126,6 +126,7 @@ interface TestBinding {
            attribute float floatAttribute;
            attribute unrestricted double unrestrictedDoubleAttribute;
            attribute double doubleAttribute;
+           [BindingAlias=stringAttributeAlias, BindingAlias=stringAttributeAlias2]
            attribute DOMString stringAttribute;
            attribute USVString usvstringAttribute;
            attribute ByteString byteStringAttribute;

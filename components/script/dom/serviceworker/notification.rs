@@ -421,7 +421,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
         global.task_manager().dom_manipulation_task_source().queue(
             task!(request_permission: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 let global = promise.global();
 
                 // Step 3.2.1: If deprecatedCallback is given,
@@ -704,7 +704,7 @@ fn request_notification_permission(
     cx: &mut JSContext,
     global: &GlobalScope,
 ) -> NotificationPermission {
-    let promise = &Promise::new(cx, global);
+    let promise = &Promise::new_rooted(cx, global);
     let descriptor = PermissionDescriptor {
         name: PermissionName::Notifications,
     };

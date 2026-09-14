@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>:focus-within pseudo</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#focus-within-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3055 -->
+
+<div id="container">
+  Focus here:
+  <button id="button">focus me</button>
+</div>
+
+<script>
+"use strict";
+
+const container = document.getElementById("container");
+const button = document.getElementById("button");
+async function waitForWindowFocus(t) {
+  // Wait for the test window to gain focus before testing synchronous focus changes.
+  const sentinel = document.createElement("button");
+  document.body.append(sentinel);
+  t.add_cleanup(() => sentinel.remove());
+  await new Promise(resolve => {
+    sentinel.addEventListener("focus", resolve, { once: true });
+    sentinel.focus();
+  });
+  sentinel.blur();
+}
+
+promise_test(async t => {
+  await waitForWindowFocus(t);
+  t.add_cleanup(() => button.blur());
+  button.focus();
+  assert_true(button.matches(":focus"));
+  assert_true(button.matches(":focus-within"));
+}, ":focus-within applies to focused element");
+
+promise_test(async t => {
+  await waitForWindowFocus(t);
+  t.add_cleanup(() => button.blur());
+  button.focus();
+  assert_false(container.matches(":focus"));
+  assert_true(container.matches(":focus-within"));
+}, ":focus-within applies to ancestor");
+
+</script>
+</html>

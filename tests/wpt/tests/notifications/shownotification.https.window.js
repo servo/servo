@@ -99,3 +99,32 @@ promise_test(async t => {
   assert_equals(notifications.length, 1, "Should return a notification");
   assert_custom_data(notifications[0].data);
 }, "fetching a notification with custom data")
+
+promise_test(async t => {
+  t.add_cleanup(closeAllNotifications);
+  await registration.showNotification("Hello", { navigate: "https://example.com" });
+  const notifications = await registration.getNotifications();
+  assert_equals(notifications.length, 1, "Should return a notification");
+  // Trailing slash is added here since the URL is parsed (in showNotification)
+  // and then serialized again (in navigate getter steps).
+  assert_equals(notifications[0].navigate, "https://example.com/",
+                "Should keep track of Notification.navigate.");
+}, "fetching a notification with navigate URL");
+
+promise_test(async t => {
+  t.add_cleanup(closeAllNotifications);
+  await registration.showNotification("Hello", {});
+  const notifications = await registration.getNotifications();
+  assert_equals(notifications.length, 1, "Should return a notification");
+  assert_equals(notifications[0].navigate, "",
+                "Should return an empty string for Notification.navigate if URL is not set.");
+}, "fetching a notification with no navigate URL");
+
+promise_test(async t => {
+  t.add_cleanup(closeAllNotifications);
+  await registration.showNotification("Hello", { navigate: "http://999.999" });
+  const notifications = await registration.getNotifications();
+  assert_equals(notifications.length, 1, "Should return a notification");
+  assert_equals(notifications[0].navigate, "",
+                "Should return an empty string for Notification.navigate if URL is invalid.");
+}, "fetching a notification with invalid navigate URL");

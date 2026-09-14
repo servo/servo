@@ -64,6 +64,28 @@ test(t => {
   assert_true(s.get().dataAttributes);
 }, "SanitizerConfig dataAttributes field.");
 
+test(t => {
+  assert_false(new Sanitizer().get().javascriptURLs);
+  assert_true(new Sanitizer({}).get().javascriptURLs);
+  assert_true(new Sanitizer({javascriptURLs: true}).get().javascriptURLs);
+  assert_false(new Sanitizer({javascriptURLs: false}).get().javascriptURLs);
+  assert_true(new Sanitizer({javascriptURLs: undefined}).get().javascriptURLs);
+  assert_false(new Sanitizer({javascriptURLs: null}).get().javascriptURLs);
+
+  let s = new Sanitizer();
+  assert_false(s.setJavascriptURLs(false));
+  assert_true(s.setJavascriptURLs(true));
+  assert_true(s.get().javascriptURLs);
+  assert_false(s.setJavascriptURLs(true));
+  assert_true(s.setJavascriptURLs(false));
+  assert_false(s.get().javascriptURLs);
+  assert_true(s.setJavascriptURLs("abc"));
+  assert_true(s.get().javascriptURLs);
+  assert_false(s.setJavascriptURLs(1));
+  assert_true(s.setJavascriptURLs(0));
+  assert_false(s.get().javascriptURLs);
+}, "SanitizerConfig javascriptURLs field.");
+
 function assert_object_equals(a, b, description) {
   assert_equals(JSON.stringify(a), JSON.stringify(b), description);
 }

@@ -73,7 +73,7 @@ impl StorageManagerBooleanResponseHandler {
 
         self.task_source
             .queue(task!(storage_manager_boolean_response: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 match result {
                     Ok(value) => promise.resolve_native(cx, &value),
                     Err(message) => promise.reject_error(cx, StorageManager::type_error_from_string(message)),
@@ -103,7 +103,7 @@ impl StorageManagerEstimateResponseHandler {
 
         self.task_source
             .queue(task!(storage_manager_estimate_response: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 match result {
                     Ok((usage, quota)) => {
                         let mut estimate = StorageEstimate::empty();

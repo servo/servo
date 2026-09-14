@@ -171,7 +171,7 @@ partial interface MouseEvent {
 enum CSSBoxType { "margin", "border", "padding", "content" };
 dictionary BoxQuadOptions {
   CSSBoxType box = "border";
-  GeometryNode relativeTo; // XXX default document (i.e. viewport)
+  GeometryNode relativeTo;
 };
 
 dictionary ConvertCoordinateOptions {
@@ -183,7 +183,7 @@ interface mixin GeometryUtils {
   sequence<DOMQuad> getBoxQuads(optional BoxQuadOptions options = {});
   DOMQuad convertQuadFromNode(DOMQuadInit quad, GeometryNode from, optional ConvertCoordinateOptions options = {});
   DOMQuad convertRectFromNode(DOMRectReadOnly rect, GeometryNode from, optional ConvertCoordinateOptions options = {});
-  DOMPoint convertPointFromNode(DOMPointInit point, GeometryNode from, optional ConvertCoordinateOptions options = {}); // XXX z,w turns into 0
+  DOMPoint convertPointFromNode(DOMPointInit point, GeometryNode from, optional ConvertCoordinateOptions options = {});
 };
 
 Text includes GeometryUtils; // like Range

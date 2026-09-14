@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTMLImageElement width and height parse the dimension attributes when not being rendered</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-width">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/embedded-content-other.html#dimension-attributes">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#rules-for-parsing-non-negative-integers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- The img elements are never rendered, so width and height consult the width
+     and height content attributes, falling back to the density-corrected
+     natural width and height. -->
+<div id="container" style="display: none"></div>
+<div id="log"></div>
+<script>
+const container = document.getElementById("container");
+
+const SRC = "/images/blue-100x100.png";
+const NATURAL = 100;
+
+// The width and height content attributes are parsed with the rules for parsing
+// non-negative integers, which skip leading whitespace, ignore a leading plus
+// sign, and ignore trailing garbage. A value that is not a non-negative integer
+// is ignored in favor of the natural dimensions.
+const attributeValues = [
+  { value: "10", expected: 10 },
+  { value: "0", expected: 0 },
+  { value: "010", expected: 10 },
+  { value: "+10", expected: 10 },
+  { value: " 10 ", expected: 10 },
+  { value: "\n10", expected: 10 },
+  { value: "10px", expected: 10 },
+  { value: "50%", expected: 50 },
+  { value: "1.9", expected: 1 },
+  { value: "2147483647", expected: 2147483647 },
+  { value: "-10", expected: NATURAL },
+  { value: "", expected: NATURAL },
+  { value: "abc", expected: NATURAL },
+];
+
+function insert(attrs) {
+  const img = document.createElement("img");
+  for (const [name, value] of Object.entries(attrs)) {
+    img.setAttribute(name, value);
+  }
+
+  const loaded = new Promise(resolve => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", resolve, { once: true });
+  });
+
+  container.appendChild(img);
+  return { img, loaded };
+}
+
+for (const { value, expected } of attributeValues) {
+  promise_test(async t => {
+    const { img, loaded } = insert({ src: SRC, width: value, height: value });
+    t.add_cleanup(() => img.remove());
+    await loaded;
+
+    assert_array_equals([img.width, img.height], [expected, expected],
+                        "width and height");
+    assert_array_equals([img.naturalWidth, img.naturalHeight], [NATURAL, NATURAL],
+                        "naturalWidth and naturalHeight");
+  }, `width and height attribute value ${JSON.stringify(value)}`);
+}
+
+promise_test(async t => {
+  const { img, loaded } = insert({ srcset: `${SRC} 2x`, width: "abc" });
+  t.add_cleanup(() => img.remove());
+  await loaded;
+
+  assert_array_equals([img.width, img.height], [50, 50], "width and height");
+  assert_array_equals([img.naturalWidth, img.naturalHeight], [50, 50],
+                      "naturalWidth and naturalHeight");
+}, "unparseable width attribute falls back to the density-corrected natural width");
+</script>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Computed pointerEvents is inherited</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+
+<style>
+  #parent {
+    pointer-events: none;
+  }
+</style>
+
+<body>
+  <div id="parent">
+      <div id="child">Hello, Jarda!</div>
+  </div>
+</body>
+
+<script>
+"use strict";
+
+test(() => {
+  const element = document.querySelector("body");
+  assert_equals(getComputedStyle(element).pointerEvents, "auto");
+}, "Body element has the initial value for pointerEvents");
+
+test(() => {
+  const element = document.querySelector("#parent");
+  assert_equals(getComputedStyle(element).pointerEvents, "none");
+}, "Parent element returns the directly specified value for pointerEvents");
+
+test(() => {
+  const element = document.querySelector("#child");
+  assert_equals(getComputedStyle(element).pointerEvents, "none");
+}, "Child element inherits the pointerEvents value from its parent");
+</script>

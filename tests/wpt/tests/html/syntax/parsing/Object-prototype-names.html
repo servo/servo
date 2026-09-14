@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Element with tag name "constructor", etc.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3706 -->
+
+<body>
+<constructor></constructor>
+<hasOwnProperty></hasOwnProperty>
+<__proto__></__proto__>
+<toString></toString>
+
+<script>
+  "use strict";
+  const propNames = ["constructor", "hasOwnProperty", "__proto__", "toString"];
+
+  test(() => {
+    for (const name of propNames) {
+      const el = document.createElement(name);
+      assert_equals(el.localName, name.toLowerCase());
+      assert_equals(el.constructor, HTMLUnknownElement);
+    }
+  }, "Creating HTML elements with property names from Object.prototype should not be problematic");
+
+  test(() => {
+    for (const name of propNames) {
+      const el = document.createElementNS("https://example.com/", name);
+      assert_equals(el.localName, name);
+      assert_equals(el.constructor, Element);
+    }
+  }, "Creating XML elements with property names from Object.prototype should not be problematic");
+</script>

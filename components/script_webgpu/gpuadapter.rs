@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
 use js::realm::CurrentRealm;
@@ -159,11 +157,12 @@ where
         // subgroup size. Otherwise, set this value to 4.
         // Step 7. If "subgroups" is supported, set subgroupMaxSize to the largest supported
         // subgroup size. Otherwise, set this value to 128.
-        let (subgroup_min_size, subgroup_max_size) = if features.has(cx, "subgroups".into()) {
-            (info.subgroup_min_size, info.subgroup_max_size)
-        } else {
-            (4, 128)
-        };
+        let (subgroup_min_size, subgroup_max_size) =
+            if features.has(cx, DOMString::from_static("subgroups")) {
+                (info.subgroup_min_size, info.subgroup_max_size)
+            } else {
+                (4, 128)
+            };
 
         // Step 8. Set adapterInfo.isFallbackAdapter to adapter.[[fallback]].
         let is_fallback_adapter = info.device_type == wgpu_types::DeviceType::Cpu;
@@ -185,28 +184,24 @@ where
     pub fn channel(&self) -> WebGPU {
         self.droppable.channel.clone()
     }
-
-    fn global(&self) -> DomRoot<D::GlobalScope> {
-        <Self as DomGlobalGeneric<D>>::global_from_reflector(self)
-    }
 }
 
 impl<D> GPUAdapterMethods<D> for GPUAdapter<D>
 where
     D: Equivalence,
-    D::Promise: WebGPUPromiseTrait<D> + PromiseHelpers<D>,
-    D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
+    Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
     fn RequestDevice(
         &self,
         cx: &mut CurrentRealm<'_>,
         descriptor: &GPUDeviceDescriptor,
-    ) -> Rc<D::Promise> {
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
         // Step 2
-        let promise = D::Promise::new_in_realm(cx);
+        let promise = D::Promise::new_in_realm_rooted(cx);
 
-        let callback = WebGPUPromiseTrait::<D>::callback_promise_adapter(&promise, self);
+        let callback = promise.callback_promise_adapter(self);
         let mut required_features = wgpu_types::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
@@ -242,9 +237,15 @@ where
             trace: wgpu_types::Trace::Off,
             experimental_features: ExperimentalFeatures::disabled(),
         };
-        let device_id = self.global().global_wgpu_id_hub().create_device_id();
-        let queue_id = self.global().global_wgpu_id_hub().create_queue_id();
-        let pipeline_id = self.global().pipeline_id();
+        let device_id = self
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_device_id();
+        let queue_id = self
+            .global_from_reflector()
+            .global_wgpu_id_hub()
+            .create_queue_id();
+        let pipeline_id = self.global_from_reflector().pipeline_id();
         if self
             .droppable
             .channel

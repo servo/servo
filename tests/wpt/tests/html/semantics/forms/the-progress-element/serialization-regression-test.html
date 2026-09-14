@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Regression test for serialization bug with progress.value</title>
+<!-- https://github.com/jsdom/jsdom/issues/2554 -->
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div><progress></progress></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const el = document.querySelector("progress");
+  el.value = 0;
+
+  // Before the jsdom bugfix, this would crash
+  assert_equals(document.querySelector("div").innerHTML, `<progress value="0"></progress>`);
+});
+</script>

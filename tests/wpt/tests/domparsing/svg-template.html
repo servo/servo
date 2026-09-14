@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG-namespace template elements are treated as expected</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+// Regression test for https://github.com/jsdom/jsdom/issues/3150
+
+test(() => {
+  const p = new DOMParser();
+  const doc = p.parseFromString("<!DOCTYPE html><svg><template>text</template></svg>", "text/html");
+
+  const template = doc.querySelector("template");
+  assert_equals(template.textContent, "text");
+  assert_equals(template.namespaceURI, "http://www.w3.org/2000/svg");
+  assert_false("content" in template);
+}, "document");
+
+test(() => {
+  const doc = document.implementation.createHTMLDocument();
+  doc.body.innerHTML = "<svg><template></template></svg>";
+  doc.querySelector("template").innerHTML = "text";
+
+  const template = doc.querySelector("template");
+  assert_equals(template.textContent, "text");
+  assert_equals(template.namespaceURI, "http://www.w3.org/2000/svg");
+  assert_false("content" in template);
+}, "fragment");
+</script>

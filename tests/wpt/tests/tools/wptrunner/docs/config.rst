@@ -58,7 +58,7 @@ The configuration file contains the following known paths and sections:
 
 In addition the command line allows specifying *multiple* sections
 each corresponding to a test manifest. These are named
-``manifest:[name]``. The ``name`` is arbitary, but must be unique in
+``manifest:[name]``. The ``name`` is arbitrary, but must be unique in
 the file. At least one such section is required so that wptrunner
 knows where to find some tests.
 

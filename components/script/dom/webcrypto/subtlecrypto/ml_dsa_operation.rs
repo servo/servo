@@ -30,7 +30,19 @@ pub(crate) fn sign(
     key: &CryptoKey,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
+    // Step 1. If the context member of normalizedAlgorithm is present and has a length greater than
+    // 255 bytes, then throw an OperationError.
+    if normalized_algorithm
+        .context
+        .as_ref()
+        .is_some_and(|context| context.len() > 255)
+    {
+        return Err(Error::Operation(Some(
+            "The context is present and has a length greater than 255 bytes".into(),
+        )));
+    }
+
+    // Step 2. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Private {
         return Err(Error::InvalidAccess(Some(
@@ -38,15 +50,15 @@ pub(crate) fn sign(
         )));
     }
 
-    // Step 2. Let context be the context member of normalizedAlgorithm or the empty octet string
+    // Step 3. Let context be the context member of normalizedAlgorithm or the empty octet string
     // if the context member of normalizedAlgorithm is not present.
     let context = normalized_algorithm.context.as_deref().unwrap_or_default();
 
-    // Step 3. Let result be the result of performing the ML-DSA.Sign signing algorithm, as
+    // Step 4. Let result be the result of performing the ML-DSA.Sign signing algorithm, as
     // specified in Section 5.2 of [FIPS-204], with the parameter set indicated by the name member
     // of normalizedAlgorithm, using the ML-DSA private key associated with key as sk, message as M
     // and context as ctx.
-    // Step 4. If the ML-DSA.Sign algorithm returned an error, return an OperationError.
+    // Step 5. If the ML-DSA.Sign algorithm returned an error, return an OperationError.
     let result = match normalized_algorithm.name {
         CryptoAlgorithm::MlDsa44 => {
             let Handle::MlDsa44PrivateKey(private_key) = key.handle() else {
@@ -92,7 +104,7 @@ pub(crate) fn sign(
         },
     };
 
-    // Step 5. Return result.
+    // Step 6. Return result.
     Ok(result)
 }
 
@@ -103,7 +115,19 @@ pub(crate) fn verify(
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, Error> {
-    // Step 1. If the [[type]] internal slot of key is not "public", then throw an
+    // Step 1. If the context member of normalizedAlgorithm is present and has a length greater than
+    // 255 bytes, then throw an OperationError.
+    if normalized_algorithm
+        .context
+        .as_ref()
+        .is_some_and(|context| context.len() > 255)
+    {
+        return Err(Error::Operation(Some(
+            "The context is present and has a length greater than 255 bytes".into(),
+        )));
+    }
+
+    // Step 2. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Public {
         return Err(Error::InvalidAccess(Some(
@@ -111,15 +135,15 @@ pub(crate) fn verify(
         )));
     }
 
-    // Step 2. Let context be the context member of normalizedAlgorithm or the empty octet string
+    // Step 3. Let context be the context member of normalizedAlgorithm or the empty octet string
     // if the context member of normalizedAlgorithm is not present.
     let context = normalized_algorithm.context.as_deref().unwrap_or_default();
 
-    // Step 3. Let result be the result of performing the ML-DSA.Verify verification algorithm, as
+    // Step 4. Let result be the result of performing the ML-DSA.Verify verification algorithm, as
     // specified in Section 5.3 of [FIPS-204], with the parameter set indicated by the name member
     // of normalizedAlgorithm, using the ML-DSA public key associated with key as pk, message as M,
     // signature as σ and context as ctx.
-    // Step 4. If the ML-DSA.Verify algorithm returned an error, return an OperationError.
+    // Step 5. If the ML-DSA.Verify algorithm returned an error, return an OperationError.
     let result = match normalized_algorithm.name {
         CryptoAlgorithm::MlDsa44 => {
             let Handle::MlDsa44PublicKey(public_key) = key.handle() else {
@@ -162,7 +186,7 @@ pub(crate) fn verify(
         },
     };
 
-    // Step 5. Return result.
+    // Step 6. Return result.
     Ok(result)
 }
 

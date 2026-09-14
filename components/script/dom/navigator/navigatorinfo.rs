@@ -42,7 +42,7 @@ pub(crate) fn AppCodeName() -> DOMString {
 #[expect(non_snake_case)]
 #[cfg(target_os = "windows")]
 pub(crate) fn Platform() -> DOMString {
-    DOMString::from("Win32")
+    DOMString::from_static("Win32")
 }
 
 #[expect(non_snake_case)]
@@ -54,13 +54,13 @@ pub(crate) fn Platform() -> DOMString {
 #[expect(non_snake_case)]
 #[cfg(target_os = "macos")]
 pub(crate) fn Platform() -> DOMString {
-    DOMString::from("Mac")
+    DOMString::from_static("Mac")
 }
 
 #[expect(non_snake_case)]
 #[cfg(target_os = "ios")]
 pub(crate) fn Platform() -> DOMString {
-    DOMString::from("iOS")
+    DOMString::from_static("iOS")
 }
 
 #[expect(non_snake_case)]

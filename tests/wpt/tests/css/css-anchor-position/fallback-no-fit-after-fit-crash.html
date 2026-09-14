@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Anchor fallback retry loop</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2070171">
+<style>
+  html, body { margin: 0; }
+  #scroller { width: 400px; height: 300px; overflow: auto; }
+  #wrapper { position: relative; }
+  #tall { width: 50px; height: 301px; }
+  #anchor { anchor-name: --a; position: absolute; bottom: 0; left: 0;
+            width: 20px; height: 20px; }
+  #target { position: absolute; position-anchor: --a;
+            top: anchor(outside); left: 0;
+            position-try-fallbacks: flip-block;
+            width: 390px; height: 100px; }
+</style>
+<div id="scroller">
+  <div id="wrapper">
+    <div id="tall"></div>
+    <div id="anchor"></div>
+    <div id="target"></div>
+  </div>
+</div>

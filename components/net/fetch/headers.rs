@@ -178,6 +178,7 @@ const fn destination_as_str(destination: Destination) -> &'static str {
         Destination::ServiceWorker => "serviceworker",
         Destination::SharedWorker => "sharedworker",
         Destination::Style => "style",
+        Destination::Text => "text",
         Destination::Track => "track",
         Destination::Video => "video",
         Destination::WebIdentity => "webidentity",

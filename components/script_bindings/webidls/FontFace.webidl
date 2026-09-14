@@ -7,7 +7,8 @@ typedef DOMString CSSOMString;
 dictionary FontFaceDescriptors {
   CSSOMString style = "normal";
   CSSOMString weight = "normal";
-  CSSOMString stretch = "normal";
+  CSSOMString width;
+  CSSOMString stretch = "normal";  // alias for width, sets the same attribute
   CSSOMString unicodeRange = "U+0-10FFFF";
   CSSOMString featureSettings = "normal";
   CSSOMString variationSettings = "normal";
@@ -30,8 +31,8 @@ interface FontFace {
   attribute CSSOMString style;
   [SetterThrows]
   attribute CSSOMString weight;
-  [SetterThrows]
-  attribute CSSOMString stretch;
+  [SetterThrows, BindingAlias="stretch"]
+  attribute CSSOMString width;
   [SetterThrows]
   attribute CSSOMString unicodeRange;
   [SetterThrows]

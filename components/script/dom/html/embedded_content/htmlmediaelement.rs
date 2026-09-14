@@ -61,6 +61,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMeth
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     TextTrackKind, TextTrackMethods, TextTrackMode,
 };
+use crate::dom::bindings::codegen::Bindings::TextTrackCueBinding::TextTrackCueMethods;
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
@@ -97,6 +98,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::referrer_policy_for_element;
 use crate::dom::texttrack::TextTrack;
+use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
 use crate::dom::trackevent::TrackEvent;
@@ -110,7 +112,7 @@ use crate::fetch::fetch::{
 };
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskRunnable;
+use crate::runtime::job_queue::MicrotaskRunnable;
 use crate::tasks::task_source::SendableTaskSource;
 
 /// A CSS file to style the media controls.
@@ -131,10 +133,7 @@ enum FrameStatus {
 }
 
 #[derive(MallocSizeOf)]
-struct FrameHolder(
-    FrameStatus,
-    #[ignore_malloc_size_of = "defined in servo-media"] VideoFrame,
-);
+struct FrameHolder(FrameStatus, VideoFrame);
 
 impl FrameHolder {
     fn new(frame: VideoFrame) -> FrameHolder {
@@ -614,6 +613,14 @@ pub(crate) struct HTMLMediaElement {
     media_controls_id: DomRefCell<Option<String>>,
     /// <https://html.spec.whatwg.org/multipage/#did-perform-automatic-track-selection>
     did_perform_automatic_track_selection: Cell<bool>,
+    /// Used to track the
+    /// <https://html.spec.whatwg.org/multipage/#current-playback-position>
+    /// when
+    /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
+    /// was last invoked (if any)
+    position_when_time_marches_on_ran: Cell<Option<f64>>,
+    /// <https://html.spec.whatwg.org/multipage/#list-of-newly-introduced-cues>
+    newly_introduced_cues: DomRefCell<Vec<Dom<TextTrackCue>>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -645,6 +652,16 @@ enum PlaybackDirection {
     Backwards,
 }
 
+/// Used to determine whether the current playback position was changed
+/// during normal playback or not in
+/// <https://html.spec.whatwg.org/multipage/#time-marches-on>
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
+enum PlaybackPositionWasMoved {
+    #[default]
+    ExplicitMove,
+    NormalPlayback,
+}
+
 impl HTMLMediaElement {
     pub(crate) fn new_inherited(
         tag_name: LocalName,
@@ -656,7 +673,7 @@ impl HTMLMediaElement {
             network_state: Cell::new(NetworkState::Empty),
             ready_state: Cell::new(ReadyState::HaveNothing),
             src_object: Default::default(),
-            current_src: DomRefCell::new("".to_owned()),
+            current_src: Default::default(),
             generation_id: Cell::new(0),
             fired_loadeddata_event: Cell::new(false),
             error: Default::default(),
@@ -698,6 +715,8 @@ impl HTMLMediaElement {
             current_fetch_context: RefCell::new(None),
             media_controls_id: DomRefCell::new(None),
             did_perform_automatic_track_selection: Default::default(),
+            position_when_time_marches_on_ran: Default::default(),
+            newly_introduced_cues: Default::default(),
         }
     }
 
@@ -767,17 +786,230 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
-    fn time_marches_on(&self) {
+    fn time_marches_on(&self, cx: &mut JSContext, playback_was_moved: PlaybackPositionWasMoved) {
+        let playback_was_moved_monotonic_increase =
+            playback_was_moved == PlaybackPositionWasMoved::NormalPlayback;
+        // Step 1. Let current cues be a list of cues,
+        // initialized to contain all the cues of all the hidden or
+        // showing text tracks of the media element (not the disabled ones)
+        // whose start times are less than or equal to the current playback position
+        // and whose end times are greater than the current playback position.
+        // Step 2. Let other cues be a list of cues, initialized to contain
+        // all the cues of hidden and showing text tracks of the media element
+        // that are not present in current cues.
+        let current_playback_position = self.current_playback_position.get();
+        let Some(text_tracks_list) = self.text_tracks_list.get() else {
+            return;
+        };
+        type CueVec = Vec<DomRoot<TextTrackCue>>;
+        let (current_cues, other_cues): (CueVec, CueVec) = text_tracks_list
+            .iter(cx.no_gc())
+            .filter(|text_track| text_track.Mode() != TextTrackMode::Disabled)
+            .flat_map(|text_track| text_track.get_cues())
+            .partition(|cue| {
+                cue.start_time() <= current_playback_position &&
+                    cue.end_time() > current_playback_position
+            });
+        // Step 3. Let last time be the current playback position at the time
+        // this algorithm was last run for this media element,
+        // if this is not the first time it has run.
+        let last_time = self.position_when_time_marches_on_ran.get();
+        self.position_when_time_marches_on_ran
+            .set(Some(current_playback_position));
+
+        // Step 4. If the current playback position has,
+        // since the last time this algorithm was run,
+        // only changed through its usual monotonic increase during normal playback,
+        // then let missed cues be the list of cues in other cues whose start times
+        // are greater than or equal to last time and whose end times are less
+        // than or equal to the current playback position.
+        // Otherwise, let missed cues be an empty list.
+        // Step 5. Remove all the cues in missed cues that are also in
+        // the media element's list of newly introduced cues,
+        // and then empty the element's list of newly introduced cues.
+        let missed_cues =
+            if playback_was_moved_monotonic_increase && let Some(last_time) = last_time {
+                let newly_introduced_cues: Vec<DomRoot<TextTrackCue>> =
+                    std::mem::take(&mut *self.newly_introduced_cues.safe_borrow_mut(cx.no_gc()))
+                        .iter()
+                        .map(|cue| cue.as_rooted())
+                        .collect();
+                other_cues
+                    .iter()
+                    .filter(|cue| {
+                        cue.start_time() >= last_time &&
+                            cue.end_time() <= current_playback_position &&
+                            !newly_introduced_cues
+                                .iter()
+                                .any(|newly_cue| **newly_cue == ***cue)
+                    })
+                    .cloned()
+                    .collect()
+            } else {
+                self.newly_introduced_cues
+                    .safe_borrow_mut(cx.no_gc())
+                    .clear();
+                vec![]
+            };
+
         // Step 6. If the time was reached through the usual monotonic increase of the current
         // playback position during normal playback, and if the user agent has not fired a
         // timeupdate event at the element in the past 15 to 250ms and is not still running event
         // handlers for such an event, then the user agent must queue a media element task given the
         // media element to fire an event named timeupdate at the element.
-        if Instant::now() > self.next_timeupdate_event.get() {
+        if playback_was_moved_monotonic_increase &&
+            Instant::now() > self.next_timeupdate_event.get()
+        {
             self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
             self.next_timeupdate_event
                 .set(Instant::now() + Duration::from_millis(250));
         }
+
+        // Step 7. If all of the cues in current cues have their text track cue active flag set,
+        // none of the cues in other cues have their text track cue active flag set,
+        // and missed cues is empty, then return.
+        if current_cues.iter().all(|cue| cue.is_active()) &&
+            !other_cues.iter().any(|cue| cue.is_active()) &&
+            missed_cues.is_empty()
+        {
+            return;
+        }
+
+        // Step 8. If the time was reached through the usual monotonic increase of the
+        // current playback position during normal playback,
+        // and there are cues in other cues that have their text track cue pause-on-exit flag
+        // set and that either have their text track cue active flag set or are also in missed cues,
+        // then immediately pause the media element.
+        if playback_was_moved_monotonic_increase &&
+            other_cues.iter().any(|cue| {
+                cue.PauseOnExit() &&
+                    (cue.is_active() || missed_cues.iter().any(|missed_cue| missed_cue == cue))
+            })
+        {
+            self.Pause(cx);
+        }
+
+        // Step 9. Let events be a list of tasks, initially empty.
+        // Each task in this list will be associated with a text track,
+        // a text track cue, and a time, which are used to sort the list before the tasks are queued.
+        // Let affected tracks be a list of text tracks, initially empty.
+        // When the steps below say to prepare an event named event for
+        // a text track cue target with a time time,
+        // the user agent must run these steps:
+        let mut events: Vec<(f64, (Atom, DomRoot<TextTrackCue>))> = vec![];
+        let mut affected_tracks = vec![];
+        // https://html.spec.whatwg.org/multipage/#prepare-an-event
+        let mut prepare_an_event =
+            |time: f64, event: Atom, text_track_cue: DomRoot<TextTrackCue>| {
+                // Step 1. Let track be the text track with which the text track cue target is associated.
+                let track = text_track_cue
+                    .get_text_track()
+                    .expect("Must always have an associated text track");
+                // Step 2. Create a task to fire an event named event at target.
+                //
+                // We create the task in the for-loops below
+
+                // Step 3. Add the newly created task to events, associated with the time time,
+                // the text track track, and the text track cue target.
+                events.push((time, (event, text_track_cue)));
+                // Step 4. Add track to affected tracks.
+                affected_tracks.push(track);
+            };
+
+        // Step 10. For each text track cue in missed cues,
+        // prepare an event named enter for the TextTrackCue object with the text track cue start time.
+        for text_track_cue in &missed_cues {
+            prepare_an_event(
+                text_track_cue.start_time(),
+                atom!("enter"),
+                text_track_cue.clone(),
+            );
+        }
+
+        // Step 11. For each text track cue in other cues that either
+        // has its text track cue active flag set
+        // or is in missed cues, prepare an event named exit for the TextTrackCue object with
+        // the later of the text track cue end time and the text track cue start time.
+        for text_track_cue in &other_cues {
+            if text_track_cue.is_active() || missed_cues.iter().any(|cue| cue == text_track_cue) {
+                prepare_an_event(
+                    text_track_cue.start_time().max(text_track_cue.end_time()),
+                    atom!("exit"),
+                    text_track_cue.clone(),
+                );
+            }
+        }
+
+        // Step 12. For each text track cue in current cues that does not have
+        // its text track cue active flag set,
+        // prepare an event named enter for the TextTrackCue object with the text track cue start time.
+        for text_track_cue in &current_cues {
+            if !text_track_cue.is_active() {
+                prepare_an_event(
+                    text_track_cue.start_time(),
+                    atom!("enter"),
+                    text_track_cue.clone(),
+                );
+            }
+        }
+
+        // Step 13. Sort the tasks in events in ascending time order (tasks with earlier times first).
+        events.sort_by(|(a_time, _), (b_time, _)| a_time.total_cmp(b_time));
+
+        // Step 14. Queue a media element task given the media element for each task in events,
+        // in list order.
+        for (_, (event, text_track_cue)) in events {
+            let target = Trusted::new(&*text_track_cue);
+
+            self.owner_global()
+                .task_manager()
+                .media_element_task_source()
+                .queue(task!(queue_event: move |cx| {
+                    target.root().upcast::<EventTarget>().fire_event(cx, event);
+                }));
+        }
+
+        // Step 15. Sort affected tracks in the same order as the text tracks appear
+        // in the media element's list of text tracks, and remove duplicates.
+        // TODO
+
+        // Step 16. For each text track in affected tracks, in the list order,
+        // queue a media element task given the media element to fire
+        // an event named cuechange at the TextTrack object,
+        // and, if the text track has a corresponding track element,
+        // to then fire an event named cuechange at the track element as well.
+        for text_track in affected_tracks {
+            let text_track = Trusted::new(&*text_track);
+
+            self.owner_global()
+                .task_manager()
+                .media_element_task_source()
+                .queue(task!(queue_event: move |cx| {
+                    let text_track = text_track.root();
+                    text_track.upcast::<EventTarget>().fire_event(cx, atom!("cuechange"));
+
+                    if let Some(track_element) = text_track.associated_track() {
+                        track_element.upcast::<EventTarget>().fire_event(cx, atom!("cuechange"));
+                    }
+                }));
+        }
+
+        // Step 17. Set the text track cue active flag of all the cues in the current cues,
+        // and unset the text track cue active flag of all the cues in the other cues.
+        for text_track_cue in current_cues {
+            text_track_cue.set_active(true);
+        }
+        for text_track_cue in other_cues {
+            text_track_cue.set_active(false);
+        }
+
+        // Step 18. Run the rules for updating the text track rendering of each
+        // of the text tracks in affected tracks that are showing,
+        // providing the text track's text track language as the fallback language
+        // if it is not the empty string.
+        // For example, for text tracks based on WebVTT,
+        // the rules for updating the display of WebVTT text tracks. [WEBVTT]
+        // TODO
     }
 
     /// <https://html.spec.whatwg.org/multipage/#internal-play-steps>
@@ -813,7 +1045,7 @@ impl HTMLMediaElement {
             // false and run the time marches on steps.
             if self.show_poster.get() {
                 self.show_poster.set(false);
-                self.time_marches_on();
+                self.time_marches_on(cx, PlaybackPositionWasMoved::NormalPlayback);
             }
 
             // Step 3.3. Queue a media element task given the media element to fire an event named
@@ -948,14 +1180,16 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ready-states>
-    fn change_ready_state(&self, ready_state: ReadyState) {
+    fn change_ready_state(&self, cx: &mut JSContext, ready_state: ReadyState) {
         let old_ready_state = self.ready_state.get();
+        let was_potentially_playing = self.is_potentially_playing();
         self.ready_state.set(ready_state);
 
+        // > When the ready state of a media element whose networkState is not NETWORK_EMPTY changes,
+        // > the user agent must follow the steps given below:
         if self.network_state.get() == NetworkState::Empty {
             return;
         }
-
         if old_ready_state == ready_state {
             return;
         }
@@ -965,18 +1199,17 @@ impl HTMLMediaElement {
             // => "If the previous ready state was HAVE_NOTHING, and the new ready state is
             // HAVE_METADATA"
             (ReadyState::HaveNothing, ReadyState::HaveMetadata) => {
-                // Queue a media element task given the media element to fire an event named
-                // loadedmetadata at the element.
+                // > Queue a media element task given the media element to fire an event named
+                // > loadedmetadata at the element.
                 self.queue_media_element_task_to_fire_event(atom!("loadedmetadata"));
-                // No other steps are applicable in this case.
                 return;
             },
             // => "If the previous ready state was HAVE_METADATA and the new ready state is
             // HAVE_CURRENT_DATA or greater"
             (ReadyState::HaveMetadata, new) if new >= ReadyState::HaveCurrentData => {
-                // If this is the first time this occurs for this media element since the load()
-                // algorithm was last invoked, the user agent must queue a media element task given
-                // the media element to fire an event named loadeddata at the element.
+                // > If this is the first time this occurs for this media element since the load()
+                // > algorithm was last invoked, the user agent must queue a media element task given
+                // > the media element to fire an event named loadeddata at the element.
                 if !self.fired_loadeddata_event.get() {
                     self.fired_loadeddata_event.set(true);
 
@@ -1000,63 +1233,109 @@ impl HTMLMediaElement {
                         }));
                 }
 
-                // Steps for the transition from HaveMetadata to HaveCurrentData
-                // or HaveFutureData also apply here, as per the next match
-                // expression.
+                // > If the new ready state is HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA,
+                // > then the relevant steps below must then be run also.
+                if new != ReadyState::HaveFutureData && new != ReadyState::HaveEnoughData {
+                    return;
+                }
             },
-            (ReadyState::HaveFutureData, new) if new <= ReadyState::HaveCurrentData => {
-                // FIXME(nox): Queue a task to fire timeupdate and waiting
-                // events if the conditions call from the spec are met.
+            _ => {},
+        }
+        match (old_ready_state, ready_state) {
+            // => "If the previous ready state was HAVE_FUTURE_DATA or more,
+            // and the new ready state is HAVE_CURRENT_DATA or less"
+            (old, new)
+                if old >= ReadyState::HaveFutureData && new <= ReadyState::HaveCurrentData =>
+            {
+                // > If the media element was potentially playing before its readyState
+                // > attribute changed to a value lower than HAVE_FUTURE_DATA,
+                // > and the element has not ended playback,
+                // > and playback has not stopped due to errors,
+                // > paused for user interaction, or paused for in-band content,
+                // > the user agent must queue a media element task given the media element
+                // > to fire an event named timeupdate at the element,
+                // > and queue a media element task given the media element
+                // > to fire an event named waiting at the element.
+                if was_potentially_playing &&
+                    !self.ended_playback(LoopCondition::Included) &&
+                    !self.error.get().is_none() &&
+                    !self.is_paused_for_user_interaction() &&
+                    !self.is_paused_for_in_band_content()
+                {
+                    self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
+                    self.queue_media_element_task_to_fire_event(atom!("waiting"));
+                }
+            },
 
-                // No other steps are applicable in this case.
-                return;
+            // => "If the previous ready state was HAVE_CURRENT_DATA or less,
+            // and the new ready state is HAVE_FUTURE_DATA"
+            (old, ReadyState::HaveFutureData) if old <= ReadyState::HaveCurrentData => {
+                // > The user agent must queue a media element task given the media element to fire an
+                // > event named canplay at the element.
+                self.queue_media_element_task_to_fire_event(atom!("canplay"));
+
+                // > If the element's paused attribute is false, the user agent must notify about playing
+                // > for the element.
+                if !self.Paused() {
+                    self.notify_about_playing();
+                }
+            },
+
+            // >= "If the new ready state is HAVE_ENOUGH_DATA"
+            (_, ReadyState::HaveEnoughData) => {
+                // > If the previous ready state was HAVE_CURRENT_DATA or less,
+                // > the user agent must queue a media element task given the media element
+                // > to fire an event named canplay at the element, and,
+                // > if the element's paused attribute is false, notify about playing for the element.
+                if old_ready_state <= ReadyState::HaveCurrentData {
+                    self.queue_media_element_task_to_fire_event(atom!("canplay"));
+                    if !self.Paused() {
+                        self.notify_about_playing();
+                    }
+                }
+
+                // > The user agent must queue a media element task given the media element to fire an
+                // > event named canplaythrough at the element.
+                self.queue_media_element_task_to_fire_event(atom!("canplaythrough"));
+
+                // > If the element is not eligible for autoplay,
+                // > then the user agent must abort these substeps.
+                if !self.eligible_for_autoplay() {
+                    self.update_media_state();
+                    return;
+                }
+
+                // > The user agent may run the following substeps:
+                if self.eligible_for_autoplay() {
+                    // Step 1. Set the paused attribute to false.
+                    self.paused.set(false);
+
+                    // Step 2. If the element's show poster flag is true, set it to false and run the
+                    // time marches on steps.
+                    if self.show_poster.get() {
+                        self.show_poster.set(false);
+                        self.time_marches_on(cx, PlaybackPositionWasMoved::NormalPlayback);
+                    }
+
+                    // Step 3. Queue a media element task given the element to fire an event named play
+                    // at the element.
+                    self.queue_media_element_task_to_fire_event(atom!("play"));
+
+                    // Step 4. Notify about playing for the element.
+                    self.notify_about_playing();
+                }
+
+                // > Alternatively, if the element is a video element,
+                // > the user agent may start observing whether the element intersects the viewport.
+                // > When the element starts intersecting the viewport,
+                // > if the element is still eligible for autoplay, run the substeps above.
+                // > Optionally, when the element stops intersecting the viewport,
+                // > if the can autoplay flag is still true and the autoplay attribute
+                // > is still specified, run the following substeps:
+                // TODO
             },
 
             _ => (),
-        }
-
-        // => "If the previous ready state was HAVE_CURRENT_DATA or less, and the new ready state is
-        // HAVE_FUTURE_DATA or more"
-        if old_ready_state <= ReadyState::HaveCurrentData &&
-            ready_state >= ReadyState::HaveFutureData
-        {
-            // The user agent must queue a media element task given the media element to fire an
-            // event named canplay at the element.
-            self.queue_media_element_task_to_fire_event(atom!("canplay"));
-
-            // If the element's paused attribute is false, the user agent must notify about playing
-            // for the element.
-            if !self.Paused() {
-                self.notify_about_playing();
-            }
-        }
-
-        // => "If the new ready state is HAVE_ENOUGH_DATA"
-        if ready_state == ReadyState::HaveEnoughData {
-            // The user agent must queue a media element task given the media element to fire an
-            // event named canplaythrough at the element.
-            self.queue_media_element_task_to_fire_event(atom!("canplaythrough"));
-
-            // If the element is eligible for autoplay, then the user agent may run the following
-            // substeps:
-            if self.eligible_for_autoplay() {
-                // Step 1. Set the paused attribute to false.
-                self.paused.set(false);
-
-                // Step 2. If the element's show poster flag is true, set it to false and run the
-                // time marches on steps.
-                if self.show_poster.get() {
-                    self.show_poster.set(false);
-                    self.time_marches_on();
-                }
-
-                // Step 3. Queue a media element task given the element to fire an event named play
-                // at the element.
-                self.queue_media_element_task_to_fire_event(atom!("play"));
-
-                // Step 4. Notify about playing for the element.
-                self.notify_about_playing();
-            }
         }
 
         self.update_media_state();
@@ -1674,6 +1953,10 @@ impl HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#potentially-playing>
     fn is_potentially_playing(&self) -> bool {
+        // > A media element is said to be potentially playing when
+        // > its paused attribute is false, the element has not ended playback,
+        // > playback has not stopped due to errors,
+        // > and the element is not a blocked media element.
         !self.paused.get() &&
             !self.ended_playback(LoopCondition::Included) &&
             self.error.get().is_none() &&
@@ -1764,7 +2047,7 @@ impl HTMLMediaElement {
 
             // Step 7.5. If readyState is not set to HAVE_NOTHING, then set it to that state.
             if self.ready_state.get() != ReadyState::HaveNothing {
-                self.change_ready_state(ReadyState::HaveNothing);
+                self.change_ready_state(cx, ReadyState::HaveNothing);
             }
 
             // Step 7.6. If the paused attribute is false, then:
@@ -2079,7 +2362,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-seek>
-    fn seek_end(&self) {
+    fn seek_end(&self, cx: &mut JSContext) {
         // Any time the user agent provides a stable state, the official playback position must be
         // set to the current playback position.
         self.official_playback_position
@@ -2091,7 +2374,7 @@ impl HTMLMediaElement {
         self.current_seek_position.set(f64::NAN);
 
         // Step 15. Run the time marches on steps.
-        self.time_marches_on();
+        self.time_marches_on(cx, PlaybackPositionWasMoved::ExplicitMove);
 
         // Step 16. Queue a media element task given the media element to fire an event named
         // timeupdate at the element.
@@ -2196,6 +2479,20 @@ impl HTMLMediaElement {
         let player_id = {
             let player_guard = player.lock().unwrap();
 
+            // We flag the media to enable download buffering when it's supposed to be big and
+            // that happens heuristically for videos with preload="auto" and audio that loops.
+            let is_video = matches!(
+                self.media_type_id(),
+                HTMLMediaElementTypeId::HTMLVideoElement
+            );
+            let should_enable_download_buffering =
+                (is_video || self.Loop()) && self.Preload() == "auto";
+            if let Err(error) =
+                player_guard.set_download_buffering_enabled(should_enable_download_buffering)
+            {
+                warn!("Could not set download buffering: {error:?}");
+            }
+
             if let Err(error) = player_guard.set_mute(self.muted.get()) {
                 warn!("Could not set mute state: {error:?}");
             }
@@ -2297,7 +2594,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reaches-the-end>
-    fn end_of_playback_in_forwards_direction(&self) {
+    fn end_of_playback_in_forwards_direction(&self, cx: &mut JSContext) {
         // When the current playback position reaches the end of the media resource when the
         // direction of playback is forwards, then the user agent must follow these steps:
 
@@ -2352,7 +2649,7 @@ impl HTMLMediaElement {
             }));
 
         // <https://html.spec.whatwg.org/multipage/#dom-media-have_current_data>
-        self.change_ready_state(ReadyState::HaveCurrentData);
+        self.change_ready_state(cx, ReadyState::HaveCurrentData);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reaches-the-end>
@@ -2366,14 +2663,14 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_end(&self) {
+    fn playback_end(&self, cx: &mut JSContext) {
         // Abort the following steps of the end of playback if seeking is in progress.
         if self.seeking.get() {
             return;
         }
 
         match self.direction_of_playback() {
-            PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(),
+            PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(cx),
             PlaybackDirection::Backwards => self.end_of_playback_in_backwards_direction(),
         }
     }
@@ -2589,7 +2886,7 @@ impl HTMLMediaElement {
         }
 
         // Step 6. Set the readyState attribute to HAVE_METADATA.
-        self.change_ready_state(ReadyState::HaveMetadata);
+        self.change_ready_state(cx, ReadyState::HaveMetadata);
 
         // Step 7. Let jumped be false.
         let mut jumped = false;
@@ -2761,7 +3058,17 @@ impl HTMLMediaElement {
             .add(self.current_playback_position.get(), position);
         self.current_playback_position.set(position);
         self.official_playback_position.set(position);
-        self.time_marches_on();
+        // https://html.spec.whatwg.org/multipage/#playing-the-media-resource
+        // > When the current playback position of a media element changes (e.g. due to playback or seeking),
+        // > the user agent must run the time marches on steps.
+        // > To support use cases that depend on the timing accuracy of cue event firing,
+        // > such as synchronizing captions with shot changes in a video,
+        // > user agents should fire cue events as close as possible to their position on the media timeline,
+        // > and ideally within 20 milliseconds.
+        // > If the current playback position changes while the steps are running,
+        // > then the user agent must wait for the steps to complete, and then must immediately rerun the steps.
+        // > These steps are thus run as often as possible or needed.
+        self.time_marches_on(cx, PlaybackPositionWasMoved::NormalPlayback);
 
         let media_position_state =
             MediaPositionState::new(self.duration.get(), self.playback_rate.get(), position);
@@ -2799,13 +3106,13 @@ impl HTMLMediaElement {
             PlaybackState::Paused => {
                 media_session_playback_state = MediaSessionPlaybackState::Paused;
                 if self.ready_state.get() == ReadyState::HaveMetadata {
-                    self.change_ready_state(ReadyState::HaveEnoughData);
+                    self.change_ready_state(cx, ReadyState::HaveEnoughData);
                 }
             },
             PlaybackState::Playing => {
                 media_session_playback_state = MediaSessionPlaybackState::Playing;
                 if self.ready_state.get() == ReadyState::HaveMetadata {
-                    self.change_ready_state(ReadyState::HaveEnoughData);
+                    self.change_ready_state(cx, ReadyState::HaveEnoughData);
                 }
             },
             PlaybackState::Buffering => {
@@ -2998,7 +3305,41 @@ impl HTMLMediaElement {
         true
     }
 
-    pub(crate) fn was_added_to_list_of_text_tracks(&self) {
+    /// <https://html.spec.whatwg.org/multipage/#list-of-newly-introduced-cues>
+    pub(crate) fn add_newly_added_cue(&self, cx: &mut JSContext, cue: &TextTrackCue) {
+        // > Whenever a text track cue is added to the list of cues of a text track
+        // > that is in the list of text tracks for a media element,
+        // > that cue must be added to the media element's list of newly introduced cues.
+        self.newly_introduced_cues
+            .borrow_mut()
+            .push(Dom::from_ref(cue));
+        // > When a media element's list of newly introduced cues has new cues added
+        // > while the media element's show poster flag is not set,
+        // > then the user agent must run the time marches on steps.
+        if !self.show_poster.get() {
+            self.time_marches_on(cx, PlaybackPositionWasMoved::ExplicitMove);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#list-of-newly-introduced-cues>
+    pub(crate) fn was_added_to_list_of_text_tracks(&self, cx: &mut JSContext, track: &TextTrack) {
+        // > Whenever a text track is added to the list of text tracks for a media element,
+        // all of the cues in that text track's list of cues must be added to
+        // the media element's list of newly introduced cues.
+        let cues = track.get_cues();
+        let has_new_cues = !cues.is_empty();
+        for cue in cues {
+            self.newly_introduced_cues
+                .borrow_mut()
+                .push(cue.as_traced());
+        }
+        // > When a media element's list of newly introduced cues has new cues added
+        // > while the media element's show poster flag is not set,
+        // > then the user agent must run the time marches on steps.
+        if has_new_cues && !self.show_poster.get() {
+            self.time_marches_on(cx, PlaybackPositionWasMoved::ExplicitMove);
+        }
+
         // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks
         // > When a text track corresponding to a track element is added to a media element's list of text tracks,
         // > the user agent must queue a media element task given the media element to
@@ -3050,7 +3391,11 @@ impl HTMLMediaElement {
         let Some(text_tracks_list) = self.text_tracks_list.get() else {
             return;
         };
-        let candidates = text_tracks_list.tracks_for_kinds(text_track_kinds);
+        let candidates: Vec<DomRoot<TextTrack>> = text_tracks_list
+            .iter(cx.no_gc())
+            .filter(|track| text_track_kinds.contains(&track.Kind()))
+            .map(|track| track.as_rooted())
+            .collect();
         // Step 2. If candidates is empty, then return.
         if candidates.is_empty() {
             return;
@@ -3422,7 +3767,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         // > in the same order as in the list of text tracks.
         let window = self.owner_window();
         self.text_tracks_list
-            .or_init(|| TextTrackList::new(cx, &window, &[]))
+            .or_init(|| TextTrackList::new(cx, self, &window, &[]))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-addtexttrack>
@@ -3443,7 +3788,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         let track = TextTrack::new(
             cx,
             &window,
-            "".into(),
+            DOMString::new(),
             kind,
             label,
             language,
@@ -3455,7 +3800,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         // named addtrack at the media element's textTracks attribute's TextTrackList object,
         // using TrackEvent, with the track attribute initialized to
         // the new text track's TextTrack object.
-        self.TextTracks(cx).add(self, &track);
+        self.TextTracks(cx).add(cx, &track);
         // Step 5. Return the new TextTrack object.
         DomRoot::from_ref(&track)
     }
@@ -3648,7 +3993,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 generation_id,
             } => {
                 if generation_id == elem.generation_id.get() {
-                    elem.seek_end();
+                    elem.seek_end(cx);
                 }
             },
             &MediaElementMicrotask::SelectNextSourceChild {
@@ -4169,7 +4514,7 @@ impl HTMLMediaElementEventHandler {
 
         match event {
             PlayerEvent::DurationChanged(duration) => element.playback_duration_changed(duration),
-            PlayerEvent::EndOfStream => element.playback_end(),
+            PlayerEvent::EndOfStream => element.playback_end(cx),
             PlayerEvent::EnoughData => element.playback_enough_data(),
             PlayerEvent::Error(ref error) => element.playback_error(error, cx),
             PlayerEvent::MetadataUpdated(ref metadata) => {

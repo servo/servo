@@ -11,7 +11,7 @@ promise_test(async t => {
   await ensureLanguageModel();
   const session = await createLanguageModel();
   const response = await session.prompt(
-      'Derive a rating between -1.0 and 1.0 from "Absolutely the best meal ever!"',
+      'Rate the sentiment of "Absolutely the best meal ever!" on a scale from -1.0 (worst) to 1.0 (best).',
       {responseConstraint: {type: 'number', minimum: -1.0, maximum: 1.0}});
   const jsonResponse = parse_json_response(response);
   assert_equals(typeof jsonResponse, 'number', 'Response should be a number');

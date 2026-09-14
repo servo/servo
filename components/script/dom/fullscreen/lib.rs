@@ -290,7 +290,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
     /// Step 9-14 of <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
     fn run_once(self, cx: &mut js::context::JSContext) {
         let element = self.element.root();
-        let promise = self.promise.root();
+        let promise = self.promise.root(cx);
         let document = element.owner_document();
 
         // Step 9
@@ -368,6 +368,6 @@ impl TaskOnce for ElementPerformFullscreenExit {
 
         // Step 16
         // > Resolve promise with undefined.
-        self.promise.root().resolve_native(cx, &());
+        self.promise.root(cx).resolve_native(cx, &());
     }
 }

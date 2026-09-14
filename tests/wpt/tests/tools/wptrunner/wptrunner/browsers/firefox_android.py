@@ -177,6 +177,11 @@ class ProfileCreator(FirefoxProfileCreator):
         }
 
     def _get_default_prefs(self):
+        """Preferences that are applied to the profile of a test run.
+
+        See the note on the base class implementation: these are not visible to
+        "run_info_extras", so a run info flag does not reflect them.
+        """
         prefs = self.default_prefs()
         prefs.update(
             {
@@ -215,7 +220,8 @@ class ProfileCreator(FirefoxProfileCreator):
                 }
             )
         else:
-            # Except for wdspec dispatch wheel scroll as widget event by default.
+            # Dispatch wheel scroll as widget event by default. It stays
+            # disabled for wdspec until it can be enabled for all input sources.
             prefs["remote.events.async.wheel.enabled"] = True
 
         return prefs

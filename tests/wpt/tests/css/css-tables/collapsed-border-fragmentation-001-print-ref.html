@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Collapsed borders in the block direction are painted on a table fragment that is continued</title>
+<style>
+@page {
+  size: 5in 3in;
+  margin: 0.5in;
+}
+
+:root {
+  print-color-adjust: exact;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: white;
+}
+
+p {
+  margin: 0 0 12px;
+  height: 36px;
+  font: 12px/1.5 sans-serif;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 0;
+}
+
+td {
+  width: 100px;
+  height: 60px;
+  padding: 0;
+  border: none;
+}
+
+td + td {
+  border-inline-start: 8px solid black;
+}
+</style>
+<p>Test passes if a vertical black line separates the two columns of the table below.</p>
+<table>
+  <tr><td></td><td></td></tr>
+  <tr><td></td><td></td></tr>
+</table>

@@ -6,7 +6,6 @@
 
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::HashMap;
-use std::ffi::c_void;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
@@ -87,8 +86,8 @@ use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
 use crate::query::{
-    find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
-    process_box_areas_request, process_client_rect_request,
+    BoxAreaInclusion, find_character_offset_in_fragment_descendants, get_the_text_steps,
+    process_box_area_request, process_box_areas_request, process_client_rect_request,
     process_containing_block_descendant_query, process_containing_block_query,
     process_current_css_zoom_query, process_effective_overflow_query,
     process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
@@ -409,13 +408,13 @@ impl Layout for LayoutThread {
             let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow();
             let stacking_context_tree = stacking_context_tree.as_ref()?;
-            process_box_area_request(
-                self,
-                stacking_context_tree,
-                node,
-                area,
-                exclude_transform_and_inline,
-            )
+            let inclusion = if exclude_transform_and_inline {
+                BoxAreaInclusion::empty()
+            } else {
+                BoxAreaInclusion::Transforms | BoxAreaInclusion::Inlines
+            };
+
+            process_box_area_request(self, stacking_context_tree, node, area, inclusion)
         })
     }
 
@@ -1088,18 +1087,11 @@ impl LayoutThread {
         let pending_svg_elements_for_serialization =
             std::mem::take(&mut *image_resolver.pending_svg_elements_for_serialization.lock());
 
-        let (lcp_candidate, lcp_node_address) = self
+        let lcp_candidate = self
             .paint_timing_handler
             .borrow()
             .as_ref()
-            .map(|handler| {
-                (
-                    handler.largest_contentful_paint_candidate(),
-                    handler
-                        .lcp_node()
-                        .map(|node| UntrustedNodeAddress(node.id() as *const c_void)),
-                )
-            })
+            .map(|handler| handler.largest_contentful_paint_candidate())
             .unwrap_or_default();
 
         Some(ReflowResult {
@@ -1111,7 +1103,6 @@ impl LayoutThread {
             reflow_statistics,
             changed_web_fonts,
             lcp_candidate,
-            lcp_node_address,
         })
     }
 
@@ -1542,24 +1533,21 @@ impl LayoutThread {
             paint_timing_handler,
             reflow_statistics,
         );
-        paint_timing_handler.mark_paint_timing(reflow_request.halt_lcp);
+        stacking_context_tree.paint_info.paint_timing_report =
+            paint_timing_handler.mark_paint_timing(reflow_request.halt_lcp);
+
+        if let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate() {
+            stacking_context_tree.paint_info.lcp_candidate =
+                Some((lcp_candidate.id, lcp_candidate.area));
+        } else {
+            stacking_context_tree.paint_info.lcp_candidate = None;
+        }
+
         self.paint_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.paint_info,
             built_display_list,
         );
-
-        if paint_timing_handler.did_lcp_candidate_update() &&
-            let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()
-        {
-            self.paint_api.send_lcp_candidate(
-                lcp_candidate,
-                self.webview_id,
-                self.id,
-                stacking_context_tree.paint_info.epoch,
-            );
-            paint_timing_handler.unset_lcp_candidate_updated();
-        }
 
         let (keys, instance_keys) = self
             .font_context

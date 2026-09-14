@@ -70,6 +70,57 @@ test(_ => {
   document.body.appendChild(document.importNode(d.rootElement, true));
   assert_equals(window.mark, 0);
 }, "parseFromString as XML, svg script, append importNode result, but with namespace prefix");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<svg xmlns='http://www.w3.org/2000/svg'><script>window.mark = 1;</sc" + "ript></svg>", "text/xml");
+  document.body.appendChild(document.adoptNode(d.rootElement));
+  assert_equals(window.mark, 0);
+}, "parseFromString as XML, svg script, append adoptNode result");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<svg xmlns='http://www.w3.org/2000/svg'><script>window.mark = 1;</sc" + "ript></svg>", "text/xml");
+  document.body.appendChild(d.rootElement.cloneNode(true));
+  assert_equals(window.mark, 0);
+}, "parseFromString as XML, svg script, append cloneNode result");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<html xmlns='http://www.w3.org/1999/xhtml'><body><script>window.mark = 1;</sc" + "ript></body></html>", "application/xhtml+xml");
+  document.body.appendChild(document.importNode(d.documentElement, true));
+  assert_equals(window.mark, 0);
+}, "parseFromString as XHTML, whole root, append importNode result");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<html xmlns='http://www.w3.org/1999/xhtml'><body><script>window.mark = 1;</sc" + "ript></body></html>", "application/xhtml+xml");
+  const script = d.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "script")[0];
+  document.body.appendChild(document.importNode(script, true));
+  assert_equals(window.mark, 0);
+}, "parseFromString as XHTML, script, append importNode result");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<html xmlns='http://www.w3.org/1999/xhtml'><body><script>window.mark = 1;</sc" + "ript></body></html>", "application/xhtml+xml");
+  const script = d.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "script")[0];
+  document.body.appendChild(document.adoptNode(script));
+  assert_equals(window.mark, 0);
+}, "parseFromString as XHTML, script, append adoptNode result");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<html xmlns='http://www.w3.org/1999/xhtml'><body><script>window.mark = 1;</sc" + "ript></body></html>", "application/xhtml+xml");
+  const script = d.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "script")[0];
+  document.body.appendChild(script.cloneNode(true));
+  assert_equals(window.mark, 0);
+}, "parseFromString as XHTML, script, append cloneNode result");
 </script>
 </body>
 </html>

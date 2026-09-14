@@ -319,7 +319,7 @@ impl MimeClassifier {
             (mt.type_() == mime::APPLICATION &&
                 ([
                     "font-cff",
-                    "font-off",
+                    "font-otf",
                     "font-sfnt",
                     "font-ttf",
                     "font-woff",

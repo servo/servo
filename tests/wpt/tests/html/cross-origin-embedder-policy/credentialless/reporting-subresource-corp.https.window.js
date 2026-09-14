@@ -35,7 +35,16 @@ async function fetchInFrame(t, frameUrl, url, expected_count) {
   const frame = await with_iframe(frameUrl);
   t.add_cleanup(() => frame.remove());
 
-  const init = { mode: 'no-cors', cache: 'no-store' };
+  // Explicitly specify `credentials: 'include'`.
+  // Per WHATWG Fetch (4.5 HTTP-redirect fetch and 4.6 HTTP-network-or-cache
+  // fetch, step 8), requests with the default 'same-origin' credentials mode
+  // drop their credentials on a cross-origin redirect because response tainting
+  // transitions to 'opaque', causing includeCredentials to evaluate to false.
+  // In order for the cross-origin request to actually carry credentials (as
+  // this test intends, to verify that CORP blocks credentialed responses
+  // entering a COEP:credentialless document), `credentials: 'include'` must
+  // be explicitly requested.
+  const init = {mode: 'no-cors', credentials: 'include', cache: 'no-store'};
   let future_reports = observeReports(frame.contentWindow, expected_count);
   await frame.contentWindow.fetch(url, init).catch(() => {});
 
@@ -52,10 +61,10 @@ function checkReport(report, contextUrl, blockedUrl, disposition, destination) {
 }
 
 // A redirection is used, so that the initial request is same-origin and is
-// proxyied through the service worker. The ServiceWorker is COEP:unsafe-none,
-// so it will make the cross-origin request with credentials. The fetch will
-// succeed, but the response will be blocked by CORP when entering the
-// COEP:credentialless document.
+// proxied through the service worker. The ServiceWorker is COEP:unsafe-none,
+// so it will make the cross-origin request with credentials (via
+// credentials: 'include'). The fetch will succeed, but the response will be
+// blocked by CORP when entering the COEP:credentialless document.
 // https://github.com/w3c/ServiceWorker/issues/1592
 promise_test(async (t) => {
   const url = `${ORIGIN}/common/redirect.py?location=` +

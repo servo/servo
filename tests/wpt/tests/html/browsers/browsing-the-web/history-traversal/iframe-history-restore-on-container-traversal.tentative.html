@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Iframe JS-navigated URL is preserved on container back-traversal but not reload</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<script>
+"use strict";
+
+// Note: bfcache won't mess with any windows with openers, so it doesn't
+// interfere with these tests.
+
+// Tentative due to https://github.com/whatwg/html/issues/12872
+
+promise_test(async t => {
+  // Open and wait for load
+  const w = await openWindow("../resources/has-iframe.html", t);
+  const iframe = w.document.querySelector("iframe");
+  const srcURL = iframe.contentWindow.location.href;
+  assert_equals(w.history.length, 1);
+
+  // Navigate the iframe to a different URL.
+  await waitToAvoidReplace(t);
+  iframe.contentWindow.location.href = "/common/blank.html?navigated";
+  await waitForIframeLoad(iframe);
+  assert_equals(w.history.length, 2);
+  assert_not_equals(iframe.contentWindow.location.href, srcURL);
+
+  // Navigate the container away and back
+  w.location.href = "../resources/post-top-opener-on-load.html";
+  await waitForMessage(w);
+  assert_equals(w.history.length, 3);
+
+  w.history.back();
+  await waitForMessage(w);
+
+  const iframeAgain = w.document.querySelector("iframe");
+  assert_not_equals(iframeAgain.contentWindow.location.href, srcURL,
+    "iframe must be at its JS-navigated URL after container is recreated from network");
+}, "iframe is restored to JS-navigated URL when container traverses back");
+
+promise_test(async t => {
+  // Open and wait for load
+  const w = await openWindow("../resources/has-iframe.html", t);
+  const iframe = w.document.querySelector("iframe");
+  const srcURL = iframe.contentWindow.location.href;
+  assert_equals(w.history.length, 1);
+
+  // Navigate the iframe to a different URL.
+  await waitToAvoidReplace(t);
+  iframe.contentWindow.location.href = "/common/blank.html?navigated";
+  await waitForIframeLoad(iframe);
+  assert_equals(w.history.length, 2);
+  assert_not_equals(iframe.contentWindow.location.href, srcURL);
+
+  // Reload, has-iframe.html will send a message on load.
+  w.location.reload();
+  await waitForMessage(w);
+  assert_equals(w.history.length, 2);
+
+  const iframeAgain = w.document.querySelector("iframe");
+  assert_equals(iframeAgain.contentWindow.location.href, srcURL,
+    "iframe must be at its src URL after container is recreated from network");
+}, "iframe is not restored to JS-navigated URL when container is reloaded");
+</script>

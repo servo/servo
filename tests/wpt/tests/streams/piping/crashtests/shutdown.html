@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<script>
+let rc, wc;
+const rs = new ReadableStream({
+  start(c) {
+    rc = c;
+  },
+});
+const ws = new WritableStream({
+  start(c) {
+    wc = c;
+  },
+});
+rs.pipeTo(ws, { preventCancel: true }).catch(() => {});
+Promise.resolve().then(() => {
+  // Erroring triggers shutdown asynchronously
+  wc.error(new Error("boom"));
+  // Shutdown hasn't happened yet so this will still go through the pipe, but
+  // the shutdown will happen first before the pipe proceeds to write
+  rc.enqueue("chunk");
+  document.documentElement.classList.remove("test-wait");
+});
+</script>

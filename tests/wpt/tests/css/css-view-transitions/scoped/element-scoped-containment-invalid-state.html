@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <title>Element-scoped view transitions skip with InvalidStateError when not qualifying for layout containment</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <span id="non-atomic-inline">Non-atomic inline</span>
+  <div id="display-contents" style="display: contents;">Contents</div>
+  <div id="display-none" style="display: none;">None</div>
+  <table id="table">
+    <tr id="table-row">
+      <td id="table-cell">Cell</td>
+    </tr>
+  </table>
+  <div id="valid-div">Valid Div</div>
+
+<script>
+promise_test(async (t) => {
+  const vt = document.getElementById("non-atomic-inline").startViewTransition();
+  const finishedPromise = vt.finished.catch(() => {});
+  await promise_rejects_dom(t, "InvalidStateError", vt.ready,
+    "startViewTransition on non-atomic inline (span) must reject ready with InvalidStateError");
+  await finishedPromise;
+}, "startViewTransition on non-atomic inline (span) rejects ready with InvalidStateError");
+
+promise_test(async (t) => {
+  const vt = document.getElementById("display-contents").startViewTransition();
+  const finishedPromise = vt.finished.catch(() => {});
+  await promise_rejects_dom(t, "InvalidStateError", vt.ready,
+    "startViewTransition on display: contents must reject ready with InvalidStateError");
+  await finishedPromise;
+}, "startViewTransition on display: contents rejects ready with InvalidStateError");
+
+promise_test(async (t) => {
+  const vt = document.getElementById("display-none").startViewTransition();
+  const finishedPromise = vt.finished.catch(() => {});
+  await promise_rejects_dom(t, "InvalidStateError", vt.ready,
+    "startViewTransition on display: none must reject ready with InvalidStateError");
+  await finishedPromise;
+}, "startViewTransition on display: none rejects ready with InvalidStateError");
+
+promise_test(async (t) => {
+  const vt = document.getElementById("table-row").startViewTransition();
+  const finishedPromise = vt.finished.catch(() => {});
+  await promise_rejects_dom(t, "InvalidStateError", vt.ready,
+    "startViewTransition on table row (internal table element) must reject ready with InvalidStateError");
+  await finishedPromise;
+}, "startViewTransition on table row (internal table element) rejects ready with InvalidStateError");
+
+promise_test(async (t) => {
+  const validDiv = document.getElementById("valid-div");
+  const vt = validDiv.startViewTransition(async () => {
+    // Modify style during the transition to preclude layout containment!
+    validDiv.style.display = "inline";
+  });
+
+  // Catch the rejection so it doesn't trigger global unhandledrejection
+  const readyPromise = vt.ready.catch(() => {});
+  const finishedPromise = vt.finished.catch(() => {});
+
+  await promise_rejects_dom(t, "InvalidStateError", vt.ready,
+    "vt.ready should be rejected with InvalidStateError when style changes to precluding type during the transition.");
+
+  await finishedPromise;
+}, "Element-scoped view transition is aborted if style changes to preclude layout containment");
+
+</script>
+</body>
+</html>

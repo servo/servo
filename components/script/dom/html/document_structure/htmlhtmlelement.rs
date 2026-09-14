@@ -5,9 +5,11 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::HTMLHtmlElementBinding::HTMLHtmlElementMethods;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
@@ -46,4 +48,9 @@ impl HTMLHtmlElement {
         n.upcast::<Node>().set_weird_parser_insertion_mode();
         n
     }
+}
+
+impl HTMLHtmlElementMethods<crate::DomTypeHolder> for HTMLHtmlElement {
+    make_getter!(Version, "version");
+    make_setter!(SetVersion, "version");
 }

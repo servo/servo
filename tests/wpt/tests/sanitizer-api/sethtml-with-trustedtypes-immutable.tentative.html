@@ -76,6 +76,13 @@
         assert_not_equals(d.querySelector("#allowed"), null);
       }, `createParserOptions doesn't mutate sanitizer object`);
 
+      test(() => {
+        assert_true("TrustedHTMLParserOptions" in window, "TrustedHTMLParserOptions should be exposed on window");
+        assert_false("TrustedParserOptions" in window, "TrustedParserOptions should not be exposed on window");
+        const protoNames = Object.getOwnPropertyNames(TrustedHTMLParserOptions.prototype);
+        assert_array_equals(protoNames, ["constructor"], "TrustedHTMLParserOptions must have no public members");
+      }, "TrustedHTMLParserOptions interface has no public members");
+
       test((t) => {
         let callback_sanitizer = null;
         const policy = trustedTypes.createPolicy("p1", {
@@ -90,13 +97,10 @@
         const options = policy.createParserOptions({ sanitizer: { removeElements: ["span"] } });
         assert_true(callback_sanitizer instanceof Sanitizer, "callback should receive a Sanitizer object");
 
-        // 2. Check that the returned TrustedParserOptions contains a Sanitizer object.
-        assert_true(options.sanitizer() instanceof Sanitizer, "TrustedParserOptions.sanitizer() should return a Sanitizer");
-        assert_not_equals(options.sanitizer(), options.sanitizer(), "calling sanitizer() twice should return different objects");
-
-        // 3. Mutating the Sanitizer returned by the method does not affect sanitizing.
-        // The config had removeElements: ["span"]. Let's try to mutate the returned sanitizer to also remove "div".
-        options.sanitizer().removeElement("div");
+        // 2. Check that the returned object is a TrustedHTMLParserOptions with no public members.
+        assert_true(options instanceof TrustedHTMLParserOptions, "createParserOptions should return a TrustedHTMLParserOptions");
+        assert_false("sanitizer" in options, "TrustedHTMLParserOptions should have no public sanitizer member");
+        assert_false("runScripts" in options, "TrustedHTMLParserOptions should have no public runScripts member");
 
         const d = document.createElement("div");
         document.querySelector("#container").appendChild(d);
@@ -104,11 +108,9 @@
 
         d.setHTMLUnsafe("<div>Allowed<span>Forbidden</span></div>", options);
 
-        // "div" should NOT be removed (because mutation on options.sanitizer() has no effect on the clone used for parsing).
-        assert_not_equals(d.querySelector("div"), null, "div should not be removed by mutated sanitizer");
-        // "span" should still be removed (because the original config specified removeElements: ["span"]).
+        assert_not_equals(d.querySelector("div"), null, "div should not be removed");
         assert_equals(d.querySelector("span"), null, "span should be removed by original sanitizer configuration");
-      }, "TrustedParserOptions sanitizer clone testing with config input");
+      }, "TrustedHTMLParserOptions with config input applies sanitization without public members");
 
       test((t) => {
         let callback_sanitizer = null;
@@ -124,10 +126,9 @@
         const options = policy.createParserOptions({ sanitizer: s });
         assert_true(callback_sanitizer instanceof Sanitizer, "callback should receive a Sanitizer object");
         assert_not_equals(callback_sanitizer, s, "callback sanitizer should be a clone, not the original");
-        assert_true(options.sanitizer() instanceof Sanitizer, "TrustedParserOptions.sanitizer() should return a Sanitizer");
-        assert_not_equals(options.sanitizer(), s, "method sanitizer() should return a clone, not the original");
-        assert_not_equals(options.sanitizer(), options.sanitizer(), "method sanitizer() should return different object references in every call");
-      }, "TrustedParserOptions sanitizer clone testing with Sanitizer object input");
+        assert_true(options instanceof TrustedHTMLParserOptions, "should return a TrustedHTMLParserOptions");
+        assert_false("sanitizer" in options, "TrustedHTMLParserOptions should have no public sanitizer member");
+      }, "TrustedHTMLParserOptions clone testing with Sanitizer object input");
 
       test((t) => {
         let callback_sanitizer = null;
@@ -141,8 +142,9 @@
 
         const options = policy.createParserOptions({ sanitizer: "default" });
         assert_true(callback_sanitizer instanceof Sanitizer, "callback should receive a Sanitizer object when preset is passed");
-        assert_true(options.sanitizer() instanceof Sanitizer, "TrustedParserOptions.sanitizer() should return a Sanitizer when preset is passed");
-      }, "TrustedParserOptions sanitizer clone testing with Preset string input");
+        assert_true(options instanceof TrustedHTMLParserOptions, "should return a TrustedHTMLParserOptions");
+        assert_false("sanitizer" in options, "TrustedHTMLParserOptions should have no public sanitizer member");
+      }, "TrustedHTMLParserOptions with Preset string input");
     </script>
   </body>
 </html>

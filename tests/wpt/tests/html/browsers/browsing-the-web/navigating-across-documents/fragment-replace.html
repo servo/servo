@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>location.replace() with a fragment keeps history intact</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#scroll-to-fragid">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+setup({ allow_uncaught_exception: false });
+
+promise_test(async t => {
+  if (document.readyState !== "complete") {
+    await new Promise(resolve => {
+      window.addEventListener("load", resolve, { once: true });
+    });
+  }
+  // Finish load event dispatch before fragment navigation.
+  await new Promise(resolve => {
+    t.step_timeout(resolve, 0);
+  });
+  const startingLength = history.length;
+  const assignmentsFinished = new Promise(resolve => {
+    function listener(event) {
+      if (new URL(event.newURL).hash === "#cat") {
+        window.removeEventListener("hashchange", listener);
+        resolve();
+      }
+    }
+    window.addEventListener("hashchange", listener);
+    t.add_cleanup(() => window.removeEventListener("hashchange", listener));
+  });
+  for (const [index, hash] of ["apple", "banana", "cat"].entries()) {
+    location.assign(`#${hash}`);
+    assert_equals(location.hash, `#${hash}`, "Assigning a fragment updates the URL synchronously");
+    assert_equals(history.length, startingLength + index + 1, "Assigning a fragment updates history synchronously");
+  }
+  await assignmentsFinished;
+  assert_equals(location.hash, "#cat");
+  assert_equals(history.length, startingLength + 3);
+  let changed = new Promise(resolve => {
+    window.addEventListener("hashchange", resolve, { once: true });
+  });
+  history.back();
+  assert_equals(location.hash, "#cat", "Going back does not update the URL synchronously");
+  assert_equals(history.length, startingLength + 3);
+  await changed;
+  assert_equals(location.hash, "#banana");
+  changed = new Promise(resolve => {
+    window.addEventListener("hashchange", resolve, { once: true });
+  });
+  location.replace("#zebra");
+  assert_equals(location.hash, "#zebra", "Replacing a fragment updates the URL synchronously");
+  assert_equals(history.length, startingLength + 3, "Replacing a fragment preserves history length synchronously");
+  await changed;
+  assert_equals(location.hash, "#zebra");
+  changed = new Promise(resolve => {
+    window.addEventListener("hashchange", resolve, { once: true });
+  });
+  history.forward();
+  assert_equals(location.hash, "#zebra", "Going forward does not update the URL synchronously");
+  assert_equals(history.length, startingLength + 3);
+  await changed;
+  assert_equals(location.hash, "#cat");
+  assert_equals(history.length, startingLength + 3);
+}, "Replacing a fragment history entry preserves the forward entry and history length");
+</script>

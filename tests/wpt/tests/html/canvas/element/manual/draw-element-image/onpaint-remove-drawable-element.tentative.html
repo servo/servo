@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<title>canvas.onpaint should fire when an element with the drawable attribute is removed from the DOM</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  canvas {
+    background: blue;
+  }
+  div, span {
+    width: 50px;
+    height: 50px;
+    background: green;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="parent_div">
+    <div id="nested_drawable" drawable></div>
+    <span id="nested_inline_drawable" drawable>text</span>
+    <div id="non_drawable_descendant">
+      <div id="deep_nested_drawable" drawable></div>
+    </div>
+  </div>
+  <div id="direct_drawable" drawable></div>
+</canvas>
+
+<script>
+  'use strict';
+
+  async function waitForOneFrame() {
+    await new Promise(requestAnimationFrame);
+    await new Promise(setTimeout);
+  }
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = () => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    deep_nested_drawable.remove();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a deeply nested drawable element is removed.');
+    // Note this should probably change when we stop automatically making all
+    // direct canvas children drawable.
+    assert_array_equals(lastChanged, [parent_div],
+      'The removed element\'s first drawable ancestor should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire when a deeply nested element with the drawable attribute is removed');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = () => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    nested_drawable.remove();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a nested drawable element is removed.');
+    // Note this should probably change when we stop automatically making all
+    // direct canvas children drawable.
+    assert_array_equals(lastChanged, [parent_div],
+      'The removed element\'s parent should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire when a nested element with the drawable attribute is removed');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = () => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    direct_drawable.remove();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a direct drawable element is removed.');
+    assert_array_equals(lastChanged, [],
+      'No elements should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire when a direct child with the drawable attribute is removed');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = () => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    nested_inline_drawable.remove();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a nested inline drawable element is removed.');
+    // Note this should probably change when we stop automatically making all
+    // direct canvas children drawable.
+    assert_array_equals(lastChanged, [parent_div],
+      'The removed element\'s parent should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire when an inline element with the drawable attribute is removed');
+</script>

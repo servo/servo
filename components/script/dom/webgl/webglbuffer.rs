@@ -109,7 +109,7 @@ impl Drop for DroppableWebGLBuffer {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLBuffer {
     webgl_object: WebGLObject,
     /// The target to which this buffer was bound the first time

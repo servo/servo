@@ -13,7 +13,7 @@ fn test_font_template_descriptor() {
     use fonts::platform::font::PlatformFont;
     use fonts::{FontData, FontIdentifier, FontTemplateDescriptor, PlatformFontMethods};
     use servo_url::ServoUrl;
-    use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
+    use style::values::computed::font::{FontStyle, FontWeight, FontWidth};
 
     fn descriptor(filename: &str) -> FontTemplateDescriptor {
         let mut path: PathBuf = [
@@ -42,32 +42,24 @@ fn test_font_template_descriptor() {
 
     assert_eq!(
         descriptor("DejaVuSans"),
-        FontTemplateDescriptor::new(
-            FontWeight::NORMAL,
-            FontStretch::hundred(),
-            FontStyle::NORMAL,
-        )
+        FontTemplateDescriptor::new(FontWeight::NORMAL, FontWidth::hundred(), FontStyle::NORMAL)
     );
 
     assert_eq!(
         descriptor("DejaVuSans-Bold"),
-        FontTemplateDescriptor::new(FontWeight::BOLD, FontStretch::hundred(), FontStyle::NORMAL,)
+        FontTemplateDescriptor::new(FontWeight::BOLD, FontWidth::hundred(), FontStyle::NORMAL)
     );
 
     assert_eq!(
         descriptor("DejaVuSans-Oblique"),
-        FontTemplateDescriptor::new(
-            FontWeight::NORMAL,
-            FontStretch::hundred(),
-            FontStyle::ITALIC,
-        )
+        FontTemplateDescriptor::new(FontWeight::NORMAL, FontWidth::hundred(), FontStyle::ITALIC)
     );
 
     assert_eq!(
         descriptor("DejaVuSansCondensed-BoldOblique"),
         FontTemplateDescriptor::new(
             FontWeight::BOLD,
-            FontStretch::from_percentage(0.875),
+            FontWidth::from_percentage(0.875),
             FontStyle::ITALIC,
         )
     );

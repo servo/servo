@@ -81,7 +81,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 
 // Named elliptic curves
 const NAMED_CURVE_P256: &str = "P-256";
@@ -218,13 +218,13 @@ impl SubtleCrypto {
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with the result of creating an ArrayBuffer in realm, containing data. If it fails
     /// to create buffer source, reject promise with a JSFailedError.
-    fn resolve_promise_with_data(&self, promise: Rc<Promise>, data: Zeroizing<Vec<u8>>) {
-        let trusted_promise = TrustedPromise::new(promise);
+    fn resolve_promise_with_data(&self, promise: &RootedPromise, data: Zeroizing<Vec<u8>>) {
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
             .queue(task!(resolve_data: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
 
                 rooted!(&in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
                 match create_buffer_source::<ArrayBufferU8>(cx,
@@ -243,7 +243,7 @@ impl SubtleCrypto {
     fn resolve_promise_with_jwk(
         &self,
         cx: &mut js::context::JSContext,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
         jwk: Box<JsonWebKey>,
     ) {
         // NOTE: Serialize the JsonWebKey dictionary by stringifying it, in order to pass it to
@@ -257,13 +257,13 @@ impl SubtleCrypto {
         };
 
         let trusted_subtle = Trusted::new(self);
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
             .queue(task!(resolve_jwk: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
 
                 match JsonWebKey::parse(cx, stringified_jwk.as_bytes()) {
                     Ok(jwk) => {
@@ -273,7 +273,7 @@ impl SubtleCrypto {
                         promise.resolve_native(cx, &*object);
                     },
                     Err(error) => {
-                        subtle.reject_promise_with_error(promise, error);
+                        subtle.reject_promise_with_error(&promise, error);
                         return;
                     },
                 }
@@ -282,25 +282,25 @@ impl SubtleCrypto {
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with a CryptoKey.
-    fn resolve_promise_with_key(&self, promise: Rc<Promise>, key: &CryptoKey) {
+    fn resolve_promise_with_key(&self, promise: &RootedPromise, key: &CryptoKey) {
         let trusted_key = Trusted::new(key);
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
             .queue(task!(resolve_key: move |cx| {
                 let key = trusted_key.root();
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &key);
             }));
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with a CryptoKeyPair.
-    fn resolve_promise_with_key_pair(&self, promise: Rc<Promise>, key_pair: CryptoKeyPair) {
+    fn resolve_promise_with_key_pair(&self, promise: &RootedPromise, key_pair: CryptoKeyPair) {
         let trusted_private_key = key_pair.privateKey.map(|key| Trusted::new(&*key));
         let trusted_public_key = key_pair.publicKey.map(|key| Trusted::new(&*key));
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
@@ -309,33 +309,33 @@ impl SubtleCrypto {
                     privateKey: trusted_private_key.map(|trusted_key| trusted_key.root()),
                     publicKey: trusted_public_key.map(|trusted_key| trusted_key.root()),
                 };
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &key_pair);
             }));
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with a bool value.
-    fn resolve_promise_with_bool(&self, promise: Rc<Promise>, result: bool) {
-        let trusted_promise = TrustedPromise::new(promise);
+    fn resolve_promise_with_bool(&self, promise: &RootedPromise, result: bool) {
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
             .queue(task!(resolve_bool: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &result);
             }));
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to reject
     /// promise with an error.
-    fn reject_promise_with_error(&self, promise: Rc<Promise>, error: Error) {
-        let trusted_promise = TrustedPromise::new(promise);
+    fn reject_promise_with_error(&self, promise: &RootedPromise, error: Error) {
+        let trusted_promise = TrustedPromise::from(promise);
         self.global()
             .task_manager()
             .crypto_task_source()
             .queue(task!(reject_error: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.reject_error(cx, error);
             }));
     }
@@ -345,13 +345,13 @@ impl SubtleCrypto {
     /// defined by [WebIDL].
     fn resolve_promise_with_encapsulated_key(
         &self,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
         encapsulated_key: EncapsulatedKey,
     ) {
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         self.global().task_manager().crypto_task_source().queue(
             task!(resolve_encapsulated_key: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &encapsulated_key);
             }),
         );
@@ -362,13 +362,13 @@ impl SubtleCrypto {
     /// defined by [WebIDL].
     fn resolve_promise_with_encapsulated_bits(
         &self,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
         encapsulated_bits: EncapsulatedBits,
     ) {
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         self.global().task_manager().crypto_task_source().queue(
             task!(resolve_encapsulated_bits: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &encapsulated_bits);
             }),
         );
@@ -415,9 +415,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(encrypt: move || {
+            .queue(task!(encrypt: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
@@ -499,9 +499,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(decrypt: move || {
+            .queue(task!(decrypt: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
@@ -583,9 +583,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(sign: move || {
+            .queue(task!(sign: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
@@ -671,9 +671,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(sign: move || {
+            .queue(task!(sign: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 9. If the following steps or referenced procedures say to throw an error,
@@ -750,9 +750,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(digest_: move || {
+            .queue(task!(digest_: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -814,7 +814,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .dom_manipulation_task_source()
             .queue(task!(generate_key: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 7. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -947,7 +947,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             task!(derive_key: move |cx| {
                 let subtle = trusted_subtle.root();
                 let base_key = trusted_base_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 11. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1067,10 +1067,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(import_key: move || {
+            .queue(task!(import_key: move |cx| {
                 let subtle = trsuted_subtle.root();
                 let base_key = trusted_base_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 7. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1210,7 +1210,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .dom_manipulation_task_source()
             .queue(task!(import_key: move |cx| {
                 let subtle = this.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1276,7 +1276,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .dom_manipulation_task_source()
             .queue(task!(export_key: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 5. If the following steps or referenced procedures say to throw an error,
@@ -1394,7 +1394,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let subtle = trusted_subtle.root();
                 let key = trusted_key.root();
                 let wrapping_key = trusted_wrapping_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1585,7 +1585,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             task!(unwrap_key: move |cx| {
                 let subtle = trusted_subtle.root();
                 let unwrapping_key = trusted_unwrapping_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 11. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1753,7 +1753,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             task!(encapsulate_keys: move |cx| {
                 let subtle = trusted_subtle.root();
                 let encapsulation_key = trusted_encapsulated_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 9. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1879,10 +1879,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let trusted_encapsulation_key = Trusted::new(encapsulation_key);
         let trusted_promise = TrustedPromise::new(promise.clone());
         self.global().task_manager().dom_manipulation_task_source().queue(
-            task!(derive_key: move || {
+            task!(derive_key: move |cx| {
                 let subtle = trusted_subtle.root();
                 let encapsulation_key = trusted_encapsulation_key.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
 
                 // Step 7. If the following steps or referenced procedures say to throw an error,
                 // queue a global task on the crypto task source, given realm's global object, to
@@ -1995,7 +1995,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .dom_manipulation_task_source()
             .queue(task!(decapsulate_key: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let decapsulation_key = trusted_decapsulation_key.root();
 
                 // Step 10. If the following steps or referenced procedures say to throw an error,
@@ -2113,9 +2113,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(decapsulate_bits: move || {
+            .queue(task!(decapsulate_bits: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let decapsulation_key = trusted_decapsulation_key.root();
 
                 // Step 8. If the following steps or referenced procedures say to throw an error,
@@ -2212,7 +2212,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .dom_manipulation_task_source()
             .queue(task!(get_public_key: move |cx| {
                 let subtle = trusted_subtle.root();
-                let promise = trusted_promise.root();
+                let promise = &trusted_promise.root(cx);
                 let key = trusted_key.root();
 
                 // Step 7. If the following steps or referenced procedures say to throw an error,
@@ -2343,16 +2343,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         }
 
         // Step 2.
-        // If operation is "deriveKey", "unwrapKey", "encapsulateKey" or "decapsulateKey":
+        // If operation is "deriveKey" or "unwrapKey":
         //     If the result of checking support for an algorithm with op set to "importKey" and
         //     alg set to additionalAlgorithm is false, return false.
         // If operation is "wrapKey":
         //     If the result of checking support for an algorithm with op set to "exportKey" and
         //     alg set to additionalAlgorithm is false, return false.
-        if matches!(
-            operation,
-            "deriveKey" | "unwrapKey" | "encapsulateKey" | "decapsulateKey"
-        ) && !check_support_for_algorithm(cx, "importKey", &additional_algorithm, None)
+        if matches!(operation, "deriveKey" | "unwrapKey") &&
+            !check_support_for_algorithm(cx, "importKey", &additional_algorithm, None)
         {
             return false;
         }
@@ -2362,18 +2360,61 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             return false;
         }
 
-        // Step 3. Let length be null.
+        // Step 3. If operation is "encapsulateKey" or "decapsulateKey":
+        if matches!(operation, "encapsulateKey" | "decapsulateKey") {
+            // Step 3.1. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg
+            // set to algorithm and op set to "get shared key length".
+            // Step 3.2. If an error occurred, return false.
+            let Ok(normalized_algorithm) =
+                normalize_algorithm::<GetSharedKeyLengthOperation>(cx, &algorithm)
+            else {
+                return false;
+            };
+
+            // Step 3.3. Let sharedKeyLength be the result of performing the get shared key length
+            // algorithm specified by normalizedAlgorithm using algorithm.
+            let shared_key_length = normalized_algorithm.get_shared_key_length();
+
+            // Step 3.4. Let normalizedAdditionalAlgorithm be the result of normalizing an
+            // algorithm, with alg set to additionalAlgorithm and op set to "importKey".
+            // Step 3.5. If an error occurred, return false.
+            let Ok(normalized_additional_algorithm) =
+                normalize_algorithm::<ImportKeyOperation>(cx, &additional_algorithm)
+            else {
+                return false;
+            };
+
+            // Step 3.6. If the result of determining support from operation steps with op set to
+            // "importKey" and normalizedAlgorithm set to normalizedAdditionalAlgorithm, and length
+            // set to null is false, return false.
+            //
+            // NOTE: normalized_additional_algorithm is an ImportKeyAlgorithm value, so we don't
+            // need to explicitly set op to "importKey" when we call the
+            // determine_support_from_operation_steps method.
+            if !normalized_additional_algorithm.determine_support_from_operation_steps(None) {
+                return false;
+            }
+
+            // Step 3.7. If the import key operation specified by normalizedAdditionalAlgorithm
+            // would throw an error for every value of keyData that is a byte sequence whose length
+            // in bits is sharedKeyLength when format is "raw-secret", return false.
+            if normalized_additional_algorithm.will_throw_for_key_data_length(shared_key_length) {
+                return false;
+            }
+        }
+
+        // Step 4. Let length be null.
         let mut length = None;
 
-        // Step 4. If operation is "deriveKey":
+        // Step 5. If operation is "deriveKey":
         if operation == "deriveKey" {
-            // Step 4.1. If the result of checking support for an algorithm with op set to "get key
+            // Step 5.1. If the result of checking support for an algorithm with op set to "get key
             // length" and alg set to additionalAlgorithm is false, return false.
             if !check_support_for_algorithm(cx, "get key length", &additional_algorithm, None) {
                 return false;
             }
 
-            // Step 4.2. Let normalizedAdditionalAlgorithm be the result of normalizing an
+            // Step 5.2. Let normalizedAdditionalAlgorithm be the result of normalizing an
             // algorithm, with alg set to additionalAlgorithm and op set to "get key length".
             let Ok(normalized_additional_algorithm) =
                 normalize_algorithm::<GetKeyLengthOperation>(cx, &additional_algorithm)
@@ -2381,7 +2422,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 return false;
             };
 
-            // Step 4.3. Let length be the result of performing the get key length algorithm
+            // Step 5.3. Let length be the result of performing the get key length algorithm
             // specified by additionalAlgorithm using normalizedAdditionalAlgorithm.'
             match normalized_additional_algorithm.get_key_length() {
                 Ok(key_length) => {
@@ -2390,11 +2431,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Err(_) => return false,
             };
 
-            // Step 4.4. Set operation to "deriveBits".
+            // Step 5.4. Set operation to "deriveBits".
             operation = "deriveBits";
         }
 
-        // Step 5. Return the result of checking support for an algorithm, with op set to
+        // Step 6. Return the result of checking support for an algorithm, with op set to
         // operation, alg set to algorithm, and length set to length.
         check_support_for_algorithm(cx, operation, &algorithm, length)
     }
@@ -2450,407 +2491,72 @@ pub(crate) fn check_support_for_algorithm(
     //     Step 5.2. If op is "unwrapKey", return the result of checking support for an algorithm
     //     with op set to "decrypt" and alg set to alg.
     //     Step 5.3. Otherwise, return false.
-    // Step 6. If the specified operation or algorithm (or one of its parameter values) is expected
-    // to fail (for any key and/or data) for an implementation-specific reason (e.g. known
-    // nonconformance to the specification), return false.
-    // Step 7. If op is "generateKey" or "importKey", let usages be the empty list.
-    // Step 8. For each of the steps of the operation specified by op of the algorithm specified by
-    // normalizedAlgorithm:
-    //     If the step says to throw an error:
-    //         Return false.
-    //     If the step says to generate a key:
-    //         Return true.
-    //     If the step relies on an unavailable parameter, such as key, plaintext or ciphertext:
-    //         Return true.
-    //     If the step says to return a value:
-    //         Return true.
-    //     Otherwise:
-    //         Execute the step.
-    //
-    // NOTE:
-    // - Step 8 can be interpreted as executing the specified operation of the specified algorithm
-    //   in "dry-run" mode in which it validates the normalizedAlgorithm, length and usages but does
-    //   not execute the computation-demanding cryptographic calculation.
-    //
-    // - Usually, the parameter validations are executed at the beginning of the operation.
-    //   Therefore, Step 8 can be done by running the operation with the following changes:
-    //   - Replace "throw an DataError/OperationError/NotSupportedError" with "return false".
-    //   - When we reach any step that requires unavailable parameters or does the cryptographic
-    //     calculation, return true, instead of running the step, and skip the remaining steps as
-    //     well.
-    //
-    // - Since usages is an empty list, it should pass the validation described in the specified
-    //   operation of the specified algorithm. So, we simply ignore it here.
-    //
-    // - The "getPublicKey" operation is not included here, since it is handled in Step 3.
-    //
-    // - We explicitly list all patterns in the inner `match` blocks so that the Rust compiler will
-    //   remind the implementer to add the necessary parameter validation here when a new operation
-    //   of an algorithm is added.
+    // Step 6. Return the result of determining support from operation steps, with op set to op,
+    // normalizedAlgorithm set to normalizedAlgorithm, and length set to length.
     match operation {
         "encrypt" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<EncryptOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                EncryptAlgorithm::RsaOaep(_) => true,
-                EncryptAlgorithm::AesCtr(normalized_algorithm) => {
-                    normalized_algorithm.counter.len() == 16 &&
-                        normalized_algorithm.length != 0 &&
-                        normalized_algorithm.length <= 128
-                },
-                EncryptAlgorithm::AesCbc(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() == 16
-                },
-                EncryptAlgorithm::AesGcm(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() <= u64::MAX as usize &&
-                        normalized_algorithm
-                            .additional_data
-                            .is_none_or(|additional_data| {
-                                additional_data.len() <= u64::MAX as usize
-                            }) &&
-                        normalized_algorithm.tag_length.is_none_or(|length| {
-                            matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)
-                        })
-                },
-                EncryptAlgorithm::AesOcb(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() <= 15 &&
-                        normalized_algorithm
-                            .tag_length
-                            .is_none_or(|length| matches!(length, 64 | 96 | 128))
-                },
-                EncryptAlgorithm::ChaCha20Poly1305(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() == 12 &&
-                        normalized_algorithm
-                            .tag_length
-                            .is_none_or(|length| length == 128)
-                },
-            }
+            normalize_and_determine_support::<EncryptOperation>(cx, operation, algorithm, length)
         },
         "decrypt" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<DecryptOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                DecryptAlgorithm::RsaOaep(_) => true,
-                DecryptAlgorithm::AesCtr(normalized_algorithm) => {
-                    normalized_algorithm.counter.len() == 16 &&
-                        normalized_algorithm.length != 0 &&
-                        normalized_algorithm.length <= 128
-                },
-                DecryptAlgorithm::AesCbc(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() == 16
-                },
-                DecryptAlgorithm::AesGcm(normalized_algorithm) => {
-                    normalized_algorithm
-                        .tag_length
-                        .is_none_or(|length| matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)) &&
-                        normalized_algorithm.iv.len() <= u64::MAX as usize &&
-                        normalized_algorithm
-                            .additional_data
-                            .is_none_or(|additional_data| {
-                                additional_data.len() <= u64::MAX as usize
-                            })
-                },
-                DecryptAlgorithm::AesOcb(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() <= 15 &&
-                        normalized_algorithm
-                            .tag_length
-                            .is_none_or(|length| matches!(length, 64 | 96 | 128))
-                },
-                DecryptAlgorithm::ChaCha20Poly1305(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() == 12 &&
-                        normalized_algorithm
-                            .tag_length
-                            .is_none_or(|length| length == 128)
-                },
-            }
+            normalize_and_determine_support::<DecryptOperation>(cx, operation, algorithm, length)
         },
         "sign" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<SignOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                SignAlgorithm::RsassaPkcs1V1_5(_) |
-                SignAlgorithm::RsaPss(_) |
-                SignAlgorithm::Ecdsa(_) |
-                SignAlgorithm::Ed25519(_) => true,
-                SignAlgorithm::Ed448(normalized_algorithm) => normalized_algorithm
-                    .context
-                    .is_none_or(|context| context.len() <= 255),
-                SignAlgorithm::Hmac(_) | SignAlgorithm::MlDsa(_) | SignAlgorithm::Kmac(_) => true,
-            }
+            normalize_and_determine_support::<SignOperation>(cx, operation, algorithm, length)
         },
         "verify" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<VerifyOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                VerifyAlgorithm::RsassaPkcs1V1_5(_) |
-                VerifyAlgorithm::RsaPss(_) |
-                VerifyAlgorithm::Ecdsa(_) |
-                VerifyAlgorithm::Ed25519(_) => true,
-                VerifyAlgorithm::Ed448(normalized_algorithm) => normalized_algorithm
-                    .context
-                    .is_none_or(|context| context.len() <= 255),
-                VerifyAlgorithm::Hmac(_) | VerifyAlgorithm::MlDsa(_) | VerifyAlgorithm::Kmac(_) => {
-                    true
-                },
-            }
+            normalize_and_determine_support::<VerifyOperation>(cx, operation, algorithm, length)
         },
         "digest" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<DigestOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                DigestAlgorithm::Sha(_) |
-                DigestAlgorithm::Sha3(_) |
-                DigestAlgorithm::CShake(_) |
-                DigestAlgorithm::TurboShake(_) => true,
-                DigestAlgorithm::KangarooTwelve(normalized_algorithm) => {
-                    normalized_algorithm.output_length != 0 &&
-                        normalized_algorithm.output_length.is_multiple_of(8)
-                },
-            }
+            normalize_and_determine_support::<DigestOperation>(cx, operation, algorithm, length)
         },
         "deriveBits" => {
-            let Ok(normalized_algorithm) =
-                normalize_algorithm::<DeriveBitsOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                DeriveBitsAlgorithm::Ecdh(normalized_algorithm) => {
-                    let public_key = normalized_algorithm.public.root();
-                    let Ok(maximum_length) = ecdh_operation::maximum_length(&public_key) else {
-                        return false;
-                    };
-                    public_key.Type() == KeyType::Public &&
-                        public_key.algorithm().name() == normalized_algorithm.name &&
-                        length.is_none_or(|length| length <= maximum_length)
-                },
-                DeriveBitsAlgorithm::X25519(normalized_algorithm) => {
-                    let public_key = normalized_algorithm.public.root();
-                    public_key.Type() == KeyType::Public &&
-                        public_key.algorithm().name() == normalized_algorithm.name &&
-                        length.is_none_or(|length| length <= 256)
-                },
-                DeriveBitsAlgorithm::X448(_) => {
-                    length.is_none_or(|length| x448_operation::SECRET_LENGTH as u32 * 8 >= length)
-                },
-                DeriveBitsAlgorithm::Hkdf(normalized_algorithm) => {
-                    let hash_length = match normalized_algorithm.hash.name() {
-                        CryptoAlgorithm::Sha1 => 160,
-                        CryptoAlgorithm::Sha256 => 256,
-                        CryptoAlgorithm::Sha384 => 384,
-                        CryptoAlgorithm::Sha512 => 512,
-                        _ => return false,
-                    };
-                    length.is_some_and(|length| length % 8 == 0 && length <= 255 * hash_length)
-                },
-                DeriveBitsAlgorithm::Pbkdf2(normalized_algorithm) => {
-                    length.is_some_and(|length| length % 8 == 0) &&
-                        normalized_algorithm.iterations != 0
-                },
-                DeriveBitsAlgorithm::Argon2(normalized_algorithm) => {
-                    length.is_some_and(|length| length >= 32 && length % 8 == 0) &&
-                        normalized_algorithm
-                            .version
-                            .is_none_or(|version| version == 19) &&
-                        normalized_algorithm.parallelism != 0 &&
-                        normalized_algorithm.parallelism <= 16777215 &&
-                        normalized_algorithm.memory >= 8 * normalized_algorithm.parallelism &&
-                        normalized_algorithm.passes != 0
-                },
-            }
+            normalize_and_determine_support::<DeriveBitsOperation>(cx, operation, algorithm, length)
         },
         "wrapKey" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<WrapKeyOperation>(cx, algorithm)
-            else {
-                return check_support_for_algorithm(cx, "encrypt", algorithm, length);
-            };
-
-            match normalized_algorithm {
-                WrapKeyAlgorithm::AesKw(_) => true,
-            }
+            normalize_and_determine_support::<WrapKeyOperation>(cx, operation, algorithm, length)
         },
         "unwrapKey" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<UnwrapKeyOperation>(cx, algorithm)
-            else {
-                return check_support_for_algorithm(cx, "decrypt", algorithm, length);
-            };
-
-            match normalized_algorithm {
-                UnwrapKeyAlgorithm::AesKw(_) => true,
-            }
+            normalize_and_determine_support::<UnwrapKeyOperation>(cx, operation, algorithm, length)
         },
-        "generateKey" => {
-            let Ok(normalized_algorithm) =
-                normalize_algorithm::<GenerateKeyOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                GenerateKeyAlgorithm::RsassaPkcs1V1_5(normalized_algorithm) |
-                GenerateKeyAlgorithm::RsaPss(normalized_algorithm) |
-                GenerateKeyAlgorithm::RsaOaep(normalized_algorithm) => {
-                    normalized_algorithm.validate_parameters().is_ok()
-                },
-                GenerateKeyAlgorithm::Ecdsa(normalized_algorithm) |
-                GenerateKeyAlgorithm::Ecdh(normalized_algorithm) => {
-                    SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str())
-                },
-                GenerateKeyAlgorithm::Ed25519(_) |
-                GenerateKeyAlgorithm::X25519(_) |
-                GenerateKeyAlgorithm::Ed448(_) |
-                GenerateKeyAlgorithm::X448(_) => true,
-                GenerateKeyAlgorithm::AesCtr(normalized_algorithm) |
-                GenerateKeyAlgorithm::AesCbc(normalized_algorithm) |
-                GenerateKeyAlgorithm::AesGcm(normalized_algorithm) |
-                GenerateKeyAlgorithm::AesKw(normalized_algorithm) => {
-                    matches!(normalized_algorithm.length, 128 | 192 | 256)
-                },
-                GenerateKeyAlgorithm::Hmac(normalized_algorithm) => {
-                    normalized_algorithm.length.is_none_or(|length| length != 0)
-                },
-                GenerateKeyAlgorithm::MlKem(_) | GenerateKeyAlgorithm::MlDsa(_) => true,
-                GenerateKeyAlgorithm::AesOcb(normalized_algorithm) => {
-                    matches!(normalized_algorithm.length, 128 | 192 | 256)
-                },
-                GenerateKeyAlgorithm::ChaCha20Poly1305(_) | GenerateKeyAlgorithm::Kmac(_) => true,
-            }
-        },
+        "generateKey" => normalize_and_determine_support::<GenerateKeyOperation>(
+            cx, operation, algorithm, length,
+        ),
         "importKey" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<ImportKeyOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                ImportKeyAlgorithm::RsassaPkcs1V1_5(_) |
-                ImportKeyAlgorithm::RsaPss(_) |
-                ImportKeyAlgorithm::RsaOaep(_) => true,
-                ImportKeyAlgorithm::Ecdsa(normalized_algorithm) |
-                ImportKeyAlgorithm::Ecdh(normalized_algorithm) => {
-                    SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str())
-                },
-                ImportKeyAlgorithm::Ed25519(_) |
-                ImportKeyAlgorithm::X25519(_) |
-                ImportKeyAlgorithm::Ed448(_) |
-                ImportKeyAlgorithm::X448(_) |
-                ImportKeyAlgorithm::AesCtr(_) |
-                ImportKeyAlgorithm::AesCbc(_) |
-                ImportKeyAlgorithm::AesGcm(_) |
-                ImportKeyAlgorithm::AesKw(_) => true,
-                ImportKeyAlgorithm::Hmac(normalized_algorithm) => {
-                    normalized_algorithm.length.is_none_or(|length| length != 0)
-                },
-                ImportKeyAlgorithm::Hkdf(_) |
-                ImportKeyAlgorithm::Pbkdf2(_) |
-                ImportKeyAlgorithm::MlKem(_) |
-                ImportKeyAlgorithm::MlDsa(_) |
-                ImportKeyAlgorithm::AesOcb(_) |
-                ImportKeyAlgorithm::ChaCha20Poly1305(_) |
-                ImportKeyAlgorithm::Kmac(_) |
-                ImportKeyAlgorithm::Argon2(_) => true,
-            }
+            normalize_and_determine_support::<ImportKeyOperation>(cx, operation, algorithm, length)
         },
         "exportKey" => {
-            let Ok(normalized_algorithm) = normalize_algorithm::<ExportKeyOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                ExportKeyAlgorithm::RsassaPkcs1V1_5(_) |
-                ExportKeyAlgorithm::RsaPss(_) |
-                ExportKeyAlgorithm::RsaOaep(_) |
-                ExportKeyAlgorithm::Ecdsa(_) |
-                ExportKeyAlgorithm::Ecdh(_) |
-                ExportKeyAlgorithm::Ed25519(_) |
-                ExportKeyAlgorithm::X25519(_) |
-                ExportKeyAlgorithm::Ed448(_) |
-                ExportKeyAlgorithm::X448(_) |
-                ExportKeyAlgorithm::AesCtr(_) |
-                ExportKeyAlgorithm::AesCbc(_) |
-                ExportKeyAlgorithm::AesGcm(_) |
-                ExportKeyAlgorithm::AesKw(_) |
-                ExportKeyAlgorithm::Hmac(_) |
-                ExportKeyAlgorithm::MlKem(_) |
-                ExportKeyAlgorithm::MlDsa(_) |
-                ExportKeyAlgorithm::AesOcb(_) |
-                ExportKeyAlgorithm::ChaCha20Poly1305(_) |
-                ExportKeyAlgorithm::Kmac(_) => true,
-            }
+            normalize_and_determine_support::<ExportKeyOperation>(cx, operation, algorithm, length)
         },
-        "get key length" => {
-            let Ok(normalized_algorithm) =
-                normalize_algorithm::<GetKeyLengthOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                GetKeyLengthAlgorithm::AesCtr(normalized_derived_key_algorithm) |
-                GetKeyLengthAlgorithm::AesCbc(normalized_derived_key_algorithm) |
-                GetKeyLengthAlgorithm::AesGcm(normalized_derived_key_algorithm) |
-                GetKeyLengthAlgorithm::AesKw(normalized_derived_key_algorithm) => {
-                    matches!(normalized_derived_key_algorithm.length, 128 | 192 | 256)
-                },
-                GetKeyLengthAlgorithm::Hmac(normalized_derived_key_algorithm) => {
-                    normalized_derived_key_algorithm
-                        .length
-                        .is_none_or(|length| length != 0)
-                },
-                GetKeyLengthAlgorithm::Hkdf(_) | GetKeyLengthAlgorithm::Pbkdf2(_) => true,
-                GetKeyLengthAlgorithm::AesOcb(normalized_derived_key_algorithm) => {
-                    matches!(normalized_derived_key_algorithm.length, 128 | 192 | 256)
-                },
-                GetKeyLengthAlgorithm::ChaCha20Poly1305(_) |
-                GetKeyLengthAlgorithm::Kmac(_) |
-                GetKeyLengthAlgorithm::Argon2(_) => true,
-            }
-        },
-        "encapsulate" => {
-            let Ok(normalized_algorithm) =
-                normalize_algorithm::<EncapsulateOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                EncapsulateAlgorithm::MlKem(_) => true,
-            }
-        },
-        "decapsulate" => {
-            let Ok(normalized_algorithm) =
-                normalize_algorithm::<DecapsulateOperation>(cx, algorithm)
-            else {
-                return false;
-            };
-
-            match normalized_algorithm {
-                DecapsulateAlgorithm::MlKem(_) => true,
-            }
-        },
+        "get key length" => normalize_and_determine_support::<GetKeyLengthOperation>(
+            cx, operation, algorithm, length,
+        ),
+        "encapsulate" => normalize_and_determine_support::<EncapsulateOperation>(
+            cx, operation, algorithm, length,
+        ),
+        "decapsulate" => normalize_and_determine_support::<DecapsulateOperation>(
+            cx, operation, algorithm, length,
+        ),
         _ => false,
     }
+}
 
-    // Step 9. Assert: this step is never reached, because one of the steps of the operation will
-    // have said to return a value or throw an error, causing us to return true or false,
-    // respectively.
+/// Helper function for Step 4 - 6 of
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-check-support-for-algorithm>
+fn normalize_and_determine_support<T: Operation>(
+    cx: &mut js::context::JSContext,
+    op: &str,
+    algorithm: &AlgorithmIdentifier,
+    length: Option<u32>,
+) -> bool {
+    if let Ok(normalized_algorithm) = normalize_algorithm::<T>(cx, algorithm) {
+        normalized_algorithm.determine_support_from_operation_steps(length)
+    } else {
+        match op {
+            "wrapKey" => check_support_for_algorithm(cx, "encrypt", algorithm, length),
+            "unwrapKey" => check_support_for_algorithm(cx, "decrypt", algorithm, length),
+            _ => false,
+        }
+    }
 }
 
 /// Alternative to std::convert::TryFrom, with `&mut js::context::JSContext`
@@ -2890,8 +2596,23 @@ where
     }
 }
 
-// These "subtle" structs are proxies for the codegen'd dicts which don't hold a DOMString
-// so they can be sent safely when running steps in parallel.
+// Custom binding types of WebIDL dictionary for WebCrypto
+//
+// In our implementation of WebCrypto API, we use custom binding types for the following WebIDL
+// dictionaries, instead of the binding types generated by `script_bindings`:
+//
+// - `KeyAlgorithm` and their derivatives
+// - `Algorithm` and their derivatives
+// - `EncapsulatedKey`
+// - `DecapsulatedKey`
+//
+// Based on the design of WebCrypto API, they frequently need to cross thread boundaries, but the
+// generated binding types for these dictionaries are not thread-safe. Therefore, we implement the
+// following thread-safe custom binding type for these dictionaries.
+//
+// There is one exception. The [`normalize_algorithm`] function still uses the generated binding
+// type for the `Algorithm` dictionary, as the custom binding type for `Algorithm` currently does
+// not accept arbitrary string in its `name` field.
 
 /// <https://w3c.github.io/webcrypto/#dfn-Algorithm>
 #[derive(Clone, MallocSizeOf)]
@@ -4995,7 +4716,62 @@ trait NormalizedAlgorithm: Sized {
         algorithm_name: CryptoAlgorithm,
         object: HandleObject,
     ) -> Fallible<Self>;
+
+    /// Return the name of the normalized algorithm.
     fn name(&self) -> CryptoAlgorithm;
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-determine-support-from-operation-steps>
+    ///
+    /// The default implemenation is to return false, as placeholder. The actual implementation
+    /// depends on the operation represented by the trait implementor.
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        // Step 1. If the specified operation or algorithm (or one of its parameter values) is
+        // expected to fail (for any key and/or data) for an implementation-specific reason (e.g.
+        // known nonconformance to the specification), return false.
+        // Step 2. If op is "generateKey" or "importKey", let usages be the empty list.
+        // Step 3. For each of the steps of the operation specified by op of the algorithm specified
+        // by normalizedAlgorithm:
+        //     If the step says to throw an error:
+        //         Return false.
+        //     If the step says to generate a key:
+        //         Return true.
+        //     If the step relies on an unavailable parameter, such as key, plaintext or ciphertext:
+        //         Return true.
+        //     If the step says to return a value:
+        //         Return true.
+        //     Otherwise:
+        //         Execute the step.
+        // Step 4. Assert: this step is never reached, because one of the steps of the operation
+        // will have said to return a value or throw an error, causing us to return true or false,
+        // respectively.
+        //
+        // NOTE:
+        // - Step 3 can be interpreted as executing the specified operation of the specified
+        //   algorithm in "dry-run" mode in which it validates the normalizedAlgorithm, length and
+        //   usages but does not execute the computation-demanding cryptographic calculation.
+        //
+        // - Usually, the parameter validations are executed at the beginning of the operation.
+        //   Therefore, Step 3 can be done by running the operation with the following changes:
+        //   - Replace "throw an DataError/OperationError/NotSupportedError" with "return false".
+        //   - When we reach any step that requires unavailable parameters or does the cryptographic
+        //     calculation, return true, instead of running the step, and skip the remaining steps
+        //     as well.
+        //
+        // - Since usages is an empty list, it should pass the validation described in the specified
+        //   operation of the specified algorithm. So, we simply ignore it here.
+        //
+        // - The implementer of this trait is expected to be an `enum` listing possible
+        //   cryptographic algorithms. In the implementation of this trait, recommend writing a
+        //   `match` block on `self` that explicitly lists all patterns so that the Rust compiler
+        //   can remind you to add the necessary parameter validation here when a new operation of
+        //   an algorithm is added.
+        debug_assert!(
+            false,
+            "determine_support_from_operation_steps() is not implemented \
+                for this normalized algorithm."
+        );
+        false
+    }
 }
 
 /// The value of the key "encrypt" in the internal object supportedAlgorithms
@@ -5056,6 +4832,40 @@ impl NormalizedAlgorithm for EncryptAlgorithm {
             EncryptAlgorithm::AesGcm(algorithm) => algorithm.name,
             EncryptAlgorithm::AesOcb(algorithm) => algorithm.name,
             EncryptAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
+        }
+    }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            EncryptAlgorithm::RsaOaep(_) => true,
+            EncryptAlgorithm::AesCtr(normalized_algorithm) => {
+                normalized_algorithm.counter.len() == 16 &&
+                    normalized_algorithm.length != 0 &&
+                    normalized_algorithm.length <= 128
+            },
+            EncryptAlgorithm::AesCbc(normalized_algorithm) => normalized_algorithm.iv.len() == 16,
+            EncryptAlgorithm::AesGcm(normalized_algorithm) => {
+                normalized_algorithm.iv.len() <= u64::MAX as usize &&
+                    normalized_algorithm
+                        .additional_data
+                        .as_ref()
+                        .is_none_or(|additional_data| additional_data.len() <= u64::MAX as usize) &&
+                    normalized_algorithm.tag_length.is_none_or(|length| {
+                        matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)
+                    })
+            },
+            EncryptAlgorithm::AesOcb(normalized_algorithm) => {
+                normalized_algorithm.iv.len() <= 15 &&
+                    normalized_algorithm
+                        .tag_length
+                        .is_none_or(|length| matches!(length, 64 | 96 | 128))
+            },
+            EncryptAlgorithm::ChaCha20Poly1305(normalized_algorithm) => {
+                normalized_algorithm.iv.len() == 12 &&
+                    normalized_algorithm
+                        .tag_length
+                        .is_none_or(|length| length == 128)
+            },
         }
     }
 }
@@ -5143,6 +4953,43 @@ impl NormalizedAlgorithm for DecryptAlgorithm {
             DecryptAlgorithm::AesGcm(algorithm) => algorithm.name,
             DecryptAlgorithm::AesOcb(algorithm) => algorithm.name,
             DecryptAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
+        }
+    }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            DecryptAlgorithm::RsaOaep(_) => true,
+            DecryptAlgorithm::AesCtr(normalized_algorithm) => {
+                normalized_algorithm.counter.len() == 16 &&
+                    normalized_algorithm.length != 0 &&
+                    normalized_algorithm.length <= 128
+            },
+            DecryptAlgorithm::AesCbc(normalized_algorithm) => normalized_algorithm.iv.len() == 16,
+            DecryptAlgorithm::AesGcm(normalized_algorithm) => {
+                normalized_algorithm
+                    .tag_length
+                    .as_ref()
+                    .is_none_or(|length| matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)) &&
+                    normalized_algorithm.iv.len() <= u64::MAX as usize &&
+                    normalized_algorithm
+                        .additional_data
+                        .as_ref()
+                        .is_none_or(|additional_data| additional_data.len() <= u64::MAX as usize)
+            },
+            DecryptAlgorithm::AesOcb(normalized_algorithm) => {
+                normalized_algorithm.iv.len() <= 15 &&
+                    normalized_algorithm
+                        .tag_length
+                        .as_ref()
+                        .is_none_or(|length| matches!(length, 64 | 96 | 128))
+            },
+            DecryptAlgorithm::ChaCha20Poly1305(normalized_algorithm) => {
+                normalized_algorithm.iv.len() == 12 &&
+                    normalized_algorithm
+                        .tag_length
+                        .as_ref()
+                        .is_none_or(|length| *length == 128)
+            },
         }
     }
 }
@@ -5242,6 +5089,25 @@ impl NormalizedAlgorithm for SignAlgorithm {
             SignAlgorithm::Kmac(algorithm) => algorithm.name,
         }
     }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            SignAlgorithm::RsassaPkcs1V1_5(_) |
+            SignAlgorithm::RsaPss(_) |
+            SignAlgorithm::Ecdsa(_) |
+            SignAlgorithm::Ed25519(_) => true,
+            SignAlgorithm::Ed448(normalized_algorithm) => normalized_algorithm
+                .context
+                .as_ref()
+                .is_none_or(|context| context.len() <= 255),
+            SignAlgorithm::Hmac(_) => true,
+            SignAlgorithm::MlDsa(normalized_algorithm) => normalized_algorithm
+                .context
+                .as_ref()
+                .is_none_or(|context| context.len() <= 255),
+            SignAlgorithm::Kmac(_) => true,
+        }
+    }
 }
 
 impl SignAlgorithm {
@@ -5329,6 +5195,25 @@ impl NormalizedAlgorithm for VerifyAlgorithm {
             VerifyAlgorithm::Hmac(algorithm) => algorithm.name,
             VerifyAlgorithm::MlDsa(algorithm) => algorithm.name,
             VerifyAlgorithm::Kmac(algorithm) => algorithm.name,
+        }
+    }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            VerifyAlgorithm::RsassaPkcs1V1_5(_) |
+            VerifyAlgorithm::RsaPss(_) |
+            VerifyAlgorithm::Ecdsa(_) |
+            VerifyAlgorithm::Ed25519(_) => true,
+            VerifyAlgorithm::Ed448(normalized_algorithm) => normalized_algorithm
+                .context
+                .as_ref()
+                .is_none_or(|context| context.len() <= 255),
+            VerifyAlgorithm::Hmac(_) => true,
+            VerifyAlgorithm::MlDsa(normalized_algorithm) => normalized_algorithm
+                .context
+                .as_ref()
+                .is_none_or(|context| context.len() <= 255),
+            VerifyAlgorithm::Kmac(_) => true,
         }
     }
 }
@@ -5421,6 +5306,19 @@ impl NormalizedAlgorithm for DigestAlgorithm {
             DigestAlgorithm::CShake(algorithm) => algorithm.name,
             DigestAlgorithm::TurboShake(algorithm) => algorithm.name,
             DigestAlgorithm::KangarooTwelve(algorithm) => algorithm.name,
+        }
+    }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            DigestAlgorithm::Sha(_) |
+            DigestAlgorithm::Sha3(_) |
+            DigestAlgorithm::CShake(_) |
+            DigestAlgorithm::TurboShake(_) => true,
+            DigestAlgorithm::KangarooTwelve(normalized_algorithm) => {
+                normalized_algorithm.output_length != 0 &&
+                    normalized_algorithm.output_length.is_multiple_of(8)
+            },
         }
     }
 }
@@ -5543,6 +5441,52 @@ impl NormalizedAlgorithm for DeriveBitsAlgorithm {
             DeriveBitsAlgorithm::Argon2(algorithm) => algorithm.name,
         }
     }
+
+    fn determine_support_from_operation_steps(&self, length: Option<u32>) -> bool {
+        match self {
+            DeriveBitsAlgorithm::Ecdh(normalized_algorithm) => {
+                let public_key = normalized_algorithm.public.root();
+                let Ok(maximum_length) = ecdh_operation::maximum_length(&public_key) else {
+                    return false;
+                };
+                public_key.Type() == KeyType::Public &&
+                    public_key.algorithm().name() == normalized_algorithm.name &&
+                    length.is_none_or(|length| length <= maximum_length)
+            },
+            DeriveBitsAlgorithm::X25519(normalized_algorithm) => {
+                let public_key = normalized_algorithm.public.root();
+                public_key.Type() == KeyType::Public &&
+                    public_key.algorithm().name() == normalized_algorithm.name &&
+                    length.is_none_or(|length| length <= 256)
+            },
+            DeriveBitsAlgorithm::X448(_) => {
+                length.is_none_or(|length| x448_operation::SECRET_LENGTH as u32 * 8 >= length)
+            },
+            DeriveBitsAlgorithm::Hkdf(normalized_algorithm) => {
+                let hash_length = match normalized_algorithm.hash.name() {
+                    CryptoAlgorithm::Sha1 => 160,
+                    CryptoAlgorithm::Sha256 => 256,
+                    CryptoAlgorithm::Sha384 => 384,
+                    CryptoAlgorithm::Sha512 => 512,
+                    _ => return false,
+                };
+                length.is_some_and(|length| length % 8 == 0 && length <= 255 * hash_length)
+            },
+            DeriveBitsAlgorithm::Pbkdf2(normalized_algorithm) => {
+                length.is_some_and(|length| length % 8 == 0) && normalized_algorithm.iterations != 0
+            },
+            DeriveBitsAlgorithm::Argon2(normalized_algorithm) => {
+                length.is_some_and(|length| length >= 32 && length % 8 == 0) &&
+                    normalized_algorithm
+                        .version
+                        .is_none_or(|version| version == 19) &&
+                    normalized_algorithm.parallelism != 0 &&
+                    normalized_algorithm.parallelism <= 16777215 &&
+                    normalized_algorithm.memory >= 8 * normalized_algorithm.parallelism &&
+                    normalized_algorithm.passes != 0
+            },
+        }
+    }
 }
 
 impl DeriveBitsAlgorithm {
@@ -5605,6 +5549,12 @@ impl NormalizedAlgorithm for WrapKeyAlgorithm {
             WrapKeyAlgorithm::AesKw(algorithm) => algorithm.name,
         }
     }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            WrapKeyAlgorithm::AesKw(_) => true,
+        }
+    }
 }
 
 impl WrapKeyAlgorithm {
@@ -5648,6 +5598,12 @@ impl NormalizedAlgorithm for UnwrapKeyAlgorithm {
     fn name(&self) -> CryptoAlgorithm {
         match self {
             UnwrapKeyAlgorithm::AesKw(algorithm) => algorithm.name,
+        }
+    }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            UnwrapKeyAlgorithm::AesKw(_) => true,
         }
     }
 }
@@ -5785,6 +5741,38 @@ impl NormalizedAlgorithm for GenerateKeyAlgorithm {
             GenerateKeyAlgorithm::AesOcb(algorithm) => algorithm.name,
             GenerateKeyAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
             GenerateKeyAlgorithm::Kmac(algorithm) => algorithm.name,
+        }
+    }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            GenerateKeyAlgorithm::RsassaPkcs1V1_5(normalized_algorithm) |
+            GenerateKeyAlgorithm::RsaPss(normalized_algorithm) |
+            GenerateKeyAlgorithm::RsaOaep(normalized_algorithm) => {
+                normalized_algorithm.validate_parameters().is_ok()
+            },
+            GenerateKeyAlgorithm::Ecdsa(normalized_algorithm) |
+            GenerateKeyAlgorithm::Ecdh(normalized_algorithm) => {
+                SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str())
+            },
+            GenerateKeyAlgorithm::Ed25519(_) |
+            GenerateKeyAlgorithm::X25519(_) |
+            GenerateKeyAlgorithm::Ed448(_) |
+            GenerateKeyAlgorithm::X448(_) => true,
+            GenerateKeyAlgorithm::AesCtr(normalized_algorithm) |
+            GenerateKeyAlgorithm::AesCbc(normalized_algorithm) |
+            GenerateKeyAlgorithm::AesGcm(normalized_algorithm) |
+            GenerateKeyAlgorithm::AesKw(normalized_algorithm) => {
+                matches!(normalized_algorithm.length, 128 | 192 | 256)
+            },
+            GenerateKeyAlgorithm::Hmac(normalized_algorithm) => {
+                normalized_algorithm.length.is_none_or(|length| length != 0)
+            },
+            GenerateKeyAlgorithm::MlKem(_) | GenerateKeyAlgorithm::MlDsa(_) => true,
+            GenerateKeyAlgorithm::AesOcb(normalized_algorithm) => {
+                matches!(normalized_algorithm.length, 128 | 192 | 256)
+            },
+            GenerateKeyAlgorithm::ChaCha20Poly1305(_) | GenerateKeyAlgorithm::Kmac(_) => true,
         }
     }
 }
@@ -6026,6 +6014,37 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
             ImportKeyAlgorithm::Argon2(algorithm) => algorithm.name,
         }
     }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            ImportKeyAlgorithm::RsassaPkcs1V1_5(_) |
+            ImportKeyAlgorithm::RsaPss(_) |
+            ImportKeyAlgorithm::RsaOaep(_) => true,
+            ImportKeyAlgorithm::Ecdsa(normalized_algorithm) |
+            ImportKeyAlgorithm::Ecdh(normalized_algorithm) => {
+                SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str())
+            },
+            ImportKeyAlgorithm::Ed25519(_) |
+            ImportKeyAlgorithm::X25519(_) |
+            ImportKeyAlgorithm::Ed448(_) |
+            ImportKeyAlgorithm::X448(_) |
+            ImportKeyAlgorithm::AesCtr(_) |
+            ImportKeyAlgorithm::AesCbc(_) |
+            ImportKeyAlgorithm::AesGcm(_) |
+            ImportKeyAlgorithm::AesKw(_) => true,
+            ImportKeyAlgorithm::Hmac(normalized_algorithm) => {
+                normalized_algorithm.length.is_none_or(|length| length != 0)
+            },
+            ImportKeyAlgorithm::Hkdf(_) |
+            ImportKeyAlgorithm::Pbkdf2(_) |
+            ImportKeyAlgorithm::MlKem(_) |
+            ImportKeyAlgorithm::MlDsa(_) |
+            ImportKeyAlgorithm::AesOcb(_) |
+            ImportKeyAlgorithm::ChaCha20Poly1305(_) |
+            ImportKeyAlgorithm::Kmac(_) |
+            ImportKeyAlgorithm::Argon2(_) => true,
+        }
+    }
 }
 
 impl ImportKeyAlgorithm {
@@ -6176,6 +6195,41 @@ impl ImportKeyAlgorithm {
             ),
         }
     }
+
+    /// Return whether the import key operation specified by normalized algorithm would throw an
+    /// error for every value of keyData that is a byte sequence whose length in bits is
+    /// sharedKeyLength when format is "raw-secret".
+    fn will_throw_for_key_data_length(&self, key_data_length: u32) -> bool {
+        match self {
+            ImportKeyAlgorithm::RsassaPkcs1V1_5(_) |
+            ImportKeyAlgorithm::RsaPss(_) |
+            ImportKeyAlgorithm::RsaOaep(_) |
+            ImportKeyAlgorithm::Ecdsa(_) |
+            ImportKeyAlgorithm::Ecdh(_) |
+            ImportKeyAlgorithm::Ed25519(_) |
+            ImportKeyAlgorithm::X25519(_) |
+            ImportKeyAlgorithm::Ed448(_) |
+            ImportKeyAlgorithm::X448(_) => true,
+            ImportKeyAlgorithm::AesCtr(_) |
+            ImportKeyAlgorithm::AesCbc(_) |
+            ImportKeyAlgorithm::AesGcm(_) |
+            ImportKeyAlgorithm::AesKw(_) => !matches!(key_data_length, 128 | 192 | 256),
+            ImportKeyAlgorithm::Hmac(algorithm) => {
+                key_data_length == 0 ||
+                    algorithm.length.is_some_and(|length| {
+                        length > key_data_length || length + 8 <= key_data_length
+                    })
+            },
+            ImportKeyAlgorithm::Hkdf(_) | ImportKeyAlgorithm::Pbkdf2(_) => false,
+            ImportKeyAlgorithm::MlKem(_) | ImportKeyAlgorithm::MlDsa(_) => true,
+            ImportKeyAlgorithm::AesOcb(_) => !matches!(key_data_length, 128 | 192 | 256),
+            ImportKeyAlgorithm::ChaCha20Poly1305(_) => key_data_length != 256,
+            ImportKeyAlgorithm::Kmac(algorithm) => algorithm
+                .length
+                .is_some_and(|length| length > key_data_length || length + 8 <= key_data_length),
+            ImportKeyAlgorithm::Argon2(_) => false,
+        }
+    }
 }
 
 /// The value of the key "exportKey" in the internal object supportedAlgorithms
@@ -6305,6 +6359,30 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
             ExportKeyAlgorithm::Kmac(algorithm) => algorithm.name,
         }
     }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            ExportKeyAlgorithm::RsassaPkcs1V1_5(_) |
+            ExportKeyAlgorithm::RsaPss(_) |
+            ExportKeyAlgorithm::RsaOaep(_) |
+            ExportKeyAlgorithm::Ecdsa(_) |
+            ExportKeyAlgorithm::Ecdh(_) |
+            ExportKeyAlgorithm::Ed25519(_) |
+            ExportKeyAlgorithm::X25519(_) |
+            ExportKeyAlgorithm::Ed448(_) |
+            ExportKeyAlgorithm::X448(_) |
+            ExportKeyAlgorithm::AesCtr(_) |
+            ExportKeyAlgorithm::AesCbc(_) |
+            ExportKeyAlgorithm::AesGcm(_) |
+            ExportKeyAlgorithm::AesKw(_) |
+            ExportKeyAlgorithm::Hmac(_) |
+            ExportKeyAlgorithm::MlKem(_) |
+            ExportKeyAlgorithm::MlDsa(_) |
+            ExportKeyAlgorithm::AesOcb(_) |
+            ExportKeyAlgorithm::ChaCha20Poly1305(_) |
+            ExportKeyAlgorithm::Kmac(_) => true,
+        }
+    }
 }
 
 impl ExportKeyAlgorithm {
@@ -6424,6 +6502,29 @@ impl NormalizedAlgorithm for GetKeyLengthAlgorithm {
             GetKeyLengthAlgorithm::Argon2(algorithm) => algorithm.name,
         }
     }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            GetKeyLengthAlgorithm::AesCtr(normalized_derived_key_algorithm) |
+            GetKeyLengthAlgorithm::AesCbc(normalized_derived_key_algorithm) |
+            GetKeyLengthAlgorithm::AesGcm(normalized_derived_key_algorithm) |
+            GetKeyLengthAlgorithm::AesKw(normalized_derived_key_algorithm) => {
+                matches!(normalized_derived_key_algorithm.length, 128 | 192 | 256)
+            },
+            GetKeyLengthAlgorithm::Hmac(normalized_derived_key_algorithm) => {
+                normalized_derived_key_algorithm
+                    .length
+                    .is_none_or(|length| length != 0)
+            },
+            GetKeyLengthAlgorithm::Hkdf(_) | GetKeyLengthAlgorithm::Pbkdf2(_) => true,
+            GetKeyLengthAlgorithm::AesOcb(normalized_derived_key_algorithm) => {
+                matches!(normalized_derived_key_algorithm.length, 128 | 192 | 256)
+            },
+            GetKeyLengthAlgorithm::ChaCha20Poly1305(_) |
+            GetKeyLengthAlgorithm::Kmac(_) |
+            GetKeyLengthAlgorithm::Argon2(_) => true,
+        }
+    }
 }
 
 impl GetKeyLengthAlgorithm {
@@ -6491,6 +6592,12 @@ impl NormalizedAlgorithm for EncapsulateAlgorithm {
             EncapsulateAlgorithm::MlKem(algorithm) => algorithm.name,
         }
     }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            EncapsulateAlgorithm::MlKem(_) => true,
+        }
+    }
 }
 
 impl EncapsulateAlgorithm {
@@ -6538,6 +6645,12 @@ impl NormalizedAlgorithm for DecapsulateAlgorithm {
             DecapsulateAlgorithm::MlKem(algorithm) => algorithm.name,
         }
     }
+
+    fn determine_support_from_operation_steps(&self, _length: Option<u32>) -> bool {
+        match self {
+            DecapsulateAlgorithm::MlKem(_) => true,
+        }
+    }
 }
 
 impl DecapsulateAlgorithm {
@@ -6545,6 +6658,55 @@ impl DecapsulateAlgorithm {
         match self {
             DecapsulateAlgorithm::MlKem(algorithm) => {
                 ml_kem_operation::decapsulate(algorithm, key, ciphertext)
+            },
+        }
+    }
+}
+
+/// The value of the key "get shared key length" in the internal object supportedAlgorithms
+struct GetSharedKeyLengthOperation {}
+
+impl Operation for GetSharedKeyLengthOperation {
+    type RegisteredAlgorithm = GetSharedKeyLengthAlgorithm;
+}
+
+/// Normalized algorithm for the "get shared key length" operation, used as output of
+/// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
+enum GetSharedKeyLengthAlgorithm {
+    MlKem(Algorithm),
+}
+
+impl NormalizedAlgorithm for GetSharedKeyLengthAlgorithm {
+    fn from_object(
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+        object: HandleObject,
+    ) -> Fallible<Self> {
+        match algorithm_name {
+            CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
+                Ok(GetSharedKeyLengthAlgorithm::MlKem(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
+            },
+            _ => Err(Error::NotSupported(Some(format!(
+                "{} does not support \"get shared key length\" operation",
+                algorithm_name.as_str()
+            )))),
+        }
+    }
+
+    fn name(&self) -> CryptoAlgorithm {
+        match self {
+            GetSharedKeyLengthAlgorithm::MlKem(algorithm) => algorithm.name,
+        }
+    }
+}
+
+impl GetSharedKeyLengthAlgorithm {
+    fn get_shared_key_length(&self) -> u32 {
+        match self {
+            GetSharedKeyLengthAlgorithm::MlKem(_algorithm) => {
+                ml_kem_operation::get_shared_key_length()
             },
         }
     }

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>element.matches() with complex :nth-last-of-type selector</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3211 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  div.innerHTML = `<div class="b"><div class="c"></div></div>`;
+  const c = div.querySelector(".c");
+
+  assert_false(c.matches(".a:nth-last-of-type(1) .b .c"));
+});
+
+</script>

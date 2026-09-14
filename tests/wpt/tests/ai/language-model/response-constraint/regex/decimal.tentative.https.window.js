@@ -9,7 +9,7 @@
 promise_test(async t => {
   await ensureLanguageModel();
   const session = await createLanguageModel();
-  const regex = /^-?\d(\.\d+)?$/;
+  const regex = /^-?(0(\.\d+)?|1(\.0+)?)$/;
   const response = await session.prompt(
       'Derive a rating between -1.0 and 1.0 from "Absolutely the best meal ever!"',
       {responseConstraint: regex});

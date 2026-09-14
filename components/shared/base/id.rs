@@ -587,3 +587,8 @@ impl fmt::Display for ScriptEventLoopId {
         write!(f, "{}", self.0)
     }
 }
+
+/// A unique identifier for a largest-contentful-paint candidate, generated at
+/// layout time.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct LCPCandidateID(pub u64);

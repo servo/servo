@@ -1,0 +1,28 @@
+<!doctype html>
+<title>CSSKeyframesRule appendRule with multiple keyframe rules silently does nothing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#dom-csskeyframesrule-appendrule">
+
+<script>
+"use strict";
+
+test(() => {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync("@keyframes test {}");
+  const keyframes = sheet.cssRules[0];
+
+  keyframes.appendRule("from { opacity: 0 }");
+  assert_equals(keyframes.cssRules.length, 1, "Single keyframe rule should be appended");
+  assert_equals(keyframes.cssRules[0].keyText, "0%");
+}, "appendRule with a single keyframe rule works");
+
+test(() => {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync("@keyframes test {}");
+  const keyframes = sheet.cssRules[0];
+
+  keyframes.appendRule("from { opacity: 0 } to { opacity: 1 }");
+  assert_equals(keyframes.cssRules.length, 0, "Multiple keyframe rules should be silently ignored");
+}, "appendRule with multiple keyframe rules silently does nothing");
+</script>

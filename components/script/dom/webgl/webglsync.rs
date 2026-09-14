@@ -57,7 +57,7 @@ impl Drop for DroppableWebGLSync {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLSync {
     webgl_object: WebGLObject,
     client_wait_status: Cell<Option<u32>>,

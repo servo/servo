@@ -148,7 +148,7 @@ fn set_efficient_window_method(window: *mut c_void) {
             return;
         }
 
-        usage = usage & (!(ohos_window_sys::native_buffer::native_buffer::OH_NativeBuffer_Usage::NATIVEBUFFER_USAGE_CPU_READ.0 as u64));
+        usage &= !(ohos_window_sys::native_buffer::native_buffer::OH_NativeBuffer_Usage::NATIVEBUFFER_USAGE_CPU_READ.0 as u64);
         let return_value = ohos_window_sys::native_window::OH_NativeWindow_NativeWindowHandleOpt(
             window as *mut ohos_sys_opaque_types::NativeWindow,
             ohos_window_sys::native_window::NativeWindowOperation::SET_USAGE as i32,
@@ -1175,9 +1175,8 @@ impl Ime for ServoIme {
     }
 
     fn keyboard_status_changed(&self, status: KeyboardStatus) {
-        match status {
-            KeyboardStatus::Hidden => call(ServoAction::ImeDismiss).unwrap(),
-            _ => (),
+        if let KeyboardStatus::Hidden = status {
+            call(ServoAction::ImeDismiss).unwrap()
         }
     }
 }

@@ -27,6 +27,18 @@
   });
 
   test_no_interpolation({
+    property: 'text-decoration-thickness',
+    from: 'auto',
+    to: '123px'
+  });
+
+  test_no_interpolation({
+    property: 'text-decoration-thickness',
+    from: 'from-font',
+    to: '123px'
+  });
+
+  test_no_interpolation({
     property: 'text-emphasis-position',
     from: 'initial',
     to: 'under right'

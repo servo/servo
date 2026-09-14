@@ -29,6 +29,9 @@ var tests = [
   ['[foo="bar" /**/ s]', '[foo="bar" s]'],
   ['[foo="bar"/**/s]', '[foo="bar" s]'],
   ['[*|foo="bar" s]', '[*|foo="bar" s]'],
+  ['[class~="bar"]', '[class~="bar"]'],
+  ['[class~="bar" i]', '[class~="bar" i]'],
+  ['[class~="bar" s]', '[class~="bar" s]'],
 ]
 
 tests.forEach(function(arr) {

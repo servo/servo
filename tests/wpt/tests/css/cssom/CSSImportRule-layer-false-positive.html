@@ -1,0 +1,100 @@
+<!doctype html>
+<title>@import layer detection should not match nested layer identifiers or functions</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#at-import">
+<script>
+"use strict";
+
+async function insertRule(t, cssText) {
+  const style = document.createElement("style");
+  style.textContent = cssText;
+  const loaded = new Promise(resolve => {
+    style.onload = resolve;
+    style.onerror = resolve;
+  });
+  document.head.append(style);
+  t.add_cleanup(() => {
+    style.remove();
+  });
+  await loaded;
+  return style.sheet.cssRules[0];
+}
+
+const cases = [
+  {
+    title: "@import with layer identifier inside supports declaration should not set layerName",
+    cssText: '@import "data:text/css," supports((font-family: layer));',
+    expectedLayerName: null,
+    expectedCSSText: '@import url("data:text/css,") supports((font-family: layer));'
+  },
+  {
+    title: "@import with layer() inside supports() condition should not set layerName",
+    cssText: '@import "data:text/css," supports((color: layer(foo)));',
+    expectedLayerName: null,
+    expectedCSSText: '@import url("data:text/css,") supports((color: layer(foo)));'
+  },
+  {
+    title: "@import with layer() inside media query should not set layerName",
+    cssText: '@import "data:text/css," screen and (foo: layer(bar));',
+    expectedLayerName: null,
+    expectedCSSText: '@import url("data:text/css,") screen and (foo: layer(bar));'
+  },
+  {
+    title: "@import with nested layer() inside supports() function argument should not set layerName",
+    cssText: '@import "data:text/css," supports((selector(:is(.a, layer(foo)))));',
+    expectedLayerName: null,
+    expectedCSSText: '@import url("data:text/css,") supports((selector(:is(.a, layer(foo)))));'
+  },
+  {
+    title: "@import with top-level layer() should still set layerName",
+    cssText: '@import "data:text/css," layer(foo);',
+    expectedLayerName: "foo",
+    expectedCSSText: '@import url("data:text/css,") layer(foo);'
+  },
+  {
+    title: "@import with bare top-level layer should still set empty layerName",
+    cssText: '@import "data:text/css," layer;',
+    expectedLayerName: "",
+    expectedCSSText: '@import url("data:text/css,") layer;'
+  },
+  {
+    title: "@import with invalid layer() followed by media query should preserve both as media",
+    cssText: '@import "data:text/css," layer() screen;',
+    expectedLayerName: null,
+    expectedCSSText: '@import url("data:text/css,") not all;'
+  },
+  {
+    title: "@import with invalid layer() followed by compound media query should preserve both as media",
+    cssText: '@import "data:text/css," layer() screen, print;',
+    expectedLayerName: null,
+    expectedCSSText: '@import url("data:text/css,") not all, print;'
+  },
+  {
+    title: "@import with invalid layer() followed by supports() and media query drops all modifiers",
+    cssText: '@import "data:text/css," layer() supports((display: grid)) screen;',
+    expectedLayerName: null,
+    expectedCSSText: '@import url("data:text/css,") not all;'
+  },
+  {
+    title: "@import with invalid layer(name with space) followed by media query should preserve both as media",
+    cssText: '@import "data:text/css," layer(foo bar) screen;',
+    expectedLayerName: null,
+    expectedCSSText: '@import url("data:text/css,") not all;'
+  },
+  {
+    title: "@import with invalid layer(name with space) followed by supports() and media query drops all modifiers",
+    cssText: '@import "data:text/css," layer(foo bar) supports((display: grid)) screen;',
+    expectedLayerName: null,
+    expectedCSSText: '@import url("data:text/css,") not all;'
+  }
+];
+
+for (const { title, cssText, expectedLayerName, expectedCSSText } of cases) {
+  promise_test(async t => {
+    const rule = await insertRule(t, cssText);
+    assert_equals(rule.layerName, expectedLayerName, "Unexpected layerName");
+    assert_equals(rule.cssText, expectedCSSText, "Unexpected cssText serialization");
+  }, title);
+}
+</script>

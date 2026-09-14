@@ -27,6 +27,7 @@ use servo_base::generic_channel::GenericSharedMemory;
 use servo_constellation_traits::BlobImpl;
 use url::form_urlencoded;
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_copy};
 use crate::dom::bindings::codegen::Bindings::BlobBinding::Blob_Binding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
@@ -713,7 +714,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     cx: &mut js::context::JSContext,
     object: &T,
     body_type: BodyType,
-) -> Rc<Promise> {
+) -> RootedPromise {
     let global = object.global();
 
     // Enter the realm of the object whose body is being consumed.
@@ -722,7 +723,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
 
     // Let promise be a new promise.
     // Note: re-ordered so we can return the promise below.
-    let promise = Promise::new_in_realm(cx);
+    let promise = Promise::new_in_realm_rooted(cx);
 
     // If object is unusable, then return a promise rejected with a TypeError.
     if object.is_unusable() {
@@ -911,11 +912,7 @@ fn run_blob_data_algorithm(
     bytes: Vec<u8>,
     mime: &[u8],
 ) -> Fallible<FetchedData> {
-    let mime_string = if let Ok(s) = String::from_utf8(mime.to_vec()) {
-        s
-    } else {
-        "".to_string()
-    };
+    let mime_string = String::from_utf8(mime.to_vec()).unwrap_or_default();
     let blob = Blob::new(
         cx,
         root,

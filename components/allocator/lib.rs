@@ -28,6 +28,11 @@ pub fn dump_unmeasured(_writer: impl std::io::Write) {
     ALLOC.dump_unmeasured_allocations(_writer);
 }
 
+pub fn disable_unmeasured_tracking() {
+    #[cfg(feature = "allocation-tracking")]
+    ALLOC.disable();
+}
+
 pub struct HeapReport {
     pub path: &'static str,
     pub size: Option<usize>,

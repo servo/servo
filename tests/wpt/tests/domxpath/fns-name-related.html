@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="help-name" href="https://www.w3.org/TR/1999/REC-xpath-19991116/#function-name">
+<link rel="help-local-name" href="https://www.w3.org/TR/1999/REC-xpath-19991116/#function-local-name">
+<link rel="help-namespace-uri" href="https://www.w3.org/TR/1999/REC-xpath-19991116/#function-namespace-uri">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Test the functions with various scenarios
+function testFunction(expression, xmlString, expected) {
+  const doc = (new DOMParser()).parseFromString(xmlString, 'text/xml');
+  test(() => {
+    const result = doc.evaluate(expression, doc.documentElement, null, XPathResult.STRING_TYPE, null);
+    assert_equals(result.resultType, XPathResult.STRING_TYPE);
+    assert_equals(result.stringValue, expected);
+  })
+}
+
+const context = '<root xmlns:alpha="http://example.com/alpha" xmlns:gamma="http://example.com/gamma"><alpha:beta gamma:delta="epsilon"></alpha:beta></root>';
+
+testFunction("name(./*[1])", context, "alpha:beta");
+testFunction("local-name(./*[1])", context, "beta");
+testFunction("namespace-uri(./*[1])", context, "http://example.com/alpha");
+testFunction("name(./*[1]/@*)", context, "gamma:delta");
+testFunction("local-name(./*[1]/@*)", context, "delta");
+testFunction("namespace-uri(./*[1]/@*)", context, "http://example.com/gamma");
+</script>
+</body>

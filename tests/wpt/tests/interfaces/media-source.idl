@@ -53,9 +53,9 @@ interface SourceBuffer : EventTarget {
   readonly  attribute boolean updating;
   readonly  attribute TimeRanges buffered;
   attribute double timestampOffset;
-  [Exposed=Window] readonly attribute AudioTrackList audioTracks;
-  [Exposed=Window] readonly attribute VideoTrackList videoTracks;
-  [Exposed=Window] readonly attribute TextTrackList textTracks;
+  [Exposed=Window] readonly  attribute AudioTrackList audioTracks;
+  [Exposed=Window] readonly  attribute VideoTrackList videoTracks;
+  [Exposed=Window] readonly  attribute TextTrackList textTracks;
   attribute double appendWindowStart;
   attribute unrestricted double appendWindowEnd;
 
@@ -107,17 +107,17 @@ interface ManagedSourceBuffer : SourceBuffer {
   attribute EventHandler onbufferedchange;
 };
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=Window]
 partial interface AudioTrack {
   readonly attribute SourceBuffer? sourceBuffer;
 };
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=Window]
 partial interface VideoTrack {
   readonly attribute SourceBuffer? sourceBuffer;
 };
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=Window]
 partial interface TextTrack {
   readonly attribute SourceBuffer? sourceBuffer;
 };

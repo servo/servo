@@ -1,0 +1,49 @@
+<!doctype html>
+<title>@import and @namespace inside grouping rules should be dropped as invalid</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-syntax-3/#consume-an-at-rule">
+<script>
+"use strict";
+
+function sheetRules(cssText) {
+  const style = document.createElement("style");
+  style.textContent = cssText;
+  document.head.append(style);
+  const rules = style.sheet.cssRules;
+  const result = [];
+  for (let i = 0; i < rules.length; i++) {
+    result.push(rules[i]);
+  }
+  style.remove();
+  return result;
+}
+
+test(() => {
+  const rules = sheetRules('@media all { @import url("data:text/css,"); }');
+  assert_equals(rules.length, 1, "should have @media rule");
+  assert_equals(rules[0].constructor.name, "CSSMediaRule");
+  assert_equals(rules[0].cssRules.length, 0, "@import inside @media should be dropped");
+}, "@import inside @media rule is dropped");
+
+test(() => {
+  const rules = sheetRules('@supports (color: red) { @import url("data:text/css,"); }');
+  assert_equals(rules.length, 1, "should have @supports rule");
+  assert_equals(rules[0].constructor.name, "CSSSupportsRule");
+  assert_equals(rules[0].cssRules.length, 0, "@import inside @supports should be dropped");
+}, "@import inside @supports rule is dropped");
+
+test(() => {
+  const rules = sheetRules('@media all { @namespace x url("urn:x"); }');
+  assert_equals(rules.length, 1, "should have @media rule");
+  assert_equals(rules[0].constructor.name, "CSSMediaRule");
+  assert_equals(rules[0].cssRules.length, 0, "@namespace inside @media should be dropped");
+}, "@namespace inside @media rule is dropped");
+
+test(() => {
+  const rules = sheetRules('@media all { @import url("data:text/css,"); p { color: red; } }');
+  assert_equals(rules.length, 1, "should have @media rule");
+  assert_equals(rules[0].cssRules.length, 1, "only the style rule should survive");
+  assert_equals(rules[0].cssRules[0].selectorText, "p");
+}, "@import inside @media is dropped but subsequent rules survive");
+</script>

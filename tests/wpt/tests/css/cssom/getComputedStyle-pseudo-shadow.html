@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM: getComputedStyle() returns empty declarations for Shadow DOM pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+
+<div id="test"></div>
+
+<script>
+"use strict";
+
+for (const pseudo of ["::part(foo)", "::slotted(foo)"]) {
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById("test"), pseudo).length, 0);
+  }, `getComputedStyle() returns an empty declaration for ${pseudo}`);
+}
+</script>

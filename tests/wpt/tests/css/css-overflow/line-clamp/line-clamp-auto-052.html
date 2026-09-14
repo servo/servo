@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp auto after text wraps</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-052-ref.html">
+<meta name="assert" content="Automatic line-clamp uses line boxes created by incremental text wrapping.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 3lh;
+  font: 20px / 20px monospace;
+  width: 18ch;
+  background: yellow;
+}
+.final {
+  width: 10ch;
+}
+</style>
+<div class="clamp">
+  Line one<br>
+  wrapping text here<br>
+  Line three<br>
+  Line four
+</div>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.querySelector(".clamp").classList.add("final");
+  takeScreenshot();
+}));
+</script>

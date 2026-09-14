@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Class selector with escaped exclamation mark</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#class-html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3987 -->
+
+<style>
+  .visible\! {
+    color: red;
+  }
+</style>
+
+<div id="div" class="visible!"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_equals(document.styleSheets.length, 1, "Stylesheet should be parsed");
+  assert_equals(document.styleSheets[0].cssRules.length, 1, "Stylesheet should have one rule");
+
+  const rule = document.styleSheets[0].cssRules[0];
+  assert_equals(rule.selectorText, ".visible\\!");
+  assert_equals(rule.style.color, "red");
+
+  const div = document.getElementById("div");
+  const styles = window.getComputedStyle(div);
+  assert_equals(styles.color, "rgb(255, 0, 0)");
+}, "Class selector with escaped exclamation mark should parse correctly");
+</script>

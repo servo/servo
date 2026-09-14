@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selector specificity rules</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#specificity-rules">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3318 -->
+
+<style>
+  .baz {
+    font-size: 36px !important;
+  }
+
+  .foo.bar {
+    font-size: 12px;
+  }
+
+  .foo {
+    font-size: 32px;
+  }
+
+  :is(.qux) {
+    font-style: italic;
+    font-size: 24px;
+  }
+
+  :where(.foo.bar.qux) {
+    font-style: oblique;
+    font-size: 48px;
+  }
+</style>
+
+<div id="div"></div>
+
+<script>
+"use strict";
+
+const div = document.getElementById("div");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.classList.remove("foo", "bar", "baz", "qux");
+  });
+
+  div.classList.add("foo");
+  assert_equals(window.getComputedStyle(div).fontSize, "32px", "match .foo font-size");
+
+  div.classList.add("bar");
+  assert_equals(window.getComputedStyle(div).fontSize, "12px", "match .foo.bar font-size");
+}, "Basic");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.classList.remove("foo", "bar", "baz", "qux");
+  });
+
+  div.classList.add("qux");
+  assert_equals(window.getComputedStyle(div).fontStyle, "italic", "match :is(.qux) font-style");
+  assert_equals(window.getComputedStyle(div).fontSize, "24px", "match :is(.qux) font-size");
+}, "Logical :is()");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.classList.remove("foo", "bar", "baz", "qux");
+  });
+
+  div.classList.add("foo", "bar", "qux");
+  assert_equals(window.getComputedStyle(div).fontStyle, "italic", "match :is(.qux) font-style");
+  assert_equals(window.getComputedStyle(div).fontSize, "12px", "match .foo.bar font-size");
+}, "Logical :where()");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.classList.remove("foo", "bar", "baz", "qux");
+  });
+
+  div.classList.add("foo", "bar", "baz", "qux");
+  assert_equals(window.getComputedStyle(div).fontStyle, "italic", "match :is(.qux) font-style");
+  assert_equals(window.getComputedStyle(div).fontSize, "36px", "match .baz font-size");
+}, "!important flag");
+</script>

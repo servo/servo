@@ -149,6 +149,8 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
         if letter_spacing.is_some() {
             ligatures = FontVariantLigatures::NONE;
         };
+        let letter_spacing = letter_spacing.unwrap_or(Au::zero());
+        let word_spacing = info.font_info.word_spacing.unwrap_or(Au::zero());
         if info.font_info.text_rendering == TextRendering::Optimizespeed {
             ligatures = FontVariantLigatures::NONE;
             flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
@@ -161,7 +163,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
 
         Self {
             letter_spacing,
-            word_spacing: info.font_info.word_spacing,
+            word_spacing,
             script: info.script,
             language: info.font_info.language,
             ligatures,

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>getComputedStyle() returns computed values for math functions containing percentages</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-computed-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/4224 -->
+
+<div id="target" style="display: none; font-size: 20px">
+  <div id="child"></div>
+</div>
+
+<script>
+"use strict";
+
+// display: none keeps layout out of the picture, so getComputedStyle() returns the computed
+// value rather than a used value. Lengths inside math functions absolutize at computed-value
+// time; only the percentage has to remain for layout.
+const cases = [
+  ["width", "calc(100% - 1rem)", "calc(100% - 16px)"],
+  ["width", "calc(100% - 1em)", "calc(100% - 20px)"],
+  ["margin-left", "calc(50% - 0.5rem)", "calc(50% - 8px)"],
+  ["width", "min(20rem, 100%)", "min(320px, 100%)"],
+  ["width", "max(20rem, 100%)", "max(320px, 100%)"],
+  ["width", "clamp(10rem, 50%, 20rem)", "clamp(160px, 50%, 320px)"],
+  ["width", "calc(2rem + 8px)", "40px"],
+  ["width", "50%", "50%"]
+];
+
+for (const [property, specified, computed] of cases) {
+  test(() => {
+    const div = document.getElementById("target");
+    div.style.setProperty(property, specified);
+    const res = window.getComputedStyle(div).getPropertyValue(property);
+    div.style.removeProperty(property);
+    assert_equals(res, computed);
+  }, `getComputedStyle() returns computed value for ${property}: ${specified}`);
+}
+
+// Percentages in font-size are relative to the parent's font size and resolve at
+// computed-value time, so they must not survive into the computed value.
+const fontSizeCases = [
+  ["calc(100% + 20px)", "40px"],
+  ["max(1rem, 150%)", "30px"],
+  ["calc(50% + 1rem)", "26px"]
+];
+
+for (const [specified, computed] of fontSizeCases) {
+  test(() => {
+    const div = document.getElementById("child");
+    div.style.fontSize = specified;
+    const res = window.getComputedStyle(div).fontSize;
+    div.style.removeProperty("font-size");
+    assert_equals(res, computed);
+  }, `getComputedStyle() returns computed value for font-size: ${specified}`);
+}
+
+test(() => {
+  const div = document.getElementById("target");
+  div.style.gridTemplateRows = "[Foo] minmax(1rem, calc(100% - 2rem)) [Bar]";
+  const res = window.getComputedStyle(div).gridTemplateRows;
+  div.style.removeProperty("grid-template-rows");
+  // Line names are <custom-ident>s, so their case survives computed-value time, whether or
+  // not the lengths inside the math function have been absolutized.
+  assert_true(res.startsWith("[Foo] "), `"${res}" starts with the [Foo] line name`);
+  assert_true(res.endsWith(" [Bar]"), `"${res}" ends with the [Bar] line name`);
+}, "getComputedStyle() preserves the case of line names around a math function");
+</script>

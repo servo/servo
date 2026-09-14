@@ -970,7 +970,7 @@ interface HTMLButtonElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   [CEReactions, ReflectSetter] attribute DOMString command;
-  [CEReactions, Reflect] attribute Element? commandForElement;
+  [CEReactions, Reflect="commandfor"] attribute Element? commandForElement;
   [CEReactions, Reflect] attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
   [CEReactions, ReflectSetter] attribute USVString formAction;
@@ -1275,11 +1275,12 @@ interface HTMLTemplateElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   readonly attribute DocumentFragment content;
+  [CEReactions, Reflect="for"] attribute DOMString htmlFor;
   [CEReactions] attribute DOMString shadowRootMode;
   [CEReactions, Reflect] attribute boolean shadowRootDelegatesFocus;
+  [CEReactions, Reflect] attribute boolean shadowRootSerializable;
   [CEReactions] attribute DOMString shadowRootSlotAssignment;
   [CEReactions, Reflect] attribute boolean shadowRootClonable;
-  [CEReactions, Reflect] attribute boolean shadowRootSerializable;
   [CEReactions, Reflect] attribute DOMString shadowRootCustomElementRegistry;
 };
 
@@ -1813,7 +1814,7 @@ dictionary DragEventInit : MouseEventInit {
 };
 
 interface mixin PopoverTargetAttributes {
-  [CEReactions, Reflect] attribute Element? popoverTargetElement;
+  [CEReactions, Reflect="popovertarget"] attribute Element? popoverTargetElement;
   [CEReactions] attribute DOMString popoverTargetAction;
 };
 

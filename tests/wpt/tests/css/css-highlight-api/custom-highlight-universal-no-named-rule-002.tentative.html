@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Custom Highlight: ::highlight(*) applies to all registered highlights</title>
+<link rel="author" title="Seokho Song" href="mailto:seokho@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9091">
+<meta name="assert" content="::highlight(*) applies to every registered custom highlight.">
+<link rel="match" href="custom-highlight-universal-no-named-rule-002.tentative-ref.html">
+<style>
+  :root::highlight(*) { color: green; }
+</style>
+<body>
+    <span id="text1">One two three</span>
+    <script>
+        let textElement = document.getElementById('text1');
+        let highlight1 = new Highlight(new StaticRange({startContainer: textElement.childNodes[0], startOffset: 1, endContainer: textElement.childNodes[0], endOffset: 2}));
+        let highlight2 = new Highlight(new StaticRange({startContainer: textElement.childNodes[0], startOffset: 3, endContainer: textElement.childNodes[0], endOffset: 4}));
+        highlight2.add(new StaticRange({startContainer: textElement.childNodes[0], startOffset: 5, endContainer: textElement.childNodes[0], endOffset: 6}));
+        CSS.highlights.set("example-highlight1", highlight1);
+        CSS.highlights.set("example-highlight2", highlight2);
+    </script>
+</body>

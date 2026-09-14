@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://www.w3.org/TR/css-animations-1/">
+  <title>
+    Reference for background color animation with a change during start delay
+  </title>
+</head>
+<script src="common/reftest-wait.js"></script>
+<script src="web-animations/testcommon.js"></script>
+<style>
+  .block {
+    height: 100px;
+    width: 100px;
+    display: inline-block;
+  }
+  #target1 {
+    background-color: lime;
+  }
+  #target2 {
+    background-color: green;
+  }
+  #target3 {
+    background-color: blue;
+  }
+</style>
+<body>
+  <div id="target1" class="block"></div>
+  <div id="target2" class="block"></div>
+  <div id="target3" class="block"></div>
+</body>
+</html>

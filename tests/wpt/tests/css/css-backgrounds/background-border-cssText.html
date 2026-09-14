@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>background and border with cssText setter</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-shorthands">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/4095 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const el = document.createElement("div");
+  el.style.cssText = "background: red; color: blue;";
+  assert_equals(el.style.cssText, "background: red; color: blue;");
+}, "background + another property");
+
+test(() => {
+  const el = document.createElement("div");
+  el.style.cssText = "background: var(--background-color); color: red;";
+  assert_equals(el.style.cssText, "background: var(--background-color); color: red;");
+}, "background with var()");
+
+test(() => {
+  const el = document.createElement("div");
+  el.style.cssText = "border: 1px solid var(--border-color); color: red;";
+  assert_equals(el.style.cssText, "border: 1px solid var(--border-color); color: red;");
+}, "border with var()");
+
+test(() => {
+  const el = document.createElement("div");
+  el.style.cssText = "background: red;";
+  assert_equals(el.style.cssText, "background: red;");
+
+  el.style.cssText = "background: red; font-size: 14px;";
+  assert_equals(el.style.cssText, "background: red; font-size: 14px;");
+}, "background alone then add another property and value");
+
+test(() => {
+  const el = document.createElement("div");
+  el.style.cssText = "color: blue; background: red;";
+  assert_equals(el.style.cssText, "color: blue; background: red;");
+}, "putting background last");
+</script>

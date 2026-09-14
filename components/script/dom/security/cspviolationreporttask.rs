@@ -10,6 +10,7 @@ use net_traits::request::{
     CredentialsMode, Destination, RequestBody, RequestId, create_request_body_with_content,
 };
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
+use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 
@@ -166,7 +167,7 @@ impl TaskOnce for CSPViolationReportTask {
             // Step 3.5.3. Generate and queue a report with the following arguments:
             ReportingObserver::generate_and_queue_a_report(
                 &self.global.root(),
-                "csp-violation".into(),
+                DOMString::from_static("csp-violation"),
                 Some(body),
                 report_to_directive.value.join(" ").into(),
             )

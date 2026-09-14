@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::ffi::CString;
@@ -407,18 +407,28 @@ impl EventListeners {
     }
 }
 
+/// The set of event listeners registered on an [`EventTarget`], keyed by event type.
+type EventListenerMap = HashMapTracedValues<Atom, EventListeners, FxBuildHasher>;
+
 #[dom_struct]
 pub struct EventTarget {
     reflector_: Reflector,
-    handlers: DomRefCell<HashMapTracedValues<Atom, EventListeners, FxBuildHasher>>,
+    handlers: DomRefCell<Option<Box<EventListenerMap>>>,
 }
 
 impl EventTarget {
     pub(crate) fn new_inherited() -> EventTarget {
         EventTarget {
             reflector_: Reflector::new(),
-            handlers: DomRefCell::new(Default::default()),
+            handlers: DomRefCell::new(None),
         }
+    }
+
+    /// Mutably borrow the listener map, allocating it if this target has none yet.
+    fn ensure_handlers(&self) -> RefMut<'_, Box<EventListenerMap>> {
+        RefMut::map(self.handlers.borrow_mut(), |handlers| {
+            handlers.get_or_insert_with(Box::default)
+        })
     }
 
     fn new(
@@ -456,7 +466,12 @@ impl EventTarget {
     /// Determine if there are any listeners for a given event type.
     /// See <https://github.com/whatwg/dom/issues/453>.
     pub(crate) fn has_listeners_for(&self, type_: &Atom) -> bool {
-        match self.handlers.borrow().get(type_) {
+        match self
+            .handlers
+            .borrow()
+            .as_ref()
+            .and_then(|handlers| handlers.get(type_))
+        {
             Some(listeners) => listeners.has_listeners(),
             None => false,
         }
@@ -465,20 +480,24 @@ impl EventTarget {
     pub(crate) fn get_listeners_for(&self, type_: &Atom) -> EventListeners {
         self.handlers
             .borrow()
-            .get(type_)
+            .as_ref()
+            .and_then(|handlers| handlers.get(type_))
             .map_or(EventListeners(vec![]), |listeners| listeners.clone())
     }
 
     pub(crate) fn remove_all_listeners(&self) {
-        let mut handlers = self.handlers.borrow_mut();
+        // Take the whole map out first, so the listener-removed notifications
+        // below run without holding a borrow on `handlers`.
+        let Some(handlers) = self.handlers.borrow_mut().take() else {
+            return;
+        };
+
         for (ty, entries) in handlers.iter() {
             entries
                 .iter()
                 .for_each(|entry| entry.borrow_mut().removed = true);
             self.notify_listener_removed(ty);
         }
-
-        *handlers = Default::default();
     }
 
     /// <https://dom.spec.whatwg.org/#default-passive-value>
@@ -519,7 +538,7 @@ impl EventTarget {
 
     /// <https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handlers-11>
     fn set_inline_event_listener(&self, ty: Atom, listener: Option<InlineEventListener>) {
-        let mut handlers = self.handlers.borrow_mut();
+        let mut handlers = self.ensure_handlers();
         let entries = match handlers.entry(ty.clone()) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(EventListeners(vec![])),
@@ -559,7 +578,8 @@ impl EventTarget {
     pub(crate) fn remove_listener(&self, ty: &Atom, entry: &Rc<RefCell<EventListenerEntry>>) {
         let mut handlers = self.handlers.borrow_mut();
 
-        if let Some(entries) = handlers.get_mut(ty) &&
+        if let Some(handlers) = handlers.as_mut() &&
+            let Some(entries) = handlers.get_mut(ty) &&
             let Some(position) = entries.iter().position(|e| *e == *entry)
         {
             entries.remove(position).borrow_mut().removed = true;
@@ -586,6 +606,7 @@ impl EventTarget {
     ) -> Option<CommonEventHandler> {
         let handlers = self.handlers.borrow();
         handlers
+            .as_ref()?
             .get(ty)
             .and_then(|entry| entry.get_inline_listener(cx, self, ty))
     }
@@ -803,7 +824,10 @@ impl EventTarget {
     }
 
     pub(crate) fn has_handlers(&self) -> bool {
-        !self.handlers.borrow().is_empty()
+        self.handlers
+            .borrow()
+            .as_ref()
+            .is_some_and(|handlers| !handlers.is_empty())
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
@@ -901,7 +925,7 @@ impl EventTarget {
             None => return,
         };
         let ty = Atom::from(ty);
-        let mut handlers = self.handlers.borrow_mut();
+        let mut handlers = self.ensure_handlers();
         let entries = match handlers.entry(ty.clone()) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(EventListeners(vec![])),
@@ -943,7 +967,9 @@ impl EventTarget {
         };
         let ty_atom = Atom::from(ty);
         let mut handlers = self.handlers.borrow_mut();
-        if let Some(entries) = handlers.get_mut(&ty_atom) {
+        if let Some(handlers) = handlers.as_mut() &&
+            let Some(entries) = handlers.get_mut(&ty_atom)
+        {
             let phase = if options.capture {
                 ListenerPhase::Capturing
             } else {
@@ -1055,6 +1081,9 @@ impl EventTarget {
 
     pub(crate) fn summarize_event_listeners_for_devtools(&self) -> Vec<EventListenerInfo> {
         let handlers = self.handlers.borrow();
+        let Some(handlers) = handlers.as_ref() else {
+            return Vec::new();
+        };
         let mut listener_infos = Vec::with_capacity(handlers.0.len());
         for (event_type, event_listeners) in &handlers.0 {
             for event_listener in event_listeners.iter() {

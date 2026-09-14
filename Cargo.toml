@@ -63,17 +63,17 @@ cfg-if = "1.0.4"
 chacha20poly1305 = { version = "0.11", features = ["rand_core", "zeroize"] }
 chardetng = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
-content-security-policy = { version = "0.8.1", features = ["serde"] }
+content-security-policy = { version = "0.9", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 criterion = "0.8"
 crossbeam-channel = "0.5"
 crypto-bigint = "0.7"
 cshake = "0.2"
-cssparser = { version = "0.37", features = ["serde"] }
+cssparser = { version = "0.38", features = ["serde"] }
 ctr = { version = "0.10", features = ["zeroize"] }
 ctutils = "0.4"
 data-url = "0.3"
-dirs = "6.0"
+dirs = "7.0"
 dpi = "0.1"
 dwrote = "0.11.5"
 ecdsa = "0.17"
@@ -140,7 +140,7 @@ inventory = "0.3.24"
 ipc-channel = "0.23"
 itertools = "0.15"
 jni = "0.22"
-js = { package = "mozjs", version = "=0.25.0", default-features = false, features = ["intl", "libz-sys"] }
+js = { package = "mozjs", version = "=0.26.1", default-features = false, features = ["intl", "libz-sys"] }
 k12 = "0.5"
 keccak = "0.2"
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
@@ -193,7 +193,7 @@ parking_lot = { version = "0.12", features = ["serde"] }
 peniko = "0.6"
 percent-encoding = "2.3"
 petgraph = "0.8.3"
-phf = "0.13"
+phf = { version = "0.13", features = ["macros"] }
 phf_codegen = "0.13"
 phf_shared = "0.13"
 pkcs8 = "0.11"
@@ -220,13 +220,13 @@ rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
 sea-query = { version = "1.0.1", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = "0.8.0"
-selectors = { git = "https://github.com/servo/stylo", rev = "b3e6425100df710c7f30125e27a8fb897a709c5e" }
+selectors = { git = "https://github.com/servo/stylo", rev = "9ee9ec60de0193b704f9a5831ef16ff00ac06e49" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
 serde_test = "1.0"
-servo_arc = { git = "https://github.com/servo/stylo", rev = "b3e6425100df710c7f30125e27a8fb897a709c5e" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "9ee9ec60de0193b704f9a5831ef16ff00ac06e49" }
 sha1 = "0.11"
 sha2 = "0.11"
 sha3 = "0.12"
@@ -237,12 +237,12 @@ speexdsp-resampler = "0.1.0"
 sponge-cursor = "0.1"
 string_cache = "0.9"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "b3e6425100df710c7f30125e27a8fb897a709c5e" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "b3e6425100df710c7f30125e27a8fb897a709c5e" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "b3e6425100df710c7f30125e27a8fb897a709c5e" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "b3e6425100df710c7f30125e27a8fb897a709c5e" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "b3e6425100df710c7f30125e27a8fb897a709c5e" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "b3e6425100df710c7f30125e27a8fb897a709c5e" }
+stylo = { git = "https://github.com/servo/stylo", rev = "9ee9ec60de0193b704f9a5831ef16ff00ac06e49" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "9ee9ec60de0193b704f9a5831ef16ff00ac06e49" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "9ee9ec60de0193b704f9a5831ef16ff00ac06e49" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "9ee9ec60de0193b704f9a5831ef16ff00ac06e49" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "9ee9ec60de0193b704f9a5831ef16ff00ac06e49" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "9ee9ec60de0193b704f9a5831ef16ff00ac06e49" }
 surfman = { version = "0.13.0", features = ["chains"] }
 swapper = "0.1"
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
@@ -276,7 +276,7 @@ vello = "0.10"
 vello_cpu = { version = "0.2.0", features = ["multithreading"] }
 warp = "0.4.2"
 web_atoms = "0.2.6"
-webdriver = { version = "0.54.0", default-features = false }
+webdriver = { version = "0.54.0" }
 webpki-roots = "1.0"
 webrender = { version = "0.70", features = ["serde"] }
 webrender_api = "0.70"
@@ -374,7 +374,10 @@ xpath = { package = "servo-xpath", version = "=0.6.0", path = "components/xpath"
 # End workspace-version dependencies - Don't change this comment, we grep for it in scripts!
 
 [workspace.lints.clippy]
-manual_string_new = "deny"
+manual_string_new = "warn"
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
 
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might

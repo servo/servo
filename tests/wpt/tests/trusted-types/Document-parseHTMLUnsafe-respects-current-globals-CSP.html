@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';">
+<title>Document.parseHTMLUnsafe() respects the current global object's CSP</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-parsehtmlunsafe">
+<link rel="help" href="https://github.com/whatwg/html/issues/11778">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  const html = "<p>plain string</p>";
+
+  const helperWindowPromise = new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    iframe.addEventListener("load", () => resolve(iframe.contentWindow),
+                            {once: true});
+    iframe.src = "support/parseHTMLUnsafe-without-trusted-types.html";
+    document.body.appendChild(iframe);
+  });
+
+  promise_test(async t => {
+    const helperWindow = await helperWindowPromise;
+    const doc = helperWindow.Document.parseHTMLUnsafe(html);
+    assert_equals(doc.body.textContent, "plain string");
+  }, "The helper frame's Document.parseHTMLUnsafe() does not enforce Trusted " +
+     "Types when called from this document.");
+
+  promise_test(async t => {
+    const helperWindow = await helperWindowPromise;
+    const result = await new Promise(resolve => {
+      window.addEventListener("message", event => resolve(event.data),
+                              {once: true});
+      helperWindow.postMessage(html, "*");
+    });
+    assert_true(result.threw, "should have thrown");
+    assert_equals(result.name, "TypeError");
+  }, "This document's Document.parseHTMLUnsafe() enforces Trusted Types when " +
+     "called from the helper frame.");
+</script>

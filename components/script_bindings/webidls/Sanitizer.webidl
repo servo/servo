@@ -11,7 +11,7 @@ dictionary SetHTMLUnsafeOptions {
   (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = {};
 };
 
-// https://wicg.github.io/sanitizer-api/#sanitizer
+// https://html.spec.whatwg.org/multipage/#sanitizer
 [Exposed=Window, Pref="dom_sanitizer_enabled"]
 interface Sanitizer {
   [Throws] constructor(optional (SanitizerConfig or SanitizerPresets) configuration = "default");
@@ -29,12 +29,13 @@ interface Sanitizer {
   boolean removeAttribute(SanitizerAttribute attribute);
   boolean setComments(boolean allow);
   boolean setDataAttributes(boolean allow);
+  boolean setJavascriptURLs(boolean allow);
 
   // Remove markup that executes script.
   boolean removeUnsafe();
 };
 
-// https://wicg.github.io/sanitizer-api/#config
+// https://html.spec.whatwg.org/multipage/#sanitizer-configuration
 dictionary SanitizerElementNamespace {
   required DOMString name;
   DOMString? _namespace = "http://www.w3.org/1999/xhtml";
@@ -46,19 +47,18 @@ dictionary SanitizerElementNamespaceWithAttributes : SanitizerElementNamespace {
   sequence<SanitizerAttribute> removeAttributes;
 };
 
-typedef (DOMString or SanitizerElementNamespace) SanitizerElement;
-typedef (DOMString or SanitizerElementNamespaceWithAttributes) SanitizerElementWithAttributes;
+dictionary SanitizerAttributeNamespace {
+  required DOMString name;
+  DOMString? _namespace = null;
+};
 
 dictionary SanitizerProcessingInstruction {
   required DOMString target;
 };
 
+typedef (DOMString or SanitizerElementNamespace) SanitizerElement;
+typedef (DOMString or SanitizerElementNamespaceWithAttributes) SanitizerElementWithAttributes;
 typedef (DOMString or SanitizerProcessingInstruction) SanitizerPI;
-
-dictionary SanitizerAttributeNamespace {
-  required DOMString name;
-  DOMString? _namespace = null;
-};
 typedef (DOMString or SanitizerAttributeNamespace) SanitizerAttribute;
 
 dictionary SanitizerConfig {
@@ -74,5 +74,6 @@ dictionary SanitizerConfig {
 
   boolean comments;
   boolean dataAttributes;
+  boolean javascriptURLs;
 };
 

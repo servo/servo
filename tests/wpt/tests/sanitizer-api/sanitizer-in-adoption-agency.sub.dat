@@ -82,6 +82,9 @@
 #document
 | <b>
 | <p>
+|   <b>
+|     "foo"
+|   "bar"
 
 #data
 <b><i><div>Text</b></i>

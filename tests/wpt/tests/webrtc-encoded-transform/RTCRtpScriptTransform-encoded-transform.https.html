@@ -8,6 +8,7 @@
 <script src=/resources/testdriver.js></script>
 <script src=/resources/testdriver-vendor.js></script>
 <script src='../mediacapture-streams/permission-helper.js'></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
 <script src ="routines.js"></script>
 </head>
 <body>
@@ -177,6 +178,46 @@ promise_test(async (test) => {
     assert_equals(await updatePromise, "got expected");
 
 }, "Sender skips some frames and only writes one back. Receiver only receives that frame.");
+
+["audio", "video"].forEach(kind => {
+  ["inplace", "detach", "overwrite", "clone-frame"].forEach(mode => {
+    promise_test(async (test) => {
+        const worker = await createWorker('RTCRtpScriptTransform-encoded-transform-flex-worker.js');
+
+        const localStream = await getNoiseStream({[kind]: true});
+
+        let sender, receiver;
+        const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender', mode});
+        const receiverTransform = new RTCRtpScriptTransform(worker, {name:'receiver', mode});
+
+        const stream = await new Promise((resolve, reject) => {
+            createConnections(test, (firstConnection) => {
+                sender = firstConnection.addTrack(localStream.getTracks()[0], localStream);
+                sender.transform = senderTransform;
+            }, (secondConnection) => {
+                secondConnection.ontrack = (trackEvent) => {
+                    receiver = trackEvent.receiver;
+                    receiver.transform = receiverTransform;
+                    resolve(trackEvent.streams[0]);
+                };
+            });
+        });
+
+        assert_equals(await nextMessageOrTimeout(test, worker, 1000),
+          "sender written");
+
+        if (mode == "detach") {
+          // Debatable? What does spec say?
+          assert_equals(await nextMessageOrTimeout(test, worker, 1000),
+            undefined,
+            "If worker detaches the frame, no frame should be received");
+        } else {
+          assert_equals(await nextMessageOrTimeout(test, worker, 1000),
+            "receiver written");
+        }
+    }, `Receiver and sender read/write frames (${mode}, ${kind}).`);
+  });
+});
 
         </script>
     </body>

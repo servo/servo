@@ -528,7 +528,8 @@ impl FetchResponseListener for LinkFetchContext {
     }
 
     fn process_content_length(&mut self, _request_id: RequestId, size: usize) {
-        self.response_body.reserve(size - self.response_body.len());
+        self.response_body
+            .reserve(size.saturating_sub(self.response_body.len()));
     }
 }
 

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>valid / invalid pseudo-classes</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#invalid-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/4187 -->
+
+<form id="form">
+  <input id="input" type="number" min="0">
+</form>
+
+<script>
+"use strict";
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+
+test(() => {
+  let eventCallCount = 0;
+  input.addEventListener("invalid", () => eventCallCount++);
+  input.value = "1";
+  assert_true(input.validity.valid, "sanity: validity is true");
+  assert_equals(eventCallCount, 0, "sanity: event is not called");
+
+  const res = document.querySelectorAll("input:valid");
+  assert_equals(res.length, 1, "has matching node length");
+  assert_equals(res[0], input, "has matching node");
+  assert_equals(eventCallCount, 0, "event is not called");
+}, "Does not fire event when querying valid input");
+
+test(() => {
+  let eventCallCount = 0;
+  input.addEventListener("invalid", () => eventCallCount++);
+  input.value = "-1";
+  assert_false(input.validity.valid, "sanity: validity is false");
+  assert_equals(eventCallCount, 0, "sanity: event is not called");
+
+  const res = document.querySelectorAll("input:invalid");
+  assert_equals(res.length, 1, "has matching node length");
+  assert_equals(res[0], input, "has matching node");
+  assert_equals(eventCallCount, 0, "event is not called");
+}, "Does not fire event when querying invalid input");
+
+test(() => {
+  let eventCallCount = 0;
+  input.addEventListener("invalid", () => eventCallCount++);
+  input.value = "1";
+  assert_true(input.validity.valid, "sanity: validity is true");
+  assert_equals(eventCallCount, 0, "sanity: event is not called");
+
+  const res = document.querySelectorAll("form:valid");
+  assert_equals(res.length, 1, "has matching node length");
+  assert_equals(res[0], form, "has matching node");
+  assert_equals(eventCallCount, 0, "event is not called");
+}, "Does not fire event when querying valid form");
+
+test(() => {
+  let eventCallCount = 0;
+  input.addEventListener("invalid", () => eventCallCount++);
+  input.value = "-1";
+  assert_false(input.validity.valid, "sanity: validity is false");
+  assert_equals(eventCallCount, 0, "sanity: event is not called");
+
+  const res = document.querySelectorAll("form:invalid");
+  assert_equals(res.length, 1, "has matching node length");
+  assert_equals(res[0], form, "has matching node");
+  assert_equals(eventCallCount, 0, "event is not called");
+}, "Does not fire event when querying invalid form");
+</script>

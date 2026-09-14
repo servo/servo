@@ -179,7 +179,7 @@ class BrowsingContext(BidiModule):
         for node in result["nodes"]:
             self._assert_node_remote_value(node)
 
-        return result
+        return result["nodes"]
 
     @command
     def navigate(self,

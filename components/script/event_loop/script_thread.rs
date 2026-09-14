@@ -51,7 +51,6 @@ use fonts::{FontContext, SystemFontServiceProxy, WebFontLoadEvent};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use http::header::REFRESH;
 use hyper_serde::Serde;
-use ipc_channel::router::ROUTER;
 use js::context::{JSContext, NoGC};
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{GCReason, JSContext as UnsafeJSContext};
@@ -100,6 +99,7 @@ use servo_constellation_traits::{
     TargetSnapshotParams, TraversalDirection, WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
+use smallvec::SmallVec;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use style::context::QuirksMode;
@@ -148,7 +148,7 @@ use crate::event_loop::script_window_proxies::ScriptWindowProxies;
 use crate::event_loop::svg_font::SvgFontResolver;
 use crate::event_loop::webdriver_handlers::{self, jsval_to_webdriver};
 use crate::fetch::fetch::FetchCanceller;
-use crate::fetch::network_listener::{FetchResponseListener, submit_timing};
+use crate::fetch::network_listener::submit_timing;
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
     ScriptThreadReceivers, ScriptThreadSenders,
@@ -157,7 +157,7 @@ use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::{MicrotaskQueue, MicrotaskRunnable};
+use crate::runtime::job_queue::{MicrotaskRunnable, job_queue_microtask_checkpoint};
 use crate::runtime::script_runtime::{
     IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
 };
@@ -325,9 +325,6 @@ pub struct ScriptThread {
     /// List of pipelines that have been owned and closed by this script thread.
     #[no_trace]
     closed_pipelines: DomRefCell<FxHashSet<PipelineId>>,
-
-    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
-    microtask_queue: Rc<MicrotaskQueue>,
 
     mutation_observers: Rc<ScriptMutationObservers>,
 
@@ -541,30 +538,8 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.mutation_observers.clone())
     }
 
-    pub(crate) fn microtask_queue() -> Rc<MicrotaskQueue> {
-        with_script_thread(|script_thread| script_thread.microtask_queue.clone())
-    }
-
     pub(crate) fn shared_style_locks(&self) -> &SharedRwLocks {
         &self.shared_style_locks
-    }
-
-    pub(crate) fn page_headers_available(
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        metadata: Option<&Metadata>,
-        origin: MutableOrigin,
-        cx: &mut js::context::JSContext,
-    ) -> Option<DomRoot<Document>> {
-        with_script_thread(|script_thread| {
-            script_thread.handle_page_headers_available(
-                webview_id,
-                pipeline_id,
-                metadata,
-                origin,
-                cx,
-            )
-        })
     }
 
     /// Process a single event as if it were the next event
@@ -593,9 +568,7 @@ impl ScriptThread {
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
     pub(crate) fn await_stable_state(cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
-        with_script_thread(|script_thread| {
-            script_thread.microtask_queue.enqueue(cx, task);
-        });
+        crate::runtime::job_queue::enqueue(cx, task);
     }
 
     /// Check that two origins are "similar enough",
@@ -902,7 +875,6 @@ impl ScriptThread {
             devtools_client_to_script_thread_sender: ipc_devtools_sender,
         };
 
-        let microtask_queue = runtime.microtask_queue.clone();
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
@@ -952,7 +924,6 @@ impl ScriptThread {
                     background_hang_monitor,
                     closing,
                     timer_scheduler: Default::default(),
-                    microtask_queue,
                     js_runtime: Rc::new(runtime),
                     closed_pipelines: DomRefCell::new(FxHashSet::default()),
                     mutation_observers: Default::default(),
@@ -1275,7 +1246,7 @@ impl ScriptThread {
         let running_animations = self.documents.borrow().iter().any(|(_, document)| {
             document.is_fully_active() &&
                 !document.window().throttled() &&
-                (document.animations().running_animation_count() != 0 ||
+                (document.animation_manager().running_animation_count() != 0 ||
                     document.has_active_request_animation_frame_callbacks())
         });
 
@@ -1349,7 +1320,7 @@ impl ScriptThread {
     /// Handle incoming messages from other tasks and the task queue.
     fn handle_msgs(&self, cx: &mut js::context::JSContext) -> bool {
         // Proritize rendering tasks and others, and gather all other events as `sequential`.
-        let mut sequential = vec![];
+        let mut sequential: SmallVec<[MixedMessage; 10]> = SmallVec::new();
 
         // Notify the background-hang-monitor we are waiting for an event.
         self.background_hang_monitor.notify_wait();
@@ -1405,7 +1376,7 @@ impl ScriptThread {
 
         // Process the gathered events.
         debug!("Processing events.");
-        for msg in sequential {
+        for msg in sequential.drain(..) {
             debug!("Processing event {:?}.", msg);
             let category = self.categorize_msg(&msg);
             let pipeline_id = msg.pipeline_id();
@@ -1452,7 +1423,7 @@ impl ScriptThread {
                                 self.handle_msg_from_script(inner_msg, $cx)
                             },
                             MixedMessage::FromDevtools(inner_msg) => {
-                                self.handle_msg_from_devtools(inner_msg, $cx)
+                                self.handle_msg_from_devtools(*inner_msg, $cx)
                             },
                             MixedMessage::FromImageCache(inner_msg) => {
                                 self.handle_msg_from_image_cache(inner_msg, $cx)
@@ -1755,11 +1726,8 @@ impl ScriptThread {
             ScriptThreadMessage::GetDocumentOrigin(pipeline_id, result_sender) => {
                 self.handle_get_document_origin(pipeline_id, result_sender);
             },
-            ScriptThreadMessage::GetInternalAncestorOriginObjectsList(
-                pipeline_id,
-                result_sender,
-            ) => {
-                self.handle_get_internal_ancestor_origin_objects_list(pipeline_id, result_sender);
+            ScriptThreadMessage::GetDocumentOriginDetails(pipeline_id, result_sender) => {
+                self.handle_get_origin_details(pipeline_id, result_sender);
             },
             ScriptThreadMessage::GetTitle(pipeline_id) => self.handle_get_title_msg(pipeline_id),
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
@@ -2669,6 +2637,9 @@ impl ScriptThread {
                     mode,
                 )
             },
+            WebDriverScriptCommand::SetPermission(name, state, reply) => {
+                webdriver_handlers::set_permission(&documents, pipeline_id, name, state, reply)
+            },
         }
     }
 
@@ -2717,17 +2688,21 @@ impl ScriptThread {
         );
     }
 
-    fn handle_get_internal_ancestor_origin_objects_list(
+    fn handle_get_origin_details(
         &self,
         id: PipelineId,
-        result_sender: GenericSender<Option<Vec<ImmutableOrigin>>>,
+        result_sender: GenericSender<Option<(OriginSnapshot, Vec<ImmutableOrigin>)>>,
     ) {
-        let _ = result_sender.send(
-            self.documents
-                .borrow()
-                .find_document(id)
-                .and_then(|document| document.internal_ancestor_origin_objects_list().clone()),
-        );
+        let origin_details = self.documents.borrow().find_document(id).map(|document| {
+            (
+                document.origin().snapshot(),
+                document
+                    .internal_ancestor_origin_objects_list()
+                    .clone()
+                    .unwrap_or_default(),
+            )
+        });
+        let _ = result_sender.send(origin_details);
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
@@ -3114,7 +3089,7 @@ impl ScriptThread {
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_headers_available(
+    pub(crate) fn handle_page_headers_available(
         &self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
@@ -3217,7 +3192,7 @@ impl ScriptThread {
 
             // Clear any active animations and unroot all of the associated DOM objects.
             debug!("{pipeline_id}: Clearing animations");
-            document.animations().clear();
+            document.animation_manager().clear();
 
             if !document.window_detached() {
                 // We discard the browsing context after requesting layout shut down,
@@ -3286,9 +3261,9 @@ impl ScriptThread {
         self.background_hang_monitor.unregister();
 
         // If we're in multiprocess mode, shut-down the IPC router for this process.
-        if opts::get().multiprocess {
+        if opts::get().multiprocess || opts::get().force_ipc {
             debug!("Exiting IPC router thread in script thread.");
-            ROUTER.shutdown();
+            ipc_channel::router::ROUTER.shutdown();
         }
 
         debug!("Exited script thread.");
@@ -4020,16 +3995,46 @@ impl ScriptThread {
     /// argument until a notification is received that the fetch is complete.
     #[servo_tracing::instrument(skip_all)]
     fn pre_page_load(&self, cx: &mut js::context::JSContext, mut incomplete: InProgressLoad) {
+        let origin_from_snapshot = || -> Option<MutableOrigin> {
+            match incomplete.load_data.load_origin {
+                LoadOrigin::Script(ref snapshot) => {
+                    Some(MutableOrigin::from_snapshot(snapshot.clone()))
+                },
+                _ => None,
+            }
+        };
+
+        let preserved_origin = || -> Option<MutableOrigin> {
+            // When loading `about:blank`, `about:srcdoc` and `javascript:`
+            // URLs, the specification says that the origin should be aliased
+            // from the creator origin. This means that changes to the creator
+            // origin via things like `document.domain` are reflected in the
+            // child Document. This code attempts to look up the creator
+            // Document and alias the origin for these type of pages.
+            //
+            // TODO: This should be eliminated by not having these types of pages
+            // use the parser at at all.
+            let creator_pipeline_id = incomplete.load_data.creator_pipeline_id?;
+            Some(
+                ScriptThread::find_document(creator_pipeline_id)?
+                    .origin()
+                    .clone(),
+            )
+        };
+
         let url_str = incomplete.load_data.url.as_str();
         if url_str == "about:blank" || incomplete.load_data.js_eval_result.is_some() {
-            self.start_synchronous_page_load(cx, incomplete);
+            let source_origin = preserved_origin().or(origin_from_snapshot());
+            self.start_synchronous_page_load(cx, incomplete, source_origin);
             return;
         }
         if url_str == "about:srcdoc" {
-            self.page_load_about_srcdoc(cx, incomplete);
+            let source_origin = preserved_origin().or(origin_from_snapshot());
+            self.page_load_about_srcdoc(cx, incomplete, source_origin);
             return;
         }
 
+        let source_origin = origin_from_snapshot();
         let context = ParserContext::new(
             incomplete.webview_id,
             incomplete.pipeline_id,
@@ -4037,7 +4042,7 @@ impl ScriptThread {
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
             incomplete.target_snapshot_params,
-            incomplete.load_data.load_origin.clone(),
+            source_origin,
         );
         self.incomplete_parser_contexts
             .0
@@ -4067,14 +4072,14 @@ impl ScriptThread {
         };
 
         match message {
-            FetchResponseMsg::ProcessResponse(request_id, metadata) => {
-                self.handle_fetch_metadata(cx, pipeline_id, request_id, metadata)
+            FetchResponseMsg::ProcessResponse(_request_id, metadata) => {
+                self.handle_fetch_metadata(cx, pipeline_id, metadata)
             },
-            FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
-                self.handle_fetch_chunk(cx, pipeline_id, request_id, chunk)
+            FetchResponseMsg::ProcessResponseChunk(_request_id, chunk) => {
+                self.handle_fetch_chunk(cx, pipeline_id, chunk)
             },
-            FetchResponseMsg::ProcessResponseEOF(request_id, eof, timing) => {
-                self.handle_fetch_eof(cx, pipeline_id, request_id, eof, timing)
+            FetchResponseMsg::ProcessResponseEOF(_request_id, eof, timing) => {
+                self.handle_fetch_eof(cx, pipeline_id, eof, timing)
             },
             FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
                 self.handle_csp_violations(cx, pipeline_id, request_id, violations)
@@ -4088,7 +4093,6 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         id: PipelineId,
-        request_id: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         match fetch_metadata {
@@ -4104,7 +4108,7 @@ impl ScriptThread {
             .iter_mut()
             .find(|&&mut (pipeline_id, _)| pipeline_id == id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
-            ctxt.process_response(cx, request_id, fetch_metadata);
+            ctxt.process_response(self, cx, fetch_metadata);
         }
     }
 
@@ -4112,7 +4116,6 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
-        request_id: RequestId,
         chunk: Bytes,
     ) {
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.0.borrow_mut();
@@ -4120,7 +4123,7 @@ impl ScriptThread {
             .iter_mut()
             .find(|&&mut (parser_pipeline_id, _)| parser_pipeline_id == pipeline_id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
-            ctxt.process_response_chunk(cx, request_id, chunk);
+            ctxt.process_response_chunk(cx, chunk);
         }
     }
 
@@ -4129,7 +4132,6 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         id: PipelineId,
-        request_id: RequestId,
         eof: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
@@ -4161,7 +4163,7 @@ impl ScriptThread {
                 submit_timing(cx, &iframe_ctx, &eof, &resource_timing);
             }
 
-            context.process_response_eof(cx, request_id, eof, timing);
+            context.process_response_eof(cx, eof, timing);
         }
     }
 
@@ -4251,6 +4253,7 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         mut incomplete: InProgressLoad,
+        source_origin: Option<MutableOrigin>,
     ) {
         let mut context = ParserContext::new(
             incomplete.webview_id,
@@ -4259,7 +4262,7 @@ impl ScriptThread {
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
             incomplete.target_snapshot_params,
-            incomplete.load_data.load_origin.clone(),
+            source_origin,
         );
 
         let mut meta = Metadata::default(incomplete.load_data.url.clone());
@@ -4277,14 +4280,12 @@ impl ScriptThread {
         let about_base_url = incomplete.load_data.about_base_url.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
-        let dummy_request_id = RequestId::default();
-        context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response(self, cx, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
-        context.process_response_chunk(cx, dummy_request_id, chunk.into());
+        context.process_response_chunk(cx, chunk.into());
         context.process_response_eof(
             cx,
-            dummy_request_id,
             Ok(()),
             ResourceFetchTiming::new(ResourceTimingType::None),
         );
@@ -4295,6 +4296,7 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         mut incomplete: InProgressLoad,
+        source_origin: Option<MutableOrigin>,
     ) {
         let url = ServoUrl::parse("about:srcdoc").unwrap();
         let mut meta = Metadata::default(url.clone());
@@ -4312,7 +4314,6 @@ impl ScriptThread {
         let parent_info = incomplete.parent_info;
         let about_base_url = incomplete.load_data.about_base_url.clone();
         let target_snapshot_params = incomplete.target_snapshot_params;
-        let load_origin = incomplete.load_data.load_origin.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context = ParserContext::new(
@@ -4322,17 +4323,14 @@ impl ScriptThread {
             creation_sandboxing_flag_set,
             parent_info,
             target_snapshot_params,
-            load_origin,
+            source_origin,
         );
-        let dummy_request_id = RequestId::default();
-
-        context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response(self, cx, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
-        context.process_response_chunk(cx, dummy_request_id, Bytes::copy_from_slice(&chunk));
+        context.process_response_chunk(cx, Bytes::copy_from_slice(&chunk));
         context.process_response_eof(
             cx,
-            dummy_request_id,
             Ok(()),
             ResourceFetchTiming::new(ResourceTimingType::None),
         );
@@ -4445,9 +4443,7 @@ impl ScriptThread {
     }
 
     pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {
-        with_script_thread(|script_thread| {
-            script_thread.microtask_queue.enqueue(cx, job);
-        });
+        crate::runtime::job_queue::enqueue(cx, job);
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
@@ -4460,7 +4456,7 @@ impl ScriptThread {
                 .map(|(_id, document)| DomRoot::from_ref(document.window().upcast()))
                 .collect();
 
-            self.microtask_queue.checkpoint(cx, globals)
+            job_queue_microtask_checkpoint(cx, globals)
         }
     }
 

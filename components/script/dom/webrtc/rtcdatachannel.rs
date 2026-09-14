@@ -209,7 +209,7 @@ impl RTCDataChannel {
                         let blob = Blob::new(
                             cx,
                             &global,
-                            BlobImpl::new_from_bytes(data, "".to_owned()),
+                            BlobImpl::new_from_bytes(data, String::new()),
                         );
                         blob.to_jsval(cx, message.handle_mut());
                     },

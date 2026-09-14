@@ -265,11 +265,9 @@ impl<'dom> LayoutDom<'dom, Node> {
 
         let text_node = self.downcast::<Text>()?;
         let text = text_node.upcast().data_for_layout();
-        let selection = self.owner_doc_for_layout().selection_for_layout()?;
+        let selection = self.owner_doc_for_layout().visible_selection_for_layout()?;
         let range = selection.range_for_layout();
 
-        // Text nodes are always the same node when projected into the flat tree, so
-        // it is fine to do the following check against the original unprojected nodes.
         let range = range.as_ref()?;
         let is_start_node = unsafe { range.start.container.to_layout() } == *self;
         let is_end_node = unsafe { range.end.container.to_layout() } == *self;

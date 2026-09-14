@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>A element href attribute with carriage return entity (U+000D)</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/823 -->
+
+<a id="testA" href="javascript:alert&#x0D;(1)">Test A</a>
+<a id="testB" href="jav&#x0D;ascript:alert(1)">Test B</a>
+
+<script>
+"use strict";
+
+// Explanation:
+// - &#x0D; is \r
+// - So getAttribute() should give back a JS string with \r
+// - The URL parser strips all ASCII tabs and newlines (including \r) from the input
+//
+// Note that the HTML tokenizer's \r -> \n conversion does NOT apply to the &#x0D; entity.
+
+test(() => {
+  const a = document.getElementById("testA");
+  assert_equals(a.href, "javascript:alert(1)");
+}, "a.href with CR entity after scheme");
+
+test(() => {
+  const a = document.getElementById("testA");
+  assert_equals(a.getAttribute("href"), "javascript:alert\r(1)");
+}, "a.getAttribute('href') with CR entity after scheme");
+
+test(() => {
+  const a = document.getElementById("testB");
+  assert_equals(a.href, "javascript:alert(1)");
+}, "a.href with CR entity within scheme");
+
+test(() => {
+  const a = document.getElementById("testB");
+  assert_equals(a.getAttribute("href"), "jav\rascript:alert(1)");
+}, "a.getAttribute('href') with CR entity within scheme");
+
+</script>

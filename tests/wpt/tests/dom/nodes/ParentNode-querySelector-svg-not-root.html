@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>svg:not(:root) in a HTML document</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/1750 -->
+
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="100" viewBox="0 0 3 2" id="the-svg">
+  <rect width="1" height="2" x="0" fill="#008d46" />
+  <rect width="1" height="2" x="1" fill="#ffffff" />
+  <rect width="1" height="2" x="2" fill="#d2232c" />
+</svg>
+
+<script>
+"use strict";
+test(() => {
+  const theSvg = document.getElementById("the-svg");
+  assert_not_equals(theSvg, null, "precondition check: getElementById works");
+
+  assert_equals(document.querySelector("svg:not(:root)"), theSvg);
+});
+</script>

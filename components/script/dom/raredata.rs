@@ -20,7 +20,7 @@ use crate::dom::html::internals::elementinternals::ElementInternals;
 use crate::dom::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::nodelist::NodeList;
-use crate::dom::range::{Range, WeakRangeVec};
+use crate::dom::range::Range;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::types::Element;
 use crate::dom::window::LayoutValue;
@@ -41,12 +41,6 @@ pub(crate) struct NodeRareData {
     pub(crate) unique_id: Option<UniqueId>,
 
     pub(crate) slottable_data: SlottableData,
-
-    /// A vector of weak references to Range instances of which the start
-    /// or end containers are this node. No range should ever be found
-    /// twice in this vector, even if both the start and end containers
-    /// are this node.
-    pub(crate) weak_ranges: WeakRangeVec,
 
     /// The live list of children return by .childNodes.
     pub(crate) child_list: MutNullableDom<NodeList>,

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: re-registering a highlight whose range moved while it was unregistered</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/#painting">
+<link rel="match" href="custom-highlight-painting-two-highlights-same-range-002-ref.html">
+<meta name="assert" value="A highlight re-registered after its range moved while it was unregistered is painted at the range's current position, not at a stale one.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  ::highlight(highlight-a) {
+    background-color: red;
+  }
+  ::highlight(highlight-b) {
+    background-color: lime;
+    text-decoration-line: underline;
+  }
+</style>
+<body><p id="text">0123456789</p>
+<script>
+  /*
+    While highlight-b is unregistered, the text insertion moves the range both
+    highlights share from "56789" onto the same characters at their new offsets.
+    Only highlight-a is registered, so it is the one that consumes the change
+    notification. highlight-b has to be repositioned when it is registered
+    again, otherwise it paints over "01234".
+  */
+
+  const node = document.getElementById("text").firstChild;
+  const range = new Range();
+  range.setStart(node, 5);
+  range.setEnd(node, 10);
+
+  const highlightA = new Highlight(range);
+  const highlightB = new Highlight(range);
+
+  CSS.highlights.set("highlight-a", highlightA);
+  CSS.highlights.set("highlight-b", highlightB);
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    CSS.highlights.delete("highlight-b");
+    node.insertData(0, "ABCDE");
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      CSS.highlights.set("highlight-b", highlightB);
+      requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+    }));
+  }));
+</script>
+</html>

@@ -1057,6 +1057,16 @@ impl WebView {
         self.delegate()
             .notify_accessibility_tree_update(self.clone(), tree_update);
     }
+
+    /// Clear the session history of this [`WebView`]. The session history is also known
+    /// as the back-forward cache. Once cleared, [`WebViewDelegate::notify_history`]
+    /// will be called asynchronously and the resulting session history will contain only
+    /// a single item with the current URL.
+    pub fn clear_session_history(&self) {
+        self.inner().servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::ClearSessionHistory(self.id()),
+        );
+    }
 }
 
 /// A structure used to expose a view of the [`WebView`] to the Servo

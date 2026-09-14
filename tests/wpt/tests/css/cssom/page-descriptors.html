@@ -2,6 +2,7 @@
 <html>
 <head>
   <link rel="author" title="Mozilla" href="https://mozilla.org">
+  <link rel="author" title="Andrew Martinez" href="https://github.com/AndrewJMart">
   <link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface">
   <title>CSSPageDescriptors properties tests</title>
   <script src="/resources/testharness.js"></script>
@@ -21,13 +22,13 @@
   </style>
 </head>
 <body>
-<div id="target"></div>
 <script>
 'use strict';
 
-let element = document.getElementById("target");
-let computedStyle = window.getComputedStyle(element);
-let style = element.style;
+// `size` is both an @page descriptor and a width/height shorthand property, with no
+// relation between the two (w3c/csswg-drafts#820). The split is covered by
+// css/css-sizing/parsing/size-invalid.html, so it is not retested here.
+
 let styleSheet = document.styleSheets[0];
 let marginNames = ["left", "right", "top", "bottom"];
 let pageDescriptors = ["margin", "page-orientation", "size"];
@@ -36,36 +37,27 @@ marginNames.forEach(function(n){
     pageDescriptors.push("margin" + n[0].toUpperCase() + n.slice(1));
 });
 
-test(t => {
-    // Check that size isn't exposed on all CSS style declarations.
-    assert_equals(computedStyle.size, undefined,
-        "computed style should not have size property");
-    assert_equals(computedStyle.getPropertyValue("size"), "",
-        "computed style getPropertyValue(\"size\") should be empty");
-
-    assert_equals(style.size, undefined,
-        "style should not have size property");
-    assert_equals(style.getPropertyValue("size"), "",
-        "style getPropertyValue(\"size\") should be empty");
-    for(const val of ["initial", "auto", "100px"]){
-        style.setProperty("size", val);
-        assert_false(CSS.supports("size", val));
-        assert_equals(style.size, undefined,
-            "style should not have size property after assigning size=" + val);
-        assert_equals(style.getPropertyValue("size"), "",
-            "style getPropertyValue(\"size\") should be empty after assigning size=" + val);
-    }
-    pageDescriptors.forEach(function(prop){
+// One test per descriptor so an unimplemented one doesn't hide the rest.
+pageDescriptors.forEach(function(prop){
+    test(() => {
         assert_own_property(styleSheet.cssRules[0].style.__proto__, prop,
             "CSSPageDescriptors should have property " + prop);
-    });
+    }, `CSSPageDescriptors exposes "${prop}"`);
+});
+
+test(() => {
     assert_equals(styleSheet.cssRules[0].style.size, "a3");
+    assert_equals(styleSheet.cssRules[1].style.size, "jis-b5 landscape");
+    assert_equals(styleSheet.cssRules[2].style.size, "216mm");
+}, "@page size descriptor is parsed and serialized from CSS");
+
+test(() => {
     assert_equals(styleSheet.cssRules[0].style.pageOrientation, "rotate-right");
     assert_equals(styleSheet.cssRules[0].style.getPropertyValue("page-orientation"), "rotate-right",
         'Value of page-orientation should match pageOrientation from CSS');
-    assert_equals(styleSheet.cssRules[1].style.size, "jis-b5 landscape");
-    assert_equals(styleSheet.cssRules[2].style.size, "216mm");
+}, "@page page-orientation descriptor is parsed and serialized from CSS");
 
+test(() => {
     // Ensure we can set the size property to a valid value.
     styleSheet.cssRules[2].style.size = "portrait";
     assert_equals(styleSheet.cssRules[2].style.size, "portrait",
@@ -74,7 +66,9 @@ test(t => {
     styleSheet.cssRules[2].style.size = "notarealsize";
     assert_equals(styleSheet.cssRules[2].style.size, "portrait",
         'Should not have been able to set size property to "notarealsize" on CSSPageDescriptors');
+}, "@page size descriptor can be set from script");
 
+test(() => {
     // Ensure we can set the orientation property to a valid value.
     styleSheet.cssRules[2].style.pageOrientation = "rotate-left";
     assert_equals(styleSheet.cssRules[2].style.pageOrientation, "rotate-left",
@@ -85,16 +79,23 @@ test(t => {
     styleSheet.cssRules[2].style.pageOrientation = "schmotate-schmeft";
     assert_equals(styleSheet.cssRules[2].style.pageOrientation, "rotate-left",
         'Should not have been able to set pageOrientation property to "schmotate-schmeft" on CSSPageDescriptors');
+}, "@page page-orientation descriptor can be set from script");
 
+test(() => {
     // Ensure we cannot set invalid page properties.
     styleSheet.cssRules[2].style.setProperty("float", "left");
     assert_equals(styleSheet.cssRules[2].style.cssFloat, undefined);
+}, "CSSPageDescriptors does not expose properties that are not @page descriptors");
 
+test(() => {
     assert_equals(styleSheet.cssRules[0].style.marginLeft, "101.5mm");
     assert_equals(styleSheet.cssRules[0].style.marginRight, "24px");
     assert_equals(styleSheet.cssRules[0].style.marginTop, "1em");
     assert_equals(styleSheet.cssRules[0].style.marginBottom, "2in");
-    marginNames.forEach(function(name){
+}, "@page margin descriptor expands to its longhands");
+
+marginNames.forEach(function(name){
+    test(() => {
         let name1 = "margin-" + name;
         let name2 = "margin" + name[0].toUpperCase() + name.slice(1);
         assert_equals(styleSheet.cssRules[0].style[name1],
@@ -111,7 +112,7 @@ test(t => {
             "Should have been able to set " + name2 + " property on CSSPageDescriptors");
         assert_equals(styleSheet.cssRules[0].style[name1], "216px",
             "Setting " + name2 + " on CSSPageDescriptors should also set " + name1);
-    });
+    }, `@page margin-${name} and margin${name[0].toUpperCase() + name.slice(1)} are aliases`);
 });
 </script>
 </body>

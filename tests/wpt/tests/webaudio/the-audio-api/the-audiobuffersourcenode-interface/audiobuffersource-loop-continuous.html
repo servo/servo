@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test AudioBufferSourceNode Continuous Looping With Unaligned Buffers
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      promise_test(
+        async () => {
+          const sampleRate = 48000;
+          // 65,201 frames produces IEEE-754 roundoff residue when converting
+          // between sample frames and seconds at 48 kHz:
+          // (65201 / 48000) * 48000 != 65201.
+          const bufferLength = 65201;
+          const loopIterations = 2;
+          const totalRenderFrames = bufferLength * loopIterations;
+
+          const context =
+              new OfflineAudioContext(1, totalRenderFrames, sampleRate);
+
+          const buffer = new AudioBuffer({
+            numberOfChannels: 1,
+            length: bufferLength,
+            sampleRate: sampleRate,
+          });
+
+          const channelData = buffer.getChannelData(0);
+          for (let i = 0; i < bufferLength; ++i) {
+            // Normalize to [0.1, 0.9] to avoid clipping or zero-crossing.
+            channelData[i] = 0.1 + 0.8 * (i / (bufferLength - 1));
+          }
+
+          const source = context.createBufferSource();
+          source.buffer = buffer;
+          source.loop = true;
+
+          let onendedFired = false;
+          source.onended = () => {
+            onendedFired = true;
+          };
+
+          source.connect(context.destination);
+          source.start();
+
+          const renderedBuffer = await context.startRendering();
+          const output = renderedBuffer.getChannelData(0);
+
+          assert_false(
+            onendedFired,
+            "onended event must not fire for an indefinitely looping source"
+          );
+
+          // Verify audio does not fall silent or drop samples across cycles.
+          for (let iter = 0; iter < loopIterations; ++iter) {
+            const boundarySampleBeforeWrap =
+                output[iter * bufferLength + bufferLength - 1];
+            assert_approx_equals(
+              boundarySampleBeforeWrap,
+              0.9,
+              1e-4,
+              `Sample immediately before wrap in iteration ${iter} ` +
+                `must match end of buffer`
+            );
+
+            if (iter + 1 < loopIterations) {
+              const boundarySampleAfterWrap =
+                  output[(iter + 1) * bufferLength];
+              assert_approx_equals(
+                boundarySampleAfterWrap,
+                0.1,
+                1e-4,
+                `Sample immediately after wrap in iteration ${iter + 1} ` +
+                  `must match start of buffer`
+              );
+            }
+          }
+        },
+        "Indefinite looping on unaligned buffer (65,201 frames) " +
+          "renders continuously without stopping or firing onended"
+      );
+
+      promise_test(
+        async () => {
+          const sampleRate = 48000;
+          const bufferLength = 1000;
+          // Duration specifies 2.5 buffer iterations of total output.
+          const durationSeconds = (bufferLength * 2.5) / sampleRate;
+          const totalRenderFrames = bufferLength * 4;
+
+          const context =
+              new OfflineAudioContext(1, totalRenderFrames, sampleRate);
+
+          const buffer = new AudioBuffer({
+            numberOfChannels: 1,
+            length: bufferLength,
+            sampleRate: sampleRate,
+          });
+
+          const channelData = buffer.getChannelData(0);
+          channelData.fill(0.5);
+
+          const source = context.createBufferSource();
+          source.buffer = buffer;
+          source.loop = true;
+
+          source.connect(context.destination);
+          source.start(0, 0, durationSeconds);
+
+          const renderedBuffer = await context.startRendering();
+          const output = renderedBuffer.getChannelData(0);
+
+          const expectedPlayedFrames =
+              Math.round(durationSeconds * sampleRate);
+          const expectedActive =
+              new Float32Array(expectedPlayedFrames).fill(0.5);
+          assert_array_approx_equals(
+            output.subarray(0, expectedPlayedFrames),
+            expectedActive,
+            1e-4,
+            "Frames within duration must be active"
+          );
+
+          const remainingFrames = totalRenderFrames - expectedPlayedFrames;
+          const expectedSilent = new Float32Array(remainingFrames).fill(0);
+          assert_array_equals(
+            output.subarray(expectedPlayedFrames),
+            expectedSilent,
+            "Frames after duration must be silent"
+          );
+        },
+        "Looping source with explicit grain duration plays exact buffer " +
+          "duration and terminates"
+      );
+
+      const granularities = [
+        {
+          length: 67,
+          rate: 48000,
+          iterations: 5,
+          desc: "sub-quantum prime (67 frames)",
+        },
+        {
+          length: 129,
+          rate: 48000,
+          iterations: 3,
+          desc: "quantum + 1 boundary (129 frames)",
+        },
+        {
+          length: 1486,
+          rate: 48000,
+          iterations: 2,
+          desc: "LAME padding size from crbug.com/553218226 (1,486 frames)",
+        },
+      ];
+
+      for (const config of granularities) {
+        promise_test(
+          async () => {
+            const sampleRate = config.rate;
+            const bufferLength = config.length;
+            const loopIterations = config.iterations;
+            const totalRenderFrames = bufferLength * loopIterations;
+
+            const context =
+                new OfflineAudioContext(1, totalRenderFrames, sampleRate);
+
+            const buffer = new AudioBuffer({
+              numberOfChannels: 1,
+              length: bufferLength,
+              sampleRate: sampleRate,
+            });
+
+            const channelData = buffer.getChannelData(0);
+            for (let i = 0; i < bufferLength; ++i) {
+              channelData[i] = 0.1 + 0.8 * (i / (bufferLength - 1));
+            }
+
+            const source = context.createBufferSource();
+            source.buffer = buffer;
+            source.loop = true;
+
+            let onendedFired = false;
+            source.onended = () => {
+              onendedFired = true;
+            };
+
+            source.connect(context.destination);
+            source.start();
+
+            const renderedBuffer = await context.startRendering();
+            const output = renderedBuffer.getChannelData(0);
+
+            assert_false(
+              onendedFired,
+              `onended must not fire for ${config.desc}`
+            );
+
+            for (let iter = 0; iter < loopIterations; ++iter) {
+              const beforeWrap = output[iter * bufferLength + bufferLength - 1];
+              assert_approx_equals(
+                beforeWrap,
+                0.9,
+                1e-4,
+                `Sample before wrap in iteration ${iter} for ${config.desc}`
+              );
+
+              if (iter + 1 < loopIterations) {
+                const afterWrap = output[(iter + 1) * bufferLength];
+                assert_approx_equals(
+                  afterWrap,
+                  0.1,
+                  1e-4,
+                  `Sample after wrap in iteration ${iter + 1} for ` +
+                    `${config.desc}`
+                );
+              }
+            }
+          },
+          `Continuous looping on ${config.desc} at ${config.rate} Hz ` +
+            `renders seamlessly`
+        );
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Motion Path test: &lt;coord-box&gt; &lt;border-box&gt; follows 'corner-shape: notch'</title>
+<link rel="match" href="corner-shape-offset-path-coord-box-002-ref.html">
+<link rel="help" href="https://drafts.fxtf.org/motion/#valdef-offset-path-coord-box">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<meta name="assert" content="A notch corner contributes both of its straight legs to the <coord-box> offset path, so a distance past the first leg puts the box on the leg running back out to the edge.">
+<style>
+#outer {
+  top: 100px;
+  left: 100px;
+  position: relative;
+  border-radius: 105px;
+  corner-shape: notch;
+  border: 10px solid black;
+  width: 400px;
+  height: 400px;
+}
+#box {
+  background-color: green;
+  border-radius: 50%;
+  top: 100px;
+  left: 100px;
+  position: relative;
+  offset-path: border-box;
+  offset-distance: 367px;
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<div id="outer">
+  <div id="box"></div>
+</div>

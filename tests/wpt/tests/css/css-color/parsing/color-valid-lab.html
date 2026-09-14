@@ -129,8 +129,12 @@ tests = [
     ["lch(calc(infinity) 0 0)", "lch(calc(infinity) 0 0)"],
     ["lch(50 calc(infinity) 0)", "lch(50 calc(infinity) 0)"],
     ["lch(50 calc(-infinity) 0)", "lch(50 calc(-infinity) 0)"],
+    ["lch(50 10 calc(infinity))", "lch(50 10 calc(infinity))"],
+    ["lch(50 10 calc(-infinity))", "lch(50 10 calc(-infinity))"],
     ["lch(calc(NaN) 0 0)", "lch(calc(NaN) 0 0)"],
     ["lch(calc(0 / 0) 0 0)", "lch(calc(NaN) 0 0)"],
+    ["lch(50 10 calc(0 / 0))", "lch(50 10 calc(NaN))"],
+    ["lch(50 10 calc(NaN))", "lch(50 10 calc(NaN))"],
 
     // oklch()
     ["oklch(0 0 0deg)", "oklch(0 0 0)"],
@@ -174,8 +178,12 @@ tests = [
     ["oklch(calc(infinity) 0 0)", "oklch(calc(infinity) 0 0)"],
     ["oklch(0.5 calc(infinity) 0)", "oklch(0.5 calc(infinity) 0)"],
     ["oklch(0.5 calc(-infinity) 0)", "oklch(0.5 calc(-infinity) 0)"],
+    ["oklch(0.5 0.1 calc(infinity))", "oklch(0.5 0.1 calc(infinity))"],
+    ["oklch(0.5 0.1 calc(-infinity))", "oklch(0.5 0.1 calc(-infinity))"],
     ["oklch(calc(NaN) 0 0)", "oklch(calc(NaN) 0 0)"],
     ["oklch(calc(0 / 0) 0 0)", "oklch(calc(NaN) 0 0)"],
+    ["oklch(0.5 0.1 calc(0 / 0))", "oklch(0.5 0.1 calc(NaN))"],
+    ["oklch(0.5 0.1 calc(NaN))", "oklch(0.5 0.1 calc(NaN))"],
 
     // calc(50% + (sign(1em - 10px) * 10%)) cannot be evaluated eagerly because font relative units are not yet known at parse time.
     ["lab(calc(50 + (sign(1em - 10px) * 10)) 30 50 / 50%)", "lab(calc(50 + (10 * sign(1em - 10px))) 30 50 / 0.5)"],

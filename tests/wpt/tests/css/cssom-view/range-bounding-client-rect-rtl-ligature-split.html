@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Range.getBoundingClientRect for carets in a RTL inline split inside a ligature</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-range-getboundingclientrect">
+<link rel="help" href="https://issues.chromium.org/issues/472563267">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: "csstest_noto";
+  src: url("/fonts/noto/NotoNaskhArabic-regular.woff2") format("woff2");
+}
+div {
+  font-family: "csstest_noto";
+  font-size: 40px;
+}
+</style>
+<div dir="rtl">ل<span>الاب</span></div>
+<script>
+promise_test(async () => {
+  await document.fonts.ready;
+
+  const range = document.createRange();
+  range.selectNodeContents(document.querySelector("div"));
+  const line = range.getBoundingClientRect();
+  assert_greater_than(line.width, 0, "the line has a width");
+
+  const span = document.querySelector("span").firstChild;
+
+  for (let offset = 0; offset <= span.length; ++offset) {
+    range.setStart(span, offset);
+    range.setEnd(span, offset);
+    const caret = range.getBoundingClientRect();
+    assert_greater_than_equal(caret.left, line.left - 1, `caret ${offset} left`);
+    assert_less_than_equal(caret.right, line.right + 1, `caret ${offset} right`);
+  }
+}, "Caret positions in a RTL run that begins inside a ligature");
+</script>

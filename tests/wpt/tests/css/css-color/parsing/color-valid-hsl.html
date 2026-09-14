@@ -53,14 +53,17 @@ tests = [
     ["hsl(0 -50 40%)", "rgb(102, 102, 102)"],
     ["hsl(30 -50 60)", "rgb(153, 153, 153)"],
 
-    // Test non-finite values. calc(infinity) goes to upper bound while calc(-infinity) and NaN go to the lower bound.
-    // See: https://github.com/w3c/csswg-drafts/issues/8629
-    ["hsl(calc(infinity) 100% 50%)", "rgb(255, 0, 0)"], // hsl(360 100% 50%)
+    // In  hsl(calc(-infinity) 0 0) or  hsl(calc(infinity) 0 0), the <hue> component is again normalized to 0 degrees.
+    // See: https://drafts.csswg.org/css-color-4/#example-hue-normalization
+    ["hsl(calc(infinity) 100% 50%)", "rgb(255, 0, 0)"], // hsl(0 100% 50%)
     ["hsl(calc(-infinity) 100% 50%)", "rgb(255, 0, 0)"], // hsl(0 100% 50%)
     ["hsl(calc(0 / 0) 100% 50%)", "rgb(255, 0, 0)"], // hsl(0 100% 50%)
     ["hsl(90 50% 50% / calc(infinity))", "rgb(128, 191, 64)"], // hsl(90 50% 50%)
     ["hsl(90 50% 50% / calc(-infinity))", "rgba(128, 191, 64, 0)"], // hsl(90 50% 50% / 0)
+    // NaN does not escape a top-level calculation; it’s censored into a zero value
+    // See: https://drafts.csswg.org/css-values-4/#calc-error-constants
     ["hsl(90 50% 50% / calc(0 / 0))", "rgba(128, 191, 64, 0)"], // hsl(90 50% 50% / 0)
+    ["hsl(90 50% 50% / calc(NaN))", "rgba(128, 191, 64, 0)"], // hsl(90 50% 50% / 0)
 
     // calc(50% + (sign(1em - 10px) * 10%)) cannot be evaluated eagerly because font relative units are not yet known at parse time.
     ["hsl(calc(50deg + (sign(1em - 10px) * 10deg)), 0%, 0%, 50%)", "hsl(calc(50deg + (10deg * sign(1em - 10px))) 0 0 / 0.5)"],

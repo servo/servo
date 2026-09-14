@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const passThroughPolicy = trustedTypes.createPolicy("passThrough", {
+        createHTML: (s) => s,
+        createScript: (s) => s,
+      });
+
+      const methods = [
+        "streamHTML",
+        "streamHTMLUnsafe",
+        "streamAppendHTML",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTML",
+        "streamPrependHTMLUnsafe",
+        "streamBeforeHTML",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTML",
+        "streamAfterHTMLUnsafe",
+        "streamReplaceWithHTML",
+        "streamReplaceWithHTMLUnsafe"
+      ];
+
+      for (const method of methods) {
+        const safe = !method.endsWith("Unsafe");
+        promise_test(async (t) => {
+          const iframe = document.createElement("iframe");
+          t.add_cleanup(() => iframe.remove());
+          iframe.src = "/common/blank.html";
+          await new Promise((resolve) => {
+            iframe.addEventListener("load", resolve, { once: true });
+            document.body.appendChild(iframe);
+          });
+
+          const foreignDiv = iframe.contentDocument.createElement("div");
+          const adoptedDiv = document.adoptNode(foreignDiv);
+          document.querySelector("#container").appendChild(adoptedDiv);
+          t.add_cleanup(() => adoptedDiv.remove());
+
+          const runInNonTT = iframe.contentWindow.Function(
+            "target",
+            "method",
+            passThroughPolicy.createScript("return target[method]();")
+          );
+
+          if (safe) {
+            const stream = runInNonTT(adoptedDiv, method);
+            assert_true(
+              stream instanceof WritableStream ||
+              stream instanceof iframe.contentWindow.WritableStream
+            );
+          } else {
+            const expectedTypeError = new adoptedDiv.constructor.constructor(
+              passThroughPolicy.createScript("return TypeError")
+            )();
+            assert_throws_js(expectedTypeError, () => runInNonTT(adoptedDiv, method));
+          }
+        }, `${method} on an element adopted from a non-TT document into a TT document ${safe ? "returns a WritableStream" : "throws TypeError"}.`);
+      }
+
+      for (const method of methods) {
+        promise_test(async (t) => {
+          const iframe = document.createElement("iframe");
+          t.add_cleanup(() => iframe.remove());
+          iframe.src = "/common/blank.html";
+          await new Promise((resolve) => {
+            iframe.addEventListener("load", resolve, { once: true });
+            document.body.appendChild(iframe);
+          });
+
+          const ttDiv = document.createElement("div");
+          const adoptedDiv = iframe.contentDocument.adoptNode(ttDiv);
+          iframe.contentDocument.body.appendChild(adoptedDiv);
+          t.add_cleanup(() => adoptedDiv.remove());
+
+          const stream = adoptedDiv[method]();
+          assert_true(
+            stream instanceof WritableStream ||
+            stream instanceof iframe.contentWindow.WritableStream
+          );
+        }, `${method} on an element adopted from a TT document into a non-TT document returns a WritableStream.`);
+      }
+    </script>
+  </body>
+</html>

@@ -44,11 +44,19 @@ promise_test(async function(t) {
    'manifest URL.');
 
 promise_test(async function(t) {
+  await test_driver.bless('install with whitespace-only manifest in dict');
+  return promise_rejects_js(t, TypeError,
+      navigator.install({manifest: ' \t\n '}),
+      'Whitespace-only manifest URL should reject with TypeError');
+}, 'navigator.install({manifest: " \\t\\n "}) rejects with TypeError for a ' +
+   'whitespace-only manifest URL.');
+
+promise_test(async function(t) {
   await test_driver.bless('install with invalid manifest in dict');
   return promise_rejects_js(t, TypeError,
-      navigator.install({manifest: '://invalid'}),
+      navigator.install({manifest: 'https://['}),
       'Invalid manifest URL should reject with TypeError');
-}, 'navigator.install({manifest: "://invalid"}) rejects with TypeError for ' +
+}, 'navigator.install({manifest: "https://["}) rejects with TypeError for ' +
    'invalid manifest URL.');
 
 promise_test(async function(t) {

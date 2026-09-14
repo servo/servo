@@ -32,8 +32,8 @@ mod font_context {
     use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
     use style::properties::style_structs::Font as FontStyleStruct;
     use style::values::computed::font::{
-        FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontStretch, FontStyle,
-        FontSynthesis, FontWeight, SingleFontFamily,
+        FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontStyle, FontSynthesis,
+        FontWeight, FontWidth, SingleFontFamily,
     };
     use stylo_atoms::Atom;
     use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
@@ -330,7 +330,7 @@ mod font_context {
 
         let mut font_descriptor = FontDescriptor {
             weight: FontWeight::normal(),
-            stretch: FontStretch::hundred(),
+            width: FontWidth::hundred(),
             style: FontStyle::normal(),
             variant: FontVariantCaps::Normal,
             pt_size: Au(10),

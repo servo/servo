@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: a list-style-type keyword from another tree scope is the same value</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#propdef-list-style-type">
+<link rel="help" href="https://drafts.csswg.org/css-transitions-1/#starting">
+<meta name="assert" content="Changing which tree scope declares list-style-type: circle does not start a transition.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #host.from-document::part(item) { list-style-type: circle; }
+</style>
+<div id="host" class="from-shadow">
+  <template shadowrootmode="open">
+    <style>
+      #item {
+        display: list-item;
+        transition: list-style-type 100s allow-discrete;
+      }
+      :host(.from-shadow) #item { list-style-type: circle; }
+    </style>
+    <div id="item" part="item">x</div>
+  </template>
+</div>
+<script>
+test(() => {
+  const host = document.getElementById('host');
+  const item = host.shadowRoot.getElementById('item');
+  assert_equals(getComputedStyle(item).listStyleType, 'circle');
+
+  host.className = 'from-document';
+  assert_equals(getComputedStyle(item).listStyleType, 'circle');
+  assert_equals(item.getAnimations().length, 0);
+}, 'No transition when list-style-type: circle moves to another tree scope');
+</script>

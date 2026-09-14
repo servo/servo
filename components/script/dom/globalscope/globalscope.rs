@@ -25,7 +25,6 @@ use embedder_traits::{
 };
 use fonts::FontContext;
 use indexmap::IndexSet;
-use ipc_channel::router::ROUTER;
 use js::context::{JSContext, NoGC};
 use js::jsapi::{GetNonCCWObjectGlobal, HandleObject, Heap, JSObject};
 use js::jsval::UndefinedValue;
@@ -48,8 +47,8 @@ use net_traits::request::{
 };
 use net_traits::{CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads};
 use profile_traits::{
-    generic_channel as profile_generic_channel, ipc as profile_ipc, mem as profile_mem,
-    time as profile_time,
+    generic_callback as profile_generic_callback, generic_channel as profile_generic_channel,
+    mem as profile_mem, time as profile_time,
 };
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::callback::OwnerWindow;
@@ -123,7 +122,7 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceentry::EntryType;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::script_execution::ScriptOptions;
 use crate::dom::serviceworker::ServiceWorker;
@@ -154,7 +153,7 @@ use crate::modules::script_module::{
     ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskRunnable;
+use crate::runtime::job_queue::MicrotaskRunnable;
 use crate::runtime::script_runtime::ThreadSafeJSContext;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::SendableTaskSource;
@@ -406,7 +405,7 @@ struct BroadcastListener {
 }
 
 type FileListenerCallback =
-    Box<dyn Fn(&mut js::context::JSContext, Rc<Promise>, Fallible<Vec<u8>>) + Send>;
+    Box<dyn Fn(&mut js::context::JSContext, &RootedPromise, Fallible<Vec<u8>>) + Send>;
 
 /// A wrapper for the handling of file data received by the ipc router
 struct FileListener {
@@ -675,9 +674,9 @@ impl FileListener {
                 Some(FileListenerState::Receiving(bytes, target)) => match target {
                     FileListenerTarget::Promise(trusted_promise, callback) => {
                         let task = task!(resolve_promise: move |cx| {
-                            let promise = trusted_promise.root();
+                            let promise = trusted_promise.root(cx);
                             let mut realm = enter_auto_realm(cx, &*promise.global());
-                            callback(&mut realm, promise, Ok(bytes));
+                            callback(&mut realm, &promise, Ok(bytes));
                         });
 
                         self.task_source.queue(task);
@@ -703,9 +702,9 @@ impl FileListener {
                     match target {
                         FileListenerTarget::Promise(trusted_promise, callback) => {
                             self.task_source.queue(task!(reject_promise: move |cx| {
-                                let promise = trusted_promise.root();
+                                let promise = trusted_promise.root(cx);
                                 let mut realm = enter_auto_realm(cx, &*promise.global());
-                                callback(&mut realm, promise, error);
+                                callback(&mut realm, &promise, error);
                             }));
                         },
                         FileListenerTarget::Stream(trusted_stream) => {
@@ -750,9 +749,6 @@ impl GlobalScope {
         Some(key)
     }
 
-    /// A sender to the event loop of this global scope. This either sends to the Worker event loop
-    /// or the ScriptThread event loop in the case of a `Window`. This can be `None` for dedicated
-    /// workers that are not currently handling a message.
     pub(crate) fn webview_id(&self) -> Option<WebViewId> {
         if let Some(window) = self.downcast::<Window>() {
             return Some(window.webview_id());
@@ -2168,7 +2164,9 @@ impl GlobalScope {
                     }
 
                     let origin = self.origin().immutable().clone();
-                    let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
+                    let (tx, rx) =
+                        profile_generic_channel::channel(self.time_profiler_chan().clone())
+                            .unwrap();
 
                     let msg = FileManagerThreadMsg::ActivateBlobURL(f.get_id(), tx, origin);
                     self.send_to_file_manager(msg);
@@ -2204,7 +2202,13 @@ impl GlobalScope {
     }
 
     fn read_file(&self, id: Uuid) -> Result<Vec<u8>, ()> {
-        let recv = self.send_msg(id);
+        let (chan, recv) = profile_generic_callback::GenericCallback::new_blocking(
+            self.time_profiler_chan().clone(),
+        )
+        .expect("Couldn't create read_file callback");
+
+        self.send_msg(id, chan);
+
         GlobalScope::read_msg(recv)
     }
 
@@ -2228,8 +2232,6 @@ impl GlobalScope {
             UnderlyingSourceType::Blob(size),
         )?;
 
-        let recv = self.send_msg(file_id);
-
         let trusted_stream = Trusted::new(&*stream);
         let mut file_listener = FileListener {
             state: Some(FileListenerState::Empty(FileListenerTarget::Stream(
@@ -2238,12 +2240,12 @@ impl GlobalScope {
             task_source: self.task_manager().file_reading_task_source().into(),
         };
 
-        ROUTER.add_typed_route(
-            recv.to_ipc_receiver(),
-            Box::new(move |msg| {
-                file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
-            }),
-        );
+        let chan = profile_generic_callback::GenericCallback::new(move |msg| {
+            file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
+        })
+        .expect("Couldn't create get_blob_stream callback");
+
+        self.send_msg(file_id, chan);
 
         Ok(stream)
     }
@@ -2254,8 +2256,6 @@ impl GlobalScope {
         promise: Rc<Promise>,
         callback: FileListenerCallback,
     ) {
-        let recv = self.send_msg(id);
-
         let trusted_promise = TrustedPromise::new(promise);
         let mut file_listener = FileListener {
             state: Some(FileListenerState::Empty(FileListenerTarget::Promise(
@@ -2265,25 +2265,27 @@ impl GlobalScope {
             task_source: self.task_manager().file_reading_task_source().into(),
         };
 
-        ROUTER.add_typed_route(
-            recv.to_ipc_receiver(),
-            Box::new(move |msg| {
-                file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
-            }),
-        );
+        let chan = profile_generic_callback::GenericCallback::new(move |msg| {
+            file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
+        })
+        .expect("Couldn't create read_file_async callback");
+
+        self.send_msg(id, chan);
     }
 
-    fn send_msg(&self, id: Uuid) -> profile_ipc::IpcReceiver<FileManagerResult<ReadFileProgress>> {
+    fn send_msg(
+        &self,
+        id: Uuid,
+        chan: profile_generic_callback::GenericCallback<FileManagerResult<ReadFileProgress>>,
+    ) {
         let resource_threads = self.resource_threads();
-        let (chan, recv) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
         let origin = self.origin().immutable().clone();
         let msg = FileManagerThreadMsg::ReadFile(chan, id, origin);
         let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
-        recv
     }
 
     fn read_msg(
-        receiver: profile_ipc::IpcReceiver<FileManagerResult<ReadFileProgress>>,
+        receiver: profile_generic_channel::GenericReceiver<FileManagerResult<ReadFileProgress>>,
     ) -> Result<Vec<u8>, ()> {
         let mut bytes = vec![];
 

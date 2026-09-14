@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM: Computed style cache invalidation for CSSGroupingRule</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssgroupingrule-insertrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style id="test-style">
+  #target {
+    color: rgb(0, 0, 0);
+  }
+
+  @media all {
+    #target {
+      color: rgb(0, 0, 255);
+    }
+  }
+</style>
+
+<div id="target">Grouping Rule Test</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const target = document.getElementById("target");
+  const styleSheet = document.getElementById("test-style").sheet;
+  const mediaRule = styleSheet.cssRules[1];
+
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)", "The initial color should be blue");
+
+  mediaRule.insertRule("#target { color: rgb(255, 0, 0); }", 1);
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)", "The computed color should be red");
+
+  mediaRule.deleteRule(1);
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)", "The computed color should revert to blue");
+}, "Styles should be recomputed correctly after insertRule and deleteRule on a CSSGroupingRule.");
+</script>

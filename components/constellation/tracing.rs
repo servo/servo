@@ -82,6 +82,7 @@ mod from_embedder {
                 Self::UserContentManagerAction(..) => target!("UserContentManagerAction"),
                 Self::UpdatePinchZoomInfos(..) => target!("UpdatePinchZoomInfos"),
                 Self::SetAccessibilityActive(..) => target!("SetAccessibilityActive"),
+                Self::ClearSessionHistory(..) => target!("ClearHistory"),
             }
         }
     }
@@ -162,8 +163,8 @@ mod from_script {
                 Self::GetBrowsingContextInfo(..) => target!("GetBrowsingContextInfo"),
                 Self::GetDocumentOrigin(..) => target!("GetDocumentOrigin"),
                 Self::IsCurrentlyFullyActive(..) => target!("IsCurrentlyFullyActive"),
-                Self::GetInternalAncestorOriginObjectsList(..) => {
-                    target!("GetInternalAncestorOriginObjectsList")
+                Self::GetDocumentOriginDetails(..) => {
+                    target!("GetDocumentOriginDetails")
                 },
                 Self::GetChildBrowsingContextId(..) => target!("GetChildBrowsingContextId"),
                 Self::LoadComplete => target!("LoadComplete"),

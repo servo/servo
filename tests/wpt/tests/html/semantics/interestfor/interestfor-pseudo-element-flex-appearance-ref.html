@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="stylesheet" href="resources/interest-button-styles.css">
+
+<div class="flex row">
+  <button>Button 1</button>
+  <span class="fake-interest-button">ⓘ</span>
+</div>
+
+<div class="flex col">
+  <button>Button 2</button>
+  <span class="fake-interest-button">ⓘ</span>
+</div>
+
+<div class="flex row">
+  <a href="#">Link 1</a>
+  <span class="fake-interest-button">ⓘ</span>
+</div>
+
+<div class="flex col">
+  <a href="#">Link 2</a>
+  <span class="fake-interest-button">ⓘ</span>
+</div>
+
+<div class="flex row space-evenly">
+  <button>Button 3</button>
+  <span class="fake-interest-button">ⓘ</span>
+  <button>Button 4</button>
+  <span class="fake-interest-button">ⓘ</span>
+</div>
+
+<div id="target"></div>
+
+<style>
+  .flex {
+    display: flex;
+    border: 1px solid gray;
+    width: 300px;
+  }
+  .row {
+    flex-direction: row;
+  }
+  .col {
+    flex-direction: column;
+  }
+  .space-evenly {
+    justify-content: space-evenly;
+  }
+  button, a {
+    font: inherit;
+    color: inherit;
+  }
+</style>

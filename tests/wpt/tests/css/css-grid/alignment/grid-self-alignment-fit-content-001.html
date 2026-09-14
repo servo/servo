@@ -44,6 +44,8 @@
 <div class="grid wide-area"><div class="item automatic-height" id="end-block"     style="align-self: end">XXXXX</div></div>
 
 <script>
+setup({ explicit_done: true });
+
 function itemMetrics(id) {
     const item = document.getElementById(id);
     const gridRect = item.parentElement.getBoundingClientRect();
@@ -56,56 +58,61 @@ function itemMetrics(id) {
     };
 }
 
-test(() => {
-    const metrics = itemMetrics("stretch-inline");
-    assert_equals(metrics.width, 200, "used width");
-    assert_equals(metrics.left, 0, "offset from the grid container's left edge");
-}, "justify-self: stretch on an item with an automatic width uses the stretch-fit size");
+// Ahem is a webfont, so the sizes asserted below only hold once it has loaded.
+document.fonts.ready.then(() => {
+    test(() => {
+        const metrics = itemMetrics("stretch-inline");
+        assert_equals(metrics.width, 200, "used width");
+        assert_equals(metrics.left, 0, "offset from the grid container's left edge");
+    }, "justify-self: stretch on an item with an automatic width uses the stretch-fit size");
 
-test(() => {
-    const metrics = itemMetrics("start-inline");
-    assert_equals(metrics.width, 100, "used width");
-    assert_equals(metrics.left, 0, "offset from the grid container's left edge");
-}, "justify-self: start on an item with an automatic width uses the fit-content size");
+    test(() => {
+        const metrics = itemMetrics("start-inline");
+        assert_equals(metrics.width, 100, "used width");
+        assert_equals(metrics.left, 0, "offset from the grid container's left edge");
+    }, "justify-self: start on an item with an automatic width uses the fit-content size");
 
-test(() => {
-    const metrics = itemMetrics("center-inline");
-    assert_equals(metrics.width, 100, "used width");
-    assert_equals(metrics.left, 50, "offset from the grid container's left edge");
-}, "justify-self: center on an item with an automatic width uses the fit-content size");
+    test(() => {
+        const metrics = itemMetrics("center-inline");
+        assert_equals(metrics.width, 100, "used width");
+        assert_equals(metrics.left, 50, "offset from the grid container's left edge");
+    }, "justify-self: center on an item with an automatic width uses the fit-content size");
 
-test(() => {
-    const metrics = itemMetrics("end-inline");
-    assert_equals(metrics.width, 100, "used width");
-    assert_equals(metrics.left, 100, "offset from the grid container's left edge");
-}, "justify-self: end on an item with an automatic width uses the fit-content size");
+    test(() => {
+        const metrics = itemMetrics("end-inline");
+        assert_equals(metrics.width, 100, "used width");
+        assert_equals(metrics.left, 100, "offset from the grid container's left edge");
+    }, "justify-self: end on an item with an automatic width uses the fit-content size");
 
-test(() => {
-    assert_equals(itemMetrics("center-inline-clamped").width, 60, "used width");
-}, "justify-self: center on an item with an automatic width clamps the fit-content size by the stretch-fit size");
+    test(() => {
+        assert_equals(itemMetrics("center-inline-clamped").width, 60, "used width");
+    }, "justify-self: center on an item with an automatic width clamps the fit-content size by the stretch-fit size");
 
-test(() => {
-    const metrics = itemMetrics("stretch-block");
-    assert_equals(metrics.height, 100, "used height");
-    assert_equals(metrics.top, 0, "offset from the grid container's top edge");
-}, "align-self: stretch on an item with an automatic height uses the stretch-fit size");
+    test(() => {
+        const metrics = itemMetrics("stretch-block");
+        assert_equals(metrics.height, 100, "used height");
+        assert_equals(metrics.top, 0, "offset from the grid container's top edge");
+    }, "align-self: stretch on an item with an automatic height uses the stretch-fit size");
 
-test(() => {
-    const metrics = itemMetrics("start-block");
-    assert_equals(metrics.height, 20, "used height");
-    assert_equals(metrics.top, 0, "offset from the grid container's top edge");
-}, "align-self: start on an item with an automatic height uses the fit-content size");
+    test(() => {
+        const metrics = itemMetrics("start-block");
+        assert_equals(metrics.height, 20, "used height");
+        assert_equals(metrics.top, 0, "offset from the grid container's top edge");
+    }, "align-self: start on an item with an automatic height uses the fit-content size");
 
-test(() => {
-    const metrics = itemMetrics("center-block");
-    assert_equals(metrics.height, 20, "used height");
-    assert_equals(metrics.top, 40, "offset from the grid container's top edge");
-}, "align-self: center on an item with an automatic height uses the fit-content size");
+    test(() => {
+        const metrics = itemMetrics("center-block");
+        assert_equals(metrics.height, 20, "used height");
+        assert_equals(metrics.top, 40, "offset from the grid container's top edge");
+    }, "align-self: center on an item with an automatic height uses the fit-content size");
 
-test(() => {
-    const metrics = itemMetrics("end-block");
-    assert_equals(metrics.height, 20, "used height");
-    assert_equals(metrics.top, 80, "offset from the grid container's top edge");
-}, "align-self: end on an item with an automatic height uses the fit-content size");
+    test(() => {
+        const metrics = itemMetrics("end-block");
+        assert_equals(metrics.height, 20, "used height");
+        assert_equals(metrics.top, 80, "offset from the grid container's top edge");
+    }, "align-self: end on an item with an automatic height uses the fit-content size");
+
+    done();
+});
 </script>
 </body>

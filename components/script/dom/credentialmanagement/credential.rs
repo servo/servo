@@ -1,8 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
@@ -13,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::CredentialBinding::CredentialMethod
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -59,12 +57,12 @@ impl CredentialMethods<DomTypeHolder> for Credential {
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credential-isconditionalmediationavailable>
-    fn IsConditionalMediationAvailable(cx: &mut CurrentRealm, _global: &Window) -> Rc<Promise> {
-        Promise::new_in_realm(cx)
+    fn IsConditionalMediationAvailable(cx: &mut CurrentRealm, _global: &Window) -> RootedPromise {
+        Promise::new_in_realm_rooted(cx)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credential-willrequestconditionalcreation>
-    fn WillRequestConditionalCreation(cx: &mut CurrentRealm, _global: &Window) -> Rc<Promise> {
-        Promise::new_in_realm(cx)
+    fn WillRequestConditionalCreation(cx: &mut CurrentRealm, _global: &Window) -> RootedPromise {
+        Promise::new_in_realm_rooted(cx)
     }
 }

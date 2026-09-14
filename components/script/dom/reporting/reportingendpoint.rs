@@ -244,7 +244,7 @@ impl SendReportsToEndpoints for GlobalScope {
                 age: 0,
                 type_: r.type_.to_string(),
                 url: r.url.to_string(),
-                user_agent: "".to_owned(),
+                user_agent: String::new(),
                 body: r.body.clone().map(|b| b.into()),
             })
             // Step 2.2. Increment report’s attempts.

@@ -16,7 +16,7 @@ use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
 use http::{HeaderMap, Method, StatusCode, header};
-use log::{debug, error};
+use log::{debug, error, info};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
@@ -259,6 +259,12 @@ pub struct HttpCache {
     disk_cache: Option<std::sync::Arc<DiskCache>>,
 }
 
+impl std::fmt::Debug for HttpCache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.entries.iter()).finish()
+    }
+}
+
 impl MallocSizeOf for HttpCache {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.entries
@@ -292,13 +298,19 @@ impl HttpCache {
             disk_cache,
         }
     }
+
+    #[allow(unused, clippy::len_without_is_empty)]
+    /// The number of entries in the memory cache. This does not say anything about the disk cache.
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
 }
 
 #[derive(Clone)]
 /// The lifecycle hooks of the HttpCache.
 /// Responsible for moving data to the disk.
 pub struct MemoryCacheLifecycle {
-    pub(crate) disk_cache: Option<std::sync::Arc<DiskCache>>,
+    pub(crate) disk_cache: Option<StdArc<DiskCache>>,
 }
 
 impl MemoryCacheLifecycle {
@@ -312,13 +324,17 @@ impl Lifecycle<CacheKey, CacheEntry> for MemoryCacheLifecycle {
 
     // Cached Resources that are not complete could get evicted which means they cannot fill their body.
     // We allow unfinished resources to stay in the cache.
-    fn is_pinned(&self, _: &CacheKey, val: &CacheEntry) -> bool {
-        val.blocking_read()
-            .iter()
-            .any(|resource| !resource.is_done())
+    fn is_pinned(&self, key: &CacheKey, val: &CacheEntry) -> bool {
+        let pinned = val
+            .try_read()
+            .map(|cached_resources| cached_resources.iter().any(|resource| !resource.is_done()))
+            .unwrap_or(true);
+        info!("Key {key:?} is pinned",);
+        pinned
     }
 
     fn on_evict(&self, _state: &mut Self::RequestState, key: CacheKey, value: CacheEntry) {
+        info!("Evicting {key:?} from memory cache");
         if let Some(disk_cache_data) = &self.disk_cache {
             let disk_cache_data = disk_cache_data.clone();
             tokio::spawn(async move { disk_cache_data.store(key, value).await });

@@ -512,24 +512,17 @@ impl ReplacedContents {
             ReplacedContentKind::Image(image_info) => image_info
                 .image
                 .as_ref()
-                .and_then(|image| match image {
-                    Image::Raster(raster_image) => raster_image.id,
-                    Image::Vector(vector_image) => {
-                        let scale = layout_context.style_context.device_pixel_ratio();
-                        let width = object_fit_size.width.scale_by(scale.0).to_px();
-                        let height = object_fit_size.height.scale_by(scale.0).to_px();
-                        let size = Size2D::new(width, height);
-                        let tag = self.base_fragment_info.tag?;
-                        layout_context
-                            .image_resolver
-                            .rasterize_vector_image(
-                                vector_image.id,
-                                size,
-                                tag.node,
-                                vector_image.svg_id,
-                            )
-                            .and_then(|i| i.id)
-                    },
+                .and_then(|image| {
+                    let scale = layout_context.style_context.device_pixel_ratio();
+                    let size = Size2D::new(
+                        object_fit_size.width.scale_by(scale.0).to_px(),
+                        object_fit_size.height.scale_by(scale.0).to_px(),
+                    );
+                    layout_context.image_resolver.image_key_from_cached_image(
+                        image,
+                        size,
+                        self.base_fragment_info.tag.map(|tag| tag.node),
+                    )
                 })
                 .map(|image_key| {
                     Fragment::Image(Arc::new(ImageFragment {

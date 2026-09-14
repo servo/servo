@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
+use script_bindings::str::DOMString;
 
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
@@ -22,7 +23,7 @@ pub(crate) fn execute_superscript_command(
     if state.is_none_or(|state| !state) {
         selection.set_the_selection_value(
             cx,
-            Some("superscript".into()),
+            Some(DOMString::from_static("superscript")),
             CommandName::Superscript,
             document,
         );

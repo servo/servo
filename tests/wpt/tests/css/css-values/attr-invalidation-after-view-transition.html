@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() invalidation after a view transition</title>
+<meta name="assert" content="attr() keeps invalidating on attribute change after a view transition has torn down its dynamically generated styles">
+<link rel="help" href="https://drafts.csswg.org/css-values/#attr-notation">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#dom-document-startviewtransition">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  /* No view-transition-name here on purpose. A participating element gets re-resolved by the
+     transition itself, which would hide a lost attr() dependency. Only the root participates. */
+  #target {
+    width: attr(data-foo type(<length>));
+    height: 10px;
+  }
+</style>
+<div id="target" data-foo="10px"></div>
+<script>
+promise_test(async () => {
+  assert_equals(getComputedStyle(target).width, "10px");
+
+  for (const width of ["20px", "30px", "40px"]) {
+    const transition = document.startViewTransition(() => {
+      target.setAttribute("data-foo", width);
+    });
+    await transition.finished;
+    assert_equals(getComputedStyle(target).width, width);
+  }
+}, "attr() invalidates on attribute change across repeated view transitions");
+</script>

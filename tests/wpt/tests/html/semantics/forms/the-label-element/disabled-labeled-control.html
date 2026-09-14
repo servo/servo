@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Label event handling with disabled labeled control</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<label id="label1">
+  <input id="input1" type="text" disabled>
+</label>
+
+<label id="label2" for="input2"></label>
+<input id="input2" type="text" disabled>
+
+<label id="label3">
+  <input id="input3" type="checkbox" disabled>
+</label>
+
+<label id="label4" for="input4"></label>
+<input id="input4" type="checkbox" disabled>
+
+<script>
+"use strict";
+
+for (let i = 1; i <= 4; ++i) {
+  const label = document.getElementById(`label${i}`);
+  const input = document.getElementById(`input${i}`);
+  const association = label.htmlFor ? "explicit" : "implicit";
+  test(() => {
+    assert_true(input.disabled);
+    assert_equals(label.control, input);
+  }, `A disabled ${input.type} input remains its ${association} label's control`);
+}
+
+test(() => {
+  const label = document.getElementById("label1");
+  const input = document.getElementById("input1");
+
+  let clickReceived = false;
+  input.addEventListener("click", () => {
+    clickReceived = true;
+  });
+
+  assert_true(input.disabled);
+  assert_false(clickReceived);
+  label.click();
+  assert_false(clickReceived);
+
+  input.disabled = false;
+  label.click();
+  assert_true(clickReceived);
+}, "clicking on a label should not cause a disabled child input to receive a click event");
+
+test(() => {
+  const label = document.getElementById("label2");
+  const input = document.getElementById("input2");
+
+  let clickReceived = false;
+  input.addEventListener("click", () => {
+    clickReceived = true;
+  });
+
+  assert_true(input.disabled);
+  assert_false(clickReceived);
+  label.click();
+  assert_false(clickReceived);
+
+  input.disabled = false;
+  label.click();
+  assert_true(clickReceived);
+}, "clicking on a label should not cause a disabled input referenced in the 'for' attribute to receive a click event");
+
+test(() => {
+  const label = document.getElementById("label3");
+  const checkbox = document.getElementById("input3");
+
+  assert_true(checkbox.disabled);
+  assert_false(checkbox.checked);
+  label.click();
+  assert_false(checkbox.checked);
+
+  checkbox.disabled = false;
+  label.click();
+  assert_true(checkbox.checked);
+}, "clicking on a label should not cause a disabled child checkbox to become checked");
+
+test(() => {
+  const label = document.getElementById("label4");
+  const checkbox = document.getElementById("input4");
+
+  assert_true(checkbox.disabled);
+  assert_false(checkbox.checked);
+  label.click();
+  assert_false(checkbox.checked);
+
+  checkbox.disabled = false;
+  label.click();
+  assert_true(checkbox.checked);
+}, "clicking on a label should not cause a disabled checkbox referenced in the 'for' attribute to become checked");
+</script>
+</body>

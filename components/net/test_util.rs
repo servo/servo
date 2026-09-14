@@ -94,10 +94,7 @@ where
 
     let listener = StdTcpListener::bind("0.0.0.0:0").unwrap();
     listener.set_nonblocking(true).unwrap();
-    let listener =
-        spawn_blocking_task::<_, TcpListener>(
-            async move { TcpListener::from_std(listener).unwrap() },
-        );
+    let listener = spawn_blocking_task(async move { TcpListener::from_std(listener).unwrap() });
 
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
     let url = UrlWithBlobClaim::new(ServoUrl::parse(&url_string).unwrap(), None);
@@ -189,10 +186,7 @@ where
     let handler = Arc::new(handler);
     let listener = StdTcpListener::bind("[::0]:0").unwrap();
     listener.set_nonblocking(true).unwrap();
-    let listener =
-        spawn_blocking_task::<_, TcpListener>(
-            async move { TcpListener::from_std(listener).unwrap() },
-        );
+    let listener = spawn_blocking_task(async move { TcpListener::from_std(listener).unwrap() });
 
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
     let url = UrlWithBlobClaim::new(ServoUrl::parse(&url_string).unwrap(), None);

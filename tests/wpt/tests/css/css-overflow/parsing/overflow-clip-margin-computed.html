@@ -13,23 +13,28 @@
 <script>
 test_computed_value("overflow-clip-margin", "0px", "0px");
 test_computed_value("overflow-clip-margin", "10px");
+test_computed_value("overflow-clip-margin", "-10px");
 
 test_computed_value("overflow-clip-margin", "content-box");
 test_computed_value("overflow-clip-margin", "content-box 0px", "content-box");
 test_computed_value("overflow-clip-margin", "content-box 10px");
 test_computed_value("overflow-clip-margin", "10px content-box", "content-box 10px");
+test_computed_value("overflow-clip-margin", "-10px content-box", "content-box -10px");
 
 test_computed_value("overflow-clip-margin", "padding-box", "0px");
 test_computed_value("overflow-clip-margin", "padding-box 0px", "0px");
 test_computed_value("overflow-clip-margin", "padding-box 10px", "10px");
 test_computed_value("overflow-clip-margin", "10px padding-box", "10px");
+test_computed_value("overflow-clip-margin", "-10px padding-box", "-10px");
 
 test_computed_value("overflow-clip-margin", "border-box");
 test_computed_value("overflow-clip-margin", "border-box 0px", "border-box");
 test_computed_value("overflow-clip-margin", "border-box 10px");
 test_computed_value("overflow-clip-margin", "10px border-box", "border-box 10px");
+test_computed_value("overflow-clip-margin", "-10px border-box", "border-box -10px");
 
 test_computed_value("overflow-clip-margin", "calc(100px - 50px)", "50px");
+test_computed_value("overflow-clip-margin", "calc(100px - 150px)", "-50px");
 test_computed_value("overflow-clip-margin", "calc(100px - 100px)", "0px");
 test_computed_value("overflow-clip-margin", "calc(0.5em + 100px)", "108px");
 

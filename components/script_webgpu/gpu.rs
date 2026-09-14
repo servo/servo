@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::marker::PhantomData;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -52,29 +51,24 @@ impl<D: Equivalence> GPU<D> {
             GPUWrap::<D>,
         )
     }
-
-    fn global(&self) -> DomRoot<D::GlobalScope> {
-        <D::GPU as DomGlobalGeneric<D>>::global_from_reflector(self)
-    }
 }
 
 impl<D> GPUMethods<D> for GPU<D>
 where
     D: Equivalence,
-    D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D>,
-    D::GPU: DomGlobalGeneric<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
+    Self: DomGlobalGeneric<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter>
     fn RequestAdapter(
         &self,
         cx: &mut CurrentRealm,
         options: &GPURequestAdapterOptions,
-    ) -> Rc<D::Promise> {
-        let global = &self.global();
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
+        let global = self.global_from_reflector();
         // 1. Let promise be a new promise.
-        let promise = D::Promise::new_in_realm(cx);
-        let callback = D::Promise::callback_promise_gpu(&promise, self);
+        let promise = D::Promise::new_in_realm_rooted(cx);
+        let callback = promise.callback_promise_gpu(self);
 
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
@@ -145,6 +139,6 @@ where
         cx: &mut js::context::JSContext,
     ) -> DomRoot<WGSLLanguageFeatures<D>> {
         self.wgsl_language_features
-            .or_init(|| WGSLLanguageFeatures::new(cx, &*self.global(), None))
+            .or_init(|| WGSLLanguageFeatures::new(cx, &*self.global_from_reflector(), None))
     }
 }

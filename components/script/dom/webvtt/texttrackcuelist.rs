@@ -8,31 +8,42 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::TextTrackCueListBinding::TextTrackCueListMethods;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::texttrack::TextTrack;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::window::Window;
 
 #[dom_struct]
 pub(crate) struct TextTrackCueList {
     reflector_: Reflector,
+    text_track: MutDom<TextTrack>,
     dom_cues: DomRefCell<Vec<Dom<TextTrackCue>>>,
 }
 
 impl TextTrackCueList {
-    pub(crate) fn new_inherited(cues: &[&TextTrackCue]) -> TextTrackCueList {
+    pub(crate) fn new_inherited(
+        text_track: &TextTrack,
+        cues: &[&TextTrackCue],
+    ) -> TextTrackCueList {
         TextTrackCueList {
             reflector_: Reflector::new(),
+            text_track: MutDom::new(text_track),
             dom_cues: DomRefCell::new(cues.iter().map(|g| Dom::from_ref(&**g)).collect()),
         }
     }
 
     pub(crate) fn new(
         cx: &mut JSContext,
+        text_track: &TextTrack,
         window: &Window,
         cues: &[&TextTrackCue],
     ) -> DomRoot<TextTrackCueList> {
-        reflect_dom_object_with_cx(Box::new(TextTrackCueList::new_inherited(cues)), window, cx)
+        reflect_dom_object_with_cx(
+            Box::new(TextTrackCueList::new_inherited(text_track, cues)),
+            window,
+            cx,
+        )
     }
 
     pub(crate) fn item(&self, idx: usize) -> Option<DomRoot<TextTrackCue>> {
@@ -51,10 +62,13 @@ impl TextTrackCueList {
             .map(|(i, _)| i)
     }
 
-    pub(crate) fn add(&self, cue: &TextTrackCue) {
+    pub(crate) fn add(&self, cx: &mut JSContext, cue: &TextTrackCue) {
         // Only add a cue if it does not exist in the list
         if self.find(cue).is_none() {
             self.dom_cues.borrow_mut().push(Dom::from_ref(cue));
+            if let Some(track_list) = self.text_track.get().track_list() {
+                track_list.notify_media_element_for_added_cue(cx, cue);
+            }
         }
     }
 
@@ -64,6 +78,15 @@ impl TextTrackCueList {
 
     pub(crate) fn empty(&self) {
         self.dom_cues.borrow_mut().clear();
+    }
+
+    pub(crate) fn cues(&self) -> Vec<DomRoot<TextTrackCue>> {
+        self.dom_cues
+            .borrow()
+            .clone()
+            .into_iter()
+            .map(|track| track.as_rooted())
+            .collect()
     }
 }
 

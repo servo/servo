@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <style>
+    svg {
+      width: 100%;
+      display: block;
+    }
+  </style>
+
+  <div style="width: 200px; overflow: hidden">
+    <svg height="120">
+      <defs>
+        <filter id="f"
+                filterUnits="userSpaceOnUse"
+                primitiveUnits="userSpaceOnUse"
+                x="0"
+                y="0"
+                width="4000"
+                height="50">
+          <feFlood
+            x="0"
+            y="0"
+            width="20%"
+            height="40"
+            flood-color="green"/>
+        </filter>
+      </defs>
+      <path d="M0 50 L1 50" filter="url(#f)"/>
+    </svg>
+  </div>
+</html>

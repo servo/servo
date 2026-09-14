@@ -54,7 +54,7 @@ promise_test(async t => {
   await promise_rejects_dom(
     t,
     'InvalidStateError',
-    document.modelContext.executeTool(tool, '{}'),
+    document.modelContext.executeTool(tool),
     'Promise should be rejected with InvalidStateError when target frame is detached before execution'
   );
 }, 'executeTool() rejects when target frame is detached before execution');
@@ -95,7 +95,7 @@ promise_test(async t => {
   assert_true(!!tool, 'Tool should be retrieved successfully');
 
   // Execute the tool (hangs forever).
-  const execute_promise = document.modelContext.executeTool(tool, '{}');
+  const execute_promise = document.modelContext.executeTool(tool);
 
   iframe.remove();
 

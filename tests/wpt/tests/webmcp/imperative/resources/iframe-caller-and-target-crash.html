@@ -11,7 +11,7 @@ async function run() {
   });
   const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === "test_tool");
-  document.modelContext.executeTool(tool, "{}");
+  document.modelContext.executeTool(tool);
 }
 run();
 </script>

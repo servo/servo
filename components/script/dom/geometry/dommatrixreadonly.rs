@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::{f64, ptr};
 
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use dom_struct::dom_struct;
 use euclid::Angle;
 use euclid::default::{Transform2D, Transform3D};
@@ -1239,8 +1239,7 @@ fn normalize_point(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
 pub(crate) fn transform_to_matrix(value: &str) -> Fallible<(bool, Transform3D<f64>)> {
     use style::properties::longhands::transform;
 
-    let mut input = ParserInput::new(value);
-    let mut parser = Parser::new(&mut input);
+    let mut parser = Parser::new(value);
     let context = parser_context_for_anonymous_content(
         CssRuleType::Style,
         ParsingMode::DEFAULT,

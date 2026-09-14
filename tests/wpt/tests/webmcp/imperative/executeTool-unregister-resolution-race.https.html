@@ -30,7 +30,7 @@ promise_test(async t => {
   }, {signal: ac.signal});
 
   const [tool] = await document.modelContext.getTools();
-  const execute_promise = document.modelContext.executeTool(tool, '{}');
+  const execute_promise = document.modelContext.executeTool(tool);
 
   const result = await execute_promise;
   assert_equals(result, '{"status":"resolved"}');

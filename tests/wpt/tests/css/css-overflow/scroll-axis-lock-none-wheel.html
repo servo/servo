@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS Overflow: scroll-axis-lock</title>
+<link rel="help"
+      href="https://drafts.csswg.org/css-overflow-5/#scroll-axis-locking">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="./support/scroll-axis-lock.js"></script>
+<link rel="stylesheet" href="./support/scroll-axis-lock.css">
+<style>
+#scroller {
+  scroll-axis-lock: none;
+}
+</style>
+
+<div id="scroller" class="scrollbox">
+  <div class="content"></div>
+</div>
+
+<script>
+const input_source = 'wheel';
+for (const dominant_axis of ['X', 'Y']) {
+  promise_test(async t => {
+    await check_scroll_axis_lock(t, {scroller, input_source, dominant_axis, delta_dominant_axis_sign: 1, delta_minor_axis_sign: 1});
+    await check_scroll_axis_lock(t, {scroller, input_source, dominant_axis, delta_dominant_axis_sign: -1, delta_minor_axis_sign: -1});
+  }, `scroll-axis-lock: none allows free diagonal ${input_source} scroll even with steep angle (no railing to ${dominant_axis})`);
+}
+</script>

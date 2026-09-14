@@ -16,16 +16,34 @@ pub mod gpubuffer;
 pub mod gpubufferusage;
 pub mod gpucolorwrite;
 pub mod gpucommandbuffer;
+pub mod gpucommandencoder;
 pub mod gpucompilationinfo;
 pub mod gpucompilationmessage;
+pub mod gpucomputepassencoder;
+pub mod gpucomputepipeline;
 pub mod gpuconvert;
 pub mod gpudevicelostinfo;
+pub mod gpuerror;
+pub mod gpuinternalerror;
 pub mod gpumapmode;
+pub mod gpuoutofmemoryerror;
+pub mod gpupipelineerror;
+pub mod gpupipelinelayout;
+pub mod gpuqueryset;
 pub mod gpurenderbundle;
+pub mod gpurenderbundleencoder;
+pub mod gpurenderpassencoder;
+pub mod gpurenderpipeline;
+pub mod gpusampler;
+pub mod gpushadermodule;
 pub mod gpushaderstage;
 pub mod gpusupportedfeatures;
 pub mod gpusupportedlimits;
+pub mod gputexture;
 pub mod gputextureusage;
+pub mod gputextureview;
+pub mod gpuuncapturederrorevent;
+pub mod gpuvalidationerror;
 pub mod identityhub;
 pub mod traits;
 pub mod wgsllanguagefeatures;
@@ -34,8 +52,23 @@ pub(crate) use js::gc::Traceable as JSTraceable;
 pub(crate) use jstraceable_derive::JSTraceable;
 pub(crate) use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 pub(crate) use script_bindings::trace::CustomTraceable;
+use wgpu_core::id::PipelineLayoutId;
 
 pub(crate) use crate::dom::bindings::inheritance::HasParent;
+
+pub enum PipelineLayout {
+    Implicit,
+    Explicit(PipelineLayoutId),
+}
+
+impl PipelineLayout {
+    pub fn explicit(&self) -> Option<PipelineLayoutId> {
+        match self {
+            PipelineLayout::Explicit(layout_id) => Some(*layout_id),
+            PipelineLayout::Implicit => None,
+        }
+    }
+}
 
 // Reexports
 pub(crate) mod dom {
@@ -55,6 +88,7 @@ pub(crate) mod codegen {
         use js::context::JSContext;
         use js::gc::HandleObject;
         pub(crate) use script_bindings::DomTypes;
+        use script_bindings::codegen::PrototypeList;
         use script_bindings::conversions::IDLInterface;
         use script_bindings::reflector::DomObjectWrap;
         pub(crate) use script_bindings::reflector::Reflector;
@@ -70,19 +104,39 @@ pub(crate) mod codegen {
         use crate::gpubufferusage::GPUBufferUsage;
         use crate::gpucolorwrite::GPUColorWrite;
         use crate::gpucommandbuffer::GPUCommandBuffer;
+        use crate::gpucommandencoder::GPUCommandEncoder;
         use crate::gpucompilationinfo::GPUCompilationInfo;
         use crate::gpucompilationmessage::GPUCompilationMessage;
+        use crate::gpucomputepassencoder::GPUComputePassEncoder;
+        use crate::gpucomputepipeline::GPUComputePipeline;
         use crate::gpudevicelostinfo::GPUDeviceLostInfo;
+        use crate::gpuerror::GPUError;
+        use crate::gpuinternalerror::GPUInternalError;
         use crate::gpumapmode::GPUMapMode;
+        use crate::gpuoutofmemoryerror::GPUOutOfMemoryError;
+        use crate::gpupipelineerror::GPUPipelineError;
+        use crate::gpupipelinelayout::GPUPipelineLayout;
+        use crate::gpuqueryset::GPUQuerySet;
         use crate::gpurenderbundle::GPURenderBundle;
+        use crate::gpurenderbundleencoder::GPURenderBundleEncoder;
+        use crate::gpurenderpassencoder::GPURenderPassEncoder;
+        use crate::gpurenderpipeline::GPURenderPipeline;
+        use crate::gpusampler::GPUSampler;
+        use crate::gpushadermodule::GPUShaderModule;
         use crate::gpushaderstage::GPUShaderStage;
         use crate::gpusupportedfeatures::GPUSupportedFeatures;
         use crate::gpusupportedlimits::GPUSupportedLimits;
+        use crate::gputexture::GPUTexture;
         use crate::gputextureusage::GPUTextureUsage;
+        use crate::gputextureview::GPUTextureView;
+        use crate::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
+        use crate::gpuvalidationerror::GPUValidationError;
+        use crate::traits::Equivalence;
         use crate::wgsllanguagefeatures::WGSLLanguageFeatures;
         include!(concat!(
             env!("OUT_DIR"),
             "/ConcreteBindings/WebGPUBinding.rs"
         ));
+        include!(concat!(env!("OUT_DIR"), "/ConcreteInheritTypes.rs"));
     }
 }

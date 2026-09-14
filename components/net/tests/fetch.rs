@@ -213,7 +213,7 @@ fn test_fetch_blob() {
         expected: bytes.to_vec(),
     };
 
-    spawn_blocking_task::<_, Response>(methods::fetch(request, &mut target, &context));
+    spawn_blocking_task(methods::fetch(request, &mut target, &context));
 
     let fetch_response = receiver.recv().unwrap();
     assert!(!fetch_response.is_network_error());
@@ -1060,6 +1060,8 @@ fn test_fetch_blocked_nosniff() {
         (Destination::Script, mime::TEXT_JAVASCRIPT, false),
         (Destination::Script, mime::TEXT_CSS, true),
         (Destination::Style, mime::TEXT_CSS, false),
+        (Destination::Style, mime::TEXT_HTML, true),
+        (Destination::Style, mime::TEXT_PLAIN, true),
     ];
 
     for test in tests {

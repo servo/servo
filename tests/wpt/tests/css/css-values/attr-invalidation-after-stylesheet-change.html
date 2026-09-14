@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() invalidation after a style sheet change</title>
+<meta name="assert" content="attr() keeps invalidating on attribute change after the style resolver is rebuilt by a style sheet change">
+<link rel="help" href="https://drafts.csswg.org/css-values/#attr-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    width: attr(data-foo type(<length>));
+  }
+</style>
+<div id="target" data-foo="10px"></div>
+<script>
+test(() => {
+  assert_equals(getComputedStyle(target).width, "10px");
+
+  target.setAttribute("data-foo", "20px");
+  assert_equals(getComputedStyle(target).width, "20px");
+
+  // Rebuilds the rule sets, which is where the attr() dependency used to live. The style has to
+  // reach the resolver before the next attribute change, otherwise the change is invalidated
+  // against the old rule sets and the dependency is still there.
+  const style = document.createElement("style");
+  style.textContent = "#unrelated { color: red }";
+  document.head.appendChild(style);
+  getComputedStyle(document.body).color;
+
+  target.setAttribute("data-foo", "30px");
+  assert_equals(getComputedStyle(target).width, "30px");
+
+  target.setAttribute("data-foo", "40px");
+  assert_equals(getComputedStyle(target).width, "40px");
+}, "attr() invalidates on attribute change after a style sheet is added");
+</script>

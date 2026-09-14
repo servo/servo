@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cmp::min;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc as StdArc;
@@ -194,6 +193,7 @@ pub(crate) fn set_default_accept(request: &mut Request) {
             },
             Destination::Json => HeaderValue::from_static("application/json,*/*;q=0.5"),
             Destination::Style => HeaderValue::from_static("text/css,*/*;q=0.1"),
+            Destination::Text => HeaderValue::from_static("text/plain,*/*;q=0.5"),
             // Step 11.1. Let value be `*/*`.
             _ => HeaderValue::from_static("*/*"),
         }
@@ -2312,9 +2312,6 @@ async fn http_network_fetch(
         return Response::network_error(NetworkError::LoadCancelled);
     }
 
-    *response_body.lock() = ResponseBody::Receiving(vec![]);
-    let response_body2 = response_body.clone();
-
     if let Some(ref sender) = devtools_sender &&
         let Some(m) = msg
     {
@@ -2333,15 +2330,29 @@ async fn http_network_fetch(
     let headers = response.headers.clone();
     let devtools_chan = context.devtools_chan.clone();
 
-    if let Some(possible_length) = response_stream
+    let prealloc_size: usize = if let Some(possible_length) = response_stream
         .headers()
         .get(http::header::CONTENT_LENGTH)
         .and_then(|header_value| header_value.to_str().ok())
-        .and_then(|s| s.parse().ok())
-        .map(|length| min(length, pref!(network_max_content_length) as usize))
+        .and_then(|s| s.parse::<usize>().ok())
     {
-        let _ = done_sender.send(Data::ContentLength(possible_length));
+        // For compressed content, we pre-allocate a multiple of the
+        // compressed size, assuming typical content will be highly compressed.
+        let multiplier: usize = if response_stream.body().is_encoded() {
+            5
+        } else {
+            1
+        };
+        possible_length.saturating_mul(multiplier)
+    } else {
+        // We don't know the length, so we fallback to something to still
+        // avoid some reallocs.
+        4096
     }
+    .min(pref!(network_max_content_length) as usize);
+    let _ = done_sender.send(Data::ContentLength(prealloc_size));
+    *response_body.lock() = ResponseBody::Receiving(Vec::with_capacity(prealloc_size));
+    let response_body2 = response_body.clone();
 
     spawn_task(
         response_stream

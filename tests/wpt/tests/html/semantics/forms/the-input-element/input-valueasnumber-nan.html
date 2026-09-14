@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<html>
+  <head>
+    <title>HTMLInputElement valueAsDate</title>
+    <link
+      rel="help"
+      href="https://html.spec.whatwg.org/#dom-input-valueasdate"
+    />
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <h3>input_valueAsNumber</h3>
+    <hr />
+    <div id="log"></div>
+
+    <input id="input" type="number" />
+
+    <script>
+      "use strict";
+
+      const numberInput = document.getElementById("input");
+
+      test(() => {
+        assert_equals(
+          numberInput.value,
+          "",
+          "value is empty string by default"
+        );
+        assert_equals(
+          Number.isNaN(numberInput.valueAsNumber),
+          true,
+          "valueAsNumber is NaN by default"
+        );
+
+        numberInput.value = "12";
+
+        assert_equals(
+          numberInput.value,
+          "12",
+          "value gets set correctly when set by value"
+        );
+        assert_equals(
+          numberInput.valueAsNumber,
+          12,
+          "valueAsNumber gets set correctly when set by value"
+        );
+
+        numberInput.valueAsNumber = "15";
+
+        assert_equals(
+          numberInput.value,
+          "15",
+          "value gets set correctly when set by valueAsNumber"
+        );
+        assert_equals(
+          numberInput.valueAsNumber,
+          15,
+          "valueAsNumber gets set correctly when set by valueAsNumber"
+        );
+
+        numberInput.valueAsNumber = NaN;
+
+        assert_equals(
+          numberInput.value,
+          "",
+          "value gets set correctly when valueAsNumber is set to NaN"
+        );
+        assert_equals(
+          Number.isNaN(numberInput.valueAsNumber),
+          true,
+          "valueAsNumber gets set correctly when valueAsNumber is set to NaN"
+        );
+      }, "value and valueAsNumber are setting each other correctly for input[type=number]");
+    </script>
+  </body>
+</html>

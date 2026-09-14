@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::AnimationEffectBinding::{
@@ -14,6 +14,7 @@ use script_bindings::error::{Error, Fallible};
 use script_bindings::num::Finite;
 use script_bindings::reflector::Reflector;
 use script_bindings::root::Dom;
+use script_bindings::str::DOMString;
 use style::parser::Parse;
 use style::stylesheets::CssRuleType;
 use style::values::generics::easing::TimingKeyword;
@@ -151,8 +152,7 @@ impl AnimationEffect {
             .as_ref()
             .map(|easing| {
                 let easing = easing.str();
-                let mut parser_input = ParserInput::new(&easing);
-                let mut parser = Parser::new(&mut parser_input);
+                let mut parser = Parser::new(&easing);
 
                 // None of these values should matter
                 let document = self.window.Document();
@@ -309,7 +309,9 @@ impl IterationDurationOrAuto {
 impl From<IterationDurationOrAuto> for UnrestrictedDoubleOrString {
     fn from(value: IterationDurationOrAuto) -> Self {
         match value {
-            IterationDurationOrAuto::Auto => UnrestrictedDoubleOrString::String("auto".into()),
+            IterationDurationOrAuto::Auto => {
+                UnrestrictedDoubleOrString::String(DOMString::from_static("auto"))
+            },
             IterationDurationOrAuto::Duration(double) => {
                 UnrestrictedDoubleOrString::UnrestrictedDouble(double)
             },

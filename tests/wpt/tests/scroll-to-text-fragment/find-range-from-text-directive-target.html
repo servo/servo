@@ -26,8 +26,12 @@ window.onload = function() {
     width: 50vw;
     height: 200vh;
   }
+  #generatedSearch::before {
+    content: "search";
+  }
 </style>
 <body>
+  <span id="generatedSearch"></span>
   Won't scroll if matched:
   match suffix
   match suffix3
@@ -38,6 +42,9 @@ window.onload = function() {
   </p>
   <p>
     foo foo foo bar bar bar
+  </p>
+  <p>
+    search Two words ending in flatten
   </p>
   <p>
     match suffix2

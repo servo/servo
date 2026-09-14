@@ -165,31 +165,33 @@ pub(crate) unsafe fn create_global_object<D: DomTypes>(
         // in select_compartment() below [1], preventing compartment reuse in either direction between this global
         // and any globals created with `use_system_compartment` set to false.
         // [1] IsSystemCompartment() → Realm::isSystem() → Realm::isSystem_ → principals == trustedPrincipals()
-        JS_SetTrustedPrincipals(cx, principal.as_raw());
+        unsafe { JS_SetTrustedPrincipals(cx, principal.as_raw()) };
     }
 
-    rval.set(JS_NewGlobalObject(
-        cx,
-        class,
-        principal.as_raw(),
-        OnNewGlobalHookOption::DontFireOnNewGlobalHook,
-        &*options,
-    ));
+    rval.set(unsafe {
+        JS_NewGlobalObject(
+            cx,
+            class,
+            principal.as_raw(),
+            OnNewGlobalHookOption::DontFireOnNewGlobalHook,
+            &*options,
+        )
+    });
     assert!(!rval.is_null());
 
     // Initialize the reserved slots before doing anything that can GC, to
     // avoid getting trace hooks called on a partially initialized object.
     let private_val = PrivateValue(private);
-    JS_SetReservedSlot(rval.get(), DOM_OBJECT_SLOT, &private_val);
+    unsafe { JS_SetReservedSlot(rval.get(), DOM_OBJECT_SLOT, &private_val) };
     let proto_array: Box<ProtoOrIfaceArray> =
         Box::new([ptr::null_mut::<JSObject>(); PrototypeList::PROTO_OR_IFACE_LENGTH]);
     let val = PrivateValue(Box::into_raw(proto_array) as *const libc::c_void);
-    JS_SetReservedSlot(rval.get(), DOM_PROTOTYPE_SLOT, &val);
+    unsafe { JS_SetReservedSlot(rval.get(), DOM_PROTOTYPE_SLOT, &val) };
 
     let mut cx = AutoRealm::new_from_handle(cx, rval.handle());
     let cx = &mut cx;
 
-    JS_FireOnNewGlobalObject(cx, rval.handle());
+    unsafe { JS_FireOnNewGlobalObject(cx, rval.handle()) };
 }
 
 /// Choose the compartment to create a new global object in.
@@ -202,13 +204,16 @@ fn select_compartment(cx: &mut js::context::JSContext, options: &mut RealmOption
     ) -> CompartmentIterResult {
         let data = data as *mut Data;
 
-        if !IsSharableCompartment(compartment) || IsSystemCompartment(compartment) {
-            return CompartmentIterResult::KeepGoing;
+        unsafe {
+            if !IsSharableCompartment(compartment) || IsSystemCompartment(compartment) {
+                return CompartmentIterResult::KeepGoing;
+            }
+
+            // Choose any sharable, non-system compartment in this context to allow
+            // same-agent documents to share JS and DOM objects.
+            *data = compartment;
         }
 
-        // Choose any sharable, non-system compartment in this context to allow
-        // same-agent documents to share JS and DOM objects.
-        *data = compartment;
         CompartmentIterResult::Stop
     }
 
@@ -478,13 +483,15 @@ unsafe extern "C" fn fun_to_string_hook(
     obj: RawHandleObject,
     _is_to_source: bool,
 ) -> *mut JSString {
-    let js_class = get_object_class(obj.get());
-    assert!(!js_class.is_null());
-    let repr = (*(js_class as *const NonCallbackInterfaceObjectClass)).representation;
-    assert!(!repr.is_empty());
-    let ret = JS_NewStringCopyN(cx, repr.as_ptr() as *const libc::c_char, repr.len());
-    assert!(!ret.is_null());
-    ret
+    unsafe {
+        let js_class = get_object_class(obj.get());
+        assert!(!js_class.is_null());
+        let repr = (*(js_class as *const NonCallbackInterfaceObjectClass)).representation;
+        assert!(!repr.is_empty());
+        let ret = JS_NewStringCopyN(cx, repr.as_ptr() as *const libc::c_char, repr.len());
+        assert!(!ret.is_null());
+        ret
+    }
 }
 
 fn create_unscopable_object(

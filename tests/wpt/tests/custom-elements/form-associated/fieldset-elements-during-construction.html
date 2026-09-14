@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Form associated custom element isn't a fieldset listed element until fully custom</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2068440">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<fieldset id="fs"><x-foo></x-foo></fieldset>
+<script>
+async_test(function(t) {
+  const fieldset = document.querySelector("fieldset");
+  customElements.define('x-foo', class extends HTMLElement {
+    static formAssociated = true;
+    constructor() {
+      super();
+      t.step(() => {
+        assert_equals(fieldset.elements.length, 0, "Length in pre-customized state");
+      });
+      this.remove();
+      fieldset.appendChild(this);
+      t.step(() => {
+        assert_equals(fieldset.elements.length, 0, "Length in pre-customized state after re-bind");
+      });
+      t.step_timeout(t.step_func_done(() => {
+        assert_equals(fieldset.elements.length, 1, "Length in post-customized state");
+      }), 0);
+    }
+  });
+});
+</script>

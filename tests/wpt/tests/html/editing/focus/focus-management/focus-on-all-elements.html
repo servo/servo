@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>element.focus()</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/#dom-focus">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input>
+<div></div>
+
+<script>
+"use strict";
+
+test(() => {
+
+  assert_equals(typeof document.querySelector("input").focus, "function");
+  assert_equals(typeof document.querySelector("div").focus, "function");
+
+}, "the focus method exists on all elements, not just focusable ones");
+</script>

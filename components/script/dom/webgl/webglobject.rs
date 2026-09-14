@@ -15,7 +15,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webglrenderingcontext::{Operation, capture_webgl_backtrace};
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLObject {
     reflector_: Reflector<AssociatedMemory>,
     #[no_trace]

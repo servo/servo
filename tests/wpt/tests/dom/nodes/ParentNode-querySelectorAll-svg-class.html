@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Selecting a svg element with a class selector</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/2114 -->
+
+<div class="test">
+</div>
+<svg class="test">
+</svg>
+
+<script>
+"use strict";
+test(() => {
+  assert_equals(document.querySelectorAll("svg.test").length, 1);
+});
+</script>

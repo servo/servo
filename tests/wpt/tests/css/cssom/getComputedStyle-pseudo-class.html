@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>getComputedStyle should not return pseudo-class styles by default</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3607 -->
+
+<style>
+  button { background-color: rgb(127, 255, 212); }
+  button:hover { background-color: rgb(255, 228, 196); }
+</style>
+
+<button id="button">Submit</button>
+
+<script>
+"use strict";
+
+test(() => {
+  const button = document.getElementById("button");
+  const styles = window.getComputedStyle(button);
+
+  assert_equals(styles.backgroundColor, "rgb(127, 255, 212)");
+}, "getComputedStyle should return the default style, not :hover style");
+</script>

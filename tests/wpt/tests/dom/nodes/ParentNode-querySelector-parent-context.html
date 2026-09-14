@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>querySelector with ancestor context in selector</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/1657 -->
+
+<div id="container"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const container = document.getElementById("container");
+  container.innerHTML = "<div><section><span></span></section></div>";
+
+  const section = container.querySelector("section");
+  const expectedSpan = container.querySelector("span");
+
+  assert_equals(section.querySelector("div section span"), expectedSpan);
+});
+
+</script>

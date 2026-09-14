@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Attribute name lookups after replacing an attribute prefix</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+for (const namespacedFirst of [false, true]) {
+  test(() => {
+    const element = document.createElement("div");
+    if (namespacedFirst) {
+      element.setAttributeNS("urn:test", "p:id", "namespaced");
+    }
+    element.setAttributeNS(null, "id", "plain");
+    if (!namespacedFirst) {
+      element.setAttributeNS("urn:test", "p:id", "namespaced");
+    }
+
+    const replacement = document.createAttributeNS("urn:test", "id");
+    replacement.value = "replacement";
+    element.setAttributeNodeNS(replacement);
+
+    assert_equals(element.getAttribute("p:id"), null);
+    assert_false(element.hasAttribute("p:id"));
+    assert_equals(element.getAttribute("id"), namespacedFirst ? "replacement" : "plain");
+    assert_equals(element.getAttributeNS(null, "id"), "plain");
+    assert_equals(element.getAttributeNS("urn:test", "id"), "replacement");
+
+    element.removeAttributeNS("urn:test", "id");
+    assert_equals(element.getAttribute("id"), "plain");
+    assert_equals(element.id, "plain");
+  }, `Replacing an attribute prefix preserves name lookup order with namespacedFirst=${namespacedFirst}`);
+}
+
+test(() => {
+  const element = document.createElement("div");
+  element.setAttributeNS("urn:test", "p:id", "namespaced");
+  const attribute = document.createAttribute("p:id");
+  attribute.value = "plain";
+  element.setAttributeNode(attribute);
+
+  const replacement = document.createAttributeNS("urn:test", "q:id");
+  replacement.value = "replacement";
+  element.setAttributeNodeNS(replacement);
+
+  assert_equals(element.getAttribute("p:id"), "plain");
+  assert_equals(element.getAttributeNode("p:id"), attribute);
+  assert_equals(element.getAttribute("q:id"), "replacement");
+  element.removeAttribute("q:id");
+  assert_equals(element.getAttribute("p:id"), "plain");
+  assert_equals(element.getAttribute("q:id"), null);
+}, "Replacing an attribute prefix preserves other attributes with the old qualified name");
+</script>

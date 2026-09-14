@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use embedder_traits::{self, AllowOrDeny, EmbedderMsg, PermissionFeature, WakeLockType};
 use js::context::JSContext;
@@ -17,6 +15,7 @@ use servo_base::generic_channel;
 use servo_config::pref;
 
 use crate::conversions::Convert;
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionDescriptor, PermissionName, PermissionState, PermissionStatusMethods,
 };
@@ -44,13 +43,13 @@ pub(crate) trait PermissionAlgorithm {
     ) -> Result<Self::Descriptor, Error>;
     fn permission_query(
         cx: &mut JSContext,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
         descriptor: &Self::Descriptor,
         status: &Self::Status,
     );
     fn permission_request(
         cx: &mut JSContext,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
         descriptor: &Self::Descriptor,
         status: &Self::Status,
     );
@@ -88,8 +87,8 @@ impl Permissions {
         cx: &mut CurrentRealm,
         op: Operation,
         permission_desc: *mut JSObject,
-        promise: Option<Rc<Promise>>,
-    ) -> Rc<Promise> {
+        promise: Option<RootedPromise>,
+    ) -> RootedPromise {
         rooted!(&in(cx) let mut permission_desc_value = UndefinedValue());
         permission_desc_value
             .handle_mut()
@@ -98,7 +97,7 @@ impl Permissions {
         // (Query, Request) Step 3.
         let p = match promise {
             Some(promise) => promise,
-            None => Promise::new_in_realm(cx),
+            None => Promise::new_in_realm_rooted(cx),
         };
 
         // (Query, Request, Revoke) Step 1.
@@ -199,17 +198,17 @@ impl Permissions {
 // Currently these methods use Raw *mut JSObject which is potentially dangerous. We root this object immediately in `self.manipulate`.
 impl PermissionsMethods<crate::DomTypeHolder> for Permissions {
     /// <https://w3c.github.io/permissions/#dom-permissions-query>
-    fn Query(&self, cx: &mut CurrentRealm, permission_desc: *mut JSObject) -> Rc<Promise> {
+    fn Query(&self, cx: &mut CurrentRealm, permission_desc: *mut JSObject) -> RootedPromise {
         self.manipulate(cx, Operation::Query, permission_desc, None)
     }
 
     /// <https://w3c.github.io/permissions/#dom-permissions-request>
-    fn Request(&self, cx: &mut CurrentRealm, permission_desc: *mut JSObject) -> Rc<Promise> {
+    fn Request(&self, cx: &mut CurrentRealm, permission_desc: *mut JSObject) -> RootedPromise {
         self.manipulate(cx, Operation::Request, permission_desc, None)
     }
 
     /// <https://w3c.github.io/permissions/#dom-permissions-revoke>
-    fn Revoke(&self, cx: &mut CurrentRealm, permission_desc: *mut JSObject) -> Rc<Promise> {
+    fn Revoke(&self, cx: &mut CurrentRealm, permission_desc: *mut JSObject) -> RootedPromise {
         self.manipulate(cx, Operation::Revoke, permission_desc, None)
     }
 }
@@ -242,7 +241,7 @@ impl PermissionAlgorithm for Permissions {
     /// > permission_desc and a PermissionStatus status, runs the following steps:
     fn permission_query(
         _cx: &mut JSContext,
-        _promise: &Rc<Promise>,
+        _promise: &RootedPromise,
         _descriptor: &PermissionDescriptor,
         status: &PermissionStatus,
     ) {
@@ -253,7 +252,7 @@ impl PermissionAlgorithm for Permissions {
     /// <https://w3c.github.io/permissions/#boolean-permission-request-algorithm>
     fn permission_request(
         cx: &mut JSContext,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
         descriptor: &PermissionDescriptor,
         status: &PermissionStatus,
     ) {

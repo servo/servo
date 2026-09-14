@@ -44,8 +44,8 @@ window.onload = async () => {
   const regA = tools.find(t => t.name === 'toolA');
   const regB = tools.find(t => t.name === 'toolB');
 
-  document.modelContext.executeTool(regA, '{}', { signal: controllerA.signal });
-  document.modelContext.executeTool(regB, '{}');
+  document.modelContext.executeTool(regA, {}, { signal: controllerA.signal });
+  document.modelContext.executeTool(regB);
 
   // Wait for both tool execute callbacks to run and return, ensuring they are
   // inserted into pending_executions_.

@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<title>Table cell and row properties when not in a table</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-tdth-headers">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-tr-sectionrowindex">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<template id="template1"><td></td></template>
+
+<template id="template2"><tr></tr></template>
+
+<script>
+"use strict";
+
+test(() => {
+
+  const td1 = document.createElement("td");
+  assert_equals(td1.cellIndex, -1);
+
+  const td2 = document.querySelector("#template1").content.querySelector("td");
+  assert_equals(td2.cellIndex, -1);
+
+}, "td.cellIndex should return -1 when the td is not inside a tr");
+
+test(() => {
+
+  const td1 = document.createElement("td");
+  assert_equals(td1.headers.length, 0);
+
+  const td2 = document.querySelector("#template1").content.querySelector("td");
+  assert_equals(td2.headers.length, 0);
+
+}, "td.headers should return an empty DOMTokenList when the td is not inside a tr");
+
+test(() => {
+
+  const tr1 = document.createElement("tr");
+  assert_equals(tr1.sectionRowIndex, -1);
+
+  const tr2 = document.querySelector("#template2").content.querySelector("tr");
+  assert_equals(tr2.sectionRowIndex, -1);
+
+}, "tr.sectionRowIndex should return -1 when the tr is not inside a parent");
+
+</script>

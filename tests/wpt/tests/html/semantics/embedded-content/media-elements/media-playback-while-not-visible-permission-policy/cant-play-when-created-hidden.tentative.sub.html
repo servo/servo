@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Media elements can't play when their iframe is created hidden
+  (media-playback-while-not-visible permission policy)
+</title>
+<link rel="help" href="https://wicg.github.io/iframe-media-pausing/">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=display&media=video">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=display&media=audio">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=visibility&media=video">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=visibility&media=audio">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=zero-size&media=video">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=zero-size&media=audio">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=display&media=video">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=display&media=audio">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=visibility&media=video">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=visibility&media=audio">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=zero-size&media=video">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=zero-size&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=display&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=display&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=visibility&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=visibility&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=zero-size&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=zero-size&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=display&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=display&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=visibility&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=visibility&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=zero-size&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=zero-size&media=audio">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/media-playback-while-not-visible-utils.js"></script>
+<body>
+<script>
+const SAME_ORIGIN_BASE = new URL('resources/', location.href).href;
+const CROSS_ORIGIN_BASE =
+    'http://{{hosts[alt][]}}:{{ports[http][0]}}/html/semantics/embedded-content/' +
+    'media-elements/media-playback-while-not-visible-permission-policy/resources/';
+
+const params = new URLSearchParams(location.search);
+const origin = params.get('origin');
+const frame = params.get('frame');
+const visibility = params.get('visibility');
+const media = params.get('media');
+const base = origin === 'cross-origin' ? CROSS_ORIGIN_BASE : SAME_ORIGIN_BASE;
+
+// Scenario: an iframe is hidden before being attached to the DOM, so it is
+// never rendered.
+promise_test(
+    async t => {
+      const iframe = await createMediaIframe(t, frame, base, media, visibility);
+
+      // Attempting to play while hidden should fail with NotAllowedError. For
+      // cross-origin frames, visibility propagation may take time, so poll
+      // until the play call is correctly rejected.
+      await t.step_wait(
+          async () => await playMediaInIframe(iframe) === 'NotAllowedError',
+          'waiting for play to be rejected');
+      assert_equals(await queryPlayerStatus(iframe), 'Paused');
+    },
+    `${origin} ${frame}: ${media} elements in iframes created hidden ` +
+        `shouldn't be allowed to play (visibility=${visibility})`);
+</script>
+</body>

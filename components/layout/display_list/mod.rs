@@ -12,7 +12,6 @@ use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Ve
 use fonts::ShapedTextSlice;
 use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
-use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
@@ -128,6 +127,12 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Statistics collected about the reflow, in order to write tests for incremental layout.
     reflow_statistics: &'a mut ReflowStatistics,
+
+    /// Whether the `largest_contentul_paint_enabled` preference is enabled.
+    largest_contentful_paint_enabled: bool,
+
+    /// The background color used for the shell.
+    shell_background_color: AbsoluteColor,
 }
 
 struct InspectorHighlight {
@@ -195,6 +200,18 @@ impl DisplayListBuilder<'_> {
             webrender_display_list_builder.dump_serialized_display_list();
         }
 
+        let shell_background_color = {
+            let default_background_color = pref!(shell_background_color_rgba);
+            AbsoluteColor::new(
+                ColorSpace::Srgb,
+                default_background_color[0] as f32,
+                default_background_color[1] as f32,
+                default_background_color[2] as f32,
+                default_background_color[3] as f32,
+            )
+            .into_srgb_legacy()
+        };
+
         let _span = profile_traits::trace_span!("DisplayListBuilder::build").entered();
         let mut builder = DisplayListBuilder {
             fragment_tree,
@@ -208,6 +225,8 @@ impl DisplayListBuilder<'_> {
             device_pixel_ratio,
             paint_timing_handler,
             reflow_statistics,
+            largest_contentful_paint_enabled: pref!(largest_contentful_paint_enabled),
+            shell_background_color,
         };
 
         // Clear any caret color from previous display list constructions.
@@ -247,11 +266,11 @@ impl DisplayListBuilder<'_> {
     }
 
     fn mark_is_paintable(&mut self) {
-        self.paint_info.is_paintable = true;
+        self.paint_timing_handler.mark_document_is_paintable();
     }
 
     fn mark_is_contentful(&mut self) {
-        self.paint_info.is_contentful = true;
+        self.paint_timing_handler.mark_document_is_contentful();
     }
 
     fn spatial_id(&self, id: ScrollTreeNodeId) -> SpatialId {
@@ -631,7 +650,7 @@ impl DisplayListBuilder<'_> {
         // An element el is paintable when all of the following apply:
         // > el is being rendered.
         // > el’s used visibility is visible.
-        // Above conditions are met, as we selectively call this API.
+        // Note: Above conditions are met, as we selectively call this API.
 
         // > el and all of its ancestors' used opacity is greater than zero.
         if opacity <= 0.0 {
@@ -658,7 +677,7 @@ impl DisplayListBuilder<'_> {
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
-        if !pref!(largest_contentful_paint_enabled) {
+        if !self.largest_contentful_paint_enabled {
             return;
         }
 
@@ -943,16 +962,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
             // First paint ... includes non-default background paint and the enclosing box of an iframe.
             // The spec is vague. See also: https://github.com/w3c/paint-timing/issues/122
-            let default_background_color = servo_config::pref!(shell_background_color_rgba);
-            let default_background_color = AbsoluteColor::new(
-                ColorSpace::Srgb,
-                default_background_color[0] as f32,
-                default_background_color[1] as f32,
-                default_background_color[2] as f32,
-                default_background_color[3] as f32,
-            )
-            .into_srgb_legacy();
-            if background_color != default_background_color {
+            if background_color != self.shell_background_color {
                 self.mark_is_paintable();
             }
         }
@@ -1175,7 +1185,7 @@ impl Fragment {
 
         // Accumulate this text fragment for LCP by the containing element's tag
         if let Some(tag) = state.containing_element_tag &&
-            pref!(largest_contentful_paint_enabled)
+            builder.largest_contentful_paint_enabled
         {
             let transform = builder
                 .paint_info
@@ -1655,16 +1665,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
             // First paint ... includes non-default background paint and the enclosing box of an iframe.
             // The spec is vague. See also: https://github.com/w3c/paint-timing/issues/122
-            let default_background_color = servo_config::pref!(shell_background_color_rgba);
-            let default_background_color = AbsoluteColor::new(
-                ColorSpace::Srgb,
-                default_background_color[0] as f32,
-                default_background_color[1] as f32,
-                default_background_color[2] as f32,
-                default_background_color[3] as f32,
-            )
-            .into_srgb_legacy();
-            if background_color != default_background_color {
+            if background_color != builder.shell_background_color {
                 builder.mark_is_paintable();
             }
         }
@@ -1839,34 +1840,22 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let layer =
                         background::layout_layer(self, painter, builder, state, index, intrinsic);
 
-                    let image_wr_key = match image {
-                        CachedImage::Raster(raster_image) => raster_image.id,
-                        CachedImage::Vector(vector_image) => {
-                            let scale = builder.device_pixel_ratio.get();
-                            let default_size: DeviceIntSize =
-                                Size2D::new(size.width * scale, size.height * scale).to_i32();
-                            let layer_size = layer.as_ref().map(|layer| {
-                                Size2D::new(
-                                    layer.tile_size.width * scale,
-                                    layer.tile_size.height * scale,
-                                )
-                                .to_i32()
-                            });
+                    let scale = builder.device_pixel_ratio.get();
+                    let default_size: DeviceIntSize =
+                        Size2D::new(size.width * scale, size.height * scale).to_i32();
+                    let preferred_size = layer.as_ref().map(|layer| {
+                        Size2D::new(
+                            layer.tile_size.width * scale,
+                            layer.tile_size.height * scale,
+                        )
+                        .to_i32()
+                    });
 
-                            node.and_then(|node| {
-                                let size = layer_size.unwrap_or(default_size);
-                                builder.image_resolver.rasterize_vector_image(
-                                    vector_image.id,
-                                    size,
-                                    node,
-                                    vector_image.svg_id,
-                                )
-                            })
-                            .and_then(|rasterized_image| rasterized_image.id)
-                        },
-                    };
-
-                    let Some(image_key) = image_wr_key else {
+                    let Some(image_key) = builder.image_resolver.image_key_from_cached_image(
+                        &image,
+                        preferred_size.unwrap_or(default_size),
+                        node,
+                    ) else {
                         continue;
                     };
 
@@ -2101,24 +2090,13 @@ impl<'a> BuilderForBoxFragment<'a> {
         {
             Err(_) => return false,
             Ok(ResolvedImage::Image { image, size }) => {
-                let image_key = match image {
-                    CachedImage::Raster(raster_image) => raster_image.id,
-                    CachedImage::Vector(vector_image) => {
-                        let scale = builder.device_pixel_ratio.get();
-                        let size = Size2D::new(size.width * scale, size.height * scale).to_i32();
-                        node.and_then(|node| {
-                            builder.image_resolver.rasterize_vector_image(
-                                vector_image.id,
-                                size,
-                                node,
-                                vector_image.svg_id,
-                            )
-                        })
-                        .and_then(|rasterized_image| rasterized_image.id)
-                    },
-                };
-
-                let Some(key) = image_key else {
+                let scale = builder.device_pixel_ratio.get();
+                let raster_size = Size2D::new(size.width * scale, size.height * scale).to_i32();
+                let Some(key) =
+                    builder
+                        .image_resolver
+                        .image_key_from_cached_image(&image, raster_size, node)
+                else {
                     return false;
                 };
 

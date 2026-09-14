@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not use SVG markers outside the subtree</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+</head>
+<body>
+  <svg width="0" height="0">
+    <defs>
+      <marker id="markerOut" markerUnits="userSpaceOnUse" viewBox="0 0 100 100" markerWidth="20" markerHeight="20" refX="50" refY="50">
+        <image href="/images/red-100x100.png" x="0" y="0" width="100" height="100" preserveAspectRatio="none"/>
+      </marker>
+    </defs>
+  </svg>
+
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
+    <svg id=child width="100" height="100">
+      <marker id="markerIn" markerUnits="userSpaceOnUse" viewBox="0 0 100 100" markerWidth="20" markerHeight="20" refX="50" refY="50">
+        <image href="/images/green-100x100.png" x="0" y="0" width="100" height="100" preserveAspectRatio="none"/>
+      </marker>
+      <path d="M 20 20 L 50 20 L 80 20"
+        stroke="black"
+        marker-start="url(#markerOut)"
+        marker-mid="url(#markerOut)"
+        marker-end="url(#markerOut)" />
+      <path d="M 20 40 L 50 40 L 80 40"
+        stroke="black"
+        marker-start="url(#markerIn)"
+        marker-mid="url(#markerIn)"
+        marker-end="url(#markerIn)" />
+    </svg>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        const preloadImage = (url) => new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+          img.src = url;
+        });
+
+        const imageEl1 = document.querySelector('#markerOut image');
+        const imageEl2 = document.querySelector('#markerIn image');
+        await Promise.all([
+          preloadImage(imageEl1.getAttribute('href')),
+          preloadImage(imageEl2.getAttribute('href')),
+        ]);
+
+        await waitForCanvasPaint(canvas);
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, 100, 100);
+        ctx.drawElementImage(child, 0, 0);
+
+        // The canvas should ignore the marker and draw the line black.
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 15, 25);
+        assert_array_equals(pixel, [255, 255, 255, 255], "External start marker should not draw");
+        pixel = _getPixelFromImageData(imgData, 45, 25);
+        assert_array_equals(pixel, [255, 255, 255, 255], "External mid marker should not draw");
+        pixel = _getPixelFromImageData(imgData, 85, 25);
+        assert_array_equals(pixel, [255, 255, 255, 255], "External end marker should not draw");
+
+        pixel = _getPixelFromImageData(imgData, 15, 45);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Internal start marker should draw");
+        pixel = _getPixelFromImageData(imgData, 45, 45);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Internal mid marker should draw");
+        pixel = _getPixelFromImageData(imgData, 85, 45);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Internal end marker should draw");
+      });
+    }
+  </script>
+</body>
+</html>

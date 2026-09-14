@@ -23,6 +23,6 @@ promise_test(t => {
     window: window,
     origin: window.location.origin,
   };
-  return promise_rejects_dom(t, 'SecurityError', document.modelContext.executeTool(dummyTool, ''));
+  return promise_rejects_dom(t, 'SecurityError', document.modelContext.executeTool(dummyTool));
 }, 'modelContext.executeTool rejects with SecurityError when document.domain is enabled');
 </script>

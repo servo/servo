@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSStyleDeclaration indexed property access</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="div"></div>
+<script>
+"use strict";
+
+const div = document.getElementById("div");
+
+test(() => {
+  div.style.setProperty("color", "red");
+  div.style.setProperty("background-color", "blue");
+
+  assert_equals(div.style[0], "color");
+  assert_equals(div.style[1], "background-color");
+  assert_equals(div.style[2], undefined);
+}, "indexed access returns property names in insertion order");
+
+test(() => {
+  div.style.cssText = "margin-top: 5px; padding: 10px";
+
+  assert_equals(div.style[0], "margin-top");
+  assert_equals(div.style[1], "padding-top");
+  assert_equals(div.style[2], "padding-right");
+  assert_equals(div.style[3], "padding-bottom");
+  assert_equals(div.style[4], "padding-left");
+  assert_equals(div.style[div.style.length], undefined);
+}, "indexed access works after setting cssText");
+
+test(() => {
+  div.style.cssText = "color: red; background-color: blue";
+  div.style.removeProperty("color");
+
+  assert_equals(div.style.length, 1);
+  assert_equals(div.style[0], "background-color");
+  assert_equals(div.style[1], undefined);
+}, "indexed access updates after removeProperty");
+
+test(() => {
+  div.style.cssText = "";
+
+  assert_equals(div.style.length, 0);
+  assert_equals(div.style[0], undefined);
+}, "indexed access on empty style returns undefined");
+
+test(() => {
+  div.style.cssText = "color: red";
+
+  assert_false("1" in div.style);
+  assert_true("0" in div.style);
+}, "in operator works for indexed properties");
+
+test(() => {
+  div.style.cssText = "color: red; background-color: blue";
+
+  const keys = [];
+  for (const key in div.style) {
+    if (key === "0" || key === "1") {
+      keys.push(key);
+    }
+  }
+  assert_equals(keys.length, 2);
+  assert_equals(keys[0], "0");
+  assert_equals(keys[1], "1");
+}, "indexed properties are enumerable");
+</script>

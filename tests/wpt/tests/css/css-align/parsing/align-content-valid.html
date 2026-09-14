@@ -26,12 +26,16 @@ test_valid_value("align-content", "stretch");
 
 // <overflow-position>? <content-position>
 // <overflow-position> = unsafe | safe
-// <content-position> = center | start | end | flex-start | flex-end
+// <content-position> = center | start | end | flex-start | flex-end | flow-start | flow-end
 test_valid_value("align-content", "center");
 test_valid_value("align-content", "start");
 test_valid_value("align-content", "end");
 test_valid_value("align-content", "flex-start");
 test_valid_value("align-content", "flex-end");
+test_valid_value("align-content", "flow-start");
+test_valid_value("align-content", "flow-end");
+test_valid_value("align-content", "safe flow-start");
+test_valid_value("align-content", "unsafe flow-end");
 test_valid_value("align-content", "unsafe end");
 test_valid_value("align-content", "safe flex-start");
 </script>

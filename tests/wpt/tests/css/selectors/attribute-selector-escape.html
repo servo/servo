@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Attribute selectors using CSS-escaped spaces</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#case-sensitive">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3033 -->
+
+<script>
+"use strict";
+function cssOnlyEscapeSpaces(string) {
+  return string.replace(/ /gi, "\\ ");
+}
+
+const original = "               ";
+const escaped = cssOnlyEscapeSpaces(original + original);
+const doc = new DOMParser().parseFromString(
+  `<div id="div" style="${original + original}">hello</div>`,
+  "text/html"
+);
+
+test(() => {
+  const div = doc.getElementById("div");
+  assert_equals(doc.querySelector(`[style=${escaped}]`), div);
+});
+</script>

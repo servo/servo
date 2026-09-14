@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector with :last-child, child combinator, and attribute selector</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/972 -->
+
+<div id="container">
+  <div><span title="title text">text</span></div>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const container = document.getElementById("container");
+  const span = container.querySelector("div:last-child > span[title]");
+  assert_not_equals(span, null);
+  assert_equals(span.textContent, "text");
+}, "div:last-child > span[title] should match");
+</script>

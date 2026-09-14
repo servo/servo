@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>link-parameters: containers referencing one SVG each get their own parameters</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#propdef-link-parameters">
+<link rel="match" href="link-parameters-per-container-ref.html">
+<style>
+  body { margin: 0; }
+  img { display: block; width: 100px; height: 100px; }
+  #a { link-parameters: param(--bg, #0a5c2e); }
+  #b { link-parameters: param(--bg, #1d4f8c); }
+  #c { link-parameters: param(--bg, #7a2f6b); }
+</style>
+<img id="a" src="resources/solid.svg">
+<img id="b" src="resources/solid.svg">
+<img id="c" src="resources/solid.svg">

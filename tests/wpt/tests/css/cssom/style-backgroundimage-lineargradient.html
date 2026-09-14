@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSSOM: Setting style.backgroundImage</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-elementcssinlinestyle-mixin">
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3552 -->
+
+<div id="test"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("test");
+
+  div.style.backgroundImage = "linear-gradient(270deg, blue 0%, red 100%)";
+  assert_equals(div.style.backgroundImage, "linear-gradient(270deg, blue 0%, red 100%)");
+
+});
+
+</script>

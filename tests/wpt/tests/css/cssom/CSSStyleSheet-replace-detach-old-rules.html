@@ -1,0 +1,67 @@
+<!doctype html>
+<title>CSSStyleSheet replace()/replaceSync() should detach old rules</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylesheet-replace">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylesheet-replacesync">
+<script>
+"use strict";
+
+// replaceSync() tests
+
+test(() => {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync("p { color: red; }");
+  const oldRule = sheet.cssRules[0];
+  assert_equals(oldRule.parentStyleSheet, sheet, "setup: old rule should reference the sheet");
+
+  sheet.replaceSync("div { color: blue; }");
+  assert_equals(oldRule.parentStyleSheet, null, "old rule's parentStyleSheet should be null after replacement");
+  assert_equals(oldRule.parentRule, null, "old rule's parentRule should be null after replacement");
+}, "replaceSync() nullifies parentStyleSheet on old rules");
+
+test(() => {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync("@media all { p { color: red; } }");
+  const oldMediaRule = sheet.cssRules[0];
+  const oldNestedRule = oldMediaRule.cssRules[0];
+  assert_equals(oldMediaRule.parentStyleSheet, sheet, "setup: old media rule should reference the sheet");
+  assert_equals(oldNestedRule.parentStyleSheet, sheet, "setup: old nested rule should reference the sheet");
+
+  sheet.replaceSync("div { color: blue; }");
+  assert_equals(oldMediaRule.parentStyleSheet, null, "old media rule's parentStyleSheet should be null");
+  assert_equals(oldNestedRule.parentStyleSheet, null, "old nested rule's parentStyleSheet should be null");
+}, "replaceSync() nullifies parentStyleSheet on old nested rules");
+
+// replace() tests
+
+promise_test(async () => {
+  const sheet = new CSSStyleSheet();
+  await sheet.replace("p { color: red; }");
+  const oldRule = sheet.cssRules[0];
+  assert_equals(oldRule.parentStyleSheet, sheet, "setup: old rule should reference the sheet");
+
+  const promise = sheet.replace("div { color: blue; }");
+
+
+  await promise;
+  assert_equals(oldRule.parentStyleSheet, null, "old rule's parentStyleSheet should be null after replacement");
+  assert_equals(oldRule.parentRule, null, "old rule's parentRule should be null after replacement");
+}, "replace() nullifies parentStyleSheet on old rules after replacement");
+
+promise_test(async () => {
+  const sheet = new CSSStyleSheet();
+  await sheet.replace("@media all { p { color: red; } }");
+  const oldMediaRule = sheet.cssRules[0];
+  const oldNestedRule = oldMediaRule.cssRules[0];
+  assert_equals(oldMediaRule.parentStyleSheet, sheet, "setup: old media rule should reference the sheet");
+  assert_equals(oldNestedRule.parentStyleSheet, sheet, "setup: old nested rule should reference the sheet");
+
+  const promise = sheet.replace("div { color: blue; }");
+
+
+  await promise;
+  assert_equals(oldMediaRule.parentStyleSheet, null, "old media rule's parentStyleSheet should be null");
+  assert_equals(oldNestedRule.parentStyleSheet, null, "old nested rule's parentStyleSheet should be null");
+}, "replace() nullifies parentStyleSheet on old nested rules after replacement");
+</script>

@@ -16,7 +16,6 @@ use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::generics::counters::{Content, ContentItem};
 use style::values::specified::Quotes;
-use web_atoms::LocalName;
 
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
@@ -360,40 +359,6 @@ pub(crate) fn generate_pseudo_element_content(
                 match item {
                     ContentItem::String(s) => {
                         vec.push(PseudoElementContentItem::Text(s.to_string()));
-                    },
-                    ContentItem::Attr(attr) => {
-                        let element = pseudo_element_info
-                            .node
-                            .as_element()
-                            .expect("Expected an element");
-
-                        // From
-                        // <https://html.spec.whatwg.org/multipage/#case-sensitivity-of-the-css-%27attr%28%29%27-function>
-                        //
-                        // > CSS Values and Units leaves the case-sensitivity of attribute names for
-                        // > the purpose of the `attr()` function to be defined by the host language.
-                        // > [[CSSVALUES]].
-                        // >
-                        // > When comparing the attribute name part of a CSS `attr()`function to the
-                        // > names of namespace-less attributes on HTML elements in HTML documents,
-                        // > the name part of the CSS `attr()` function must first be converted to
-                        // > ASCII lowercase. The same function when compared to other attributes must
-                        // > be compared according to its original case. In both cases, to match the
-                        // > values must be identical to each other (and therefore the comparison is
-                        // > case sensitive).
-                        let attr_name = match element.is_html_element_in_html_document() {
-                            true => &*attr.attribute.to_ascii_lowercase(),
-                            false => &*attr.attribute,
-                        };
-
-                        pseudo_element_info
-                            .node
-                            .set_uses_content_attribute_with_attr(true);
-                        let attr_val =
-                            element.attribute(&attr.namespace_url, &LocalName::from(attr_name));
-                        vec.push(PseudoElementContentItem::Text(
-                            attr_val.map_or(String::new(), |s| s.to_string()),
-                        ));
                     },
                     ContentItem::Image(image) => {
                         if let Some(replaced_content) =

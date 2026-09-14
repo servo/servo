@@ -36,6 +36,7 @@ use swapper::{Swapper, swapper};
 use uuid::Uuid;
 
 use crate::conversions::Convert;
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::{WorkletMethods, WorkletOptions};
@@ -54,7 +55,6 @@ use crate::dom::workletglobalscope::{
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg, ScriptEventLoopSender};
 use crate::modules::script_module::fetch_a_module_script_graph;
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskQueue;
 use crate::runtime::script_runtime::{IntroductionType, Runtime, ScriptThreadEventCategory};
 use crate::tasks::task_source::TaskSourceName;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
@@ -158,8 +158,8 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         realm: &mut CurrentRealm,
         module_url: USVString,
         options: &WorkletOptions,
-    ) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(realm);
+    ) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(realm);
 
         // Step 1. Let outsideSettings be the relevant settings object of this.
         // Step 2. Let moduleURLRecord be the result of encoding-parsing a URL given moduleURL, relative to outsideSettings.
@@ -263,7 +263,7 @@ pub trait WorkletThreadPool: JSTraceable {
         policy_container: PolicyContainer,
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
         inherited_secure_context: Option<bool>,
     );
     /// Request that the [`WorkletGlobalScope`] associated with the [`WorkletId`]
@@ -396,7 +396,7 @@ impl WorkletThreadPool for StatelessWorkletThreadPool {
         policy_container: PolicyContainer,
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
         inherited_secure_context: Option<bool>,
     ) {
         // Send each thread a control message asking it to load the script.
@@ -415,7 +415,7 @@ impl WorkletThreadPool for StatelessWorkletThreadPool {
                 policy_container: policy_container.clone(),
                 credentials,
                 pending_tasks_struct: pending_tasks_struct.clone(),
-                promise: TrustedPromise::new(promise.clone()),
+                promise: TrustedPromise::from(promise),
                 inherited_secure_context,
             });
         }
@@ -703,7 +703,6 @@ impl WorkletThread {
 
     /// Get the worklet global scope for a given worklet.
     /// Creates the worklet global scope if it doesn't exist.
-    #[expect(clippy::too_many_arguments)]
     fn get_worklet_global_scope(
         &mut self,
         cx: &mut JSContext,
@@ -712,7 +711,6 @@ impl WorkletThread {
         inherited_secure_context: Option<bool>,
         global_type: WorkletGlobalScopeType,
         base_url: ServoUrl,
-        microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<WorkletGlobalScope> {
         match self.global_scopes.entry(worklet_id) {
             hash_map::Entry::Occupied(entry) => DomRoot::from_ref(entry.get()),
@@ -739,7 +737,6 @@ impl WorkletThread {
                     &self.global_init,
                     cx,
                     self.closing.clone(),
-                    microtask_queue,
                 );
                 entry.insert(Dom::from_ref(&*result));
                 result
@@ -920,7 +917,6 @@ impl WorkletThread {
                     inherited_secure_context,
                     global_type,
                     base_url,
-                    self.runtime.microtask_queue.clone(),
                 );
                 self.fetch_and_invoke_a_worklet_script(
                     &global,

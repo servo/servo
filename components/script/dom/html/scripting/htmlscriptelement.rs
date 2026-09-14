@@ -461,7 +461,7 @@ impl FetchResponseListener for ClassicContext {
     }
 
     fn process_content_length(&mut self, _request_id: RequestId, size: usize) {
-        self.data.reserve(size - self.data.len());
+        self.data.reserve(size.saturating_sub(self.data.len()));
     }
 }
 
@@ -572,7 +572,7 @@ impl HTMLScriptElement {
     fn has_render_blocking_attribute(&self) -> bool {
         self.blocking
             .get()
-            .is_some_and(|list| list.Contains("render".into()))
+            .is_some_and(|list| list.Contains(DOMString::from_static("render")))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>

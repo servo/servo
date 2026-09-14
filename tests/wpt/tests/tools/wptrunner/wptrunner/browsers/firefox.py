@@ -228,6 +228,7 @@ def env_options():
 
 
 def get_bool_pref(default_prefs, extra_prefs, pref):
+    """Resolve a boolean preference for run info purposes."""
     for key, value in extra_prefs + default_prefs:
         if pref == key:
             if isinstance(value, str):
@@ -237,12 +238,29 @@ def get_bool_pref(default_prefs, extra_prefs, pref):
     return False
 
 
+def has_openh264_gmp(gmp_path):
+    """Whether a MOZ_GMP_PATH holds the real OpenH264 plugin.
+
+    Gecko requires each entry to be <dir>/gmp-<name>/<version>, so the parent
+    directory name is what identifies the plugin.
+    """
+    return any(os.path.basename(os.path.dirname(entry)) == "gmp-gmpopenh264"
+               for entry in gmp_path.split(os.pathsep) if entry)
+
+
 def run_info_extras(logger, default_prefs=None, **kwargs):
     extra_prefs = kwargs.get("extra_prefs", [])
     default_prefs = list(default_prefs.items()) if default_prefs is not None else []
 
     def bool_pref(pref):
         return get_bool_pref(default_prefs, extra_prefs, pref)
+
+    def prefers_openh264():
+        """Whether the OpenH264 plugin is present and preferred."""
+        return (has_openh264_gmp(kwargs.get("gmp_path") or
+                                 os.environ.get("MOZ_GMP_PATH", "")) and
+                bool_pref("media.gmp.encoder.preferred") and
+                bool_pref("media.gmp.decoder.preferred"))
 
     # Default fission to on, unless we get --disable-fission
     rv = {"e10s": kwargs["gecko_e10s"],
@@ -254,9 +272,11 @@ def run_info_extras(logger, default_prefs=None, **kwargs):
           "swgl": bool_pref("gfx.webrender.software"),
           "useDrawSnapshot": bool_pref("reftest.use-draw-snapshot"),
           "privateBrowsing": bool_pref("browser.privatebrowsing.autostart"),
-          "remoteAsyncEvents": (bool_pref("remote.events.async.mouse.enabled") or
-                                bool_pref("remote.events.async.wheel.enabled")),
+          "remoteAsyncMouseEvents": bool_pref("remote.events.async.mouse.enabled"),
+          "remoteAsyncTouchEvents": bool_pref("remote.events.async.touch.enabled"),
+          "remoteAsyncWheelEvents": bool_pref("remote.events.async.wheel.enabled"),
           "incOriginInit": os.environ.get("MOZ_ENABLE_INC_ORIGIN_INIT") == "1",
+          "openh264": prefers_openh264(),
           }
     rv.update(run_info_browser_version(**kwargs))
 
@@ -289,8 +309,11 @@ def update_properties():
             "useDrawSnapshot",
             "asan",
             "tsan",
-            "remoteAsyncEvents",
+            "remoteAsyncMouseEvents",
+            "remoteAsyncTouchEvents",
+            "remoteAsyncWheelEvents",
             "sessionHistoryInParent",
+            "openh264",
             "subsuite",
         ],
         {"os": ["display", "version", "os_version"], "processor": ["bits"]},
@@ -777,6 +800,11 @@ class ProfileCreator:
         }
 
     def _get_default_prefs(self):
+        """Preferences that are applied to the profile of a test run.
+
+        These are not visible to "run_info_extras", which only sees preferences
+        given via "--setpref", so a run info flag does not reflect them.
+        """
         prefs = {
             "dom.file.createInChild": True,
             "places.history.enabled": False,
@@ -797,7 +825,8 @@ class ProfileCreator:
                 }
             )
         else:
-            # Except for wdspec dispatch wheel scroll as widget event by default.
+            # Dispatch wheel scroll as widget event by default. It stays
+            # disabled for wdspec until it can be enabled for all input sources.
             prefs["remote.events.async.wheel.enabled"] = True
 
         if self.debug_test:

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>
+  OOF alignment within a spanning row grid-lanes area.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0;
+    height: 100px;
+    width: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-rows: 50px 150px;
+    height: 200px;
+    width: 50px;
+    position: relative;
+  }
+  .abs {
+    background: green;
+    grid-row: 1 / 3;
+    position: absolute;
+    width: 50px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div class="abs" style="align-self: center; height: 150px;"></div>
+    <div class="abs" style="align-self: end; height: 25px;"></div>
+    <div class="abs" style="align-self: start; height: 25px;"></div>
+  </div>
+</div>

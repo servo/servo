@@ -55,7 +55,10 @@ class HistoryActivity : ComponentActivity() {
                         title = { Text(stringResource(R.string.history_title)) },
                         navigationIcon = {
                             IconButton(onClick = { finish() }) {
-                                Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.back))
+                                Icon(
+                                    painterResource(R.drawable.arrow_back),
+                                    stringResource(R.string.back),
+                                )
                             }
                         },
                         actions = {
@@ -63,21 +66,22 @@ class HistoryActivity : ComponentActivity() {
                                 onClick = {
                                     historyManager.clearHistory()
                                     historyEntries = historyManager.history
-                                },
+                                }
                             ) {
-                                Icon(painterResource(R.drawable.delete), stringResource(R.string.clear_history))
+                                Icon(
+                                    painterResource(R.drawable.delete),
+                                    stringResource(R.string.clear_history),
+                                )
                             }
                         },
                     )
-                },
+                }
             ) { innerPadding ->
                 if (historyEntries.isEmpty()) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                        modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
+                        verticalArrangement =
+                            Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
@@ -101,22 +105,24 @@ class HistoryActivity : ComponentActivity() {
                                                 item.headerText,
                                                 style = MaterialTheme.typography.titleSmall,
                                             )
-                                        },
+                                        }
                                     )
                                 }
                                 is HistoryEntryItem -> {
                                     ListItem(
-                                        modifier = Modifier
-                                            .clickable {
-                                                val resultIntent = Intent().apply {
-                                                    putExtra("url", item.entry.url)
-                                                }
+                                        modifier =
+                                            Modifier.clickable {
+                                                val resultIntent =
+                                                    Intent().apply {
+                                                        putExtra("url", item.entry.url)
+                                                    }
                                                 setResult(RESULT_OK, resultIntent)
                                                 finish()
                                             },
                                         headlineContent = {
                                             Text(
-                                                item.entry.title?.takeUnless { it.isEmpty() } ?: item.entry.url,
+                                                item.entry.title?.takeUnless { it.isEmpty() }
+                                                    ?: item.entry.url,
                                                 overflow = TextOverflow.Ellipsis,
                                                 maxLines = 1,
                                             )
@@ -167,11 +173,12 @@ class HistoryActivity : ComponentActivity() {
             currentCal.set(Calendar.SECOND, 0)
             currentCal.set(Calendar.MILLISECOND, 0)
 
-            val dayHeader = if (currentCal.getTimeInMillis() == todayCal.getTimeInMillis()) {
-                "Today"
-            } else {
-                dayFormat.format(Date(entry.timestamp))
-            }
+            val dayHeader =
+                if (currentCal.getTimeInMillis() == todayCal.getTimeInMillis()) {
+                    "Today"
+                } else {
+                    dayFormat.format(Date(entry.timestamp))
+                }
 
             if (dayHeader != lastDay) {
                 items.add(HistoryHeaderItem(dayHeader))

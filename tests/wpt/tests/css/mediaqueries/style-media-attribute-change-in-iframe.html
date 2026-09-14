@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Changing style media updates a subframe before computed style is read</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/mediaqueries-4/#mf-dimensions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.width = 500;
+  iframe.height = 200;
+  iframe.srcdoc = `
+    <style>
+      #target { color: rgb(0, 0, 255); }
+    </style>
+    <style id="sheet" media="print">
+      #target { color: rgb(0, 128, 0); }
+    </style>
+    <div id="target">target</div>
+  `;
+
+  const loaded = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loaded;
+
+  const frameWindow = iframe.contentWindow;
+  const frameDocument = iframe.contentDocument;
+  const sheet = frameDocument.getElementById("sheet");
+  const target = frameDocument.getElementById("target");
+
+  assert_equals(frameWindow.getComputedStyle(target).color,
+                "rgb(0, 0, 255)", "The print stylesheet does not apply");
+  assert_greater_than(frameWindow.innerWidth, 450,
+                      "The initial viewport does not match the new query");
+
+  iframe.width = 400;
+  sheet.media = "(max-width: 450px)";
+
+  assert_equals(
+      frameWindow.getComputedStyle(target).color, "rgb(0, 128, 0)",
+      "The media query is evaluated against the updated subframe viewport");
+}, "Changing style media accounts for the new viewport dependency");
+</script>

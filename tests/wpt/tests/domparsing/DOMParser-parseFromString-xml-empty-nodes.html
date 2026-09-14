@@ -1,0 +1,23 @@
+<!doctype html>
+<title>DOMParser creates empty nodes when parsing XML files</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+const allowedTypes = ["text/xml", "application/xml", "application/xhtml+xml", "image/svg+xml"];
+
+allowedTypes.forEach(type => {
+  test(() => {
+    const p = new DOMParser();
+    const doc = p.parseFromString("<foo><!----></foo>", type);
+    assert_equals(doc.documentElement.firstChild.nodeType, Node.COMMENT_NODE);
+  }, "Should generate an empty comment node in type " + type);
+
+  test(() => {
+    const p = new DOMParser();
+    const doc = p.parseFromString("<foo><![CDATA[]]></foo>", type);
+    assert_equals(doc.documentElement.firstChild.nodeType, Node.CDATA_SECTION_NODE);
+  }, "Should generate an empty CDATA Section node in type " + type);
+});
+</script>

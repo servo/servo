@@ -6,10 +6,9 @@ use std::collections::VecDeque;
 
 use euclid::Scale;
 use paint_api::display_list::ScrollTree;
-use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::{CompositionPipeline, PipelineExitSource};
 use servo_base::Epoch;
-use servo_base::id::PipelineId;
+use servo_base::id::{LCPCandidateID, PipelineId};
 use style_traits::CSSPixel;
 use webrender_api::Epoch as WebRenderEpoch;
 use webrender_api::units::DevicePixel;
@@ -47,7 +46,7 @@ pub(crate) struct PipelineDetails {
     pub first_contentful_paint_metric: PaintMetricState,
 
     /// LCP candidates waiting to be presented, in order by [WebRenderEpoch].
-    pub lcp_candidates: VecDeque<(WebRenderEpoch, LCPCandidate)>,
+    pub lcp_candidates: VecDeque<(WebRenderEpoch, (LCPCandidateID, usize))>,
 
     /// The CSS pixel to device pixel scale of the viewport of this pipeline, including
     /// page zoom, but not including any pinch zoom amount. This is used to detect

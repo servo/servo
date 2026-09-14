@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Namespace: CSS.supports()</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-3/#the-css-namespace">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="width:150px">
+  <div id="div"></div>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_true(CSS.supports("color", "red"), "color: red is supported");
+  assert_true(CSS.supports("display", "block"), "display: block is supported");
+  assert_true(CSS.supports("margin", "10px 20px"), "margin: 10px 20px is supported");
+  assert_true(CSS.supports("--my-custom-color", "blue"), "Custom properties are supported");
+}, "CSS.supports(property, value) with valid inputs");
+
+test(() => {
+  assert_false(CSS.supports("not-a-real-property", "red"), "Invalid property should return false");
+  assert_false(CSS.supports("color", "rainbow"), "Invalid value for color should return false");
+  assert_false(CSS.supports("display", "10px"), "Invalid value for display should return false");
+}, "CSS.supports(property, value) with invalid inputs");
+
+test(() => {
+  assert_false(
+    CSS.supports("  color  ", "red"),
+    "Property names with leading/trailing spaces should return false"
+  );
+  assert_true(
+    CSS.supports("color", "  red  "),
+    "Leading and trailing spaces in the value should be ignored"
+  );
+}, "CSS.supports(property, value) edge cases");
+
+test(() => {
+  assert_true(CSS.supports("(color: red)"), "(color: red) is supported");
+  assert_false(CSS.supports("(color: rainbow)"), "(color: rainbow) is not supported");
+  assert_false(
+    CSS.supports("(not-a-real-property: red)"),
+    "Invalid property in condition is not supported"
+  );
+}, "CSS.supports(conditionText) with parentheses");
+
+test(() => {
+  assert_true(CSS.supports("not (color: rainbow)"), "'not' operator should work");
+  assert_true(CSS.supports("(color: red) and (display: block)"), "'and' operator should work");
+  assert_true(
+    CSS.supports("(color: red) or (not-a-real-property: red)"),
+    "'or' operator should work"
+  );
+  assert_true(CSS.supports("NOT (color: rainbow)"), "Upper cased logical operator should work");
+  assert_false(
+    CSS.supports("(color: red) and (not-a-real-property: red)"),
+    "'and' operator with one invalid condition should be false"
+  );
+  assert_false(
+    CSS.supports("not"),
+    "'not' operator with unexpected end of input should be false"
+  );
+  assert_false(
+    CSS.supports("(color: red) and"),
+    "'and' operator with unexpected end of input should be false"
+  );
+}, "CSS.supports(conditionText) with logical operators");
+
+test(() => {
+  assert_true(
+    CSS.supports("color: red"),
+    "Condition text without parentheses (single declaration) should return true"
+  );
+  assert_false(
+    CSS.supports("not-a-real-property: red"),
+    "Invalid single declaration without parentheses should return false"
+  );
+}, "CSS.supports(conditionText) without parentheses");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    CSS.supports();
+  }, "Calling CSS.supports() with no arguments should throw a TypeError");
+}, "CSS.supports() requires at least one argument");
+
+test(t => {
+  t.add_cleanup(() => {
+    document.getElementById("div").style = "";
+  });
+  const div = document.getElementById("div");
+  div.style.fontSize = "revert";
+  assert_equals(div.style.getPropertyValue("font-size"), "revert", "Specified value");
+  assert_true(CSS.supports("font", "revert"), "CSS.supports");
+  assert_equals(window.getComputedStyle(div).fontSize, "16px", "Computed value");
+}, "CSS.supports and implementation: keyword");
+
+test(t => {
+  t.add_cleanup(() => {
+    document.getElementById("div").style = "";
+  });
+  const div = document.getElementById("div");
+  div.style.width = "min(100px, 50%)";
+  assert_true(CSS.supports("width", "min(100px, 50%)"), "value");
+  assert_equals(div.style.getPropertyValue("width"), "min(100px, 50%)", "Specified value");
+}, "CSS.supports and implementation: min function");
+
+test(() => {
+  assert_true(CSS.supports("margin", "10px"), "valid shorthand");
+  assert_false(CSS.supports("margin-top", "!invalid"), "invalid longhand");
+}, "CSS.supports and shorthand / longhand");
+
+test(() => {
+  assert_false(CSS.supports(";"), "invalid value semi");
+}, "CSS.supports invalid value semi");
+
+</script>

@@ -406,7 +406,7 @@ pub(crate) trait SpecificInputType {
     }
 
     fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> DOMString {
-        "".into()
+        DOMString::new()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#signal-a-type-change>

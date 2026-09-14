@@ -41,6 +41,7 @@
     assert_true(childEvent instanceof InterestEvent, "slot saw interest event");
     assert_equals(childEventTarget, slot, "target is child inside shadow boundary");
     assert_equals(childEventSource, slot, "source is child inside shadow boundary");
+    assert_equals(event.source, host, "source is retargeted after dispatch");
   }, "InterestEvent doesn't propagate across shadow boundary when retargeted source == currentTarget");
 
   promise_test(async (t) => {

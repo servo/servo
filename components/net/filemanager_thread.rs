@@ -15,7 +15,6 @@ use embedder_traits::{
     SelectedFile,
 };
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
-use ipc_channel::ipc::IpcSender;
 use log::warn;
 use mime::Mime;
 use net_traits::blob_url_store::{BlobBuf, BlobTokenCommunicator, BlobURLStoreError};
@@ -25,6 +24,7 @@ use net_traits::filemanager_thread::{
 };
 use net_traits::response::{Response, ResponseBody};
 use parking_lot::{Mutex, RwLock};
+use profile_traits::generic_callback::GenericCallback;
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSender;
@@ -100,7 +100,7 @@ impl FileManager {
 
     fn read_file(
         &self,
-        sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+        sender: GenericCallback<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
         origin: ImmutableOrigin,
     ) {
@@ -661,7 +661,7 @@ impl FileManagerStore {
 
     async fn get_blob_buf(
         &self,
-        sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
+        sender: &GenericCallback<FileManagerResult<ReadFileProgress>>,
         id: &Uuid,
         file_token: &FileTokenCheck,
         origin_in: &ImmutableOrigin,
@@ -737,7 +737,7 @@ impl FileManagerStore {
     // Convenient wrapper over get_blob_buf
     async fn try_read_file(
         &self,
-        sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
+        sender: &GenericCallback<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
         origin_in: ImmutableOrigin,
     ) -> Result<(), BlobURLStoreError> {
@@ -868,7 +868,7 @@ impl FileManagerStore {
 }
 
 async fn read_file_in_chunks(
-    sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
+    sender: &GenericCallback<FileManagerResult<ReadFileProgress>>,
     mut file: tokio::fs::File,
     size: usize,
     opt_filename: Option<String>,

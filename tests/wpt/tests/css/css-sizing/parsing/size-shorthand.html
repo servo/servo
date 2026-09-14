@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="author" title="Andrew Martinez" href="https://github.com/AndrewJMart">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<script>
+    // size is a property and a descriptor. The size property is a shorthand
+    // for width and height.
+    test_shorthand_value("size", "100px", {
+        "width": "100px",
+        "height": "100px"
+    });
+    test_shorthand_value("size", "100px 100px", {
+        "width": "100px",
+        "height": "100px"
+    });
+    test_shorthand_value("size", "100px 200px", {
+        "width": "100px",
+        "height": "200px"
+    });
+    test_shorthand_value("size", "auto", {
+        "width": "auto",
+        "height": "auto"
+    });
+</script>

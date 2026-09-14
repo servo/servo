@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS Overflow: scroll-axis-lock inheritance</title>
+<link rel="help"
+      href="https://drafts.csswg.org/css-overflow-5/#scroll-axis-locking">
+<meta name="assert" content="scroll-axis-lock has initial value 'auto' and is not inherited.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  assert_not_inherited('scroll-axis-lock', 'auto', 'none');
+</script>

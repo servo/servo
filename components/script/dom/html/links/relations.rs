@@ -378,7 +378,7 @@ pub(crate) fn get_element_target(
         target.contains_tab_or_newline() &&
         target.contains("\u{003C}")
     {
-        return Some("_blank".into());
+        return Some(DOMString::from_static("_blank"));
     }
     // Step 3. Return target.
     target
@@ -411,7 +411,7 @@ pub(crate) fn follow_hyperlink(
                 .event_handler()
                 .alternate_action_keyboard_modifier_active()
             {
-                Some("_blank".into())
+                Some(DOMString::from_static("_blank"))
             } else {
                 get_element_target(subject, None)
             }

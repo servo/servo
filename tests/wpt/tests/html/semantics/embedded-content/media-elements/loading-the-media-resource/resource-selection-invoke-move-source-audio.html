@@ -1,0 +1,16 @@
+<!doctype html>
+<title>invoking resource selection by moving &lt;source> (audio element)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<audio></audio>
+<source>
+<script>
+async_test(function(t) {
+  var a = document.querySelector('audio');
+  var source = document.querySelector('source');
+  a.onloadstart = t.step_func(function() { t.done(); });
+  a.moveBefore(source, undefined)
+  window.onload = t.step_func(function() { assert_unreached(); });
+});
+</script>

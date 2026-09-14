@@ -14,7 +14,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
-use servo_base::id::ScrollTreeNodeId;
+use servo_base::id::{LCPCandidateID, ScrollTreeNodeId};
 use servo_base::print_tree::PrintTree;
 use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
@@ -896,6 +896,25 @@ impl ScrollTree {
     }
 }
 
+/// A bitflags set that represents the paint timing report for a display list.
+///
+/// <https://www.w3.org/TR/paint-timing/#set-of-previously-reported-paints>
+/// Note: Analogous to the document's "set of previously reported paints". It
+/// is produced by layout's `mark paint timing` as the report for the current
+/// display list. In the specification this is an ordered set of paint-type
+/// strings (`"first-paint"`,`"first-contentful-paint"`).
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct PaintTimingReport(u8);
+
+bitflags! {
+    impl PaintTimingReport: u8 {
+        /// Report first paint (the spec's `"first-paint"`).
+        const FirstPaint = 1 << 0;
+        /// Report first contentful paint (the spec's `"first-contentful-paint"`).
+        const FirstContentfulPaint = 1 << 1;
+    }
+}
+
 /// A data structure which stores `Paint`-side information about
 /// display lists sent to `Paint`.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -925,18 +944,16 @@ pub struct PaintDisplayListInfo {
     /// tree.
     pub root_scroll_node_id: ScrollTreeNodeId,
 
-    /// From <https://www.w3.org/TR/paint-timing/#paintable>:
-    /// Whether the display list contains paintable items.
-    pub is_paintable: bool,
-
-    /// From <https://www.w3.org/TR/paint-timing/#contentful>:
-    /// Contentful paint i.e. whether the display list contains items of type
-    /// text, image, non-white canvas or SVG). Used by metrics.
-    pub is_contentful: bool,
-
     /// Whether the first layout or a subsequent (incremental) layout triggered this
     /// display list creation.
     pub first_reflow: bool,
+
+    /// The paint-timing report for this display list.
+    pub paint_timing_report: PaintTimingReport,
+
+    /// New largest-contentful-paint candidate in this display list, if any.
+    /// The pair is the candidate's id and its reported area.
+    pub lcp_candidate: Option<(LCPCandidateID, usize)>,
 
     /// If this display list contains a blinking caret, this value will be filled with its animation
     /// key and original color value so that the painter can animate the caret.
@@ -989,9 +1006,9 @@ impl PaintDisplayListInfo {
             scroll_tree,
             root_reference_frame_id,
             root_scroll_node_id,
-            is_paintable: false,
-            is_contentful: false,
             first_reflow,
+            lcp_candidate: None,
+            paint_timing_report: PaintTimingReport::default(),
             caret_property_binding: Default::default(),
         }
     }

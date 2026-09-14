@@ -21,6 +21,7 @@ use script_bindings::codegen::GenericBindings::HistoryBinding::HistoryMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
+use script_bindings::str::DOMString;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSend;
 use servo_constellation_traits::{LoadData, NavigationHistoryBehavior};
@@ -149,9 +150,8 @@ impl DocumentEmbedderControls {
                 .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, request)),
             EmbedderControlRequest::FilePicker(file_picker_request) => {
                 let main_thread_sender = self.window.main_thread_script_chan().clone();
-                let callback = profile_traits::generic_callback::GenericCallback::new(
-                    self.window.as_global_scope().time_profiler_chan().clone(),
-                    move |result| {
+                let callback =
+                    profile_traits::generic_callback::GenericCallback::new(move |result| {
                         let Ok(embedder_control_response) = result else {
                             return;
                         };
@@ -163,9 +163,8 @@ impl DocumentEmbedderControls {
                         ) {
                             warn!("Could not send FileManager response to main thread: {error}")
                         }
-                    },
-                )
-                .expect("Could not create callback");
+                    })
+                    .expect("Could not create callback");
                 self.window
                     .as_global_scope()
                     .resource_threads()
@@ -438,8 +437,11 @@ impl ContextMenuNodes {
             let Some(browsing_context) = document.browsing_context() else {
                 return;
             };
-            let (browsing_context, new) =
-                browsing_context.choose_a_navigable(cx, "_blank".into(), true /* noopener */);
+            let (browsing_context, new) = browsing_context.choose_a_navigable(
+                cx,
+                DOMString::from_static("_blank"),
+                true, /* noopener */
+            );
             let Some(browsing_context) = browsing_context else {
                 return;
             };
@@ -511,21 +513,21 @@ impl ContextMenuNodes {
                 }
             },
             ContextMenuAction::Cut => {
-                window.Document().event_handler().handle_editing_action(
+                window.Document().handle_editing_action(
                     cx,
                     self.text_input_element.as_deref().map(DomRoot::from_ref),
                     EditingActionEvent::Cut,
                 );
             },
             ContextMenuAction::Copy => {
-                window.Document().event_handler().handle_editing_action(
+                window.Document().handle_editing_action(
                     cx,
                     self.text_input_element.as_deref().map(DomRoot::from_ref),
                     EditingActionEvent::Copy,
                 );
             },
             ContextMenuAction::Paste => {
-                window.Document().event_handler().handle_editing_action(
+                window.Document().handle_editing_action(
                     cx,
                     self.text_input_element.as_deref().map(DomRoot::from_ref),
                     EditingActionEvent::Paste,

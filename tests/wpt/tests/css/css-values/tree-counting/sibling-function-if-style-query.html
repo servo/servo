@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: tree counting functions in if() style() conditions</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#if-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @property --len { syntax: "<length>"; initial-value: 0px; inherits: false; }
+  #target li {
+    --len: calc(100px * sibling-index());
+    --index-is-two: if(style(sibling-index() = 2): yes; else: no);
+    --even: if(style(mod(sibling-index(), 2) = 0): yes; else: no);
+    --matches-len: if(style(--len = calc(100px * sibling-index())): yes; else: no);
+    --matches-shifted: if(style(--len = calc(100px * (sibling-index() + 1))): yes; else: no);
+    --count-is-three: if(style(sibling-count() = 3): yes; else: no);
+  }
+</style>
+<ul id="target"><li></li><li></li><li></li></ul>
+<script>
+const items = [...document.querySelectorAll("#target li")];
+const value = (element, name) => getComputedStyle(element).getPropertyValue(name).trim();
+
+test(() => {
+  assert_array_equals(items.map(item => value(item, "--index-is-two")), ["no", "yes", "no"]);
+}, "sibling-index() in an if() style() comparison");
+
+test(() => {
+  assert_array_equals(items.map(item => value(item, "--even")), ["no", "yes", "no"]);
+}, "sibling-index() inside mod() in an if() style() comparison");
+
+test(() => {
+  assert_array_equals(items.map(item => value(item, "--matches-len")), ["yes", "yes", "yes"]);
+  assert_array_equals(items.map(item => value(item, "--matches-shifted")), ["no", "no", "no"]);
+}, "sibling-index() compared against a registered custom property");
+
+test(() => {
+  assert_array_equals(items.map(item => value(item, "--count-is-three")), ["yes", "yes", "yes"]);
+}, "sibling-count() in an if() style() comparison");
+</script>

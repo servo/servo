@@ -6,7 +6,6 @@ use std::cmp::{max, min};
 use std::ops::Range;
 
 use embedder_traits::{EmbedderControlId, EmbedderControlResponse, FilePickerRequest};
-use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use num_traits::ToPrimitive;
 use profile_traits::generic_callback::GenericCallback;
@@ -130,7 +129,7 @@ pub enum FileManagerThreadMsg {
 
     /// Read FileID-indexed file in chunks, optionally check URL validity based on boolean flag
     ReadFile(
-        IpcSender<FileManagerResult<ReadFileProgress>>,
+        GenericCallback<FileManagerResult<ReadFileProgress>>,
         Uuid,
         ImmutableOrigin,
     ),
@@ -157,7 +156,7 @@ pub enum FileManagerThreadMsg {
     /// Activate an internal FileID so it becomes valid as part of a Blob URL
     ActivateBlobURL(
         Uuid,
-        IpcSender<Result<(), BlobURLStoreError>>,
+        GenericSender<Result<(), BlobURLStoreError>>,
         ImmutableOrigin,
     ),
 

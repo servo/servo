@@ -604,6 +604,86 @@ bad frameset
 |         <span>
 
 #data
+<head><template></template></head><p><frameset>
+#errors
+no doctype
+bad frameset
+eof in frameset
+#document
+| <html>
+|   <head>
+|     <template>
+|       content
+|   <frameset>
+
+#data
+<template>x</template><p><frameset>
+#errors
+no doctype
+bad frameset
+eof in frameset
+#document
+| <html>
+|   <head>
+|     <template>
+|       content
+|         "x"
+|   <frameset>
+
+#data
+<head></head><template></template><p><frameset>
+#errors
+no doctype
+bad template
+bad frameset
+eof in frameset
+#document
+| <html>
+|   <head>
+|     <template>
+|       content
+|   <frameset>
+
+#data
+<p><template></template><frameset>
+#errors
+no doctype
+bad frameset
+#document
+| <html>
+|   <head>
+|   <body>
+|     <p>
+|       <template>
+|         content
+
+#data
+<p><template><frameset></template>
+#errors
+no doctype
+bad frameset
+#document
+| <html>
+|   <head>
+|   <body>
+|     <p>
+|       <template>
+|         content
+
+#data
+<template></template>x<frameset>
+#errors
+no doctype
+bad frameset
+#document
+| <html>
+|   <head>
+|     <template>
+|       content
+|   <body>
+|     "x"
+
+#data
 <body><template><script>var i = 1;</script><td></td></template>
 #errors
 no doctype
@@ -1640,6 +1720,113 @@ template
 |         name="q"
 |     <div>
 |       "second"
+
+#data
+<template><table><form></table></template>
+#errors
+no doctype
+unexpected form in table
+#document
+| <html>
+|   <head>
+|     <template>
+|       content
+|         <table>
+|           <form>
+|   <body>
+
+#data
+<table><form></table>
+#errors
+unexpected form in table
+#document-fragment
+template
+#document
+| <table>
+|   <form>
+
+#data
+<template><form><form><input></template>
+#errors
+no doctype
+#document
+| <html>
+|   <head>
+|     <template>
+|       content
+|         <form>
+|           <form>
+|             <input>
+|   <body>
+
+#data
+<form><form>
+#errors
+#document-fragment
+template
+#document
+| <form>
+|   <form>
+
+#data
+<template><form><template></template><form></template>
+#errors
+no doctype
+#document
+| <html>
+|   <head>
+|     <template>
+|       content
+|         <form>
+|           <template>
+|             content
+|           <form>
+|   <body>
+
+#data
+<template><template><form></template><form></template>
+#errors
+no doctype
+#document
+| <html>
+|   <head>
+|     <template>
+|       content
+|         <template>
+|           content
+|             <form>
+|         <form>
+|   <body>
+
+#data
+<form><template><form></template><form>
+#errors
+no doctype
+nested form ignored
+#document
+| <html>
+|   <head>
+|   <body>
+|     <form>
+|       <template>
+|         content
+|           <form>
+
+#data
+<br>BC<form>D<div>E</form>F</div>G
+#errors
+unexpected end tag
+unexpected end tag
+#document-fragment
+template
+#document
+| <br>
+| "BC"
+| <form>
+|   "D"
+|   <div>
+|     "E"
+| "FG"
 
 #data
 <!DOCTYPE HTML><template><tr><td>cell</td></tr></template>

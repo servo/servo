@@ -6,7 +6,7 @@
 //! related to `type=module` for script thread or worker threads.
 
 use std::borrow::Cow;
-use std::cell::{OnceCell, RefCell};
+use std::cell::OnceCell;
 use std::collections::hash_map::Entry;
 use std::ffi::CStr;
 use std::fmt::Debug;
@@ -31,9 +31,10 @@ use js::jsapi::{
 use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
-    CompileJsonModule1, CompileModule1, DefineFunctionWithReserved, GetModuleRequestSpecifier,
-    JS_ClearPendingException, JS_DefineProperty4, JS_GetModulePrivate, JS_GetPendingException,
-    JS_NewStringCopyN, JS_SetPendingException, ModuleEvaluate, ThrowOnModuleEvaluationFailure,
+    CompileJsonModule1, CompileModule1, CreateDefaultExportSyntheticModule,
+    DefineFunctionWithReserved, GetModuleRequestSpecifier, JS_ClearPendingException,
+    JS_DefineProperty4, JS_GetModulePrivate, JS_GetPendingException, JS_NewStringCopyN,
+    JS_SetPendingException, ModuleEvaluate, ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{Handle, HandleValue, ToString, transform_str_to_source_text};
 use mime::Mime;
@@ -53,15 +54,21 @@ use script_bindings::trace::CustomTraceable;
 use servo_config::pref;
 use servo_url::ServoUrl;
 
-use crate::dom::bindings::error::{Error, ErrorToJsval, report_pending_exception};
+use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::{
+    CSSStyleSheetInit, CSSStyleSheetMethods,
+};
+use crate::dom::bindings::codegen::UnionTypes::MediaListOrString;
+use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
+use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::globalscope::script_execution::fill_compile_options;
-use crate::dom::html::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local_script};
+use crate::dom::html::htmlscriptelement::substitute_with_local_script;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promisenativehandler::Callback;
 use crate::dom::script_execution::ScriptOptions;
@@ -78,17 +85,6 @@ use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::IntroductionType;
 use crate::tasks::task::NonSendTaskBox;
 use crate::unminify::{ScriptSource, unminify_js};
-
-pub(crate) fn gen_type_error(
-    cx: &mut JSContext,
-    global: &GlobalScope,
-    error: Error,
-) -> RethrowError {
-    rooted!(&in(cx) let mut thrown = UndefinedValue());
-    error.to_jsval(cx, global, thrown.handle_mut());
-
-    RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
-}
 
 #[derive(JSTraceable)]
 pub(crate) struct ModuleObject(RootedTraceableBox<Heap<*mut JSObject>>);
@@ -166,7 +162,7 @@ pub(crate) enum ModuleStatus {
     Loaded(Rc<ModuleTree>),
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct ModuleTree {
     #[ignore_malloc_size_of = "mozjs"]
     record: OnceCell<ModuleObject>,
@@ -199,7 +195,7 @@ impl ModuleTree {
     #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script>
     fn create_a_javascript_module_script(
-        cx: &mut JSContext,
+        cx: &mut CurrentRealm,
         source: Cow<'_, str>,
         global: &GlobalScope,
         url: &ServoUrl,
@@ -208,21 +204,11 @@ impl ModuleTree {
         line_number: u32,
         introduction_type: Option<&'static CStr>,
     ) -> Self {
-        let mut realm = AutoRealm::new(
-            cx,
-            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
-        );
-        let cx = &mut *realm;
-
         let owner = Trusted::new(global);
 
         // Step 2. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 6. Set script's parse error and error to rethrow to null.
-        let module = ModuleTree {
-            record: OnceCell::new(),
-            parse_error: OnceCell::new(),
-            rethrow_error: DomRefCell::new(None),
-        };
+        let module = ModuleTree::default();
 
         let compile_options = fill_compile_options(
             cx,
@@ -246,8 +232,7 @@ impl ModuleTree {
 
         unsafe {
             // Step 7. Let result be ParseModule(source, settings's realm, script).
-            rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
-            module_script.set(CompileModule1(cx, compile_options.ptr, &mut source));
+            rooted!(&in(cx) let module_script = CompileModule1(cx, compile_options.ptr, &mut source));
 
             // Step 8. If result is a list of errors, then:
             if module_script.is_null() {
@@ -283,25 +268,14 @@ impl ModuleTree {
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-json-module-script>
     fn create_a_json_module_script(
-        cx: &mut JSContext,
+        cx: &mut CurrentRealm,
         source: &str,
-        global: &GlobalScope,
         url: &ServoUrl,
         introduction_type: Option<&'static CStr>,
     ) -> Self {
-        let mut realm = AutoRealm::new(
-            cx,
-            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
-        );
-        let cx = &mut *realm;
-
         // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 4. Set script's parse error and error to rethrow to null.
-        let module = ModuleTree {
-            record: OnceCell::new(),
-            parse_error: OnceCell::new(),
-            rethrow_error: DomRefCell::new(None),
-        };
+        let module = ModuleTree::default();
 
         // Step 2. Set script's settings object to settings.
         // Step 3. Set script's base URL and fetch options to null.
@@ -315,16 +289,10 @@ impl ModuleTree {
             1, // line_number
         );
 
-        rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
+        let mut source = transform_str_to_source_text(source);
 
-        unsafe {
-            // Step 5. Let result be ParseJSONModule(source).
-            module_script.set(CompileJsonModule1(
-                cx,
-                compile_options.ptr,
-                &mut transform_str_to_source_text(source),
-            ));
-        }
+        // Step 5. Let result be ParseJSONModule(source).
+        rooted!(&in(cx) let module_script = unsafe { CompileJsonModule1(cx, compile_options.ptr, &mut source) });
 
         // If this throws an exception, catch it, and set script's parse error to that exception, and return script.
         if module_script.is_null() {
@@ -341,6 +309,76 @@ impl ModuleTree {
 
         // Step 7. Return script.
         module
+    }
+
+    #[expect(unsafe_code)]
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-css-module-script>
+    fn create_a_css_module_script(
+        cx: &mut CurrentRealm,
+        source: &str,
+        global: &GlobalScope,
+        url: ServoUrl,
+    ) -> Self {
+        // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
+        // Step 4. Set script's parse error and error to rethrow to null.
+        let script = ModuleTree::default();
+
+        // Step 2. Set script's settings object to settings.
+        // Step 3. Set script's base URL and fetch options to null.
+        // Note: We don't need to call `SetModulePrivate` for css modules.
+
+        // Step 5. Let sheet be the result of running the steps to create a constructed
+        // CSSStyleSheet with an empty dictionary as the argument.
+        let dictionary = CSSStyleSheetInit {
+            baseURL: Some(url.into_string().into()),
+            disabled: false,
+            media: MediaListOrString::String(DOMString::new()),
+        };
+        let sheet = CSSStyleSheet::Constructor(cx, global.as_window(), None, &dictionary);
+
+        // Step 6. Run the steps to synchronously replace the rules of a CSSStyleSheet on sheet
+        // given source.
+        if let Err(error) = sheet.ReplaceSync(cx, USVString::from(source.to_owned())) {
+            // If this throws an exception, catch it, and set script's parse error to that exception,
+            // and return script.
+            throw_dom_exception(cx, global, error);
+
+            let _ = script
+                .parse_error
+                .set(RethrowError::from_pending_exception(cx));
+            return script;
+        }
+
+        // Step 7. Set script's record to the result of CreateDefaultExportSyntheticModule(sheet).
+        rooted!(&in(cx) let sheet = ObjectValue(sheet.reflector().get_jsobject().get()));
+        rooted!(&in(cx) let module_script = unsafe { CreateDefaultExportSyntheticModule(cx, sheet.handle()) });
+        let _ = script.record.set(ModuleObject::new(module_script.handle()));
+
+        // Step 8. Return script.
+        script
+    }
+
+    #[expect(unsafe_code)]
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-text-module-script>
+    fn create_a_text_module_script(cx: &mut CurrentRealm, source: &str) -> Self {
+        // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
+        // Step 4. Set script's parse error and error to rethrow to null.
+        let script = ModuleTree::default();
+
+        // Step 2. Set script's settings object to settings.
+        // Step 3. Set script's base URL and fetch options to null.
+        // Note: We don't need to call `SetModulePrivate` for text modules.
+
+        // Step 5. Let result be CreateTextModule(text).
+        rooted!(&in(cx) let mut text = UndefinedValue());
+        source.to_jsval(cx, text.handle_mut());
+        rooted!(&in(cx) let result = unsafe { CreateDefaultExportSyntheticModule(cx, text.handle()) });
+
+        // Step 6. Set script's record to result.
+        let _ = script.record.set(ModuleObject::new(result.handle()));
+
+        // Step 7. Return script.
+        script
     }
 
     /// Execute the provided module, storing the evaluation return value in the provided
@@ -658,20 +696,27 @@ impl FetchResponseListener for ModuleContext {
             self.options.referrer_policy = referrer_policy;
         }
 
+        let mut realm = enter_auto_realm(cx, &*global);
+        let cx = &mut realm.current_realm();
+
         // TODO Step 6. If mimeType's essence is "application/wasm" and moduleType is "javascript-or-wasm", then set
         // moduleScript to the result of creating a WebAssembly module script given bodyBytes, settingsObject, response's URL, and options.
 
-        // TODO handle CSS module scripts on the next mozjs ESR bump.
+        // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
+        let (mut source_text, _) = UTF_8.decode_with_bom_removal(&self.data);
 
-        if let Some(mime) = mime_type {
-            // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
-            let (mut source_text, _) = UTF_8.decode_with_bom_removal(&self.data);
-
-            // Step 7.2 If mimeType is a JavaScript MIME type and moduleType is "javascript-or-wasm", then set moduleScript
-            // to the result of creating a JavaScript module script given sourceText, settingsObject, response's URL, and options.
-            if SCRIPT_JS_MIMES.contains(&mime.essence_str()) &&
-                matches!(module_type, ModuleType::JavaScript)
-            {
+        match (module_type, mime_type) {
+            // Step 7.2. If moduleType is "text", then set moduleScript to the result of creating a
+            // text module script given sourceText and settingsObject.
+            (ModuleType::Text, _) => {
+                let module_tree =
+                    Rc::new(ModuleTree::create_a_text_module_script(cx, &source_text));
+                module_script = Some(module_tree);
+            },
+            // Step 7.3. If mimeType is a JavaScript MIME type and moduleType is
+            // "javascript-or-wasm", then set moduleScript to the result of creating a JavaScript
+            // module script given sourceText, settingsObject, response's URL, and options.
+            (ModuleType::JavaScript, Some(mime)) if MimeClassifier::is_javascript(&mime) => {
                 if let Some(window) = global.downcast::<Window>() &&
                     let Some(script_souce) = window.local_script_source()
                 {
@@ -689,18 +734,31 @@ impl FetchResponseListener for ModuleContext {
                     self.introduction_type,
                 ));
                 module_script = Some(module_tree);
-            } else if MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON) {
-                // Step 7.4 If mimeType is a JSON MIME type and moduleType is "json",
-                // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
-                let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
+            },
+            // Step 7.4. If the MIME type essence of mimeType is "text/css" and moduleType is "css",
+            // then set moduleScript to the result of creating a CSS module script given sourceText
+            // and settingsObject.
+            (ModuleType::CSS, Some(mime)) if MimeClassifier::is_css(&mime) => {
+                let module_tree = Rc::new(ModuleTree::create_a_css_module_script(
                     cx,
                     &source_text,
                     &global,
+                    final_url.clone(),
+                ));
+                module_script = Some(module_tree);
+            },
+            // Step 7.5. If mimeType is a JSON MIME type and moduleType is "json", then set
+            // moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
+            (ModuleType::JSON, Some(mime)) if MimeClassifier::is_json(&mime) => {
+                let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
+                    cx,
+                    &source_text,
                     &final_url,
                     self.introduction_type,
                 ));
                 module_script = Some(module_tree);
-            }
+            },
+            _ => {},
         }
 
         let callbacks = match module_map
@@ -752,7 +810,7 @@ impl FetchResponseListener for ModuleContext {
     }
 
     fn process_content_length(&mut self, _request_id: RequestId, size: usize) {
-        self.data.reserve(size - self.data.len());
+        self.data.reserve(size.saturating_sub(self.data.len()));
     }
 }
 
@@ -1012,15 +1070,7 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
             true
         },
         Err(error) => {
-            let resolution_error = gen_type_error(cx, &global_scope, error);
-
-            unsafe {
-                JS_SetPendingException(
-                    cx,
-                    resolution_error.handle(),
-                    ExceptionStackBehavior::Capture,
-                );
-            }
+            throw_dom_exception(cx, &global_scope, error);
             false
         },
     }
@@ -1047,9 +1097,9 @@ pub(crate) fn fetch_a_module_script_graph(
     // metadata is "not-parser-inserted", credentials mode is credentialsMode,
     // referrer policy is the empty string, and fetch priority is "auto".
     let options = ScriptFetchOptions {
-        integrity_metadata: "".into(),
+        integrity_metadata: String::new(),
         credentials_mode,
-        cryptographic_nonce: "".into(),
+        cryptographic_nonce: String::new(),
         parser_metadata: ParserMetadata::NotParserInserted,
         referrer_policy: ReferrerPolicy::EmptyString,
         render_blocking: false,
@@ -1146,11 +1196,12 @@ pub(crate) fn fetch_a_modulepreload_module(
     let global_scope = DomRoot::from_ref(global);
 
     // Note: There is a specification inconsistency, `fetch_a_single_module_script` doesn't allow
-    // fetching top level JSON/CSS module scripts, but should be possible when preloading.
-    let module_type = if let Destination::Json = destination {
-        Some(ModuleType::JSON)
-    } else {
-        None
+    // fetching top level JSON/CSS/Text module scripts, but should be possible when preloading.
+    let module_type = match destination {
+        Destination::Json => Some(ModuleType::JSON),
+        Destination::Style => Some(ModuleType::CSS),
+        Destination::Text => Some(ModuleType::Text),
+        _ => None,
     };
 
     // Step 1. Fetch a single module script given url, settingsObject, destination, options, settingsObject,
@@ -1203,6 +1254,9 @@ pub(crate) fn fetch_inline_module_script(
     introduction_type: Option<&'static CStr>,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
+    let mut realm = enter_auto_realm(cx, global);
+    let cx = &mut realm.current_realm();
+
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
         cx,
@@ -1254,7 +1308,6 @@ fn fetch_the_descendants_and_link_module_script(
     // Step 3. Let state be Record
     // { [[ErrorToRethrow]]: null, [[Destination]]: destination, [[PerformFetch]]: null, [[FetchClient]]: fetchClient }.
     let state = Box::new(LoadState {
-        error_to_rethrow: RefCell::new(None),
         destination,
         fetch_client,
         module_script: DomRefCell::new(Some(module_script.clone())),
@@ -1338,10 +1391,8 @@ pub(crate) fn fetch_a_single_module_script(
     // fetch destination from module type steps given destination and moduleType.
     let destination = match module_type {
         ModuleType::JSON => Destination::Json,
-        ModuleType::CSS => todo!("https://github.com/servo/servo/issues/47179"),
-        ModuleType::Text => {
-            todo!("https://github.com/servo/servo/issues/47149")
-        },
+        ModuleType::CSS => Destination::Style,
+        ModuleType::Text => Destination::Text,
         ModuleType::Bytes => unreachable!("Not in ESR153"),
         ModuleType::JavaScript | ModuleType::Unknown => destination,
     };

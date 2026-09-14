@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>System color keyword inheritance</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#css-system-colors">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Test for https://github.com/jsdom/jsdom/pull/3892 -->
+
+<style>
+  .parent {
+    color: blue;
+  }
+  .child {
+    color: inherit;
+  }
+  .override {
+    color: red !important;
+  }
+</style>
+<body>
+  <div class="parent" id="parentDiv">
+    Parent element (blue)
+    <div class="child" id="child">
+      Child element (inherits blue)
+    </div>
+    <div class="child override" id="overridden">
+      Overridden child element (red)
+    </div>
+  </div>
+<script>
+"use strict";
+
+const parentDiv = document.getElementById("parentDiv");
+const child = document.getElementById("child");
+const overridden = document.getElementById("overridden");
+
+test(() => {
+  assert_equals(
+    window.getComputedStyle(parentDiv).color,
+    "rgb(0, 0, 255)",
+    "Parent has blue color"
+  );
+  assert_equals(
+    window.getComputedStyle(child).color,
+    "rgb(0, 0, 255)",
+    "Child inherits blue color from parent"
+  );
+  assert_equals(
+    window.getComputedStyle(overridden).color,
+    "rgb(255, 0, 0)",
+    "Overridden child has red color (inheritance overridden)"
+  );
+}, "Test color inheritance");
+
+test(() => {
+  child.style.color = "green";
+  assert_equals(
+    window.getComputedStyle(child).color,
+    "rgb(0, 128, 0)",
+    "Dynamic override works correctly"
+  );
+}, "Dynamically override inherited color");
+</script>
+</body>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>
+  Single-lane row fragmentation.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 5;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-lanes-direction: row;
+    grid-auto-flow: column;
+    width: 20px;
+  }
+  .grid-lanes > div {
+    background: green;
+    width: 5px;
+    height: 500px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>

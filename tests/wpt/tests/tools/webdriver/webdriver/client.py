@@ -1007,6 +1007,14 @@ class WebAuthn:
             "POST", "webauthn/authenticator/%s/uv" % authenticator_id, uv
         )
 
+    def set_credential_properties(self, authenticator_id, credential_id, props):
+        return self.session.send_session_command(
+            "POST",
+            "webauthn/authenticator/%s/credentials/%s/props"
+            % (authenticator_id, credential_id),
+            props,
+        )
+
 
 class WebExtensions:
     def __init__(self, session):

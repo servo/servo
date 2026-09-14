@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: line decorations and display: contents + float</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor/#line-decoration">
+<link rel="match" href="/css/reference/pass_if_filler_text_underlined.html">
+<!-- The ancestor box's underline must propagate through the boxless wrapper to the inner box. -->
+<style>
+  #outer {
+    text-decoration: underline;
+  }
+  #contents {
+    display: contents;
+    float: left;
+  }
+  #contents::before {
+    content: "Filler Text";
+  }
+</style>
+<p>Test passes if the "Filler Text" below has a line under it.</p>
+<div id="outer">
+ <div id="contents"></div>
+</div>

@@ -31,7 +31,8 @@ promise_test(async test => {
     frame1.contentWindow.location.href = "support/navigation-target.html";
 
     // frame2 should successfully navigate.
-    await frame2LoadPromise;
+    const timeoutPromise = new Promise((_, reject) => test.step_timeout(() => reject('frame2 never loaded'), 2000));
+    await Promise.race([frame2LoadPromise, timeoutPromise]);
     assert_true(frame2NavigationStarted, "beforeunload handler ran");
     assert_true(frame2.contentWindow.location.href.includes("navigation-target.html"),
         "Sibling iframe should have navigated to navigation-target.html");

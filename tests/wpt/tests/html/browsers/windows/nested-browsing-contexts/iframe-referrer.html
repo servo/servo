@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<title>iframes get the correct document.referrer</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/embedded-content.html#otherwise-steps-for-iframe-or-frame-elements">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe></iframe>
+
+<script>
+"use strict";
+
+async_test(t => {
+
+  const iframe = document.querySelector("iframe");
+  iframe.onload = () => {
+    assert_equals(iframe.contentWindow.document.referrer, document.URL);
+    t.done();
+  };
+
+  iframe.src = "iframe-referrer-support.html";
+
+}, "iframe document's referrer should be the fetching page");
+
+</script>

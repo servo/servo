@@ -1,0 +1,25 @@
+name: Lint ktfmt
+on:
+  push:
+    paths:
+      - 'support/android/apk/**'
+  pull_request:
+    paths:
+      - 'support/android/apk/**'
+
+jobs:
+  ktfmt-check:
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: support/android/apk
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Run ktfmtCheck
+        run: ./gradlew ktfmtCheck

@@ -1,0 +1,50 @@
+<!doctype html>
+<title>CSSStyleRule selectorText setter</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div { color: green }
+</style>
+<script>
+"use strict";
+
+const rule = document.styleSheets[0].cssRules[0];
+
+test(() => {
+  assert_equals(rule.selectorText, "div");
+}, "selectorText getter returns the initial selector");
+
+test(() => {
+  rule.selectorText = "span";
+  assert_equals(rule.selectorText, "span");
+}, "Setting a valid selector updates selectorText");
+
+test(() => {
+  rule.selectorText = "p, .foo";
+  assert_equals(rule.selectorText, "p, .foo");
+}, "Setting a valid selector list updates selectorText");
+
+test(() => {
+  rule.selectorText = "p, .foo";
+  rule.selectorText = "123invalid";
+  assert_equals(rule.selectorText, "p, .foo");
+}, "Setting an invalid selector does not change selectorText");
+
+test(() => {
+  rule.selectorText = "a";
+  rule.selectorText = "";
+  assert_equals(rule.selectorText, "a");
+}, "Setting an empty string does not change selectorText");
+
+test(() => {
+  rule.selectorText = "b";
+  rule.selectorText = "[";
+  assert_equals(rule.selectorText, "b");
+}, "Setting an unclosed bracket does not change selectorText");
+
+test(() => {
+  rule.selectorText = "#id";
+  assert_equals(rule.cssText, "#id { color: green; }");
+}, "cssText reflects the updated selectorText");
+</script>

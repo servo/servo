@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Named access on the Window object only sees the window's associated document</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#named-access-on-the-window-object">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<main id="associatedElement"></main>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_equals(window.associatedElement, document.getElementById("associatedElement"));
+}, "Elements of the window's associated document are exposed");
+
+test(() => {
+  const otherDocument = document.implementation.createHTMLDocument("");
+  const element = otherDocument.createElement("div");
+  element.setAttribute("id", "createHTMLDocumentElement");
+  otherDocument.body.append(element);
+
+  assert_equals(window.createHTMLDocumentElement, undefined);
+}, "Elements of a document created by createHTMLDocument() are not exposed");
+
+test(() => {
+  const otherDocument = new DOMParser().parseFromString("<div id=domParserElement></div>", "text/html");
+
+  assert_equals(window.domParserElement, undefined);
+  assert_equals(otherDocument.getElementById("domParserElement").localName, "div");
+}, "Elements of a document created by DOMParser are not exposed");
+
+test(() => {
+  const otherDocument = document.implementation.createHTMLDocument("");
+  const element = otherDocument.createElement("div");
+  otherDocument.body.append(element);
+  element.setAttribute("id", "lateOtherDocumentElement");
+
+  assert_equals(window.lateOtherDocumentElement, undefined);
+}, "Ids set after insertion into another document are not exposed");
+
+test(t => {
+  const otherDocument = document.implementation.createHTMLDocument("");
+  const element = otherDocument.createElement("div");
+  element.setAttribute("id", "adoptedInElement");
+  otherDocument.body.append(element);
+
+  t.add_cleanup(() => element.remove());
+  document.body.append(document.adoptNode(element));
+
+  assert_equals(window.adoptedInElement, element);
+}, "Elements adopted into the associated document become exposed");
+
+test(() => {
+  const element = document.createElement("div");
+  element.setAttribute("id", "adoptedOutElement");
+  document.body.append(element);
+
+  assert_equals(window.adoptedOutElement, element, "exposed while in the associated document");
+
+  const otherDocument = document.implementation.createHTMLDocument("");
+  otherDocument.body.append(otherDocument.adoptNode(element));
+
+  assert_equals(window.adoptedOutElement, undefined);
+}, "Elements adopted out of the associated document stop being exposed");
+</script>

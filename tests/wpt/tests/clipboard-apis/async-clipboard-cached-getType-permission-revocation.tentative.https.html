@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>
+  Cached ClipboardItem data survives clipboard-read permission revocation
+</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#dom-clipboarditem-gettype">
+<body>Body needed for clipboard access</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+promise_test(async t => {
+  const readPermission = {name: 'clipboard-read'};
+  const writePermission = {name: 'clipboard-write'};
+
+  await test_driver.set_permission(readPermission, 'granted');
+  await test_driver.set_permission(writePermission, 'granted');
+
+  t.add_cleanup(async () => {
+    await test_driver.set_permission(readPermission, 'prompt');
+    await test_driver.set_permission(writePermission, 'prompt');
+  });
+
+  await navigator.clipboard.writeText('cached clipboard data');
+
+  const [item] = await navigator.clipboard.read();
+
+  // Materialize and cache the representation while access is authorized.
+  const firstBlob = await item.getType('text/plain');
+  assert_equals(await firstBlob.text(), 'cached clipboard data');
+
+  // Authorization changes, but neither the clipboard nor the cached
+  // representation changes.
+  await test_driver.set_permission(readPermission, 'denied');
+
+  const secondBlob = await item.getType('text/plain');
+  assert_equals(await secondBlob.text(), 'cached clipboard data');
+}, 'Revoking clipboard-read does not invalidate an already-resolved ' +
+   'ClipboardItem representation');
+</script>

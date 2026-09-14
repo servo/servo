@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG color property animations with currentColor on visited links</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#link">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  a:link {
+    color: rgb(0, 255, 0);
+  }
+  a:visited {
+    color: rgb(255, 0, 0);
+  }
+
+  @keyframes anim-flood {
+    from, to { flood-color: currentColor; }
+  }
+  @keyframes anim-lighting {
+    from, to { lighting-color: currentColor; }
+  }
+  @keyframes anim-stop {
+    from, to { stop-color: currentColor; }
+  }
+
+  .probe-flood {
+    color: inherit;
+    animation: anim-flood 1s paused;
+  }
+  .probe-lighting {
+    color: inherit;
+    animation: anim-lighting 1s paused;
+  }
+  .probe-stop {
+    color: inherit;
+    animation: anim-stop 1s paused;
+  }
+</style>
+<a id="visited" href="">
+  <svg>
+    <filter>
+      <feFlood id="flood-visited" class="probe-flood"></feFlood>
+      <feDiffuseLighting id="lighting-visited" class="probe-lighting">
+        <fePointLight x="0" y="0" z="0"></fePointLight>
+      </feDiffuseLighting>
+    </filter>
+    <linearGradient>
+      <stop id="stop-visited" class="probe-stop"></stop>
+    </linearGradient>
+  </svg>
+</a>
+<a id="unvisited" href="http://unvisited.example.com">
+  <svg>
+    <filter>
+      <feFlood id="flood-unvisited" class="probe-flood"></feFlood>
+      <feDiffuseLighting id="lighting-unvisited" class="probe-lighting">
+        <fePointLight x="0" y="0" z="0"></fePointLight>
+      </feDiffuseLighting>
+    </filter>
+    <linearGradient>
+      <stop id="stop-unvisited" class="probe-stop"></stop>
+    </linearGradient>
+  </svg>
+</a>
+<script>
+test(() => {
+  const floodVisited = document.getElementById('flood-visited');
+  const floodUnvisited = document.getElementById('flood-unvisited');
+  assert_equals(getComputedStyle(floodUnvisited).floodColor, 'rgb(0, 255, 0)');
+  assert_equals(getComputedStyle(floodVisited).floodColor, 'rgb(0, 255, 0)');
+}, 'flood-color currentColor animation resolves to unvisited link color');
+
+test(() => {
+  const lightingVisited = document.getElementById('lighting-visited');
+  const lightingUnvisited = document.getElementById('lighting-unvisited');
+  assert_equals(getComputedStyle(lightingUnvisited).lightingColor, 'rgb(0, 255, 0)');
+  assert_equals(getComputedStyle(lightingVisited).lightingColor, 'rgb(0, 255, 0)');
+}, 'lighting-color currentColor animation resolves to unvisited link color');
+
+test(() => {
+  const stopVisited = document.getElementById('stop-visited');
+  const stopUnvisited = document.getElementById('stop-unvisited');
+  assert_equals(getComputedStyle(stopUnvisited).stopColor, 'rgb(0, 255, 0)');
+  assert_equals(getComputedStyle(stopVisited).stopColor, 'rgb(0, 255, 0)');
+}, 'stop-color currentColor animation resolves to unvisited link color');
+</script>

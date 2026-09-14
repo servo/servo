@@ -1,0 +1,71 @@
+<!doctype html>
+<title>@import and @namespace with invalid preludes should be dropped</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#at-import">
+<link rel="help" href="https://drafts.csswg.org/css-namespaces/#syntax">
+<script>
+"use strict";
+
+function getRules(t, cssText) {
+  const style = document.createElement("style");
+  style.textContent = cssText;
+  document.head.append(style);
+  t.add_cleanup(() => {
+    style.remove();
+  });
+  assert_not_equals(style.sheet, null, "Stylesheets without imports are available synchronously");
+  return style.sheet.cssRules;
+}
+
+test(t => {
+  const rules = getRules(t, "@import ;");
+  assert_equals(rules.length, 0, "@import with no URL should produce no rules");
+}, "@import with empty prelude is dropped");
+
+test(t => {
+  const rules = getRules(t, "@import supports(display:flex);");
+  assert_equals(rules.length, 0, "@import with only supports() and no URL should produce no rules");
+}, "@import with supports() but no URL is dropped");
+
+test(t => {
+  const rules = getRules(t, "@namespace ;");
+  assert_equals(rules.length, 0, "@namespace with no URI should produce no rules");
+}, "@namespace with empty prelude is dropped");
+
+test(t => {
+  const rules = getRules(t, "@namespace foo bar;");
+  assert_equals(rules.length, 0, "@namespace with bare identifier instead of URL should produce no rules");
+}, "@namespace with bare identifier instead of URL is dropped");
+
+test(t => {
+  const rules = getRules(t, '@namespace foo url("http://example.com") bar;');
+  assert_equals(rules.length, 0, "Trailing identifier after URL should invalidate the rule");
+}, "@namespace with trailing identifier after URL is dropped");
+
+test(t => {
+  const rules = getRules(t, '@namespace url("http://example.com") extra;');
+  assert_equals(rules.length, 0, "Trailing identifier after URL should invalidate the rule");
+}, "@namespace with no prefix and trailing identifier after URL is dropped");
+
+test(t => {
+  const rules = getRules(t, '@namespace url("http://example.com");');
+  assert_equals(rules.length, 1, "Valid @namespace should produce one rule");
+}, "Valid @namespace with URL is kept");
+
+promise_test(async t => {
+  const style = document.createElement("style");
+  style.textContent = '@import "data:text/css,";';
+  const loaded = new Promise(resolve => {
+    style.onload = resolve;
+    style.onerror = resolve;
+  });
+  t.add_cleanup(() => style.remove());
+  document.head.append(style);
+  if (style.sheet === null) {
+    await loaded;
+  }
+  const rules = style.sheet.cssRules;
+  assert_equals(rules.length, 1, "Valid @import should produce one rule");
+}, "Valid @import with URL string is kept");
+</script>

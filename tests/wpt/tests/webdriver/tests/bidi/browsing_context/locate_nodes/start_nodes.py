@@ -160,13 +160,13 @@ async def test_locate_with_context_nodes(bidi_session, inline, top_context, type
         await_promise=True,
     )
 
-    result = await bidi_session.browsing_context.locate_nodes(
+    nodes = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
         locator={ "type": type, "value": value },
         start_nodes=[context_nodes]
     )
 
-    recursive_compare(expected, result["nodes"])
+    recursive_compare(expected, nodes)
 
 
 @pytest.mark.parametrize("type,value", [
@@ -200,7 +200,7 @@ async def test_locate_with_multiple_context_nodes(bidi_session, inline, top_cont
 
     context_nodes = script_result["value"]
 
-    result = await bidi_session.browsing_context.locate_nodes(
+    nodes = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
         locator={ "type": type, "value": value },
         start_nodes=context_nodes
@@ -231,7 +231,7 @@ async def test_locate_with_multiple_context_nodes(bidi_session, inline, top_cont
         }
     ]
 
-    recursive_compare(expected, result["nodes"])
+    recursive_compare(expected, nodes)
 
 
 @pytest.mark.parametrize("type,value", [
@@ -254,7 +254,7 @@ async def test_locate_with_document_context_node(bidi_session, inline, top_conte
         await_promise=True,
     )
 
-    result = await bidi_session.browsing_context.locate_nodes(
+    nodes = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
         locator={ "type": type, "value": value },
         start_nodes=[context_node]
@@ -274,7 +274,7 @@ async def test_locate_with_document_context_node(bidi_session, inline, top_conte
         }
     ]
 
-    recursive_compare(expected, result["nodes"])
+    recursive_compare(expected, nodes)
 
 
 @pytest.mark.parametrize("type,value,expected", [
@@ -336,10 +336,10 @@ async def test_locate_with_svg_context_node(bidi_session, inline, top_context, t
         await_promise=True,
     )
 
-    result = await bidi_session.browsing_context.locate_nodes(
+    nodes = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
         locator={ "type": type, "value": value },
         start_nodes=[context_node]
     )
 
-    recursive_compare(expected, result["nodes"])
+    recursive_compare(expected, nodes)

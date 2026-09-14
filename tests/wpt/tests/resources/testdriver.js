@@ -1733,6 +1733,24 @@
         },
 
         /**
+         * Sets credential properties on an authenticator.
+         *
+         * Matches the `Set Credential Properties
+         * <https://w3c.github.io/webauthn/#sctn-automation-set-credential-properties>`_
+         * WebDriver command.
+         *
+         * @param {String} authenticator_id - the ID of the authenticator
+         * @param {String} credential_id - the ID of the credential (base64url encoded)
+         * @param {Object} props - the credential properties to set
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         */
+        set_credential_properties: function(authenticator_id, credential_id, props, context=null) {
+            return window.test_driver_internal.set_credential_properties(authenticator_id, credential_id, props, context);
+        },
+
+        /**
          * Sets the storage access rule for an origin when embedded
          * in a third-party context.
          *
@@ -2359,6 +2377,10 @@
         /**
          * Gets the current globally-applied privacy control status
          *
+         * Matches the `Get Global Privacy Control
+         * <https://www.w3.org/TR/gpc/#get-global-privacy-control>`_
+         * WebDriver command.
+         *
          * @returns {Promise} Fulfils with an object with boolean property `gpc`
          *                    that encodes the current "do not sell or share"
          *                    signal the browser is configured to convey.
@@ -2368,11 +2390,15 @@
         },
 
         /**
-         * Gets the current globally-applied privacy control status
+         * Sets and then gets the current globally-applied privacy control status
          *
-         * @param {bool} newValue - The a boolean that is true if the browers
-         *                          should convey a "do not sell or share" signal
-         *                          and false otherwise
+         * Matches the `Set Global Privacy Control
+         * <https://www.w3.org/TR/gpc/#set-global-privacy-control>`_
+         * WebDriver command.
+         *
+         * @param {boolean} newValue - A boolean that is true if the browser
+         *                             should convey a "do not sell or share" signal
+         *                             and false otherwise
          *
          * @returns {Promise} Fulfils with an object with boolean property `gpc`
          *                    that encodes the new "do not sell or share"
@@ -2668,6 +2694,10 @@
 
         async set_user_verified(authenticator_id, uv, context=null) {
             throw new Error("set_user_verified() is not implemented by testdriver-vendor.js");
+        },
+
+        async set_credential_properties(authenticator_id, credential_id, props, context=null) {
+            throw new Error("set_credential_properties() is not implemented by testdriver-vendor.js");
         },
 
         async set_storage_access(origin, embedding_origin, blocked, context=null) {

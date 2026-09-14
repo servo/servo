@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<link rel="author" title="Andrew Martinez" href="https://github.com/AndrewJMart">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-properties">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/820">
+<meta name="assert" content="The size shorthand expands to width and height, but width and height never serialize back into size, so markup copied from a size declaration stays compatible with UAs that do not support the shorthand yet.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'width: 100px; height: 200px';
+  assert_equals(element.style.cssText, 'width: 100px; height: 200px;');
+}, 'width and height longhands do not collapse into the size shorthand when serializing');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'width: 50px; height: 50px';
+  assert_equals(element.style.cssText, 'width: 50px; height: 50px;');
+}, 'Equal width and height longhands do not collapse into the size shorthand when serializing');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'size: 100px 200px';
+  assert_equals(element.style.getPropertyValue('width'), '100px');
+  assert_equals(element.style.getPropertyValue('height'), '200px');
+}, 'The size shorthand expands to the width and height longhands');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'size: 100px 200px';
+  assert_equals(element.style.cssText, 'width: 100px; height: 200px;');
+}, 'Content authored with size serializes back as the width and height longhands, not as size');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'size: 100px 200px';
+  assert_equals(element.style.getPropertyValue('size'), '100px 200px');
+}, 'The size shorthand value is still available via getPropertyValue');
+</script>
+</body>

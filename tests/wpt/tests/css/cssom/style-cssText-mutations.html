@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>cssText reflects changes after it has been read</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+for (const kind of ["inline", "rule"]) {
+  test(() => {
+    let style;
+    if (kind === "inline") {
+      style = document.createElement("div").style;
+    } else {
+      const sheet = new CSSStyleSheet();
+      sheet.insertRule("div {}");
+      style = sheet.cssRules[0].style;
+    }
+
+    assert_equals(style.cssText, "");
+    style.color = "red";
+    assert_equals(style.cssText, "color: red;");
+    style.color = "blue";
+    assert_equals(style.cssText, "color: blue;");
+    style.setProperty("color", "blue", "important");
+    assert_equals(style.cssText, "color: blue !important;");
+    style.setProperty("color", "blue");
+    assert_equals(style.cssText, "color: blue;");
+    style.removeProperty("color");
+    assert_equals(style.cssText, "");
+
+    style.setProperty("--custom", "one", "important");
+    assert_equals(style.cssText, "--custom: one !important;");
+    style.setProperty("--custom", "two");
+    assert_equals(style.cssText, "--custom: two;");
+    style.setProperty("--custom", "");
+    assert_equals(style.cssText, "");
+
+    style.margin = "1px";
+    assert_equals(style.cssText, "margin: 1px;");
+    style.marginLeft = "2px";
+    assert_equals(style.cssText, "margin: 1px 1px 1px 2px;");
+    style.cssText = "color: green !important;";
+    assert_equals(style.cssText, "color: green !important;");
+    style.cssText = "invalid";
+    assert_equals(style.cssText, "");
+    style.color = "red";
+    assert_equals(style.cssText, "color: red;");
+    style.cssText = "";
+    assert_equals(style.cssText, "");
+  }, `${kind} cssText reflects property, priority, shorthand, and declaration replacements`);
+}
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.color = "red";
+  assert_equals(div.style.cssText, "color: red;");
+  div.setAttribute("style", "color:blue!important");
+  assert_equals(div.style.cssText, "color: blue !important;");
+  assert_equals(div.getAttribute("style"), "color:blue!important");
+  div.removeAttribute("style");
+  assert_equals(div.style.cssText, "");
+  div.style.color = "green";
+  assert_equals(div.getAttribute("style"), "color: green;");
+}, "cssText reflects style attribute replacement and removal");
+
+test(t => {
+  const div = document.createElement("div");
+  div.style.color = "red";
+  assert_equals(div.style.cssText, "color: red;");
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(div, { attributes: true, attributeOldValue: true });
+
+  div.style.color = "red";
+  assert_equals(observer.takeRecords().length, 0);
+  div.style.color = "blue";
+  assert_equals(div.style.cssText, "color: blue;");
+  div.style.removeProperty("color");
+  assert_equals(div.style.cssText, "");
+  const records = observer.takeRecords();
+  assert_array_equals(records.map(record => record.oldValue), ["color: red;", "color: blue;"]);
+  assert_equals(div.getAttribute("style"), "");
+}, "Reading cssText preserves style mutation records");
+</script>

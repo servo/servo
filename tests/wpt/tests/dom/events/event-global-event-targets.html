@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>window.event for non-Node event targets</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+const eventTargets = {
+  EventTarget: () => new EventTarget(),
+  AbortSignal: () => new AbortController().signal,
+  FileReader: () => new FileReader(),
+  Performance: () => performance
+};
+
+for (const [name, createEventTarget] of Object.entries(eventTargets)) {
+  test(t => {
+    const eventTarget = createEventTarget();
+    const event = new Event("test");
+    let currentEvent;
+    function listener() {
+      currentEvent = window.event;
+    }
+    eventTarget.addEventListener("test", listener);
+    t.add_cleanup(() => eventTarget.removeEventListener("test", listener));
+
+    eventTarget.dispatchEvent(event);
+
+    assert_equals(currentEvent, event, "window.event is set during dispatch");
+    assert_equals(window.event, undefined, "window.event is restored after dispatch");
+  }, `window.event is set when dispatching on ${name}`);
+}
+
+test(t => {
+  const eventTarget = document.createElement("div");
+  eventTarget._document = document;
+  t.add_cleanup(() => {
+    delete eventTarget._document;
+  });
+
+  const event = new Event("test");
+  let currentEvent;
+  eventTarget.addEventListener("test", () => {
+    currentEvent = window.event;
+  });
+
+  eventTarget.dispatchEvent(event);
+
+  assert_equals(currentEvent, event);
+}, "An event target's _document property does not affect window.event");
+</script>

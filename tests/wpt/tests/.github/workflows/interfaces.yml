@@ -14,7 +14,7 @@ jobs:
     - name: Run interfaces_update.sh
       run: ./tools/ci/interfaces_update.sh
     - name: Create pull request
-      uses: peter-evans/create-pull-request@v6
+      uses: peter-evans/create-pull-request@v8
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         author: wpt-pr-bot <wpt-pr-bot@users.noreply.github.com>

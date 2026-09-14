@@ -100,6 +100,6 @@ async def test_file(bidi_session, create_user_context, handler,
 
     # Unless explicitly set to `ignore`, the file behavior is `dismiss`.
     if handler == 'ignore':
-        assert_file_dialog_not_canceled(new_tab)
+        await assert_file_dialog_not_canceled(new_tab)
     else:
-        assert_file_dialog_canceled(new_tab)
+        await assert_file_dialog_canceled(new_tab)

@@ -1,0 +1,220 @@
+<!doctype html>
+<title>StyleSheet and CSSStyleSheet properties</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-stylesheet-interface">
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstylesheet-interface">
+<link rel="help" href="https://drafts.csswg.org/cssom/#remove-a-css-style-sheet">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style id="plain">div { color: green }</style>
+<style id="with-title" title="My Sheet">span { color: red }</style>
+<style id="with-media" media="screen">p { color: blue }</style>
+<style id="with-import">@import url("/css/support/a-green.css");</style>
+<link id="link-plain" rel="stylesheet" href="/css/support/a-green.css">
+<link id="link-titled" rel="stylesheet" href="/css/support/b-green.css" title="Link Sheet">
+<link id="link-media" rel="stylesheet" href="/css/support/c-red.css" media="screen">
+
+<script>
+"use strict";
+
+// Wait for @import and <link> sheets to load
+async_test(t => {
+  window.addEventListener("load", t.step_func_done(() => {
+    const plainSheet = document.getElementById("plain").sheet;
+    const titledSheet = document.getElementById("with-title").sheet;
+    const mediaSheet = document.getElementById("with-media").sheet;
+    const importSheet = document.getElementById("with-import").sheet;
+    const linkPlainSheet = document.getElementById("link-plain").sheet;
+    const linkTitledSheet = document.getElementById("link-titled").sheet;
+    const linkMediaSheet = document.getElementById("link-media").sheet;
+
+    // --- <style> element sheets ---
+
+    test(() => {
+      assert_equals(plainSheet.type, "text/css");
+    }, "<style>: type is 'text/css'");
+
+    test(() => {
+      assert_equals(plainSheet.ownerNode, document.getElementById("plain"));
+    }, "<style>: ownerNode is the style element");
+
+    test(() => {
+      assert_equals(plainSheet.href, null);
+    }, "<style>: href is null for inline sheets");
+
+    test(() => {
+      assert_equals(plainSheet.title, null);
+    }, "<style>: title is null when the style element has no title attribute");
+
+    test(() => {
+      assert_equals(titledSheet.title, "My Sheet");
+    }, "<style>: title reflects the style element's title attribute");
+
+    test(() => {
+      assert_equals(plainSheet.media.mediaText, "");
+      assert_equals(plainSheet.media.length, 0);
+    }, "<style>: media is empty when the style element has no media attribute");
+
+    test(() => {
+      assert_equals(mediaSheet.media.mediaText, "screen");
+      assert_equals(mediaSheet.media.length, 1);
+    }, "<style>: media reflects the style element's media attribute");
+
+    test(() => {
+      assert_false(plainSheet.disabled);
+    }, "<style>: disabled is false initially");
+
+    test(() => {
+      assert_equals(plainSheet.parentStyleSheet, null);
+    }, "<style>: parentStyleSheet is null for top-level sheets");
+
+    test(() => {
+      assert_equals(plainSheet.ownerRule, null);
+    }, "<style>: ownerRule is null for non-imported sheets");
+
+    test(() => {
+      assert_true(plainSheet.cssRules instanceof CSSRuleList);
+      assert_greater_than(plainSheet.cssRules.length, 0);
+    }, "<style>: cssRules is a CSSRuleList with rules");
+
+    // --- <link> element sheets ---
+
+    test(() => {
+      assert_equals(linkPlainSheet.type, "text/css");
+    }, "<link>: type is 'text/css'");
+
+    test(() => {
+      assert_equals(linkPlainSheet.ownerNode, document.getElementById("link-plain"));
+    }, "<link>: ownerNode is the link element");
+
+    test(() => {
+      assert_equals(linkPlainSheet.href, new URL("/css/support/a-green.css", document.baseURI).href);
+    }, "<link>: href is the resolved URL of the stylesheet");
+
+    test(() => {
+      assert_equals(linkPlainSheet.title, null);
+    }, "<link>: title is null when the link element has no title attribute");
+
+    test(() => {
+      assert_equals(linkTitledSheet.title, "Link Sheet");
+    }, "<link>: title reflects the link element's title attribute");
+
+    test(() => {
+      assert_equals(linkPlainSheet.media.mediaText, "");
+      assert_equals(linkPlainSheet.media.length, 0);
+    }, "<link>: media is empty when the link element has no media attribute");
+
+    test(() => {
+      assert_equals(linkMediaSheet.media.mediaText, "screen");
+      assert_equals(linkMediaSheet.media.length, 1);
+    }, "<link>: media reflects the link element's media attribute");
+
+    test(() => {
+      assert_false(linkPlainSheet.disabled);
+    }, "<link>: disabled is false initially");
+
+    test(() => {
+      assert_equals(linkPlainSheet.parentStyleSheet, null);
+    }, "<link>: parentStyleSheet is null for top-level sheets");
+
+    test(() => {
+      assert_equals(linkPlainSheet.ownerRule, null);
+    }, "<link>: ownerRule is null for non-imported sheets");
+
+    test(() => {
+      assert_true(linkPlainSheet.cssRules instanceof CSSRuleList);
+      assert_greater_than(linkPlainSheet.cssRules.length, 0);
+    }, "<link>: cssRules is a CSSRuleList with rules");
+
+    // --- @import sheets ---
+
+    test(() => {
+      const importRule = importSheet.cssRules[0];
+      assert_equals(importRule.constructor.name, "CSSImportRule", "setup: should be an import rule");
+      const imported = importRule.styleSheet;
+      assert_equals(imported.type, "text/css");
+    }, "@import: imported sheet type is 'text/css'");
+
+    test(() => {
+      const imported = importSheet.cssRules[0].styleSheet;
+      assert_equals(imported.ownerNode, null);
+    }, "@import: imported sheet ownerNode is null");
+
+    test(() => {
+      const imported = importSheet.cssRules[0].styleSheet;
+      assert_equals(imported.href, new URL("/css/support/a-green.css", document.baseURI).href);
+    }, "@import: imported sheet href is the resolved URL");
+
+    test(() => {
+      const imported = importSheet.cssRules[0].styleSheet;
+      assert_equals(imported.title, null);
+    }, "@import: imported sheet title is null");
+
+    test(() => {
+      const imported = importSheet.cssRules[0].styleSheet;
+      assert_equals(imported.media.mediaText, "");
+      assert_equals(imported.media.length, 0);
+    }, "@import: imported sheet media is empty when @import has no media query");
+
+    test(() => {
+      const imported = importSheet.cssRules[0].styleSheet;
+      assert_false(imported.disabled);
+    }, "@import: imported sheet disabled is false initially");
+
+    test(() => {
+      const imported = importSheet.cssRules[0].styleSheet;
+      assert_equals(imported.parentStyleSheet, importSheet);
+    }, "@import: imported sheet parentStyleSheet is the importing sheet");
+
+    test(() => {
+      const importRule = importSheet.cssRules[0];
+      const imported = importRule.styleSheet;
+      assert_equals(imported.ownerRule, importRule);
+    }, "@import: imported sheet ownerRule is the CSSImportRule");
+
+    test(() => {
+      const imported = importSheet.cssRules[0].styleSheet;
+      assert_true(imported.cssRules instanceof CSSRuleList);
+      assert_greater_than(imported.cssRules.length, 0);
+    }, "@import: imported sheet cssRules is a CSSRuleList with rules");
+
+    // --- Removal ---
+
+    test(() => {
+      const style = document.createElement("style");
+      style.textContent = "div { color: green }";
+      document.head.appendChild(style);
+      const { sheet } = style;
+      assert_equals(sheet.ownerNode, style);
+
+      style.remove();
+
+      assert_equals(sheet.ownerNode, null, "ownerNode becomes null after removal");
+      assert_equals(sheet.parentStyleSheet, null, "parentStyleSheet is null after removal");
+      assert_equals(sheet.ownerRule, null, "ownerRule is null after removal");
+    }, "Removing a <style> element nulls ownerNode, parentStyleSheet, and ownerRule");
+
+    test(() => {
+      const link = document.getElementById("link-plain");
+      const { sheet } = link;
+      assert_equals(sheet.ownerNode, link);
+
+      link.remove();
+
+      assert_equals(sheet.ownerNode, null, "ownerNode becomes null after removal");
+      assert_equals(sheet.parentStyleSheet, null, "parentStyleSheet is null after removal");
+      assert_equals(sheet.ownerRule, null, "ownerRule is null after removal");
+    }, "Removing a <link> element nulls ownerNode, parentStyleSheet, and ownerRule");
+
+    // --- Programmatic title ---
+
+    test(() => {
+      const style = document.createElement("style");
+      style.title = "Dynamic Title";
+      document.head.appendChild(style);
+      assert_equals(style.sheet.title, "Dynamic Title");
+      style.remove();
+    }, "Programmatically setting title on a <style> element is reflected in sheet.title");
+  }));
+}, "StyleSheet and CSSStyleSheet properties");
+</script>

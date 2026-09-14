@@ -211,6 +211,7 @@ SET TIMEOUT: focus/support/iframe-focuses-parent-same-site-inner.html
 SET TIMEOUT: generic-sensor/resources/iframe_sensor_handler.html
 SET TIMEOUT: html/browsers/browsing-the-web/back-forward-cache/resources/inflight-fetch-helper.js
 SET TIMEOUT: html/browsers/browsing-the-web/history-traversal/*
+SET TIMEOUT: html/browsers/browsing-the-web/resources/navigates-to-blank.html
 SET TIMEOUT: html/browsers/browsing-the-web/navigating-across-documents/*
 SET TIMEOUT: html/browsers/browsing-the-web/scroll-to-fragid/*
 SET TIMEOUT: html/browsers/browsing-the-web/unloading-documents/*
@@ -445,6 +446,7 @@ SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/c
 SET TIMEOUT: html/webappapis/timers/*
 SET TIMEOUT: portals/history/resources/portal-harness.js
 SET TIMEOUT: requestidlecallback/deadline-after-expired-timer.html
+SET TIMEOUT: resource-timing/tentative/initiator-url/dedicated-worker-script.html
 SET TIMEOUT: resource-timing/tentative/initiator-url/module-script-from-document.html
 SET TIMEOUT: resource-timing/tentative/initiator-url/set-timeout.html
 SET TIMEOUT: resource-timing/tentative/initiator-url/set-timeout.any.js

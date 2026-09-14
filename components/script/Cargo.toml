@@ -78,8 +78,8 @@ webgpu = [
 ]
 webxr = ["webgl", "gamepad", "webxr-api", "script_bindings/webxr"]
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
+[lints]
+workspace = true
 
 [dependencies]
 aes = { workspace = true, optional = true }

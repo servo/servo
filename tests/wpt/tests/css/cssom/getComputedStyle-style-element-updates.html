@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Updating the textContent of a style element must change the results of getComputedStyle</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+
+<!-- Derived from https://github.com/jsdom/jsdom/issues/2292 -->
+
+<style>
+  .my-class {
+    font-size: 24px;
+  }
+</style>
+
+<h1 class="my-class">Hello world</h1>
+
+<script>
+"use strict";
+const el = document.querySelector(".my-class");
+let insertedStyle;
+
+test(() => {
+  assert_equals(getComputedStyle(el).fontSize, "24px");
+}, "Sanity check: getComputedStyle works as expected");
+
+test(() => {
+  insertedStyle = document.createElement("style");
+  insertedStyle.textContent = ".my-class { font-size: 32px; }";
+  document.head.appendChild(insertedStyle);
+
+  assert_equals(getComputedStyle(el).fontSize, "32px");
+}, "Inserting a new CSS element that overrides the old one updates the computed style");
+
+test(() => {
+  insertedStyle.textContent = ".my-class { font-size: 48px; }";
+
+  assert_equals(getComputedStyle(el).fontSize, "48px");
+}, "Updating the inserted CSS element changes the computed style");
+
+test(() => {
+  document.head.removeChild(insertedStyle);
+
+  assert_equals(getComputedStyle(el).fontSize, "24px");
+}, "Removing the inserted CSS element updates the computed style back to original value");
+</script>

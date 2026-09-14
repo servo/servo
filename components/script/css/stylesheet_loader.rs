@@ -450,7 +450,7 @@ impl FetchResponseListener for StylesheetContext {
     }
 
     fn process_content_length(&mut self, _request_id: RequestId, size: usize) {
-        self.data.reserve(size - self.data.len());
+        self.data.reserve(size.saturating_sub(self.data.len()));
     }
 }
 
@@ -669,7 +669,7 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
                     media,
                     resolved_url.into(),
                     None,
-                    "".to_owned(),
+                    String::new(),
                 );
             },
             ElementStylesheetLoader::Asynchronous(AsynchronousStylesheetLoader {
@@ -689,7 +689,7 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
                         media,
                         resolved_url.into(),
                         None,
-                        "".to_owned()
+                        String::new()
                     );
                 });
                 let _ =

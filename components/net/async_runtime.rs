@@ -82,7 +82,7 @@ where
 }
 
 /// Spawn a blocking task using the handle to the runtime.
-pub fn spawn_blocking_task<F, R>(task: F) -> F::Output
+pub fn spawn_blocking_task<F>(task: F) -> F::Output
 where
     F: Future,
 {

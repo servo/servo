@@ -1,0 +1,28 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>getComputedStyle does not crash with @page rules</title>
+<meta charset="utf-8" />
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type="text/css">
+  @page {
+    margin: 0;
+  }
+</style>
+</head>
+
+<body>
+<p id="target">Test</p>
+
+<script>
+"use strict";
+
+test(() => {
+  const styles = window.getComputedStyle(document.getElementById("target"));
+  styles.color;
+}, "getComputedStyle should not throw when a @page rule is present");
+</script>
+</body>
+</html>

@@ -60,7 +60,7 @@ promise_test(async t => {
   t.add_cleanup(() => window.removeEventListener('message', message_handler));
 
   const controller = new AbortController();
-  const execute_promise = document.modelContext.executeTool(tool, '{}', { signal: controller.signal });
+  const execute_promise = document.modelContext.executeTool(tool, {}, { signal: controller.signal });
 
   await tool_started;
   controller.abort('parent cross-origin abort reason');

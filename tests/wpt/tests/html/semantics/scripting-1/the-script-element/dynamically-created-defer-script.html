@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Dynamically created defer scripts inserted after DOMContentLoaded</title>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3451. -->
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+window.scriptRan = false;
+
+async_test(t => {
+  window.addEventListener("DOMContentLoaded", t.step_func(() => {
+    const s = document.createElement("script");
+    s.defer = true;
+    s.src = "resources/dynamically-created-defer-script.js";
+    document.head.append(s);
+
+    s.onload = t.step_func_done(() => {
+      assert_true(window.scriptRan);
+    });
+  }));
+});
+</script>

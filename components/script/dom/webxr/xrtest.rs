@@ -18,6 +18,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSender;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
@@ -54,7 +55,7 @@ impl XRTest {
         response: Result<GenericSender<MockDeviceMsg>, XRError>,
         trusted: TrustedPromise,
     ) {
-        let promise = trusted.root();
+        let promise = trusted.root(cx);
         if let Ok(sender) = response {
             let device = FakeXRDevice::new(cx, &self.global(), sender);
             self.devices_connected
@@ -73,8 +74,8 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         &self,
         cx: &mut CurrentRealm,
         init: &FakeXRDeviceInit,
-    ) -> Rc<Promise> {
-        let p = Promise::new_in_realm(cx);
+    ) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(cx);
 
         let origin = if let Some(ref o) = init.viewerOrigin {
             match get_origin(o) {
@@ -152,27 +153,26 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
 
         let global = self.global();
         let this = Trusted::new(self);
-        let mut trusted = Some(TrustedPromise::new(p.clone()));
+        let mut trusted = Some(TrustedPromise::from(&p));
 
         let task_source = global
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
 
-        let callback =
-            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |message| {
-                let trusted = trusted
-                    .take()
-                    .expect("SimulateDeviceConnection callback called twice");
-                let this = this.clone();
-                let message =
-                    message.expect("SimulateDeviceConnection callback given incorrect payload");
+        let callback = ProfileGenericCallback::new(move |message| {
+            let trusted = trusted
+                .take()
+                .expect("SimulateDeviceConnection callback called twice");
+            let this = this.clone();
+            let message =
+                message.expect("SimulateDeviceConnection callback given incorrect payload");
 
-                task_source.queue(task!(request_session: move |cx| {
-                    this.root().device_obtained(cx, message, trusted);
-                }));
-            })
-            .expect("Could not create callback");
+            task_source.queue(task!(request_session: move |cx| {
+                this.root().device_obtained(cx, message, trusted);
+            }));
+        })
+        .expect("Could not create callback");
         if let Some(mut r) = global.as_window().webxr_registry() {
             r.simulate_device_connection(init, callback);
         }
@@ -188,9 +188,9 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn DisconnectAllDevices(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn DisconnectAllDevices(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // XXXManishearth implement device disconnection and session ending
-        let p = Promise::new_in_realm(cx);
+        let p = Promise::new_in_realm_rooted(cx);
 
         // restrict borrow scope prior to p.resolve_native(), which can GC
         let is_empty = self.devices_connected.borrow().is_empty();
@@ -209,24 +209,23 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         self.devices_connected.safe_borrow_mut(cx).clear();
 
         let mut len = rooted_devices.len();
-        let mut trusted = Some(TrustedPromise::new(p.clone()));
+        let mut trusted = Some(TrustedPromise::from(&p));
         let global = self.global();
         let task_source = global
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
 
-        let callback =
-            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |_| {
-                len -= 1;
-                if len == 0 {
-                    let trusted = trusted
-                        .take()
-                        .expect("DisconnectAllDevices disconnected more devices than expected");
-                    task_source.queue(trusted.resolve_task(()));
-                }
-            })
-            .expect("Could not create callback");
+        let callback = ProfileGenericCallback::new(move |_| {
+            len -= 1;
+            if len == 0 {
+                let trusted = trusted
+                    .take()
+                    .expect("DisconnectAllDevices disconnected more devices than expected");
+                task_source.queue(trusted.resolve_task(()));
+            }
+        })
+        .expect("Could not create callback");
 
         for device in rooted_devices {
             device.disconnect(callback.clone());

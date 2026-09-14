@@ -200,7 +200,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             let trusted_promise = TrustedPromise::new(promise);
             self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move |cx| {
-                    let promise = trusted_promise.root();
+                    let promise = trusted_promise.root(cx);
                     let message = DOMString::from_static("preempted");
                     promise.resolve_native(cx, &message);
                 }),
@@ -264,7 +264,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             let trusted_promise = TrustedPromise::new(promise);
             self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move |cx| {
-                    let promise = trusted_promise.root();
+                    let promise = trusted_promise.root(cx);
                     let message = DOMString::from_static("preempted");
                     promise.resolve_native(cx, &message);
                 }),
@@ -331,7 +331,7 @@ impl GamepadHapticActuator {
                         warn!("Mismatched sequence/reset sequence ids: {} != {}", sequence_id, reset_sequence_id);
                         return;
                     }
-                    let promise = trusted_promise.root();
+                    let promise = trusted_promise.root(cx);
                     let message = DOMString::from_static("complete");
                     promise.resolve_native(cx, &message);
                 })

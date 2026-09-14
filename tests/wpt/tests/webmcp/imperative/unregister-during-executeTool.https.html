@@ -53,7 +53,7 @@ promise_test(async t => {
 
   // 2. Run the tool, and wait for the iframe to report back that execution has
   // begun.
-  const executePromise = document.modelContext.executeTool(tool, '{}');
+  const executePromise = document.modelContext.executeTool(tool);
   await toolStartedPromise;
 
   // Before we tell the iframe to unregister the tool, set up a handler to
@@ -103,7 +103,7 @@ promise_test(async t => {
   }, { signal: regController.signal });
 
   const [tool] = await document.modelContext.getTools();
-  const executePromise = document.modelContext.executeTool(tool, '{}');
+  const executePromise = document.modelContext.executeTool(tool);
 
   await toolStartedPromise;
 

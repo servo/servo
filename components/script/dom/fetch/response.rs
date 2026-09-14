@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 use std::str::FromStr;
 
 use bytes::Bytes;
@@ -15,9 +14,11 @@ use net_traits::http_status::HttpStatus;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 use url::Position;
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
@@ -30,7 +31,6 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString, serialize_jsval_to_json_utf8};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers, is_obs_text, is_vchar};
-use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::fetch::body::{
@@ -265,7 +265,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         response.Headers(cx).set_guard(Guard::Response);
 
         // 4. Perform initialize a response given responseObject, init, and (body, "application/json").
-        body.content_type = Some("application/json".into());
+        body.content_type = Some(DOMString::from_static("application/json"));
         initialize_response(cx, Some(body), init, response)
     }
 
@@ -362,32 +362,32 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-text>
-    fn Text(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+    fn Text(&self, cx: &mut js::context::JSContext) -> RootedPromise {
         consume_body(cx, self, BodyType::Text)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-blob>
-    fn Blob(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+    fn Blob(&self, cx: &mut js::context::JSContext) -> RootedPromise {
         consume_body(cx, self, BodyType::Blob)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-formdata>
-    fn FormData(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+    fn FormData(&self, cx: &mut js::context::JSContext) -> RootedPromise {
         consume_body(cx, self, BodyType::FormData)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-json>
-    fn Json(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+    fn Json(&self, cx: &mut js::context::JSContext) -> RootedPromise {
         consume_body(cx, self, BodyType::Json)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-arraybuffer>
-    fn ArrayBuffer(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+    fn ArrayBuffer(&self, cx: &mut js::context::JSContext) -> RootedPromise {
         consume_body(cx, self, BodyType::ArrayBuffer)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-bytes>
-    fn Bytes(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+    fn Bytes(&self, cx: &mut js::context::JSContext) -> RootedPromise {
         consume_body(cx, self, BodyType::Bytes)
     }
 

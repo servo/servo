@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use js::jsapi::HandleObject;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUDeviceLostReason;
@@ -12,7 +10,7 @@ use webgpu_traits::{RequestDeviceError, WebGPUDeviceResponse};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::gpuadapter::GPUAdapter;
-use crate::dom::promise::Promise;
+use crate::dom::promise::RootedPromise;
 use crate::dom::types::GPUDevice;
 use crate::routed_promise::RoutedPromiseListener;
 
@@ -22,7 +20,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
         &self,
         cx: &mut js::context::JSContext,
         response: WebGPUDeviceResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             // 3.1 Let device be a new device with the capabilities described by descriptor.

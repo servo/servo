@@ -14,20 +14,51 @@
 
 <span tabindex="0" id="focusable_span">This is some text</span>
 
+<dialog id="dialog_without_activation">
+  <usermedia id="camera_dialog_no_activation" type="camera" autofocus></usermedia>
+</dialog>
+
+<dialog id="dialog_with_activation">
+  <usermedia id="camera_dialog_activation" type="camera" autofocus></usermedia>
+</dialog>
+
 <script>
   promise_test(async(t) => {
     await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
+    assert_false(navigator.userActivation.isActive, "Should start without user activation");
     focusable_span.focus();
     valid_usermedia_element.focus();
     assert_equals(document.activeElement, focusable_span,
       "UserMedia element should not be focused.");
 
+    const dialog = document.getElementById('dialog_without_activation');
+    const camera = document.getElementById('camera_dialog_no_activation');
+    dialog.showModal();
+    assert_true(dialog.open);
+    assert_not_equals(document.activeElement, camera,
+      "UserMedia element inside dialog should not receive focus without user activation");
+    dialog.close();
+  }, "UserMedia element is not focusable by script and does not autofocus in dialog without user activation");
+
+  promise_test(async(t) => {
+    await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
     focusable_span.focus();
     await test_driver.bless('Focus with user activation', () => {
       valid_usermedia_element.focus();
     });
     assert_equals(document.activeElement, valid_usermedia_element,
       "Focus is allowed with user activation");
+
+    focusable_span.focus();
+    const dialog = document.getElementById('dialog_with_activation');
+    const camera = document.getElementById('camera_dialog_activation');
+    await test_driver.bless('Open dialog with user activation', () => {
+      dialog.showModal();
+    });
+    assert_true(dialog.open);
+    assert_equals(document.activeElement, camera,
+      "UserMedia element inside dialog should receive focus when opened with user activation");
+    dialog.close();
 
     focusable_span.focus();
     actions = new test_driver.Actions()
@@ -41,6 +72,6 @@
     focusable_span.focus();
     assert_equals(document.activeElement, focusable_span,
         "Other element should be focused");
-}, "UserMedia element is not focusable by script without user activation");
+  }, "UserMedia element and dialog autofocus are allowed with user activation");
 </script>
 </body>

@@ -38,5 +38,50 @@
     });
     document.body.appendChild(iframe);
   }, "Install element is not allowed in an iframe even with permissions policy");
+
+  async_test((t) => {
+    const iframe = document.createElement("iframe");
+    iframe.srcdoc = `
+      <!DOCTYPE html>
+      <body>
+      <script>
+        const install = document.createElementNS("http://www.w3.org/1999/xhtml", "x:install");
+        install.id = "install-element";
+        document.body.appendChild(install);
+      <\/script>
+      </body>
+    `;
+    iframe.onload = t.step_func_done(() => {
+      const install = iframe.contentDocument.getElementById("install-element");
+      assert_false(install.isValid,
+        "Prefixed install element should not be valid inside an iframe");
+      assert_equals(install.invalidReason, "illegal_subframe",
+        "invalidReason should be 'illegal_subframe'");
+    });
+    document.body.appendChild(iframe);
+  }, "Prefixed install element is not allowed in a same-origin iframe");
+
+  async_test((t) => {
+    const iframe = document.createElement("iframe");
+    iframe.allow = "web-app-installation *";
+    iframe.srcdoc = `
+      <!DOCTYPE html>
+      <body>
+      <script>
+        const install = document.createElementNS("http://www.w3.org/1999/xhtml", "x:install");
+        install.id = "install-element";
+        document.body.appendChild(install);
+      <\/script>
+      </body>
+    `;
+    iframe.onload = t.step_func_done(() => {
+      const install = iframe.contentDocument.getElementById("install-element");
+      assert_false(install.isValid,
+        "Prefixed install element should not be valid inside an iframe even with permissions policy");
+      assert_equals(install.invalidReason, "illegal_subframe",
+        "invalidReason should be 'illegal_subframe'");
+    });
+    document.body.appendChild(iframe);
+  }, "Prefixed install element is not allowed in an iframe even with permissions policy");
 </script>
 </body>

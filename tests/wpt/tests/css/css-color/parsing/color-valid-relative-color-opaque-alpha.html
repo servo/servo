@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 5: Relative colors preserve an explicit opaque alpha</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#serial-relative-color">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // Omitting alpha would inherit currentcolor's alpha instead of using 1.
+  for (const value of [
+    "rgb(from currentcolor r g b / 1)",
+    "hsl(from currentcolor h s l / 1)",
+    "hwb(from currentcolor h w b / 1)",
+    "lab(from currentcolor l a b / 1)",
+    "oklab(from currentcolor l a b / 1)",
+    "lch(from currentcolor l c h / 1)",
+    "oklch(from currentcolor l c h / 1)",
+    "color(from currentcolor srgb r g b / 1)"
+  ]) {
+    test_valid_value("color", value);
+  }
+</script>

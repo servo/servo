@@ -668,9 +668,16 @@ impl<T: MallocSizeOf> MallocConditionalSizeOf for servo_arc::Arc<T> {
     }
 }
 
+/// Recover the allocation base: `Arc::as_ptr`/`Rc::as_ptr` point at the data
+/// after the two reference counts in the `#[repr(C)]` heap allocation.
+fn refcounted_allocation_base<T>(data: *const T) -> *const T {
+    let data_offset = std::mem::align_of::<T>().max(std::mem::size_of::<usize>() * 2);
+    data.wrapping_byte_sub(data_offset)
+}
+
 impl<T> MallocUnconditionalShallowSizeOf for Arc<T> {
     fn unconditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        unsafe { ops.malloc_size_of(Arc::as_ptr(self)) }
+        unsafe { ops.malloc_size_of(refcounted_allocation_base(Arc::as_ptr(self))) }
     }
 }
 
@@ -702,7 +709,7 @@ impl<T: MallocSizeOf> MallocConditionalSizeOf for Arc<T> {
 
 impl<T> MallocUnconditionalShallowSizeOf for Rc<T> {
     fn unconditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        unsafe { ops.malloc_size_of(Rc::as_ptr(self)) }
+        unsafe { ops.malloc_size_of(refcounted_allocation_base(Rc::as_ptr(self))) }
     }
 }
 
@@ -1426,9 +1433,9 @@ malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_thickness::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_rendering::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
-malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontStretchRange);
 malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontStyleRange);
 malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontWeightRange);
+malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontWidthRange);
 malloc_size_of_is_stylo_malloc_size_of!(style::font_face::Source);
 malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
 malloc_size_of_is_stylo_malloc_size_of!(style::logical_geometry::WritingMode);
@@ -1452,9 +1459,9 @@ malloc_size_of_is_stylo_malloc_size_of!(style::stylist::Stylist);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::BorderStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::ContentDistribution);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontFeatureSettings);
-malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStretch);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWeight);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWidth);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontVariantAlternates);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontVariantLigatures);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontVariantNumeric);

@@ -79,7 +79,7 @@ impl Drop for DroppableWebGLRenderbuffer {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLRenderbuffer {
     webgl_object: WebGLObject,
     ever_bound: Cell<bool>,

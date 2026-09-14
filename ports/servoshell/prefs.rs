@@ -46,7 +46,6 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_webgl2_enabled",
     "dom_webgpu_enabled",
     "layout_css_alpha_color_function_enabled",
-    "layout_css_attr_enabled",
     "layout_css_ellipse_corners_enabled",
     "layout_css_progress_function_enabled",
     "layout_columns_enabled",
@@ -734,6 +733,11 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
     let Ok(debug_options) = parse_diagnostics_logging(cmd_args.debug) else {
         return ArgumentParsingResult::ErrorParsing;
     };
+
+    #[cfg(not(feature = "multiprocess"))]
+    if cmd_args.multiprocess || cmd_args.force_ipc {
+        log::error!("IPC was disabled at compile time. IPC and multiprocess modes are disabled");
+    }
 
     let opts = Opts {
         debug: debug_options,

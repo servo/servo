@@ -1,0 +1,133 @@
+<!doctype html>
+<title>Computed color values</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #parent {
+    background-color: white;
+    color: black;
+  }
+  #initial {
+    background-color: initial;
+    color: initial;
+  }
+  #inherited {
+    background-color: inherit;
+    color: inherit;
+  }
+  #named {
+    background-color: green;
+    color: red;
+  }
+  #hex {
+    background-color: #008000;
+    color: #ff0000;
+  }
+  #hexAlpha {
+    background-color: #00800080;
+    color: #ff000080;
+  }
+  #rgb {
+    background-color: rgb(0, 128, 0);
+    color: rgb(255, 0, 0);
+  }
+  #hsl {
+    background-color: hsl(120, 100%, 25%);
+    color: hsl(0, 100%, 50%);
+  }
+  #color {
+    background-color: color(srgb 0 0.5 0);
+    color: color(srgb 1 0 0);
+  }
+  #mix {
+    background-color: color-mix(in srgb, black, lime);
+    color: color-mix(in srgb, red, hsl(0, 100%, 50%));
+  }
+  #current {
+    background-color: currentcolor;
+    color: currentcolor;
+  }
+  #system {
+    color: canvastext;
+    color-scheme: normal;
+  }
+</style>
+<div id="parent">
+  <div id="initial"></div>
+  <div id="inherited"></div>
+  <div id="named"></div>
+  <div id="hex"></div>
+  <div id="hexAlpha"></div>
+  <div id="rgb"></div>
+  <div id="hsl"></div>
+  <div id="color"></div>
+  <div id="mix"></div>
+  <div id="current"></div>
+</div>
+<div id="system"></div>
+<script>
+  "use strict";
+
+  test(() => {
+    const div = document.getElementById("initial");
+    const ref = document.getElementById("system");
+    assert_equals(getComputedStyle(div).backgroundColor, "rgba(0, 0, 0, 0)", "background");
+    assert_equals(getComputedStyle(div).color, getComputedStyle(ref).color, "color");
+  }, "Inital colors");
+
+  test(() => {
+    const div = document.getElementById("inherited");
+    assert_equals(getComputedStyle(div).backgroundColor, "rgb(255, 255, 255)", "background");
+    assert_equals(getComputedStyle(div).color, "rgb(0, 0, 0)", "color");
+  }, "Inherited colors");
+
+  test(() => {
+    const div = document.getElementById("named");
+    assert_equals(getComputedStyle(div).backgroundColor, "rgb(0, 128, 0)", "background");
+    assert_equals(getComputedStyle(div).color, "rgb(255, 0, 0)", "color");
+  }, "Named colors");
+
+  test(() => {
+    const div = document.getElementById("hex");
+    assert_equals(getComputedStyle(div).backgroundColor, "rgb(0, 128, 0)", "background");
+    assert_equals(getComputedStyle(div).color, "rgb(255, 0, 0)", "color");
+  }, "Hex colors");
+
+  test(() => {
+    const div = document.getElementById("hexAlpha");
+    assert_equals(getComputedStyle(div).backgroundColor, "rgba(0, 128, 0, 0.5)", "background");
+    assert_equals(getComputedStyle(div).color, "rgba(255, 0, 0, 0.5)", "color");
+  }, "Hex-alpha colors");
+
+  test(() => {
+    const div = document.getElementById("rgb");
+    assert_equals(getComputedStyle(div).backgroundColor, "rgb(0, 128, 0)", "background");
+    assert_equals(getComputedStyle(div).color, "rgb(255, 0, 0)", "color");
+  }, "RGB colors");
+
+  test(() => {
+    const div = document.getElementById("hsl");
+    assert_equals(getComputedStyle(div).backgroundColor, "rgb(0, 128, 0)", "background");
+    assert_equals(getComputedStyle(div).color, "rgb(255, 0, 0)", "color");
+  }, "HSL colors");
+
+  test(() => {
+    const div = document.getElementById("color");
+    assert_equals(getComputedStyle(div).backgroundColor, "color(srgb 0 0.5 0)", "background");
+    assert_equals(getComputedStyle(div).color, "color(srgb 1 0 0)", "color");
+  }, "Color function colors");
+
+  test(() => {
+    const div = document.getElementById("mix");
+    assert_equals(getComputedStyle(div).backgroundColor, "color(srgb 0 0.5 0)", "background");
+    assert_equals(getComputedStyle(div).color, "color(srgb 1 0 0)", "color");
+  }, "Mixed colors");
+
+  test(() => {
+    const div = document.getElementById("current");
+    assert_equals(getComputedStyle(div).backgroundColor, "rgb(0, 0, 0)", "background");
+    assert_equals(getComputedStyle(div).color, "rgb(0, 0, 0)", "color");
+  }, "Current colors");
+</script>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+    <head>
+        <meta charset="utf-8">
+        <title>Copy and Paste should stop placeholder displaying</title>
+        <link rel=match href=input-events-text-input-copy-paste-ref.html>
+        <script src="/common/reftest-wait.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <style>
+        input {
+            box-sizing: border-box;
+        }
+        </style>
+    </head>
+    <body>
+        <input type="text" id="copy_target" value="copy_me"></input>
+        <input type="text" id="text_input" placeholder="placeholder"></input>
+        <script>
+        let modifier_key = "\uE009";
+        if(navigator.platform.includes('Mac'))
+            modifier_key = "\uE03D";
+        const commands = {
+            COPY: 'copy',
+            CUT: 'cut',
+            PASTE: 'paste',
+        }
+        function selectTextCommand(target, command) {
+          let command_key = "";
+          if(command == "copy")
+            command_key = "c";
+          else if (command == "cut")
+            command_key = "x";
+          else if (command == "paste")
+            command_key = "v";
+          target.focus();
+          return new test_driver.Actions()
+              .keyDown(modifier_key)
+              .keyDown("a")
+              .keyUp("a")
+              .keyDown(command_key)
+              .keyUp(command_key)
+              .keyUp(modifier_key)
+              .send();
+        }
+
+        const copy_target = document.getElementById("copy_target")
+        const text_input = document.getElementById("text_input");
+
+        async function copyPasteTargetsAndTakeScreenshot(){
+          await selectTextCommand(copy_target, commands.COPY);
+          await selectTextCommand(text_input, commands.PASTE);
+          text_input.blur();
+          takeScreenshot();
+        }
+
+        copyPasteTargetsAndTakeScreenshot()
+        </script>
+    </body>
+</html>

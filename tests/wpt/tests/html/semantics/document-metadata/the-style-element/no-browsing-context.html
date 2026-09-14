@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Style should not apply with no browsing context</title>
+<!-- https://github.com/whatwg/html/issues/4547 -->
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+test(() => {
+  const doc = document.implementation.createHTMLDocument();
+  const style = document.createElement("style");
+  style.textContent = `
+    p { color: red; }
+  `;
+
+  doc.head.appendChild(style);
+  doc.body.appendChild(doc.createElement("p"));
+
+  assert_equals(window.getComputedStyle(doc.querySelector("p")).color, "");
+}, "no impact on getComputedStyle");
+
+test(() => {
+  const doc = document.implementation.createHTMLDocument();
+  const style = doc.createElement("style");
+  style.textContent = '@import url("/css/support/a-green.css");';
+  doc.head.append(style);
+  assert_equals(style.parentNode, doc.head);
+}, "Inserting an importing style without a browsing context does not throw");
+</script>

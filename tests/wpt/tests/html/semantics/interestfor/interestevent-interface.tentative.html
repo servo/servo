@@ -27,6 +27,20 @@
   }, "InterestEventInit properties set value (manual event)");
 
   test(function () {
+    const host = document.body.appendChild(document.createElement("div"));
+    const root = host.attachShadow({ mode: "open" });
+    const source = document.createElement("button");
+    const target = document.createElement("div");
+    root.append(source, target);
+    const event = new InterestEvent("test", { source });
+
+    target.dispatchEvent(event);
+
+    assert_equals(event.source, host);
+    host.remove();
+  }, "source is retargeted after dispatch in a shadow tree");
+
+  test(function () {
     const eventInit = {
       source: document.getElementById("div"),
     };

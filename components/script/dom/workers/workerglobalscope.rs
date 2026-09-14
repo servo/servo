@@ -78,7 +78,7 @@ use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::promise::Promise;
+use crate::dom::promise::RootedPromise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::script_execution::ScriptOptions;
@@ -102,7 +102,7 @@ use crate::fetch::network_listener::{
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::{MicrotaskQueue, MicrotaskRunnable, UserMicrotask};
+use crate::runtime::job_queue::{MicrotaskRunnable, UserMicrotask, job_queue_microtask_checkpoint};
 use crate::runtime::script_runtime::{IntroductionType, Runtime, get_reports};
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
@@ -279,7 +279,8 @@ impl FetchResponseListener for ScriptFetchContext {
     }
 
     fn process_content_length(&mut self, _request_id: RequestId, size: usize) {
-        self.body_bytes.reserve(size - self.body_bytes.len());
+        self.body_bytes
+            .reserve(size.saturating_sub(self.body_bytes.len()));
     }
 }
 
@@ -297,10 +298,6 @@ impl ResourceTimingListener for ScriptFetchContext {
 #[dom_struct]
 pub(crate) struct WorkerGlobalScope {
     globalscope: GlobalScope,
-
-    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
-    #[conditional_malloc_size_of]
-    microtask_queue: Rc<MicrotaskQueue>,
 
     worker_name: DOMString,
     worker_type: WorkerType,
@@ -426,7 +423,6 @@ impl WorkerGlobalScope {
                 init.unminify_js,
             ),
             caches: Default::default(),
-            microtask_queue: runtime.microtask_queue.clone(),
             worker_id: init.worker_id,
             worker_name,
             worker_type,
@@ -472,15 +468,14 @@ impl WorkerGlobalScope {
     }
 
     pub(crate) fn enqueue_microtask(&self, cx: &JSContext, job: Box<dyn MicrotaskRunnable>) {
-        self.microtask_queue.enqueue(cx, job);
+        crate::runtime::job_queue::enqueue(cx, job);
     }
 
     /// Perform a microtask checkpoint.
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
         // Only perform the checkpoint if we're not shutting down.
         if !self.is_closing() {
-            self.microtask_queue
-                .checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
+            job_queue_microtask_checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
         }
     }
 
@@ -1017,8 +1012,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         realm: &mut CurrentRealm,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(self.upcast(), image, 0, 0, None, None, options, realm)
+            .duplicate(realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -1031,7 +1027,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         sw: i32,
         sh: i32,
         options: &ImageBitmapOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(
             self.upcast(),
             image,
@@ -1042,6 +1038,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             options,
             realm,
         )
+        .duplicate(realm)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
@@ -1050,7 +1047,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         realm: &mut CurrentRealm,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         Fetch(self.upcast(), input, init, realm)
     }
 

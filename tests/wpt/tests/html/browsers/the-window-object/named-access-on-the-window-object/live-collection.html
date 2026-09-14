@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Named access collections remain live</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#named-access-on-the-window-object">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+test(() => {
+  const first = document.createElement("div");
+  const second = document.createElement("span");
+  first.id = "liveNamedAccess";
+  second.id = "liveNamedAccess";
+  document.body.append(first, second);
+
+  const collection = window.liveNamedAccess;
+  assert_true(collection instanceof HTMLCollection);
+  assert_array_equals([...collection], [first, second], "initial contents");
+
+  first.remove();
+  assert_array_equals([...collection], [second], "after removing one match");
+
+  second.remove();
+  assert_array_equals([...collection], [], "after removing all matches");
+
+  const third = document.createElement("p");
+  third.id = "liveNamedAccess";
+  document.body.append(third);
+  assert_array_equals([...collection], [third], "after adding a new match");
+  third.remove();
+}, "A retained named-access collection becomes empty when all matches are removed");
+
+test(t => {
+  const iframe = document.createElement("iframe");
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  const { contentDocument, contentWindow } = iframe;
+  const first = contentDocument.createElement("div");
+  const second = contentDocument.createElement("span");
+  first.id = "removedDocumentElement";
+  second.id = "removedDocumentElement";
+  contentDocument.body.append(first, second);
+
+  const collection = contentWindow.removedDocumentElement;
+  assert_true(collection instanceof contentWindow.HTMLCollection);
+  assert_array_equals([...collection], [first, second], "initial contents");
+
+  contentDocument.documentElement.remove();
+  assert_array_equals([...collection], [], "after removing the document element");
+
+  const replacementDocumentElement = contentDocument.createElement("html");
+  const replacementBody = contentDocument.createElement("body");
+  const replacementMatch = contentDocument.createElement("p");
+  replacementMatch.id = "removedDocumentElement";
+  replacementBody.append(replacementMatch);
+  replacementDocumentElement.append(replacementBody);
+  contentDocument.append(replacementDocumentElement);
+  assert_array_equals([...collection], [replacementMatch], "after adding a replacement document element");
+}, "A retained named-access collection follows removal of the document element");
+</script>

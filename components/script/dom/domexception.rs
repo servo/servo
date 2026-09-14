@@ -8,6 +8,7 @@ use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
+use script_bindings::traits::DomExceptionTrait;
 use servo_base::id::{DomExceptionId, DomExceptionIndex};
 use servo_constellation_traits::DomException;
 
@@ -283,5 +284,14 @@ impl Serializable for DOMException {
             StructuredData::Reader(reader) => &mut reader.exceptions,
             StructuredData::Writer(writer) => &mut writer.exceptions,
         }
+    }
+}
+
+impl DomExceptionTrait for DOMException {
+    fn new_inherited(
+        message: script_bindings::str::DOMString,
+        name: script_bindings::str::DOMString,
+    ) -> Self {
+        DOMException::new_inherited(message, name)
     }
 }

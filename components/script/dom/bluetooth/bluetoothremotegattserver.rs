@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -21,7 +20,7 @@ use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattserver
 #[dom_struct]
@@ -73,9 +72,9 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
-    fn Connect(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn Connect(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1.
-        let p = Promise::new_in_realm(cx);
+        let p = Promise::new_in_realm_rooted(cx);
         let sender = response_async(&p, self);
 
         // TODO: Step 3: Check if the UA is currently using the Bluetooth system.
@@ -117,7 +116,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
         &self,
         cx: &mut CurrentRealm,
         service: BluetoothServiceUUID,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let is_connected = self.Device().get_gatt(cx).Connected();
         // Step 1 - 2.
         get_gatt_children(
@@ -137,7 +136,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
         &self,
         cx: &mut CurrentRealm,
         service: Option<BluetoothServiceUUID>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // Step 1 - 2.
         get_gatt_children(
             cx,
@@ -157,7 +156,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
         &self,
         cx: &mut JSContext,
         response: BluetoothResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect

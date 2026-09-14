@@ -1,0 +1,40 @@
+<!doctype html>
+<title>CSSKeyframesRule deleteRule() should detach removed keyframe rules</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#dom-csskeyframesrule-deleterule">
+<script>
+"use strict";
+
+function getKeyframesRule() {
+  const style = document.createElement("style");
+  style.textContent = "@keyframes a { from { opacity: 0 } to { opacity: 1 } }";
+  document.head.append(style);
+  return { style, keyframes: style.sheet.cssRules[0] };
+}
+
+test(() => {
+  const { style, keyframes } = getKeyframesRule();
+  const removed = keyframes.cssRules[0];
+  assert_equals(removed.parentRule, keyframes, "setup: parentRule should be the keyframes rule");
+  assert_equals(removed.parentStyleSheet, style.sheet, "setup: parentStyleSheet should be the sheet");
+
+  keyframes.deleteRule("from");
+  assert_equals(removed.parentRule, null, "parentRule should be null after deletion");
+  assert_equals(removed.parentStyleSheet, null, "parentStyleSheet should be null after deletion");
+
+  style.remove();
+}, "deleteRule() nullifies parentRule and parentStyleSheet on the removed keyframe rule");
+
+test(() => {
+  const { style, keyframes } = getKeyframesRule();
+  const kept = keyframes.cssRules[1];
+  assert_equals(kept.keyText, "100%");
+
+  keyframes.deleteRule("from");
+  assert_equals(kept.parentRule, keyframes, "kept rule's parentRule should still be the keyframes rule");
+  assert_equals(kept.parentStyleSheet, style.sheet, "kept rule's parentStyleSheet should still be the sheet");
+
+  style.remove();
+}, "deleteRule() does not detach rules that were not removed");
+</script>

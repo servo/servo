@@ -195,7 +195,7 @@ the global scope.
 ### Global Privacy Control ###
 
 ```eval_rst
-.. js:autofunction:: test_driver.set_global_privacy_control
+.. js:autofunction:: test_driver.get_global_privacy_control
 .. js:autofunction:: test_driver.set_global_privacy_control
 ```
 

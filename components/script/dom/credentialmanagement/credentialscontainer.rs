@@ -1,8 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
@@ -18,7 +16,7 @@ use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::credentialmanagement::credential::Credential;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 
 #[dom_struct]
 pub(crate) struct CredentialsContainer {
@@ -41,7 +39,7 @@ impl CredentialsContainer {
         &self,
         cx: &mut CurrentRealm,
         options: &CredentialRequestOptions<DomTypeHolder>,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<RootedPromise> {
         // Step 1. Let settings be the current settings object.
         let global = GlobalScope::from_current_realm(cx);
         // Step 2. Assert: settings is a secure context.
@@ -49,7 +47,7 @@ impl CredentialsContainer {
         // Step 3. Let document be settings’s relevant global object's associated Document.
         let document = global.as_window().Document();
 
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
         // Step 4. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !document.is_fully_active() {
             promise.reject_error(cx, Error::InvalidState(None));
@@ -69,13 +67,13 @@ impl CredentialsContainer {
         &self,
         cx: &mut CurrentRealm,
         _credential: &Credential,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<RootedPromise> {
         // Step 1. Let settings be the current settings object.
         let global = GlobalScope::from_current_realm(cx);
         // Step 2. Assert: settings is a secure context.
         assert!(global.is_secure_context());
 
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
         // Step 3. If settings’s relevant global object's associated Document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !global.as_window().Document().is_fully_active() {
             promise.reject_error(cx, Error::InvalidState(None));
@@ -90,7 +88,7 @@ impl CredentialsContainer {
         &self,
         cx: &mut CurrentRealm,
         _options: &CredentialCreationOptions<DomTypeHolder>,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<RootedPromise> {
         // Step 1. Let settings be the current settings object.
         let global = GlobalScope::from_current_realm(cx);
         // Step 2. Assert: settings is a secure context.
@@ -99,7 +97,7 @@ impl CredentialsContainer {
         // Step 4. Let document be the relevant global object’s associated Document.
         let document = global.as_window().Document();
 
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
         // Step 5. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !document.is_fully_active() {
             promise.reject_error(cx, Error::InvalidState(None));
@@ -116,12 +114,12 @@ impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
         &self,
         cx: &mut CurrentRealm,
         options: &CredentialRequestOptions<DomTypeHolder>,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<RootedPromise> {
         self.request_credential(cx, options)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-store>
-    fn Store(&self, cx: &mut CurrentRealm, credential: &Credential) -> Fallible<Rc<Promise>> {
+    fn Store(&self, cx: &mut CurrentRealm, credential: &Credential) -> Fallible<RootedPromise> {
         self.store_credential(cx, credential)
     }
 
@@ -130,13 +128,13 @@ impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
         &self,
         cx: &mut CurrentRealm,
         options: &CredentialCreationOptions<DomTypeHolder>,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<RootedPromise> {
         self.create_credential(cx, options)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess>
-    fn PreventSilentAccess(&self, cx: &mut CurrentRealm) -> Fallible<Rc<Promise>> {
-        let promise = Promise::new_in_realm(cx);
+    fn PreventSilentAccess(&self, cx: &mut CurrentRealm) -> Fallible<RootedPromise> {
+        let promise = Promise::new_in_realm_rooted(cx);
         promise.reject_error(cx, Error::NotSupported(None));
         Ok(promise)
     }

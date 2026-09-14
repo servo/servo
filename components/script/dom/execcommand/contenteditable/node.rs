@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAncho
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::NodeTypeId;
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, UnrootedDom};
+use crate::dom::bindings::root::{DomRoot, DomSlice, UnrootedDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;
@@ -43,7 +43,7 @@ pub(crate) enum NodeOrString<'a> {
 
 impl<'a> NodeOrString<'a> {
     pub(crate) fn from_node(node: &Node, no_gc: &'a NoGC) -> NodeOrString<'a> {
-        NodeOrString::Node(UnrootedDom::from_dom(Dom::from_ref(node), no_gc))
+        NodeOrString::Node(UnrootedDom::from_ref(node, no_gc))
     }
 
     fn as_node(&self) -> Option<UnrootedDom<'a, Node>> {
@@ -1622,7 +1622,7 @@ impl Node {
         let Some(editing_host) = self.editing_host_of() else {
             return false;
         };
-        let self_unrooted = UnrootedDom::from_dom(Dom::from_ref(self), no_gc);
+        let self_unrooted = UnrootedDom::from_ref(self, no_gc);
         self.ancestors_unrooted(no_gc)
             .take_while(|ancestor| ancestor.editing_host_of().as_ref() == Some(&editing_host))
             .all(|ancestor| {
@@ -1967,13 +1967,13 @@ impl Node {
             // and end node does not precede a line break
             // and end node's parent is in the same editing host,
             // set end offset to one plus end node's index, then set end node to its parent.
-            if end_offset == end_node.len() && !end_node.precedes_a_line_break(cx.no_gc()) {
-                if let Some(parent) = end_node.GetParentNode() &&
-                    parent.same_editing_host(&end_node)
-                {
-                    end_offset = 1 + end_node.index();
-                    end_node = parent;
-                }
+            if end_offset == end_node.len() &&
+                !end_node.precedes_a_line_break(cx.no_gc()) &&
+                let Some(parent) = end_node.GetParentNode() &&
+                parent.same_editing_host(&end_node)
+            {
+                end_offset = 1 + end_node.index();
+                end_node = parent;
                 continue;
             }
             // Step 7.3. Otherwise, if end node is a Text node and its parent's resolved value for "white-space"
@@ -2282,7 +2282,7 @@ impl Node {
                     }
                     current_element = element.upcast::<Node>().GetParentElement();
                 }
-                Some("rgba(0, 0, 0, 0)".into())
+                Some(DOMString::from_static("rgba(0, 0, 0, 0)"))
             },
             // Step 5. If command is "subscript" or "superscript":
             CommandName::Subscript | CommandName::Superscript => {
@@ -2311,11 +2311,11 @@ impl Node {
                 Some(match (affected_by_subscript, affected_by_superscript) {
                     // Step 5.3. If affected by subscript and affected by superscript are both true,
                     // return the string "mixed".
-                    (true, true) => "mixed".into(),
+                    (true, true) => DOMString::from_static("mixed"),
                     // Step 5.4. If affected by subscript is true, return "subscript".
-                    (true, false) => "subscript".into(),
+                    (true, false) => DOMString::from_static("subscript"),
                     // Step 5.5. If affected by superscript is true, return "superscript".
-                    (false, true) => "superscript".into(),
+                    (false, true) => DOMString::from_static("superscript"),
                     // Step 5.6. Return null.
                     (false, false) => return None,
                 })
@@ -2332,7 +2332,7 @@ impl Node {
                         })
                         .is_some_and(|property| property.contains("line-through"))
                 })
-                .then_some("line-through".into()),
+                .then_some(DOMString::from_static("line-through")),
             // Step 7. If command is "underline",
             // and the "text-decoration" property of node or any of its ancestors has resolved value containing "underline",
             // return "underline". Otherwise, return null.
@@ -2345,7 +2345,7 @@ impl Node {
                         })
                         .is_some_and(|property| property.contains("underline"))
                 })
-                .then_some("underline".into()),
+                .then_some(DOMString::from_static("underline")),
             // Step 8. Return the resolved value for node of the relevant CSS property for command.
             _ => command.resolved_value_for_node(element),
         }

@@ -26,7 +26,7 @@ promise_test(async t => {
   await promise_rejects_dom(
     t,
     'NotSupportedError',
-    document.modelContext.executeTool(tool, '{}'),
+    document.modelContext.executeTool(tool),
     'executeTool() must reject with NotSupportedError in opaque origin documents'
   );
 }, 'An opaque origin document can register but not execute its own tools');
@@ -49,7 +49,7 @@ promise_test(async t => {
   assert_equals(tool.origin, "null", "getTools() gives");
 
   let events = [];
-  const p = document.modelContext.executeTool(tool, '{}');
+  const p = document.modelContext.executeTool(tool);
 
   // Since `executeTool()` synchronously rejects the Promise for opaque origins,
   // the microtask to run the catch reaction is already queued before
@@ -62,7 +62,7 @@ promise_test(async t => {
   await promise_rejects_dom(
     t,
     'NotSupportedError',
-    document.modelContext.executeTool(tool, '{"param1":"value"}'),
+    document.modelContext.executeTool(tool, {"param1":"value"}),
     'executeTool() must reject with NotSupportedError in opaque origin documents'
   );
 
@@ -81,7 +81,7 @@ for (const invalid_origin of invalid_execution_origins) {
     };
 
     let events = [];
-    const p = document.modelContext.executeTool(fake_tool, '{}');
+    const p = document.modelContext.executeTool(fake_tool);
     p.catch(() => events.push('rejection'));
 
     // Queue another microtask immediately after.
@@ -90,7 +90,7 @@ for (const invalid_origin of invalid_execution_origins) {
     await promise_rejects_dom(
       t,
       'NotSupportedError',
-      document.modelContext.executeTool(fake_tool, '{"param1":"value"}'));
+      document.modelContext.executeTool(fake_tool, {"param1":"value"}));
 
     assert_array_equals(events, ['rejection', 'microtask'],
       'returned promise is rejected before custom microtask is queued');

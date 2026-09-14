@@ -73,3 +73,14 @@ interface XRWebGLDepthInformation : XRDepthInformation {
 partial interface XRWebGLBinding {
   XRWebGLDepthInformation? getDepthInformation(XRView view);
 };
+
+[Exposed=Window]
+interface XRGPUDepthInformation : XRDepthInformation {
+  [SameObject] readonly attribute GPUTexture texture;
+
+  GPUTextureViewDescriptor getViewDescriptor();
+};
+
+partial interface XRGPUBinding {
+  XRGPUDepthInformation? getDepthInformation(XRView view);
+};

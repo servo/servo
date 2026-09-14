@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>querySelector with complex :nth-of-type selector</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3057 -->
+
+<div class="team-wrap">
+  <p>Sibling to ensure div.clearfix is :nth-of-type(1) among divs</p>
+  <div class="clearfix"> <!-- :nth-of-type(1) -->
+    <table>
+      <tbody>
+        <tr><td>Row 1 Data</td></tr>
+        <tr> <!-- :nth-of-type(2) -->
+          <td>
+            <span class="u-hyphenate" id="targetElement">Target Text</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="clearfix">
+    <!-- Another clearfix sibling -->
+  </div>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const selector = ".team-wrap .clearfix:nth-of-type(1) tr:nth-of-type(2) .u-hyphenate";
+  const expectedElement = document.getElementById("targetElement");
+  assert_equals(document.querySelector(selector), expectedElement);
+});
+
+</script>

@@ -32,7 +32,7 @@ pub(crate) mod base {
 
     pub(crate) use crate::callback::{
         CallbackContainer, CallbackFunction, CallbackInterface, CallbackObject, ExceptionHandling,
-        OwnerWindow, ThisReflector, call_setup, wrap_call_this_value,
+        OwnerWindow, RootedCallback, ThisReflector, call_setup, wrap_call_this_value,
     };
     pub(crate) use crate::codegen::DomTypes::DomTypes;
     pub(crate) use crate::codegen::GenericUnionTypes;

@@ -16,17 +16,26 @@ typedef (HTMLOrSVGImageElement or
          /*VideoFrame or*/
          /*CSSImageValue*/ CSSStyleValue) CanvasImageSource;
 
-enum PredefinedColorSpace { "srgb"/*, "display-p3"*/ };
+enum PredefinedColorSpace { "srgb", "srgb-linear", "display-p3", "display-p3-linear" };
 
 enum CanvasColorType { "unorm8", "float16" };
 
 enum CanvasFillRule { "nonzero", "evenodd" };
+
+dictionary CanvasRenderingContext2DSettings {
+  boolean alpha = true;
+  boolean desynchronized = false;
+  PredefinedColorSpace colorSpace = "srgb";
+  CanvasColorType colorType = "unorm8";
+  boolean willReadFrequently = false;
+};
 
 [Exposed=Window]
 interface CanvasRenderingContext2D {
   // back-reference to the canvas
   readonly attribute HTMLCanvasElement canvas;
 };
+CanvasRenderingContext2D includes CanvasSettings;
 CanvasRenderingContext2D includes CanvasState;
 CanvasRenderingContext2D includes CanvasTransform;
 CanvasRenderingContext2D includes CanvasCompositing;
@@ -43,6 +52,10 @@ CanvasRenderingContext2D includes CanvasImageData;
 CanvasRenderingContext2D includes CanvasPathDrawingStyles;
 CanvasRenderingContext2D includes CanvasTextDrawingStyles;
 CanvasRenderingContext2D includes CanvasPath;
+
+interface mixin CanvasSettings {
+  CanvasRenderingContext2DSettings getContextAttributes();
+};
 
 interface mixin CanvasState {
   // state

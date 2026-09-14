@@ -8,7 +8,7 @@ use bytes::Bytes;
 use content_security_policy::Destination;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use net_traits::request::RequestId;
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
@@ -25,7 +25,7 @@ use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackMethods
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, UnrootedDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::Violation;
 use crate::dom::document::Document;
@@ -47,7 +47,7 @@ use crate::event_loop::script_thread::ScriptThread;
 use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::MicrotaskRunnable;
+use crate::runtime::job_queue::MicrotaskRunnable;
 
 #[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u16)]
@@ -175,12 +175,16 @@ impl HTMLTrackElement {
             // > given the media element to fire an event named addtrack at the media element's
             // > textTracks attribute's TextTrackList object, using TrackEvent,
             // > with the track attribute initialized to the text track's TextTrack object.
-            parent.TextTracks(cx).add(&parent, &self.track);
+            parent.TextTracks(cx).add(cx, &self.track);
 
             // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks:start-the-track-processing-model
             // > The track element's parent element changes and the new parent is a media element.
             self.start_the_track_processing_model(cx);
         }
+    }
+
+    pub(crate) fn track<'a>(&self, no_gc: &'a NoGC) -> UnrootedDom<'a, TextTrack> {
+        self.track.as_unrooted(no_gc)
     }
 }
 
@@ -434,7 +438,7 @@ impl WebVttParserSink<JSContext> for TextTrackCueSink {
         let text_track = &element.track;
 
         let cue = VTTCue::create_from_vtt(cx, cue, global.as_window(), Some(text_track));
-        text_track.get_cues(cx).add(cue.upcast());
+        text_track.get_text_track_cue_list(cx).add(cx, cue.upcast());
     }
 }
 

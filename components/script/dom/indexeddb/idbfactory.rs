@@ -214,7 +214,7 @@ impl IDBFactory {
             .task_manager()
             .database_access_task_source()
             .to_sendable();
-        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
+        let callback = GenericCallback::new(move |message| {
             let response_listener = response_listener.clone();
             let response = match message {
                 Ok(inner) => inner,
@@ -663,7 +663,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             .task_manager()
             .database_access_task_source()
             .to_sendable();
-        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
+        let callback = GenericCallback::new(move |message| {
             let result: BackendResult<Vec<DatabaseInfo>> = message.unwrap();
             let Some(trusted_promise) = trusted_promise.take() else {
                 return error!("Callback for `DataBases` called twice.");
@@ -671,7 +671,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
             // Step 4.4: Queue a database task to resolve p with result.
             task_source.queue(task!(set_request_result_to_database: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 match result {
                     Err(err) => {
                         let error = map_backend_error_to_dom_error(err);

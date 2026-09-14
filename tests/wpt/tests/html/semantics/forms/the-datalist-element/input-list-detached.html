@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLInputElement list in a detached tree</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#the-list-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  const root = document.createElement("div");
+  const input = document.createElement("input");
+  input.setAttribute("list", "suggestions");
+  const datalist = document.createElement("datalist");
+  datalist.id = "suggestions";
+  root.append(input, datalist);
+
+  assert_equals(input.list, datalist);
+}, "The list getter finds a datalist in a detached element tree");
+</script>

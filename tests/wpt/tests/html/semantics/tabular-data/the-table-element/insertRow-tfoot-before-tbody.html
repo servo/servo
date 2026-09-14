@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>insertRow(): table with a tfoot</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-table-insertrow">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<table>
+  <thead><tr><th>Header</th></tr></thead>
+  <tfoot><tr id="last-tr"><td>Footer</td></tr></tfoot>
+  <tbody><tr><td>Body</td></tr></tbody>
+</table>
+
+<script>
+"use strict";
+
+test(() => {
+
+  const table = document.querySelector("table");
+  const lastTR = document.querySelector("#last-tr");
+
+  assert_equals(table.rows[table.rows.length - 1], lastTR);
+
+  const tr = table.insertRow(-1);
+  assert_equals(tr.parentNode, table.tFoot);
+  assert_equals(tr.previousElementSibling, lastTR);
+
+}, "insertRow(-1) should put the element in the tfoot, if it exists (i.e. the parent of the last tr in rows)");
+
+</script>

@@ -18,8 +18,7 @@ use gleam::gl::RENDERER;
 use image::RgbaImage;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
-use paint_api::display_list::{PaintDisplayListInfo, ScrollType};
-use paint_api::largest_contentful_paint_candidate::LCPCandidate;
+use paint_api::display_list::{PaintDisplayListInfo, PaintTimingReport, ScrollType};
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
@@ -525,9 +524,9 @@ impl Painter {
                 }
 
                 let pending_lcp_candidates = &mut pipeline.lcp_candidates;
-                while let Some((epoch, candidate)) = pending_lcp_candidates.pop_front() {
+                while let Some((epoch, (id, area))) = pending_lcp_candidates.pop_front() {
                     if epoch > current_epoch {
-                        pending_lcp_candidates.push_front((epoch, candidate));
+                        pending_lcp_candidates.push_front((epoch, (id, area)));
                         break;
                     }
                     #[cfg(feature = "tracing")]
@@ -535,17 +534,12 @@ impl Painter {
                         name: "LargestContentfulPaint",
                         servo_profiling = true,
                         paint_time = ?paint_time,
-                        area = ?candidate.area,
+                        area = ?area,
                         pipeline_id = ?pipeline_id,
                     );
                     paint_metric_events.push((
                         *pipeline_id,
-                        PaintMetricEvent::LargestContentfulPaint(
-                            paint_time,
-                            candidate.area,
-                            candidate.url.clone(),
-                            candidate.id,
-                        ),
+                        PaintMetricEvent::LargestContentfulPaint(paint_time, id),
                     ));
                 }
             }
@@ -843,8 +837,21 @@ impl Painter {
         pipeline_exit_source: PipelineExitSource,
     ) {
         debug!("Paint got pipeline exited: {webview_id:?} {pipeline_id:?}",);
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
-            webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
+        let fully_exited =
+            self.webview_renderers
+                .get_mut(&webview_id)
+                .is_some_and(|webview_renderer| {
+                    webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source)
+                });
+
+        // Once every part of Servo has finished with this `Pipeline`, drop its
+        // retained scene state (built display list, spatial/clip data) from
+        // WebRender as well. Without this, `Scene.pipelines` accumulates one
+        // entry per navigation for the lifetime of the process.
+        if fully_exited {
+            let mut transaction = Transaction::new();
+            transaction.remove_pipeline(pipeline_id.into());
+            self.send_transaction(transaction);
         }
     }
 
@@ -979,16 +986,24 @@ impl Painter {
 
         let epoch = display_list_info.epoch.into();
         let first_reflow = display_list_info.first_reflow;
-        if details.first_paint_metric == PaintMetricState::Waiting && display_list_info.is_paintable
+        if details.first_paint_metric == PaintMetricState::Waiting &&
+            display_list_info
+                .paint_timing_report
+                .contains(PaintTimingReport::FirstPaint)
         {
             details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }
 
         if details.first_contentful_paint_metric == PaintMetricState::Waiting &&
-            display_list_info.is_paintable &&
-            display_list_info.is_contentful
+            display_list_info
+                .paint_timing_report
+                .contains(PaintTimingReport::FirstContentfulPaint)
         {
             details.first_contentful_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
+        }
+
+        if let Some(lcp_candidate) = display_list_info.lcp_candidate {
+            details.lcp_candidates.push_back((epoch, lcp_candidate));
         }
 
         details.animations.handle_new_display_list(
@@ -1476,21 +1491,6 @@ impl Painter {
             .values()
             .map(|renderer| renderer.scroll_trees_memory_usage(ops))
             .sum::<usize>()
-    }
-
-    pub(crate) fn append_lcp_candidate(
-        &mut self,
-        lcp_candidate: LCPCandidate,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        epoch: Epoch,
-    ) {
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
-            webview_renderer
-                .ensure_pipeline_details(pipeline_id)
-                .lcp_candidates
-                .push_back((epoch.into(), lcp_candidate));
-        }
     }
 }
 

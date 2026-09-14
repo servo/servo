@@ -39,8 +39,7 @@
 onload = async () => {
   await waitForCanvasPaint(canvas);
   var context = canvas.getContext('2d');
-  let matrix = context.drawElementImage(anchor, 50, 50);
-  anchor.setCanvasTransform(matrix);
+  context.drawElementImage(anchor, 50, 50);
   takeScreenshot();
 };
 </script>

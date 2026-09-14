@@ -42,8 +42,8 @@ use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{
-    FontFeatureSettings, FontStretch, FontStyle, FontSynthesis, FontVariantEastAsian,
-    FontVariantLigatures, FontVariantNumeric, FontWeight,
+    FontFeatureSettings, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
+    FontVariantNumeric, FontWeight, FontWidth,
 };
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
@@ -181,20 +181,20 @@ pub trait PlatformFontMethods: Sized {
         }
 
         let weight = FontWeight::from_float(os2.us_weight_class() as f32);
-        let stretch = match os2.us_width_class() {
-            1 => FontStretch::ULTRA_CONDENSED,
-            2 => FontStretch::EXTRA_CONDENSED,
-            3 => FontStretch::CONDENSED,
-            4 => FontStretch::SEMI_CONDENSED,
-            5 => FontStretch::NORMAL,
-            6 => FontStretch::SEMI_EXPANDED,
-            7 => FontStretch::EXPANDED,
-            8 => FontStretch::EXTRA_EXPANDED,
-            9 => FontStretch::ULTRA_EXPANDED,
-            _ => FontStretch::NORMAL,
+        let width = match os2.us_width_class() {
+            1 => FontWidth::ULTRA_CONDENSED,
+            2 => FontWidth::EXTRA_CONDENSED,
+            3 => FontWidth::CONDENSED,
+            4 => FontWidth::SEMI_CONDENSED,
+            5 => FontWidth::NORMAL,
+            6 => FontWidth::SEMI_EXPANDED,
+            7 => FontWidth::EXPANDED,
+            8 => FontWidth::EXTRA_EXPANDED,
+            9 => FontWidth::ULTRA_EXPANDED,
+            _ => FontWidth::NORMAL,
         };
 
-        FontTemplateDescriptor::new(weight, stretch, style)
+        FontTemplateDescriptor::new(weight, width, style)
     }
 }
 
@@ -458,9 +458,9 @@ pub struct ShapingOptions {
     ///
     /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
     /// determine the amount of spacing to apply.
-    pub letter_spacing: Option<Au>,
+    pub letter_spacing: Au,
     /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
-    pub word_spacing: Option<Au>,
+    pub word_spacing: Au,
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// The preferred language, obtained from the `lang` attribute.
@@ -482,12 +482,14 @@ pub struct ShapingOptions {
 }
 
 impl ShapingOptions {
-    pub(crate) fn letter_spacing_for_character(&self, character: char) -> Option<Au> {
+    pub(crate) fn letter_spacing_for_character(&self, character: char) -> Au {
         // https://drafts.csswg.org/css-text/#letter-spacing-property
         // Letter spacing ignores invisible zero-width formatting characters (such as those from the Unicode Cf category).
         // Spacing must be added as if those characters did not exist in the document.
+        if GeneralCategory::for_char(character) == GeneralCategory::Format {
+            return Au::zero();
+        }
         self.letter_spacing
-            .filter(|_| GeneralCategory::for_char(character) != GeneralCategory::Format)
     }
 }
 
@@ -495,8 +497,8 @@ impl ShapingOptions {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct ShapeCacheEntry {
     text: String,
-    letter_spacing: Option<Au>,
-    word_spacing: Option<Au>,
+    letter_spacing: Au,
+    word_spacing: Au,
     script: Script,
     language: Language,
     font_features: Box<[(Tag, u32)]>,
@@ -1194,8 +1196,7 @@ fn compute_variations(
     //
     // If the selected font is defined in an @font-face rule, then the values applied at this step should be clamped
     // to the value of the font-weight, font-width, and font-style descriptors in that @font-face rule.
-    // TODO: Clamp weight/stretch to the descriptors from the @font-face rule, if any
-    // NOTE: font-stretch is a legacy alias to font-width
+    // TODO: Clamp weight/width to the descriptors from the @font-face rule, if any
     add_variation(FontVariation {
         tag: Tag::new(b"wght").to_u32(),
         value: descriptor.weight.value(),
@@ -1203,7 +1204,7 @@ fn compute_variations(
 
     add_variation(FontVariation {
         tag: Tag::new(b"wdth").to_u32(),
-        value: descriptor.stretch.0.to_float(),
+        value: descriptor.width.0.to_float(),
     });
 
     if variation_axes.intersects(VariationAxes::ITAL | VariationAxes::SLNT) {

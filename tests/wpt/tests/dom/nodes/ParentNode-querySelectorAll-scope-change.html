@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Change the scope of querySelectorAll</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#the-scope-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3906 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const data = `<plist>
+    <dict>
+      <key id="target1">PayloadType</key>
+      <string>Configuration</string>
+      <key>PayloadContent</key>
+      <array>
+        <dict>
+          <key id="target2">FullScreen</key>
+          <true/>
+        </dict>
+      </array>
+    </dict>
+  </plist>
+  `;
+  const xmlDocument = new DOMParser().parseFromString(data, "application/xml");
+  const rootCollection = xmlDocument.querySelector(":root > dict");
+  const keysInRootCollection = rootCollection.querySelectorAll(":scope > key");
+  assert_equals(keysInRootCollection.item(0), xmlDocument.getElementById("target1"), "first item");
+  const subCollection = rootCollection.children[3].children[0];
+  const keysInSubCollection = subCollection.querySelectorAll(":scope > key");
+  const clonedSubCollection = subCollection.cloneNode(true);
+  const keysInClonedSubCollection =
+    clonedSubCollection.querySelectorAll(":scope > key");
+  assert_equals(subCollection.outerHTML, clonedSubCollection.outerHTML, "outerHTML");
+  assert_equals(keysInSubCollection.length, keysInClonedSubCollection.length, "length");
+  assert_equals(keysInSubCollection.item(0), xmlDocument.getElementById("target2"), "second item");
+});
+</script>

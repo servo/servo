@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
@@ -18,6 +17,7 @@ use servo_constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
 use uuid::Uuid;
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{
     ServiceWorkerRegistrationMethods, ServiceWorkerUpdateViaCache,
 };
@@ -206,12 +206,12 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-serviceworkerregistration-unregister>
-    fn Unregister(&self, cx: &mut JSContext) -> Rc<Promise> {
+    fn Unregister(&self, cx: &mut JSContext) -> RootedPromise {
         // Step 1: Let registration be the service worker registration.
         // Note: `self` is the registration.
 
         // Step 2: Let promise be a new promise.
-        let promise = Promise::new(cx, &self.global());
+        let promise = Promise::new_rooted(cx, &self.global());
 
         let Some(worker) = self.get_newest_worker() else {
             promise.resolve_native(cx, &true);
@@ -243,7 +243,7 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
             storage_key,
             self.scope.clone(),
             worker.get_script_url(),
-            promise.clone(),
+            &promise,
         );
 
         // Set all workers to none.

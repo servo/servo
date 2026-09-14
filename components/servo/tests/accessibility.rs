@@ -9,7 +9,8 @@ use std::cell::Cell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use accesskit::{NodeId, Rect, Role, TreeId, TreeUpdate};
+use accesskit::Role::{self, GenericContainer};
+use accesskit::{NodeId, Rect, TreeId, TreeUpdate};
 use accesskit_consumer::TreeChangeHandler;
 use euclid::Scale;
 use servo::{
@@ -902,6 +903,9 @@ fn test_accessibility_build_initial_tree_after_scroll() {
     let load_webview = webview.clone();
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
+    // A scroll injected before the scene is built is silently dropped, and the
+    // tree asserted below would be the one built without it.
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
     webview.notify_scroll_event(
         Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(20.0, 40.0))),
         WebViewPoint::Device(DevicePoint::new(250.0, 250.0)),
@@ -961,6 +965,33 @@ fn test_accessibility_unchanged_bounds_are_not_resent() {
         !resent_ids.contains(&node_b_id),
         "A node whose bounds did not change should not be re-serialized, but got {resent_ids:?}"
     );
+}
+
+#[test]
+fn test_accessibility_bounds_are_computed_for_inline_elements() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <h1>We really <em>really <strong>really</strong></em> like owls</h1>";
+
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Should be exactly one heading");
+    assert_eq!(
+        heading.label(),
+        Some("We really really really like owls".to_owned())
+    );
+    assert!(heading.has_bounds());
+
+    let heading_children: Vec<_> = heading.children().collect();
+    let em = find_first_matching_node(heading, |node| node.role() == GenericContainer)
+        .expect("Heading should have one GenericContainer child");
+    assert!(em.has_bounds());
+
+    let strong = find_first_matching_node(em, |node| node.role() == GenericContainer)
+        .expect("<em> should have one GenericContainer child");
+    assert!(strong.has_bounds());
 }
 
 // ************************************************************************************************
@@ -1033,6 +1064,11 @@ fn build_webview_and_tree(
 
     let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
     let tree = build_tree(updates);
+
+    // Neither load status nor accessibility updates imply a built WebRender
+    // scene, and callers inject input as soon as this returns.
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
     (servo_test, delegate, webview, tree)
 }
 

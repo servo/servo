@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: form submit event</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+let submitEvent;
+function prepareForm() {
+  submitEvent = undefined;
+  const form = document.createElement("FORM");
+  const submitButton = document.createElement("BUTTON");
+  form.appendChild(submitButton);
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    submitEvent = event;
+  });
+  document.body.appendChild(form);
+  return { form, submitButton };
+}
+
+test(() => {
+  const { submitButton } = prepareForm();
+  submitButton.click();
+  assert_equals(submitEvent.submitter, submitButton, "Submitter is set");
+}, "Clicking a submit button sets the submitter");
+
+test(() => {
+  const { form, submitButton } = prepareForm();
+  form.requestSubmit(submitButton);
+  assert_equals(submitEvent.submitter, submitButton, "Submitter is set");
+}, "Requesting submit with a submitter sets the submitter");
+
+test(() => {
+  const { form } = prepareForm();
+  form.requestSubmit();
+  assert_equals(submitEvent.submitter, null, "Submitter is not set");
+}, "Requesting submit without a submitter does not set the submitter");
+</script>

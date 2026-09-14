@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OffscreenCanvas drawElementImage element geometry update notifications and DrawElementImageOptions</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+</head>
+<body style="margin: 0;">
+  <canvas id="canvas" style="position: absolute; left: 0; top: 0; width: 400px; height: 400px;" width="400" height="400" layoutsubtree>
+    <div id="target" style="position: absolute; left: 0; top: 0; width: 100px; height: 50px; transform-origin: 0 0;"></div>
+    <div id="target2" style="position: absolute; left: 0; top: 0; width: 80px; height: 40px; transform-origin: 0 0;"></div>
+  </canvas>
+
+  <script>
+    'use strict';
+
+  const canvas = document.querySelector('#canvas');
+  const target = document.querySelector('#target');
+  const target2 = document.querySelector('#target2');
+
+    const workerCode = `
+      let ctx;
+      let offscreen;
+      self.onmessage = function(e) {
+        if (e.data.canvas) {
+          offscreen = e.data.canvas;
+          ctx = offscreen.getContext('2d');
+        }
+        if (e.data.action === 'draw') {
+          ctx.reset();
+          const opts = e.data.options || {};
+          let ret;
+          if (e.data.args.length === 2) {
+            ret = ctx.drawElementImage(
+                e.data.elementImage, e.data.args[0], e.data.args[1], opts);
+          } else if (e.data.args.length === 4) {
+            ret = ctx.drawElementImage(
+                e.data.elementImage, e.data.args[0], e.data.args[1], e.data.args[2], e.data.args[3], opts);
+          } else if (e.data.args.length === 6) {
+            ret = ctx.drawElementImage(
+                e.data.elementImage, e.data.args[0], e.data.args[1], e.data.args[2], e.data.args[3], e.data.args[4], e.data.args[5], opts);
+          } else if (e.data.args.length === 8) {
+            ret = ctx.drawElementImage(
+                e.data.elementImage, e.data.args[0], e.data.args[1], e.data.args[2], e.data.args[3], e.data.args[4], e.data.args[5], e.data.args[6], e.data.args[7], opts);
+          }
+          self.postMessage({action: 'draw_done', ret: ret});
+        } else if (e.data.action === 'draw_multiple') {
+          ctx.reset();
+          ctx.drawElementImage(e.data.elementImage1, 10, 20);
+          ctx.drawElementImage(e.data.elementImage2, 30, 40);
+          self.postMessage({action: 'draw_multiple_done'});
+        } else if (e.data.action === 'draw_multiple_same') {
+          ctx.reset();
+          ctx.drawElementImage(e.data.elementImage1, 10, 20);
+          ctx.drawElementImage(e.data.elementImage2, 30, 40);
+          ctx.drawElementImage(e.data.elementImage1, 50, 60);
+          self.postMessage({action: 'draw_multiple_same_done'});
+        } else if (e.data.action === 'clear_element') {
+          offscreen.clearElementGeometry(e.data.elementImage);
+          self.postMessage({action: 'clear_done'});
+        } else if (e.data.action === 'draw_and_clear') {
+          ctx.reset();
+          ctx.drawElementImage(e.data.elementImage1, 10, 20);
+          offscreen.clearElementGeometry(e.data.elementImage1);
+          ctx.drawElementImage(e.data.elementImage2, 30, 40);
+          self.postMessage({action: 'draw_and_clear_done'});
+        } else if (e.data.action === 'clear_and_redraw') {
+          offscreen.clearElementGeometry(e.data.elementImage);
+          ctx.drawElementImage(e.data.elementImage, 50, 60);
+          self.postMessage({action: 'clear_and_redraw_done'});
+        } else if (e.data.action === 'clear_multiple') {
+          offscreen.clearElementGeometry(e.data.elementImage1);
+          offscreen.clearElementGeometry(e.data.elementImage2);
+          offscreen.clearElementGeometry(e.data.elementImage1);
+          self.postMessage({action: 'clear_multiple_done'});
+        }
+      };
+    `;
+
+  const blob = new Blob([workerCode], {type: 'application/javascript'});
+  const worker = new Worker(URL.createObjectURL(blob));
+  const offscreen = canvas.transferControlToOffscreen();
+  worker.postMessage({canvas: offscreen}, [offscreen]);
+
+  function waitForElementGeometryUpdate(canvas) {
+    return new Promise((resolve) => {
+      canvas.addEventListener('elementgeometryupdate', (e) => resolve(e), {once: true});
+    });
+  }
+
+  function waitForWorkerMessage(worker, action) {
+    return new Promise((resolve) => {
+      const handler = (e) => {
+        if (!action || e.data.action === action) {
+          worker.removeEventListener('message', handler);
+          resolve(e.data);
+        }
+      };
+      worker.addEventListener('message', handler);
+    });
+  }
+
+  promise_test(async (t) => {
+    t.add_cleanup(() =>  {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+    });
+    await waitForCanvasPaint(canvas);
+
+    const elementImage = canvas.captureElementImage(target);
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    worker.postMessage({
+      action: 'draw',
+      elementImage: elementImage,
+      args: [30, 40]
+    }, [elementImage]);
+
+    const event = await updatePromise;
+    assert_true(event instanceof ElementGeometryUpdateEvent, 'Event is instance of ElementGeometryUpdateEvent');
+    assert_equals(event.type, 'elementgeometryupdate');
+    assert_equals(event.elements.length, 1);
+    assert_equals(event.elements[0], target);
+
+    const transform = canvas.getElementTransform(target);
+    assert_equals(transform.e, 30);
+    assert_equals(transform.f, 40);
+    const rect = target.getBoundingClientRect();
+    assert_equals(rect.left, 30);
+    assert_equals(rect.top, 40);
+  }, 'drawElementImage on worker dispatches elementgeometryupdate and updates element transform by default');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() =>  {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+    });
+
+    await waitForCanvasPaint(canvas);
+    const elementImage = canvas.captureElementImage(target);
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    worker.postMessage({
+      action: 'draw',
+      elementImage: elementImage,
+      args: [50, 60],
+      options: {preserveElementGeometry: false}
+    }, [elementImage]);
+
+    const event = await updatePromise;
+    assert_true(event instanceof ElementGeometryUpdateEvent);
+    assert_equals(event.elements.length, 1);
+    assert_equals(event.elements[0], target);
+
+    const transform = canvas.getElementTransform(target);
+    assert_equals(transform.e, 50);
+    assert_equals(transform.f, 60);
+    const rect = target.getBoundingClientRect();
+    assert_equals(rect.left, 50);
+    assert_equals(rect.top, 60);
+  }, 'drawElementImage on worker updates element transform with explicit {preserveElementGeometry: false}');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() =>  {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+      canvas.removeAttribute('onelementgeometryupdate');
+    });
+
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(target, {canvasTransform: new DOMMatrix().translate(10, 20)});
+    const initialTransform = canvas.getElementTransform(target);
+    const initialRect = target.getBoundingClientRect();
+
+    let eventFired = false;
+    canvas.onelementgeometryupdate = () => { eventFired = true; };
+
+    const elementImage = canvas.captureElementImage(target);
+    const workerDonePromise = waitForWorkerMessage(worker, 'draw_done');
+    worker.postMessage({
+      action: 'draw',
+      elementImage: elementImage,
+      args: [100, 120],
+      options: {preserveElementGeometry: true}
+    }, [elementImage]);
+
+    await workerDonePromise;
+    // Allow a microtask/task turn for any spurious task.
+    await new Promise(resolve => t.step_timeout(resolve, 50));
+
+    assert_false(eventFired, 'elementgeometryupdate should not fire when preserveElementGeometry is true');
+    assert_array_equals(canvas.getElementTransform(target).toFloat64Array(), initialTransform.toFloat64Array(),
+                        'target transform unchanged');
+    const rect = target.getBoundingClientRect();
+    assert_equals(rect.left, initialRect.left);
+    assert_equals(rect.top, initialRect.top);
+  }, 'drawElementImage on worker does not update element transform with {preserveElementGeometry: true}');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() =>  {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+    });
+
+    await waitForCanvasPaint(canvas);
+    const elementImage1 = canvas.captureElementImage(target);
+    const elementImage2 = canvas.captureElementImage(target2);
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+
+    worker.postMessage({
+      action: 'draw_multiple',
+      elementImage1: elementImage1,
+      elementImage2: elementImage2,
+    }, [elementImage1, elementImage2]);
+
+    const event = await updatePromise;
+    assert_true(event instanceof ElementGeometryUpdateEvent);
+    assert_equals(event.elements.length, 2, 'Batched 2 elements in single event');
+    assert_true(event.elements.includes(target));
+    assert_true(event.elements.includes(target2));
+
+    const rect1 = target.getBoundingClientRect();
+    assert_equals(rect1.left, 10);
+    assert_equals(rect1.top, 20);
+
+    const rect2 = target2.getBoundingClientRect();
+    assert_equals(rect2.left, 30);
+    assert_equals(rect2.top, 40);
+  }, 'Multiple drawElementImage calls in same worker turn batch into a single elementgeometryupdate event');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() =>  {
+      canvas.clearElementGeometry(target);
+      canvas.clearElementGeometry(target2);
+    });
+
+    await waitForCanvasPaint(canvas);
+    const elementImage = canvas.captureElementImage(target);
+    let updatePromise = waitForElementGeometryUpdate(canvas);
+
+    worker.postMessage({
+      action: 'draw',
+      elementImage: elementImage,
+      args: [20, 30, 200, 100],
+      options: {preserveElementGeometry: false}
+    }, [elementImage]);
+
+    await updatePromise;
+    let rect = target.getBoundingClientRect();
+    assert_equals(rect.left, 20);
+    assert_equals(rect.top, 30);
+    assert_false(canvas.getElementTransform(target).isIdentity);
+
+    const elementImageForClear = canvas.captureElementImage(target);
+    updatePromise = waitForElementGeometryUpdate(canvas);
+
+    worker.postMessage({
+      action: 'clear_element',
+      elementImage: elementImageForClear,
+    }, [elementImageForClear]);
+
+    const clearEvent = await updatePromise;
+    assert_true(clearEvent instanceof ElementGeometryUpdateEvent);
+    assert_equals(clearEvent.elements.length, 1);
+    assert_equals(clearEvent.elements[0], target);
+
+    assert_true(canvas.getElementTransform(target).isIdentity);
+    rect = target.getBoundingClientRect();
+    assert_equals(rect.left, 0);
+    assert_equals(rect.top, 0);
+  }, 'clearElementGeometry on worker clears geometry and dispatches elementgeometryupdate event');
+  </script>
+</body>
+</html>

@@ -335,7 +335,16 @@ promise_test(t => {
         .then(result => {
           assert_equals(result.image.displayWidth, 320);
           assert_equals(result.image.displayHeight, 240);
-        });
+          // Ensure that we can decode successfully after closing image.
+          result.image.close();
+          assert_equals(result.image.displayWidth, 0);
+          assert_equals(result.image.displayHeight, 0);
+          return decoder.decode();
+        })
+        .then(result => {
+          assert_equals(result.image.displayWidth, 320);
+          assert_equals(result.image.displayHeight, 240);
+        })
   });
 }, 'Test decode, decodeMetadata after no track selected.');
 

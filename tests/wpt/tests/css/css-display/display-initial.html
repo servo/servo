@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Initial value of display</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#the-display-properties">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#defaulting-keywords">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3895 -->
+
+<style>
+.inlineBlock {
+  display: inline-block;
+}
+</style>
+<div id="div">
+  <q id="q"></q>
+  <q id="q2" class="inlineBlock"></q>
+</div>
+
+<script>
+"use strict";
+const div = document.getElementById("div");
+const q = document.getElementById("q");
+const q2 = document.getElementById("q2");
+
+test(() => {
+  assert_equals(div.style.getPropertyValue("display"), "", "Specified value of div");
+  assert_equals(window.getComputedStyle(div).getPropertyValue("display"), "block", "Computed value of div");
+
+  assert_equals(q.style.getPropertyValue("display"), "", "Specified value of q");
+  assert_equals(window.getComputedStyle(q).getPropertyValue("display"), "inline", "Computed value of q");
+
+  assert_equals(q2.style.getPropertyValue("display"), "", "Specified value of q2");
+  assert_equals(window.getComputedStyle(q2).getPropertyValue("display"), "inline-block", "Computed value of q2");
+}, "Sanity check");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.display = null;
+    q.style.display = null;
+    q2.style.display = null;
+  });
+
+  div.style.display = "initial";
+  assert_equals(div.style.getPropertyValue("display"), "initial", "Specified value of div");
+  assert_equals(window.getComputedStyle(div).getPropertyValue("display"), "inline", "Computed value of div");
+
+  q.style.display = "initial";
+  assert_equals(q.style.getPropertyValue("display"), "initial", "Specified value of q");
+  assert_equals(window.getComputedStyle(q).getPropertyValue("display"), "inline", "Computed value of q");
+
+  q2.style.display = "initial";
+  assert_equals(q2.style.getPropertyValue("display"), "initial", "Specified value of q2");
+  assert_equals(window.getComputedStyle(q2).getPropertyValue("display"), "inline", "Computed value of q2");
+}, "Initial value of display");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.display = null;
+    q.style.display = null;
+    q2.style.display = null;
+  });
+
+  div.style.display = "inherit";
+  assert_equals(div.style.getPropertyValue("display"), "inherit", "Specified value of div");
+  assert_equals(window.getComputedStyle(div).getPropertyValue("display"), "block", "Computed value of div");
+
+  q.style.display = "inherit";
+  assert_equals(q.style.getPropertyValue("display"), "inherit", "Specified value of q");
+  assert_equals(window.getComputedStyle(q).getPropertyValue("display"), "block", "Computed value of q");
+
+  q2.style.display = "inherit";
+  assert_equals(q2.style.getPropertyValue("display"), "inherit", "Specified value of q2");
+  assert_equals(window.getComputedStyle(q2).getPropertyValue("display"), "block", "Computed value of q2");
+}, "Inherit value of display");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.display = null;
+    q.style.display = null;
+    q2.style.display = null;
+  });
+
+  div.style.display = "unset";
+  assert_equals(div.style.getPropertyValue("display"), "unset", "Specified value of div");
+  assert_equals(window.getComputedStyle(div).getPropertyValue("display"), "inline", "Computed value of div");
+
+  q.style.display = "unset";
+  assert_equals(q.style.getPropertyValue("display"), "unset", "Specified value of q");
+  assert_equals(window.getComputedStyle(q).getPropertyValue("display"), "inline", "Computed value of q");
+
+  q2.style.display = "unset";
+  assert_equals(q2.style.getPropertyValue("display"), "unset", "Specified value of q2");
+  assert_equals(window.getComputedStyle(q2).getPropertyValue("display"), "inline", "Computed value of q2");
+}, "Unset value of display");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.display = null;
+    q.style.display = null;
+    q2.style.display = null;
+  });
+
+  div.style.display = "revert";
+  assert_equals(div.style.getPropertyValue("display"), "revert", "Specified value of div");
+  assert_equals(window.getComputedStyle(div).getPropertyValue("display"), "block", "Computed value of div");
+
+  q.style.display = "revert";
+  assert_equals(q.style.getPropertyValue("display"), "revert", "Specified value of q");
+  assert_equals(window.getComputedStyle(q).getPropertyValue("display"), "inline", "Computed value of q");
+
+  q2.style.display = "revert";
+  assert_equals(q2.style.getPropertyValue("display"), "revert", "Specified value of q2");
+  assert_equals(window.getComputedStyle(q2).getPropertyValue("display"), "inline", "Computed value of q2");
+}, "Revert value of display");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.display = null;
+    q.style.display = null;
+    q2.style.display = null;
+  });
+
+  div.style.display = "revert-layer";
+  assert_equals(div.style.getPropertyValue("display"), "revert-layer", "Specified value of div");
+  assert_equals(window.getComputedStyle(div).getPropertyValue("display"), "block", "Computed value of div");
+
+  q.style.display = "revert-layer";
+  assert_equals(q.style.getPropertyValue("display"), "revert-layer", "Specified value of q");
+  assert_equals(window.getComputedStyle(q).getPropertyValue("display"), "inline", "Computed value of q");
+
+  q2.style.display = "revert-layer";
+  assert_equals(q2.style.getPropertyValue("display"), "revert-layer", "Specified value of q2");
+  assert_equals(window.getComputedStyle(q2).getPropertyValue("display"), "inline-block", "Computed value of q2");
+}, "Revert-layer value of display");
+</script>

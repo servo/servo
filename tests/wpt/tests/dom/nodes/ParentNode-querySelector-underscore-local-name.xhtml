@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Element local name with an underscore in querySelector</title>
+  <meta charset="utf-8"/>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <!-- Regression test for https://github.com/jsdom/jsdom/issues/3015 -->
+</head>
+<body>
+  <data><_g><b>hey</b></_g></data>
+
+  <script>
+  /*<![CDATA[*/
+  "use strict";
+  test(() => {
+    assert_equals(document.querySelector("data > _g > b").textContent, "hey");
+  });
+  /*]]>*/
+  </script>
+</body>
+</html>

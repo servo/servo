@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Speculation rules: moderate eagerness list rule prefetches on hover</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<body>
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  // Reading the prefetch count resets it server-side, so return the last
+  // value read rather than reading it again after polling.
+  async function waitUntilPrefetched(t, url, deadline_ms) {
+    const start = performance.now();
+    let count = 0;
+    while (true) {
+      count = await isUrlPrefetched(url);
+      if (count > 0 || performance.now() - start >= deadline_ms) {
+        return count;
+      }
+      await new Promise(resolve => t.step_timeout(resolve, 100));
+    }
+  }
+
+  promise_test(async t => {
+    const url = getPrefetchUrl();
+    const link = addLink(url);
+    // Give the link a box so the pointer has something to hover.
+    link.textContent = 'hover me';
+
+    insertSpeculationRules({
+      prefetch: [{ source: 'list', urls: [url], eagerness: 'moderate' }]
+    });
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0,
+        'moderate candidate must not be prefetched before hover');
+
+    await new test_driver.Actions()
+        .addPointer('mouse')
+        .pointerMove(0, 0, { origin: link })
+        .send();
+
+    assert_equals(await waitUntilPrefetched(t, url, 2000), 1,
+        'moderate candidate must be prefetched after hovering the link');
+  }, 'moderate eagerness list rule prefetches after hovering the link');
+</script>
+</body>

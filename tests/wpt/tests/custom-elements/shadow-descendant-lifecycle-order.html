@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Custom element lifecycle order through nested shadow trees</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/custom-elements.html#dom-customelementregistry-upgrade">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-shadow-including-descendant">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+setup({ allow_uncaught_exception: true });
+
+test(t => {
+  const root = document.createElement("x-traversal-order");
+  root.id = "root";
+  root.innerHTML = '<x-traversal-order id="light">' +
+    '<x-traversal-order id="leaf"></x-traversal-order></x-traversal-order>';
+  const shadow = root.attachShadow({ mode: "closed" });
+  shadow.innerHTML = '<x-traversal-order id="shadow"></x-traversal-order>';
+  shadow.firstChild.attachShadow({ mode: "open" }).innerHTML = '<x-traversal-order id="nested"></x-traversal-order>';
+  t.add_cleanup(() => root.remove());
+
+  const calls = [];
+  customElements.define("x-traversal-order", class extends HTMLElement {
+    constructor() {
+      super();
+      calls.push(`upgrade:${this.id}`);
+    }
+    connectedCallback() {
+      calls.push(`connect:${this.id}`);
+    }
+    disconnectedCallback() {
+      calls.push(`disconnect:${this.id}`);
+    }
+    adoptedCallback() {
+      calls.push(`adopt:${this.id}`);
+    }
+  });
+
+  const order = ["root", "shadow", "nested", "light", "leaf"];
+  customElements.upgrade(root);
+  assert_array_equals(calls, order.map(id => `upgrade:${id}`));
+  calls.length = 0;
+
+  document.body.appendChild(root);
+  assert_array_equals(calls, order.map(id => `connect:${id}`));
+  calls.length = 0;
+
+  root.remove();
+  assert_array_equals(calls, order.map(id => `disconnect:${id}`));
+  calls.length = 0;
+
+  document.implementation.createHTMLDocument().adoptNode(root);
+  assert_array_equals(calls, order.map(id => `adopt:${id}`));
+}, "Upgrade, connection, removal, and adoption visit closed and nested shadow trees before light children");
+
+test(t => {
+  const root = document.createElement("div");
+  root.innerHTML = '<x-traversal-failure id="failed"></x-traversal-failure>' +
+    '<x-traversal-failure id="sibling"></x-traversal-failure>';
+  const shadow = root.firstChild.attachShadow({ mode: "closed" });
+  shadow.innerHTML = '<x-traversal-failure id="shadow"></x-traversal-failure>';
+  t.add_cleanup(() => root.remove());
+
+  const failure = new Error("Expected constructor failure");
+  const errors = [];
+  function onError(event) {
+    errors.push(event.error);
+    event.preventDefault();
+  }
+  window.addEventListener("error", onError);
+  t.add_cleanup(() => window.removeEventListener("error", onError));
+
+  const calls = [];
+  customElements.define("x-traversal-failure", class extends HTMLElement {
+    constructor() {
+      super();
+      calls.push(`upgrade:${this.id}`);
+      if (this.id === "failed") {
+        throw failure;
+      }
+    }
+    connectedCallback() {
+      calls.push(`connect:${this.id}`);
+    }
+  });
+
+  customElements.upgrade(root);
+  assert_array_equals(errors, [failure]);
+  assert_array_equals(calls, ["upgrade:failed", "upgrade:shadow", "upgrade:sibling"]);
+  calls.length = 0;
+  document.body.appendChild(root);
+  assert_array_equals(calls, ["connect:shadow", "connect:sibling"]);
+}, "A failed upgrade does not skip shadow descendants or following siblings");
+</script>

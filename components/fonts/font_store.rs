@@ -210,11 +210,11 @@ impl FontTemplates {
             return;
         };
 
-        // If the stretch between any of these fonts differ, it cannot be a simple family nor if this
+        // If the width between any of these fonts differ, it cannot be a simple family nor if this
         // font is oblique.
-        let stretch = added_template.descriptor().stretch.0;
+        let width = added_template.descriptor().width.0;
         let style = added_template.descriptor().style.0;
-        if first.descriptor().stretch.0 != stretch || style.is_oblique() {
+        if first.descriptor().width.0 != width || style.is_oblique() {
             self.simple_family = None;
             return;
         }

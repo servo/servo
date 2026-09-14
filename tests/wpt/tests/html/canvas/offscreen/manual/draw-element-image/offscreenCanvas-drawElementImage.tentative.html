@@ -26,15 +26,10 @@ promise_test(async t => {
 
   const offscreen = canvas.transferControlToOffscreen();
   const offscreenContext = offscreen.getContext('2d');
-  let draw_transform = offscreenContext.drawElementImage(elementImage, 0, 0);
+  offscreenContext.drawElementImage(elementImage, 0, 0);
   assert_array_equals(
     offscreenContext.getImageData(0, 0, 1, 1).data,
     [0, 128, 0, 255]);
-
-  let expected = new DOMMatrix().translateSelf(0, 0);
-  assert_array_equals(
-    draw_transform.toFloat64Array(),
-    expected.toFloat64Array());
 }, 'OffscreenCanvas.drawElementImage should draw an ElementImage');
 
 promise_test(async t => {

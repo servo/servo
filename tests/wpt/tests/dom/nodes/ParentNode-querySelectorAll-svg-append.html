@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Selecting appended child nodes of svg</title>
+<meta charset="utf-8">
+<link rel="help" href="https://dom.spec.whatwg.org/#interface-parentnode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3945 -->
+
+<svg></svg>
+<div>
+  <p>foo</p>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.querySelector("div");
+  const ps = div.querySelectorAll("div p");
+  assert_equals(ps.length, 1, "descendant");
+}, "Sanity check with div");
+
+test(() => {
+  const svg = document.querySelector("svg");
+  const svgns = "http://www.w3.org/2000/svg";
+  const g = document.createElementNS(svgns, "g");
+  svg.append(g);
+  const circle = document.createElementNS(svgns, "circle");
+  g.append(circle);
+
+  const circles1 = g.querySelectorAll("g circle");
+  assert_equals(circles1.length, 1, "descendant");
+
+  const circles2 = g.querySelectorAll("g>circle");
+  assert_equals(circles2.length, 1, "child");
+
+  const circles3 = g.querySelectorAll("circle");
+  assert_equals(circles3.length, 1, "tagname");
+}, "Append child nodes to svg");
+</script>

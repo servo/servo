@@ -21,7 +21,7 @@ jobs:
         python wpt make-hosts-file | sudo tee -a /etc/hosts
         python wpt regen-certs --force
     - name: Commit and create pull request
-      uses: peter-evans/create-pull-request@v6
+      uses: peter-evans/create-pull-request@v8
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         author: wpt-pr-bot <wpt-pr-bot@users.noreply.github.com>

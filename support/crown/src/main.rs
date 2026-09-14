@@ -30,6 +30,9 @@ use rustc_interface::interface::Config;
 
 mod common;
 
+#[cfg(feature = "manual_domstring_new")]
+mod manual_domstring_new;
+
 #[cfg(feature = "unrooted_must_root_lint")]
 mod unrooted_must_root;
 
@@ -50,6 +53,8 @@ impl Callbacks for MyCallbacks {
                 return;
             }
 
+            #[cfg(feature = "manual_domstring_new")]
+            manual_domstring_new::register(lint_store);
             #[cfg(feature = "unrooted_must_root_lint")]
             unrooted_must_root::register(lint_store);
             #[cfg(feature = "trace_in_no_trace_lint")]

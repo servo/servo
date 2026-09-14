@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: form submitters</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+let isSubmitted;
+function prepareForm() {
+  isSubmitted = false;
+  const form = document.createElement("FORM");
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    isSubmitted = true;
+  });
+  document.body.appendChild(form);
+  form.innerHTML = `
+    <button type="submit">
+    <button type="button">
+    <input type="submit">
+    <input type="image">
+    <input type="text">
+  `;
+  return form;
+}
+
+test(() => {
+  const form = prepareForm();
+  form.querySelector("button[type=submit]").click();
+  assert_true(isSubmitted, "Form is submitted");
+}, "Form is submitted by submit buttons");
+
+test(() => {
+  const form = prepareForm();
+  form.querySelector("button[type=button]").click();
+  assert_false(isSubmitted, "Form is not submitted");
+}, "Form is not submitted by other button types");
+
+test(() => {
+  const form = prepareForm();
+  form.querySelector("input[type=submit]").click();
+  assert_true(isSubmitted, "Form is submitted");
+}, "Form is submitted by submit inputs");
+
+test(() => {
+  const form = prepareForm();
+  form.querySelector("input[type=image]").click();
+  assert_true(isSubmitted, "Form is submitted");
+}, "Form is submitted by image inputs");
+
+test(() => {
+  const form = prepareForm();
+  form.querySelector("input[type=text]").click();
+  assert_false(isSubmitted, "Form is not submitted");
+}, "Form is not submitted by other input types");
+</script>

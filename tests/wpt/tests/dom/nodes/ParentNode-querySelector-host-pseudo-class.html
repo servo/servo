@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Using :host pseudo-class selector in shadow DOM</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3618 -->
+
+<section id="test-container"></section>
+
+<script>
+"use strict";
+
+test(() => {
+  const section = document.getElementById("test-container");
+  const article = document.createElement("article");
+
+  // Attach a shadow root to the section
+  const shadowSection = section.attachShadow({ mode: "open" });
+
+  // Add the article to the shadow root
+  shadowSection.appendChild(article);
+
+  // This should work - selecting an article element directly
+  const normalQuery = shadowSection.querySelector("article");
+  assert_equals(normalQuery, article, "Simple querySelector for article should find the element");
+
+  // This should also work - using :host to refer to the host element
+  const hostQuery = shadowSection.querySelector(":host > article");
+  assert_equals(hostQuery, article, "querySelector with :host pseudo-class should find the element");
+});
+</script>

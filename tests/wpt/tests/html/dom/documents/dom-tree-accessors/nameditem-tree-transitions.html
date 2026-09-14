@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Document named properties across tree transitions</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="reorder-parent"></div>
+<div id="shadow-host"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const parent = document.querySelector("#reorder-parent");
+  const first = document.createElement("object");
+  const second = document.createElement("object");
+  first.id = "reordered";
+  second.id = "reordered";
+  parent.append(first, second);
+
+  const collection = document.reordered;
+  assert_array_equals([...collection], [first, second], "initial order");
+
+  parent.prepend(second);
+  assert_equals(document.reordered, collection, "collection identity after move");
+  assert_array_equals([...collection], [second, first], "order after move");
+}, "A named-property collection follows same-document moves.");
+
+test(() => {
+  const host = document.querySelector("#shadow-host");
+  const shadowRoot = host.attachShadow({ mode: "open" });
+  const form = document.createElement("form");
+  form.name = "shadowTransition";
+  document.body.append(form);
+  assert_equals(document.shadowTransition, form, "in the document tree");
+
+  shadowRoot.append(form);
+  assert_equals(document.shadowTransition, undefined, "in the shadow tree");
+
+  document.body.append(form);
+  assert_equals(document.shadowTransition, form, "moved back into the document tree");
+}, "Named properties follow moves into and out of a shadow tree.");
+</script>

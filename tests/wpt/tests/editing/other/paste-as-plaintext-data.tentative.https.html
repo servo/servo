@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>This Test is for clipboard data in paste event when pasting plaintext</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+</head>
+<body>
+<div id="source">Some <b>Bold</b> Text</div>
+<input type="text">
+<textarea></textarea>
+<div contenteditable></div>
+<script>
+"use strict";
+
+function waitForPasteEventAndGetData(element) {
+  return new Promise(resolve => {
+    element.addEventListener("paste", (e) => {
+      const data = e.clipboardData;
+      resolve({
+        types: data.types,
+        text: data.getData("text/plain"),
+        html: data.getData("text/html"),
+      });
+    }, {once: true});
+  });
+}
+
+function waitForBeforeInputEventAndGetData(element) {
+  return new Promise(resolve => {
+    element.addEventListener("beforeinput", (e) => {
+      const dataTransfer = e.dataTransfer;
+      resolve({
+        inputType: e.inputType,
+        data: e.data,
+        types: dataTransfer?.types,
+        text: dataTransfer?.getData("text/plain"),
+        html: dataTransfer?.getData("text/html"),
+      });
+    }, {once: true});
+  });
+}
+
+promise_setup(async () => {
+  const utils = new EditorTestUtils(document.documentElement);
+  const source = document.getElementById("source");
+  await test_driver.click(source);  // Ensure user activation
+  getSelection().selectAllChildren(source);
+  await utils.sendCopyShortcutKey();
+})
+
+document.querySelectorAll("input, textarea, div[contenteditable]").forEach((editingHost) => {
+  promise_test(async () => {
+    let promise = waitForPasteEventAndGetData(editingHost);
+    editingHost.focus();
+
+    const utils = new EditorTestUtils(editingHost);
+    await utils.sendPasteAsPlaintextShortcutKey();
+
+    let data = await promise;
+    assert_array_equals(data.types, ["text/plain"]);
+    assert_equals(data.text, document.getElementById("source")?.textContent);
+    assert_equals(data.html, "");
+  }, `Test the paste event when pasting as plain text in ${editingHost}`);
+
+  promise_test(async () => {
+    let promise = waitForBeforeInputEventAndGetData(editingHost);
+    editingHost.focus();
+
+    const utils = new EditorTestUtils(editingHost);
+    await utils.sendPasteAsPlaintextShortcutKey();
+
+    let data = await promise;
+    assert_equals(data.inputType, "insertFromPaste");
+    if (editingHost.isContentEditable) {
+      assert_equals(data.data, null);
+      assert_array_equals(data.types, ["text/plain"]);
+      assert_equals(data.text, document.getElementById("source")?.textContent);
+      assert_equals(data.html, "");
+    } else {
+      assert_equals(data.data, document.getElementById("source")?.textContent);
+      assert_equals(data.types, undefined);
+    }
+  }, `Test the beforeInput event when pasting as plain text in ${editingHost}`);
+});
+
+</script>
+</body>
+</html>

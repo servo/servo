@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Custom properties inheritance</title>
+<link rel="help" href="https://drafts.csswg.org/css-variables-1/#defining-variables">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3563 -->
+
+<!-- Inspired from https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascading_variables/Using_custom_properties -->
+<style>
+:root {
+  --font-size: 10px;
+}
+
+div {
+  font-size: var(--font-size);
+}
+
+.two {
+  --font-size: 20px;
+}
+
+.three {
+  --font-size: 30px;
+}
+
+#five {
+  --font-size: 50px;
+}
+
+.six {
+  --font-size: 60px;
+}
+</style>
+
+<div class="one" id="one">
+  <p>One</p>
+  <div class="two" id="two">
+    <p>Two</p>
+    <div class="three" id="three">
+      <p>Three</p>
+    </div>
+    <div class="four" id="four">
+      <p>Four</p>
+    </div>
+  </div>
+</div>
+<div class="five" id="five">
+  <p>Five</p>
+  <div class="six" id="six">
+    <p>Six</p>
+  </div>
+</div>
+<script>
+"use strict";
+
+const one = document.getElementById("one");
+const two = document.getElementById("two");
+const three = document.getElementById("three");
+const four = document.getElementById("four");
+const five = document.getElementById("five");
+const six = document.getElementById("six");
+
+test(() => {
+  assert_equals(window.getComputedStyle(one).getPropertyValue("--font-size"), "10px", "one");
+  assert_equals(window.getComputedStyle(two).getPropertyValue("--font-size"), "20px", "two");
+  assert_equals(window.getComputedStyle(three).getPropertyValue("--font-size"), "30px", "three");
+  assert_equals(window.getComputedStyle(four).getPropertyValue("--font-size"), "20px", "four");
+  assert_equals(window.getComputedStyle(five).getPropertyValue("--font-size"), "50px", "five");
+  assert_equals(window.getComputedStyle(six).getPropertyValue("--font-size"), "60px", "six");
+}, "Inheritance of custom properties");
+</script>

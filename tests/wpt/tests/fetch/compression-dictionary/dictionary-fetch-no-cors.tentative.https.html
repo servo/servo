@@ -11,35 +11,47 @@
 <body>
 <script>
 
-function getHeadersCrossorigin() {
+function getHeaders(isCrossOrigin) {
   function headersCallback(r) {
     return (x) => {
       r(x);
     }
   }
+  // Default fetch mode for script (without a crossorigin attribute) is no-cors.
   let script = document.createElement("script");
   return new Promise((resolve, reject) => {
-    getHeadersCrossorigin['callback'] = headersCallback(resolve);
+    getHeaders['callback'] = headersCallback(resolve);
     script.src =
-      `${CROSS_ORIGIN_RESOURCES_URL}/echo-headers.py?callback=getHeadersCrossorigin.callback`;
+      `${isCrossOrigin ? CROSS_ORIGIN_RESOURCES_URL : SAME_ORIGIN_RESOURCES_URL}/echo-headers.py?callback=getHeaders.callback`;
     document.head.appendChild(script);
   });
 }
 
 compression_dictionary_promise_test(async (t) => {
   // Register the dictionary
-  const dict = await (await fetch(kRegisterDictionaryPath)).text();
+  const dictionary_id = `no-cors_cross-origin_${token()}`;
+  const dict = await (await fetch(`${kRegisterDictionaryPath}?id=${dictionary_id}`)).text();
   assert_equals(dict, kDefaultDictionaryContent);
-  assert_equals(
-      await waitUntilAvailableDictionaryHeader(t, {}),
-      kDefaultDictionaryHashBase64);
+  await waitUntilHeader(t, "dictionary-id", {expected_header: `"${dictionary_id}"`});
   // Test a no-cors crossorigin fetch
-  const headers = await getHeadersCrossorigin();
+  const headers = await getHeaders(true /* cross-origin */);
   assert_false("available-dictionary" in headers);
 }, 'Fetch cross-origin no-cors request does not include Available-Dictionary header');
 
 compression_dictionary_promise_test(async (t) => {
-  const dictionary_url = `${CROSS_ORIGIN_RESOURCES_URL}/register-dictionary.py`;
+  // Register the dictionary
+  const dictionary_id = `no-cors_same-origin_${token()}`;
+  const dict = await (await fetch(`${kRegisterDictionaryPath}?id=${dictionary_id}`)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  await waitUntilHeader(t, "dictionary-id", {expected_header: `"${dictionary_id}"`});
+  // Test a no-cors same-origin fetch
+  const headers = await getHeaders(false /* cross-origin */);
+  assert_true("available-dictionary" in headers);
+}, 'Fetch same-origin no-cors request includes Available-Dictionary header');
+
+compression_dictionary_promise_test(async (t) => {
+  const dictionary_id = `redirect_${token()}`;
+  const dictionary_url = `${CROSS_ORIGIN_RESOURCES_URL}/register-dictionary.py?id=${dictionary_id}`;
   const redirect_url = `/common/redirect.py?location=${encodeURIComponent(dictionary_url)}`;
   try {
     await fetch(redirect_url, {mode: 'no-cors'});

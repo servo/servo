@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Scroll compensation when the anchor and the positioned element are in different fragments of the containing block</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#default-scroll-shift">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+#outer-scroll {
+  overflow: hidden;
+  width: 300px;
+  height: 250px;
+}
+
+#multicol {
+  columns: 2;
+  column-gap: 0;
+  column-fill: auto;
+  width: 100px;
+  height: 200px;
+}
+
+#cb {
+  position: relative;
+}
+
+#inner-scroll {
+  overflow: hidden;
+  height: 150px;
+}
+
+#anchor {
+  anchor-name: --a;
+  width: 50px;
+  height: 100px;
+  background: green;
+}
+
+#positioned {
+  position: absolute;
+  position-anchor: --a;
+  top: calc(anchor(bottom) + 100px); /* Make the element in column 2 */
+  width: 50px;
+  height: 100px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="outer-scroll">
+  <div id="multicol">
+    <div id="cb">
+      <div id="inner-scroll">
+        <div style="height: 50px"></div>
+        <div id="anchor"></div>
+        <div style="height: 1000px"></div>
+      </div>
+      <div id="positioned"></div>
+    </div>
+  </div>
+  <div style="height: 1000px"></div>
+</div>
+
+<script>
+/* The outer-scroll sits above the containing block. Scrolling it moves the
+   containing block and the anchor together, so it should not affect the
+   positioned element's position relative to its anchor. */
+document.getElementById("outer-scroll").scrollTop = 50;
+</script>

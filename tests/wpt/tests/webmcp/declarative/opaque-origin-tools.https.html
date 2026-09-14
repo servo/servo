@@ -26,7 +26,7 @@ promise_test(async t => {
   await promise_rejects_dom(
     t,
     'NotSupportedError',
-    document.modelContext.executeTool(tool, '{"param1":"value"}'),
+    document.modelContext.executeTool(tool, {"param1":"value"}),
     'executeTool() must reject with NotSupportedError in opaque origin documents'
   );
 }, 'An opaque origin document can register but not execute its own declarative tools');
@@ -36,7 +36,7 @@ promise_test(async t => {
   const tool = tools.find(t => t.name === 'opaque_tool');
 
   let events = [];
-  const p = document.modelContext.executeTool(tool, '{}');
+  const p = document.modelContext.executeTool(tool);
 
   // Since `executeTool()` synchronously rejects the Promise for opaque origins,
   // the microtask to run the catch reaction is already queued before
@@ -49,7 +49,7 @@ promise_test(async t => {
   await promise_rejects_dom(
     t,
     'NotSupportedError',
-    document.modelContext.executeTool(tool, '{"param1":"value"}'),
+    document.modelContext.executeTool(tool, {"param1":"value"}),
     'executeTool() must reject with NotSupportedError in opaque origin documents'
   );
 

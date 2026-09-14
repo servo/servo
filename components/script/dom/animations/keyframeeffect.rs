@@ -7,7 +7,7 @@ use std::ops::ControlFlow;
 use std::ptr::{self, NonNull};
 use std::sync::LazyLock;
 
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::{
@@ -506,8 +506,7 @@ fn parse_single_property_declaration(
     parser_context: &ParserContext<'_>,
 ) -> Option<KeyframePropertyDeclaration> {
     let mut declaration = SourcePropertyDeclaration::default();
-    let mut input = ParserInput::new(input);
-    let mut parser = Parser::new(&mut input);
+    let mut parser = Parser::new(input);
 
     // TODO: Consider reporting parse errors somewhere useful, like the devtools console.
     parser
