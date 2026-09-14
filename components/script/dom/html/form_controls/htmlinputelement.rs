@@ -1722,12 +1722,16 @@ impl HTMLInputElement {
         self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#selector-checked>
     fn update_checked_state(&self) {
+        // input elements whose type attribute is in the Checkbox state and whose checkedness state is true
+        // input elements whose type attribute is in the Radio Button state and whose checkedness state is true
         let should_checked_state_apply = matches!(
             *self.input_type(),
             InputType::Checkbox(_) | InputType::Radio(_)
         ) && self.Checked();
-        self.upcast::<Element>().set_state(ElementState::CHECKED, should_checked_state_apply);
+        self.upcast::<Element>()
+            .set_state(ElementState::CHECKED, should_checked_state_apply);
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
