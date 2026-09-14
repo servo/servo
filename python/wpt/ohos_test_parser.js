@@ -50,12 +50,14 @@ try {
             var errorPatterns = [
                 'promise_test:',
                 'assert_equals:',
+                'assert_not_equals:',
                 'assert_less_than:',
                 'assert_greater_than:',
                 'assert_true:',
                 'assert_false:',
                 'TypeError:',
-                'ReferenceError:'
+                'ReferenceError:',
+                '@http://'  // Add pattern for location references
             ];
 
             var testName = '';
@@ -79,6 +81,27 @@ try {
                 var lines = testContent.split('\n');
                 testName = lines[0] ? lines[0].trim() : '';
                 errorMessage = lines.slice(1).join(' ').trim();
+                
+                // If still no split, try splitting on common delimiters
+                if (!errorMessage && testName) {
+                    // Try to find the end of the test name by looking for specific patterns
+                    var delimiterPatterns = [
+                        ' got disallowed value',
+                        ' expected ',
+                        ' assert_',
+                        ' TypeError',
+                        ' ReferenceError'
+                    ];
+                    
+                    for (var d = 0; d < delimiterPatterns.length; d++) {
+                        var delimIndex = testName.indexOf(delimiterPatterns[d]);
+                        if (delimIndex !== -1) {
+                            errorMessage = testName.substring(delimIndex).trim();
+                            testName = testName.substring(0, delimIndex).trim();
+                            break;
+                        }
+                    }
+                }
             }
 
             // Clean up test name
