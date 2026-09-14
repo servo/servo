@@ -56,7 +56,7 @@ use crate::dom::html::form_controls::input_type::radio_input_type::{
     broadcast_radio_checked, perform_radio_group_validation,
 };
 use crate::dom::html::form_controls::input_type::{InputActivationType, InputType};
-use crate::dom::html::form_controls::text_control::{TextControlElement, TextControlSelection};
+use crate::dom::html::form_controls::text_control::TextControlElement;
 use crate::dom::html::form_controls::text_input::{
     ClipboardEventFlags, EmbedderClipboardProvider, IsComposing, KeyReaction, Lines, TextInput,
 };
@@ -848,12 +848,7 @@ impl HTMLInputElement {
             },
             KeyReaction::DispatchInput(text, is_composing, input_type) => {
                 if event.IsTrusted() {
-                    self.text_input.borrow().queue_input_event(
-                        self.upcast(),
-                        text,
-                        is_composing,
-                        input_type,
-                    );
+                    self.queue_input_event(text, is_composing, input_type);
                 }
                 self.value_dirty.set(true);
                 self.update_placeholder_shown_state();
@@ -887,10 +882,6 @@ impl HTMLInputElement {
                 input_type.as_specific().value_for_shadow_dom(self)
             },
         }
-    }
-
-    pub(crate) fn text_input_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
-        self.text_input.borrow_mut()
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
@@ -955,6 +946,14 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
 }
 
 impl TextControlElement for HTMLInputElement {
+    fn text_input(&self) -> Ref<'_, TextInput<EmbedderClipboardProvider>> {
+        self.text_input.borrow()
+    }
+
+    fn text_input_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
+        self.text_input.borrow_mut()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
     fn selection_api_applies(&self) -> bool {
         matches!(
@@ -1468,33 +1467,32 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
     fn Select(&self) {
-        self.selection().dom_select();
+        self.dom_select();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.selection().dom_start().map(|start| start.0)
+        self.dom_start().map(|start| start.0)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, _cx: &mut JSContext, start: Option<u32>) -> ErrorResult {
-        self.selection()
-            .set_dom_start(start.map(Utf16CodeUnits::from))
+        self.set_dom_start(start.map(Utf16CodeUnits::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.selection().dom_end().map(|end| end.0)
+        self.dom_end().map(|end| end.0)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, _cx: &mut JSContext, end: Option<u32>) -> ErrorResult {
-        self.selection().set_dom_end(end.map(Utf16CodeUnits::from))
+        self.set_dom_end(end.map(Utf16CodeUnits::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn GetSelectionDirection(&self) -> Option<DOMString> {
-        self.selection().dom_direction()
+        self.dom_direction()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
@@ -1503,12 +1501,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         _cx: &mut JSContext,
         direction: Option<DOMString>,
     ) -> ErrorResult {
-        self.selection().set_dom_direction(direction)
+        self.set_dom_direction(direction)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
-        self.selection().set_dom_range(
+        self.set_dom_range(
             Utf16CodeUnits::from(start),
             Utf16CodeUnits::from(end),
             direction,
@@ -1517,8 +1515,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, None, None, Default::default())
+        self.set_dom_range_text(replacement, None, None, Default::default())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
@@ -1529,7 +1526,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        self.selection().set_dom_range_text(
+        self.set_dom_range_text(
             replacement,
             Some(Utf16CodeUnits::from(start)),
             Some(Utf16CodeUnits::from(end)),
@@ -1838,10 +1835,6 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm>
     fn sanitize_value(&self, value: &mut DOMString) {
         self.input_type().as_specific().sanitize_value(self, value);
-    }
-
-    fn selection(&self) -> TextControlSelection<'_, Self> {
-        TextControlSelection::new(self, &self.text_input)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#implicit-submission>
@@ -2361,8 +2354,7 @@ impl VirtualMethods for HTMLInputElement {
                     .fire_clipboard_event(cx, None, ClipboardEventType::Change);
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {
-                self.text_input.borrow().queue_input_event(
-                    self.upcast(),
+                self.queue_input_event(
                     reaction.text,
                     IsComposing::NotComposing,
                     reaction.input_type,

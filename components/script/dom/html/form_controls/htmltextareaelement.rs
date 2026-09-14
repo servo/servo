@@ -35,7 +35,7 @@ use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
-use crate::dom::html::form_controls::text_control::{TextControlElement, TextControlSelection};
+use crate::dom::html::form_controls::text_control::TextControlElement;
 use crate::dom::html::form_controls::text_input::{
     ClipboardEventFlags, EmbedderClipboardProvider, IsComposing, KeyReaction, Lines, TextInput,
 };
@@ -154,10 +154,6 @@ impl HTMLTextAreaElement {
         )
     }
 
-    pub(crate) fn text_input_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
-        self.text_input.borrow_mut()
-    }
-
     pub(crate) fn auto_directionality(&self) -> String {
         let value: String = String::from(self.Value());
         HTMLInputElement::directionality_from_value(&value)
@@ -250,6 +246,14 @@ impl HTMLTextAreaElement {
 }
 
 impl TextControlElement for HTMLTextAreaElement {
+    fn text_input(&self) -> Ref<'_, TextInput<EmbedderClipboardProvider>> {
+        self.text_input.borrow()
+    }
+
+    fn text_input_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
+        self.text_input.borrow_mut()
+    }
+
     fn selection_api_applies(&self) -> bool {
         true
     }
@@ -450,33 +454,32 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
     fn Select(&self) {
-        self.selection().dom_select();
+        self.dom_select();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.selection().dom_start().map(|start| start.0)
+        self.dom_start().map(|start| start.0)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, _cx: &mut JSContext, start: Option<u32>) -> ErrorResult {
-        self.selection()
-            .set_dom_start(start.map(Utf16CodeUnits::from))
+        self.set_dom_start(start.map(Utf16CodeUnits::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.selection().dom_end().map(|end| end.0)
+        self.dom_end().map(|end| end.0)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, _cx: &mut JSContext, end: Option<u32>) -> ErrorResult {
-        self.selection().set_dom_end(end.map(Utf16CodeUnits::from))
+        self.set_dom_end(end.map(Utf16CodeUnits::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn GetSelectionDirection(&self) -> Option<DOMString> {
-        self.selection().dom_direction()
+        self.dom_direction()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
@@ -485,12 +488,12 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         _cx: &mut JSContext,
         direction: Option<DOMString>,
     ) -> ErrorResult {
-        self.selection().set_dom_direction(direction)
+        self.set_dom_direction(direction)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
-        self.selection().set_dom_range(
+        self.set_dom_range(
             Utf16CodeUnits::from(start),
             Utf16CodeUnits::from(end),
             direction,
@@ -499,8 +502,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, None, None, Default::default())
+        self.set_dom_range_text(replacement, None, None, Default::default())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
@@ -511,7 +513,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        self.selection().set_dom_range_text(
+        self.set_dom_range_text(
             replacement,
             Some(Utf16CodeUnits::from(start)),
             Some(Utf16CodeUnits::from(end)),
@@ -567,21 +569,12 @@ impl HTMLTextAreaElement {
         self.handle_text_content_changed(cx);
     }
 
-    fn selection(&self) -> TextControlSelection<'_, Self> {
-        TextControlSelection::new(self, &self.text_input)
-    }
-
     fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction, event: &Event) {
         match action {
             KeyReaction::TriggerDefaultAction => (),
             KeyReaction::DispatchInput(text, is_composing, input_type) => {
                 if event.IsTrusted() {
-                    self.text_input.borrow().queue_input_event(
-                        self.upcast(),
-                        text,
-                        is_composing,
-                        input_type,
-                    );
+                    self.queue_input_event(text, is_composing, input_type);
                 }
                 self.value_dirty.set(true);
                 self.handle_text_content_changed(cx);
@@ -817,8 +810,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     .fire_clipboard_event(cx, None, ClipboardEventType::Change);
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {
-                self.text_input.borrow().queue_input_event(
-                    self.upcast(),
+                self.queue_input_event(
                     reaction.text,
                     IsComposing::NotComposing,
                     reaction.input_type,

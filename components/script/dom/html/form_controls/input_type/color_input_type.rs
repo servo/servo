@@ -30,6 +30,7 @@ use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, S
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits, UnbindContext};
+use crate::dom::text_control::TextControlElement;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
