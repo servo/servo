@@ -24,6 +24,7 @@ use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::event::Event;
 use crate::dom::inputevent::HitTestResult;
@@ -32,7 +33,6 @@ use crate::dom::mouseevent::MouseEvent;
 use crate::dom::text_control::TextControlElement;
 use crate::dom::types::{ClipboardEvent, HTMLInputElement, HTMLTextAreaElement, UIEvent};
 use crate::dom::{Element, NodeTraits};
-use crate::drag::drag_data_store::Kind;
 use crate::drag::drag_gesture::{DragGesture, DragHandler};
 
 /// A trait which abstracts access to the embedder's clipboard in order to allow unit
@@ -1064,9 +1064,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             return ClipboardEventReaction::empty();
         }
 
-        let event_type = event.Type();
-        match_domstring_ascii!(event_type,
-            "copy" => {
+        match clipboard_event.clipboard_event_type() {
+            ClipboardEventType::Copy => {
                 // These steps are from <https://www.w3.org/TR/clipboard-apis/#copy-action>:
                 let selection = self.selection_text();
 
@@ -1078,7 +1077,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 // Step 3.2 Fire a clipboard event named clipboardchange
                 ClipboardEventReaction::new(ClipboardEventFlags::FireClipboardChangedEvent)
             },
-            "cut" => {
+            ClipboardEventType::Cut => {
                 // These steps are from <https://www.w3.org/TR/clipboard-apis/#cut-action>:
                 let selection = self.selection_text();
 
@@ -1102,12 +1101,9 @@ impl<T: ClipboardProvider> TextInput<T> {
                 )
                 .with_input_type(InputEventType::DeleteByCut)
             },
-            "paste" => {
+            ClipboardEventType::Paste => {
                 // These steps are from <https://www.w3.org/TR/clipboard-apis/#paste-action>:
-                let Some(data_transfer) = clipboard_event.clipboard_data() else {
-                    return ClipboardEventReaction::empty();
-                };
-                let Some(drag_data_store) = data_transfer.data_store() else {
+                let Some(text_content) = clipboard_event.text_content() else {
                     return ClipboardEventReaction::empty();
                 };
 
@@ -1120,20 +1116,6 @@ impl<T: ClipboardProvider> TextInput<T> {
                 // context.
                 // TODO: Only text content is currently supported, but other data types should be supported
                 // in the future.
-                let Some(text_content) =
-                    drag_data_store
-                        .iter_item_list()
-                        .find_map(|item| match item {
-                            Kind::Text { data, .. } => Some(data.to_string()),
-                            _ => None,
-                        })
-                else {
-                    return ClipboardEventReaction::empty();
-                };
-                if text_content.is_empty() {
-                    return ClipboardEventReaction::empty();
-                }
-
                 self.insert(&text_content);
 
                 // Step 3.1.2: Queue tasks to fire any events that should fire due to the
@@ -1142,7 +1124,8 @@ impl<T: ClipboardProvider> TextInput<T> {
                     .with_text(text_content)
                     .with_input_type(InputEventType::InsertFromPaste)
             },
-        _ => ClipboardEventReaction::empty(),)
+            _ => ClipboardEventReaction::empty(),
+        }
     }
 }
 

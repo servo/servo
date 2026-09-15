@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::str::DOMString;
 use style::Atom;
@@ -18,40 +19,62 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::datatransfer::DataTransfer;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
+use crate::drag::drag_data_store::Kind;
 
 /// The types of clipboard events in the Clipboard APIs specification:
 /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) enum ClipboardEventType {
     Change,
     Copy,
     Cut,
     Paste,
+    Other(Atom),
 }
 
 impl ClipboardEventType {
-    /// Convert this [`ClipboardEventType`] to a `&str` for use in creating DOM events.
-    pub(crate) fn as_str(&self) -> &str {
-        match *self {
-            ClipboardEventType::Change => "clipboardchange",
-            ClipboardEventType::Copy => "copy",
-            ClipboardEventType::Cut => "cut",
-            ClipboardEventType::Paste => "paste",
+    /// Convert this [`ClipboardEventType`] to an `Atom` for use in creating DOM events.
+    pub(crate) fn as_atom(&self) -> Atom {
+        match self {
+            ClipboardEventType::Change => "clipboardchange".into(),
+            ClipboardEventType::Copy => "copy".into(),
+            ClipboardEventType::Cut => "cut".into(),
+            ClipboardEventType::Paste => "paste".into(),
+            ClipboardEventType::Other(atom) => atom.clone(),
         }
+    }
+}
+
+impl From<DOMString> for ClipboardEventType {
+    fn from(value: DOMString) -> Self {
+        match_domstring_ascii!(value,
+            "clipboardchange" => return ClipboardEventType::Change,
+            "copy" => return ClipboardEventType::Copy,
+            "cut" => return ClipboardEventType::Cut,
+            "paste" => return ClipboardEventType::Paste,
+            _ => {},
+        );
+        ClipboardEventType::Other(value.into())
     }
 }
 
 #[dom_struct]
 pub(crate) struct ClipboardEvent {
     event: Event,
+    #[no_trace]
+    clipboard_event_type: ClipboardEventType,
     clipboard_data: MutNullableDom<DataTransfer>,
 }
 
 impl ClipboardEvent {
-    fn new_inherited() -> ClipboardEvent {
+    fn new_inherited(
+        clipboard_event_type: ClipboardEventType,
+        clipboard_data: Option<&DataTransfer>,
+    ) -> ClipboardEvent {
         ClipboardEvent {
             event: Event::new_inherited(),
-            clipboard_data: MutNullableDom::new(None),
+            clipboard_event_type,
+            clipboard_data: MutNullableDom::new(clipboard_data),
         }
     }
 
@@ -59,21 +82,31 @@ impl ClipboardEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        event_type: Atom,
+        clipboard_event_type: ClipboardEventType,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         clipboard_data: Option<&DataTransfer>,
     ) -> DomRoot<ClipboardEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let event_type = clipboard_event_type.as_atom();
+        let event = reflect_dom_object_with_proto(
             cx,
-            Box::new(ClipboardEvent::new_inherited()),
+            Box::new(ClipboardEvent::new_inherited(
+                clipboard_event_type,
+                clipboard_data,
+            )),
             window,
             proto,
         );
-        ev.upcast::<Event>()
-            .init_event(event_type, bool::from(can_bubble), bool::from(cancelable));
-        ev.clipboard_data.set(clipboard_data);
-        ev
+        event.upcast::<Event>().init_event(
+            event_type,
+            bool::from(can_bubble),
+            bool::from(cancelable),
+        );
+        event
+    }
+
+    pub(crate) fn clipboard_event_type(&self) -> &ClipboardEventType {
+        &self.clipboard_event_type
     }
 
     pub(crate) fn set_clipboard_data(&self, clipboard_data: Option<&DataTransfer>) {
@@ -82,6 +115,18 @@ impl ClipboardEvent {
 
     pub(crate) fn clipboard_data(&self) -> Option<DomRoot<DataTransfer>> {
         self.clipboard_data.get()
+    }
+
+    /// Returns the text content of this [`ClipboardEvent`]'s [`DataTransfer`] object if
+    /// any exists.
+    pub(crate) fn text_content(&self) -> Option<String> {
+        self.clipboard_data()?
+            .data_store()?
+            .iter_item_list()
+            .find_map(|item| match item {
+                Kind::Text { data, .. } if !data.is_empty() => Some(data.to_string()),
+                _ => None,
+            })
     }
 }
 
