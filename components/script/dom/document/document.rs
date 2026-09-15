@@ -224,6 +224,7 @@ use crate::event_loop::timers::{OneshotTimerCallback, OneshotTimers};
 use crate::fetch::fetch::{DeferredFetchRecordInvokeState, FetchCanceller};
 use crate::fetch::network_listener::FetchResponseListener;
 use crate::mime::{APPLICATION, CHARSET};
+use crate::modules::script_module::{ModuleRequest, ModuleStatus};
 use crate::navigation::navigate;
 use crate::runtime::script_runtime::compute_size;
 use crate::tasks::task::NonSendTaskBox;
@@ -754,9 +755,20 @@ pub(crate) struct Document {
     /// A vector of weak references to Range instances that are live on
     /// this document.
     live_ranges: WeakRangeVec,
+
+    /// module map is used when importing JavaScript modules
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
+    #[ignore_malloc_size_of = "mozjs"]
+    module_map: DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>,
 }
 
 impl Document {
+    pub(crate) fn module_map(
+        &self,
+    ) -> &DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>> {
+        &self.module_map
+    }
+
     pub(crate) fn history(&self, cx: &mut JSContext) -> DomRoot<History> {
         self.history.or_init(|| History::new(cx, &self.window))
     }
@@ -4116,6 +4128,7 @@ impl Document {
             default_language: Default::default(),
             window_detached: Default::default(),
             live_ranges: Default::default(),
+            module_map: Default::default(),
         }
     }
 
