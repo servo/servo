@@ -33,6 +33,7 @@ use paint_api::CrossProcessPaintApi;
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
+use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{PainterId, WebViewId};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -110,7 +111,7 @@ pub struct FontContext {
 
     /// The data for each web font [`FontIdentifier`]. This data might be used by more than one
     /// [`FontTemplate`] as each identifier refers to a URL.
-    font_data: RwLock<HashMap<FontIdentifier, FontData>>,
+    font_data: RwLock<HashMap<FontIdentifier, FontData<GenericSharedMemory>>>,
 
     have_removed_web_fonts: AtomicBool,
 
@@ -195,7 +196,7 @@ impl FontContext {
         self.number_of_loading_web_fonts.load(Ordering::SeqCst)
     }
 
-    fn get_font_data(&self, identifier: &FontIdentifier) -> Option<FontData> {
+    fn get_font_data(&self, identifier: &FontIdentifier) -> Option<FontData<GenericSharedMemory>> {
         match identifier {
             FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => {
                 self.font_data.read().get(identifier).cloned()
@@ -545,7 +546,7 @@ impl FontContext {
     /// All download states waiting for this entry to load will have their promise fulfilled.
     pub(crate) fn handle_web_font_request_succeeded(
         &self,
-        font_data: FontData,
+        font_data: FontData<GenericSharedMemory>,
         url: ServoUrl,
     ) -> bool {
         let Some(download_states) = self.currently_downloading_fonts.lock().remove(&url) else {

@@ -17,6 +17,7 @@ use freetype_sys::{
 };
 use memmap2::Mmap;
 use servo_arc::Arc;
+use servo_base::generic_channel::GenericSharedMemory;
 use webrender_api::FontVariation;
 
 use crate::platform::freetype::library_handle::FreeTypeLibraryHandle;
@@ -32,7 +33,7 @@ pub(crate) struct FreeTypeFace {
 }
 
 pub(crate) enum FontBackingStore {
-    Web(FontData),
+    Web(FontData<GenericSharedMemory>),
     /// Memory-mapped file of a system font.
     Local(Arc<Mmap>),
 }
