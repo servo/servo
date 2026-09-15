@@ -3,10 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use core::convert::Infallible;
-use std::fs::File;
-use std::io::{self, BufReader};
+use std::io::{self, Cursor};
 use std::net::TcpListener as StdTcpListener;
-use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, Mutex};
 
 use crossbeam_channel::unbounded;
@@ -32,6 +30,9 @@ use crate::async_runtime::{
     async_runtime_initialized, init_async_runtime, spawn_blocking_task, spawn_task,
 };
 pub use crate::hosts::replace_host_table;
+
+static CRT_FILE: &[u8] = include_bytes!("../../resources/self_signed_certificate_for_testing.crt");
+static PEM_FILE: &[u8] = include_bytes!("../../resources/privatekey_for_testing.key");
 
 static ASYNC_RUNTIME: LazyLock<Arc<Mutex<Box<dyn AsyncRuntime>>>> =
     LazyLock::new(|| Arc::new(Mutex::new(init_async_runtime())));
@@ -148,28 +149,23 @@ where
 
 /// Given a path to a file containing PEM certificates, load and parse them into
 /// a vector of RusTLS [Certificate]s.
-fn load_certificates_from_pem(
-    path: &PathBuf,
-) -> Result<Vec<CertificateDer<'static>>, Box<dyn std::error::Error>> {
-    let file = File::open(path)?;
-    let mut reader = BufReader::new(file);
-    Ok(CertificateDer::pem_reader_iter(&mut reader).collect::<Result<Vec<_>, _>>()?)
+fn load_certificates_from_pem() -> Result<Vec<CertificateDer<'static>>, Box<dyn std::error::Error>>
+{
+    let mut cursor = Cursor::new(CRT_FILE);
+    Ok(CertificateDer::pem_reader_iter(&mut cursor).collect::<Result<Vec<_>, _>>()?)
 }
 
 /// Given a path to a file containing PEM keys, load and parse them into
 /// a vector of RusTLS [PrivateKey]s.
-fn load_private_key_from_file(
-    path: &PathBuf,
-) -> Result<PrivateKeyDer<'static>, Box<dyn std::error::Error>> {
-    let file = File::open(&path)?;
-    let mut reader = BufReader::new(file);
+fn load_private_key_from_file() -> Result<PrivateKeyDer<'static>, Box<dyn std::error::Error>> {
+    let mut cursor = Cursor::new(PEM_FILE);
     let mut keys =
-        PrivatePkcs8KeyDer::pem_reader_iter(&mut reader).collect::<Result<Vec<_>, _>>()?;
+        PrivatePkcs8KeyDer::pem_reader_iter(&mut cursor).collect::<Result<Vec<_>, _>>()?;
 
     match keys.len() {
-        0 => Err(format!("No PKCS8-encoded private key found in {path:?}").into()),
+        0 => Err(format!("No PKCS8-encoded private key found").into()),
         1 => Ok(PrivateKeyDer::try_from(keys.remove(0))?),
-        _ => Err(format!("More than one PKCS8-encoded private key found in {path:?}").into()),
+        _ => Err(format!("More than one PKCS8-encoded private key found").into()),
     }
 }
 
@@ -191,14 +187,8 @@ where
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
     let url = UrlWithBlobClaim::new(ServoUrl::parse(&url_string).unwrap(), None);
 
-    let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt")
-        .canonicalize()
-        .unwrap();
-    let key_path = Path::new("../../resources/privatekey_for_testing.key")
-        .canonicalize()
-        .unwrap();
-    let certificates = load_certificates_from_pem(&cert_path).expect("Invalid certificate");
-    let key = load_private_key_from_file(&key_path).expect("Invalid key");
+    let certificates = load_certificates_from_pem().expect("Invalid certificate");
+    let key = load_private_key_from_file().expect("Invalid key");
 
     let config = rustls::ServerConfig::builder()
         .with_no_client_auth()
