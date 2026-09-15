@@ -136,7 +136,7 @@ use rand::{RngExt, SeedableRng, make_rng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, MouseButtons,
-    NewPipelineInfo, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
+    NewPipelineInfo, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_background_hang_monitor::HangMonitorRegister;
 use servo_base::generic_channel;
@@ -6274,30 +6274,11 @@ where
             warn!("Discarding paint metric event for unknown pipeline");
             return;
         };
-        let (metric_type, metric_value, first_reflow) = match event {
-            PaintMetricEvent::FirstPaint(metric_value, first_reflow) => (
-                ProgressiveWebMetricType::FirstPaint,
-                metric_value,
-                first_reflow,
-            ),
-            PaintMetricEvent::FirstContentfulPaint(metric_value, first_reflow) => (
-                ProgressiveWebMetricType::FirstContentfulPaint,
-                metric_value,
-                first_reflow,
-            ),
-            PaintMetricEvent::LargestContentfulPaint(metric_value, id) => (
-                ProgressiveWebMetricType::LargestContentfulPaint { id },
-                metric_value,
-                false, // LCP doesn't care about first reflow
-            ),
-        };
-        if let Err(error) = pipeline.event_loop.send(ScriptThreadMessage::PaintMetric(
-            pipeline_id,
-            metric_type,
-            metric_value,
-            first_reflow,
-        )) {
-            warn!("Could not sent paint metric event to pipeline: {pipeline_id:?}: {error:?}");
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::PaintMetric(pipeline_id, event))
+        {
+            warn!("Could not send paint metric event to pipeline: {pipeline_id:?}: {error:?}");
         }
     }
 

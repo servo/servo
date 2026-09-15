@@ -127,7 +127,8 @@ pub enum UserContentManagerAction {
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
-/// constellation.
+/// constellation and then forwarded to the script thread.
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PaintMetricEvent {
     FirstPaint(CrossProcessInstant, bool /* first_reflow */),
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),

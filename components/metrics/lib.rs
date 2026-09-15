@@ -205,22 +205,7 @@ impl ProgressiveWebMetrics {
         self.main_thread_available.get()
     }
 
-    pub fn set_performance_paint_metric(
-        &self,
-        paint_time: CrossProcessInstant,
-        first_reflow: bool,
-        metric_type: ProgressiveWebMetricType,
-    ) {
-        match metric_type {
-            ProgressiveWebMetricType::FirstPaint => self.set_first_paint(paint_time, first_reflow),
-            ProgressiveWebMetricType::FirstContentfulPaint => {
-                self.set_first_contentful_paint(paint_time, first_reflow)
-            },
-            _ => {},
-        }
-    }
-
-    fn set_first_paint(&self, paint_time: CrossProcessInstant, first_reflow: bool) {
+    pub fn set_first_paint(&self, paint_time: CrossProcessInstant, first_reflow: bool) {
         set_metric(
             self,
             Some(self.make_metadata(first_reflow)),
@@ -232,7 +217,7 @@ impl ProgressiveWebMetrics {
         );
     }
 
-    fn set_first_contentful_paint(&self, paint_time: CrossProcessInstant, first_reflow: bool) {
+    pub fn set_first_contentful_paint(&self, paint_time: CrossProcessInstant, first_reflow: bool) {
         set_metric(
             self,
             Some(self.make_metadata(first_reflow)),
