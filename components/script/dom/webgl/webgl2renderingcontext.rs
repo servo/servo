@@ -13,7 +13,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleObject, MutableHandleValue};
-use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
+use js::typedarray::{ArrayBufferView, Float32, Int32, Uint32};
 use pixels::{Alpha, Snapshot};
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
@@ -31,6 +31,7 @@ use super::validations::types::TexImageTarget;
 use crate::canvas_context::CanvasContext;
 #[cfg(feature = "webxr")]
 use crate::dom::RootedPromise;
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
     WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
 };
@@ -4699,7 +4700,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.16>
-    #[expect(unsafe_code)]
     fn GetActiveUniformBlockParameter(
         &self,
         cx: &mut JSContext,
@@ -4725,10 +4725,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 assert!(values.len() == 1);
                 retval.set(UInt32Value(values[0] as u32))
             },
-            constants::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES => unsafe {
+            constants::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES => {
                 let values = values.iter().map(|&v| v as u32).collect::<Vec<_>>();
                 rooted!(&in(cx) let mut result = ptr::null_mut::<JSObject>());
-                Uint32Array::create(cx, CreateWith::Slice(&values), result.handle_mut()).unwrap();
+                create_buffer_source::<Uint32>(cx, &values, result.handle_mut()).unwrap();
                 retval.set(ObjectValue(result.get()))
             },
             constants::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER |
@@ -4931,7 +4931,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.5>
-    #[expect(unsafe_code)]
     fn GetInternalformatParameter(
         &self,
         cx: &mut JSContext,
@@ -4950,7 +4949,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             InternalFormatParameter::from_u32(pname),
             return retval.set(NullValue())
         ) {
-            InternalFormatParameter::IntVec(param) => unsafe {
+            InternalFormatParameter::IntVec(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.base
                     .send_command(WebGLCommand::GetInternalFormatIntVec(
@@ -4961,12 +4960,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                     ));
 
                 rooted!(&in(cx) let mut rval = ptr::null_mut::<JSObject>());
-                Int32Array::create(
-                    cx,
-                    CreateWith::Slice(&receiver.recv().unwrap()),
-                    rval.handle_mut(),
-                )
-                .unwrap();
+                create_buffer_source::<Int32>(cx, &receiver.recv().unwrap(), rval.handle_mut())
+                    .unwrap();
                 retval.set(ObjectValue(rval.get()))
             },
         }
