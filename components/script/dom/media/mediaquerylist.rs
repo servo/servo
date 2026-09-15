@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::callback::RootedCallback;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use style::media_queries::MediaList;
 use style::stylesheets::CustomMediaEvaluator;
@@ -103,8 +104,9 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-addlistener>
-    fn AddListener(&self, listener: Option<Rc<EventListener>>) {
+    fn AddListener(&self, cx: &JSContext, listener: Option<RootedCallback<EventListener>>) {
         self.upcast::<EventTarget>().add_event_listener(
+            cx,
             DOMString::from_static("change"),
             listener,
             AddEventListenerOptions {
@@ -117,8 +119,9 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-removelistener>
-    fn RemoveListener(&self, listener: Option<Rc<EventListener>>) {
+    fn RemoveListener(&self, cx: &JSContext, listener: Option<RootedCallback<EventListener>>) {
         self.upcast::<EventTarget>().remove_event_listener(
+            cx,
             DOMString::from_static("change"),
             &listener,
             &EventListenerOptions { capture: false },
