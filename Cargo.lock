@@ -7397,6 +7397,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "read-fonts"
+version = "0.44.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5a0cf4bb6cbce4c29756270d189a5e400ac05e91192161d83a0bcb6e68492e8"
+dependencies = [
+ "bytemuck",
+ "font-types 0.12.5",
+ "once_cell",
+]
+
+[[package]]
 name = "realfft"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8501,7 +8512,7 @@ dependencies = [
  "ohos-deviceinfo",
  "parking_lot",
  "postcard",
- "read-fonts 0.43.3",
+ "read-fonts 0.44.0",
  "rustc-hash 2.1.3",
  "serde",
  "servo-allocator",
@@ -8542,7 +8553,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "parking_lot",
- "read-fonts 0.43.3",
+ "read-fonts 0.44.0",
  "serde",
  "servo-base",
  "servo-malloc-size-of",
