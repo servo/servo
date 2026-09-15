@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
+use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object;
 
+use crate::dom::bindings::codegen::Bindings::HTMLTrackElementBinding::HTMLTrackElementMethods;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     TextTrackKind, TextTrackMethods, TextTrackMode,
 };
@@ -16,6 +18,7 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmltrackelement::HTMLTrackElement;
 use crate::dom::texttrackcue::TextTrackCue;
@@ -27,12 +30,13 @@ use crate::dom::window::Window;
 pub(crate) struct TextTrack {
     eventtarget: EventTarget,
     /// <https://html.spec.whatwg.org/multipage/#text-track-kind>
-    kind: TextTrackKind,
+    kind: Cell<TextTrackKind>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-label>
-    label: String,
+    label: DomRefCell<DOMString>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-language>
-    language: String,
-    id: String,
+    language: DomRefCell<DOMString>,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-identifier>
+    id: DomRefCell<DOMString>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-mode>
     mode: Cell<TextTrackMode>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-list-of-cues>
@@ -52,10 +56,10 @@ impl TextTrack {
     ) -> TextTrack {
         TextTrack {
             eventtarget: EventTarget::new_inherited(),
-            kind,
-            label: label.into(),
-            language: language.into(),
-            id: id.into(),
+            kind: Cell::new(kind),
+            label: DomRefCell::new(label),
+            language: DomRefCell::new(language),
+            id: DomRefCell::new(id),
             mode: Cell::new(mode),
             cue_list: Default::default(),
             track_list: DomRefCell::new(track_list.map(Dom::from_ref)),
@@ -95,8 +99,8 @@ impl TextTrack {
             .or_init(|| TextTrackCueList::new(cx, self, self.global().as_window(), &[]))
     }
 
-    pub(crate) fn id(&self) -> &str {
-        &self.id
+    pub(crate) fn id(&self) -> Ref<'_, DOMString> {
+        self.id.borrow()
     }
 
     pub(crate) fn track_list(&self) -> Option<DomRoot<TextTrackList>> {
@@ -121,8 +125,40 @@ impl TextTrack {
             .map(|track| DomRoot::from_ref(&**track))
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks>
     pub(crate) fn set_associated_track(&self, track_element: &HTMLTrackElement) {
         *self.associated_track.borrow_mut() = Some(Dom::from_ref(track_element));
+        // > When a track element is created, it must be associated with
+        // > a new text track (with its value set as defined below).
+        self.update_attributes_from_track_element(track_element);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks>
+    pub(crate) fn update_attributes_from_track_element(&self, track_element: &HTMLTrackElement) {
+        // > The text track kind is determined from the state of the
+        // > element's kind attribute according to the following table;
+        // > for a state given in a cell of the first column,
+        // > the kind is the string given in the second column:
+        self.kind.set(match track_element.Kind().str().as_ref() {
+            "subtitles" => TextTrackKind::Subtitles,
+            "captions" => TextTrackKind::Captions,
+            "descriptions" => TextTrackKind::Descriptions,
+            "chapters" => TextTrackKind::Chapters,
+            "metadata" => TextTrackKind::Metadata,
+            _ => unreachable!("Must always have these specific kind states"),
+        });
+        // > The text track label is the element's track label.
+        *self.label.borrow_mut() = track_element.Label();
+        // > The text track language is the element's track language,
+        // > if any; otherwise the empty string.
+        *self.language.borrow_mut() = track_element.Srclang();
+        // > The text track identifier is the element's id attribute value,
+        // > if any; otherwise the empty string.
+        *self.id.borrow_mut() = track_element
+            .upcast::<Element>()
+            .get_id()
+            .map(|value| DOMString::from(&*value))
+            .unwrap_or_default();
     }
 
     pub(crate) fn empty_cue_list(&self) {
@@ -147,22 +183,22 @@ impl TextTrack {
 impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-kind>
     fn Kind(&self) -> TextTrackKind {
-        self.kind
+        self.kind.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-label>
     fn Label(&self) -> DOMString {
-        DOMString::from(self.label.clone())
+        self.label.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-language>
     fn Language(&self) -> DOMString {
-        DOMString::from(self.language.clone())
+        self.language.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-id>
     fn Id(&self) -> DOMString {
-        DOMString::from(self.id.clone())
+        self.id.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-mode>
