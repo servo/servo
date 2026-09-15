@@ -7,6 +7,7 @@ pub mod client_storage;
 mod indexeddb;
 pub(crate) mod shared;
 mod storage_thread;
+mod weblocks;
 mod webstorage;
 
 pub use cache_storage::CacheStorageThreadFactory;
