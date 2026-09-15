@@ -721,9 +721,11 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 let mut block_level = block_level.borrow_mut();
                 match &mut *block_level {
                     BlockLevelBox::Independent(independent_formatting_context) => {
-                        // An in-flow box that just became absolutely positioned belongs to its
-                        // containing block's out-of-flow list, which requires rebuilding an ancestor.
-                        if info.style.clone_position().is_absolutely_positioned() {
+                        // An in-flow box that just went out of flow belongs to its containing
+                        // block's float or out-of-flow list, so an ancestor must be rebuilt.
+                        if box_style.position.is_absolutely_positioned() ||
+                            box_style.float.is_floating()
+                        {
                             return false;
                         }
                         let DisplayGeneratingBox::OutsideInside {
