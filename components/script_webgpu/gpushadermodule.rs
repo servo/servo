@@ -22,7 +22,7 @@ use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUShaderModule {
@@ -98,8 +98,7 @@ impl<D: Equivalence> GPUShaderModule<D> {
 impl<D> GPUShaderModule<D>
 where
     D: Equivalence,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     pub(crate) fn id(&self) -> WebGPUShaderModule {
         self.droppable.shader_module
@@ -124,7 +123,7 @@ where
             descriptor.parent.label.clone(),
             &promise,
         );
-        let callback = promise.callback_promise_gpushadermodule(&*shader_module);
+        let callback = promise.callback_promise_dom_manipulation_task_source(&*shader_module);
         device
             .channel()
             .0
