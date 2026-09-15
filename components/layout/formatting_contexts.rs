@@ -341,7 +341,26 @@ impl IndependentFormattingContext {
                     };
                 Some((block_size.into(), depends_on_inline_stretch_size))
             },
-            _ => None,
+            IndependentFormattingContextContents::Flow(_) => {
+                let ratio = preferred_aspect_ratio?;
+                let block_size = ratio.compute_dependent_size(Direction::Block, inline_stretch_size);
+                Some((block_size.into(), true))
+            },
+            IndependentFormattingContextContents::Flex(_) => {
+                let ratio = preferred_aspect_ratio?;
+                let block_size = ratio.compute_dependent_size(Direction::Block, inline_stretch_size);
+                Some((block_size.into(), true))
+            },
+            IndependentFormattingContextContents::Grid(_) => {
+                let ratio = preferred_aspect_ratio?;
+                let block_size = ratio.compute_dependent_size(Direction::Block, inline_stretch_size);
+                Some((block_size.into(), true))
+            },
+            IndependentFormattingContextContents::Table(_) => {
+                let ratio = preferred_aspect_ratio?;
+                let block_size = ratio.compute_dependent_size(Direction::Block, inline_stretch_size);
+                Some((block_size.into(), true))
+            },
         }
     }
 
@@ -577,8 +596,18 @@ impl IndependentFormattingContext {
             IndependentFormattingContextContents::Replaced(replaced, _) => {
                 replaced.preferred_aspect_ratio(self.style(), padding_border_sums)
             },
-            // TODO: support preferred aspect ratios on non-replaced boxes.
-            _ => None,
+            IndependentFormattingContextContents::Flow(contents) => {
+                contents.preferred_aspect_ratio(&self.base, padding_border_sums)
+            },
+            IndependentFormattingContextContents::Flex(contents) => {
+                contents.preferred_aspect_ratio(padding_border_sums)
+            },
+            IndependentFormattingContextContents::Grid(contents) => {
+                contents.preferred_aspect_ratio(padding_border_sums)
+            },
+            IndependentFormattingContextContents::Table(contents) => {
+                contents.preferred_aspect_ratio(padding_border_sums)
+            },
         }
     }
 
