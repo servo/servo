@@ -10,6 +10,8 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::cell::{self, Cell, RefCell, RefMut};
 use std::cmp::max;
 use std::collections::hash_map;

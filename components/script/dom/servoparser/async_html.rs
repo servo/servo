@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![cfg_attr(crown, expect(crown::unrooted_must_root))]
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
 
 use std::borrow::Cow;
 use std::cell::{Cell, Ref, RefCell, RefMut};

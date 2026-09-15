@@ -4,6 +4,8 @@
 
 //! The set of animations for a document.
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::cell::Cell;
 use std::sync::Arc;
 use std::time::Duration;
