@@ -7,10 +7,6 @@ use embedder_traits::{EmbedderMsg, LoadStatus};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
-use keyboard_types::{KeyState, Modifiers, ShortcutMatcher};
-use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
-use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
-use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use style::attr::AttrValue;
 use style::color::AbsoluteColor;
 
@@ -22,10 +18,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits};
 
@@ -163,29 +157,29 @@ impl VirtualMethods for HTMLBodyElement {
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-6
                 match name {
-                    &local_name!("onafterprint") |
-                    &local_name!("onbeforeprint") |
-                    &local_name!("onbeforeunload") |
-                    &local_name!("onerror") |
-                    &local_name!("onfocus") |
-                    &local_name!("onhashchange") |
-                    &local_name!("onload") |
-                    &local_name!("onlanguagechange") |
-                    &local_name!("onmessage") |
-                    &local_name!("onmessageerror") |
-                    &local_name!("onoffline") |
-                    &local_name!("ononline") |
-                    &local_name!("onpagehide") |
-                    &local_name!("onpagereveal") |
-                    &local_name!("onpageshow") |
-                    &local_name!("onpageswap") |
-                    &local_name!("onpopstate") |
-                    &local_name!("onrejectionhandled") |
-                    &local_name!("onresize") |
-                    &local_name!("onscroll") |
-                    &local_name!("onstorage") |
-                    &local_name!("onunhandledrejection") |
-                    &local_name!("onunload") => {
+                    &local_name!("onafterprint")
+                    | &local_name!("onbeforeprint")
+                    | &local_name!("onbeforeunload")
+                    | &local_name!("onerror")
+                    | &local_name!("onfocus")
+                    | &local_name!("onhashchange")
+                    | &local_name!("onload")
+                    | &local_name!("onlanguagechange")
+                    | &local_name!("onmessage")
+                    | &local_name!("onmessageerror")
+                    | &local_name!("onoffline")
+                    | &local_name!("ononline")
+                    | &local_name!("onpagehide")
+                    | &local_name!("onpagereveal")
+                    | &local_name!("onpageshow")
+                    | &local_name!("onpageswap")
+                    | &local_name!("onpopstate")
+                    | &local_name!("onrejectionhandled")
+                    | &local_name!("onresize")
+                    | &local_name!("onscroll")
+                    | &local_name!("onstorage")
+                    | &local_name!("onunhandledrejection")
+                    | &local_name!("onunload") => {
                         if document.has_browsing_context() {
                             // https://html.spec.whatwg.org/multipage/webappapis.html
                             // #event-handler-attributes%3Aevent-handler-content-attributes-3
