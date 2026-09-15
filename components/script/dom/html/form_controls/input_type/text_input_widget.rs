@@ -46,7 +46,7 @@ impl TextInputWidget {
             }
         }
 
-        let element = text_control_element.upcast::<Element>();
+        let element = text_control_element.as_element();
         let shadow_root = element
             .shadow_root()
             .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
@@ -161,6 +161,7 @@ impl TextInputWidgetShadowTree {
             return None;
         }
 
+        let element = element.as_element();
         let placeholder_container = create_ua_widget_div_with_text_node(
             cx,
             &element.owner_document(),

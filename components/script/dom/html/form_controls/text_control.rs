@@ -9,28 +9,25 @@
 
 use std::cell::{Ref, RefMut};
 
+use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use script_bindings::refcounted::Trusted;
 use servo_base::text::Utf16CodeUnits;
 
-use crate::dom::Event;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
-use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::html::form_controls::text_input::{
-    EmbedderClipboardProvider, SelectionDirection, SelectionState, TextInput,
-};
-use crate::dom::node::{Node, NodeTraits};
-use crate::dom::text_input::{InputEventType, IsComposing};
-use crate::dom::types::{Element, InputEvent};
+use crate::dom::html::form_controls::text_input::{SelectionDirection, SelectionState, TextInput};
+use crate::dom::node::NodeTraits;
+use crate::dom::text_input::{EmbedderClipboardProvider, InputEventType, IsComposing};
+use crate::dom::types::InputEvent;
+use crate::dom::{Element, Event};
 
-pub(crate) trait TextControlElement:
-    DerivedFrom<EventTarget> + DerivedFrom<Node> + DerivedFrom<Element>
-{
+pub(crate) trait TextControlElement {
+    fn as_element(&self) -> &Element;
     fn text_input<'a>(&'a self) -> Ref<'a, TextInput<EmbedderClipboardProvider>>;
     fn text_input_mut<'a>(&'a self) -> RefMut<'a, TextInput<EmbedderClipboardProvider>>;
     fn selection_api_applies(&self) -> bool;
@@ -44,6 +41,18 @@ pub(crate) trait TextControlElement:
     }
     fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString>;
     fn value_text(&self) -> DOMString;
+    fn read_only_or_disabled(&self) -> bool;
+    fn handle_text_content_changed(&self, cx: &mut JSContext);
+
+    fn insert_content(&self, cx: &mut JSContext, text_content: &str) {
+        self.text_input_mut().insert(text_content);
+        self.handle_text_content_changed(cx);
+    }
+
+    fn remove_the_contents_of_the_selection(&self, cx: &mut JSContext) {
+        self.text_input_mut().delete_selection();
+        self.handle_text_content_changed(cx);
+    }
 
     /// <https://w3c.github.io/uievents/#event-type-input>
     fn queue_input_event(
@@ -52,10 +61,13 @@ pub(crate) trait TextControlElement:
         is_composing: IsComposing,
         input_type: InputEventType,
     ) {
-        let global = self.global();
-        let target = Trusted::new(self.upcast::<EventTarget>());
-        global.task_manager().user_interaction_task_source().queue(
-            task!(fire_input_event: move |cx| {
+        let element = self.as_element();
+        let target = Trusted::new(element.upcast::<EventTarget>());
+        element
+            .owner_global()
+            .task_manager()
+            .user_interaction_task_source()
+            .queue(task!(fire_input_event: move |cx| {
                 let target = target.root();
                 let global = target.global();
                 let window = global.as_window();
@@ -75,8 +87,7 @@ pub(crate) trait TextControlElement:
                 let event = event.upcast::<Event>();
                 event.set_composed(true);
                 event.fire(cx, &target);
-            }),
-        );
+            }));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
@@ -430,11 +441,13 @@ pub(crate) trait TextControlElement:
             return;
         }
 
-        self.owner_global()
+        let element = self.as_element();
+        element
+            .owner_global()
             .task_manager()
             .user_interaction_task_source()
             .queue_event(
-                self.upcast::<EventTarget>(),
+                element.upcast::<EventTarget>(),
                 atom!("select"),
                 EventBubbles::Bubbles,
                 EventCancelable::NotCancelable,

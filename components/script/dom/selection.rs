@@ -99,6 +99,13 @@ impl Selection {
         self.visible_selection_dirty.get()
     }
 
+    pub(crate) fn collapsed(&self) -> bool {
+        self.range
+            .borrow()
+            .as_ref()
+            .is_none_or(|range| range.collapsed())
+    }
+
     fn clear_cached_live_range(&self) {
         if let Some(old_range) = self.live_range.take() {
             old_range.disassociate_selection(self);

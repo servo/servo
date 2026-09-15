@@ -24,7 +24,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
@@ -36,9 +35,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
 use crate::dom::html::form_controls::text_control::TextControlElement;
-use crate::dom::html::form_controls::text_input::{
-    ClipboardEventFlags, EmbedderClipboardProvider, IsComposing, KeyReaction, Lines, TextInput,
-};
+use crate::dom::html::form_controls::text_input::{KeyReaction, Lines, TextInput};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
@@ -49,6 +46,7 @@ use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
+use crate::dom::text_input::EmbedderClipboardProvider;
 use crate::dom::types::{FocusEvent, MouseEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -193,22 +191,6 @@ impl HTMLTextAreaElement {
         self.maybe_update_shared_selection();
     }
 
-    fn handle_text_content_changed(&self, cx: &mut JSContext) {
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
-
-        let placeholder_shown =
-            self.text_input.borrow().is_empty() && !self.placeholder.borrow().is_empty();
-        self.upcast::<Element>()
-            .set_placeholder_shown_state(placeholder_shown);
-
-        self.text_input_widget.borrow().update_shadow_tree(cx, self);
-        self.text_input_widget
-            .borrow()
-            .update_placeholder_contents(cx, self);
-        self.maybe_update_shared_selection();
-    }
-
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
     fn schedule_a_selection_change_event(&self) {
         // Step 1. If target's has scheduled selectionchange event is true, abort these steps.
@@ -246,6 +228,10 @@ impl HTMLTextAreaElement {
 }
 
 impl TextControlElement for HTMLTextAreaElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
     fn text_input(&self) -> Ref<'_, TextInput<EmbedderClipboardProvider>> {
         self.text_input.borrow()
     }
@@ -318,6 +304,26 @@ impl TextControlElement for HTMLTextAreaElement {
 
     fn value_text(&self) -> DOMString {
         self.Value()
+    }
+
+    fn read_only_or_disabled(&self) -> bool {
+        self.ReadOnly() || self.Disabled()
+    }
+
+    fn handle_text_content_changed(&self, cx: &mut JSContext) {
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
+
+        let placeholder_shown =
+            self.text_input.borrow().is_empty() && !self.placeholder.borrow().is_empty();
+        self.upcast::<Element>()
+            .set_placeholder_shown_state(placeholder_shown);
+
+        self.text_input_widget.borrow().update_shadow_tree(cx, self);
+        self.text_input_widget
+            .borrow()
+            .update_placeholder_contents(cx, self);
+        self.maybe_update_shared_selection();
     }
 }
 
@@ -797,28 +803,6 @@ impl VirtualMethods for HTMLTextAreaElement {
                 }
                 self.maybe_update_shared_selection();
                 event.mark_as_handled();
-            }
-        } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
-            let reaction = self
-                .text_input
-                .borrow_mut()
-                .handle_clipboard_event(clipboard_event);
-
-            let flags = reaction.flags;
-            if flags.contains(ClipboardEventFlags::FireClipboardChangedEvent) {
-                self.owner_document()
-                    .fire_clipboard_event(cx, None, ClipboardEventType::Change);
-            }
-            if flags.contains(ClipboardEventFlags::QueueInputEvent) {
-                self.queue_input_event(
-                    reaction.text,
-                    IsComposing::NotComposing,
-                    reaction.input_type,
-                );
-            }
-            if !flags.is_empty() {
-                event.mark_as_handled();
-                self.handle_text_content_changed(cx);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
             self.handle_focus_event(event);
