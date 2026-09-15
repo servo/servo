@@ -11,7 +11,7 @@ use std::rc::Rc;
 use dpi::PhysicalSize;
 use euclid::default::Point2D;
 use log::error;
-use servo::{DeviceIntRect, DevicePoint, Opts, WebViewBuilder};
+use servo::{DeviceIntRect, DevicePoint, MouseButton, Opts, WebViewBuilder};
 use servo_config::prefs::Preferences;
 use url::Url;
 
@@ -57,7 +57,11 @@ fn test_crash_in_webview() {
         .build();
 
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    click_at_point(&webview, DevicePoint::new(100.0, 100.0));
+    click_at_point(
+        &webview,
+        DevicePoint::new(100.0, 100.0),
+        MouseButton::Primary,
+    );
 
     let delegate_clone = delegate.clone();
     servo_test.spin(move || delegate_clone.crashes.get() == 0);
