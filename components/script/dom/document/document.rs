@@ -3546,25 +3546,28 @@ impl Document {
     pub(crate) fn handle_paint_metric(&self, cx: &mut JSContext, event: PaintMetricEvent) {
         let metrics = self.interactive_time.borrow();
         let entry = match event {
-            PaintMetricEvent::FirstPaint(metric_value, first_reflow) => {
-                metrics.set_first_paint(metric_value, first_reflow);
+            PaintMetricEvent::FirstPaint(paint_timing_info, first_reflow) => {
+                metrics.set_first_paint(paint_timing_info.default_paint_timestamp(), first_reflow);
                 DomRoot::upcast::<PerformanceEntry>(PerformancePaintTiming::new(
                     cx,
                     self.window.as_global_scope(),
                     ProgressiveWebMetricType::FirstPaint,
-                    metric_value,
+                    paint_timing_info,
                 ))
             },
-            PaintMetricEvent::FirstContentfulPaint(metric_value, first_reflow) => {
-                metrics.set_first_contentful_paint(metric_value, first_reflow);
+            PaintMetricEvent::FirstContentfulPaint(paint_timing_info, first_reflow) => {
+                metrics.set_first_contentful_paint(
+                    paint_timing_info.default_paint_timestamp(),
+                    first_reflow,
+                );
                 DomRoot::upcast::<PerformanceEntry>(PerformancePaintTiming::new(
                     cx,
                     self.window.as_global_scope(),
                     ProgressiveWebMetricType::FirstContentfulPaint,
-                    metric_value,
+                    paint_timing_info,
                 ))
             },
-            PaintMetricEvent::LargestContentfulPaint(metric_value, id) => {
+            PaintMetricEvent::LargestContentfulPaint(paint_timing_info, id) => {
                 let candidate = self.lcp_candidates.borrow_mut().remove(&id);
                 let (element, area, url) = match candidate {
                     Some(stored_candidate) => (
@@ -3574,14 +3577,15 @@ impl Document {
                     ),
                     None => (None, 0, None),
                 };
-                metrics.set_largest_contentful_paint(id, metric_value);
+                metrics
+                    .set_largest_contentful_paint(id, paint_timing_info.default_paint_timestamp());
                 DomRoot::upcast::<PerformanceEntry>(LargestContentfulPaint::new(
                     cx,
                     self.window.as_global_scope(),
-                    metric_value,
                     area,
                     url,
                     element.as_deref(),
+                    paint_timing_info,
                 ))
             },
         };

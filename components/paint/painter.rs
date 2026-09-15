@@ -18,7 +18,9 @@ use gleam::gl::RENDERER;
 use image::RgbaImage;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
-use paint_api::display_list::{PaintDisplayListInfo, PaintTimingReport, ScrollType};
+use paint_api::display_list::{
+    PaintDisplayListInfo, PaintTimingInfo, PaintTimingReport, ScrollType,
+};
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
@@ -466,6 +468,13 @@ impl Painter {
     /// the list.
     fn send_pending_paint_metrics_messages_after_composite(&mut self) {
         let paint_time = CrossProcessInstant::now();
+        let paint_timing_info = PaintTimingInfo {
+            // <https://www.w3.org/TR/paint-timing/#paint-timing-info-implementation-defined-presentation-time>
+            //
+            // As per the Servo, this is next in line after `Painter::render`,
+            // when frame is presented to the screen.
+            presentation_time: Some(paint_time),
+        };
         let mut paint_metric_events = Vec::new();
 
         for webview_renderer in self.webview_renderers.values_mut() {
@@ -496,7 +505,7 @@ impl Painter {
 
                         paint_metric_events.push((
                             *pipeline_id,
-                            PaintMetricEvent::FirstPaint(paint_time, first_reflow),
+                            PaintMetricEvent::FirstPaint(paint_timing_info, first_reflow),
                         ));
 
                         pipeline.first_paint_metric = PaintMetricState::Sent;
@@ -516,7 +525,7 @@ impl Painter {
                         );
                         paint_metric_events.push((
                             *pipeline_id,
-                            PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
+                            PaintMetricEvent::FirstContentfulPaint(paint_timing_info, first_reflow),
                         ));
                         pipeline.first_contentful_paint_metric = PaintMetricState::Sent;
                     },
@@ -539,7 +548,7 @@ impl Painter {
                     );
                     paint_metric_events.push((
                         *pipeline_id,
-                        PaintMetricEvent::LargestContentfulPaint(paint_time, id),
+                        PaintMetricEvent::LargestContentfulPaint(paint_timing_info, id),
                     ));
                 }
             }
