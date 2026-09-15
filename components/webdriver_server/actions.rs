@@ -239,6 +239,19 @@ impl Handler {
         Ok(())
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-list-of-actions>
+    pub(crate) fn dispatch_a_list_of_actions(
+        &mut self,
+        actions: TickActions,
+        browsing_context: BrowsingContextId,
+    ) -> Result<(), ErrorStatus> {
+        // Step 1. Let tick actions be the list «actions».
+        // Step 2. Let actions by tick be the list «tick actions».
+        // Step 3. Return the result of dispatch actions with input state,
+        // actions by tick, browsing context, and actions options.
+        self.dispatch_actions(vec![actions], browsing_context)
+    }
+
     /// <https://w3c.github.io/webdriver/#dfn-perform-a-pointer-move>
     /// Step 9. Run the following substeps in parallel:
     /// Step 9.1. Asynchronously wait for an implementation defined amount of time to pass.
@@ -1009,14 +1022,14 @@ impl Handler {
         // Step 3. Let "actions by tick" be an empty list.
         let mut actions_by_tick: ActionsByTick = Vec::new();
 
-        // Step 4. For each value "action sequence" corresponding to an indexed property in actions
+        // Step 4. For each value "action sequence" corresponding to an indexed property in actions:
         for action_sequence in actions {
             let id = action_sequence.id.clone();
             // Step 4.1. Let "source actions" be the result of trying to process an input source action sequence
             // given "action sequence".
             let source_actions = self.process_an_input_source_action_sequence(action_sequence);
 
-            // Step 4.2.2. Ensure we have enough ticks to hold all actions
+            // Step 4.2.2. Ensure we have enough ticks to hold all actions.
             if actions_by_tick.len() < source_actions.len() {
                 actions_by_tick.resize_with(source_actions.len(), Vec::new);
             }

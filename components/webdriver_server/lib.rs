@@ -51,9 +51,8 @@ use style_traits::CSSPixel;
 use time::OffsetDateTime;
 use uuid::Uuid;
 use webdriver::actions::{
-    ActionSequence, ActionsType, KeyAction, KeyActionItem, KeyDownAction, KeyUpAction,
-    PointerAction, PointerActionItem, PointerActionParameters, PointerDownAction,
-    PointerMoveAction, PointerOrigin, PointerType, PointerUpAction,
+    KeyAction, KeyActionItem, KeyDownAction, KeyUpAction, PointerAction, PointerActionItem,
+    PointerDownAction, PointerMoveAction, PointerOrigin, PointerType, PointerUpAction,
 };
 use webdriver::capabilities::CapabilitiesMatching;
 use webdriver::command::{
@@ -73,7 +72,9 @@ use webdriver::response::{
 };
 use webdriver::server::{Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PendingActions, PointerInputState};
+use crate::actions::{
+    ActionItem, ELEMENT_CLICK_BUTTON, InputSourceState, PendingActions, PointerInputState,
+};
 use crate::session::{PageLoadStrategy, WebDriverSession};
 use crate::timeout::{DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
@@ -2226,16 +2227,10 @@ impl Handler {
                         KeyState::Down => KeyAction::Down(KeyDownAction { value: raw_string }),
                         KeyState::Up => KeyAction::Up(KeyUpAction { value: raw_string }),
                     };
-                    let action_sequence = ActionSequence {
-                        id: id.clone(),
-                        actions: ActionsType::Key {
-                            actions: vec![KeyActionItem::Key(key_action)],
-                        },
-                    };
-
-                    let actions_by_tick = self.extract_an_action_sequence(vec![action_sequence]);
+                    let actions =
+                        vec![(id.clone(), ActionItem::Key(KeyActionItem::Key(key_action)))];
                     if let Err(e) =
-                        self.dispatch_actions(actions_by_tick, self.browsing_context_id()?)
+                        self.dispatch_a_list_of_actions(actions, self.browsing_context_id()?)
                     {
                         error!("handle_element_send_keys: dispatch_actions failed: {:?}", e);
                     }
@@ -2368,23 +2363,31 @@ impl Handler {
             ..Default::default()
         };
 
-        let action_sequence = ActionSequence {
-            id: id.clone(),
-            actions: ActionsType::Pointer {
-                parameters: PointerActionParameters {
-                    pointer_type: PointerType::Mouse,
-                },
-                actions: vec![
-                    PointerActionItem::Pointer(PointerAction::Move(pointer_move_action)),
-                    PointerActionItem::Pointer(PointerAction::Down(pointer_down_action)),
-                    PointerActionItem::Pointer(PointerAction::Up(pointer_up_action)),
-                ],
-            },
-        };
+        // Step 8.15. Let actions be the list
+        // «pointer move action, pointer down action, pointer up action».
+        let actions = vec![
+            (
+                id.clone(),
+                ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Move(
+                    pointer_move_action,
+                ))),
+            ),
+            (
+                id.clone(),
+                ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Down(
+                    pointer_down_action,
+                ))),
+            ),
+            (
+                id.clone(),
+                ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
+                    pointer_up_action,
+                ))),
+            ),
+        ];
 
         // Step 8.16. Dispatch a list of actions with session's current browsing context
-        let actions_by_tick = self.extract_an_action_sequence(vec![action_sequence]);
-        if let Err(e) = self.dispatch_actions(actions_by_tick, self.browsing_context_id()?) {
+        if let Err(e) = self.dispatch_a_list_of_actions(actions, self.browsing_context_id()?) {
             error!("handle_element_click: dispatch_actions failed: {:?}", e);
         }
 
