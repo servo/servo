@@ -16,6 +16,7 @@ pub use font_descriptor::*;
 pub use font_identifier::*;
 pub use font_template::*;
 use malloc_size_of_derive::MallocSizeOf;
+pub use memmap2::Mmap;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSharedMemory;
@@ -36,9 +37,9 @@ pub type StylesheetWebFontLoadFinishedCallback =
 /// [`GenericSharedMemory`] handle, so that it can be sent without serialization
 /// across IPC channels.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct FontData(#[conditional_malloc_size_of] pub(crate) Arc<GenericSharedMemory>);
+pub struct FontData<T>(#[conditional_malloc_size_of] pub(crate) Arc<T>);
 
-impl FontData {
+impl FontData<GenericSharedMemory> {
     pub fn from_bytes(bytes: &[u8]) -> Self {
         Self(Arc::new(GenericSharedMemory::from_bytes(bytes)))
     }
@@ -53,9 +54,15 @@ impl FontData {
     }
 }
 
-impl AsRef<[u8]> for FontData {
+impl<T> FontData<T> {
+    pub fn inner_arc(self) -> Arc<T> {
+        self.0
+    }
+}
+
+impl<T: AsRef<[u8]>> AsRef<[u8]> for FontData<T> {
     fn as_ref(&self) -> &[u8] {
-        &self.0
+        self.0.as_ref().as_ref()
     }
 }
 
@@ -64,9 +71,9 @@ impl AsRef<[u8]> for FontData {
 /// If the font data is of a TTC (TrueType collection) file, then the index of a specific font within
 /// the collection. If the font data is for is single font then the index will always be 0.
 #[derive(Deserialize, Clone, Serialize, MallocSizeOf)]
-pub struct FontDataAndIndex {
+pub struct FontDataAndIndex<T> {
     /// The raw font file data (.ttf, .otf, .ttc, etc)
-    pub data: FontData,
+    pub data: FontData<T>,
     /// The index of the font within the file (0 if the file is not a ttc)
     pub index: u32,
 }

@@ -18,6 +18,7 @@ use parking_lot::ReentrantMutex;
 use read_fonts::types::Tag;
 use read_fonts::{FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
+use servo_base::generic_channel::GenericSharedMemory;
 use skrifa::attribute::Weight;
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};
@@ -66,7 +67,7 @@ pub struct PlatformFont {
 impl PlatformFontMethods for PlatformFont {
     fn new_from_data(
         _font_identifier: FontIdentifier,
-        font_data: &FontData,
+        font_data: &FontData<GenericSharedMemory>,
         requested_size: Option<Au>,
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
@@ -411,7 +412,7 @@ impl PlatformFont {
 
 #[derive(Clone)]
 enum FreeTypeFaceTableProviderData {
-    Web(FontData),
+    Web(FontData<GenericSharedMemory>),
     Local(Arc<Mmap>, u32),
 }
 

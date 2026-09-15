@@ -10,10 +10,18 @@ use style::color::AbsoluteColor;
 use crate::backend::Convert;
 use crate::canvas_data::Filter;
 
-impl Convert<peniko::FontData> for fonts::FontDataAndIndex {
+impl Convert<peniko::FontData> for FontBackingStoreType {
     fn convert(self) -> peniko::FontData {
-        use std::sync::Arc;
-        peniko::FontData::new(peniko::Blob::new(Arc::new(self.data)), self.index)
+        match self {
+            FontBackingStoreType::MmapFont(mmap_font) => peniko::FontData::new(
+                peniko::Blob::new(mmap_font.data.inner_arc()),
+                mmap_font.index,
+            ),
+            FontBackingStoreType::SharedFont(shared_font) => peniko::FontData::new(
+                peniko::Blob::new(shared_font.data.inner_arc()),
+                shared_font.index,
+            ),
+        }
     }
 }
 
