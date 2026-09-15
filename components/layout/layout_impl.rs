@@ -1533,8 +1533,11 @@ impl LayoutThread {
             paint_timing_handler,
             reflow_statistics,
         );
-        stacking_context_tree.paint_info.paint_timing_report =
-            paint_timing_handler.mark_paint_timing(reflow_request.halt_lcp);
+        stacking_context_tree.paint_info.paint_timing_report = paint_timing_handler
+            .mark_paint_timing(
+                reflow_request.halt_lcp,
+                &stacking_context_tree.paint_info.scroll_tree,
+            );
 
         if let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate() {
             stacking_context_tree.paint_info.lcp_candidate =
