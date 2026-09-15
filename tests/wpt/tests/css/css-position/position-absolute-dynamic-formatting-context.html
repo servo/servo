@@ -1,9 +1,9 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSS Position: a laid-out formatting context keeps its box when it becomes absolutely positioned</title>
+<title>CSS Position: a laid-out formatting context can become absolutely positioned</title>
 <link rel="help" href="https://drafts.csswg.org/css-position/#position-property">
 <link rel="author" href="mailto:102797145+mxmgorin@users.noreply.github.com" title="Maxim Gorin">
-<meta name="assert" content="An element that has already been laid out in flow still generates a box after its position is changed to absolute or fixed, whatever formatting context it establishes.">
+<meta name="assert" content="An element that has already been laid out in flow is correctly updated after its position is changed to absolute or fixed, whatever formatting context it establishes.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
@@ -66,7 +66,7 @@ for (const position of POSITIONS) {
       const { container, element } = laidOutElement(t, "div", display);
       element.style.position = position;
       assertPositionedAt(container, element, position);
-    }, `display: ${display} keeps its box when position becomes ${position}`);
+    }, `display: ${display} gets position set to ${position}`);
   }
 
   // A block-level replaced element is an independent formatting context too, and
@@ -75,6 +75,6 @@ for (const position of POSITIONS) {
     const { container, element } = laidOutElement(t, "canvas", "block");
     element.style.position = position;
     assertPositionedAt(container, element, position);
-  }, `a block-level canvas keeps its box when position becomes ${position}`);
+  }, `block-level canvas gets position set to ${position}`);
 }
 </script>

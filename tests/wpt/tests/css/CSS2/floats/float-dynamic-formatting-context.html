@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSS Floats: a laid-out formatting context keeps its box when it becomes floated</title>
+<title>CSS Floats: a laid-out formatting context can become floated</title>
 <link rel="help" href="https://drafts.csswg.org/css2/#floats">
 <link rel="author" href="mailto:102797145+mxmgorin@users.noreply.github.com" title="Maxim Gorin">
 <meta name="assert" content="An element that has already been laid out in flow still generates a box after it is floated, whatever formatting context it establishes.">
@@ -66,7 +66,7 @@ for (const float of FLOATS) {
       const { container, element, sibling } = laidOutElement(t, "div", display);
       element.style.float = float;
       assertFloatedTo(container, element, sibling, float);
-    }, `display: ${display} keeps its box when it floats ${float}`);
+    }, `display: ${display} gets float set to ${float}`);
   }
 
   // A block-level replaced element is an independent formatting context too, and
@@ -75,6 +75,6 @@ for (const float of FLOATS) {
     const { container, element, sibling } = laidOutElement(t, "canvas", "block");
     element.style.float = float;
     assertFloatedTo(container, element, sibling, float);
-  }, `a block-level canvas keeps its box when it floats ${float}`);
+  }, `block-level canvas gets float set to ${float}`);
 }
 </script>
