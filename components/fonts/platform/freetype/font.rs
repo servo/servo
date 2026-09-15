@@ -17,8 +17,12 @@ use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
 use read_fonts::types::Tag;
 use read_fonts::{FontRef, ReadError, TableProvider};
+use resvg::tiny_skia;
 use servo_arc::Arc;
+use skrifa::MetadataProvider;
 use skrifa::attribute::Weight;
+use skrifa::instance::Size;
+use skrifa::outline::{DrawSettings, OutlinePen};
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};
 
@@ -380,6 +384,31 @@ impl PlatformFontMethods for PlatformFont {
         ) * (1. / 64.)
     }
 
+    fn glyph_outline(&self, glyph_id: GlyphId) -> Option<tiny_skia::Path> {
+        let font_ref = self.table_provider_data.font_ref().ok()?;
+        let units_per_em = font_ref.head().ok()?.units_per_em() as f32;
+        let location = font_ref.axes().location(
+            self.variations
+                .iter()
+                .map(|variation| (Tag::from_u32(variation.tag), variation.value)),
+        );
+        let outline = font_ref
+            .outline_glyphs()
+            .get(skrifa::GlyphId::new(glyph_id))?;
+
+        let mut pen = PathPen {
+            builder: tiny_skia::PathBuilder::new(),
+            scale: 1.0 / units_per_em,
+        };
+        outline
+            .draw(
+                DrawSettings::unhinted(Size::unscaled(), &location),
+                &mut pen,
+            )
+            .ok()?;
+        pen.builder.finish()
+    }
+
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
         // On other platforms, we only pass this when we know that we are loading a font with
         // color characters, but not passing this flag simply *prevents* WebRender from
@@ -413,6 +442,45 @@ impl PlatformFont {
 enum FreeTypeFaceTableProviderData {
     Web(FontData),
     Local(Arc<Mmap>, u32),
+}
+
+struct PathPen {
+    builder: tiny_skia::PathBuilder,
+    scale: f32,
+}
+
+impl OutlinePen for PathPen {
+    fn move_to(&mut self, x: f32, y: f32) {
+        self.builder.move_to(x * self.scale, -y * self.scale);
+    }
+
+    fn line_to(&mut self, x: f32, y: f32) {
+        self.builder.line_to(x * self.scale, -y * self.scale);
+    }
+
+    fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
+        self.builder.quad_to(
+            cx0 * self.scale,
+            -cy0 * self.scale,
+            x * self.scale,
+            -y * self.scale,
+        );
+    }
+
+    fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
+        self.builder.cubic_to(
+            cx0 * self.scale,
+            -cy0 * self.scale,
+            cx1 * self.scale,
+            -cy1 * self.scale,
+            x * self.scale,
+            -y * self.scale,
+        );
+    }
+
+    fn close(&mut self) {
+        self.builder.close();
+    }
 }
 
 impl FreeTypeFaceTableProviderData {

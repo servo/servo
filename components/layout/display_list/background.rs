@@ -75,6 +75,7 @@ impl<'a> BackgroundPainter<'a> {
             Clip::ContentBox => *fragment_builder.content_rect(),
             Clip::PaddingBox => *fragment_builder.padding_rect(),
             Clip::BorderBox | Clip::BorderArea => fragment_builder.border_rect,
+            Clip::Text => fragment_builder.border_rect,
         }
     }
 
@@ -108,6 +109,7 @@ impl<'a> BackgroundPainter<'a> {
                 fragment_builder.border_edge_clip(builder, state, force_clip_creation)
             },
             Clip::BorderArea => unreachable!("Should be disabled behind a pref"),
+            Clip::Text => fragment_builder.border_edge_clip(builder, state, force_clip_creation),
         }
     }
 
