@@ -48,6 +48,7 @@ phf = { workspace = true }
 pixels = { workspace = true }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
+resvg = { workspace = true }
 rustc-hash = { workspace = true }
 script = { workspace = true }
 script_traits = { workspace = true }
