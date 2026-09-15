@@ -17,7 +17,7 @@ use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, MutableHandleObject, MutableHandleValue};
 use js::typedarray::{
-    ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, TypedArray,
+    ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array,
     TypedArrayElementCreator, Uint32Array,
 };
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
@@ -41,7 +41,7 @@ use webrender_api::ImageKey;
 use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
 #[cfg(feature = "webxr")]
 use crate::dom::RootedPromise;
-use crate::dom::bindings::buffer_source::get_buffer_source_slice;
+use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_slice};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
@@ -113,19 +113,15 @@ where
     receiver.recv().unwrap()
 }
 
-#[expect(unsafe_code)]
-pub(crate) unsafe fn uniform_typed<T>(
+pub(crate) fn uniform_typed<T>(
     cx: &mut JSContext,
     value: &[T::Element],
     mut retval: MutableHandleValue,
 ) where
-    T: TypedArrayElementCreator,
+    T: TypedArrayElementCreator + 'static,
 {
     rooted!(&in(cx) let mut rval = ptr::null_mut::<JSObject>());
-    unsafe {
-        <TypedArray<T, *mut JSObject>>::create(cx, CreateWith::Slice(value), rval.handle_mut())
-    }
-    .unwrap();
+    create_buffer_source::<T>(cx, value, rval.handle_mut()).unwrap();
     retval.set(ObjectValue(rval.get()));
 }
 
@@ -4328,7 +4324,6 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[expect(unsafe_code)]
     fn GetUniform(
         &self,
         cx: &mut JSContext,
@@ -4365,54 +4360,44 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             WebGL2RenderingContextConstants::SAMPLER_3D => {
                 rval.set(Int32Value(uniform_get(triple, WebGLCommand::GetUniformInt)))
             },
-            constants::INT_VEC2 => unsafe {
+            constants::INT_VEC2 => {
                 uniform_typed::<Int32>(cx, &uniform_get(triple, WebGLCommand::GetUniformInt2), rval)
             },
-            constants::INT_VEC3 => unsafe {
+            constants::INT_VEC3 => {
                 uniform_typed::<Int32>(cx, &uniform_get(triple, WebGLCommand::GetUniformInt3), rval)
             },
-            constants::INT_VEC4 => unsafe {
+            constants::INT_VEC4 => {
                 uniform_typed::<Int32>(cx, &uniform_get(triple, WebGLCommand::GetUniformInt4), rval)
             },
             constants::FLOAT => rval
                 .set(DoubleValue(
                     uniform_get(triple, WebGLCommand::GetUniformFloat) as f64,
                 )),
-            constants::FLOAT_VEC2 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat2),
-                    rval,
-                )
-            },
-            constants::FLOAT_VEC3 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat3),
-                    rval,
-                )
-            },
-            constants::FLOAT_VEC4 | constants::FLOAT_MAT2 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat4),
-                    rval,
-                )
-            },
-            constants::FLOAT_MAT3 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat9),
-                    rval,
-                )
-            },
-            constants::FLOAT_MAT4 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat16),
-                    rval,
-                )
-            },
+            constants::FLOAT_VEC2 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat2),
+                rval,
+            ),
+            constants::FLOAT_VEC3 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat3),
+                rval,
+            ),
+            constants::FLOAT_VEC4 | constants::FLOAT_MAT2 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat4),
+                rval,
+            ),
+            constants::FLOAT_MAT3 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat9),
+                rval,
+            ),
+            constants::FLOAT_MAT4 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat16),
+                rval,
+            ),
             _ => panic!("wrong uniform type"),
         }
     }
