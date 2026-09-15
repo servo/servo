@@ -14,6 +14,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{LCPCandidateID, ScrollTreeNodeId};
 use servo_base::print_tree::PrintTree;
 use servo_geometry::FastLayoutTransform;
@@ -912,6 +913,24 @@ bitflags! {
         const FirstPaint = 1 << 0;
         /// Report first contentful paint (the spec's `"first-contentful-paint"`).
         const FirstContentfulPaint = 1 << 1;
+    }
+}
+
+/// <https://www.w3.org/TR/paint-timing/#paint-timing-info>
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct PaintTimingInfo {
+    /// <https://w3c.github.io/paint-timing/#dom-painttimingmixin-presentationtime>
+    pub presentation_time: Option<CrossProcessInstant>,
+}
+
+impl PaintTimingInfo {
+    /// <https://www.w3.org/TR/paint-timing/#default-paint-timestamp>
+    pub fn default_paint_timestamp(&self) -> CrossProcessInstant {
+        // return paintTimingInfo’s implementation-defined presentation time if
+        // it is non-null, otherwise paintTimingInfo’s rendering update end time.
+        // TODO: We don't have a rendering update end time yet.
+        self.presentation_time
+            .unwrap_or_else(CrossProcessInstant::epoch)
     }
 }
 
