@@ -20,6 +20,7 @@ use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::generic_channel::{GenericCallback, GenericSend, GenericSender};
 use servo_base::id::CookieStoreId;
 use servo_url::ServoUrl;
+use style::str::starts_with_ignore_ascii_case;
 use time::OffsetDateTime;
 
 use crate::dom::bindings::codegen::Bindings::CookieStoreBinding::{
@@ -637,20 +638,22 @@ impl CookieStore {
                 return None;
             }
             // 5.3 If value, byte-lowercased, starts with `__host-`, `__host-http-`, `__http-`, or `__secure-`, then return failure.
-            let lowercased_value = value.to_ascii_lowercase();
             if ["__host-", "__host-http-", "__http-", "__secure-"]
-                .iter()
-                .any(|prefix| lowercased_value.starts_with(prefix))
+                .into_iter()
+                .any(|prefix| starts_with_ignore_ascii_case(&value, prefix))
             {
                 return None;
             }
         }
 
         // 6. If name, byte-lowercased, starts with `__host-http-` or `__http-`, then return failure.
-        let lowercased_name = name.to_ascii_lowercase();
-        if lowercased_name.starts_with("__host-http-") || lowercased_name.starts_with("__http-") {
+        if ["__host-http-", "__http-"]
+            .into_iter()
+            .any(|prefix| starts_with_ignore_ascii_case(&name, prefix))
+        {
             return None;
         }
+        let name_starts_with_host = starts_with_ignore_ascii_case(&name, "__host-");
 
         // 9. If the byte sequence length of encodedName plus the byte sequence length of encodedValue is greater than the maximum name/value pair size, then return failure.
         if name.len() + value.len() > 4096 {
@@ -678,7 +681,7 @@ impl CookieStore {
                 return None;
             }
             // 12.2 If name, byte-lowercased, starts with `__host-`, then return failure.
-            if lowercased_name.starts_with("__host-") {
+            if name_starts_with_host {
                 return None;
             }
 
@@ -736,7 +739,7 @@ impl CookieStore {
             return None;
         }
         // 17. If path is not U+002F (/), and name, byte-lowercased, starts with `__host-`, then return failure.
-        if path != "/" && lowercased_name.starts_with("__host-") {
+        if path != "/" && name_starts_with_host {
             return None;
         }
         // 19. If the byte sequence length of encodedPath is greater than the maximum attribute value size, then return failure.
