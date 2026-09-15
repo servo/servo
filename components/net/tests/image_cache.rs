@@ -9,16 +9,18 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use malloc_size_of_derive::MallocSizeOf;
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::image_cache::{
-    FontResolver, ImageCache, ImageCacheFactory, ImageCacheResponseMessage, ImageCacheResult,
-    ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
-    PendingImageResponse,
+    EncodedImage, EncodedImageBytes, FontResolver, ImageCache, ImageCacheFactory,
+    ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
+    ImageResponse, PendingImageId, PendingImageResponse,
 };
 use net_traits::request::RequestId;
+use net_traits::response::ResponseBody;
 use net_traits::{
     FetchMetadata, FetchResponseMsg, FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
 use paint_api::{CrossProcessPaintApi, PaintMessage};
+use pixels::{CorsStatus, ImageMetadata};
 // For dummy Font Resolver
 use resvg::usvg::{Font, fontdb};
 use servo_base::id::{PipelineId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
@@ -262,15 +264,22 @@ fn test_notify_pending_response_complete() {
         FetchResponseMsg::ProcessResponse(create_request_id(), Ok(create_test_metadata(None))),
     );
 
-    let jpeg_bytes = jpeg_image_bytes();
+    let encoded_body = servo_arc::Arc::new(parking_lot::Mutex::new(ResponseBody::Done(
+        jpeg_image_bytes(),
+    )));
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), jpeg_bytes.into()),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), jpeg_image_bytes().into()),
     );
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
+        FetchResponseMsg::ProcessResponseEOF(
+            create_request_id(),
+            Ok(()),
+            create_timing(),
+            Some(encoded_body.clone()),
+        ),
     );
 
     loop {
@@ -285,9 +294,30 @@ fn test_notify_pending_response_complete() {
         }
     }
 
-    let image = cache.get_image(url, origin, None);
-    assert!(image.is_some());
-    assert!(image.unwrap().as_raster_image().is_some());
+    let image = cache.get_image(url, origin, None).unwrap();
+    assert!(image.as_raster_image().is_some());
+}
+
+#[test]
+fn test_encoded_image_decodes_from_cached_response_body() {
+    let body = servo_arc::Arc::new(parking_lot::Mutex::new(ResponseBody::Done(
+        jpeg_image_bytes(),
+    )));
+    let image = EncodedImage {
+        id: PendingImageId(1),
+        metadata: ImageMetadata {
+            width: 1,
+            height: 1,
+        },
+        cors_status: CorsStatus::Safe,
+        bytes: EncodedImageBytes::Cached(body.clone()),
+    };
+
+    let EncodedImageBytes::Cached(source) = &image.bytes else {
+        panic!("Expected the HTTP cache body to be retained");
+    };
+    assert!(servo_arc::Arc::ptr_eq(source, &body));
+    assert!(image.decode().is_some());
 }
 
 #[test]
@@ -312,6 +342,7 @@ fn test_notify_pending_response_network_error() {
             create_request_id(),
             Err(NetworkError::InvalidMethod),
             create_timing(),
+            None,
         ),
     );
 
@@ -348,7 +379,7 @@ fn test_image_listener_on_complete_response() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing(), None),
     );
 
     loop {
@@ -390,6 +421,7 @@ fn test_image_listener_on_network_error() {
             create_request_id(),
             Err(NetworkError::InvalidMethod),
             create_timing(),
+            None,
         ),
     );
 
@@ -481,7 +513,7 @@ fn test_multiple_listeners_same_image() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing(), None),
     );
 
     loop {
@@ -527,7 +559,7 @@ fn test_cached_image_reuse() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing(), None),
     );
 
     loop {
@@ -567,7 +599,7 @@ fn test_svg_rasterization() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing(), None),
     );
 
     let vec_img = loop {
@@ -619,7 +651,7 @@ fn test_rasterization_listener() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing(), None),
     );
 
     let vec_img = loop {
@@ -689,7 +721,7 @@ fn test_svg_rasterization_do_not_double_rasterize() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing(), None),
     );
 
     let vec_img = loop {
@@ -749,7 +781,7 @@ fn test_svg_not_rasterize_zero_size() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing(), None),
     );
 
     let vec_img = loop {
