@@ -83,6 +83,8 @@ mod from_embedder {
                 Self::UpdatePinchZoomInfos(..) => target!("UpdatePinchZoomInfos"),
                 Self::SetAccessibilityActive(..) => target!("SetAccessibilityActive"),
                 Self::ClearSessionHistory(..) => target!("ClearHistory"),
+                Self::OnBackground => target!("OnBackground"),
+                Self::OnForeground => target!("OnForeground"),
             }
         }
     }

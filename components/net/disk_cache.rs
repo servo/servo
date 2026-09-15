@@ -83,6 +83,7 @@ impl Iden for DiskCacheTable {
 /// Get the storage path out of `network_http_disk_cache` preference and `temporary_storage` option.
 fn storage_dir() -> Option<PathBuf> {
     let disk_storage_path = pref!(network_http_disk_cache);
+    log::error!("STOREAGE PATH IS {:?}", disk_storage_path);
     match (
         servo_config::opts::get().temporary_storage,
         disk_storage_path.is_empty(),

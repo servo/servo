@@ -1480,6 +1480,12 @@ where
             EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
                 self.handle_clear_session_history(webview_id);
             },
+            EmbedderToConstellationMessage::OnBackground => {
+                self.handle_on_background();
+            },
+            EmbedderToConstellationMessage::OnForeground => {
+                self.handle_on_foreground();
+            },
         }
     }
 
@@ -3244,6 +3250,10 @@ where
         self.notify_history_changed(webview_id);
     }
 
+    fn handle_on_background(&mut self) {
+        self.public_resource_threads.on_background();
+    }
+    fn handle_on_foreground(&mut self) {}
     fn forward_input_event(
         &mut self,
         webview_id: WebViewId,
