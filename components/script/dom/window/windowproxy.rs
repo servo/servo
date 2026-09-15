@@ -49,9 +49,10 @@ use script_bindings::codegen::GenericBindings::WindowBinding::{
 };
 use script_bindings::conversions::jsid_to_string;
 use script_bindings::proxyhandler::{
-    self, CrossOriginProperties, cross_origin_get_own_property_helper,
-    cross_origin_own_property_keys, cross_origin_property_fallback, cross_origin_set,
-    is_extensible, is_platform_object_same_origin, maybe_cross_origin_get_prototype,
+    self, CROSS_ORIGIN_PROPERTY_HOLDER_WEAK_MAP_SLOT, CrossOriginProperties,
+    cross_origin_get_own_property_helper, cross_origin_own_property_keys,
+    cross_origin_property_fallback, cross_origin_set, is_extensible,
+    is_platform_object_same_origin, maybe_cross_origin_get_prototype,
     maybe_cross_origin_set_prototype_rawcx, prevent_extensions, report_cross_origin_denial,
     set_property_descriptor,
 };
@@ -963,6 +964,12 @@ impl WindowProxy {
 
             // The old window proxy no longer owns this browsing context.
             SetProxyReservedSlot(old_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
+            // Also drop any cached cross-origin property holders.
+            SetProxyReservedSlot(
+                old_js_proxy.get(),
+                CROSS_ORIGIN_PROPERTY_HOLDER_WEAK_MAP_SLOT,
+                &UndefinedValue(),
+            );
 
             // Brain transplant the window proxy. Brain transplantation is
             // usually done to move a window proxy between compartments, but

@@ -4,7 +4,7 @@
 
 //! Utilities for the implementation of JSAPI proxy handlers.
 
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_char;
 use std::ptr;
@@ -12,13 +12,17 @@ use std::ptr::NonNull;
 
 use js::context::{JSContext, RawJSContext};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
-use js::glue::{GetProxyHandlerFamily, GetProxyPrivate, SetProxyPrivate};
+use js::glue::{
+    GetProxyHandlerFamily, GetProxyPrivate, GetProxyReservedSlot, SetProxyPrivate,
+    SetProxyReservedSlot, UncheckedUnwrapObject,
+};
 use js::jsapi::{
     DOMProxyShadowsResult, GetObjectRealmOrNull, GetRealmPrincipals, GetStaticPrototype,
     Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
-    HandleValue as RawHandleValue, HandleValueArray, IsWindowProxy, JSErrNum, JSFunctionSpec,
-    JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSObject, JSPROP_READONLY, JSPropertySpec,
-    JSString, MutableHandleIdVector as RawMutableHandleIdVector,
+    HandleValue as RawHandleValue, HandleValueArray, IsWeakMapObject, IsWindowProxy,
+    JS_IsDeadWrapper, JSErrNum, JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS,
+    JSObject, JSPROP_READONLY, JSPropertySpec, JSString,
+    MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, ObjectOpResult, PropertyDescriptor,
     SetDOMProxyInformation, SymbolCode, jsid,
 };
@@ -26,12 +30,13 @@ use js::jsid::SymbolId;
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
-    AppendToIdVector, Call, GetObjectProto, GetPropertyKeys, GetWellKnownSymbol,
-    JS_AlreadyHasOwnPropertyById, JS_AtomizeAndPinString, JS_DefineFunctions, JS_DefineProperties,
-    JS_DefinePropertyById, JS_DeletePropertyById, JS_GetOwnPropertyDescriptorById, JS_IdToValue,
-    JS_IsExceptionPending, JS_NewObjectWithGivenProto, JS_ValueToSource,
+    AppendToIdVector, Call, GetObjectProto, GetPropertyKeys, GetRealmKeyObject, GetWeakMapEntry,
+    GetWellKnownSymbol, JS_AlreadyHasOwnPropertyById, JS_AtomizeAndPinString, JS_DefineFunctions,
+    JS_DefineProperties, JS_DefinePropertyById, JS_DeletePropertyById,
+    JS_GetOwnPropertyDescriptorById, JS_IdToValue, JS_IsExceptionPending,
+    JS_NewObjectWithGivenProto, JS_ValueToSource, JS_WrapObject, JS_WrapValue, NewWeakMapObject,
     RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID, SetDataPropertyDescriptor,
-    SetPropertyIgnoringNamedGetter, int_to_jsid,
+    SetPropertyIgnoringNamedGetter, SetWeakMapEntry, int_to_jsid,
 };
 use js::rust::{
     Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
@@ -45,6 +50,12 @@ use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::principals::ServoJSPrincipalsRef;
 use crate::reflector::DomObject;
 use crate::str::DOMString;
+
+/// In WindowProxy and ProxyObject, the second slot is reserved for the
+/// cross-origin property holder weak map. This is a weak map between the realm
+/// and a property holder which stores objects that are used in cross origin
+/// realms.
+pub const CROSS_ORIGIN_PROPERTY_HOLDER_WEAK_MAP_SLOT: u32 = 1;
 
 /// Determine if this id shadows any existing properties for this proxy.
 ///
@@ -394,33 +405,43 @@ fn is_data_descriptor(d: &PropertyDescriptor) -> bool {
     d.hasWritable_() || d.hasValue_()
 }
 
-/// Evaluate `CrossOriginGetOwnPropertyHelper(proxy, id) != null`.
-/// SpiderMonkey-specific.
+/// Evaluate whether proxy has the own property 'id' in the cross-origin case.
 ///
 /// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
 /// for a maybe-cross-origin object.
-///
-/// # Safety
-/// `bp` must point to a valid, non-null bool.
-pub(crate) unsafe fn cross_origin_has_own(
+pub(crate) fn cross_origin_has_own<D: DomTypes>(
     cx: &mut CurrentRealm,
-    _proxy: HandleObject,
+    proxy: HandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
     id: HandleId,
-    bp: *mut bool,
+    exists: &mut bool,
 ) -> bool {
-    // TODO: Once we have the slot for the holder, it'd be more efficient to
-    //       use `ensure_cross_origin_property_holder`. We'll need `_proxy` to
-    //       do that.
-    unsafe {
-        *bp = jsid_to_string(cx, id).is_some_and(|key| {
-            cross_origin_properties.keys().any(|defined_key| {
-                let defined_key = CStr::from_ptr(defined_key);
-                defined_key.to_bytes() == key.str().as_bytes()
-            })
-        })
-    };
+    rooted!(&in(cx) let mut property_descriptor = PropertyDescriptor::default());
+    let mut is_none = false;
+    if !cross_origin_get_own_property_helper(
+        cx,
+        proxy,
+        cross_origin_properties,
+        id,
+        property_descriptor.handle_mut(),
+        &mut is_none,
+    ) {
+        return false;
+    }
 
+    if is_none &&
+        !cross_origin_property_fallback::<D>(
+            cx,
+            proxy,
+            id,
+            property_descriptor.handle_mut(),
+            &mut is_none,
+        )
+    {
+        return false;
+    }
+
+    *exists = !is_none;
     true
 }
 
@@ -439,8 +460,10 @@ pub fn cross_origin_get_own_property_helper(
     is_none: &mut bool,
 ) -> bool {
     rooted!(&in(cx) let mut holder = ptr::null_mut::<JSObject>());
-    ensure_cross_origin_property_holder(cx, proxy, cross_origin_properties, holder.handle_mut());
-
+    if !ensure_cross_origin_property_holder(cx, proxy, cross_origin_properties, holder.handle_mut())
+    {
+        return false;
+    }
     unsafe { JS_GetOwnPropertyDescriptorById(cx, holder.handle(), id, desc, is_none) }
 }
 
@@ -500,40 +523,147 @@ fn append_cross_origin_allowlisted_prop_keys(cx: &mut JSContext, props: RawMutab
 /// [`CrossOriginGetOwnPropertyHelper`]: https://html.spec.whatwg.org/multipage/#crossorigingetownpropertyhelper-(-o,-p-)
 fn ensure_cross_origin_property_holder(
     cx: &mut CurrentRealm,
-    _proxy: HandleObject,
+    proxy: HandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
     mut out_holder: MutableHandleObject,
 ) -> bool {
-    // TODO: We don't have the slot to store the holder yet. For now,
-    //       the holder is constructed every time this function is called,
-    //       which is not only inefficient but also deviates from the
-    //       specification in a subtle yet observable way.
-
-    // Create a holder for the current Realm
+    rooted!(&in(cx) let mut weak_value_map = UndefinedValue());
     unsafe {
-        out_holder.set(JS_NewObjectWithGivenProto(
-            cx,
-            ptr::null_mut(),
-            HandleObject::null(),
-        ));
-
-        if out_holder.get().is_null() ||
-            !JS_DefineProperties(
-                cx,
-                out_holder.handle(),
-                cross_origin_properties.attributes.as_ptr(),
-            ) ||
-            !JS_DefineFunctions(
-                cx,
-                out_holder.handle(),
-                cross_origin_properties.methods.as_ptr(),
+        GetProxyReservedSlot(
+            proxy.get(),
+            CROSS_ORIGIN_PROPERTY_HOLDER_WEAK_MAP_SLOT,
+            weak_value_map.as_ptr(),
+        )
+    };
+    if weak_value_map.is_undefined() {
+        let mut realm = AutoRealm::new_from_handle(cx, proxy);
+        let new_map = unsafe { NewWeakMapObject(&mut realm) };
+        if new_map.is_null() {
+            return false;
+        }
+        weak_value_map.set(ObjectValue(new_map));
+        unsafe {
+            SetProxyReservedSlot(
+                proxy.get(),
+                CROSS_ORIGIN_PROPERTY_HOLDER_WEAK_MAP_SLOT,
+                weak_value_map.as_ptr(),
             )
-        {
+        };
+    }
+
+    rooted!(&in(cx) let map = weak_value_map.to_object());
+    debug_assert!(unsafe { IsWeakMapObject(map.get()) });
+
+    // We need to be in "map"'s compartment to work with it.  Per spec, the key
+    // for this map is supposed to be the pair (current settings, relevant
+    // settings).  The current settings corresponds to the current Realm of cx.
+    // The relevant settings corresponds to the Realm of "obj", but since all of
+    // our objects are per-Realm singletons, we are basically using "obj" itself
+    // as part of the key.
+    //
+    // To represent the current settings, we use a dedicated key object of the
+    // current-Realm.
+    //
+    // We can't use the current global, because we can't get a useful
+    // cross-compartment wrapper for it; such wrappers would always go
+    // through a WindowProxy and would not be guarantee to keep pointing to a
+    // single Realm when unwrapped.  We want to grab this key before we start
+    // changing Realms.
+    //
+    // Also we can't use arbitrary object (e.g.: Object.prototype), because at
+    // this point those compartments are not same-origin, and don't have access to
+    // each other, and the object retrieved here will be wrapped by a security
+    // wrapper below, and the wrapper will be stored into the cache
+    // (see Compartment::wrap).  Those compartments can get access later by
+    // modifying `document.domain`, and wrapping objects after that point
+    // shouldn't result in a security wrapper.  Wrap operation looks up the
+    // existing wrapper in the cache, that contains the security wrapper created
+    // here.  We should use unique/private object here, so that this doesn't
+    // affect later wrap operation.
+    rooted!(&in(cx) let mut key = unsafe { GetRealmKeyObject(cx) });
+    if key.is_null() {
+        return false;
+    }
+
+    rooted!(&in(cx) let mut holder_value = UndefinedValue());
+    {
+        let mut realm = AutoRealm::new_from_handle(cx, map.handle());
+        let cx = &mut realm;
+
+        if !unsafe { JS_WrapObject(cx, key.handle_mut()) } {
+            return false;
+        }
+
+        rooted!(&in(cx) let key_value = ObjectValue(key.get()));
+        if !unsafe {
+            GetWeakMapEntry(
+                cx,
+                map.handle(),
+                key_value.handle(),
+                holder_value.handle_mut(),
+            )
+        } {
             return false;
         }
     }
 
-    // TODO: Store the holder in the slot that we don't have yet.
+    if holder_value.is_object() {
+        // We want to do an unchecked unwrap, because the holder (and the current
+        // caller) may actually be more privileged than our map.
+        out_holder.set(unsafe { UncheckedUnwrapObject(holder_value.to_object(), true) });
+
+        // holder might be a dead object proxy if things got nuked.
+        if !unsafe { JS_IsDeadWrapper(out_holder.get()) } {
+            return true;
+        }
+    }
+
+    // We didn't find a usable holder. Go ahead and allocate one. At this point
+    // we have two options: we could allocate the holder in the current Realm
+    // and store a cross-compartment wrapper for it in the map as needed, or we
+    // could allocate the holder in the Realm of the map and have it hold
+    // cross-compartment references to all the methods it holds, since those
+    // methods need to be in our current Realm. It seems better to allocate the
+    // holder in our current Realm.
+    out_holder
+        .set(unsafe { JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null()) });
+
+    if out_holder.get().is_null() ||
+        !unsafe {
+            JS_DefineProperties(
+                cx,
+                out_holder.handle(),
+                cross_origin_properties.attributes.as_ptr(),
+            )
+        } ||
+        !unsafe {
+            JS_DefineFunctions(
+                cx,
+                out_holder.handle(),
+                cross_origin_properties.methods.as_ptr(),
+            )
+        }
+    {
+        return false;
+    }
+
+    holder_value.set(ObjectValue(out_holder.get()));
+
+    {
+        let mut realm = AutoRealm::new_from_handle(cx, map.handle());
+        let cx = &mut realm;
+
+        // Key is already in the right Realm, but we need to wrap the value.
+        if !unsafe { JS_WrapValue(cx, holder_value.handle_mut()) } {
+            return false;
+        }
+
+        rooted!(&in(cx) let key_value = ObjectValue(key.get()));
+        if !unsafe { SetWeakMapEntry(cx, map.handle(), key_value.handle(), holder_value.handle()) }
+        {
+            return false;
+        }
+    }
 
     true
 }
