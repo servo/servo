@@ -3236,8 +3236,7 @@ where
     fn handle_on_background(&mut self) {
         self.public_resource_threads.on_background();
     }
-    fn handle_on_foreground(&mut self) {
-    }
+    fn handle_on_foreground(&mut self) {}
     fn forward_input_event(
         &mut self,
         webview_id: WebViewId,
