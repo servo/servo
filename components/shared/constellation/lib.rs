@@ -116,6 +116,10 @@ pub enum EmbedderToConstellationMessage {
     /// Clears the session history for the `WebView` with the given `WebViewId`, leaving
     /// the `WebView` with only the current URL in its session history.
     ClearSessionHistory(WebViewId),
+    /// The whole application is not actively used, similar to mobile operating system background usage.
+    OnBackground,
+    /// Inverse of `OnBackground`, the whole system is used again.
+    OnForeground,
 }
 
 pub enum UserContentManagerAction {

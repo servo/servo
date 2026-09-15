@@ -390,6 +390,8 @@ pub(super) enum ServoAction {
     FocusWindow(u32, Vec<u32>),
     CreatePlatformWindow(XComponentWrapper, WindowWrapper),
     RemovePlatformWindow(u32, Vec<u32>),
+    OnBackground,
+    OnForeground,
 }
 
 impl std::fmt::Debug for ServoAction {
@@ -436,6 +438,8 @@ impl std::fmt::Debug for ServoAction {
                 .field(window)
                 .field(arkts_ids)
                 .finish(),
+            Self::OnBackground => f.debug_tuple("OnBackground").finish(),
+            Self::OnForeground => f.debug_tuple("OnForeground").finish(),
         }
     }
 }
@@ -564,6 +568,12 @@ impl ServoAction {
                         error!("Window is already closed.");
                     }
                 }
+            },
+            OnBackground => {
+                servo.state.servo.on_background();
+            },
+            OnForeground => {
+                servo.state.servo.on_foreground();
             },
         };
     }
@@ -1043,6 +1053,16 @@ fn delete_webview(index: u32, arkts_ids: Vec<u32>) {
 #[napi]
 fn next_window_id(id: u32) {
     NEXT_WINDOW_ID.store(id.into(), std::sync::atomic::Ordering::SeqCst);
+}
+
+#[napi]
+fn on_background() {
+    let _ = call(ServoAction::OnBackground);
+}
+
+#[napi]
+fn on_foreground() {
+    let _ = call(ServoAction::OnForeground);
 }
 
 struct OhosImeOptions {
