@@ -2434,7 +2434,7 @@ impl GlobalScope {
         } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
             f(worklet.module_map())
         } else if let Some(window) = self.downcast::<Window>() {
-            window.with_module_map(f)
+            f(window.Document().module_map())
         } else {
             unreachable!("Unsupported global type retrieving module map")
         }
