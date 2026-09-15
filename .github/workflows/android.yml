@@ -75,9 +75,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
-          packages: 'tools platform-tools platforms;android-33'
+          packages: 'platform-tools platforms;android-33'
       - name: Install Android NDK
         uses: nttld/setup-ndk@v1
         id: setup-ndk
