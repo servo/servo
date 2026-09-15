@@ -292,7 +292,7 @@ x25519-dalek = { version = "3.0", features = ["getrandom", "static_secrets", "ze
 x448 = { version = "=0.14.0-pre.12", features = ["static_secrets"] }
 xcomponent-sys = "0.4.0"
 xml = "1.1"
-xml5ever = "0.39"
+xml5ever = "0.40"
 yuv = { version = "0.8.14", features = ["rayon"] }
 zeroize = "1.8"
 
