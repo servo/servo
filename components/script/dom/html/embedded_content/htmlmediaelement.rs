@@ -1965,6 +1965,10 @@ impl HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#blocked-media-element>
     fn is_blocked_media_element(&self) -> bool {
+        // > A media element is a blocked media element if
+        // > its readyState attribute is in the HAVE_NOTHING state,
+        // > the HAVE_METADATA state, or the HAVE_CURRENT_DATA state,
+        // > or if the element has paused for user interaction or paused for in-band content.
         self.ready_state.get() <= ReadyState::HaveCurrentData ||
             self.is_paused_for_user_interaction() ||
             self.is_paused_for_in_band_content()
@@ -1972,16 +1976,32 @@ impl HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#paused-for-user-interaction>
     fn is_paused_for_user_interaction(&self) -> bool {
-        // FIXME: we will likely be able to fill this placeholder once (if) we
-        //        implement the MediaSession API.
-        false
+        // > A media element is said to have paused for user interaction
+        // > when its paused attribute is false,
+        !self.paused.get()
+        // > the readyState attribute is either HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA,
+        && (self.ready_state.get() == ReadyState::HaveFutureData || self.ready_state.get() == ReadyState::HaveEnoughData)
+        // > and the user agent has reached a point in the media resource
+        // > where the user has to make a selection for the resource to continue.
+        // TODO
+        && false
     }
 
     /// <https://html.spec.whatwg.org/multipage/#paused-for-in-band-content>
     fn is_paused_for_in_band_content(&self) -> bool {
-        // FIXME: we will likely be able to fill this placeholder once (if) we
-        //        implement https://github.com/servo/servo/issues/22314
-        false
+        // > A media element is said to have paused for in-band content
+        // > when its paused attribute is false,
+        !self.paused.get()
+        // > the readyState attribute is either HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA,
+        && (self.ready_state.get() == ReadyState::HaveFutureData || self.ready_state.get() == ReadyState::HaveEnoughData)
+        // > and the user agent has suspended playback of the media resource
+        // > in order to play content that is temporally anchored to
+        // > the media resource and has a nonzero length,
+        // TODO
+        // > or to play content that is temporally anchored to a segment
+        // > of the media resource but has a length longer than that segment.
+        // TODO
+        && false
     }
 
     /// <https://html.spec.whatwg.org/multipage/#media-element-load-algorithm>
@@ -2594,7 +2614,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reaches-the-end>
-    fn end_of_playback_in_forwards_direction(&self, cx: &mut JSContext) {
+    fn end_of_playback_in_forwards_direction(&self) {
         // When the current playback position reaches the end of the media resource when the
         // direction of playback is forwards, then the user agent must follow these steps:
 
@@ -2647,9 +2667,6 @@ impl HTMLMediaElement {
                 // Step 3.3. Fire an event named ended at the media element.
                 this.upcast::<EventTarget>().fire_event(cx, atom!("ended"));
             }));
-
-        // <https://html.spec.whatwg.org/multipage/#dom-media-have_current_data>
-        self.change_ready_state(cx, ReadyState::HaveCurrentData);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reaches-the-end>
@@ -2663,14 +2680,14 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_end(&self, cx: &mut JSContext) {
+    fn playback_end(&self) {
         // Abort the following steps of the end of playback if seeking is in progress.
         if self.seeking.get() {
             return;
         }
 
         match self.direction_of_playback() {
-            PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(cx),
+            PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(),
             PlaybackDirection::Backwards => self.end_of_playback_in_backwards_direction(),
         }
     }
@@ -3101,27 +3118,35 @@ impl HTMLMediaElement {
     }
 
     fn playback_state_changed(&self, cx: &mut JSContext, state: &PlaybackState) {
-        let mut media_session_playback_state = MediaSessionPlaybackState::None_;
-        match *state {
+        let media_session_playback_state = match *state {
             PlaybackState::Paused => {
-                media_session_playback_state = MediaSessionPlaybackState::Paused;
                 if self.ready_state.get() == ReadyState::HaveMetadata {
                     self.change_ready_state(cx, ReadyState::HaveEnoughData);
                 }
+                MediaSessionPlaybackState::Paused
             },
             PlaybackState::Playing => {
-                media_session_playback_state = MediaSessionPlaybackState::Playing;
                 if self.ready_state.get() == ReadyState::HaveMetadata {
-                    self.change_ready_state(cx, ReadyState::HaveEnoughData);
+                    // TODO: Also check if text tracks are ready
+                    self.change_ready_state(cx, ReadyState::HaveFutureData);
                 }
+                MediaSessionPlaybackState::Playing
+            },
+            PlaybackState::Stopped => {
+                if self.ready_state.get() > ReadyState::HaveCurrentData {
+                    self.change_ready_state(cx, ReadyState::HaveCurrentData);
+                }
+                MediaSessionPlaybackState::None_
             },
             PlaybackState::Buffering => {
+                if self.ready_state.get() > ReadyState::HaveCurrentData {
+                    self.change_ready_state(cx, ReadyState::HaveCurrentData);
+                }
                 // Do not send the media session playback state change event
                 // in this case as a None_ state is expected to clean up the
                 // session.
                 return;
             },
-            _ => {},
         };
         debug!(
             "Sending media session event playback state changed to {:?}",
@@ -3553,6 +3578,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-error>
     fn GetError(&self) -> Option<DomRoot<MediaError>> {
+        // > The error attribute, on getting, must return the MediaError object
+        // > created for this last error, or null if there has not been an error.
         self.error.get()
     }
 
@@ -4514,7 +4541,7 @@ impl HTMLMediaElementEventHandler {
 
         match event {
             PlayerEvent::DurationChanged(duration) => element.playback_duration_changed(duration),
-            PlayerEvent::EndOfStream => element.playback_end(cx),
+            PlayerEvent::EndOfStream => element.playback_end(),
             PlayerEvent::EnoughData => element.playback_enough_data(),
             PlayerEvent::Error(ref error) => element.playback_error(error, cx),
             PlayerEvent::MetadataUpdated(ref metadata) => {
