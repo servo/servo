@@ -8916,6 +8916,7 @@ name = "servo-media-streams"
 version = "0.6.0"
 dependencies = [
  "malloc_size_of_derive",
+ "servo-base",
  "servo-malloc-size-of",
  "uuid",
 ]
