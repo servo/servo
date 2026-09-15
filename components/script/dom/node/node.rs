@@ -875,7 +875,6 @@ impl Node {
         )
         .checked_add(1)
         .unwrap_or(0);
-        log::error!("NODE DIRTY VERSION {:?}", version);
 
         for node in self.inclusive_ancestors_unrooted(no_gc, ShadowIncluding::No) {
             node.inclusive_descendants_version.set(version);
