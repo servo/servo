@@ -471,9 +471,16 @@ impl PaintTimingHandler {
     /// Refer <https://github.com/w3c/paint-timing/issues/122> for details on
     /// the issue and for the modified steps yet to be merged.
     #[servo_tracing::instrument(name = "Mark Paint Timing", skip_all, fields(halt_lcp = halt_lcp))]
-    pub(crate) fn mark_paint_timing(&mut self, halt_lcp: bool) -> PaintTimingReport {
-        // TODO Step 1. If the document's browsing context is not paint-timing
+    pub(crate) fn mark_paint_timing(
+        &mut self,
+        paint_timing_eligible: bool,
+        halt_lcp: bool,
+    ) -> PaintTimingReport {
+        // Step 1. If the document's browsing context is not paint-timing
         // eligible, return.
+        if !paint_timing_eligible {
+            return PaintTimingReport::default();
+        }
 
         // Step 2. Let paintTimingInfo be a new paint timing info, whose
         // rendering update end time is the current high resolution time given
