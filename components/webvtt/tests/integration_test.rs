@@ -457,3 +457,101 @@ Cue size beyond 100% is not acceptable and is ignored."
         ]
     )
 }
+
+#[test]
+fn test_whitespace_around_timings() {
+    let mut parser = parser_with_dummy_sink();
+    assert_eq!(
+        parser.parse_sync(&mut (), include_vtt_file!("timings-whitespace.vtt")),
+        Ok(())
+    );
+    assert_eq!(
+        *parser.sink.collected_cues.borrow(),
+        vec![
+            WebVttCue {
+                identifier: "1".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Single U+0020 SPACE left of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "2".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Single U+0020 SPACE right of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "3".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Single U+0009 TAB left of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "4".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Single U+0009 TAB right of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "5".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Single U+000C FORM FEED left of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "6".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Single U+000C FORM FEED right of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "7".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Several U+0020 SPACE left of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "8".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Several U+0020 SPACE right of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "9".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Several U+0009 TAB left of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "10".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Several U+0009 TAB right of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "11".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Several U+000C FORM FEED left of cue-timings separator".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                identifier: "12".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 100.),
+                end_time: compute_result_in_seconds(0., 0., 1., 500.),
+                text: "Several U+000C FORM FEED right of cue-timings separator".into(),
+                ..Default::default()
+            },
+        ]
+    )
+}

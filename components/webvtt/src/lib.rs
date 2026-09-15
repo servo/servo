@@ -945,7 +945,9 @@ fn collect_ascii_digits(position: &mut Peekable<Chars<'_>>) -> String {
 }
 
 fn skip_whitespace(position: &mut Peekable<Chars<'_>>) {
-    collect_for_closure(position, |c| matches!(c, '\r' | '\n' | '\t' | ' '));
+    collect_for_closure(position, |c| {
+        matches!(c, '\r' | '\n' | '\t' | ' ' | '\u{000C}')
+    });
 }
 
 /// <https://w3c.github.io/webvtt/#webvtt-percentage>
