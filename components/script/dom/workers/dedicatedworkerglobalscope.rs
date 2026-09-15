@@ -444,7 +444,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
         insecure_requests_policy: InsecureRequestsPolicy,
-        policy_container: PolicyContainer,
+        policy_container: Arc<PolicyContainer>,
         font_context: Arc<FontContext>,
     ) -> JoinHandle<()> {
         let event_loop_id = ScriptEventLoopId::installed()
