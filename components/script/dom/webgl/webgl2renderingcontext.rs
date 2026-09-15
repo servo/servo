@@ -2899,7 +2899,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
-    #[expect(unsafe_code)]
     fn GetUniform(
         &self,
         cx: &mut JSContext,
@@ -2920,69 +2919,51 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 triple,
                 WebGLCommand::GetUniformUint,
             ))),
-            constants::UNSIGNED_INT_VEC2 => unsafe {
-                uniform_typed::<Uint32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformUint2),
-                    retval,
-                )
-            },
-            constants::UNSIGNED_INT_VEC3 => unsafe {
-                uniform_typed::<Uint32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformUint3),
-                    retval,
-                )
-            },
-            constants::UNSIGNED_INT_VEC4 => unsafe {
-                uniform_typed::<Uint32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformUint4),
-                    retval,
-                )
-            },
-            constants::FLOAT_MAT2x3 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat2x3),
-                    retval,
-                )
-            },
-            constants::FLOAT_MAT2x4 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat2x4),
-                    retval,
-                )
-            },
-            constants::FLOAT_MAT3x2 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat3x2),
-                    retval,
-                )
-            },
-            constants::FLOAT_MAT3x4 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat3x4),
-                    retval,
-                )
-            },
-            constants::FLOAT_MAT4x2 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat4x2),
-                    retval,
-                )
-            },
-            constants::FLOAT_MAT4x3 => unsafe {
-                uniform_typed::<Float32>(
-                    cx,
-                    &uniform_get(triple, WebGLCommand::GetUniformFloat4x3),
-                    retval,
-                )
-            },
+            constants::UNSIGNED_INT_VEC2 => uniform_typed::<Uint32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformUint2),
+                retval,
+            ),
+            constants::UNSIGNED_INT_VEC3 => uniform_typed::<Uint32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformUint3),
+                retval,
+            ),
+            constants::UNSIGNED_INT_VEC4 => uniform_typed::<Uint32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformUint4),
+                retval,
+            ),
+            constants::FLOAT_MAT2x3 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat2x3),
+                retval,
+            ),
+            constants::FLOAT_MAT2x4 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat2x4),
+                retval,
+            ),
+            constants::FLOAT_MAT3x2 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat3x2),
+                retval,
+            ),
+            constants::FLOAT_MAT3x4 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat3x4),
+                retval,
+            ),
+            constants::FLOAT_MAT4x2 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat4x2),
+                retval,
+            ),
+            constants::FLOAT_MAT4x3 => uniform_typed::<Float32>(
+                cx,
+                &uniform_get(triple, WebGLCommand::GetUniformFloat4x3),
+                retval,
+            ),
             constants::SAMPLER_3D | constants::SAMPLER_2D_ARRAY => {
                 retval.set(Int32Value(uniform_get(triple, WebGLCommand::GetUniformInt)))
             },
