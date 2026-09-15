@@ -4,6 +4,8 @@
 
 //! Element nodes.
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::borrow::Cow;
 use std::cell::{Cell, LazyCell};
 use std::default::Default;

@@ -17,6 +17,8 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
