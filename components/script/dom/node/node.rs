@@ -692,6 +692,20 @@ impl Node {
             .accessibility_data_mut()
             .add_pending_accessibility_damage_for_node(self, damage);
     }
+
+    /// Set selection information on the given node if it is an element that responds to selection.
+    /// Return `true` if a new display list is necessary after this update.
+    pub(crate) fn set_element_selection(&self, selected: bool) -> bool {
+        assert!(
+            self.downcast::<CharacterData>().is_none(),
+            "Should never be called on CharacterData"
+        );
+        self.upcast::<Node>()
+            .layout_data()
+            .borrow()
+            .as_ref()
+            .is_some_and(|layout_data| layout_data.set_element_selection(selected))
+    }
 }
 
 impl Node {

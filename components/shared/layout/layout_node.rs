@@ -188,6 +188,9 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// If this is an image element, returns its image data. Otherwise, returns `None`.
     fn image_data(&self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
 
+    /// Whether or not this node is selected when it is interpreted as a replaced element.
+    fn replaced_is_selected(&self) -> bool;
+
     /// Whether or not this is an image element that is showing a broken image icon.
     fn showing_broken_image_icon(&self) -> bool;
 

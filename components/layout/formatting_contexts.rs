@@ -607,6 +607,17 @@ impl IndependentFormattingContext {
     pub(crate) fn subtree_size(&self) -> usize {
         self.base.subtree_size()
     }
+
+    /// Set whether this [`IndependentFormattingContext`] is selected. Returns `true` if
+    /// anything changed.
+    pub(crate) fn set_selection(&self, selected: bool) -> bool {
+        match &self.contents {
+            IndependentFormattingContextContents::Replaced(replaced_contents, ..) => {
+                replaced_contents.set_selection(selected)
+            },
+            _ => false,
+        }
+    }
 }
 
 impl ComputeInlineContentSizes for IndependentFormattingContextContents {

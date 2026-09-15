@@ -260,6 +260,10 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         self.node.text_node_paints_caret()
     }
 
+    fn replaced_is_selected(&self) -> bool {
+        self.node.replaced_is_selected()
+    }
+
     fn image_url(&self) -> Option<ServoUrl> {
         self.node.image_url()
     }

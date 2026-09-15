@@ -1720,20 +1720,12 @@ impl<'no_gc> VisibleSelectionFlagUpdate<'no_gc> {
         } else {
             self.previously_flagged_nodes.remove(node);
         }
-
-        if let Some(character_data) = node.downcast::<CharacterData>() {
-            self.set_character_data_selection(
-                character_data,
-                Some(flat_tree_selection.range_for_character_data(character_data)),
-            );
-        }
+        self.set_node_selection(node, Some(flat_tree_selection));
     }
 
     fn clear(&mut self, node: &Node) {
         node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
-        if let Some(character_data) = node.downcast::<CharacterData>() {
-            self.set_character_data_selection(character_data, None)
-        }
+        self.set_node_selection(node, None);
     }
 
     fn set_character_data_selection(
@@ -1751,6 +1743,19 @@ impl<'no_gc> VisibleSelectionFlagUpdate<'no_gc> {
             character_data
                 .upcast::<Node>()
                 .dirty(self.no_gc, NodeDamage::ContentOrHeritage);
+        }
+    }
+
+    fn set_node_selection(&mut self, node: &Node, flat_tree_selection: Option<&FlatTreeSelection>) {
+        if let Some(character_data) = node.downcast::<CharacterData>() {
+            let range = flat_tree_selection.map(|flat_tree_selection| {
+                flat_tree_selection.range_for_character_data(character_data)
+            });
+            self.set_character_data_selection(character_data, range);
+        } else {
+            if node.set_element_selection(flat_tree_selection.is_some()) {
+                self.needs_new_display_list = true;
+            }
         }
     }
 

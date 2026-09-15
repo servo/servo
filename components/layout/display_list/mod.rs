@@ -4,6 +4,7 @@
 
 use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 use app_units::{AU_PER_PX, Au};
 use clip::Clip;
@@ -883,6 +884,16 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 
         if fragment.showing_broken_image_icon {
             Fragment::build_display_list_for_broken_image_border(self, &containing_block, &common);
+        }
+
+        if fragment.selected.load(Ordering::Relaxed) {
+            let selected_style = fragment.selected_style.borrow();
+            let mut background_color =
+                selected_style.resolve_color(&selected_style.get_background().background_color);
+            if background_color.alpha > 0.0 {
+                background_color.alpha *= 0.5;
+                self.wr().push_rect(&common, rect, rgba(background_color));
+            }
         }
     }
 
