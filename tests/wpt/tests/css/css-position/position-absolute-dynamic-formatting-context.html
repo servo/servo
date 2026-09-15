@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>CSS Position: a laid-out formatting context keeps its box when it becomes absolutely positioned</title>
 <link rel="help" href="https://drafts.csswg.org/css-position/#position-property">
-<link rel="author" href="mailto:102797145+mxmgorin@users.noreply.github.com" title="Maksim Gorin">
+<link rel="author" href="mailto:102797145+mxmgorin@users.noreply.github.com" title="Maxim Gorin">
 <meta name="assert" content="An element that has already been laid out in flow still generates a box after its position is changed to absolute or fixed, whatever formatting context it establishes.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -14,43 +14,67 @@
 const DISPLAYS = ["block", "flex", "grid", "flow-root", "inline-flex"];
 const POSITIONS = ["absolute", "fixed"];
 
+const CONTAINING_BLOCK_SIZE = 300;
+const ELEMENT_WIDTH = 50;
+const ELEMENT_HEIGHT = 60;
+// Inert while the element is in flow, so a box that honors them is out of flow.
+const OFFSET_LEFT = 80;
+const OFFSET_TOP = 70;
+
 function laidOutElement(t, tagName, display) {
+  const container = document.createElement("div");
+  container.style.position = "relative";
+  container.style.width = `${CONTAINING_BLOCK_SIZE}px`;
+  container.style.height = `${CONTAINING_BLOCK_SIZE}px`;
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
   const element = document.createElement(tagName);
   element.style.display = display;
-  element.style.width = "50px";
-  element.style.height = "60px";
-  document.body.appendChild(element);
-  t.add_cleanup(() => element.remove());
+  element.style.width = `${ELEMENT_WIDTH}px`;
+  element.style.height = `${ELEMENT_HEIGHT}px`;
+  element.style.left = `${OFFSET_LEFT}px`;
+  element.style.top = `${OFFSET_TOP}px`;
+  container.appendChild(element);
+
   // Forces layout, so the change below is incremental rather than part of the
   // element's initial layout.
-  assert_equals(element.getBoundingClientRect().height, 60,
+  const rect = element.getBoundingClientRect();
+  assert_equals(rect.height, ELEMENT_HEIGHT,
                 "the element has a box while it is in flow");
-  return element;
+  assert_equals(rect.left, container.getBoundingClientRect().left,
+                "the in-flow element ignores the left property");
+  return { container, element };
+}
+
+function assertPositionedAt(container, element, position) {
+  // An absolute box is placed against its positioned ancestor, a fixed one
+  // against the viewport.
+  const origin = position === "fixed"
+    ? { left: 0, top: 0 }
+    : container.getBoundingClientRect();
+  const rect = element.getBoundingClientRect();
+  assert_equals(rect.left, origin.left + OFFSET_LEFT, "left");
+  assert_equals(rect.top, origin.top + OFFSET_TOP, "top");
+  assert_equals(rect.width, ELEMENT_WIDTH, "width");
+  assert_equals(rect.height, ELEMENT_HEIGHT, "height");
 }
 
 for (const position of POSITIONS) {
   for (const display of DISPLAYS) {
     test(t => {
-      const element = laidOutElement(t, "div", display);
+      const { container, element } = laidOutElement(t, "div", display);
       element.style.position = position;
-      element.style.width = "200px";
-      element.style.height = "100px";
-      const rect = element.getBoundingClientRect();
-      assert_equals(rect.width, 200, "width");
-      assert_equals(rect.height, 100, "height");
+      assertPositionedAt(container, element, position);
     }, `display: ${display} keeps its box when position becomes ${position}`);
   }
 
   // A block-level replaced element is an independent formatting context too, and
   // reaches the same path as the containers above.
   test(t => {
-    const canvas = laidOutElement(t, "canvas", "block");
-    canvas.style.position = position;
-    canvas.style.width = "200px";
-    canvas.style.height = "100px";
-    const rect = canvas.getBoundingClientRect();
-    assert_equals(rect.width, 200, "width");
-    assert_equals(rect.height, 100, "height");
+    const { container, element } = laidOutElement(t, "canvas", "block");
+    element.style.position = position;
+    assertPositionedAt(container, element, position);
   }, `a block-level canvas keeps its box when position becomes ${position}`);
 }
 </script>
