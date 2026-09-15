@@ -719,6 +719,9 @@ pub struct ReflowRequest {
     /// From <https://www.w3.org/TR/largest-contentful-paint/#limitations>:
     /// > The LargestContentfulPaint ... algorithm halts ... inputs.
     pub halt_lcp: bool,
+    /// Whether the document's browsing context is paint-timing eligible.
+    /// <https://www.w3.org/TR/paint-timing/#paint-timing-eligible>
+    pub paint_timing_eligible: bool,
     /// The current font context.
     pub document_context: WebFontDocumentContext,
     /// Damage to the accessibility tree from DOM mutations.

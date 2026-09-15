@@ -1126,6 +1126,25 @@ impl Document {
         self.origin.borrow()
     }
 
+    /// <https://www.w3.org/TR/paint-timing/#paint-timing-eligible>
+    pub(crate) fn paint_timing_eligible(&self) -> bool {
+        // A browsing context ctx is paint-timing eligible when one of the
+        // following apply:
+        // > ctx is a top-level browsing context.
+        if self.window().is_top_level() {
+            return true;
+        }
+        // > ctx is a nested browsing context, and the user agent has
+        // > configured ctx to report paint timing.
+        if let Some(top_level_document) = self.window().top_level_document_if_local() {
+            // > > a user agent may decide to disable paint-timing for
+            // > > cross-origin iframes, as in some scenarios their
+            // > > paint-timing might reveal information about the main frame.
+            return self.origin().same_origin(&top_level_document.origin());
+        };
+        false
+    }
+
     /// Part of <https://html.spec.whatwg.org/multipage/#navigate-ua-inline>
     /// TODO: Remove this when we create documents after processing headers
     pub(crate) fn mark_as_internal(&self) {
