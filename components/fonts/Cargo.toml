@@ -50,6 +50,7 @@ parking_lot = { workspace = true }
 postcard = { workspace = true }
 profile_traits = { workspace = true }
 read-fonts = { workspace = true }
+resvg = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo-base = { workspace = true }

@@ -10,17 +10,19 @@ use std::cell::RefCell;
 use std::ffi::c_void;
 use std::fmt;
 use std::ops::Deref;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use app_units::Au;
 use dwrote::{
     DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS_BOLD, DWRITE_FONT_SIMULATIONS_NONE,
-    FontCollection, FontFace, FontFile, FontSimulations,
+    FontCollection, FontFace, FontFile, FontSimulations, OutlineBuilder,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::LocalFontIdentifier;
 use log::debug;
 use read_fonts::TableProvider;
+use resvg::tiny_skia;
 use skrifa::Tag;
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};
@@ -369,8 +371,44 @@ impl PlatformFontMethods for PlatformFont {
         )
     }
 
+    fn glyph_outline(&self, glyph_id: GlyphId) -> Option<tiny_skia::Path> {
+        let builder = Rc::new(RefCell::new(tiny_skia::PathBuilder::new()));
+        self.face
+            .glyph_run_outline(
+                1.0,
+                &[glyph_id as u16],
+                None,
+                None,
+                false,
+                false,
+                Box::new(PathSink(builder.clone())),
+            )
+            .ok()?;
+        builder.take().finish()
+    }
+
     fn variations(&self) -> &[FontVariation] {
         &self.variations
+    }
+}
+
+struct PathSink(Rc<RefCell<tiny_skia::PathBuilder>>);
+
+impl OutlineBuilder for PathSink {
+    fn move_to(&mut self, x: f32, y: f32) {
+        self.0.borrow_mut().move_to(x, y);
+    }
+
+    fn line_to(&mut self, x: f32, y: f32) {
+        self.0.borrow_mut().line_to(x, y);
+    }
+
+    fn curve_to(&mut self, cp0x: f32, cp0y: f32, cp1x: f32, cp1y: f32, x: f32, y: f32) {
+        self.0.borrow_mut().cubic_to(cp0x, cp0y, cp1x, cp1y, x, y);
+    }
+
+    fn close(&mut self) {
+        self.0.borrow_mut().close();
     }
 }
 

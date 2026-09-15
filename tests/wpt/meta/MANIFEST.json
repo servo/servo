@@ -606332,6 +606332,24 @@
          "d1c99458e2cf818d9104d9ecc58eccba2883fb8b",
          []
         ]
+       },
+       "websockets.egg-info": {
+        "PKG-INFO": [
+         "10d08c43c887788497c7667873dfe89fd24b5f6b",
+         []
+        ],
+        "SOURCES.txt": [
+         "3be884b48863cee01afb138be07fdc995cf85793",
+         []
+        ],
+        "dependency_links.txt": [
+         "8b137891791fe96927ad78e64b0aad7bded08bdc",
+         []
+        ],
+        "top_level.txt": [
+         "14774b465e97f655dbcaa60d97c8a9aa72e7d51b",
+         []
+        ]
        }
       },
       "tests": {
