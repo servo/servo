@@ -873,8 +873,7 @@ impl Node {
             self.inclusive_descendants_version(),
             doc.inclusive_descendants_version(),
         )
-        .checked_add(1)
-        .unwrap_or(0);
+        .wrapping_add(1);
 
         for node in self.inclusive_ancestors_unrooted(no_gc, ShadowIncluding::No) {
             node.inclusive_descendants_version.set(version);
