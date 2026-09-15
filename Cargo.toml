@@ -123,7 +123,7 @@ headers = "0.4"
 hilog = "0.2.2"
 hitrace = { version = "0.2.0", features = ["api-19", "tracing-rs"] }
 hkdf = "0.13"
-html5ever = "0.39"
+html5ever = "0.40"
 http = "1.4"
 http-body-util = "0.1"
 httparse = "1.9"
