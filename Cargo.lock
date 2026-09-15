@@ -1837,7 +1837,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.4",
 ]
 
 [[package]]
@@ -3907,12 +3907,13 @@ dependencies = [
 
 [[package]]
 name = "html5ever"
-version = "0.39.0"
+version = "0.40.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46a1761807faccc9a19e86944bbf40610014066306f96edcdedc2fb714bcb7b8"
+checksum = "456a1a377e608e555d22ddab27ac0114bc7a7b4199078108e34c2aeae6c9b130"
 dependencies = [
  "log",
  "markup5ever",
+ "memchr",
 ]
 
 [[package]]
@@ -5109,9 +5110,9 @@ dependencies = [
 
 [[package]]
 name = "markup5ever"
-version = "0.39.0"
+version = "0.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7122d987ec5f704ee56f6e5b41a7d93722e9aae27ae07cafa4036c4d3f9757de"
+checksum = "0ab3dc68ac4a0f5719e560136778c1ee716e296030d75dbd4484e37e39e3a842"
 dependencies = [
  "log",
  "tendril",
@@ -6671,12 +6672,12 @@ dependencies = [
 
 [[package]]
 name = "phf_codegen"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49aa7f9d80421bca176ca8dbfebe668cc7a2684708594ec9f3c0db0805d5d6e1"
+checksum = "41b585a510fb76fdebead6897982ef2a03a21d8e6cbcca904999742a4afc6ffe"
 dependencies = [
- "phf_generator 0.13.1",
- "phf_shared 0.13.1",
+ "phf_generator 0.14.0",
+ "phf_shared 0.14.0",
 ]
 
 [[package]]
@@ -7876,7 +7877,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.40.0"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "bitflags 2.13.2",
  "cssparser",
@@ -8614,7 +8615,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "parking_lot",
- "phf 0.13.1",
+ "phf 0.14.0",
  "quickcheck",
  "rayon",
  "rustc-hash 2.1.3",
@@ -9284,7 +9285,7 @@ dependencies = [
  "p521",
  "parking_lot",
  "percent-encoding",
- "phf 0.13.1",
+ "phf 0.14.0",
  "pkcs8",
  "postcard",
  "rand 0.10.2",
@@ -9381,9 +9382,9 @@ dependencies = [
  "mozjs",
  "num-traits",
  "parking_lot",
- "phf 0.13.1",
+ "phf 0.14.0",
  "phf_codegen",
- "phf_shared 0.13.1",
+ "phf_shared 0.14.0",
  "regex",
  "rustc-hash 2.1.3",
  "serde_json",
@@ -9690,7 +9691,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.3"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -10125,25 +10126,25 @@ dependencies = [
 
 [[package]]
 name = "string_cache"
-version = "0.9.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a18596f8c785a729f2819c0f6a7eae6ebeebdfffbfe4214ae6b087f690e31901"
+checksum = "ffa8a5dbe8b3f0bbe29d4c3225daafaeead63afdc1b65fc4c01a1384166038e6"
 dependencies = [
  "new_debug_unreachable",
  "parking_lot",
- "phf_shared 0.13.1",
+ "phf_shared 0.14.0",
  "precomputed-hash",
  "serde",
 ]
 
 [[package]]
 name = "string_cache_codegen"
-version = "0.6.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "585635e46db231059f76c5849798146164652513eb9e8ab2685939dd90f29b69"
+checksum = "928dcdf75e47626b3617a976ec205d9f057584c371c1f23b782129268d0e6edc"
 dependencies = [
- "phf_generator 0.13.1",
- "phf_shared 0.13.1",
+ "phf_generator 0.14.0",
+ "phf_shared 0.14.0",
  "proc-macro2",
  "quote",
 ]
@@ -10196,7 +10197,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.21.0"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -10252,7 +10253,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.21.0"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -10261,7 +10262,7 @@ dependencies = [
 [[package]]
 name = "stylo_derive"
 version = "0.21.0"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -10273,7 +10274,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.21.0"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "bitflags 2.13.2",
  "stylo_malloc_size_of",
@@ -10282,7 +10283,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.21.0"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "app_units",
  "cssparser",
@@ -10300,7 +10301,7 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.21.0"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "toml 1.1.6+spec-1.1.0",
 ]
@@ -10308,7 +10309,7 @@ dependencies = [
 [[package]]
 name = "stylo_traits"
 version = "0.21.0"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "app_units",
  "bitflags 2.13.2",
@@ -10739,7 +10740,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.5.0"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -10752,7 +10753,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?rev=9ee9ec60de0193b704f9a5831ef16ff00ac06e49#9ee9ec60de0193b704f9a5831ef16ff00ac06e49"
+source = "git+https://github.com/servo/stylo?rev=1581aae4050b13112c1a2cc108b3d42619992297#1581aae4050b13112c1a2cc108b3d42619992297"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -11770,11 +11771,11 @@ dependencies = [
 
 [[package]]
 name = "web_atoms"
-version = "0.2.6"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba8b815c1b593dc0baf78dd0f4fc8fdb2de53198fb1163738093e9a311c33fb3"
+checksum = "7572660c8890448ba236b7376f27e389c6a7e1c70195622faced601f855c0ada"
 dependencies = [
- "phf 0.13.1",
+ "phf 0.14.0",
  "phf_codegen",
  "string_cache",
  "string_cache_codegen",
@@ -12815,9 +12816,9 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 
 [[package]]
 name = "xml5ever"
-version = "0.39.0"
+version = "0.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ab627f34ff61b80d756180d556f9c68801d836d271b3b8c094504ceca69d221"
+checksum = "73290529dc9bc6c6155bf77fdd70ce0061f98ad387586aa3104cddab29206961"
 dependencies = [
  "log",
  "markup5ever",
