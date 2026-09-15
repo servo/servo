@@ -4,6 +4,7 @@
 
 use std::ops::Range;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use app_units::Au;
 use atomic_refcell::AtomicRef;
@@ -115,6 +116,9 @@ pub(crate) struct TextFragment {
 pub(crate) struct ImageFragment {
     pub base: BaseFragment,
     pub style: SharedStyle,
+    /// The style to use for the selection overlay if this [`ImageFragment`] is
+    /// selected.
+    pub selected_style: SharedStyle,
     pub clip: PhysicalRect<Au>,
     pub image_key: Option<ImageKey>,
     pub showing_broken_image_icon: bool,
@@ -123,6 +127,9 @@ pub(crate) struct ImageFragment {
     pub natural_width: Option<Au>,
     /// The intrinsic (natural) height of the image, if known.
     pub natural_height: Option<Au>,
+    /// Whether or not this image is selected.
+    #[conditional_malloc_size_of]
+    pub selected: Arc<AtomicBool>,
 }
 
 #[derive(MallocSizeOf)]

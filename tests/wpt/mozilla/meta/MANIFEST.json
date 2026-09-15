@@ -212,6 +212,32 @@
   },
   "reftest": {
    "appearance": {
+    "document-selection-image-broken.html": [
+     "1dbd643cd0fcbf44542b592b9c54ed453c6abba9",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/document-selection-image-broken-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "document-selection-image.html": [
+     "7c4003c503af855a75863a9d4052ee4f6b4658fe",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/document-selection-image-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "document-selection-visible-height.html": [
      "4320002c1416ee7e957f92bd24c0ca4a62e61e54",
      [
@@ -8443,6 +8469,14 @@
     []
    ],
    "appearance": {
+    "document-selection-image-broken-ref.html": [
+     "d4d29943249a0ec2b78c79f88573d505742f7a56",
+     []
+    ],
+    "document-selection-image-ref.html": [
+     "4af9942d2dd32b7c4da2d09f1a66198de833cf58",
+     []
+    ],
     "document-selection-visible-height-ref.html": [
      "d24a8715c8b453906323e89a1d605ba3e77351f0",
      []

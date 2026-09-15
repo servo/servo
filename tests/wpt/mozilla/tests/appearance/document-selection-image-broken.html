@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document selection should show broken images as selected</title>
+    <link rel="match" href="document-selection-image-broken-ref.html">
+</head>
+
+<style>
+  ::selection {
+    background: rgb(0, 255, 0);
+  }
+</style>
+
+<div id="target">
+    <img src="broken-image" style="display: block; width: 100px; height: 100px;">
+</div>
+
+<script>
+    document.getSelection().selectAllChildren(target);
+</script>
