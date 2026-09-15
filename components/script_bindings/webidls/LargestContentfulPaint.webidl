@@ -16,3 +16,5 @@ interface LargestContentfulPaint : PerformanceEntry {
     readonly attribute DOMString id;
     [Default] object toJSON();
 };
+
+LargestContentfulPaint includes PaintTimingMixin;

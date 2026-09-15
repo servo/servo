@@ -475,9 +475,10 @@ impl PaintTimingHandler {
         // TODO Step 1. If the document's browsing context is not paint-timing
         // eligible, return.
 
-        // TODO Step 2. Let paintTimingInfo be a new paint timing info, whose
+        // Step 2. Let paintTimingInfo be a new paint timing info, whose
         // rendering update end time is the current high resolution time given
         // document's relevant global object.
+        // Note: This is satisfied in the script thread.
 
         // Step 3. Let paintedImages be a new ordered set.
         // Step 4. Let paintedTextNodes be a new ordered set.

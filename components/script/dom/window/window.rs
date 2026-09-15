@@ -2739,6 +2739,7 @@ impl Window {
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
             halt_lcp: self.has_dispatched_scroll_event.get() ||
                 self.has_dispatched_input_event.get(),
+            paint_timing_info: document.paint_timing_info(),
             document_context,
             accessibility_damage,
             rooted_nodes_for_accessibility_integrity_check,

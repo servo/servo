@@ -7,6 +7,14 @@
  */
 
 [Exposed=Window]
+interface mixin PaintTimingMixin {
+    readonly attribute DOMHighResTimeStamp paintTime;
+    readonly attribute DOMHighResTimeStamp? presentationTime;
+};
+
+
+[Exposed=Window]
 interface PerformancePaintTiming : PerformanceEntry {
     [Default] object toJSON();
 };
+PerformancePaintTiming includes PaintTimingMixin;

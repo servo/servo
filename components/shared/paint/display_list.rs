@@ -14,6 +14,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{LCPCandidateID, ScrollTreeNodeId};
 use servo_base::print_tree::PrintTree;
 use servo_geometry::FastLayoutTransform;
@@ -915,6 +916,56 @@ bitflags! {
     }
 }
 
+/// <https://www.w3.org/TR/paint-timing/#paint-timing-info>
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct PaintTimingInfo {
+    /// <https://w3c.github.io/paint-timing/#paint-timing-info-rendering-update-end-time>
+    pub rendering_update_end_time: CrossProcessInstant,
+    /// <https://w3c.github.io/paint-timing/#paint-timing-info-implementation-defined-presentation-time>
+    pub implementation_defined_presentation_time: Option<CrossProcessInstant>,
+}
+
+impl PaintTimingInfo {
+    pub fn now() -> Self {
+        Self {
+            rendering_update_end_time: CrossProcessInstant::now(),
+            implementation_defined_presentation_time: None,
+        }
+    }
+
+    /// Return a copy of this [`PaintTimingInfo`] with its implementation-defined
+    /// presentation time set to `presentation_time`.
+    pub fn with_presentation_time(self, presentation_time: CrossProcessInstant) -> Self {
+        Self {
+            implementation_defined_presentation_time: Some(presentation_time),
+            ..self
+        }
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#dom-painttimingmixin-painttime>
+    pub fn paint_time(&self) -> CrossProcessInstant {
+        // The `paintTime` attribute's getter step is to return this's paint
+        // timing info's rendering update end time.
+        self.rendering_update_end_time
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#dom-painttimingmixin-presentationtime>
+    pub fn presentation_time(&self) -> Option<CrossProcessInstant> {
+        // The `presentationTime` attribute's getter step, if it exists, is to
+        // return this's paint timing info's implementation-defined
+        // presentation time.
+        self.implementation_defined_presentation_time
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#default-paint-timestamp>
+    pub fn default_paint_timestamp(&self) -> CrossProcessInstant {
+        // Return paintTimingInfo's implementation-defined presentation time if
+        // it is non-null, otherwise paintTimingInfo's rendering update end time.
+        self.implementation_defined_presentation_time
+            .unwrap_or(self.rendering_update_end_time)
+    }
+}
+
 /// A data structure which stores `Paint`-side information about
 /// display lists sent to `Paint`.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -950,6 +1001,9 @@ pub struct PaintDisplayListInfo {
 
     /// The paint-timing report for this display list.
     pub paint_timing_report: PaintTimingReport,
+
+    /// The [`PaintTimingInfo`] for this display list.
+    pub paint_timing_info: PaintTimingInfo,
 
     /// New largest-contentful-paint candidate in this display list, if any.
     /// The pair is the candidate's id and its reported area.
@@ -1009,6 +1063,7 @@ impl PaintDisplayListInfo {
             first_reflow,
             lcp_candidate: None,
             paint_timing_report: PaintTimingReport::default(),
+            paint_timing_info: PaintTimingInfo::now(),
             caret_property_binding: Default::default(),
         }
     }

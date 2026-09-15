@@ -1533,6 +1533,8 @@ impl LayoutThread {
             paint_timing_handler,
             reflow_statistics,
         );
+
+        stacking_context_tree.paint_info.paint_timing_info = reflow_request.paint_timing_info;
         stacking_context_tree.paint_info.paint_timing_report =
             paint_timing_handler.mark_paint_timing(reflow_request.halt_lcp);
 
