@@ -9,7 +9,7 @@ use chrono::{DateTime, Local};
 use embedder_traits::resources::{Resource, read_string};
 use headers::{ContentType, HeaderMapExt};
 use net_traits::request::Request;
-use net_traits::response::{Response, ResponseBody};
+use net_traits::response::{DoneResponseBody, Response, ResponseBody};
 use net_traits::{NetworkError, ResourceFetchTiming};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -42,7 +42,10 @@ pub(crate) async fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBu
 
     let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
     response.headers.typed_insert(ContentType::html());
-    *response.body.lock() = ResponseBody::Done(output.into_bytes());
+    *response.body.lock() = ResponseBody::Done(DoneResponseBody {
+        decoded_body: output.into_bytes(),
+        encoded_body: None,
+    });
 
     response
 }

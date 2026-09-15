@@ -34,7 +34,11 @@ impl ProtocolHandler for DataProtocolHander {
                 Ok((bytes, _fragment_id)) => {
                     let mut response =
                         Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-                    *response.body.lock() = ResponseBody::Done(bytes);
+                    *response.body.lock() =
+                        ResponseBody::Done(net_traits::response::DoneResponseBody {
+                            decoded_body: bytes,
+                            encoded_body: None,
+                        });
 
                     if let Ok(content_type_header_value) =
                         HeaderValue::from_str(&data_url.mime_type().to_string())
