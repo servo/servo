@@ -20,6 +20,7 @@ use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::generic_channel::{GenericCallback, GenericSend, GenericSender};
 use servo_base::id::CookieStoreId;
 use servo_url::ServoUrl;
+use style::str::starts_with_ignore_ascii_case;
 use time::OffsetDateTime;
 
 use crate::dom::bindings::codegen::Bindings::CookieStoreBinding::{
@@ -638,27 +639,21 @@ impl CookieStore {
             }
             // 5.3 If value, byte-lowercased, starts with `__host-`, `__host-http-`, `__http-`, or `__secure-`, then return failure.
             if ["__host-", "__host-http-", "__http-", "__secure-"]
-                .iter()
-                .any(|prefix| {
-                    value
-                        .get(..prefix.len())
-                        .is_some_and(|p| p.eq_ignore_ascii_case(*prefix))
-                })
+                .into_iter()
+                .any(|prefix| starts_with_ignore_ascii_case(&value, prefix))
             {
                 return None;
             }
         }
 
         // 6. If name, byte-lowercased, starts with `__host-http-` or `__http-`, then return failure.
-        if ["__host-http-", "__http-"].iter().any(|prefix| {
-            name.get(..prefix.len())
-                .is_some_and(|p| p.eq_ignore_ascii_case(*prefix))
-        }) {
+        if ["__host-http-", "__http-"]
+            .into_iter()
+            .any(|prefix| starts_with_ignore_ascii_case(&name, prefix))
+        {
             return None;
         }
-        let name_starts_with_host = name
-            .get(.."__host-".len())
-            .is_some_and(|p| p.eq_ignore_ascii_case("__host-"));
+        let name_starts_with_host = starts_with_ignore_ascii_case(&name, "__host-");
 
         // 9. If the byte sequence length of encodedName plus the byte sequence length of encodedValue is greater than the maximum name/value pair size, then return failure.
         if name.len() + value.len() > 4096 {

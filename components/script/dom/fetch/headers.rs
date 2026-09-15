@@ -18,6 +18,7 @@ use net_traits::trim_http_whitespace;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use style::str::starts_with_ignore_ascii_case;
 
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -444,10 +445,7 @@ pub(crate) fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
     // Step 2: If name when byte-lowercased starts with `proxy-` or `sec-`, then return true.
     if forbidden_header_prefixes
         .into_iter()
-        .any(|forbidden_prefix| {
-            name.get(..forbidden_prefix.len())
-                .is_some_and(|name_prefix| name_prefix.eq_ignore_ascii_case(forbidden_prefix))
-        })
+        .any(|prefix| starts_with_ignore_ascii_case(name, prefix))
     {
         return true;
     }
