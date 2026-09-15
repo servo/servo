@@ -147,18 +147,22 @@ impl Pipeline {
     /// Let the `ScriptThread` for this [`Pipeline`] know that it has exited. If the `ScriptThread` hasn't
     /// panicked and is still alive, it will send a `PipelineExited` message back to the `Constellation`
     /// when it finishes cleaning up.
-    pub fn send_exit_message_to_script(&self, discard_bc: DiscardBrowsingContext) {
+    ///
+    /// Returns `true` if the channel is still alive or `false` otherwise.
+    pub fn send_exit_message_to_script(&self, discard_bc: DiscardBrowsingContext) -> bool {
         debug!("{:?} Sending exit message to script", self.id);
 
         // Script thread handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script thread has failed, we give up on clean shutdown.
-        if let Err(error) = self.event_loop.send(ScriptThreadMessage::ExitPipeline(
-            self.webview_id,
-            self.id,
-            discard_bc,
-        )) {
-            warn!("Sending script exit message failed ({error}).");
-        }
+        let result = self
+            .event_loop
+            .send(ScriptThreadMessage::ExitPipeline(
+                self.webview_id,
+                self.id,
+                discard_bc,
+            ))
+            .inspect_err(|error| warn!("Sending script exit message failed ({error})."));
+        !matches!(result, Err(SendError::Disconnected))
     }
 
     /// Notify this pipeline of its activity.
