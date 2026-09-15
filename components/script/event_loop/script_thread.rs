@@ -4154,7 +4154,7 @@ impl ScriptThread {
             FetchResponseMsg::ProcessResponseChunk(_request_id, chunk) => {
                 self.handle_fetch_chunk(cx, pipeline_id, chunk)
             },
-            FetchResponseMsg::ProcessResponseEOF(_request_id, eof, timing) => {
+            FetchResponseMsg::ProcessResponseEOF(_request_id, eof, timing, _) => {
                 self.handle_fetch_eof(cx, pipeline_id, eof, timing)
             },
             FetchResponseMsg::ProcessCspViolations(request_id, violations) => {

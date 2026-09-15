@@ -19,7 +19,7 @@ use hyper_util::client::legacy::Error as HyperError;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
-use parking_lot::RwLock;
+use parking_lot::{Mutex, RwLock};
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::mem::ReportsChan;
 use rand::{Rng, rng};
@@ -29,6 +29,7 @@ use rustls::{CipherSuite, NamedGroup, ProtocolVersion};
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use serde_with::{FromInto, serde_as};
+use servo_arc::Arc;
 use servo_base::generic_channel::{
     self, CallbackSetter, GenericCallback, GenericOneshotSender, GenericSend, GenericSender,
     SendResult,
@@ -46,7 +47,7 @@ use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::http_status::HttpStatus;
 use crate::mime_classifier::{ApacheBugFlag, MimeClassifier};
 use crate::request::{Request, RequestBuilder};
-use crate::response::{Response, ResponseInit};
+use crate::response::{Response, ResponseBody, ResponseInit};
 
 pub mod blob_url_store;
 pub mod fetch;
@@ -266,7 +267,12 @@ pub enum FetchResponseMsg {
     // todo: send more info about the response (or perhaps the entire Response)
     ProcessResponse(RequestId, Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(RequestId, Bytes),
-    ProcessResponseEOF(RequestId, Result<(), NetworkError>, ResourceFetchTiming),
+    ProcessResponseEOF(
+        RequestId,
+        Result<(), NetworkError>,
+        ResourceFetchTiming,
+        Option<Arc<Mutex<ResponseBody>>>,
+    ),
     ProcessCspViolations(RequestId, Vec<csp::Violation>),
     ProcessContentLength(RequestId, usize),
 }
@@ -383,8 +389,16 @@ impl FetchTaskTarget for GenericCallback<FetchResponseMsg> {
             .map_or_else(|| Ok(()), |network_error| Err(network_error.clone()));
         let timing = response.get_resource_timing().inner().clone();
 
+        let encoded_body = response
+            .actual_response()
+            .url()
+            .is_some_and(|url| matches!(url.scheme(), "http" | "https"))
+            .then(|| response.actual_response().body.clone());
         let _ = self.send(FetchResponseMsg::ProcessResponseEOF(
-            request.id, result, timing,
+            request.id,
+            result,
+            timing,
+            encoded_body,
         ));
     }
 

@@ -8,10 +8,12 @@ use log::debug;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::CrossProcessPaintApi;
+use parking_lot::Mutex;
 use pixels::{CorsStatus, ImageMetadata, RasterImage};
 use profile_traits::mem::Report;
 use resvg::usvg::{Font, fontdb};
 use serde::{Deserialize, Serialize};
+use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -21,6 +23,7 @@ use webrender_api::units::DeviceIntSize;
 
 use crate::FetchResponseMsg;
 use crate::request::CorsSettings;
+use crate::response::ResponseBody;
 
 // ======================================================================
 // Aux structs and enums.
@@ -60,8 +63,16 @@ pub struct EncodedImage {
     pub metadata: ImageMetadata,
     pub cors_status: CorsStatus,
     pub load_time: Option<CrossProcessInstant>,
-    #[conditional_malloc_size_of]
-    pub bytes: Arc<Vec<u8>>,
+    pub bytes: EncodedImageBytes,
+}
+
+/// The encoded source retained for a static raster image.
+#[derive(MallocSizeOf)]
+pub enum EncodedImageBytes {
+    /// The completed response body retained by the HTTP cache.
+    Cached(#[conditional_malloc_size_of] ServoArc<Mutex<ResponseBody>>),
+    /// Bytes retained by sources that are not backed by the HTTP cache.
+    Owned(#[conditional_malloc_size_of] Arc<Vec<u8>>),
 }
 
 impl std::fmt::Debug for EncodedImage {
@@ -77,10 +88,31 @@ impl std::fmt::Debug for EncodedImage {
 impl EncodedImage {
     /// Obtain original pixels for consumers such as canvas. Do not use for layout.
     pub fn decode_to_original_size(&self) -> Option<Arc<RasterImage>> {
-        pixels::load_from_memory(&self.bytes, self.cors_status).map(|mut image| {
-            image.load_time = self.load_time;
-            Arc::new(image)
+        self.with_bytes(|bytes| pixels::load_from_memory(bytes, self.cors_status))
+            .map(|mut image| {
+                image.load_time = self.load_time;
+                Arc::new(image)
+            })
+    }
+
+    pub fn decode_with_target(&self, target: ImageMetadata) -> Option<RasterImage> {
+        self.with_bytes(|bytes| {
+            pixels::load_from_memory_with_target(bytes, self.cors_status, Some(target))
         })
+        .map(|mut image| {
+            image.load_time = self.load_time;
+            image
+        })
+    }
+
+    fn with_bytes<T>(&self, f: impl FnOnce(&[u8]) -> Option<T>) -> Option<T> {
+        match &self.bytes {
+            EncodedImageBytes::Cached(body) => match &*body.lock() {
+                ResponseBody::Done(bytes) => f(bytes),
+                ResponseBody::Empty | ResponseBody::Receiving(_) => None,
+            },
+            EncodedImageBytes::Owned(bytes) => f(bytes),
+        }
     }
 }
 

@@ -1407,7 +1407,7 @@ impl RemoteWebFontDownloader {
                 }
                 DownloaderResponseResult::InProcess
             },
-            FetchResponseMsg::ProcessResponseEOF(_, response, timing) => {
+            FetchResponseMsg::ProcessResponseEOF(_, response, timing, _) => {
                 trace!(
                     "@font-face {} EOF={:?}",
                     self.web_font_family_name, response

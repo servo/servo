@@ -800,9 +800,25 @@ impl FetchResponseListener for ResourceFetchListener {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
+        self.process_response_eof_with_body(cx, request_id, response, timing, None);
+    }
+
+    fn process_response_eof_with_body(
+        self,
+        cx: &mut JSContext,
+        request_id: RequestId,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
+        body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
+    ) {
         self.image_cache.notify_pending_response(
             self.pending_image_id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
+            FetchResponseMsg::ProcessResponseEOF(
+                request_id,
+                response.clone(),
+                timing.clone(),
+                body,
+            ),
         );
         network_listener::submit_timing(cx, &self, &response, &timing);
     }
