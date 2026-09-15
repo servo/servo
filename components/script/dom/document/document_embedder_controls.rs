@@ -31,13 +31,12 @@ use webrender_api::units::{DeviceIntRect, DevicePoint};
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::trace::NoTrace;
-use crate::dom::html::form_controls::text_control::TextControlElement;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{
     Element, HTMLAnchorElement, HTMLElement, HTMLImageElement, HTMLInputElement, HTMLSelectElement,
-    HTMLTextAreaElement, Window,
+    Window,
 };
 use crate::messaging::MainThreadScriptMsg;
 use crate::navigation::navigate;
@@ -267,7 +266,6 @@ impl DocumentEmbedderControls {
 
         let mut anchor_element = None;
         let mut image_element = None;
-        let mut text_input_element = None;
         for node in hit_test_result
             .node
             .inclusive_ancestors(ShadowIncluding::Yes)
@@ -283,12 +281,6 @@ impl DocumentEmbedderControls {
                 let Some(candidate_image_element) = node.downcast::<HTMLImageElement>()
             {
                 image_element = Some(DomRoot::from_ref(candidate_image_element))
-            }
-
-            if text_input_element.is_none() &&
-                let Some(candidate_text_input_element) = node.as_text_input()
-            {
-                text_input_element = Some(candidate_text_input_element);
             }
         }
 
@@ -336,40 +328,44 @@ impl DocumentEmbedderControls {
             ]);
         }
 
-        if let Some(text_input_element) = &text_input_element {
-            let has_selection = text_input_element.has_uncollapsed_selection();
+        let document = self.window.Document();
+        let editing_context = document.editing_context(no_gc, &hit_test_result.node);
 
+        let has_selection = editing_context.has_uncollapsed_selection();
+        if has_selection {
+            info.flags
+                .insert(ContextMenuElementInformationFlags::Selection);
+        }
+
+        let cutting_and_pasting_enabled = editing_context.cutting_and_pasting_enabled();
+        let can_cut = has_selection && cutting_and_pasting_enabled;
+        if cutting_and_pasting_enabled {
             info.flags
                 .insert(ContextMenuElementInformationFlags::EditableText);
-            if has_selection {
-                info.flags
-                    .insert(ContextMenuElementInformationFlags::Selection);
-            }
-
-            items.extend(vec![
-                ContextMenuItem::Item {
-                    label: "Cut".into(),
-                    action: ContextMenuAction::Cut,
-                    enabled: has_selection,
-                },
-                ContextMenuItem::Item {
-                    label: "Copy".into(),
-                    action: ContextMenuAction::Copy,
-                    enabled: has_selection,
-                },
-                ContextMenuItem::Item {
-                    label: "Paste".into(),
-                    action: ContextMenuAction::Paste,
-                    enabled: true,
-                },
-                ContextMenuItem::Item {
-                    label: "Select All".into(),
-                    action: ContextMenuAction::SelectAll,
-                    enabled: text_input_element.has_selectable_text(),
-                },
-                ContextMenuItem::Separator,
-            ]);
         }
+        items.extend(vec![
+            ContextMenuItem::Item {
+                label: "Cut".into(),
+                action: ContextMenuAction::Cut,
+                enabled: can_cut,
+            },
+            ContextMenuItem::Item {
+                label: "Copy".into(),
+                action: ContextMenuAction::Copy,
+                enabled: has_selection,
+            },
+            ContextMenuItem::Item {
+                label: "Paste".into(),
+                action: ContextMenuAction::Paste,
+                enabled: cutting_and_pasting_enabled,
+            },
+            ContextMenuItem::Item {
+                label: "Select All".into(),
+                action: ContextMenuAction::SelectAll,
+                enabled: editing_context.has_selectable_text(),
+            },
+            ContextMenuItem::Separator,
+        ]);
 
         items.extend(vec![
             ContextMenuItem::Item {
@@ -394,7 +390,6 @@ impl DocumentEmbedderControls {
                 node: hit_test_result.node.as_traced(),
                 anchor_element: anchor_element.map(|element| element.as_traced()),
                 image_element: image_element.map(|element| element.as_traced()),
-                text_input_element: text_input_element.map(|element| element.as_traced()),
             }),
             EmbedderControlRequest::ContextMenu(ContextMenuRequest {
                 element_info: info,
@@ -414,8 +409,6 @@ pub(crate) struct ContextMenuNodes {
     anchor_element: Option<Dom<HTMLAnchorElement>>,
     /// The first inclusive ancestor of this node that is an `<img>` if one exists.
     image_element: Option<Dom<HTMLImageElement>>,
-    /// The first inclusive ancestor of this node which is a text entry field.
-    text_input_element: Option<Dom<Element>>,
 }
 
 impl ContextMenuNodes {
@@ -513,74 +506,18 @@ impl ContextMenuNodes {
                 }
             },
             ContextMenuAction::Cut => {
-                window.Document().handle_editing_action(
-                    cx,
-                    self.text_input_element.as_deref().map(DomRoot::from_ref),
-                    EditingActionEvent::Cut,
-                );
+                document.handle_editing_action(cx, &self.node, EditingActionEvent::Cut);
             },
             ContextMenuAction::Copy => {
-                window.Document().handle_editing_action(
-                    cx,
-                    self.text_input_element.as_deref().map(DomRoot::from_ref),
-                    EditingActionEvent::Copy,
-                );
+                document.handle_editing_action(cx, &self.node, EditingActionEvent::Copy);
             },
             ContextMenuAction::Paste => {
-                window.Document().handle_editing_action(
-                    cx,
-                    self.text_input_element.as_deref().map(DomRoot::from_ref),
-                    EditingActionEvent::Paste,
-                );
+                document.handle_editing_action(cx, &self.node, EditingActionEvent::Paste);
             },
             ContextMenuAction::SelectAll => {
-                if let Some(text_input_element) = &self.text_input_element {
-                    text_input_element.select_all();
-                }
+                let editing_context = document.editing_context(cx.no_gc(), &self.node);
+                editing_context.select_all(cx);
             },
         }
-    }
-}
-
-impl Node {
-    fn as_text_input(&self) -> Option<DomRoot<Element>> {
-        if let Some(input_element) = self
-            .downcast::<HTMLInputElement>()
-            .filter(|input_element| input_element.is_textual_or_password())
-        {
-            return Some(DomRoot::from_ref(input_element.upcast::<Element>()));
-        }
-        self.downcast::<HTMLTextAreaElement>()
-            .map(Castable::upcast)
-            .map(DomRoot::from_ref)
-    }
-}
-
-impl Element {
-    fn has_uncollapsed_selection(&self) -> bool {
-        self.downcast::<HTMLTextAreaElement>()
-            .map(TextControlElement::has_uncollapsed_selection)
-            .or(self
-                .downcast::<HTMLInputElement>()
-                .map(TextControlElement::has_uncollapsed_selection))
-            .unwrap_or_default()
-    }
-
-    fn has_selectable_text(&self) -> bool {
-        self.downcast::<HTMLTextAreaElement>()
-            .map(TextControlElement::has_selectable_text)
-            .or(self
-                .downcast::<HTMLInputElement>()
-                .map(TextControlElement::has_selectable_text))
-            .unwrap_or_default()
-    }
-
-    fn select_all(&self) {
-        self.downcast::<HTMLTextAreaElement>()
-            .map(TextControlElement::select_all)
-            .or(self
-                .downcast::<HTMLInputElement>()
-                .map(TextControlElement::select_all))
-            .unwrap_or_default()
     }
 }

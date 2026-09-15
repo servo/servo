@@ -8,7 +8,7 @@ mod common;
 use std::rc::Rc;
 
 use euclid::Point2D;
-use servo::{InputEvent, JSValue, MouseMoveEvent, WebViewBuilder};
+use servo::{InputEvent, JSValue, MouseButton, MouseMoveEvent, WebViewBuilder};
 use servo_config::prefs::Preferences;
 use url::Url;
 use webrender_api::units::DevicePoint;
@@ -178,7 +178,7 @@ fn test_largest_contentful_paint_js_api_with_mouse_click_and_reload() {
     assert_eq!(count, Ok(JSValue::Number(1.0)));
 
     // Simulate a click, which should halt LCP calculation.
-    click_at_point(&webview, Point2D::new(1., 1.));
+    click_at_point(&webview, Point2D::new(1., 1.), MouseButton::Primary);
 
     // Append a larger image; it should not be reported because LCP is halted.
     if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), APPEND_LARGER_IMAGE_SCRIPT)

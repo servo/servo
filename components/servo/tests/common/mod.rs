@@ -180,17 +180,17 @@ impl WebViewDelegate for WebViewDelegateImpl {
 // Used by some unit tests only. Since they compile into different binaries,
 // it will be flagged as unused for certain unit tests.
 #[allow(dead_code)]
-pub(crate) fn click_at_point(webview: &WebView, point: DevicePoint) {
+pub(crate) fn click_at_point(webview: &WebView, point: DevicePoint, button: MouseButton) {
     let point = point.into();
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Down,
-        MouseButton::Primary,
+        button,
         point,
     )));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Up,
-        MouseButton::Primary,
+        button,
         point,
     )));
 }

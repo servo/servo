@@ -379,10 +379,14 @@ impl DocumentEventHandler {
                     self.handle_gamepad_event(gamepad_event);
                     InputEventResult::default()
                 },
-                InputEvent::EditingAction(editing_action_event) => self
-                    .window
-                    .Document()
-                    .handle_editing_action(cx, None, editing_action_event),
+                InputEvent::EditingAction(editing_action_event) => {
+                    let document = self.window.Document();
+                    let focused_node = document
+                        .focus_handler()
+                        .focused_area()
+                        .dom_anchor(&document);
+                    document.handle_editing_action(cx, &focused_node, editing_action_event)
+                },
             };
 
             input_event_outcomes.push(InputEventOutcome {
