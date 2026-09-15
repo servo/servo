@@ -11,6 +11,7 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
@@ -166,27 +167,34 @@ impl HTMLTextAreaElement {
         !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
     }
 
-    fn handle_focus_event(&self, event: &FocusEvent) {
+    fn handle_focus_event(&self, cx: &mut JSContext, event: &FocusEvent) {
         let event_type = event.upcast::<Event>().type_();
+        let document = self.owner_document();
         if *event_type == *"blur" {
-            self.owner_document()
+            document
                 .embedder_controls()
                 .hide_embedder_control(self.upcast());
         } else if *event_type == *"focus" {
-            self.owner_document()
-                .embedder_controls()
-                .show_embedder_control(
-                    ControlElement::Ime(Dom::from_ref(self.upcast())),
-                    EmbedderControlRequest::InputMethod(InputMethodRequest {
-                        input_method_type: InputMethodType::Text,
-                        text: String::from(self.Value()),
-                        insertion_point: self.GetSelectionEnd(),
-                        multiline: false,
-                        // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
-                        allow_virtual_keyboard: self.owner_window().has_sticky_activation(),
-                    }),
-                    None,
-                );
+            // If there is a Document selection collapse it. This isn't really specified
+            // and there are quite a few open specification issues about the interaction
+            // of input and Document selection:
+            // See <https://github.com/w3c/selection-api/issues/83>.
+            if let Some(selection) = document.selection() {
+                let _ = selection.Collapse(cx, None, 0);
+            }
+
+            document.embedder_controls().show_embedder_control(
+                ControlElement::Ime(Dom::from_ref(self.upcast())),
+                EmbedderControlRequest::InputMethod(InputMethodRequest {
+                    input_method_type: InputMethodType::Text,
+                    text: String::from(self.Value()),
+                    insertion_point: self.GetSelectionEnd(),
+                    multiline: false,
+                    // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
+                    allow_virtual_keyboard: self.owner_window().has_sticky_activation(),
+                }),
+                None,
+            );
         }
 
         // Focus changes can activate or deactivate a selection.
@@ -821,7 +829,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 self.handle_text_content_changed(cx);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
-            self.handle_focus_event(event);
+            self.handle_focus_event(cx, event);
         }
 
         self.validity_state(cx)

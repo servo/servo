@@ -19,6 +19,7 @@ use js::rust::wrappers2::{
 use js::rust::{HandleObject, MutableHandleObject};
 use num_traits::ToPrimitive;
 use script_bindings::cell::{DomRefCell, Ref};
+use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
@@ -1969,10 +1970,11 @@ impl HTMLInputElement {
         }
     }
 
-    fn handle_focus_event(&self, event: &FocusEvent) {
+    fn handle_focus_event(&self, cx: &mut JSContext, event: &FocusEvent) {
         let event_type = event.upcast::<Event>().type_();
+        let document = self.owner_document();
         if *event_type == *"blur" {
-            self.owner_document()
+            document
                 .embedder_controls()
                 .hide_embedder_control(self.upcast());
         } else if *event_type == *"focus" {
@@ -1981,20 +1983,28 @@ impl HTMLInputElement {
                 return;
             };
 
-            self.owner_document()
-                .embedder_controls()
-                .show_embedder_control(
-                    ControlElement::Ime(Dom::from_ref(self.upcast())),
-                    EmbedderControlRequest::InputMethod(InputMethodRequest {
-                        input_method_type,
-                        text: String::from(self.Value()),
-                        insertion_point: self.GetSelectionEnd(),
-                        multiline: false,
-                        // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
-                        allow_virtual_keyboard: self.owner_window().has_sticky_activation(),
-                    }),
-                    None,
-                );
+            // If there is a Document selection collapse it. This isn't really specified
+            // and there are quite a few open specification issues about the interaction
+            // of input and Document selection:
+            // See <https://github.com/w3c/selection-api/issues/83>.
+            if self.is_textual_or_password() &&
+                let Some(selection) = document.selection()
+            {
+                let _ = selection.Collapse(cx, None, 0);
+            }
+
+            document.embedder_controls().show_embedder_control(
+                ControlElement::Ime(Dom::from_ref(self.upcast())),
+                EmbedderControlRequest::InputMethod(InputMethodRequest {
+                    input_method_type,
+                    text: String::from(self.Value()),
+                    insertion_point: self.GetSelectionEnd(),
+                    multiline: false,
+                    // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
+                    allow_virtual_keyboard: self.owner_window().has_sticky_activation(),
+                }),
+                None,
+            );
         }
     }
 }
@@ -2367,7 +2377,7 @@ impl VirtualMethods for HTMLInputElement {
                     .dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
-            self.handle_focus_event(event)
+            self.handle_focus_event(cx, event)
         }
 
         self.value_changed(cx);
