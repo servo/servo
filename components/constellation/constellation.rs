@@ -1704,7 +1704,7 @@ where
                     .schedule_broadcast(router_id, message);
             },
             ScriptToConstellationMessage::PipelineExited => {
-                self.handle_pipeline_exited(source_pipeline_id);
+                self.handle_pipeline_exited(source_pipeline_id, PipelineExitSource::Constellation);
             },
             ScriptToConstellationMessage::DiscardDocument => {
                 self.handle_discard_document(webview_id, source_pipeline_id);
@@ -2939,7 +2939,7 @@ where
         self.async_runtime.shutdown();
     }
 
-    fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
+    fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId, exit_source: PipelineExitSource) {
         debug!("{}: Exited", pipeline_id);
         self.remove_worker_animation_frame_providers_for_pipeline(pipeline_id);
 
@@ -2959,7 +2959,7 @@ where
         self.paint_proxy.send(PaintMessage::PipelineExited(
             pipeline.webview_id,
             pipeline.id,
-            PipelineExitSource::Constellation,
+            exit_source,
         ));
     }
 
@@ -3000,13 +3000,29 @@ where
         debug!("Panic handler for {event_loop_id:?}: {reason:?}",);
 
         let mut webview_ids = HashSet::new();
+        let mut crashed_pipelines = Vec::new();
         for pipeline in self.pipelines.values() {
             if pipeline.event_loop.id() == event_loop_id {
+                crashed_pipelines.push(pipeline.id);
                 webview_ids.insert(pipeline.webview_id);
             }
         }
+
         for webview_id in webview_ids {
             self.handle_panic_in_webview(webview_id, &reason, &backtrace);
+        }
+
+        for pipeline_id in crashed_pipelines {
+            self.close_pipeline(
+                pipeline_id,
+                DiscardBrowsingContext::No,
+                ExitPipelineMode::Force,
+            );
+            // The pipeline is now unreachable, so we should consider it gone. We should
+            // not try to send any subsequent messages to this pipeline. all() here ensures
+            // that `Paint` cleans up the pipeline display immediately without waiting for
+            // confirmation from the event loop.
+            self.handle_pipeline_exited(pipeline_id, PipelineExitSource::all());
         }
     }
 
@@ -3016,7 +3032,6 @@ where
         reason: &String,
         backtrace: &Option<String>,
     ) {
-        let browsing_context_id = BrowsingContextId::from(webview_id);
         self.constellation_to_embedder_proxy
             .send(ConstellationToEmbedderMsg::Panic(
                 webview_id,
@@ -3024,6 +3039,7 @@ where
                 backtrace.clone(),
             ));
 
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) else {
             return warn!("failed browsing context is missing");
         };
@@ -3036,6 +3052,11 @@ where
         };
         let opener = pipeline.opener;
 
+        let old_pipeline_id = pipeline_id;
+        let Some(old_load_data) = self.refresh_load_data(pipeline_id) else {
+            return warn!("failed pipeline is missing");
+        };
+
         self.close_browsing_context_children(
             webview_id,
             browsing_context_id,
@@ -3043,10 +3064,6 @@ where
             ExitPipelineMode::Force,
         );
 
-        let old_pipeline_id = pipeline_id;
-        let Some(old_load_data) = self.refresh_load_data(pipeline_id) else {
-            return warn!("failed pipeline is missing");
-        };
         if old_load_data.crash.is_some() {
             return error!("crash page crashed");
         }
@@ -6066,7 +6083,13 @@ where
         };
 
         // Inform script and paint that this pipeline has exited.
-        pipeline.send_exit_message_to_script(dbc);
+        if !pipeline.send_exit_message_to_script(dbc) {
+            // The pipeline is now unreachable, so we should consider it gone. We should
+            // not try to send any subsequent messages to this pipeline. all() here ensures
+            // that `Paint` cleans up the pipeline display immediately without waiting for
+            // confirmation from the event loop.
+            self.handle_pipeline_exited(pipeline_id, PipelineExitSource::all());
+        }
 
         // Remove this pipeline from pending changes if it hasn't loaded yet.
         if let Some(webview) = self.webviews.get_mut(&webview_id) {
