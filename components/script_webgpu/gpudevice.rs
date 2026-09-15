@@ -35,7 +35,7 @@ use script_bindings::reflector::{
     DomGlobalGeneric, reflect_weak_referenceable_dom_object_with_cx_and_wrap,
 };
 use script_bindings::traits::DomEventTrait;
-use script_bindings::{DomTypes, cformat};
+use script_bindings::{DomTypes, cformat, task};
 use stylo_atoms::atom;
 use webgpu_traits::{WebGPU, WebGPUDevice, WebGPUQueue, WebGPURequest};
 use wgpu_core::pipeline as wgpu_pipe;
@@ -246,8 +246,8 @@ where
 
         // Queue a global task, using the webgpu task source, to fire an event named
         // uncapturederror at a GPUDevice using GPUUncapturedErrorEvent.
-        self.global_from_reflector()
-            .queue_webgpu_task_source("fire_uncaptured_error", move |cx| {
+        self.global_from_reflector().queue_webgpu_task_source(task!(
+            fire_uncaptured_error: move |cx| {
                 let this = this.root();
                 let error = GPUError::from_error(cx, &*this.global_from_reflector(), error);
 
@@ -262,7 +262,8 @@ where
                 );
 
                 event.upcast::<D::Event>().fire(cx, this.upcast());
-            });
+            }
+        ));
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-texture-format-required-features>
@@ -430,14 +431,14 @@ where
         // Queue a global task, using the webgpu task source, to resolve device.lost
         // promise with a new GPUDeviceLostInfo with reason and message.
         let global: DomRoot<D::GlobalScope> = self.global_from_reflector();
-        global.queue_webgpu_task_source("resolve_device_lost", move |cx| {
+        global.queue_webgpu_task_source(task!(resolve_device_lost: move |cx| {
             let this = this.root();
 
             let lost_promise = &(*this.lost_promise.borrow());
             let lost =
                 GPUDeviceLostInfo::<D>::new(cx, &*this.global_from_reflector(), msg.into(), reason);
             lost_promise.resolve_native(cx, &*lost);
-        });
+        }));
     }
 }
 
@@ -478,7 +479,7 @@ where
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
-    fn Lost(&self, cx: &JSContext) -> RootedPromise {
+    fn Lost(&self, cx: &JSContext) -> <<D as script_bindings::DomTypes>::Promise as script_bindings::interfaces::PromiseHelpers<D>>::StackRoot{
         self.lost_promise.borrow().root(cx)
     }
 

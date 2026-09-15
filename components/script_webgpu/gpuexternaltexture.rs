@@ -12,7 +12,6 @@ use js::context::JSContext;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::Snapshot;
-use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUDeviceMethods, GPUExternalTextureDescriptor, GPUExternalTextureMethods,
@@ -21,6 +20,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
+use script_bindings::{DomTypes, task};
 use webgpu_traits::{
     WebGPU, WebGPUDevice, WebGPUExternalTexture, WebGPUQueue, WebGPURequest, WebGPUTexture,
     WebGPUTextureView,
@@ -288,9 +288,9 @@ where
 
         device
             .global_from_reflector()
-            .queue_webgpu_task_source("expire", move |_| {
+            .queue_webgpu_task_source(task!(expire:  move || {
                 this.root().expire();
-            });
+            }));
         // 6. Return result.
         Ok(result)
     }

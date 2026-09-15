@@ -14,6 +14,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::DomGlobalGeneric;
 use script_bindings::root::DomRoot;
+use script_bindings::tasks::TaskOnce;
 use script_bindings::traits::DomEventTrait;
 use serde_core::Serialize;
 use servo_base::generic_channel::GenericCallback;
@@ -160,11 +161,7 @@ pub trait WebGPUTracedPromiseTrait<D: DomTypes> {
 
 pub trait WebGPUGlobalTrait {
     fn global_wgpu_id_hub(&self) -> Arc<IdentityHub>;
-    fn queue_webgpu_task_source<F: FnOnce(&mut js::context::JSContext) + Send + 'static>(
-        &self,
-        name: &'static str,
-        task: F,
-    );
+    fn queue_webgpu_task_source(&self, task: impl TaskOnce + 'static);
 }
 
 #[expect(clippy::type_complexity)]

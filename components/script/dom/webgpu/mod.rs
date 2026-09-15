@@ -232,33 +232,13 @@ impl GPUQueueTrait<crate::DomTypeHolder> for GPUQueue {
     }
 }
 
-struct WebGPUTaskSource<F: FnOnce(&mut js::context::JSContext)> {
-    _name: &'static str,
-    task_fn: F,
-}
-
-impl<F: FnOnce(&mut js::context::JSContext) + Send> TaskOnce for WebGPUTaskSource<F> {
-    fn run_once(self, cx: &mut js::context::JSContext) {
-        (self.task_fn)(cx)
-    }
-}
-
 impl WebGPUGlobalTrait for GlobalScope {
     fn global_wgpu_id_hub(&self) -> Arc<script_webgpu::identityhub::IdentityHub> {
         self.wgpu_id_hub()
     }
 
-    fn queue_webgpu_task_source<F: FnOnce(&mut js::context::JSContext) + Send + 'static>(
-        &self,
-        name: &'static str,
-        task_fn: F,
-    ) {
-        self.task_manager()
-            .webgpu_task_source()
-            .queue(WebGPUTaskSource {
-                _name: name,
-                task_fn,
-            });
+    fn queue_webgpu_task_source(&self, task: impl TaskOnce + 'static) {
+        self.task_manager().webgpu_task_source().queue(task);
     }
 }
 
