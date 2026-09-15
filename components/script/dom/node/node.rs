@@ -159,19 +159,19 @@ pub struct Node {
     /// Rare node data.
     rare_data: DomRefCell<Option<Box<NodeRareData>>>,
 
-    /// The live count of children of this node.
-    children_count: Cell<u32>,
-
     /// A bitfield of flags for node items.
     flags: Cell<NodeFlags>,
-
-    /// The maximum version of any inclusive descendant of this node.
-    inclusive_descendants_version: Cell<u64>,
 
     /// Layout data for this node. This is populated during layout and can
     /// be used for incremental relayout and script queries.
     #[no_trace]
     layout_data: DomRefCell<Option<Box<GenericLayoutData>>>,
+
+    /// The maximum version of any inclusive descendant of this node.
+    inclusive_descendants_version: Cell<u32>,
+
+    /// The live count of children of this node.
+    children_count: Cell<u32>,
 }
 
 impl fmt::Debug for Node {
@@ -872,7 +872,10 @@ impl Node {
         let version = cmp::max(
             self.inclusive_descendants_version(),
             doc.inclusive_descendants_version(),
-        ) + 1;
+        )
+        .checked_add(1)
+        .unwrap_or(0);
+        log::error!("NODE DIRTY VERSION {:?}", version);
 
         for node in self.inclusive_ancestors_unrooted(no_gc, ShadowIncluding::No) {
             node.inclusive_descendants_version.set(version);
@@ -920,7 +923,7 @@ impl Node {
     }
 
     /// The maximum version number of this node's descendants, including itself
-    pub(crate) fn inclusive_descendants_version(&self) -> u64 {
+    pub(crate) fn inclusive_descendants_version(&self) -> u32 {
         self.inclusive_descendants_version.get()
     }
 
