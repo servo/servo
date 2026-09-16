@@ -16,10 +16,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, MutableHandleObject, MutableHandleValue};
-use js::typedarray::{
-    ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array,
-    TypedArrayElementCreator, Uint32Array,
-};
+use js::typedarray::{ArrayBufferView, Float32, Int32, TypedArrayElementCreator, Uint32};
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::reflector::{
@@ -2177,7 +2174,6 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.get_buffer_param(buffer, parameter, retval)
     }
 
-    #[expect(unsafe_code)]
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn GetParameter(&self, cx: &mut JSContext, parameter: u32, mut retval: MutableHandleValue) {
         if !self
@@ -2276,11 +2272,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 }
                 return retval.set(Int32Value(constants::UNSIGNED_BYTE as i32));
             },
-            constants::COMPRESSED_TEXTURE_FORMATS => unsafe {
+            constants::COMPRESSED_TEXTURE_FORMATS => {
                 let format_ids = self.extension_manager.get_tex_compression_ids();
 
                 rooted!(&in(cx) let mut rval = ptr::null_mut::<JSObject>());
-                Uint32Array::create(cx, CreateWith::Slice(&format_ids), rval.handle_mut()).unwrap();
+                create_buffer_source::<Uint32>(cx, &format_ids, rval.handle_mut()).unwrap();
                 return retval.set(ObjectValue(rval.get()));
             },
             constants::VERSION => {
@@ -2380,28 +2376,20 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 self.send_command(WebGLCommand::GetParameterInt(param, sender));
                 retval.set(Int32Value(receiver.recv().unwrap()))
             },
-            Parameter::Int2(param) => unsafe {
+            Parameter::Int2(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt2(param, sender));
                 rooted!(&in(cx) let mut rval = ptr::null_mut::<JSObject>());
-                Int32Array::create(
-                    cx,
-                    CreateWith::Slice(&receiver.recv().unwrap()),
-                    rval.handle_mut(),
-                )
-                .unwrap();
+                create_buffer_source::<Int32>(cx, &receiver.recv().unwrap(), rval.handle_mut())
+                    .unwrap();
                 retval.set(ObjectValue(rval.get()))
             },
-            Parameter::Int4(param) => unsafe {
+            Parameter::Int4(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt4(param, sender));
                 rooted!(&in(cx) let mut rval = ptr::null_mut::<JSObject>());
-                Int32Array::create(
-                    cx,
-                    CreateWith::Slice(&receiver.recv().unwrap()),
-                    rval.handle_mut(),
-                )
-                .unwrap();
+                create_buffer_source::<Int32>(cx, &receiver.recv().unwrap(), rval.handle_mut())
+                    .unwrap();
                 retval.set(ObjectValue(rval.get()))
             },
             Parameter::Float(param) => {
@@ -2409,28 +2397,20 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 self.send_command(WebGLCommand::GetParameterFloat(param, sender));
                 retval.set(DoubleValue(receiver.recv().unwrap() as f64))
             },
-            Parameter::Float2(param) => unsafe {
+            Parameter::Float2(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat2(param, sender));
                 rooted!(&in(cx) let mut rval = ptr::null_mut::<JSObject>());
-                Float32Array::create(
-                    cx,
-                    CreateWith::Slice(&receiver.recv().unwrap()),
-                    rval.handle_mut(),
-                )
-                .unwrap();
+                create_buffer_source::<Float32>(cx, &receiver.recv().unwrap(), rval.handle_mut())
+                    .unwrap();
                 retval.set(ObjectValue(rval.get()))
             },
-            Parameter::Float4(param) => unsafe {
+            Parameter::Float4(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat4(param, sender));
                 rooted!(&in(cx) let mut rval = ptr::null_mut::<JSObject>());
-                Float32Array::create(
-                    cx,
-                    CreateWith::Slice(&receiver.recv().unwrap()),
-                    rval.handle_mut(),
-                )
-                .unwrap();
+                create_buffer_source::<Float32>(cx, &receiver.recv().unwrap(), rval.handle_mut())
+                    .unwrap();
                 retval.set(ObjectValue(rval.get()))
             },
         }
@@ -3656,7 +3636,6 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         handle_potential_webgl_error!(self, program.get_uniform_location(cx, name), None)
     }
 
-    #[expect(unsafe_code)]
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetVertexAttrib(
         &self,
@@ -3671,34 +3650,21 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 match attrib {
                     VertexAttrib::Float(x, y, z, w) => {
                         let value = [x, y, z, w];
-                        unsafe {
-                            rooted!(&in(cx) let mut result = ptr::null_mut::<JSObject>());
-                            Float32Array::create(
-                                cx,
-                                CreateWith::Slice(&value),
-                                result.handle_mut(),
-                            )
-                            .unwrap();
-                            return retval.set(ObjectValue(result.get()));
-                        }
+                        rooted!(&in(cx) let mut result = ptr::null_mut::<JSObject>());
+                        create_buffer_source::<Float32>(cx, &value, result.handle_mut()).unwrap();
+                        return retval.set(ObjectValue(result.get()));
                     },
                     VertexAttrib::Int(x, y, z, w) => {
                         let value = [x, y, z, w];
-                        unsafe {
-                            rooted!(&in(cx) let mut result = ptr::null_mut::<JSObject>());
-                            Int32Array::create(cx, CreateWith::Slice(&value), result.handle_mut())
-                                .unwrap();
-                            return retval.set(ObjectValue(result.get()));
-                        }
+                        rooted!(&in(cx) let mut result = ptr::null_mut::<JSObject>());
+                        create_buffer_source::<Int32>(cx, &value, result.handle_mut()).unwrap();
+                        return retval.set(ObjectValue(result.get()));
                     },
                     VertexAttrib::Uint(x, y, z, w) => {
                         let value = [x, y, z, w];
-                        unsafe {
-                            rooted!(&in(cx) let mut result = ptr::null_mut::<JSObject>());
-                            Uint32Array::create(cx, CreateWith::Slice(&value), result.handle_mut())
-                                .unwrap();
-                            return retval.set(ObjectValue(result.get()));
-                        }
+                        rooted!(&in(cx) let mut result = ptr::null_mut::<JSObject>());
+                        create_buffer_source::<Uint32>(cx, &value, result.handle_mut()).unwrap();
+                        return retval.set(ObjectValue(result.get()));
                     },
                 };
             }
