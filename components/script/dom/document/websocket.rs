@@ -13,7 +13,7 @@ use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use js::realm::AutoRealm;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
-use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
+use js::typedarray::{ArrayBuffer, ArrayBufferU8, ArrayBufferView};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CacheMode, CredentialsMode, RedirectMode, Referrer, RequestBuilder, RequestMode,
@@ -29,6 +29,7 @@ use servo_base::generic_channel::{LazyCallback, lazy_callback};
 use servo_constellation_traits::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -601,7 +602,6 @@ struct MessageReceivedTask {
 }
 
 impl TaskOnce for MessageReceivedTask {
-    #[expect(unsafe_code)]
     fn run_once(self, cx: &mut JSContext) {
         let ws = self.address.root();
         debug!(
@@ -633,16 +633,10 @@ impl TaskOnce for MessageReceivedTask {
                 },
                 BinaryType::Arraybuffer => {
                     rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-                    unsafe {
-                        assert!(
-                            ArrayBuffer::create(
-                                cx,
-                                CreateWith::Slice(&data),
-                                array_buffer.handle_mut()
-                            )
+                    assert!(
+                        create_buffer_source::<ArrayBufferU8>(cx, &data, array_buffer.handle_mut())
                             .is_ok()
-                        )
-                    };
+                    );
 
                     (*array_buffer).to_jsval(cx, message.handle_mut());
                 },
