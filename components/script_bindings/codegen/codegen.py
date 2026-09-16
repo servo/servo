@@ -5653,7 +5653,7 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
         ]
         joinedEnumValues = "\n".join(enumValues)
         joinedEnumConversions = "\n".join(enumConversions)
-        derives = ["JSTraceable"] + self.derives
+        derives = self.derives
         manualImpls = "\n".join(map(lambda t: self.manualImpl(t, templateVars), self.manualImpls))
         return f"""
 #[derive({", ".join(derives)})]
@@ -7712,7 +7712,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         memberDecls = [f"    pub {self.makeMemberName(m[0].identifier.name)}: {self.getMemberType(m)},"
                        for m in self.memberInfo]
 
-        derive = ["JSTraceable"] + self.derives
+        derive = self.derives
         default = ""
 
         # We can't unconditionally derive Default here, because union types can have unique
