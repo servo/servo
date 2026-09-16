@@ -2880,9 +2880,9 @@ class CGGeneric(CGThing):
 
 class CGCallbackTempRoot(CGGeneric):
     def __init__(self, name: str, needTraced: bool) -> None:
-        inner = CGGeneric(f"unsafe {{ {name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object()) }}")
-        post = ").to_traced()" if needTraced else ")"
-        CGGeneric.__init__(self, CGWrapper(inner, "RootedCallback::from(", post).define())
+        extra = ".to_traced()" if needTraced else ""
+        inner = f"unsafe {{ {name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object()) }}{extra}"
+        CGGeneric.__init__(self, inner)
 
 
 def getAllTypes(
@@ -6048,15 +6048,8 @@ class ClassConstructor(ClassItem):
         joinedInitializers = '\n'.join(initializers)
         return (
             f"{self.body}"
-            f"let mut ret = Rc::new({cgClass.name} {{\n"
-            f"{joinedInitializers}\n"
-            "});\n"
-            "// Note: callback cannot be moved after calling init.\n"
-            "match Rc::get_mut(&mut ret) {\n"
-            f"    Some(ref mut callback) => callback.parent.init({self.args[0].name}, {self.args[1].name}),\n"
-            "    None => unreachable!(),\n"
-            "};\n"
-            "ret"
+            f"let obj = {cgClass.name} {{ {joinedInitializers} }};\n"
+            f"create_callback_rooted({self.args[0].name}, obj, {self.args[1].name})\n"
         )
 
     def declare(self, cgClass: CGClass) -> str:
@@ -6069,7 +6062,7 @@ class ClassConstructor(ClassItem):
 
         name = cgClass.getNameString().replace(': DomTypes', '')
         return f"""
-pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
+pub unsafe fn {self.getDecorators(True)}new({args}) -> RootedCallback<{name}>{body}
 """
 
     def define(self, cgClass: CGClass) -> str:
@@ -8294,7 +8287,10 @@ class CGBindingRoot(CGThing):
 
         # Do codegen for all the callbacks.
         cgthings.extend(CGList([CGCallbackFunction(c, config.getDescriptorProvider()),
-                                CGCallbackFunctionImpl(c)], "\n")
+                                CGCallbackFunctionImpl(
+                                    c,
+                                    config.getDescriptorProvider().callbackUsesRc(c.identifier.name),
+                                )], "\n")
                         for c in mainCallbacks)
 
         # Do codegen for all the descriptors
@@ -8304,7 +8300,10 @@ class CGBindingRoot(CGThing):
         cgthings.extend(CGList(
             [
                 CGCallbackInterface(x),
-                CGCallbackFunctionImpl(assert_type(x.interface, IDLInterface))
+                CGCallbackFunctionImpl(
+                    assert_type(x.interface, IDLInterface),
+                    config.getDescriptorProvider().callbackUsesRc(x.interface.identifier.name),
+                )
             ],
             "\n"
         ) for x in callbackDescriptors)
@@ -8565,7 +8564,7 @@ class CGCallback(CGClass):
             visibility="pub",
             explicit=False,
             baseConstructors=[
-                f"{self.baseName.replace('<D>', '')}::new()"
+                f"{self.baseName.replace('<D>', '')}::new_with_exterior_root()"
             ])]
 
     def getMethodImpls(self, method: CallbackMethod) -> list[ClassMethod]:
@@ -8652,14 +8651,28 @@ class CGCallbackFunction(CGCallback):
 class CGCallbackFunctionImpl(CGGeneric):
     def __init__(self, callback: IDLCallback | IDLInterface) -> None:
         type = f"{callback.identifier.name}<D>"
-        impl = (f"""
-impl<D: DomTypes> CallbackContainer<D> for {type} {{
-    unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> Rc<{type}> {{
-        {type.replace('<D>', '')}::new(cx, callback)
-    }}
 
+        impl = (f"""
+impl<'a, D: DomTypes> From<&'a CallbackObject<D>> for {type} {{
+    fn from(base: &'a CallbackObject<D>) -> Self {{
+        Self {{ parent: base.into() }}
+    }}
+}}
+
+impl<D: DomTypes> HasCallbackHolder for {type} {{
+    type D = D;
     fn callback_holder(&self) -> &CallbackObject<D> {{
         self.parent.callback_holder()
+    }}
+
+    fn callback_holder_mut(&mut self) -> &mut CallbackObject<D> {{
+        self.parent.callback_holder_mut()
+    }}
+}}
+
+impl<D: DomTypes> CallbackContainer for {type} {{
+    unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> RootedCallback<{type}> {{
+        {type.replace('<D>', '')}::new(cx, callback)
     }}
 }}
 

@@ -238,7 +238,7 @@ impl Promise {
             promise
                 .0
                 .init_reflector_without_associated_memory(obj.get());
-            promise.1.init(cx, obj, c"Promise::root");
+            promise.1.init(cx, *obj, c"Promise::root");
         }
         RootedPromise(promise)
     }
