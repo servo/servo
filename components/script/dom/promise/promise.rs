@@ -22,21 +22,21 @@ use js::conversions::{ConversionResult, ToJSValConvertible};
 use js::gc::MutableHandleValue;
 use js::jsapi::{
     CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JSContext as RawJSContext,
-    JSObject, PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
-    SetFunctionNativeReserved,
+    JSObject, PromiseState, PromiseUserInputEventHandlingState, SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
-    AddPromiseReactions, AddRawValueRoot, CallOriginalPromiseReject, CallOriginalPromiseResolve,
+    AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
     GetPromiseIsHandled, GetPromiseState, IsPromiseObject, JS_ClearPendingException,
     JS_NewFunction, NewFunctionWithReserved, NewPromiseObject, RejectPromise, ResolvePromise,
     SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
-use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 use script_bindings::interfaces::{
     HeapTracedPromiseHelpers, PromiseHelpers, StackRootPromiseHelpers,
 };
+use script_bindings::permanent_root::PermanentRoot;
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_bindings::settings_stack::run_a_script;
 
@@ -151,55 +151,6 @@ impl Deref for TracedPromise {
     }
 }
 
-/// A manual GC root that will exist until this PermanentRoot is dropped.
-#[derive(JSTraceable)] // TODO: remove this once this is no longer part of Promise.
-#[derive(Default, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-/// Maintains a GC root for the contained value until this object is dropped.
-///
-/// # Safety
-/// The root (and the contained value) is only valid as long as this value
-/// is never moved after it is initialized. It should only be used inside
-/// of a container like Box or Rc and never extracted from it.
-struct PermanentRoot(#[ignore_malloc_size_of = "mozjs value"] Heap<JSVal>);
-
-impl PermanentRoot {
-    /// Add a GC root for the provided JS object.
-    ///
-    /// # Safety
-    /// - This method must only be called on a `PermanentRoot` that will not
-    ///   move for the remainder of its lifetime (e.g. inside of Box, Rc, etc.)
-    /// - This must only be called once per instance of `PermanentRoot`
-    #[expect(unsafe_code)]
-    unsafe fn init(&self, cx: &JSContext, object: HandleObject) {
-        self.0.set(ObjectValue(*object));
-        unsafe {
-            assert!(AddRawValueRoot(
-                cx,
-                self.0.get_unsafe(),
-                c"Promise::root".as_ptr(),
-            ));
-        }
-    }
-}
-
-impl Drop for PermanentRoot {
-    #[expect(unsafe_code)]
-    fn drop(&mut self) {
-        let js_root = self.0.get();
-        if js_root.is_undefined() {
-            return;
-        }
-        let object = js_root.to_object();
-        assert!(!object.is_null());
-        if let Some(cx) = Runtime::get() {
-            unsafe {
-                RemoveRawValueRoot(cx.as_ptr(), self.0.get_unsafe());
-            }
-        }
-    }
-}
-
 #[dom_struct]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 pub(crate) struct Promise {
@@ -287,7 +238,7 @@ impl Promise {
             promise
                 .0
                 .init_reflector_without_associated_memory(obj.get());
-            promise.1.init(cx, obj);
+            promise.1.init(cx, obj, c"Promise::root");
         }
         RootedPromise(promise)
     }
