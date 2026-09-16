@@ -2054,8 +2054,8 @@ fn test_security_info_for_https_connection() {
 
     let protocol = tls_info.protocol_version.as_ref().unwrap();
     assert!(
-        protocol.starts_with("TLS"),
-        "Expected TLS protocol version, got: {}",
+        format!("{:?}", protocol).starts_with("TLS"),
+        "Expected TLS protocol version, got: {:?}",
         protocol
     );
 
