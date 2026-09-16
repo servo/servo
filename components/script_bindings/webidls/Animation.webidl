@@ -6,11 +6,11 @@
 
 [Exposed=Window, Pref="dom_web_animations_enabled"]
 interface Animation : EventTarget {
-  constructor(optional AnimationEffect? effect = null/*,
-              optional AnimationTimeline? timeline */);
+  constructor(optional AnimationEffect? effect = null,
+              optional AnimationTimeline? timeline);
   //          attribute DOMString                id;
               attribute AnimationEffect?         effect;
-  //          attribute AnimationTimeline?       timeline;
+              attribute AnimationTimeline?       timeline;
   //          attribute double?                  startTime;
   //          attribute double?                  currentTime;
   //          attribute double                   playbackRate;
