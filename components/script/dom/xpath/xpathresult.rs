@@ -89,7 +89,7 @@ pub(crate) struct XPathResult {
     window: Dom<Window>,
     /// The revision of the owner document when this result was created. When iterating over the
     /// values in the result, this is used to invalidate the iterator when the document is modified.
-    version: Cell<u32>,
+    version: Cell<u16>,
     result_type: Cell<XPathResultType>,
     value: DomRefCell<XPathResultValue>,
     iterator_pos: Cell<usize>,

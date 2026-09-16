@@ -159,19 +159,19 @@ pub struct Node {
     /// Rare node data.
     rare_data: DomRefCell<Option<Box<NodeRareData>>>,
 
-    /// A bitfield of flags for node items.
-    flags: Cell<NodeFlags>,
-
     /// Layout data for this node. This is populated during layout and can
     /// be used for incremental relayout and script queries.
     #[no_trace]
     layout_data: DomRefCell<Option<Box<GenericLayoutData>>>,
 
-    /// The maximum version of any inclusive descendant of this node.
-    inclusive_descendants_version: Cell<u32>,
-
     /// The live count of children of this node.
     children_count: Cell<u32>,
+
+    /// The maximum version of any inclusive descendant of this node.
+    inclusive_descendants_version: Cell<u16>,
+
+    /// A bitfield of flags for node items.
+    flags: Cell<NodeFlags>,
 }
 
 impl fmt::Debug for Node {
@@ -921,7 +921,7 @@ impl Node {
     }
 
     /// The maximum version number of this node's descendants, including itself
-    pub(crate) fn inclusive_descendants_version(&self) -> u32 {
+    pub(crate) fn inclusive_descendants_version(&self) -> u16 {
         self.inclusive_descendants_version.get()
     }
 

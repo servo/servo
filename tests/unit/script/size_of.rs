@@ -30,11 +30,11 @@ macro_rules! sizeof_checker (
 
 // Update the sizes here
 sizeof_checker!(size_event_target, EventTarget, 32);
-sizeof_checker!(size_node, Node, 136);
-sizeof_checker!(size_element, Element, 328);
-sizeof_checker!(size_htmlelement, HTMLElement, 344);
-sizeof_checker!(size_div, HTMLDivElement, 344);
-sizeof_checker!(size_span, HTMLSpanElement, 344);
-sizeof_checker!(size_text, Text, 168);
-sizeof_checker!(size_characterdata, CharacterData, 168);
+sizeof_checker!(size_node, Node, 128);
+sizeof_checker!(size_element, Element, 320);
+sizeof_checker!(size_htmlelement, HTMLElement, 336);
+sizeof_checker!(size_div, HTMLDivElement, 336);
+sizeof_checker!(size_span, HTMLSpanElement, 336);
+sizeof_checker!(size_text, Text, 160);
+sizeof_checker!(size_characterdata, CharacterData, 160);
 sizeof_checker!(size_contentattributedata, ContentAttributeData, 72);
