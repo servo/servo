@@ -24,7 +24,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::gpuadapterinfo::GPUAdapterInfo;
 use crate::gpusupportedfeatures::{GPUSupportedFeatures, gpu_to_wgt_feature};
 use crate::gpusupportedlimits::{GPUSupportedLimits, set_limit};
-use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUAdapter {
@@ -189,8 +189,7 @@ where
 impl<D> GPUAdapterMethods<D> for GPUAdapter<D>
 where
     D: Equivalence,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
-    Self: DomGlobalGeneric<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
     fn RequestDevice(
@@ -201,7 +200,7 @@ where
         // Step 2
         let promise = D::Promise::new_in_realm_rooted(cx);
 
-        let callback = promise.callback_promise_adapter(self);
+        let callback = promise.callback_promise_dom_manipulation_task_source(self);
         let mut required_features = wgpu_types::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {

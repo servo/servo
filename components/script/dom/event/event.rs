@@ -1455,7 +1455,7 @@ fn inner_invoke(
     found
 }
 
-impl DomEventTrait for Event {
+impl DomEventTrait<crate::DomTypeHolder> for Event {
     fn new_inherited() -> Self {
         Event::new_inherited()
     }
@@ -1466,5 +1466,9 @@ impl DomEventTrait for Event {
 
     fn IsTrusted(&self) -> bool {
         script_bindings::codegen::GenericBindings::EventBinding::EventMethods::<crate::DomTypeHolder>::IsTrusted(self)
+    }
+
+    fn fire(&self, cx: &mut js::context::JSContext, target: &EventTarget) {
+        Event::fire(self, cx, target);
     }
 }
