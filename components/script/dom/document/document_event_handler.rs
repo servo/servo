@@ -31,7 +31,6 @@ use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use script_bindings::codegen::GenericBindings::KeyboardEventBinding::KeyboardEventMethods;
-use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
@@ -2068,12 +2067,8 @@ impl DocumentEventHandler {
 
         ShortcutMatcher::new(KeyState::Down, event.key(), event.modifiers())
             .shortcut(CMD_OR_CONTROL, 'A', || {
-                let Some(selection) = document.GetSelection(cx) else {
-                    return;
-                };
-                selection
-                    .SelectAllChildren(cx, document.upcast::<Node>())
-                    .expect("document should not be a doctype");
+                let editing_context = document.editing_context(cx.no_gc(), node);
+                editing_context.select_all(cx);
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowDown), || {
                 self.do_keyboard_scroll(cx, KeyboardScroll::Down)
