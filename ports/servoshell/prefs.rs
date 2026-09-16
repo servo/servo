@@ -32,6 +32,7 @@ use crate::VERSION;
 /// For more details, see the
 /// [experimental features documentation](https://book.servo.org/design-documentation/experimental-features.html).
 pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
+    "container_timing_enabled",
     "dom_async_clipboard_enabled",
     "dom_exec_command_enabled",
     "dom_fontface_enabled",

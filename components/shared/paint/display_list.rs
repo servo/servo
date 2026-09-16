@@ -14,7 +14,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
-use servo_base::id::{LCPCandidateID, ScrollTreeNodeId};
+use servo_base::id::{ContainerTimingID, LCPCandidateID, ScrollTreeNodeId};
 use servo_base::print_tree::PrintTree;
 use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
@@ -955,6 +955,12 @@ pub struct PaintDisplayListInfo {
     /// The pair is the candidate's id and its reported area.
     pub lcp_candidate: Option<(LCPCandidateID, usize)>,
 
+    /// The Container Timing updates produced by this display list, if any. Only the IDs
+    /// travel here: the records themselves go straight from layout to script, and paint's
+    /// sole job is to hand these IDs back once the frame has actually been composited.
+    /// <https://wicg.github.io/container-timing/>
+    pub container_timing_candidates: Vec<ContainerTimingID>,
+
     /// If this display list contains a blinking caret, this value will be filled with its animation
     /// key and original color value so that the painter can animate the caret.
     pub caret_property_binding: Option<(PropertyBindingKey<ColorF>, ColorF)>,
@@ -1008,6 +1014,7 @@ impl PaintDisplayListInfo {
             root_scroll_node_id,
             first_reflow,
             lcp_candidate: None,
+            container_timing_candidates: Vec::new(),
             paint_timing_report: PaintTimingReport::default(),
             caret_property_binding: Default::default(),
         }
