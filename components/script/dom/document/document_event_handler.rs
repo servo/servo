@@ -2114,6 +2114,11 @@ impl DocumentEventHandler {
                 document
                     .focus_handler()
                     .sequential_focus_navigation_via_keyboard_event(cx, event);
+            })
+            .shortcut(Modifiers::SHIFT, Key::Named(NamedKey::Tab), || {
+                document
+                    .focus_handler()
+                    .sequential_focus_navigation_via_keyboard_event(cx, event);
             });
     }
 
