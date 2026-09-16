@@ -48,11 +48,11 @@ use js::rust::{
     CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue,
 };
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType, HitTestFlags, LCPCandidate, Layout,
-    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
-    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
-    ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
-    TrustedNodeAddress, combine_id_with_fragment_type,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, ContainerTimingRecord, FragmentType, HitTestFlags,
+    LCPCandidate, Layout, LayoutImageDestination, PendingImage, PendingImageState,
+    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
+    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
+    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -2765,6 +2765,13 @@ impl Window {
             self.process_lcp_candidate_post_reflow(candidate, &document);
         }
 
+        if !reflow_result.container_timing_records.is_empty() {
+            self.process_container_timing_records_post_reflow(
+                reflow_result.container_timing_records,
+                &document,
+            );
+        }
+
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
             document
                 .iframes_mut()
@@ -3745,6 +3752,38 @@ impl Window {
         let node = unsafe { from_untrusted_node_address(node_address) };
         if let Some(element) = DomRoot::downcast::<Element>(node) {
             document.store_lcp_candidate(candidate, &element);
+        }
+    }
+
+    /// Resolve each Container Timing record's [`OpaqueNode`]s to DOM elements and park
+    /// the record on the document, keyed by its ID, until paint reports the time the
+    /// frame carrying it was composited.
+    ///
+    /// <https://wicg.github.io/container-timing/>
+    #[expect(unsafe_code)]
+    fn process_container_timing_records_post_reflow(
+        &self,
+        records: Vec<ContainerTimingRecord>,
+        document: &Document,
+    ) {
+        // Safety: these are nodes layout saw during the display list build for this same
+        // reflow, so they are still live. Same reasoning as
+        // `process_lcp_candidate_post_reflow` above.
+        let resolve = |node: OpaqueNode| unsafe {
+            let node_address = UntrustedNodeAddress(node.id() as *const c_void);
+            DomRoot::downcast::<Element>(from_untrusted_node_address(node_address))
+        };
+
+        for record in records {
+            let Some(root_element) = resolve(record.root_element) else {
+                continue;
+            };
+            let last_painted_element = record.last_painted_element.and_then(resolve);
+            document.store_container_timing_record(
+                record,
+                &root_element,
+                last_painted_element.as_deref(),
+            );
         }
     }
 
