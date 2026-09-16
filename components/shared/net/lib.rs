@@ -32,6 +32,7 @@ use servo_base::generic_channel::{
     self, CallbackSetter, GenericCallback, GenericOneshotSender, GenericSend, GenericSender,
     SendResult,
 };
+pub mod rustls_serde_adapters;
 use servo_base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -46,6 +47,7 @@ use crate::http_status::HttpStatus;
 use crate::mime_classifier::{ApacheBugFlag, MimeClassifier};
 use crate::request::{Request, RequestBuilder};
 use crate::response::{Response, ResponseInit};
+use crate::rustls_serde_adapters::{ServoNamedGroup, ServoProtocolVersion};
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
@@ -424,11 +426,11 @@ pub struct TlsSecurityInfo {
     // Reasons explaining why the negotiated parameters are considered weak.
     pub weakness_reasons: Vec<String>,
     // Negotiated TLS protocol version (e.g. "TLS 1.3").
-    pub protocol_version: Option<String>,
+    pub protocol_version: Option<ServoProtocolVersion>,
     // Negotiated cipher suite identifier.
     pub cipher_suite: Option<String>,
     // Negotiated key exchange group.
-    pub kea_group_name: Option<String>,
+    pub kea_group_name: Option<ServoNamedGroup>,
     // Signature scheme used for certificate verification.
     pub signature_scheme_name: Option<String>,
     // Negotiated ALPN protocol (e.g. "h2" for HTTP/2, "http/1.1" for HTTP/1.1).

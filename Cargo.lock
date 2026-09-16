@@ -9073,6 +9073,7 @@ dependencies = [
  "rand 0.10.2",
  "resvg",
  "rustc-hash 2.1.3",
+ "rustls",
  "rustls-pki-types",
  "serde",
  "serde_bytes",

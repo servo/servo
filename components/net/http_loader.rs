@@ -401,9 +401,13 @@ fn build_tls_security_info(handshake: &TlsHandshakeInfo, hsts_enabled: bool) -> 
     TlsSecurityInfo {
         state,
         weakness_reasons: Vec::new(), // rustls never negotiates weak crypto
-        protocol_version: handshake.protocol_version.clone(),
-        cipher_suite: handshake.cipher_suite.clone(),
-        kea_group_name: handshake.kea_group_name.clone(),
+        protocol_version: handshake
+            .protocol_version
+            .map(|protocol_version| protocol_version.into()),
+        cipher_suite: handshake
+            .cipher_suite
+            .map(|cipher_suite| format!("{:?}", cipher_suite)),
+        kea_group_name: handshake.kea_group_name.map(|group_name| group_name.into()),
         signature_scheme_name: handshake.signature_scheme_name.clone(),
         alpn_protocol: handshake.alpn_protocol.clone(),
         certificate_chain_der: handshake.certificate_chain_der.clone(),

@@ -18,6 +18,7 @@ use http::HeaderMap;
 use malloc_size_of_derive::MallocSizeOf;
 use net::cookie::ServoCookie;
 use net_traits::fetch::headers::extract_mime_type_as_dataurl_mime;
+use net_traits::rustls_serde_adapters::{ServoNamedGroup, ServoProtocolVersion};
 use net_traits::{CookieSource, TlsSecurityInfo};
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -266,11 +267,11 @@ struct SecurityInfo {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     weakness_reasons: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    protocol_version: Option<String>,
+    protocol_version: Option<ServoProtocolVersion>,
     #[serde(skip_serializing_if = "Option::is_none")]
     cipher_suite: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    kea_group_name: Option<String>,
+    kea_group_name: Option<ServoNamedGroup>,
     #[serde(skip_serializing_if = "Option::is_none")]
     signature_scheme_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
