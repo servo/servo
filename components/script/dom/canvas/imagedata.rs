@@ -164,35 +164,20 @@ impl ImageData {
     }
 
     /// Nothing must change the array on the JS side while the slice is live.
-    #[expect(unsafe_code)]
-    pub(crate) unsafe fn as_slice(&self, no_gc: &NoGC) -> &[u8] {
+    pub(crate) fn as_slice<'a>(&'a self, no_gc: &'a NoGC) -> &'a [u8] {
         assert!(self.data.is_initialized());
         let internal_data = self
             .data
             .get_typed_array()
             .expect("Failed to get Data from ImageData.");
-        // NOTE(nox): This is just as unsafe as `as_slice` itself even though we
-        // are extending the lifetime of the slice, because the data in
-        // this ImageData instance will never change. The method is thus unsafe
-        // because the array may be manipulated from JS while the reference
-        // is live.
-        unsafe {
-            let ptr: *const [u8] = internal_data.as_slice_safe(no_gc).unwrap_or(&[]) as *const _;
-            &*ptr
-        }
+        internal_data.as_slice_safe(no_gc).unwrap_or(&[])
     }
 
     /// Nothing must change the array on the JS side while the slice is live.
-    #[expect(unsafe_code)]
-    pub(crate) unsafe fn get_rect(&self, no_gc: &NoGC, rect: Rect<u32>) -> Cow<'_, [u8]> {
-        pixels::rgba8_get_rect(
-            unsafe { self.as_slice(no_gc) },
-            self.get_size().to_u32(),
-            rect,
-        )
+    pub(crate) fn get_rect<'a>(&'a self, no_gc: &'a NoGC, rect: Rect<u32>) -> Cow<'a, [u8]> {
+        pixels::rgba8_get_rect(self.as_slice(no_gc), self.get_size().to_u32(), rect)
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn get_snapshot_rect(&self, no_gc: &NoGC, rect: Rect<u32>) -> Snapshot {
         Snapshot::from_vec(
             rect.size,
@@ -200,11 +185,10 @@ impl ImageData {
             SnapshotAlphaMode::Transparent {
                 premultiplied: false,
             },
-            unsafe { self.get_rect(no_gc, rect).into_owned() },
+            self.get_rect(no_gc, rect).into_owned(),
         )
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn get_snapshot(&self, no_gc: &NoGC) -> Snapshot {
         Snapshot::from_vec(
             self.get_size(),
@@ -212,21 +196,19 @@ impl ImageData {
             SnapshotAlphaMode::Transparent {
                 premultiplied: false,
             },
-            unsafe { self.as_slice(no_gc).to_vec() },
+            self.as_slice(no_gc).to_vec(),
         )
     }
 
-    #[expect(unsafe_code)]
     #[cfg(feature = "webgl")]
     pub(crate) fn to_shared_memory(&self, no_gc: &NoGC) -> GenericSharedMemory {
         // This is safe because we copy the slice content
-        GenericSharedMemory::from_bytes(unsafe { self.as_slice(no_gc) })
+        GenericSharedMemory::from_bytes(self.as_slice(no_gc))
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn to_vec(&self, no_gc: &NoGC) -> Vec<u8> {
         // This is safe because we copy the slice content
-        unsafe { self.as_slice(no_gc) }.to_vec()
+        self.as_slice(no_gc).to_vec()
     }
 }
 
