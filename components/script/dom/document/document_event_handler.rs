@@ -2066,7 +2066,7 @@ impl DocumentEventHandler {
             return;
         }
 
-        ShortcutMatcher::new(KeyState::Down, event.key().clone(), event.modifiers())
+        ShortcutMatcher::new(KeyState::Down, event.key(), event.modifiers())
             .shortcut(CMD_OR_CONTROL, 'A', || {
                 let Some(selection) = document.GetSelection(cx) else {
                     return;
