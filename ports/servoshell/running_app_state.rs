@@ -188,7 +188,7 @@ pub(crate) struct RunningAppState {
     /// A [`HashMap`] of pending WebDriver events. It is the WebDriver embedder's responsibility
     /// to inform the WebDriver server when the event has been fully handled. This map is used
     /// to report back to WebDriver when that happens.
-    pub(crate) pending_webdriver_events: RefCell<HashMap<InputEventId, Sender<()>>>,
+    pub(crate) pending_webdriver_events: RefCell<HashMap<InputEventId, (WebViewId, Sender<()>)>>,
 
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
@@ -569,7 +569,7 @@ impl RunningAppState {
             if let Some(response_sender) = response_sender {
                 self.pending_webdriver_events
                     .borrow_mut()
-                    .insert(event_id, response_sender);
+                    .insert(event_id, (webview_id, response_sender));
             }
         } else {
             error!("Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}");
@@ -773,8 +773,11 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_closed(&self, webview: WebView) {
-        self.window_for_webview(&webview)
-            .close_webview(webview.id())
+        let webview_id = webview.id();
+        self.pending_webdriver_events
+            .borrow_mut()
+            .retain(|_, (pending_webview_id, _)| *pending_webview_id != webview_id);
+        self.window_for_webview(&webview).close_webview(webview_id)
     }
 
     fn notify_input_event_handled(
@@ -785,9 +788,8 @@ impl WebViewDelegate for RunningAppState {
     ) {
         self.platform_window_for_webview(&webview)
             .notify_input_event_handled(&webview, id, result);
-        if let Some(response_sender) = self.pending_webdriver_events.borrow_mut().remove(&id) {
-            let _ = response_sender.send(());
-        }
+
+        self.pending_webdriver_events.borrow_mut().remove(&id);
     }
 
     fn notify_cursor_changed(&self, webview: WebView, cursor: servo::Cursor) {
