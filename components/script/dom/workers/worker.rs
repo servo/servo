@@ -319,7 +319,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
         &self,
         cx: &mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<StructuredSerializeOptions>,
+        options: &StructuredSerializeOptions,
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options

@@ -125,7 +125,7 @@ impl ClientMethods<crate::DomTypeHolder> for Client {
         &self,
         cx: &mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<StructuredSerializeOptions>,
+        options: &StructuredSerializeOptions,
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options

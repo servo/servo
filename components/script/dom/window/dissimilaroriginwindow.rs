@@ -176,7 +176,7 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
         &self,
         cx: &mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<WindowPostMessageOptions>,
+        options: &WindowPostMessageOptions,
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options

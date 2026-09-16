@@ -70,7 +70,6 @@ use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::cell::{DomRefCell, Ref};
-use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::interfaces::{HasOrigin, WindowHelpers};
 use script_bindings::like::Setlike;
@@ -126,7 +125,8 @@ use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{RequestInfo, RequestInit};
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, DeferredRequestInit, ScrollBehavior, WindowMethods, WindowPostMessageOptions,
+    self, DeferredRequestInit, ScrollBehavior, ScrollToOptions, WindowMethods,
+    WindowPostMessageOptions,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
@@ -1876,7 +1876,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<WindowPostMessageOptions>,
+        options: &WindowPostMessageOptions,
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options
@@ -2237,7 +2237,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         realm: &mut CurrentRealm,
         input: RequestOrUSVString,
-        init: RootedTraceableBox<RequestInit>,
+        init: &RequestInit,
     ) -> RootedPromise {
         fetch::Fetch(self.upcast(), input, init, realm)
     }
@@ -2247,7 +2247,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         input: RequestInfo,
-        init: RootedTraceableBox<DeferredRequestInit>,
+        init: &DeferredRequestInit,
     ) -> Fallible<DomRoot<FetchLaterResult>> {
         fetch::FetchLater(cx, self, input, init)
     }
@@ -2400,7 +2400,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         value: HandleValue,
-        options: RootedTraceableBox<StructuredSerializeOptions>,
+        options: &StructuredSerializeOptions,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
         self.as_global_scope()

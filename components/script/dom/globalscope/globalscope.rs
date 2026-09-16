@@ -3361,7 +3361,7 @@ impl GlobalScope {
         &self,
         cx: &mut js::context::JSContext,
         value: HandleValue,
-        options: RootedTraceableBox<StructuredSerializeOptions>,
+        options: &StructuredSerializeOptions,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
         let mut rooted = CustomAutoRooter::new(

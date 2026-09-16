@@ -309,7 +309,7 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
         &self,
         cx: &mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<StructuredSerializeOptions>,
+        options: &StructuredSerializeOptions,
     ) -> ErrorResult {
         if self.detached.get() {
             return Ok(());
