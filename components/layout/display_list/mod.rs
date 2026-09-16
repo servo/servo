@@ -18,7 +18,6 @@ use resvg::tiny_skia;
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
-use servo_base::text::Utf32CodeUnits;
 use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
 use servo_url::ServoUrl;
