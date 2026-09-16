@@ -8,7 +8,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use rustls::{NamedGroup, ProtocolVersion};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, MallocSizeOf)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, MallocSizeOf)]
 #[non_exhaustive]
 /// This is a clone of rustls::ProtocolVersion because it currently does not support serde plus a NotYetImplemented flag.
 pub enum ServoProtocolVersion {
@@ -39,6 +39,24 @@ impl From<ProtocolVersion> for ServoProtocolVersion {
             ProtocolVersion::DTLSv1_3 => Self::DTLSv1_3,
             ProtocolVersion::Unknown(value) => Self::Unknown(value),
             _ => Self::NotYetImplemented,
+        }
+    }
+}
+
+impl std::fmt::Debug for ServoProtocolVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SSLv2 => write!(f, "SSL 2.0"),
+            Self::SSLv3 => write!(f, "SSL 3.0"),
+            Self::TLSv1_0 => write!(f, "TLS 1.0"),
+            Self::TLSv1_1 => write!(f, "TLS 1.1"),
+            Self::TLSv1_2 => write!(f, "TLS 1.2"),
+            Self::TLSv1_3 => write!(f, "TLS 1.3"),
+            Self::DTLSv1_0 => write!(f, "DTLS 1.0"),
+            Self::DTLSv1_2 => write!(f, "DTLS 1.2"),
+            Self::DTLSv1_3 => write!(f, "DTLS 1.3"),
+            Self::Unknown(v) => write!(f, "Unknown(0x{v:04x})"),
+            Self::NotYetImplemented => write!(f, "NotYetImplemented"),
         }
     }
 }
