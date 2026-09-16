@@ -21,7 +21,7 @@ use js::rust::wrappers2::CompileFunction;
 use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text};
 use libc::c_char;
 use rustc_hash::{FxBuildHasher, FxHashSet};
-use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
+use script_bindings::callback::{HasCallbackHolder, OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
@@ -778,21 +778,21 @@ impl EventTarget {
         // Step 1.14
         if is_error {
             Some(CommonEventHandler::ErrorEventHandler(unsafe {
-                TracedCallback::from(OnErrorEventHandlerNonNull::new(cx, funobj))
+                OnErrorEventHandlerNonNull::new(cx, funobj).to_traced()
             }))
         } else if ty == &atom!("beforeunload") {
             Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                TracedCallback::from(OnBeforeUnloadEventHandlerNonNull::new(cx, funobj))
+                OnBeforeUnloadEventHandlerNonNull::new(cx, funobj).to_traced()
             }))
         } else {
             Some(CommonEventHandler::EventHandler(unsafe {
-                TracedCallback::from(EventHandlerNonNull::new(cx, funobj))
+                EventHandlerNonNull::new(cx, funobj).to_traced()
             }))
         }
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn set_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
+    pub(crate) fn set_event_handler_common<T: HasCallbackHolder>(
         &self,
         cx: &mut JSContext,
         ty: &str,
@@ -800,14 +800,14 @@ impl EventTarget {
     ) {
         rooted!(&in(cx) let mut event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::EventHandler(unsafe {
-                TracedCallback::from(EventHandlerNonNull::new(cx, listener.callback()))
+                EventHandlerNonNull::new(cx, listener.callback()).to_traced()
             }))
         }));
         self.set_inline_event_listener(Atom::from(ty), event_listener.as_mut_ref(cx.no_gc()));
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn set_error_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
+    pub(crate) fn set_error_event_handler<T: HasCallbackHolder>(
         &self,
         cx: &mut JSContext,
         ty: &str,
@@ -815,14 +815,14 @@ impl EventTarget {
     ) {
         rooted!(&in(cx) let mut event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(unsafe {
-                TracedCallback::from(OnErrorEventHandlerNonNull::new(cx, listener.callback()))
+                OnErrorEventHandlerNonNull::new(cx, listener.callback()).to_traced()
             }))
         }));
         self.set_inline_event_listener(Atom::from(ty), event_listener.as_mut_ref(cx.no_gc()));
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn set_beforeunload_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
+    pub(crate) fn set_beforeunload_event_handler<T: HasCallbackHolder>(
         &self,
         cx: &mut JSContext,
         ty: &str,
@@ -830,14 +830,14 @@ impl EventTarget {
     ) {
         rooted!(&in(cx) let mut event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                TracedCallback::from(OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback()))
+                OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback()).to_traced()
             }))
         }));
         self.set_inline_event_listener(Atom::from(ty), event_listener.as_mut_ref(cx.no_gc()));
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn get_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
+    pub(crate) fn get_event_handler_common<T: CallbackContainer>(
         &self,
         cx: &mut JSContext,
         ty: &str,
@@ -847,10 +847,7 @@ impl EventTarget {
             listener
                 .as_ref(cx.no_gc())
                 .as_ref()
-                .map(|listener| {
-                    CallbackContainer::new(cx, listener.parent().callback_holder().get())
-                })
-                .map(RootedCallback::from)
+                .map(|listener| T::new(cx, listener.parent().callback_holder().get()))
         }
     }
 

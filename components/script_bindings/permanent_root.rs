@@ -5,10 +5,10 @@
 use std::ffi::CStr;
 
 use js::context::JSContext;
-use js::jsapi::{Heap, RemoveRawValueRoot};
+use js::jsapi::{Heap, JSObject, RemoveRawValueRoot};
 use js::jsval::{JSVal, ObjectValue};
+use js::rust::Runtime;
 use js::rust::wrappers2::AddRawValueRoot;
-use js::rust::{HandleObject, Runtime};
 
 /// A manual GC root that will exist until this PermanentRoot is dropped.
 #[derive(JSTraceable)] // TODO: remove this once this is no longer part of Promise and callback objects.
@@ -30,8 +30,8 @@ impl PermanentRoot {
     ///   move for the remainder of its lifetime (e.g. inside of Box, Rc, etc.)
     /// - This must only be called once per instance of `PermanentRoot`
     #[expect(unsafe_code)]
-    pub unsafe fn init(&self, cx: &JSContext, object: HandleObject, name: &'static CStr) {
-        self.0.set(ObjectValue(*object));
+    pub unsafe fn init(&self, cx: &JSContext, object: *mut JSObject, name: &'static CStr) {
+        self.0.set(ObjectValue(object));
         unsafe {
             assert!(AddRawValueRoot(cx, self.0.get_unsafe(), name.as_ptr(),));
         }

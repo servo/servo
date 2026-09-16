@@ -2893,14 +2893,10 @@ class CGGeneric(CGThing):
 class CGCallbackTempRoot(CGGeneric):
     def __init__(self, name: str, useRc: bool, needTraced: bool) -> None:
         inner = CGGeneric(f"unsafe {{ {name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object()) }}")
-        pre = "RootedCallback::from(" if not useRc else ""
-        if not useRc:
-            post = ")"
-            if needTraced:
-                post += ".to_traced()"
-        else:
-            post = ""
-        CGGeneric.__init__(self, CGWrapper(inner, pre, post).define())
+        post = ""
+        if not useRc and needTraced:
+            post += ".to_traced()"
+        CGGeneric.__init__(self, CGWrapper(inner, "", post).define())
 
 
 def getAllTypes(
@@ -6067,17 +6063,11 @@ class ClassConstructor(ClassItem):
     def getBody(self, cgClass: CGClass) -> str:
         initializers = [f"    parent: {self.baseConstructors[0]}"]
         joinedInitializers = '\n'.join(initializers)
+        func = "create_callback" if self.useRc else "create_callback_rooted"
         return (
             f"{self.body}"
-            f"let mut ret = Rc::new({cgClass.name} {{\n"
-            f"{joinedInitializers}\n"
-            "});\n"
-            "// Note: callback cannot be moved after calling init.\n"
-            "match Rc::get_mut(&mut ret) {\n"
-            f"    Some(ref mut callback) => callback.parent.init({self.args[0].name}, {self.args[1].name}),\n"
-            "    None => unreachable!(),\n"
-            "};\n"
-            "ret"
+            f"let obj = {cgClass.name} {{ {joinedInitializers} }};\n"
+            f"{func}({self.args[0].name}, obj, {self.args[1].name})\n"
         )
 
     def declare(self, cgClass: CGClass) -> str:
@@ -6089,8 +6079,9 @@ class ClassConstructor(ClassItem):
         body = f' {{\n{body}}}'
 
         name = cgClass.getNameString().replace(': DomTypes', '')
+        rettype = f"Rc<{name}>" if self.useRc else f"RootedCallback<{name}>"
         return f"""
-pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
+pub unsafe fn {self.getDecorators(True)}new({args}) -> {rettype}{body}
 """
 
     def define(self, cgClass: CGClass) -> str:
@@ -8321,7 +8312,10 @@ class CGBindingRoot(CGThing):
 
         # Do codegen for all the callbacks.
         cgthings.extend(CGList([CGCallbackFunction(c, config.getDescriptorProvider()),
-                                CGCallbackFunctionImpl(c)], "\n")
+                                CGCallbackFunctionImpl(
+                                    c,
+                                    config.getDescriptorProvider().callbackUsesRc(c.identifier.name),
+                                )], "\n")
                         for c in mainCallbacks)
 
         # Do codegen for all the descriptors
@@ -8331,7 +8325,10 @@ class CGBindingRoot(CGThing):
         cgthings.extend(CGList(
             [
                 CGCallbackInterface(x),
-                CGCallbackFunctionImpl(assert_type(x.interface, IDLInterface))
+                CGCallbackFunctionImpl(
+                    assert_type(x.interface, IDLInterface),
+                    config.getDescriptorProvider().callbackUsesRc(x.interface.identifier.name),
+                )
             ],
             "\n"
         ) for x in callbackDescriptors)
@@ -8593,6 +8590,7 @@ class CGCallback(CGClass):
                                     "#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]")
 
     def getConstructors(self) -> list[ClassConstructor]:
+        constructor = "new_with_interior_root" if self.useRc else "new_with_exterior_root"
         return [ClassConstructor(
             [Argument("&JSContext", "cx"), Argument("*mut JSObject", "aCallback")],
             useRc=self.useRc,
@@ -8600,7 +8598,7 @@ class CGCallback(CGClass):
             visibility="pub",
             explicit=False,
             baseConstructors=[
-                f"{self.baseName.replace('<D>', '')}::new()"
+                f"{self.baseName.replace('<D>', '')}::{constructor}()"
             ])]
 
     def getMethodImpls(self, method: CallbackMethod) -> list[ClassMethod]:
@@ -8685,16 +8683,36 @@ class CGCallbackFunction(CGCallback):
 
 
 class CGCallbackFunctionImpl(CGGeneric):
-    def __init__(self, callback: IDLCallback | IDLInterface) -> None:
+    def __init__(self, callback: IDLCallback | IDLInterface, useRc: bool) -> None:
         type = f"{callback.identifier.name}<D>"
-        impl = (f"""
-impl<D: DomTypes> CallbackContainer<D> for {type} {{
-    unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> Rc<{type}> {{
-        {type.replace('<D>', '')}::new(cx, callback)
-    }}
+        if useRc:
+            retType = "Rc"
+            traitName = "DeprecatedCallbackContainer"
+        else:
+            retType = "RootedCallback"
+            traitName = "CallbackContainer"
 
+        impl = (f"""
+impl<'a, D: DomTypes> From<&'a CallbackObject<D>> for {type} {{
+    fn from(base: &'a CallbackObject<D>) -> Self {{
+        Self {{ parent: base.into() }}
+    }}
+}}
+
+impl<D: DomTypes> HasCallbackHolder for {type} {{
+    type D = D;
     fn callback_holder(&self) -> &CallbackObject<D> {{
         self.parent.callback_holder()
+    }}
+
+    fn callback_holder_mut(&mut self) -> &mut CallbackObject<D> {{
+        self.parent.callback_holder_mut()
+    }}
+}}
+
+impl<D: DomTypes> {traitName} for {type} {{
+    unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> {retType}<{type}> {{
+        {type.replace('<D>', '')}::new(cx, callback)
     }}
 }}
 
