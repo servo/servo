@@ -4,7 +4,11 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use pixels::{SnapshotAlphaMode, SnapshotPixelFormat};
+use script_bindings::DomTypes;
+use script_bindings::buffer_source::get_buffer_source_slice;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use script_bindings::codegen::GenericBindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
@@ -12,44 +16,48 @@ use script_bindings::codegen::GenericBindings::HTMLImageElementBinding::HTMLImag
 use script_bindings::codegen::GenericBindings::HTMLVideoElementBinding::HTMLVideoElementMethods;
 use script_bindings::codegen::GenericBindings::ImageBitmapBinding::ImageBitmapMethods;
 use script_bindings::codegen::GenericBindings::OffscreenCanvasBinding::OffscreenCanvasMethods;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_webgpu::gpuconvert::{WebGPUConvert, WebGPUTryConvert};
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUCopyExternalImageDestInfo, GPUCopyExternalImageSourceInfo, GPUQueueMethods, GPUQueueWrap,
+    GPUSize64, GPUTexelCopyBufferLayout, GPUTexelCopyTextureInfo,
+};
+use script_bindings::codegen::GenericUnionTypes::{
+    ArrayBufferViewOrArrayBuffer as BufferSource,
+    ImageBitmapOrImageDataOrHTMLImageElementOrHTMLVideoElementOrHTMLCanvasElementOrOffscreenCanvas as GPUCopyExternalImageSource,
+    RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict as GPUExtent3D,
+};
+use script_bindings::error::{Error, Fallible};
+use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
+use script_bindings::root::DomRoot;
 use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
-use crate::dom::bindings::buffer_source::get_buffer_source_slice;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUCopyExternalImageDestInfo, GPUCopyExternalImageSourceInfo, GPUExtent3D, GPUQueueMethods,
-    GPUSize64, GPUTexelCopyBufferLayout, GPUTexelCopyTextureInfo,
-};
-use crate::dom::bindings::codegen::UnionTypes::{
-    ArrayBufferViewOrArrayBuffer as BufferSource,
-    ImageBitmapOrImageDataOrHTMLImageElementOrHTMLVideoElementOrHTMLCanvasElementOrOffscreenCanvas as GPUCopyExternalImageSource,
-};
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::JSTraceable;
+use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::str::USVString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::{Promise, RootedPromise};
-use crate::dom::webgpu::gpubuffer::GPUBuffer;
-use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
-use crate::dom::webgpu::gpudevice::GPUDevice;
-use crate::routed_promise::{RoutedPromiseListener, callback_promise};
+use crate::gpubuffer::GPUBuffer;
+use crate::gpucommandbuffer::GPUCommandBuffer;
+use crate::gpuconvert::{WebGPUConvert, WebGPUTryConvert};
+use crate::gpudevice::GPUDevice;
+use crate::traits::{
+    Equivalence, HtmlCanvasElementTrait, HtmlImageElementTrait, ImageBitmapTrait, ImageDataTrait,
+    OffscreenCanvasTrait, OriginIsCleanTrait, WebGPUGlobalTrait, WebGPUHTMLVideoTrait,
+    WebGPUPromise, WebGPUPromiseCallbackTrait, WebGPURootedPromiseTrait,
+};
 
 #[dom_struct]
-pub(crate) struct GPUQueue {
+pub struct GPUQueue<D: DomTypes> {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
-    device: DomRefCell<Option<Dom<GPUDevice>>>,
+    device: DomRefCell<Option<Dom<GPUDevice<D>>>>,
     label: DomRefCell<USVString>,
     #[no_trace]
     queue: WebGPUQueue,
 }
 
-impl GPUQueue {
+impl<D: Equivalence> GPUQueue<D> {
     fn new_inherited(channel: WebGPU, queue: WebGPUQueue) -> Self {
         GPUQueue {
             channel,
@@ -62,20 +70,21 @@ impl GPUQueue {
 
     pub(crate) fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         channel: WebGPU,
         queue: WebGPUQueue,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
-            cx,
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPUQueue::new_inherited(channel, queue)),
             global,
+            cx,
+            GPUQueueWrap::<D>,
         )
     }
 }
 
-impl GPUQueue {
-    pub(crate) fn set_device(&self, no_gc: &NoGC, device: &GPUDevice) {
+impl<D: Equivalence> GPUQueue<D> {
+    pub(crate) fn set_device(&self, no_gc: &NoGC, device: &GPUDevice<D>) {
         *self.device.safe_borrow_mut(no_gc) = Some(Dom::from_ref(device));
     }
 
@@ -84,7 +93,17 @@ impl GPUQueue {
     }
 }
 
-impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
+impl<D> GPUQueueMethods<D> for GPUQueue<D>
+where
+    D: Equivalence,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
+    D::HTMLImageElement: HtmlImageElementTrait,
+    D::HTMLVideoElement: WebGPUHTMLVideoTrait<D>,
+    D::OffscreenCanvas: OffscreenCanvasTrait,
+    D::ImageBitmap: ImageBitmapTrait,
+    D::HTMLCanvasElement: HtmlCanvasElementTrait,
+    D::ImageData: ImageDataTrait,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
@@ -96,7 +115,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit>
-    fn Submit(&self, command_buffers: Vec<DomRoot<GPUCommandBuffer>>) {
+    fn Submit(&self, command_buffers: Vec<DomRoot<GPUCommandBuffer<D>>>) {
         let command_buffers = command_buffers.iter().map(|cb| cb.id().0).collect();
         self.channel
             .0
@@ -112,7 +131,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     fn WriteBuffer(
         &self,
         cx: &mut JSContext,
-        buffer: &GPUBuffer,
+        buffer: &GPUBuffer<D>,
         buffer_offset: GPUSize64,
         data: BufferSource,
         data_offset: GPUSize64,
@@ -180,7 +199,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     fn WriteTexture(
         &self,
         cx: &mut JSContext,
-        destination: &GPUTexelCopyTextureInfo,
+        destination: &GPUTexelCopyTextureInfo<D>,
         data: BufferSource,
         data_layout: &GPUTexelCopyBufferLayout,
         size: GPUExtent3D,
@@ -228,8 +247,8 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     fn CopyExternalImageToTexture(
         &self,
         cx: &mut JSContext,
-        source: &GPUCopyExternalImageSourceInfo,
-        destination: &GPUCopyExternalImageDestInfo,
+        source: &GPUCopyExternalImageSourceInfo<D>,
+        destination: &GPUCopyExternalImageDestInfo<D>,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
         // 1. ? validate GPUOrigin2D shape(source.origin).
@@ -245,7 +264,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             GPUCopyExternalImageSource::ImageBitmap(inner) => inner.origin_is_clean(),
             GPUCopyExternalImageSource::ImageData(_) => true,
             GPUCopyExternalImageSource::HTMLImageElement(inner) => {
-                inner.same_origin(&GlobalScope::entry().origin())
+                inner.same_origin(&D::GlobalScope::entry().origin())
             },
             GPUCopyExternalImageSource::HTMLVideoElement(inner) => inner.origin_is_clean(),
             GPUCopyExternalImageSource::HTMLCanvasElement(inner) => inner.origin_is_clean(),
@@ -389,12 +408,13 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone>
-    fn OnSubmittedWorkDone(&self, cx: &mut JSContext) -> RootedPromise {
-        let global = self.global();
-        let promise = Promise::new_rooted(cx, &global);
-        let task_manager = global.task_manager();
-        let task_source = task_manager.dom_manipulation_task_source();
-        let callback = callback_promise(&promise, self, task_source);
+    fn OnSubmittedWorkDone(
+        &self,
+        cx: &mut JSContext,
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
+        let global = self.global_from_reflector();
+        let promise = <D::Promise as PromiseHelpers<D>>::StackRoot::new_rooted(cx, &global);
+        let callback = promise.callback_promise_dom_manipulation_task_source(self);
 
         if let Err(e) = self
             .channel
@@ -407,16 +427,5 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             warn!("QueueOnSubmittedWorkDone failed with {e}")
         }
         promise
-    }
-}
-
-impl RoutedPromiseListener<()> for GPUQueue {
-    fn handle_response(
-        &self,
-        cx: &mut js::context::JSContext,
-        _response: (),
-        promise: &RootedPromise,
-    ) {
-        promise.resolve_native(cx, &());
     }
 }

@@ -2,27 +2,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Ref;
 use std::rc::Rc;
 use std::sync::Arc;
 
 use euclid::default::Size2D;
+use js::context::NoGC;
+use pixels::Snapshot;
 use script_bindings::DomTypes;
 use script_bindings::callback::CallbackContainer;
-use script_bindings::error::Fallible;
+use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, DomObject};
 use script_bindings::root::DomRoot;
 use script_webgpu::traits::{
-    EventTargetTrait, GPUQueueTrait, WebGPUGlobalTrait, WebGPUHTMLVideoTrait,
-    WebGPUPromiseCallbackTrait, WebGPURootedPromiseTrait, WebGPUTracedPromiseTrait,
+    EventTargetTrait, HtmlCanvasElementTrait, HtmlImageElementTrait, ImageBitmapTrait,
+    ImageDataTrait, OffscreenCanvasTrait, OriginIsCleanTrait, WebGPUGlobalTrait,
+    WebGPUHTMLVideoTrait, WebGPUPromiseCallbackTrait, WebGPURootedPromiseTrait,
+    WebGPUTracedPromiseTrait,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use servo_base::generic_channel::GenericCallback;
+use servo_url::MutableOrigin;
 
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::promise::RootedPromise;
-use crate::dom::types::{EventTarget, GPUDevice, GPUQueue, HTMLVideoElement};
+use crate::dom::types::{
+    EventTarget, HTMLCanvasElement, HTMLImageElement, HTMLVideoElement, ImageBitmap, ImageData,
+    OffscreenCanvas,
+};
 use crate::dom::{GlobalScope, Promise};
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::tasks::task::TaskOnce;
@@ -123,7 +132,10 @@ pub(crate) mod gpupipelinelayout {
 pub(crate) mod gpuqueryset {
     pub(crate) type GPUQuerySet = script_webgpu::gpuqueryset::GPUQuerySet<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuqueue;
+pub(crate) mod gpuqueue_promise_listener;
+pub(crate) mod gpuqueue {
+    pub(crate) type GPUQueue = script_webgpu::gpuqueue::GPUQueue<crate::DomTypeHolder>;
+}
 pub(crate) mod gpurenderbundle {
     pub(crate) type GPURenderBundle =
         script_webgpu::gpurenderbundle::GPURenderBundle<crate::DomTypeHolder>;
@@ -213,25 +225,6 @@ impl WebGPURootedPromiseTrait<crate::DomTypeHolder> for RootedPromise {
     }
 }
 
-impl GPUQueueTrait<crate::DomTypeHolder> for GPUQueue {
-    fn new(
-        cx: &mut js::context::JSContext,
-        global: &GlobalScope,
-        channel: webgpu_traits::WebGPU,
-        queue: webgpu_traits::WebGPUQueue,
-    ) -> DomRoot<GPUQueue> {
-        GPUQueue::new(cx, global, channel, queue)
-    }
-
-    fn id(&self) -> webgpu_traits::WebGPUQueue {
-        GPUQueue::id(self)
-    }
-
-    fn set_device(&self, cx: &mut js::context::JSContext, device: &GPUDevice) {
-        GPUQueue::set_device(self, cx, device);
-    }
-}
-
 impl WebGPUGlobalTrait for GlobalScope {
     fn global_wgpu_id_hub(&self) -> Arc<script_webgpu::identityhub::IdentityHub> {
         self.wgpu_id_hub()
@@ -239,6 +232,14 @@ impl WebGPUGlobalTrait for GlobalScope {
 
     fn queue_webgpu_task_source(&self, task: impl TaskOnce + 'static) {
         self.task_manager().webgpu_task_source().queue(task);
+    }
+
+    fn entry() -> DomRoot<Self> {
+        GlobalScope::entry()
+    }
+
+    fn origin(&self) -> MutableOrigin {
+        GlobalScope::origin(self)
     }
 }
 
@@ -251,6 +252,14 @@ impl WebGPUHTMLVideoTrait<crate::DomTypeHolder> for HTMLVideoElement {
         Option<Rc<script_webgpu::gpuexternaltexture::PlanarTexture<crate::DomTypeHolder>>>,
     )> {
         HTMLVideoElement::planar_video_for_webgpu(self, device)
+    }
+
+    fn is_usable(&self) -> bool {
+        HTMLVideoElement::is_usable(self)
+    }
+
+    fn get_current_frame_data(&self) -> Option<pixels::Snapshot> {
+        HTMLVideoElement::get_current_frame_data(self)
     }
 }
 
@@ -274,5 +283,71 @@ impl EventTargetTrait<crate::DomTypeHolder> for EventTarget {
         listener: Option<Rc<T>>,
     ) {
         EventTarget::set_event_handler_common(self, cx, ty, listener);
+    }
+}
+
+impl OriginIsCleanTrait for HTMLVideoElement {
+    fn origin_is_clean(&self) -> bool {
+        HTMLVideoElement::origin_is_clean(self)
+    }
+}
+
+impl OriginIsCleanTrait for ImageBitmap {
+    fn origin_is_clean(&self) -> bool {
+        ImageBitmap::origin_is_clean(self)
+    }
+}
+
+impl ImageBitmapTrait for ImageBitmap {
+    fn bitmap_data(&self) -> Ref<'_, Option<Snapshot>> {
+        ImageBitmap::bitmap_data(self)
+    }
+}
+
+impl ImageDataTrait for ImageData {
+    fn is_detached(&self, cx: &mut js::context::JSContext) -> bool {
+        ImageData::is_detached(self, cx)
+    }
+    fn get_snapshot(&self, no_gc: &NoGC) -> Snapshot {
+        ImageData::get_snapshot(self, no_gc)
+    }
+}
+
+impl HtmlImageElementTrait for HTMLImageElement {
+    fn is_usable(&self) -> Result<bool, Error> {
+        HTMLImageElement::is_usable(self)
+    }
+    fn get_raster_image_data(&self) -> Option<Snapshot> {
+        HTMLImageElement::get_raster_image_data(self)
+    }
+    fn same_origin(&self, origin: &MutableOrigin) -> bool {
+        HTMLImageElement::same_origin(self, origin)
+    }
+}
+
+impl OriginIsCleanTrait for OffscreenCanvas {
+    fn origin_is_clean(&self) -> bool {
+        OffscreenCanvas::origin_is_clean(self)
+    }
+}
+
+impl OffscreenCanvasTrait for OffscreenCanvas {
+    fn get_image_data(&self) -> Option<Snapshot> {
+        OffscreenCanvas::get_image_data(self)
+    }
+}
+
+impl OriginIsCleanTrait for HTMLCanvasElement {
+    fn origin_is_clean(&self) -> bool {
+        HTMLCanvasElement::origin_is_clean(self)
+    }
+}
+
+impl HtmlCanvasElementTrait for HTMLCanvasElement {
+    fn is_valid(&self) -> bool {
+        HTMLCanvasElement::is_valid(self)
+    }
+    fn get_image_data(&self) -> Option<Snapshot> {
+        HTMLCanvasElement::get_image_data(self)
     }
 }
