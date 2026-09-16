@@ -37,7 +37,7 @@ impl<D: Equivalence> GPUDeviceLostInfo<D> {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         message: DOMString,

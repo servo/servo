@@ -110,7 +110,7 @@ where
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
-    pub fn create(
+    pub(crate) fn create(
         device: &D::GPUDevice,
         descriptor: &GPUComputePipelineDescriptor<D>,
         async_sender: Option<GenericCallback<WebGPUComputePipelineResponse>>,

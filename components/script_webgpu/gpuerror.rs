@@ -109,7 +109,7 @@ impl WebGPUConvert<GPUErrorFilter> for ErrorFilter {
     }
 }
 
-pub trait AsWebGpu {
+pub(crate) trait AsWebGpu {
     fn as_webgpu(&self) -> ErrorFilter;
 }
 

@@ -75,7 +75,7 @@ impl<D: Equivalence> GPUBindGroupLayout<D> {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         channel: WebGPU,
@@ -100,12 +100,12 @@ where
     D: Equivalence,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
-    pub fn id(&self) -> WebGPUBindGroupLayout {
+    pub(crate) fn id(&self) -> WebGPUBindGroupLayout {
         self.droppable.bind_group_layout
     }
 
     /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut JSContext,
         device: &D::GPUDevice,
         descriptor: &GPUBindGroupLayoutDescriptor,

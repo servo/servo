@@ -39,7 +39,11 @@ impl<D: Equivalence> GPUSupportedLimits<D> {
         }
     }
 
-    pub fn new(cx: &mut JSContext, global: &D::GlobalScope, limits: Limits) -> DomRoot<Self> {
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        global: &D::GlobalScope,
+        limits: Limits,
+    ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(Self::new_inherited(limits)),
             global,

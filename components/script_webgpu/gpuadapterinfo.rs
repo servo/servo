@@ -56,7 +56,7 @@ impl<D: Equivalence> GPUAdapterInfo<D> {
     }
 
     #[expect(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         vendor: DOMString,
@@ -83,7 +83,7 @@ impl<D: Equivalence> GPUAdapterInfo<D> {
         )
     }
 
-    pub fn clone_from(
+    pub(crate) fn clone_from(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         info: &GPUAdapterInfo<D>,

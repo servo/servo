@@ -105,7 +105,7 @@ where
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut CurrentRealm<'_>,
         device: &D::GPUDevice,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
