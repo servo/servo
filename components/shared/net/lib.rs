@@ -26,13 +26,14 @@ use profile_traits::mem::ReportsChan;
 use rand::{Rng, rng};
 use request::RequestId;
 use rustc_hash::FxHashMap;
+use rustls::{CipherSuite, NamedGroup, ProtocolVersion};
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
+use serde_with::{FromInto, serde_as};
 use servo_base::generic_channel::{
     self, CallbackSetter, GenericCallback, GenericOneshotSender, GenericSend, GenericSender,
     SendResult,
 };
-pub mod rustls_serde_adapters;
 use servo_base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -47,7 +48,6 @@ use crate::http_status::HttpStatus;
 use crate::mime_classifier::{ApacheBugFlag, MimeClassifier};
 use crate::request::{Request, RequestBuilder};
 use crate::response::{Response, ResponseInit};
-use crate::rustls_serde_adapters::{ServoNamedGroup, ServoProtocolVersion};
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
@@ -418,6 +418,66 @@ impl Display for TlsSecurityState {
     }
 }
 
+#[serde_as]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
+pub struct ServoProtocolVersion(#[serde_as(as = "FromInto<u16>")] pub ProtocolVersion);
+
+impl malloc_size_of::MallocSizeOf for ServoProtocolVersion {
+    fn size_of(&self, _: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
+impl std::fmt::Debug for ServoProtocolVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            ProtocolVersion::SSLv2 => write!(f, "SSL 2.0"),
+            ProtocolVersion::SSLv3 => write!(f, "SSL 3.0"),
+            ProtocolVersion::TLSv1_0 => write!(f, "TLS 1.0"),
+            ProtocolVersion::TLSv1_1 => write!(f, "TLS 1.1"),
+            ProtocolVersion::TLSv1_2 => write!(f, "TLS 1.2"),
+            ProtocolVersion::TLSv1_3 => write!(f, "TLS 1.3"),
+            ProtocolVersion::DTLSv1_0 => write!(f, "DTLS 1.0"),
+            ProtocolVersion::DTLSv1_2 => write!(f, "DTLS 1.2"),
+            ProtocolVersion::DTLSv1_3 => write!(f, "DTLS 1.3"),
+            ProtocolVersion::Unknown(value) => write!(f, "Unknown ({value})"),
+            _ => write!(f, "Not yet implemented"),
+        }
+    }
+}
+
+#[serde_as]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
+pub struct ServoCipherSuite(#[serde_as(as = "FromInto<u16>")] pub CipherSuite);
+
+impl malloc_size_of::MallocSizeOf for ServoCipherSuite {
+    fn size_of(&self, _: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
+impl std::fmt::Debug for ServoCipherSuite {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+#[serde_as]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
+pub struct ServoNamedGroup(#[serde_as(as = "FromInto<u16>")] pub NamedGroup);
+
+impl malloc_size_of::MallocSizeOf for ServoNamedGroup {
+    fn size_of(&self, _: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
+impl std::fmt::Debug for ServoNamedGroup {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct TlsSecurityInfo {
     // "insecure", "weak", "broken", "secure".
@@ -428,7 +488,7 @@ pub struct TlsSecurityInfo {
     // Negotiated TLS protocol version (e.g. "TLS 1.3").
     pub protocol_version: Option<ServoProtocolVersion>,
     // Negotiated cipher suite identifier.
-    pub cipher_suite: Option<String>,
+    pub cipher_suite: Option<ServoCipherSuite>,
     // Negotiated key exchange group.
     pub kea_group_name: Option<ServoNamedGroup>,
     // Signature scheme used for certificate verification.
