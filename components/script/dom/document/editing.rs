@@ -6,28 +6,51 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use embedder_traits::{EditingActionEvent, EmbedderMsg, InputEventResult};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use keyboard_types::{Key, Modifiers, NamedKey};
+use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
+use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::inheritance::Castable;
-use script_bindings::match_domstring_ascii;
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 use servo_base::generic_channel::GenericCallback;
 
-use crate::dom::Document;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
-use crate::dom::types::{ClipboardEvent, DataTransfer, Element, Event, KeyboardEvent};
+use crate::dom::text_control::TextControlElement;
+use crate::dom::text_input::{InputEventType, IsComposing};
+use crate::dom::types::{
+    ClipboardEvent, DataTransfer, Event, EventTarget, HTMLInputElement, HTMLTextAreaElement,
+    KeyboardEvent,
+};
+use crate::dom::{Document, Node};
 use crate::drag::drag_data_store::{DragDataStore, Kind, Mode};
 
 impl Document {
+    pub(crate) fn editing_context(&self, no_gc: &NoGC, node: &Node) -> EditingContext {
+        if let Ok(editing_context) = EditingContext::try_from(node) {
+            return editing_context;
+        }
+
+        let mut current_node = UnrootedDom::from_ref(node, no_gc);
+        while let Some(parent) = current_node.parent_in_flat_tree(no_gc).into_parent() {
+            if let Ok(editing_context) = EditingContext::try_from(&**parent) {
+                return editing_context;
+            }
+            current_node = parent;
+        }
+
+        EditingContext::Document(DomRoot::from_ref(self))
+    }
+
     /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
     pub(crate) fn handle_editing_action(
         &self,
         cx: &mut JSContext,
-        element: Option<DomRoot<Element>>,
+        node: &Node,
         action: EditingActionEvent,
     ) -> InputEventResult {
         let clipboard_event_type = match action {
@@ -50,21 +73,86 @@ impl Document {
         }
 
         // Step 2 Fire a clipboard event
-        let clipboard_event = self.fire_clipboard_event(cx, element.clone(), clipboard_event_type);
+        let editing_context = self.editing_context(cx.no_gc(), node);
+        let event_target = editing_context.event_target();
+        let clipboard_event = self.fire_clipboard_event(cx, &event_target, clipboard_event_type);
 
-        // Step 3 If a script doesn't call preventDefault()
-        // the event will be handled inside target's VirtualMethods::handle_event
         let event = clipboard_event.upcast::<Event>();
-        if !event.IsTrusted() {
-            return event.flags().into();
-        }
+        if !event.DefaultPrevented() {
+            // Step 3. If the event was not canceled, then
+            match clipboard_event.clipboard_event_type() {
+                ClipboardEventType::Copy => {
+                    // Step 3.1. Copy the selected contents, if any, to the clipboard.
+                    // Implementations should create alternate text/html and text/plain
+                    // clipboard formats when content in a web page is selected.
+                    if let Some(selection) = editing_context.selection_content(cx) {
+                        self.send_to_embedder(EmbedderMsg::SetClipboardText(
+                            self.webview_id(),
+                            selection,
+                        ));
+                    }
+                    // Step 3.2. Fire a clipboard event named clipboardchange
+                    self.fire_clipboard_event(cx, &event_target, ClipboardEventType::Change);
 
-        // Step 4 If the event was canceled, then
-        if event.DefaultPrevented() {
-            let event_type = event.Type();
-            match_domstring_ascii!(event_type,
+                    // This is how `true` is returned from this function.
+                    event.mark_as_handled();
+                },
+                ClipboardEventType::Cut => {
+                    if let Some(selection) = editing_context.selection_content(cx) &&
+                        editing_context.cutting_and_pasting_enabled()
+                    {
+                        // Step 3.1. If there is a selection in an editable context where
+                        // cutting is enabled, then
+                        // Step 3.1.1. Copy the selected contents, if any, to the clipboard.
+                        // Implementations should create alternate text/html and text/plain
+                        // clipboard formats when content in a web page is selected.
+                        self.send_to_embedder(EmbedderMsg::SetClipboardText(
+                            self.webview_id(),
+                            selection,
+                        ));
 
-                "copy" => {
+                        // Step 3.1.2. Remove the contents of the selection from the document
+                        // and collapse the selection.
+                        editing_context.remove_the_contents_of_the_selection(cx);
+
+                        // Step 3.1.3. Fire a clipboard event named clipboardchange
+                        self.fire_clipboard_event(cx, &event_target, ClipboardEventType::Change);
+
+                        // Step 3.1.4. Queue tasks to fire any events that should fire due to
+                        // the modification, see §5.3 Integration with other scripts and
+                        // events for details.
+                        editing_context.fire_cut_events();
+
+                        // This is how `true` is returned from this function.
+                        event.mark_as_handled();
+                    }
+                },
+                ClipboardEventType::Paste => {
+                    if editing_context.has_selection_or_cursor() &&
+                        editing_context.cutting_and_pasting_enabled() &&
+                        let Some(text_content) = clipboard_event.text_content()
+                    {
+                        // Step 3.1. If there is a selection or cursor in an editable context
+                        // where pasting is enabled, then
+                        // Step 3.1.1. Insert the most suitable content found on the
+                        // clipboard, if any, into the context.
+                        editing_context.insert_content(cx, &text_content);
+
+                        // Step 3.1.2. Queue tasks to fire any events that should fire due to
+                        // the modification, see §5.3 Integration with other scripts and
+                        // events for details.
+                        editing_context.fire_paste_events(&text_content);
+
+                        // This is how `true` is returned from this function.
+                        event.mark_as_handled();
+                    }
+                },
+                _ => (),
+            }
+        } else {
+            // Step 4 If the event was canceled, then
+            match clipboard_event.clipboard_event_type() {
+                ClipboardEventType::Copy => {
                     // Step 4.1 Call the write content to the clipboard algorithm,
                     // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
                     if let Some(clipboard_data) = clipboard_event.clipboard_data() {
@@ -73,7 +161,7 @@ impl Document {
                         self.write_content_to_the_clipboard(&drag_data_store);
                     }
                 },
-                "cut" => {
+                ClipboardEventType::Cut => {
                     // Step 4.1 Call the write content to the clipboard algorithm,
                     // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
                     if let Some(clipboard_data) = clipboard_event.clipboard_data() {
@@ -83,14 +171,12 @@ impl Document {
                     }
 
                     // Step 4.2 Fire a clipboard event named clipboardchange
-                    self.fire_clipboard_event(cx, element, ClipboardEventType::Change);
+                    self.fire_clipboard_event(cx, &event_target, ClipboardEventType::Change);
                 },
                 // Step 4.1 Return false.
-                // Note: This function deviates from the specification a bit by returning
-                // the `InputEventResult` below.
-                "paste" => (),
+                ClipboardEventType::Paste => (),
                 _ => (),
-            )
+            }
         }
 
         // Step 5: Return true from the action.
@@ -99,17 +185,17 @@ impl Document {
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
-    pub(crate) fn fire_clipboard_event(
+    fn fire_clipboard_event(
         &self,
         cx: &mut JSContext,
-        target: Option<DomRoot<Element>>,
+        target: &EventTarget,
         clipboard_event_type: ClipboardEventType,
     ) -> DomRoot<ClipboardEvent> {
         let clipboard_event = ClipboardEvent::new(
             cx,
             self.window(),
             None,
-            clipboard_event_type.clone(),
+            clipboard_event_type,
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             None,
@@ -125,13 +211,9 @@ impl Document {
         let trusted = true;
 
         // Step 6 if the context is editable:
-        let target = target
-            .map(DomRoot::upcast)
-            .unwrap_or_else(|| self.event_handler().target_for_events_following_focus());
-
         // Step 6.2 else TODO require Selection see https://github.com/w3c/clipboard-apis/issues/70
         // Step 7
-        match clipboard_event_type {
+        match clipboard_event.clipboard_event_type() {
             ClipboardEventType::Copy | ClipboardEventType::Cut => {
                 // Step 7.2.1
                 drag_data_store.set_mode(Mode::ReadWrite);
@@ -184,7 +266,7 @@ impl Document {
         event.set_composed(true);
 
         // Step 11
-        event.dispatch(cx, &target, false);
+        event.dispatch(cx, target, false);
 
         DomRoot::from(clipboard_event)
     }
@@ -296,6 +378,185 @@ impl Document {
                 DOMString::from(string),
             ),
             _ => false,
+        }
+    }
+}
+
+pub(crate) enum TextControlElementEditingContext {
+    TextArea(DomRoot<HTMLTextAreaElement>),
+    Input(DomRoot<HTMLInputElement>),
+}
+
+impl TextControlElementEditingContext {
+    fn text_control_element(&self) -> &dyn TextControlElement {
+        match self {
+            TextControlElementEditingContext::TextArea(text_area) => &**text_area,
+            TextControlElementEditingContext::Input(input) => &**input,
+        }
+    }
+}
+
+pub(crate) enum EditingContext {
+    TextControl(TextControlElementEditingContext),
+    Document(DomRoot<Document>),
+}
+
+impl TryFrom<&Node> for EditingContext {
+    type Error = ();
+
+    fn try_from(node: &Node) -> Result<Self, Self::Error> {
+        if let Some(text_area) = node.downcast::<HTMLTextAreaElement>() {
+            return Ok(EditingContext::TextControl(
+                TextControlElementEditingContext::TextArea(DomRoot::from_ref(text_area)),
+            ));
+        }
+        if let Some(input) = node.downcast::<HTMLInputElement>() &&
+            input.is_textual_or_password()
+        {
+            return Ok(EditingContext::TextControl(
+                TextControlElementEditingContext::Input(DomRoot::from_ref(input)),
+            ));
+        }
+        Err(())
+    }
+}
+
+impl EditingContext {
+    pub(crate) fn event_target(&self) -> DomRoot<EventTarget> {
+        match self {
+            EditingContext::TextControl(element) => match element {
+                TextControlElementEditingContext::TextArea(text_area) => {
+                    DomRoot::from_ref(text_area.upcast())
+                },
+                TextControlElementEditingContext::Input(input) => DomRoot::from_ref(input.upcast()),
+            },
+            EditingContext::Document(document) => {
+                document.event_handler().target_for_events_following_focus()
+            },
+        }
+    }
+
+    pub(crate) fn selection_content(&self, cx: &mut JSContext) -> Option<String> {
+        match self {
+            EditingContext::TextControl(element) => element
+                .text_control_element()
+                .text_input()
+                .selection_content(),
+            EditingContext::Document(document) => document
+                .selection()
+                .map(|selection| selection.Stringifier(cx).to_string())
+                .filter(|selection| !selection.is_empty()),
+        }
+    }
+
+    pub(crate) fn has_uncollapsed_selection(&self) -> bool {
+        match self {
+            EditingContext::TextControl(element) => {
+                element.text_control_element().has_uncollapsed_selection()
+            },
+            EditingContext::Document(document) => document
+                .selection()
+                .is_some_and(|selection| !selection.collapsed()),
+        }
+    }
+
+    pub(crate) fn has_selectable_text(&self) -> bool {
+        match self {
+            EditingContext::TextControl(element) => {
+                element.text_control_element().has_selectable_text()
+            },
+            EditingContext::Document(..) => true,
+        }
+    }
+
+    pub(crate) fn has_selection_or_cursor(&self) -> bool {
+        match self {
+            EditingContext::TextControl(..) => true,
+            EditingContext::Document(document) => document
+                .selection()
+                .is_some_and(|selection| selection.RangeCount() > 0),
+        }
+    }
+
+    pub(crate) fn cutting_and_pasting_enabled(&self) -> bool {
+        match self {
+            EditingContext::TextControl(element) => {
+                !element.text_control_element().read_only_or_disabled()
+            },
+            EditingContext::Document(..) => {
+                // TODO(mrobinson): Add support for integration with contenteditable.
+                false
+            },
+        }
+    }
+
+    pub(crate) fn remove_the_contents_of_the_selection(&self, cx: &mut JSContext) {
+        match self {
+            EditingContext::TextControl(element) => {
+                element
+                    .text_control_element()
+                    .remove_the_contents_of_the_selection(cx);
+            },
+            EditingContext::Document(..) => {
+                // TODO(mrobinson): Add support for integration with contenteditable.
+            },
+        }
+    }
+
+    pub(crate) fn fire_cut_events(&self) {
+        match self {
+            EditingContext::TextControl(element) => {
+                element.text_control_element().queue_input_event(
+                    None,
+                    IsComposing::NotComposing,
+                    InputEventType::DeleteByCut,
+                );
+            },
+            EditingContext::Document(..) => {},
+        }
+    }
+
+    pub(crate) fn insert_content(&self, cx: &mut JSContext, text_content: &str) {
+        match self {
+            EditingContext::TextControl(element) => {
+                element
+                    .text_control_element()
+                    .insert_content(cx, text_content);
+            },
+            EditingContext::Document(..) => {
+                // TODO(mrobinson): Add support for integration with contenteditable.
+            },
+        }
+    }
+
+    pub(crate) fn fire_paste_events(&self, text_content: &str) {
+        match self {
+            EditingContext::TextControl(element) => {
+                element.text_control_element().queue_input_event(
+                    Some(text_content.to_owned()),
+                    IsComposing::NotComposing,
+                    InputEventType::InsertFromPaste,
+                );
+            },
+            EditingContext::Document(..) => {},
+        }
+    }
+
+    pub(crate) fn select_all(&self, cx: &mut JSContext) {
+        match self {
+            EditingContext::TextControl(element) => element.text_control_element().select_all(),
+            EditingContext::Document(document) => {
+                let Some(selection) = document.GetSelection(cx) else {
+                    return;
+                };
+                if let Some(node) = document
+                    .GetBody()
+                    .map(DomRoot::upcast::<Node>)
+                    .or_else(|| document.GetDocumentElement().map(DomRoot::upcast::<Node>))
+                {
+                    let _ = selection.SelectAllChildren(cx, &node);
+                }
+            },
         }
     }
 }

@@ -43,7 +43,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
@@ -58,9 +57,7 @@ use crate::dom::html::form_controls::input_type::radio_input_type::{
 };
 use crate::dom::html::form_controls::input_type::{InputActivationType, InputType};
 use crate::dom::html::form_controls::text_control::TextControlElement;
-use crate::dom::html::form_controls::text_input::{
-    ClipboardEventFlags, EmbedderClipboardProvider, IsComposing, KeyReaction, Lines, TextInput,
-};
+use crate::dom::html::form_controls::text_input::{KeyReaction, Lines, TextInput};
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
@@ -75,6 +72,7 @@ use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
+use crate::dom::text_input::EmbedderClipboardProvider;
 use crate::dom::types::{FocusEvent, MouseEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -947,6 +945,10 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
 }
 
 impl TextControlElement for HTMLInputElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
     fn text_input(&self) -> Ref<'_, TextInput<EmbedderClipboardProvider>> {
         self.text_input.borrow()
     }
@@ -1039,6 +1041,16 @@ impl TextControlElement for HTMLInputElement {
 
     fn value_text(&self) -> DOMString {
         self.Value()
+    }
+
+    fn read_only_or_disabled(&self) -> bool {
+        self.ReadOnly() || self.Disabled()
+    }
+
+    fn handle_text_content_changed(&self, cx: &mut JSContext) {
+        self.update_placeholder_shown_state();
+        self.upcast::<Node>()
+            .dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
     }
 }
 
@@ -2352,29 +2364,6 @@ impl VirtualMethods for HTMLInputElement {
                     self.update_placeholder_shown_state();
                 }
                 event.mark_as_handled();
-            }
-        } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
-            let reaction = self
-                .text_input
-                .borrow_mut()
-                .handle_clipboard_event(clipboard_event);
-            let flags = reaction.flags;
-            if flags.contains(ClipboardEventFlags::FireClipboardChangedEvent) {
-                self.owner_document()
-                    .fire_clipboard_event(cx, None, ClipboardEventType::Change);
-            }
-            if flags.contains(ClipboardEventFlags::QueueInputEvent) {
-                self.queue_input_event(
-                    reaction.text,
-                    IsComposing::NotComposing,
-                    reaction.input_type,
-                );
-            }
-            if !flags.is_empty() {
-                event.mark_as_handled();
-                self.update_placeholder_shown_state();
-                self.upcast::<Node>()
-                    .dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
             self.handle_focus_event(cx, event)

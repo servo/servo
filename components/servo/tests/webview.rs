@@ -23,11 +23,10 @@ use image::RgbaImage;
 use itertools::Itertools;
 use net::test_util::{make_body, make_server, replace_host_table};
 use servo::{
-    ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
-    ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
-    JSValue, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
-    MouseMoveEvent, PrefValue, RenderingContext, Scroll, SimpleDialog, Theme, WebView,
-    WebViewBuilder, WebViewDelegate, WebViewPoint, WebViewVector,
+    CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType, JSValue,
+    LoadStatus, MouseButton, MouseLeftViewportEvent, MouseMoveEvent, PrefValue, RenderingContext,
+    Scroll, SimpleDialog, Theme, WebView, WebViewBuilder, WebViewDelegate, WebViewPoint,
+    WebViewVector,
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
@@ -39,21 +38,6 @@ use crate::common::{
     ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
     show_webview_and_wait_for_rendering_to_be_ready, wait_for_webview_scene_to_be_up_to_date,
 };
-
-fn open_context_menu_at_point(webview: &WebView, point: DevicePoint) {
-    let point = point.into();
-    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
-    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-        MouseButtonAction::Down,
-        MouseButton::Secondary,
-        point,
-    )));
-    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-        MouseButtonAction::Up,
-        MouseButton::Secondary,
-        point,
-    )));
-}
 
 #[test]
 fn test_create_webview() {
@@ -515,7 +499,7 @@ fn test_control_show_and_hide() {
         .build();
 
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    click_at_point(&webview, Point2D::new(50., 50.));
+    click_at_point(&webview, Point2D::new(50., 50.), MouseButton::Primary);
 
     // The form control should be shown and then immediately hidden.
     let captured_delegate = delegate.clone();
@@ -616,7 +600,7 @@ fn test_show_and_hide_ime() {
         .build();
 
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    click_at_point(&webview, Point2D::new(150., 150.));
+    click_at_point(&webview, Point2D::new(150., 150.), MouseButton::Primary);
 
     // The form control should be shown.
     let captured_delegate = delegate.clone();
@@ -634,7 +618,7 @@ fn test_show_and_hide_ime() {
         assert_eq!(ime.insertion_point(), Some(5));
     }
 
-    click_at_point(&webview, Point2D::new(300., 300.));
+    click_at_point(&webview, Point2D::new(300., 300.), MouseButton::Primary);
 
     // The form control should be hidden when the field no longer has focus.
     let captured_delegate = delegate.clone();
@@ -698,7 +682,7 @@ fn test_simple_dialog(prompt: &str, validate: impl Fn(&SimpleDialog)) {
     // The dialog should NOT be shown.
     assert!(delegate.active_dialog.borrow().is_none());
 
-    click_at_point(&webview, Point2D::new(100., 100.));
+    click_at_point(&webview, Point2D::new(100., 100.), MouseButton::Primary);
     let captured_delegate = delegate.clone();
     servo_test.spin(move || captured_delegate.active_dialog.borrow().is_none());
 
@@ -708,239 +692,6 @@ fn test_simple_dialog(prompt: &str, validate: impl Fn(&SimpleDialog)) {
             .as_ref()
             .expect("the spin call above ensures this is not None"),
     );
-}
-
-#[test]
-fn test_simple_context_menu() {
-    let servo_test = ServoTest::new();
-
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
-        .build();
-
-    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    open_context_menu_at_point(&webview, DevicePoint::new(50.0, 50.0));
-
-    // Wait for a context menu to appear.
-    let captured_delegate = delegate.clone();
-    servo_test.spin(move || {
-        let controls = captured_delegate.controls_shown.borrow();
-        !controls
-            .iter()
-            .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
-    });
-    assert!(delegate.number_of_controls_shown.get() > 0);
-
-    let context_menu = {
-        let mut controls = delegate.controls_shown.borrow_mut();
-
-        let Some(index) = controls
-            .iter()
-            .position(|control| matches!(control, EmbedderControl::ContextMenu(_)))
-        else {
-            unreachable!("Exepcted to find context menu in controls");
-        };
-        let EmbedderControl::ContextMenu(context_menu) = controls.remove(index) else {
-            unreachable!("Expected embedder control to be a ContextMenu");
-        };
-
-        let items = context_menu.items();
-        assert!(matches!(
-            items[0],
-            ContextMenuItem::Item {
-                action: ContextMenuAction::GoBack,
-                ..
-            }
-        ));
-        assert!(matches!(
-            items[1],
-            ContextMenuItem::Item {
-                action: ContextMenuAction::GoForward,
-                ..
-            }
-        ));
-        assert!(matches!(
-            items[2],
-            ContextMenuItem::Item {
-                action: ContextMenuAction::Reload,
-                ..
-            }
-        ));
-
-        context_menu
-    };
-
-    delegate.reset();
-    context_menu.select(ContextMenuAction::Reload);
-
-    servo_test.spin(move || !delegate.load_status_changed.get());
-}
-
-#[test]
-fn test_open_context_menu_closes_existing() {
-    let servo_test = ServoTest::new();
-
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
-        .build();
-
-    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    open_context_menu_at_point(&webview, DevicePoint::new(50.0, 50.0));
-
-    // Wait for a context menu to appear.
-    let captured_delegate = delegate.clone();
-    servo_test.spin(move || {
-        let controls = captured_delegate.controls_shown.borrow();
-        !controls
-            .iter()
-            .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
-    });
-    assert!(delegate.number_of_controls_shown.get() > 0);
-
-    assert_eq!(delegate.number_of_controls_hidden.get(), 0);
-
-    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 25.0));
-
-    let captured_delegate = delegate.clone();
-    servo_test.spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
-
-    let captured_delegate = delegate.clone();
-    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 2);
-}
-
-#[test]
-fn test_contextual_context_menu_items() {
-    let servo_test = ServoTest::new();
-
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .url(
-            Url::parse(
-                "data:text/html,<!DOCTYPE html>\
-                <a href=\"https://servo.org\"><div style=\"width: 50px; height: 50px;\">Link</div></a> \
-                <div><img src=\"https://servo.org/img.png\" style=\"width: 50px; height: 50px;\"></div> \
-                <div><input type=\"text\" style=\"width: 50px; height: 50px;\"></div> \
-                <a href=\"https://nested.org\"><img src=\"https://servo.org/nested.png\" style=\"width: 50px; height: 50px;\"></a>"
-            )
-            .unwrap(),
-        )
-        .build();
-
-    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-
-    let assert_context_menu =
-        |delegate: Rc<WebViewDelegateImpl>,
-         expected_actions: &[ContextMenuAction],
-         expected_info: ContextMenuElementInformation| {
-            assert!(delegate.controls_shown.borrow().is_empty());
-
-            // Wait for a context menu to appear.
-            let captured_delegate = delegate.clone();
-            servo_test.spin(move || {
-                let controls = captured_delegate.controls_shown.borrow();
-                !controls
-                    .iter()
-                    .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
-            });
-            assert!(delegate.number_of_controls_shown.get() > 0);
-
-            {
-                let mut controls = delegate.controls_shown.borrow_mut();
-
-                let Some(index) = controls
-                    .iter()
-                    .position(|control| matches!(control, EmbedderControl::ContextMenu(_)))
-                else {
-                    unreachable!("Exepcted to find context menu in controls");
-                };
-                let EmbedderControl::ContextMenu(context_menu) = controls.remove(index) else {
-                    unreachable!("Expected embedder control to be a ContextMenu");
-                };
-
-                assert_eq!(context_menu.element_info(), &expected_info);
-
-                let items = context_menu.items();
-                for expected_action in expected_actions {
-                    assert!(items.iter().any(|item| {
-                        let ContextMenuItem::Item { action, .. } = item else {
-                            return false;
-                        };
-                        action == expected_action
-                    }));
-                }
-                context_menu.dismiss();
-            }
-
-            delegate.reset();
-        };
-
-    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 25.0));
-    assert_context_menu(
-        delegate.clone(),
-        &[
-            ContextMenuAction::CopyLink,
-            ContextMenuAction::OpenLinkInNewWebView,
-        ],
-        ContextMenuElementInformation {
-            flags: ContextMenuElementInformationFlags::Link,
-            link_url: Url::parse("https://servo.org").ok(),
-            image_url: None,
-        },
-    );
-
-    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 75.0));
-    assert_context_menu(
-        delegate.clone(),
-        &[
-            ContextMenuAction::CopyImageLink,
-            ContextMenuAction::OpenImageInNewView,
-        ],
-        ContextMenuElementInformation {
-            flags: ContextMenuElementInformationFlags::Image,
-            link_url: None,
-            image_url: Url::parse("https://servo.org/img.png").ok(),
-        },
-    );
-
-    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 125.0));
-    assert_context_menu(
-        delegate.clone(),
-        &[
-            ContextMenuAction::SelectAll,
-            ContextMenuAction::Cut,
-            ContextMenuAction::Copy,
-            ContextMenuAction::Paste,
-        ],
-        ContextMenuElementInformation {
-            flags: ContextMenuElementInformationFlags::EditableText,
-            link_url: None,
-            image_url: None,
-        },
-    );
-
-    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 175.0));
-    assert_context_menu(
-        delegate.clone(),
-        &[
-            ContextMenuAction::CopyLink,
-            ContextMenuAction::OpenLinkInNewWebView,
-            ContextMenuAction::CopyImageLink,
-            ContextMenuAction::OpenImageInNewView,
-        ],
-        ContextMenuElementInformation {
-            flags: ContextMenuElementInformationFlags::Link |
-                ContextMenuElementInformationFlags::Image,
-            link_url: Url::parse("https://nested.org").ok(),
-            image_url: Url::parse("https://servo.org/nested.png").ok(),
-        },
-    );
-
-    servo_test.spin(move || !delegate.load_status_changed.get());
 }
 
 #[test]
@@ -1216,7 +967,7 @@ fn test_fullscreen() {
         .build();
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
-    click_at_point(&webview, Point2D::new(10., 10.));
+    click_at_point(&webview, Point2D::new(10., 10.), MouseButton::Primary);
 
     let captured = delegate.clone();
     servo_test.spin(move || !captured.fullscreen.get());
