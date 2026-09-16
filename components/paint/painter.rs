@@ -567,6 +567,26 @@ impl Painter {
                         ),
                     ));
                 }
+
+                let pending_container_timing = &mut pipeline.container_timing_candidates;
+                while let Some((epoch, ids)) = pending_container_timing.pop_front() {
+                    if epoch > current_epoch {
+                        pending_container_timing.push_front((epoch, ids));
+                        break;
+                    }
+                    #[cfg(feature = "tracing")]
+                    tracing::info!(
+                        name: "ContainerTiming",
+                        servo_profiling = true,
+                        paint_time = ?paint_time,
+                        count = ids.len(),
+                        pipeline_id = ?pipeline_id,
+                    );
+                    paint_metric_events.push((
+                        *pipeline_id,
+                        PaintMetricEvent::ContainerTiming(paint_time, ids),
+                    ));
+                }
             }
         }
 
@@ -1035,6 +1055,13 @@ impl Painter {
                 lcp_candidate,
                 display_list_info.paint_timing_info,
             ));
+        }
+
+        let container_timing_candidates = display_list_info.container_timing_candidates;
+        if !container_timing_candidates.is_empty() {
+            details
+                .container_timing_candidates
+                .push_back((epoch, container_timing_candidates));
         }
 
         details.animations.handle_new_display_list(
