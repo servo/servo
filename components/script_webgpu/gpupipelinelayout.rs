@@ -107,7 +107,7 @@ where
     D: Equivalence,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
-    pub fn id(&self) -> WebGPUPipelineLayout {
+    pub(crate) fn id(&self) -> WebGPUPipelineLayout {
         self.droppable.pipeline_layout
     }
 
@@ -117,7 +117,7 @@ where
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut JSContext,
         device: &D::GPUDevice,
         descriptor: &GPUPipelineLayoutDescriptor<D>,

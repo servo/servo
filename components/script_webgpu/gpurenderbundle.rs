@@ -74,7 +74,7 @@ impl<D: Equivalence> GPURenderBundle<D> {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         render_bundle: WebGPURenderBundle,
@@ -97,7 +97,7 @@ impl<D: Equivalence> GPURenderBundle<D> {
 }
 
 impl<D: DomTypes> GPURenderBundle<D> {
-    pub fn id(&self) -> WebGPURenderBundle {
+    pub(crate) fn id(&self) -> WebGPURenderBundle {
         self.droppable.render_bundle
     }
 }

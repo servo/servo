@@ -112,7 +112,7 @@ where
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut JSContext,
         device: &D::GPUDevice,
         descriptor: &GPUCommandEncoderDescriptor,

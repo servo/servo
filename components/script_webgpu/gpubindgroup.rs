@@ -103,12 +103,12 @@ where
     D: Equivalence,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
-    pub fn id(&self) -> &WebGPUBindGroup {
+    pub(crate) fn id(&self) -> &WebGPUBindGroup {
         &self.droppable.bind_group
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut JSContext,
         device: &D::GPUDevice,
         descriptor: &GPUBindGroupDescriptor<D>,

@@ -38,7 +38,7 @@ where
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         event_type: Atom,

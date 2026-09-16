@@ -70,7 +70,7 @@ impl<D: Equivalence> GPUCommandBuffer<D> {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         channel: WebGPU,

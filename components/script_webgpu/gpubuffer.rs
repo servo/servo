@@ -68,7 +68,7 @@ impl ActiveBufferMapping {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct DroppableGPUBuffer {
+pub(crate) struct DroppableGPUBuffer {
     #[no_trace]
     channel: WebGPU,
     #[no_trace]
@@ -165,7 +165,7 @@ where
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut js::context::JSContext,
         device: &D::GPUDevice,
         descriptor: &GPUBufferDescriptor,

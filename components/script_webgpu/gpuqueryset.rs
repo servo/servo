@@ -98,7 +98,7 @@ where
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createqueryset>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut JSContext,
         device: &D::GPUDevice,
         descriptor: &GPUQuerySetDescriptor,

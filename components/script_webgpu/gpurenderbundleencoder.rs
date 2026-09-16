@@ -110,7 +110,7 @@ where
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut JSContext,
         device: &D::GPUDevice,
         descriptor: &GPURenderBundleEncoderDescriptor,

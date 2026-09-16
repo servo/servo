@@ -114,7 +114,7 @@ impl<D: Equivalence> GPUSupportedFeatures<D> {
     }
 
     #[expect(non_snake_case)]
-    pub fn Constructor(
+    pub(crate) fn Constructor(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         proto: Option<HandleObject>,
@@ -125,7 +125,7 @@ impl<D: Equivalence> GPUSupportedFeatures<D> {
 }
 
 impl<D: DomTypes> GPUSupportedFeatures<D> {
-    pub fn wgpu_features(&self) -> &Features {
+    pub(crate) fn wgpu_features(&self) -> &Features {
         &self.features
     }
 }
