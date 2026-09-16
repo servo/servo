@@ -266,7 +266,8 @@ pub(crate) struct RefreshRedirectDue {
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct LCPCandidateAndElement {
-    element: Dom<Element>,
+    /// <https://www.w3.org/TR/largest-contentful-paint/#largest-contentful-paint-candidate-element>
+    element: Option<Dom<Element>>,
     #[no_trace]
     candidate: LCPCandidate,
 }
@@ -3534,11 +3535,11 @@ impl Document {
             }));
     }
 
-    pub(crate) fn store_lcp_candidate(&self, candidate: LCPCandidate, element: &Element) {
+    pub(crate) fn store_lcp_candidate(&self, candidate: LCPCandidate, element: Option<&Element>) {
         self.lcp_candidates.borrow_mut().insert(
             candidate.id,
             LCPCandidateAndElement {
-                element: Dom::from_ref(element),
+                element: element.map(Dom::from_ref),
                 candidate,
             },
         );
@@ -3567,23 +3568,17 @@ impl Document {
                 ))
             },
             PaintMetricEvent::LargestContentfulPaint(metric_value, id) => {
-                let candidate = self.lcp_candidates.borrow_mut().remove(&id);
-                let (element, area, url) = match candidate {
-                    Some(stored_candidate) => (
-                        Some(stored_candidate.element),
-                        stored_candidate.candidate.area,
-                        stored_candidate.candidate.url,
-                    ),
-                    None => (None, 0, None),
+                let Some(stored_candidate) = self.lcp_candidates.borrow_mut().remove(&id) else {
+                    warn!("Received LCP paint metric for unknown candidate: {id:?}");
+                    return;
                 };
                 metrics.set_largest_contentful_paint(id, metric_value);
                 DomRoot::upcast::<PerformanceEntry>(LargestContentfulPaint::new(
                     cx,
                     self.window.as_global_scope(),
                     metric_value,
-                    area,
-                    url,
-                    element.as_deref(),
+                    &stored_candidate.candidate,
+                    stored_candidate.element.as_deref(),
                 ))
             },
         };

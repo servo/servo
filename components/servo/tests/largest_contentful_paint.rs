@@ -93,9 +93,29 @@ fn test_largest_contentful_paint_js_api() {
         assert_eq!(obj.get("size"), Some(JSValue::Number(4.0)).as_ref());
         assert!(obj.get("renderTime").is_some());
         assert!(obj.get("loadTime").is_some());
+        // The entry's element should be present while the image is attached.
+        assert!(obj.get("element") != Some(JSValue::Null).as_ref());
     } else {
         panic!("No entries for Largest Contentful Paint were recorded.");
     }
+
+    // Removing the image detaches it from the DOM, so the entry's element
+    // should become null and its id should become the empty string.
+    if let Err(err) = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('img').remove();",
+    ) {
+        panic!("Failed to remove the image: {:?}", err);
+    }
+    assert_eq!(
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            "window.lcpEntries[0].element === null;"
+        ),
+        Ok(JSValue::Boolean(true))
+    );
 }
 
 #[test]

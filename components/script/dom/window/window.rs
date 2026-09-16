@@ -3739,14 +3739,12 @@ impl Window {
     /// Resolve the LCP candidate OpaqueNode to a DOM Element and store it on the document.
     #[expect(unsafe_code)]
     fn process_lcp_candidate_post_reflow(&self, candidate: LCPCandidate, document: &Document) {
-        let Some(node) = candidate.node else {
-            return;
-        };
-        let node_address = UntrustedNodeAddress(node.id() as *const c_void);
-        let node = unsafe { from_untrusted_node_address(node_address) };
-        if let Some(element) = DomRoot::downcast::<Element>(node) {
-            document.store_lcp_candidate(candidate, &element);
-        }
+        let element = candidate.node.and_then(|node| {
+            let node_address = UntrustedNodeAddress(node.id() as *const c_void);
+            let node = unsafe { from_untrusted_node_address(node_address) };
+            DomRoot::downcast::<Element>(node)
+        });
+        document.store_lcp_candidate(candidate, element.as_deref());
     }
 
     #[expect(unsafe_code)]

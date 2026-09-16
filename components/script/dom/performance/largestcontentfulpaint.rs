@@ -4,9 +4,9 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use layout_api::LCPCandidate;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_url::ServoUrl;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
@@ -36,8 +36,7 @@ pub(crate) struct LargestContentfulPaint {
 impl LargestContentfulPaint {
     pub(crate) fn new_inherited(
         render_time: CrossProcessInstant,
-        size: usize,
-        url: Option<ServoUrl>,
+        candidate: &LCPCandidate,
         element: Option<&Element>,
     ) -> LargestContentfulPaint {
         LargestContentfulPaint {
@@ -49,11 +48,13 @@ impl LargestContentfulPaint {
             ),
             load_time: None,
             render_time,
-            size,
-            url: url.map(|u| DOMString::from(u.as_str())).unwrap_or_default(),
-            element: Some(Dom::from_ref(
-                element.expect("Element for LCP entry should be non-null"),
-            )),
+            size: candidate.area,
+            url: candidate
+                .url
+                .as_ref()
+                .map(|url| DOMString::from(url.as_str()))
+                .unwrap_or_default(),
+            element: element.map(Dom::from_ref),
         }
     }
 
@@ -61,16 +62,14 @@ impl LargestContentfulPaint {
         cx: &mut JSContext,
         global: &GlobalScope,
         render_time: CrossProcessInstant,
-        size: usize,
-        url: Option<ServoUrl>,
+        candidate: &LCPCandidate,
         element: Option<&Element>,
     ) -> DomRoot<LargestContentfulPaint> {
         reflect_dom_object(
             cx,
             Box::new(LargestContentfulPaint::new_inherited(
                 render_time,
-                size,
-                url,
+                candidate,
                 element,
             )),
             global,
