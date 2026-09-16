@@ -67,6 +67,7 @@ use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, SubmittedFrom,
 };
+use crate::dom::input_type::radio_input_type::radio_group_updated;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
@@ -2443,8 +2444,12 @@ impl FormControl for HTMLInputElement {
         self.form_owner.get()
     }
 
-    fn set_form_owner(&self, _cx: &mut JSContext, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, cx: &mut JSContext, form: Option<&HTMLFormElement>) {
         self.form_owner.set(form);
+
+        if matches!(*self.input_type(), InputType::Radio(_)) {
+            radio_group_updated(cx, self, self.radio_group_name().as_ref());
+        }
     }
 
     fn to_html_element(&self) -> &HTMLElement {

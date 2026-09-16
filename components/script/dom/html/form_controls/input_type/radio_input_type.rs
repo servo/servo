@@ -205,7 +205,7 @@ impl SpecificInputActivationType for RadioInputActivation {
     }
 }
 
-fn radio_group_updated(cx: &mut JSContext, input: &HTMLInputElement, group: Option<&Atom>) {
+pub(crate) fn radio_group_updated(cx: &mut JSContext, input: &HTMLInputElement, group: Option<&Atom>) {
     if input.Checked() {
         broadcast_radio_checked(cx, input, group);
     }
