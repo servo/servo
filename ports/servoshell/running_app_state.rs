@@ -788,9 +788,8 @@ impl WebViewDelegate for RunningAppState {
     ) {
         self.platform_window_for_webview(&webview)
             .notify_input_event_handled(&webview, id, result);
-        if let Some((_, response_sender)) = self.pending_webdriver_events.borrow_mut().remove(&id) {
-            let _ = response_sender.send(());
-        }
+
+        self.pending_webdriver_events.borrow_mut().remove(&id);
     }
 
     fn notify_cursor_changed(&self, webview: WebView, cursor: servo::Cursor) {
