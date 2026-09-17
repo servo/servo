@@ -34,8 +34,7 @@ use js::panic::maybe_resume_unwind;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{Compile1, CurrentGlobalOrNull};
 use js::rust::{
-    CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue, ParentRuntime,
-    get_object_class, transform_str_to_source_text,
+    HandleValue, MutableHandleValue, ParentRuntime, get_object_class, transform_str_to_source_text,
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use net_traits::blob_url_store::BlobBuf;
@@ -3364,16 +3363,12 @@ impl GlobalScope {
         options: RootedTraceableBox<StructuredSerializeOptions>,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
-        let mut rooted = CustomAutoRooter::new(
+        auto_root!(&in(cx) let guard =
             options
                 .transfer
                 .iter()
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-                .collect(),
-        );
-
-        #[expect(unsafe_code)]
-        let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
+                .collect::<Vec<_>>());
 
         let data = structuredclone::write(cx, value, Some(guard))?;
 

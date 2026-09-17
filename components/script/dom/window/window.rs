@@ -45,8 +45,7 @@ use js::jsval::{NullValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{JS_DefineProperty, JS_GC};
 use js::rust::{
-    CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
-    MutableHandleValue,
+    CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue,
 };
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType, HitTestFlags, LCPCandidate, Layout,
@@ -1878,16 +1877,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         message: HandleValue,
         options: RootedTraceableBox<WindowPostMessageOptions>,
     ) -> ErrorResult {
-        let mut rooted = CustomAutoRooter::new(
+        auto_root!(&in(cx) let transfer =
             options
                 .parent
                 .transfer
                 .iter()
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-                .collect(),
-        );
-        #[expect(unsafe_code)]
-        let transfer = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
+                .collect::<Vec<_>>());
 
         let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
         let source = incumbent.as_window();
