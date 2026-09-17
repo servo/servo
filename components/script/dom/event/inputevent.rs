@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use embedder_traits::Cursor;
+use embedder_traits::CursorInternal;
 use euclid::Point2D;
 use js::context::JSContext;
 use js::rust::HandleObject;
@@ -127,7 +127,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
 pub(crate) struct HitTestResult {
     pub node: DomRoot<Node>,
     pub dom_position_for_selection: Option<(DomRoot<Node>, Utf32CodeUnitsOrNodeOffset)>,
-    pub cursor: Cursor,
+    pub cursor: CursorInternal,
     pub point_in_node: Point2D<f32, CSSPixel>,
     pub point_in_frame: Point2D<f32, CSSPixel>,
     pub point_relative_to_initial_containing_block: Point2D<f32, CSSPixel>,

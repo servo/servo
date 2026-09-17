@@ -16,15 +16,15 @@ use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::{
-    AuthenticationRequest, BluetoothDeviceSelectionRequest, Cursor, CursorId, CustomCursorImage,
-    DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize,
-    DevicePixel, DevicePoint, EmbedderControl, EmbedderControlId, ImeEvent, InputEvent,
-    InputEventId, InputEventResult, InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers,
-    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
-    MouseMoveEvent, NamedKey, OffscreenRenderingContext, PermissionRequest, RenderingContext,
-    ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, TouchPointerType,
-    WebRenderDebugOption, WebView, WebViewId, WheelDelta, WheelEvent, WheelMode,
-    WindowRenderingContext, convert_rect_to_css_pixel,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, Cursor, DeviceIndependentIntRect,
+    DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
+    EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId, InputEventResult,
+    InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
+    OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme,
+    TouchEvent, TouchEventType, TouchId, TouchPointerType, WebRenderDebugOption, WebView,
+    WebViewId, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    convert_rect_to_css_pixel,
 };
 use url::Url;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -103,11 +103,9 @@ pub struct HeadedWindow {
     /// The position of the mouse cursor after the most recent `MouseMove` event.
     last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
     /// Current Cursor Type
-    current_cursor: Cell<Cursor>,
+    current_cursor: RefCell<Cursor>,
     /// Cached winit CustomCursor
-    current_custom_cursor: RefCell<Option<(CursorId, winit::window::CustomCursor)>>,
-    /// Shared reference to the cursor images stored in the WebView.
-    cursor_images: RefCell<HashMap<CursorId, CustomCursorImage>>,
+    current_custom_cursor: RefCell<Option<(Url, winit::window::CustomCursor)>>,
 }
 
 impl HeadedWindow {
@@ -223,7 +221,6 @@ impl HeadedWindow {
             last_mouse_position: Default::default(),
             current_cursor: Default::default(),
             current_custom_cursor: Default::default(),
-            cursor_images: Default::default(),
         })
     }
 
@@ -238,14 +235,15 @@ impl HeadedWindow {
 
     fn reset_cursor(&self) {
         let cursor = CursorIcon::Default;
-        self.current_cursor.set(Cursor::Default);
+        *self.current_cursor.borrow_mut() = Cursor::Default;
         *self.current_custom_cursor.borrow_mut() = None;
         self.winit_window.set_cursor(cursor);
         self.winit_window.set_cursor_visible(true);
     }
 
     fn apply_cursor(&self, event_loop: &ActiveEventLoop) {
-        match self.current_cursor.get() {
+        let mut failed_to_apply = false;
+        match &*self.current_cursor.borrow() {
             Cursor::Default => self.set_winit_window_cursor(CursorIcon::Default),
             Cursor::Pointer => self.set_winit_window_cursor(CursorIcon::Pointer),
             Cursor::ContextMenu => self.set_winit_window_cursor(CursorIcon::ContextMenu),
@@ -285,22 +283,22 @@ impl HeadedWindow {
                 self.winit_window.set_cursor_visible(false);
             },
             // For the url case, we can only set the winit cursor with the event loop
-            Cursor::Url(cursor_id) => {
-                let cached = self
-                    .current_custom_cursor
-                    .borrow()
-                    .as_ref()
-                    .filter(|(key, _)| *key == cursor_id)
-                    .map(|(_, cursor)| cursor.clone());
-                if let Some(cursor) = cached {
-                    return self.set_winit_window_cursor(cursor);
+            Cursor::Url(custom_cursor) => {
+                let custom_cursor_url = custom_cursor.get_url();
+                {
+                    let current_custom_cursor = self.current_custom_cursor.borrow();
+                    let cached = current_custom_cursor
+                        .as_ref()
+                        .filter(|(key, _)| key == custom_cursor_url)
+                        .map(|(_, cursor)| cursor);
+                    if let Some(cursor) = cached {
+                        return self.set_winit_window_cursor(cursor.clone());
+                    }
                 }
-                let cursor_images = self.cursor_images.borrow();
-                let Some(image) = cursor_images.get(&cursor_id) else {
-                    return self.reset_cursor();
-                };
-                let hotspot = image.get_hotspot().unwrap_or(DevicePoint::default());
-                let cursor_image = image.get_image();
+                let hotspot = custom_cursor
+                    .get_hotspot()
+                    .unwrap_or(DevicePoint::default());
+                let cursor_image = custom_cursor.get_image();
                 match CustomCursor::from_rgba(
                     cursor_image.data(),
                     cursor_image.width as u16,
@@ -311,16 +309,19 @@ impl HeadedWindow {
                     Ok(source) => {
                         let cursor = event_loop.create_custom_cursor(source);
                         *self.current_custom_cursor.borrow_mut() =
-                            Some((cursor_id, cursor.clone()));
+                            Some((custom_cursor_url.clone(), cursor.clone()));
                         self.set_winit_window_cursor(cursor);
                     },
                     Err(e) => {
                         debug!("Error reading image data for custom cursor image: {e}");
-                        self.reset_cursor();
+                        failed_to_apply = true;
                     },
                 }
             },
         };
+        if failed_to_apply {
+            self.reset_cursor();
+        }
     }
 
     fn handle_keyboard_input(
@@ -1045,14 +1046,8 @@ impl PlatformWindow for HeadedWindow {
         self.fullscreen.get()
     }
 
-    fn register_custom_cursor_image(&self, cursor_id: CursorId, cursor_image: CustomCursorImage) {
-        self.cursor_images
-            .borrow_mut()
-            .insert(cursor_id, cursor_image);
-    }
-
     fn set_cursor(&self, cursor: Cursor) {
-        self.current_cursor.set(cursor);
+        *self.current_cursor.borrow_mut() = cursor;
         self.winit_window.request_redraw();
     }
 

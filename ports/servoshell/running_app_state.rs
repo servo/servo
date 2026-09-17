@@ -30,12 +30,12 @@ use log::{error, info, warn};
 use servo::GamepadIndex;
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, CSSPixel,
-    ConsoleLogLevel, CreateNewWebViewRequest, CursorId, CustomCursorImage, DeviceIntPoint,
-    DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker, GenericSender, InputEvent,
-    InputEventId, InputEventResult, JSValue, LoadStatus, MediaSessionEvent, PermissionRequest,
-    PrefValue, Preferences, ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId,
-    UserContentManager, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate, WebViewId,
+    ConsoleLogLevel, CreateNewWebViewRequest, DeviceIntPoint, DeviceIntSize, EmbedderControl,
+    EmbedderControlId, EventLoopWaker, GenericSender, InputEvent, InputEventId, InputEventResult,
+    JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, Preferences,
+    ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId, UserContentManager,
+    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
+    WebDriverSenders, WebView, WebViewDelegate, WebViewId,
 };
 use url::Url;
 
@@ -790,16 +790,6 @@ impl WebViewDelegate for RunningAppState {
             .notify_input_event_handled(&webview, id, result);
 
         self.pending_webdriver_events.borrow_mut().remove(&id);
-    }
-
-    fn notify_custom_cursor_changed(
-        &self,
-        webview: WebView,
-        cursor_id: CursorId,
-        cursor_image: CustomCursorImage,
-    ) {
-        self.platform_window_for_webview(&webview)
-            .register_custom_cursor_image(cursor_id, cursor_image);
     }
 
     fn notify_cursor_changed(&self, webview: WebView, cursor: servo::Cursor) {

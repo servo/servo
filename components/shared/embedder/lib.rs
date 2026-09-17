@@ -19,6 +19,7 @@ use std::ffi::c_void;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::hash::Hash;
 use std::ops::Range;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use accesskit::TreeUpdate;
@@ -202,11 +203,89 @@ pub struct CursorMetadata {
     pub hotspot: Option<DevicePoint>,
 }
 
+/// A cursor image fetched from a URL.
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
+pub struct CustomCursorImage {
+    image: Rc<Image>,
+    metadata: CursorMetadata,
+}
+
+impl CustomCursorImage {
+    pub fn new(image: Image, metadata: CursorMetadata) -> CustomCursorImage {
+        CustomCursorImage {
+            image: Rc::new(image),
+            metadata,
+        }
+    }
+
+    pub fn get_image(&self) -> &Image {
+        &self.image
+    }
+
+    pub fn get_url(&self) -> &Url {
+        &self.metadata.url
+    }
+
+    pub fn get_hotspot(&self) -> &Option<DevicePoint> {
+        &self.metadata.hotspot
+    }
+
+    pub fn set_hotspot(&mut self, hotspot: Option<DevicePoint>) {
+        self.metadata.hotspot = hotspot;
+    }
+}
+
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
+pub enum Cursor {
+    None,
+    Default,
+    Pointer,
+    ContextMenu,
+    Help,
+    Progress,
+    Wait,
+    Cell,
+    Crosshair,
+    Text,
+    VerticalText,
+    Alias,
+    Copy,
+    Move,
+    NoDrop,
+    NotAllowed,
+    Grab,
+    Grabbing,
+    EResize,
+    NResize,
+    NeResize,
+    NwResize,
+    SResize,
+    SeResize,
+    SwResize,
+    WResize,
+    EwResize,
+    NsResize,
+    NeswResize,
+    NwseResize,
+    ColResize,
+    RowResize,
+    AllScroll,
+    ZoomIn,
+    ZoomOut,
+    Url(CustomCursorImage),
+}
+
+impl Default for Cursor {
+    fn default() -> Self {
+        Cursor::Default
+    }
+}
+
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub enum Cursor {
+pub enum CursorInternal {
     None,
     #[default]
     Default,
@@ -402,7 +481,7 @@ pub enum PixelFormat {
 }
 
 /// A raster image buffer.
-#[derive(Clone, Deserialize, Serialize, MallocSizeOf)]
+#[derive(Clone, Deserialize, PartialEq, Serialize, MallocSizeOf)]
 pub struct Image {
     pub width: u32,
     pub height: u32,
@@ -510,7 +589,7 @@ pub enum EmbedderMsg {
     /// Register a new cursor image in the embedder
     RegisterCursor(WebViewId, CursorId, Image, CursorMetadata),
     /// Changes the cursor.
-    SetCursor(WebViewId, Cursor),
+    SetCursor(WebViewId, CursorInternal),
     /// Update the cursor image's metadata
     UpdateCursorMetadata(WebViewId, CursorId, CursorMetadata),
     /// A favicon was detected

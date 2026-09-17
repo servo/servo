@@ -10,7 +10,7 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use embedder_traits::{
-    Cursor, CursorMetadata, EmbedderMsg, ImeEvent, InputEvent, InputEventId,
+    CursorInternal, CursorMetadata, EmbedderMsg, ImeEvent, InputEvent, InputEventId,
     InputEventOutcome, InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent,
     TouchEventType, TouchId, TouchPointerType, UntrustedNodeAddress,
@@ -203,7 +203,7 @@ pub(crate) struct DocumentEventHandler {
     /// The currently set [`Cursor`] or `None` if the `Document` isn't being hovered
     /// by the cursor.
     #[no_trace]
-    current_cursor: Cell<Option<Cursor>>,
+    current_cursor: Cell<Option<CursorInternal>>,
     /// Registry of decoded cursor images. This is populated on demand when the user
     /// hovers over an item that has uses a custom cursor image.
     /// The insertion order generates the CursorId.
@@ -467,7 +467,7 @@ impl DocumentEventHandler {
         }
     }
 
-    pub(crate) fn set_cursor(&self, cursor: Option<Cursor>) {
+    pub(crate) fn set_cursor(&self, cursor: Option<CursorInternal>) {
         if cursor == self.current_cursor.get() {
             return;
         }
@@ -482,7 +482,7 @@ impl DocumentEventHandler {
         &self,
         hit_test_item_node: &Node,
         hit_test_item: &HitTestResultItem,
-    ) -> Cursor {
+    ) -> CursorInternal {
         // Process cursor images, looking for the first one that is in the registry, fallback to
         // querying from the image cache
         hit_test_item
@@ -525,7 +525,7 @@ impl DocumentEventHandler {
                                 cursor_metadata,
                             ));
                     }
-                    return Some(Cursor::Url(CursorId::new(cursor_id)));
+                    return Some(CursorInternal::Url(CursorId::new(cursor_id)));
                 }
 
                 self.handle_cursor_url(hit_test_item_node, url, cursor_metadata)
@@ -538,7 +538,7 @@ impl DocumentEventHandler {
         node: &Node,
         url: &Url,
         cursor_metadata: CursorMetadata,
-    ) -> Option<Cursor> {
+    ) -> Option<CursorInternal> {
         let cache_result = self.window.image_cache().get_cached_image_status(
             ServoUrl::from_url((*url).clone()),
             self.window.origin().immutable().clone(),
@@ -613,9 +613,9 @@ impl DocumentEventHandler {
         node: &Node,
         image: Image,
         cursor_metadata: CursorMetadata,
-    ) -> Option<Cursor> {
+    ) -> Option<CursorInternal> {
         let send_rasterized_cursor_image_to_embedder =
-            |raster_image: &pixels::RasterImage| -> Cursor {
+            |raster_image: &pixels::RasterImage| -> CursorInternal {
                 let cursor_metadata = cursor_metadata.clone();
                 let frame = raster_image.first_frame();
                 let format = match raster_image.format {
@@ -644,7 +644,7 @@ impl DocumentEventHandler {
                     embedder_image,
                     cursor_metadata,
                 ));
-                Cursor::Url(cursor_id)
+                CursorInternal::Url(cursor_id)
             };
         match image {
             Image::Raster(raster_image) => {
