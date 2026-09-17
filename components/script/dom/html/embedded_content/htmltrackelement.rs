@@ -14,7 +14,8 @@ use net_traits::request::RequestId;
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
-use servo_webvtt::{IncrementalWebVTTParser, WebVttCue, WebVttParserSink};
+use servo_webvtt::cue::settings::WebVttCue;
+use servo_webvtt::{IncrementalWebVTTParser, WebVttParserSink};
 
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTrackElementBinding::{

@@ -3,29 +3,39 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use html5ever::local_name;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_proto;
-use servo_webvtt::{
+use servo_webvtt::cue::settings::{
     WebVttCue, WebVttCueSize, WebVttLineAlignment, WebVttLineAndPositionSetting,
     WebVttPositionAlignment, WebVttSnapToLines, WebVttTextAlignment, WebVttWritingDirection,
 };
+use servo_webvtt::cue::text::{
+    WebVTTNodeObject, WebVTTNodeObjectIterable, WebVTTNodeObjectIteratorDirection,
+    WebVTTNodeObjectKind, webvtt_cue_text_parsing_rules,
+};
 
 use crate::conversions::Convert;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::VTTCueBinding::{
     self, AlignSetting, AutoKeyword, DirectionSetting, LineAlignSetting, PositionAlignSetting,
     VTTCueMethods,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::node::Node;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::vttregion::VTTRegion;
@@ -143,6 +153,122 @@ impl VTTCue {
             vtt_cue.text_alignment.convert(),
             track,
         )
+    }
+
+    /// <https://w3c.github.io/webvtt/#dom-construction-rules>
+    fn webvtt_cue_text_dom_construction_rules(
+        &self,
+        cx: &mut JSContext,
+        root_object: Rc<WebVTTNodeObject>,
+    ) -> DomRoot<DocumentFragment> {
+        assert!(root_object.kind == WebVTTNodeObjectKind::List);
+
+        let global = self.global();
+        let window = global.as_window();
+        // > The ownerDocument attribute of all nodes in the DOM
+        // > tree must be set to the given document owner.
+        let document = window.Document();
+        let root = DocumentFragment::new(cx, &document);
+        // > To convert a list of WebVTT Node Objects to a DOM tree for Document owner,
+        // > user agents must create a tree of DOM nodes that is isomorphous
+        // > to the tree of WebVTT Node Objects,
+        // > with the following mapping of WebVTT Node Objects to DOM nodes:
+        let mut current = DomRoot::upcast::<Node>(root.clone());
+        for node_traversal in root_object.into_iter() {
+            match node_traversal {
+                WebVTTNodeObjectIteratorDirection::NewChild(new_child) => {
+                    let new_tag_name = match &new_child.kind {
+                        WebVTTNodeObjectKind::Italic => "i",
+                        WebVTTNodeObjectKind::Bold => "b",
+                        WebVTTNodeObjectKind::Underline => "u",
+                        WebVTTNodeObjectKind::Ruby => "ruby",
+                        WebVTTNodeObjectKind::RubyText => "rt",
+                        WebVTTNodeObjectKind::Class |
+                        WebVTTNodeObjectKind::Voice(_) |
+                        WebVTTNodeObjectKind::Language => "span",
+                        WebVTTNodeObjectKind::Text(text) => {
+                            // > Text node whose data is the value of the WebVTT Text Object.
+                            let text = document.CreateTextNode(cx, DOMString::from(text.as_ref()));
+                            current
+                                .AppendChild(cx, text.upcast())
+                                .expect("Must always be able to append");
+                            continue;
+                        },
+                        WebVTTNodeObjectKind::Timestamp(timestamp) => {
+                            // > ProcessingInstruction node whose target is "timestamp"
+                            // > and whose data is a WebVTT timestamp representing the
+                            // > value of the WebVTT Timestamp Object,
+                            // > with all optional components included,
+                            // > with one leading zero if the hours component is less than ten,
+                            // > and with no leading zeros otherwise.
+                            let new_child = document
+                                .CreateProcessingInstruction(
+                                    cx,
+                                    DOMString::from_static("timestamp"),
+                                    format!("{timestamp}").into(),
+                                )
+                                .expect("Must always be able to create processing instruction");
+                            current
+                                .AppendChild(cx, new_child.upcast())
+                                .expect("Must always be able to append");
+                            current = DomRoot::upcast(new_child);
+                            continue;
+                        },
+                        WebVTTNodeObjectKind::List => {
+                            let new_child = document.CreateDocumentFragment(cx);
+                            current
+                                .AppendChild(cx, new_child.upcast())
+                                .expect("Must always be able to append");
+                            current = DomRoot::upcast(new_child);
+                            continue;
+                        },
+                    };
+                    let new_child_element = document.create_element(cx, new_tag_name);
+                    match &new_child.kind {
+                        WebVTTNodeObjectKind::Language => {
+                            // > HTML span element with a lang attribute set to
+                            // > the WebVTT Language Object’s applicable language.
+                            new_child_element.set_attribute(
+                                cx,
+                                &local_name!("lang"),
+                                new_child.applicable_language.clone().into(),
+                            );
+                        },
+                        WebVTTNodeObjectKind::Voice(title) => {
+                            // > HTML span element with a title attribute set to
+                            // > the WebVTT Voice Object’s value.
+                            new_child_element.set_attribute(
+                                cx,
+                                &local_name!("title"),
+                                title.clone().into(),
+                            );
+                        },
+                        _ => {},
+                    }
+                    // > HTML elements created as part of the mapping described above must
+                    // > have their namespaceURI set to the HTML namespace,
+                    // > use the appropriate IDL interface as defined in the HTML specification,
+                    // > and, if the corresponding WebVTT Internal Node Object has any applicable classes,
+                    // > must have a class attribute set to the string obtained by concatenating all those classes,
+                    // > each separated from the next by a single U+0020 SPACE character.
+                    if !new_child.applicable_classes.is_empty() {
+                        new_child_element.set_attribute(
+                            cx,
+                            &local_name!("class"),
+                            new_child.applicable_classes.join("\u{0020}").into(),
+                        );
+                    }
+                    current
+                        .AppendChild(cx, new_child_element.upcast())
+                        .expect("Must always be able to append");
+                    current = DomRoot::upcast(new_child_element);
+                },
+                WebVTTNodeObjectIteratorDirection::BackToParent => {
+                    current = current.GetParentNode().expect("Must always have a parent");
+                },
+            }
+        }
+        root
     }
 }
 
@@ -317,11 +443,14 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-getcueashtml>
     fn GetCueAsHTML(&self, cx: &mut JSContext) -> DomRoot<DocumentFragment> {
-        // TODO: Implement this
-        let global = self.global();
-        let window = global.as_window();
-        let document = window.Document();
-        DocumentFragment::new(cx, &document)
+        // > The getCueAsHTML() method must convert the cue text to a DocumentFragment
+        // > for the responsible document specified by the entry settings object
+        // > by applying the WebVTT cue text DOM construction rules to the result
+        // > of applying the WebVTT cue text parsing rules to the cue text.
+        self.webvtt_cue_text_dom_construction_rules(
+            cx,
+            webvtt_cue_text_parsing_rules(&self.text.borrow().str(), None),
+        )
     }
 }
 

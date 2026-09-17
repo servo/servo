@@ -10,14 +10,11 @@ use html5ever::tendril::StrTendril;
 use markup5ever::small_char_set;
 
 mod collectors;
-mod cue;
+pub mod cue;
 
 use collectors::collect_webvtt_cue_timings_and_settings;
 
-pub use crate::cue::settings::{
-    WebVttCue, WebVttCueSize, WebVttLineAlignment, WebVttLineAndPositionSetting,
-    WebVttPositionAlignment, WebVttSnapToLines, WebVttTextAlignment, WebVttWritingDirection,
-};
+use crate::cue::settings::WebVttCue;
 
 #[derive(Debug, PartialEq)]
 pub enum WebVttParserError {
