@@ -2004,7 +2004,9 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
 
         // Step 5. Let actions by tick be the result of trying to extract an action sequence
-        let actions_by_tick = self.extract_an_action_sequence(parameters.actions);
+        let actions_by_tick = self
+            .extract_an_action_sequence(parameters.actions)
+            .map_err(|error| WebDriverError::new(error, ""))?;
 
         // Step 6. Dispatch actions with current browsing context
         match self.dispatch_actions(actions_by_tick, browsing_context) {
