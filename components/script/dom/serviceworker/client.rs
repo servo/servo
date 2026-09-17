@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use script_bindings::error::ErrorResult;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
@@ -127,15 +127,12 @@ impl ClientMethods<crate::DomTypeHolder> for Client {
         message: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
     ) -> ErrorResult {
-        let mut rooted = CustomAutoRooter::new(
+        auto_root!(&in(cx) let guard =
             options
                 .transfer
                 .iter()
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-                .collect(),
-        );
-        #[expect(unsafe_code)]
-        let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
+                .collect::<Vec<_>>());
         self.post_message_impl(cx, message, guard)
     }
 
