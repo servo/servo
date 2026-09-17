@@ -154,6 +154,12 @@ fn exceeds_maximum_safe_integer(value: u64) -> bool {
     value > MAXIMUM_SAFE_INTEGER
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-maximum-safe-integer>
+/// <https://262.ecma-international.org/6.0/#sec-number.max_safe_integer>
+fn outside_safe_integer_range(value: i64) -> bool {
+    value.unsigned_abs() > MAXIMUM_SAFE_INTEGER
+}
+
 fn compute_tick_duration(tick_actions: &TickActions) -> u64 {
     // Step 1. Let max duration be 0.
     // Step 2. For each action in tick actions:
@@ -1126,6 +1132,23 @@ impl Handler {
                 self.input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Wheel);
+                // <https://w3c.github.io/webdriver/#dfn-process-a-wheel-action>
+                for action in &wheel_actions {
+                    let is_invalid = match action {
+                        WheelActionItem::General(GeneralAction::Pause(action)) => {
+                            action.duration.is_some_and(exceeds_maximum_safe_integer)
+                        },
+                        WheelActionItem::Wheel(WheelAction::Scroll(action)) => {
+                            action.x.is_some_and(outside_safe_integer_range) ||
+                                action.y.is_some_and(outside_safe_integer_range) ||
+                                action.deltaX.is_some_and(outside_safe_integer_range) ||
+                                action.deltaY.is_some_and(outside_safe_integer_range)
+                        },
+                    };
+                    if is_invalid {
+                        return Err(ErrorStatus::InvalidArgument);
+                    }
+                }
                 Ok(wheel_actions.into_iter().map(ActionItem::Wheel).collect())
             },
         }
