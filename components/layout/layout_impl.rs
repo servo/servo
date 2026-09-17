@@ -1815,7 +1815,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
 
         let Some(first_font_metrics) = font_group
             .first(font_context)
-            .map(|font| font.metrics.clone())
+            .map(|font| font.metrics().clone())
         else {
             return Default::default();
         };
@@ -1831,7 +1831,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .or_else(|| {
                 font_group
                     .find_by_codepoint(font_context, '0', None, Language::UNKNOWN)?
-                    .metrics
+                    .metrics()
                     .zero_horizontal_advance
             })
             .map(CSSPixelLength::from);
@@ -1841,7 +1841,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .or_else(|| {
                 font_group
                     .find_by_codepoint(font_context, '\u{6C34}', None, Language::UNKNOWN)?
-                    .metrics
+                    .metrics()
                     .ic_horizontal_advance
             })
             .map(CSSPixelLength::from);

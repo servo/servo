@@ -368,6 +368,7 @@ impl FontContext {
             font_descriptor,
             self.get_font_data(&font_template.identifier()),
             synthesized_small_caps,
+            true,
         )?)))
     }
 

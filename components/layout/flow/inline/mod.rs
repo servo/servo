@@ -1659,7 +1659,7 @@ impl InlineFormattingContextLayout<'_> {
         // If the metrics of this font don't match the default font, we are likely using another
         // font from the font list or a fallback and should incorporate its block size into the block
         // size of the container.
-        let font_metrics = &info.font_info.font.metrics;
+        let font_metrics = info.font_info.font.metrics();
         if current_inline_container_state
             .font_metrics
             .block_metrics_meaningfully_differ(font_metrics)
@@ -2316,7 +2316,7 @@ impl InlineFormattingContext {
 
             // Each "space" character in the tab is considered both a letter and a word separator for
             // the purposes of applying word spacing and letter spacing.
-            font.metrics.space_advance + word_spacing + letter_spacing
+            font.metrics().space_advance + word_spacing + letter_spacing
         });
 
         let tab_stop_advance = match style.get_inherited_text().tab_size {
@@ -2337,9 +2337,9 @@ impl InlineFormattingContext {
         // > In the cases where it is impossible or impractical to determine the measure of the “0”
         // > glyph, it must be assumed to be 0.5em wide by 1em tall.
         let half_ch_advance = font
-            .metrics
+            .metrics()
             .zero_horizontal_advance
-            .unwrap_or(font.metrics.em_size.scale_by(0.5))
+            .unwrap_or(font.metrics().em_size.scale_by(0.5))
             .scale_by(0.5);
         let number_of_tab_stops =
             (current_inline_advance + half_ch_advance).to_f32_px() / tab_stop_advance.to_f32_px();
@@ -2357,7 +2357,7 @@ impl InlineContainerState {
     ) -> Self {
         let font_metrics = default_font
             .as_ref()
-            .map(|font| font.metrics.clone())
+            .map(|font| font.metrics().clone())
             .unwrap_or_else(FontMetrics::empty);
         let mut baseline_offset = Au::zero();
         let mut strut_block_sizes = {

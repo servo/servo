@@ -272,7 +272,7 @@ impl malloc_size_of::MallocSizeOf for CachedShapeData {
 pub struct Font {
     pub(crate) handle: PlatformFont,
     pub(crate) template: FontTemplateRef,
-    pub metrics: Arc<FontMetrics>,
+    pub metrics: OnceLock<Arc<FontMetrics>>,
     pub descriptor: FontDescriptor,
 
     /// The data for this font. And the index of the font within the data (in case it's a TTC)
@@ -328,7 +328,7 @@ impl malloc_size_of::MallocSizeOf for Font {
         // TODO: Collect memory usage for platform fonts and for shapers.
         // This skips the template, because they are already stored in the template cache.
 
-        self.metrics.size_of(ops) +
+        self.metrics().size_of(ops) +
             self.descriptor.size_of(ops) +
             self.cached_shape_data.read().size_of(ops) +
             self.font_instance_key
@@ -345,6 +345,7 @@ impl Font {
         descriptor: FontDescriptor,
         data: Option<FontData>,
         synthesized_small_caps: Option<FontRef>,
+        lazy_load: bool,
     ) -> Result<Font, &'static str> {
         let synthetic_bold = {
             let is_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD;
@@ -371,7 +372,11 @@ impl Font {
             handle
         };
 
-        let metrics = Arc::new(handle.metrics());
+        let metrics = if lazy_load {
+            OnceLock::new()
+        } else {
+            OnceLock::from(Arc::new(handle.metrics()))
+        };
 
         Ok(Font {
             handle,
@@ -394,6 +399,14 @@ impl Font {
     /// A unique identifier for the font, allowing comparison.
     pub fn identifier(&self) -> AtomicRef<'_, FontIdentifier> {
         self.template.identifier()
+    }
+
+    pub fn initialize_remaining_fields(&self) {
+        let _ = self.metrics.set(Arc::new(self.handle.metrics()));
+    }
+
+    pub fn metrics(&self) -> &Arc<FontMetrics> {
+        self.metrics.get_or_init(|| Arc::new(self.handle.metrics()))
     }
 
     pub(crate) fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
@@ -1014,8 +1027,19 @@ impl FontGroupFamilyTemplate {
         if !template_predicate(self.template.clone()) {
             return None;
         }
-        self.font(font_context, font_descriptor)
-            .filter(font_predicate)
+        let res = self
+            .font(font_context, font_descriptor)
+            .filter(font_predicate);
+
+        match res {
+            Some(fontref_res) => {
+                fontref_res.initialize_remaining_fields();
+                return Some(fontref_res);
+            },
+            None => {
+                return None;
+            },
+        }
     }
 }
 

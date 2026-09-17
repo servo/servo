@@ -1580,8 +1580,8 @@ impl CanvasState {
         let font_style = self.font_style();
         let font_group = font_context.font_group(font_style);
         let font = font_group.first(font_context).expect("couldn't find font");
-        let ascent = font.metrics.ascent.to_f64_px();
-        let descent = font.metrics.descent.to_f64_px();
+        let ascent = font.metrics().ascent.to_f64_px();
+        let descent = font.metrics().descent.to_f64_px();
         let runs = self.build_unshaped_text_runs(font_context, &text, &font_group);
 
         let mut total_advance = 0.0;
@@ -2406,7 +2406,7 @@ impl CanvasState {
 
         // > Step 7: Find the anchor point for the line of text.
         let start =
-            self.find_anchor_point_for_line_of_text(origin, &first_font.metrics, total_advance);
+            self.find_anchor_point_for_line_of_text(origin, &first_font.metrics(), total_advance);
 
         // > Step 8: Let result be an array constructed by iterating over each glyph in the inline box
         // > from left to right (if any), adding to the array, for each glyph, the shape of the glyph
