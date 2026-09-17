@@ -19,7 +19,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_wrap};
-use wgpu_core::naga::front::wgsl::ImplementedLanguageExtension;
+use webgpu_traits::ImplementedLanguageExtension;
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;

@@ -37,9 +37,10 @@ use script_bindings::reflector::{
 use script_bindings::traits::DomEventTrait;
 use script_bindings::{DomTypes, cformat, task};
 use stylo_atoms::atom;
-use webgpu_traits::{WebGPU, WebGPUDevice, WebGPUQueue, WebGPURequest};
-use wgpu_core::pipeline as wgpu_pipe;
-use wgpu_core::pipeline::RenderPipelineDescriptor;
+use webgpu_traits::{
+    FragmentState, RenderPipelineDescriptor, VertexBufferLayout, VertexState, WebGPU, WebGPUDevice,
+    WebGPUQueue, WebGPURequest,
+};
 use wgpu_types::{self, TextureFormat};
 
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
@@ -308,11 +309,11 @@ where
         descriptor: &GPURenderPipelineDescriptor<D>,
     ) -> Fallible<RenderPipelineDescriptor<'a>> {
         let pipeline_layout = self.get_pipeline_layout_data(&descriptor.parent.layout);
-        let desc = wgpu_pipe::RenderPipelineDescriptor {
+        let desc = RenderPipelineDescriptor {
             label: (&descriptor.parent.parent).convert(),
             layout: pipeline_layout.explicit(),
             cache: None,
-            vertex: wgpu_pipe::VertexState {
+            vertex: VertexState {
                 stage: (&descriptor.vertex.parent).convert(),
                 buffers: Cow::Owned(
                     descriptor
@@ -322,7 +323,7 @@ where
                         // FIXME: webidl has `sequence<GPUVertexBufferLayout?> buffers`
                         // but we get no option here so it must be eaten by codegen
                         .map(|buffer| {
-                            Some(wgpu_pipe::VertexBufferLayout {
+                            Some(VertexBufferLayout {
                                 array_stride: buffer.arrayStride,
                                 step_mode: match buffer.stepMode {
                                     GPUVertexStepMode::Vertex => wgpu_types::VertexStepMode::Vertex,
@@ -349,8 +350,8 @@ where
             fragment: descriptor
                 .fragment
                 .as_ref()
-                .map(|stage| -> Fallible<wgpu_pipe::FragmentState> {
-                    Ok(wgpu_pipe::FragmentState {
+                .map(|stage| -> Fallible<FragmentState> {
+                    Ok(FragmentState {
                         stage: (&stage.parent).convert(),
                         targets: Cow::Owned(
                             stage

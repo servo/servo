@@ -71,7 +71,6 @@ webgl = [
 webgpu = [
     "dep:script_webgpu",
     "dep:webgpu_traits",
-    "dep:wgpu-core",
     "dep:wgpu-types",
     "script_bindings/webgpu",
     "script_traits/webgpu",
@@ -218,7 +217,6 @@ webdriver = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, optional = true }
-wgpu-core = { workspace = true, optional = true }
 wgpu-types = { workspace = true, optional = true }
 x25519-dalek = { workspace = true, optional = true }
 x448 = { workspace = true, optional = true }

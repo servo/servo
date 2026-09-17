@@ -17,8 +17,10 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 use script_bindings::dom::MutNullableDom;
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
-use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
-use wgpu_core::resource::{self, TextureDescriptor};
+use webgpu_traits::{
+    TextureDescriptor, TextureViewDescriptor, WebGPU, WebGPURequest, WebGPUTexture,
+    WebGPUTextureView,
+};
 
 use crate::JSTraceable;
 use crate::dom::bindings::error::Fallible;
@@ -227,7 +229,7 @@ where
         let desc = if !matches!(descriptor.mipLevelCount, Some(0)) &&
             !matches!(descriptor.arrayLayerCount, Some(0))
         {
-            Some(resource::TextureViewDescriptor {
+            Some(TextureViewDescriptor {
                 label: (&descriptor.parent).convert(),
                 format: descriptor
                     .format

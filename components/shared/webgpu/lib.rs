@@ -14,16 +14,48 @@ use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{GenericOneshotSender, GenericSender, GenericSharedMemory};
 use webrender_api::euclid::default::Size2D;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
-use wgpu_core::device::HostMap;
-pub use wgpu_core::id::markers::{
-    ComputePassEncoder as ComputePass, RenderPassEncoder as RenderPass,
+pub mod markers {
+    pub use wgpu_core::id::markers::{
+        Adapter, BindGroup, BindGroupLayout, Buffer, CommandBuffer, CommandEncoder,
+        ComputePassEncoder as ComputePass, ComputePipeline, Device, ExternalTexture,
+        PipelineLayout, QuerySet, Queue, RenderBundle, RenderBundleEncoder,
+        RenderPassEncoder as RenderPass, RenderPipeline, Sampler, ShaderModule, Texture,
+        TextureView,
+    };
+}
+pub mod id {
+    pub use wgpu_core::id::{
+        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
+        ComputePassEncoderId as ComputePassId, ComputePipelineId, DeviceId, ExternalTextureId,
+        PipelineLayoutId, QuerySetId, QueueId, RenderBundleEncoderId, RenderBundleId,
+        RenderPassEncoderId as RenderPassId, RenderPipelineId, SamplerId, ShaderModuleId,
+        TextureId, TextureViewId,
+    };
+}
+pub use wgpu_core::binding_model::{
+    BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindingResource, BufferBinding,
+    PipelineLayoutDescriptor,
 };
-pub use wgpu_core::id::{
-    ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
+pub use wgpu_core::command::{
+    ComputePassDescriptor, LoadOp, PassChannel, PassTimestampWrites, RenderBundleEncoderDescriptor,
+    RenderPassColorAttachment, RenderPassDepthStencilAttachment, StoreOp, TexelCopyBufferInfo,
+    TexelCopyTextureInfo,
 };
+pub use wgpu_core::device::HostMap;
 use wgpu_core::id::{ComputePipelineId, DeviceId, QueueId, RenderPipelineId};
+pub use wgpu_core::identity::IdentityManager;
+pub use wgpu_core::instance::RequestAdapterOptions;
 use wgpu_core::limits::FailedLimit;
+pub use wgpu_core::naga::front::wgsl::ImplementedLanguageExtension;
 use wgpu_core::pipeline::CreateShaderModuleError;
+pub use wgpu_core::pipeline::{
+    ComputePipelineDescriptor, FragmentState, ProgrammableStageDescriptor,
+    RenderPipelineDescriptor, VertexBufferLayout, VertexState,
+};
+pub use wgpu_core::resource::{
+    BufferAccessError, QuerySetDescriptor, SamplerDescriptor, TextureDescriptor,
+    TextureViewDescriptor,
+};
 use wgpu_types::{AdapterInfo, COPY_BYTES_PER_ROW_ALIGNMENT, DeviceDescriptor, Features, Limits};
 
 pub use crate::error::*;

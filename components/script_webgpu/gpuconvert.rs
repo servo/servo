@@ -21,12 +21,12 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::codegen::GenericUnionTypes::GPUTextureOrGPUTextureView;
 use script_bindings::interfaces::PromiseHelpers;
-use webgpu_traits::WebGPUTextureView;
-use wgpu_core::binding_model::{BindGroupEntry, BindingResource, BufferBinding};
-use wgpu_core::command::{self as wgpu_com, ComputePassDescriptor, PassTimestampWrites};
-use wgpu_core::pipeline::ProgrammableStageDescriptor;
-use wgpu_core::resource::{QuerySetDescriptor, TextureDescriptor};
-use wgpu_types::{self, AstcBlock, AstcChannel, IndexFormat};
+use webgpu_traits::{
+    BindGroupEntry, BindingResource, BufferBinding, ComputePassDescriptor, LoadOp,
+    PassTimestampWrites, ProgrammableStageDescriptor, QuerySetDescriptor, StoreOp,
+    TexelCopyBufferInfo, TexelCopyTextureInfo, TextureDescriptor, WebGPUTextureView,
+};
+use wgpu_types::{AstcBlock, AstcChannel, IndexFormat};
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::traits::{Equivalence, WebGPUPromise};
@@ -482,18 +482,18 @@ impl WebGPUConvert<wgpu_types::BlendComponent> for &GPUBlendComponent {
     }
 }
 
-pub fn convert_load_op<T>(load: &GPULoadOp, clear: T) -> wgpu_com::LoadOp<T> {
+pub fn convert_load_op<T>(load: &GPULoadOp, clear: T) -> LoadOp<T> {
     match load {
-        GPULoadOp::Load => wgpu_com::LoadOp::Load,
-        GPULoadOp::Clear => wgpu_com::LoadOp::Clear(clear),
+        GPULoadOp::Load => LoadOp::Load,
+        GPULoadOp::Clear => LoadOp::Clear(clear),
     }
 }
 
-impl WebGPUConvert<wgpu_com::StoreOp> for &GPUStoreOp {
-    fn convert(self) -> wgpu_com::StoreOp {
+impl WebGPUConvert<StoreOp> for &GPUStoreOp {
+    fn convert(self) -> StoreOp {
         match self {
-            GPUStoreOp::Store => wgpu_com::StoreOp::Store,
-            GPUStoreOp::Discard => wgpu_com::StoreOp::Discard,
+            GPUStoreOp::Store => StoreOp::Store,
+            GPUStoreOp::Discard => StoreOp::Discard,
         }
     }
 }
@@ -513,13 +513,13 @@ impl WebGPUConvert<wgpu_types::StencilOperation> for GPUStencilOperation {
     }
 }
 
-impl<D> WebGPUConvert<wgpu_com::TexelCopyBufferInfo> for &GPUTexelCopyBufferInfo<D>
+impl<D> WebGPUConvert<TexelCopyBufferInfo> for &GPUTexelCopyBufferInfo<D>
 where
     D: Equivalence,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
-    fn convert(self) -> wgpu_com::TexelCopyBufferInfo {
-        wgpu_com::TexelCopyBufferInfo {
+    fn convert(self) -> TexelCopyBufferInfo {
+        TexelCopyBufferInfo {
             buffer: self.buffer.id().0,
             layout: self.parent.convert(),
         }
@@ -577,15 +577,15 @@ impl WebGPUTryConvert<wgpu_types::Origin2d> for &GPUOrigin2D {
     }
 }
 
-impl<D> WebGPUTryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUTexelCopyTextureInfo<D>
+impl<D> WebGPUTryConvert<TexelCopyTextureInfo> for &GPUTexelCopyTextureInfo<D>
 where
     D: Equivalence,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     type Error = Error;
 
-    fn try_convert(self) -> Result<wgpu_com::TexelCopyTextureInfo, Self::Error> {
-        Ok(wgpu_com::TexelCopyTextureInfo {
+    fn try_convert(self) -> Result<TexelCopyTextureInfo, Self::Error> {
+        Ok(TexelCopyTextureInfo {
             texture: self.texture.id().0,
             mip_level: self.mipLevel,
             origin: self

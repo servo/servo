@@ -16,8 +16,9 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
-use webgpu_traits::{WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest};
-use wgpu_core::binding_model::PipelineLayoutDescriptor;
+use webgpu_traits::{
+    PipelineLayoutDescriptor, WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest,
+};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;

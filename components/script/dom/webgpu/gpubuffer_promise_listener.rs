@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use webgpu_traits::Mapping;
-use wgpu_core::resource::BufferAccessError;
+use webgpu_traits::{BufferAccessError, Mapping};
 
 use crate::dom::promise::RootedPromise;
 use crate::dom::types::GPUBuffer;

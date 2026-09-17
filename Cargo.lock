@@ -9357,7 +9357,6 @@ dependencies = [
  "web_atoms",
  "webdriver",
  "webrender_api",
- "wgpu-core 30.0.1",
  "wgpu-types 30.0.0",
  "x25519-dalek",
  "x448",
@@ -9470,7 +9469,6 @@ dependencies = [
  "servo-webgpu-traits",
  "stylo_atoms",
  "trait-set",
- "wgpu-core 30.0.1",
  "wgpu-types 30.0.0",
 ]
 

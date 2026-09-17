@@ -43,17 +43,11 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
             // 1. If features are not supported reject promise with a TypeError.
             (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error(
                 cx,
-                Error::Type(cformat!(
-                    "{}",
-                    wgpu_core::instance::RequestDeviceError::UnsupportedFeature(f)
-                )),
+                Error::Type(cformat!("Unsupported features were requested: {}", f)),
             ),
             // 2. If limits are not supported reject promise with an OperationError.
             (_, _, Err(RequestDeviceError::LimitsExceeded(l))) => {
-                warn!(
-                    "{}",
-                    wgpu_core::instance::RequestDeviceError::LimitsExceeded(l)
-                );
+                warn!("{}", l);
                 promise.reject_error(
                     cx,
                     Error::Operation(Some("WebGPU Device Limit exceeded".to_string())),

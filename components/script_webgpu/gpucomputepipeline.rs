@@ -15,10 +15,9 @@ use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use servo_base::generic_channel::GenericCallback;
 use webgpu_traits::{
-    WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPUComputePipelineResponse,
-    WebGPURequest,
+    ComputePipelineDescriptor, WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline,
+    WebGPUComputePipelineResponse, WebGPURequest,
 };
-use wgpu_core::pipeline::ComputePipelineDescriptor;
 
 use crate::JSTraceable;
 use crate::dom::bindings::error::Fallible;
