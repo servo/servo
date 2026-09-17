@@ -4,16 +4,15 @@
 
 use std::collections::HashMap;
 use std::iter::FromIterator;
-use std::ptr::NonNull;
 
 use js::context::JSContext;
-use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::str::DOMString;
 use servo_canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 type GLenum = u32;
 
+use js::rust::MutableHandleObject;
 use script_bindings::cell::DomRefCell;
 
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
@@ -235,15 +234,14 @@ impl WebGLExtensions {
         cx: &mut JSContext,
         name: &DOMString,
         ctx: &WebGLRenderingContext,
-    ) -> Option<NonNull<JSObject>> {
+        rval: MutableHandleObject,
+    ) {
         let name = name.to_uppercase();
-        self.extensions.borrow().get(&name).and_then(|extension| {
-            if extension.is_supported(self) {
-                Some(extension.instance_or_init(cx, ctx, self))
-            } else {
-                None
-            }
-        })
+        let extensions = self.extensions.borrow();
+        let Some(extension) = extensions.get(&name) else {
+            return;
+        };
+        extension.instance_or_init(cx, ctx, self, rval);
     }
 
     pub(crate) fn is_enabled<T>(&self) -> bool
