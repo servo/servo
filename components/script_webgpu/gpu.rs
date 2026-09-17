@@ -18,6 +18,7 @@ use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
 use servo_constellation_traits::ScriptToConstellationMessage;
+use webgpu_traits::RequestAdapterOptions;
 use wgpu_types::PowerPreference;
 
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
@@ -102,7 +103,7 @@ where
         if script_to_constellation_chan
             .send(ScriptToConstellationMessage::RequestAdapter(
                 callback,
-                wgpu_core::instance::RequestAdapterOptions {
+                RequestAdapterOptions {
                     power_preference,
                     compatible_surface: None,
                     force_fallback_adapter: options.forceFallbackAdapter,

@@ -15,8 +15,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
-use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
-use wgpu_core::resource::SamplerDescriptor;
+use webgpu_traits::{SamplerDescriptor, WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;

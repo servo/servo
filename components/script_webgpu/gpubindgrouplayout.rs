@@ -17,8 +17,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
-use webgpu_traits::{WebGPU, WebGPUBindGroupLayout, WebGPURequest};
-use wgpu_core::binding_model::BindGroupLayoutDescriptor;
+use webgpu_traits::{BindGroupLayoutDescriptor, WebGPU, WebGPUBindGroupLayout, WebGPURequest};
 
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;

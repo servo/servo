@@ -22,10 +22,10 @@ use serde_core::Serialize;
 use servo_base::generic_channel::GenericCallback;
 use servo_url::MutableOrigin;
 use webgpu_traits::{
-    Mapping, ShaderCompilationInfo, WebGPUAdapterResponse, WebGPUComputePipelineResponse,
-    WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
+    BufferAccessError, Mapping, ShaderCompilationInfo, WebGPUAdapterResponse,
+    WebGPUComputePipelineResponse, WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse,
+    WebGPURenderPipelineResponse,
 };
-use wgpu_core::resource::BufferAccessError;
 
 use crate::gpu::GPU;
 use crate::gpuadapter::GPUAdapter;

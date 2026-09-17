@@ -22,8 +22,7 @@ use script_bindings::interfaces::{PromiseHelpers, StackRootPromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
-use webgpu_traits::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
-use wgpu_core::device::HostMap;
+use webgpu_traits::{HostMap, Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
 
 use crate::datablock::DataBlock;
 use crate::dom::bindings::root::{Dom, DomRoot};
