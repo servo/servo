@@ -27,6 +27,7 @@ use read_fonts::tables::name::Name as NameTable;
 use read_fonts::tables::os2::{Os2, SelectionFlags};
 use read_fonts::types::Tag;
 use read_fonts::{FontRead, ReadError};
+use resvg::tiny_skia;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PainterId;
@@ -168,6 +169,12 @@ pub trait PlatformFontMethods: Sized {
     fn table_for_tag(&self, _: Tag) -> Option<FontTable>;
     fn typographic_bounds(&self, _: GlyphId) -> Rect<f32>;
 
+    /// The outline of a glyph in em units with the y axis pointing down, or `None` if the
+    /// glyph has no outline or the platform does not provide outlines.
+    fn glyph_outline(&self, _: GlyphId) -> Option<tiny_skia::Path> {
+        None
+    }
+
     /// Get the necessary [`FontInstanceFlags`]` for this font.
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
 
@@ -281,6 +288,7 @@ pub struct Font {
 
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
+    glyph_outlines: RwLock<FxHashMap<GlyphId, Option<Arc<tiny_skia::Path>>>>,
     font_instance_key: RwLock<FxHashMap<PainterId, FontInstanceKey>>,
 
     /// If this is a synthesized small caps font, then this font reference is for
@@ -331,6 +339,12 @@ impl malloc_size_of::MallocSizeOf for Font {
         self.metrics.size_of(ops) +
             self.descriptor.size_of(ops) +
             self.cached_shape_data.read().size_of(ops) +
+            self.glyph_outlines
+                .read()
+                .values()
+                .flatten()
+                .map(|path| (**path).size_of(ops))
+                .sum::<usize>() +
             self.font_instance_key
                 .read()
                 .values()
@@ -383,6 +397,7 @@ impl Font {
                 .unwrap_or_default(),
             shaper: OnceLock::new(),
             cached_shape_data: Default::default(),
+            glyph_outlines: Default::default(),
             font_instance_key: Default::default(),
             synthesized_small_caps,
             has_color_bitmap_or_colr_table: OnceLock::new(),
@@ -436,6 +451,16 @@ impl Font {
 
     pub(crate) fn variations(&self) -> &[FontVariation] {
         self.handle.variations()
+    }
+
+    /// The outline of a glyph in em units
+    pub fn glyph_outline(&self, glyph_id: GlyphId) -> Option<Arc<tiny_skia::Path>> {
+        if let Some(path) = self.glyph_outlines.read().get(&glyph_id) {
+            return path.clone();
+        }
+        let path = self.handle.glyph_outline(glyph_id).map(Arc::new);
+        self.glyph_outlines.write().insert(glyph_id, path.clone());
+        path
     }
 }
 
