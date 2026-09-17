@@ -148,6 +148,12 @@ fn touch_pointer_type_for(subtype: PointerType) -> TouchPointerType {
     }
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-maximum-safe-integer>
+/// <https://262.ecma-international.org/6.0/#sec-number.max_safe_integer>
+fn exceeds_maximum_safe_integer(value: u64) -> bool {
+    value > MAXIMUM_SAFE_INTEGER
+}
+
 fn compute_tick_duration(tick_actions: &TickActions) -> u64 {
     // Step 1. Let max duration be 0.
     // Step 2. For each action in tick actions:
@@ -1018,7 +1024,7 @@ impl Handler {
     pub(crate) fn extract_an_action_sequence(
         &mut self,
         actions: Vec<ActionSequence>,
-    ) -> ActionsByTick {
+    ) -> Result<ActionsByTick, ErrorStatus> {
         // Step 3. Let "actions by tick" be an empty list.
         let mut actions_by_tick: ActionsByTick = Vec::new();
 
@@ -1027,7 +1033,7 @@ impl Handler {
             let id = action_sequence.id.clone();
             // Step 4.1. Let "source actions" be the result of trying to process an input source action sequence
             // given "action sequence".
-            let source_actions = self.process_an_input_source_action_sequence(action_sequence);
+            let source_actions = self.process_an_input_source_action_sequence(action_sequence)?;
 
             // Step 4.2.2. Ensure we have enough ticks to hold all actions.
             if actions_by_tick.len() < source_actions.len() {
@@ -1041,14 +1047,14 @@ impl Handler {
             }
         }
 
-        actions_by_tick
+        Ok(actions_by_tick)
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-process-an-input-source-action-sequence>
     fn process_an_input_source_action_sequence(
         &mut self,
         action_sequence: ActionSequence,
-    ) -> Vec<ActionItem> {
+    ) -> Result<Vec<ActionItem>, ErrorStatus> {
         // Step 2. Let id be the value of the id property of action sequence.
         let id = action_sequence.id;
         match action_sequence.actions {
@@ -1058,7 +1064,7 @@ impl Handler {
                 self.input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Null);
-                null_actions.into_iter().map(ActionItem::Null).collect()
+                Ok(null_actions.into_iter().map(ActionItem::Null).collect())
             },
             ActionsType::Key {
                 actions: key_actions,
@@ -1066,7 +1072,7 @@ impl Handler {
                 self.input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Key(KeyInputState::new()));
-                key_actions.into_iter().map(ActionItem::Key).collect()
+                Ok(key_actions.into_iter().map(ActionItem::Key).collect())
             },
             ActionsType::Pointer {
                 parameters,
@@ -1083,10 +1089,36 @@ impl Handler {
                         0.0,
                         0.0,
                     )));
-                pointer_actions
+                // <https://w3c.github.io/webdriver/#dfn-process-a-pointer-action>
+                for action in &pointer_actions {
+                    let is_invalid = match action {
+                        PointerActionItem::General(GeneralAction::Pause(action)) => {
+                            action.duration.is_some_and(exceeds_maximum_safe_integer)
+                        },
+                        PointerActionItem::Pointer(PointerAction::Down(action)) => {
+                            exceeds_maximum_safe_integer(action.button) ||
+                                action.width.is_some_and(exceeds_maximum_safe_integer) ||
+                                action.height.is_some_and(exceeds_maximum_safe_integer)
+                        },
+                        PointerActionItem::Pointer(PointerAction::Up(action)) => {
+                            exceeds_maximum_safe_integer(action.button) ||
+                                action.width.is_some_and(exceeds_maximum_safe_integer) ||
+                                action.height.is_some_and(exceeds_maximum_safe_integer)
+                        },
+                        PointerActionItem::Pointer(PointerAction::Move(action)) => {
+                            action.width.is_some_and(exceeds_maximum_safe_integer) ||
+                                action.height.is_some_and(exceeds_maximum_safe_integer)
+                        },
+                        PointerActionItem::Pointer(PointerAction::Cancel) => false,
+                    };
+                    if is_invalid {
+                        return Err(ErrorStatus::InvalidArgument);
+                    }
+                }
+                Ok(pointer_actions
                     .into_iter()
                     .map(ActionItem::Pointer)
-                    .collect()
+                    .collect())
             },
             ActionsType::Wheel {
                 actions: wheel_actions,
@@ -1094,7 +1126,7 @@ impl Handler {
                 self.input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Wheel);
-                wheel_actions.into_iter().map(ActionItem::Wheel).collect()
+                Ok(wheel_actions.into_iter().map(ActionItem::Wheel).collect())
             },
         }
     }
