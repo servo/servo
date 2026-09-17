@@ -185,9 +185,7 @@ pub enum ScriptThreadMessage {
     /// Notifies script thread of a change to one of its document's activity
     SetDocumentActivity(PipelineId, DocumentActivity),
     /// Set whether to use less resources by running timers at a heavily limited rate.
-    SetThrottled(WebViewId, PipelineId, bool),
-    /// Notify the containing iframe (in PipelineId) that the nested browsing context (BrowsingContextId) is throttled.
-    SetThrottledInContainingIframe(WebViewId, PipelineId, BrowsingContextId, bool),
+    SetThrottled(PipelineId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
     NavigateIframe(

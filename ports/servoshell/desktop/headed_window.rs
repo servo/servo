@@ -54,7 +54,7 @@ use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{
     LINE_HEIGHT, LINE_WIDTH, MIN_WINDOW_INNER_SIZE, PlatformWindow, ServoShellWindow,
-    ServoShellWindowId,
+    ServoShellWindowId, TopLevelWebViewCreationRequest,
 };
 
 pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
@@ -423,10 +423,11 @@ impl HeadedWindow {
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
+                let url = Url::parse("servo:newtab")
+                    .expect("Should be able to unconditionally parse 'servo:newtab' as URL");
                 window.create_and_activate_toplevel_webview(
                     state.clone(),
-                    Url::parse("servo:newtab")
-                        .expect("Should be able to unconditionally parse 'servo:newtab' as URL"),
+                    TopLevelWebViewCreationRequest::WithUrl(url),
                 );
             })
             .shortcut(CMD_OR_CONTROL, 'Q', || state.schedule_exit())
