@@ -26,7 +26,7 @@ use script_bindings::codegen::GenericUnionTypes::{
     RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict as GPUExtent3D,
 };
 use script_bindings::error::{Error, Fallible};
-use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
 use servo_base::generic_channel::GenericSharedMemory;
@@ -41,8 +41,8 @@ use crate::gpuconvert::{WebGPUConvert, WebGPUTryConvert};
 use crate::gpudevice::GPUDevice;
 use crate::traits::{
     Equivalence, HtmlCanvasElementTrait, HtmlImageElementTrait, ImageBitmapTrait, ImageDataTrait,
-    OffscreenCanvasTrait, OriginIsCleanTrait, WebGPUGlobalTrait, WebGPUHTMLVideoTrait,
-    WebGPUPromise, WebGPUPromiseCallbackTrait, WebGPURootedPromiseTrait,
+    OffscreenCanvasTrait, OriginIsCleanTrait, WebGPUHTMLVideoTrait, WebGPUPromise,
+    WebGPUPromiseCallbackTrait, WebGPURootedPromiseTrait,
 };
 
 #[dom_struct]

@@ -14,9 +14,8 @@ use script_bindings::callback::CallbackContainer;
 use script_bindings::conversions::DerivedFrom;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::inheritance::Castable;
-use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, DomObject};
-use script_bindings::root::DomRoot;
 use script_bindings::tasks::TaskOnce;
 use script_bindings::traits::DomEventTrait;
 use serde_core::Serialize;
@@ -130,7 +129,7 @@ pub trait Equivalence = DomTypes<
         // Other bounds
         HTMLVideoElement: WebGPUHTMLVideoTrait<Self>,
         // General Bounds
-        GlobalScope: WebGPUGlobalTrait,
+        GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<Self>,
         Promise: PromiseHelpers<Self> + WebGPUTracedPromiseTrait<Self> + PartialEq,
         Event: DomEventTrait<Self>,
         EventTarget: EventTargetTrait<Self>>;
@@ -168,8 +167,6 @@ pub trait WebGPUTracedPromiseTrait<D: DomTypes> {
 pub trait WebGPUGlobalTrait: Sized + DomObject {
     fn global_wgpu_id_hub(&self) -> Arc<IdentityHub>;
     fn queue_webgpu_task_source(&self, task: impl TaskOnce + 'static);
-    fn entry() -> DomRoot<Self>;
-    fn origin(&self) -> MutableOrigin;
 }
 
 #[expect(clippy::type_complexity)]

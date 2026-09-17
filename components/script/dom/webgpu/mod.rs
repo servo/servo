@@ -14,7 +14,6 @@ use script_bindings::callback::CallbackContainer;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, DomObject};
-use script_bindings::root::DomRoot;
 use script_webgpu::traits::{
     EventTargetTrait, HtmlCanvasElementTrait, HtmlImageElementTrait, ImageBitmapTrait,
     ImageDataTrait, OffscreenCanvasTrait, OriginIsCleanTrait, WebGPUGlobalTrait,
@@ -232,14 +231,6 @@ impl WebGPUGlobalTrait for GlobalScope {
 
     fn queue_webgpu_task_source(&self, task: impl TaskOnce + 'static) {
         self.task_manager().webgpu_task_source().queue(task);
-    }
-
-    fn entry() -> DomRoot<Self> {
-        GlobalScope::entry()
-    }
-
-    fn origin(&self) -> MutableOrigin {
-        GlobalScope::origin(self)
     }
 }
 

@@ -3609,6 +3609,10 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     fn script_to_constellation_chan(&self) -> ScriptToConstellationChan {
         self.script_to_constellation_chan()
     }
+
+    fn entry() -> DomRoot<Self> {
+        GlobalScope::entry()
+    }
 }
 
 impl OwnerWindow<DomTypeHolder> for GlobalScope {}
