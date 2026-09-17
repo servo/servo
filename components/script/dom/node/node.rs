@@ -4,7 +4,7 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use std::cell::{Cell, LazyCell, UnsafeCell};
+use std::cell::{Cell, LazyCell};
 use std::cmp::Ordering;
 use std::default::Default;
 use std::f64::consts::PI;
@@ -31,7 +31,6 @@ use layout_api::{
     NodeRenderingType, PhysicalSides, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, uintptr_t};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
@@ -1845,24 +1844,18 @@ impl Node {
                 .and_then(|rare_data| rare_data.unique_id.as_ref())
         })
         .ok()
-        .map(|unique_id| unique_id.borrow().simple().to_string())
+        .map(|unique_id| unique_id.simple().to_string())
     }
 
     pub(crate) fn unique_id(&self, pipeline: PipelineId) -> String {
         let mut rare_data = self.ensure_rare_data();
 
         if rare_data.unique_id.is_none() {
-            let node_id = UniqueId::new();
-            ScriptThread::save_node_id(pipeline, node_id.borrow().simple().to_string());
+            let node_id = Uuid::new_v4();
+            ScriptThread::save_node_id(pipeline, node_id.simple().to_string());
             rare_data.unique_id = Some(node_id);
         }
-        rare_data
-            .unique_id
-            .as_ref()
-            .unwrap()
-            .borrow()
-            .simple()
-            .to_string()
+        rare_data.unique_id.as_ref().unwrap().simple().to_string()
     }
 
     pub(crate) fn summarize(&self, cx: &mut JSContext) -> NodeInfo {
@@ -4647,45 +4640,6 @@ pub(crate) enum NodeDamage {
     ContentOrHeritage,
     /// Other parts of a node changed; attributes, text content, etc.
     Other,
-}
-
-/// A node's unique ID, for devtools.
-pub(crate) struct UniqueId {
-    cell: UnsafeCell<Option<Box<Uuid>>>,
-}
-
-unsafe_no_jsmanaged_fields!(UniqueId);
-
-impl MallocSizeOf for UniqueId {
-    #[expect(unsafe_code)]
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        if let Some(uuid) = unsafe { &*self.cell.get() } {
-            unsafe { ops.malloc_size_of(&**uuid) }
-        } else {
-            0
-        }
-    }
-}
-
-impl UniqueId {
-    /// Create a new `UniqueId` value. The underlying `Uuid` is lazily created.
-    pub(super) fn new() -> UniqueId {
-        UniqueId {
-            cell: UnsafeCell::new(None),
-        }
-    }
-
-    /// The Uuid of that unique ID.
-    #[expect(unsafe_code)]
-    pub(super) fn borrow(&self) -> &Uuid {
-        unsafe {
-            let ptr = self.cell.get();
-            if (*ptr).is_none() {
-                *ptr = Some(Box::new(Uuid::new_v4()));
-            }
-            (*ptr).as_ref().unwrap()
-        }
-    }
 }
 
 /// Helper trait to insert an element into vector whose elements

@@ -4,6 +4,8 @@
 
 //! This module implements structured cloning, as defined by [HTML](https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::ffi::CStr;
 use std::os::raw;
 use std::ptr::{self, NonNull};

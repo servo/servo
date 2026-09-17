@@ -16,6 +16,7 @@ extern crate log;
 extern crate malloc_size_of_derive;
 
 pub mod assert;
+pub mod buffer_source;
 pub mod callback;
 pub mod cell;
 mod constant;
@@ -48,6 +49,7 @@ pub mod script_runtime;
 pub mod settings_stack;
 pub mod str;
 pub mod structuredclone;
+pub mod tasks;
 pub mod trace;
 pub mod traits;
 pub mod utils;

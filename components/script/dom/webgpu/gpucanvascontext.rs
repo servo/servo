@@ -12,26 +12,24 @@ use js::context::JSContext;
 use pixels::Snapshot;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
-    GPUTextureFormat, GPUTextureUsageConstants,
+    GPUDeviceMethods, GPUTextureFormat, GPUTextureUsageConstants,
 };
 use script_bindings::reflector::{Reflector, reflect_weak_referenceable_dom_object};
 use script_webgpu::gpuconvert::convert_texture_descriptor;
 use servo_base::{Epoch, generic_channel};
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPU, WebGPUContextId,
-    WebGPURequest,
+    WebGPURequest, id,
 };
 use webrender_api::{ImageFormat, ImageKey};
-use wgpu_core::id;
 
 use super::gputexture::GPUTexture;
 use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUCanvasAlphaMode, GPUCanvasConfiguration as RootedGPUCanvasConfiguration, GPUDeviceMethods,
-    GPUExtent3D, GPUExtent3DDict, GPUObjectDescriptorBase, GPUTextureDescriptor,
-    GPUTextureDimension,
+    GPUCanvasAlphaMode, GPUCanvasConfiguration as RootedGPUCanvasConfiguration, GPUExtent3D,
+    GPUExtent3DDict, GPUObjectDescriptorBase, GPUTextureDescriptor, GPUTextureDimension,
 };
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};

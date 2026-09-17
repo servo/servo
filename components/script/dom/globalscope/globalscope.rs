@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::borrow::Cow;
 use std::cell::{Cell, OnceCell, Ref, RefCell};
 use std::collections::hash_map::Entry;
@@ -32,8 +34,7 @@ use js::panic::maybe_resume_unwind;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{Compile1, CurrentGlobalOrNull};
 use js::rust::{
-    CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue, ParentRuntime,
-    get_object_class, transform_str_to_source_text,
+    HandleValue, MutableHandleValue, ParentRuntime, get_object_class, transform_str_to_source_text,
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use net_traits::blob_url_store::BlobBuf;
@@ -246,11 +247,6 @@ pub(crate) struct GlobalScope {
 
     /// Timers (milliseconds) used by the Console API.
     console_timers: DomRefCell<HashMap<DOMString, Instant>>,
-
-    /// module map is used when importing JavaScript modules
-    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
-    #[ignore_malloc_size_of = "mozjs"]
-    module_map: DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>,
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
@@ -789,7 +785,6 @@ impl GlobalScope {
             indexeddb: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             console_timers: DomRefCell::new(Default::default()),
-            module_map: DomRefCell::new(Default::default()),
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
@@ -2433,10 +2428,19 @@ impl GlobalScope {
         &self.consumed_rejections
     }
 
-    pub(crate) fn module_map(
+    pub(crate) fn with_module_map<T>(
         &self,
-    ) -> &DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>> {
-        &self.module_map
+        f: impl FnOnce(&DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>) -> T,
+    ) -> T {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            f(worker.module_map())
+        } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+            f(worklet.module_map())
+        } else if let Some(window) = self.downcast::<Window>() {
+            f(window.Document().module_map())
+        } else {
+            unreachable!("Unsupported global type retrieving module map")
+        }
     }
 
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
@@ -3359,16 +3363,12 @@ impl GlobalScope {
         options: RootedTraceableBox<StructuredSerializeOptions>,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
-        let mut rooted = CustomAutoRooter::new(
+        auto_root!(&in(cx) let guard =
             options
                 .transfer
                 .iter()
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-                .collect(),
-        );
-
-        #[expect(unsafe_code)]
-        let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
+                .collect::<Vec<_>>());
 
         let data = structuredclone::write(cx, value, Some(guard))?;
 
@@ -3606,6 +3606,10 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
 
     fn script_to_constellation_chan(&self) -> ScriptToConstellationChan {
         self.script_to_constellation_chan()
+    }
+
+    fn entry() -> DomRoot<Self> {
+        GlobalScope::entry()
     }
 }
 

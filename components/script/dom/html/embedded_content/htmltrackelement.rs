@@ -107,6 +107,9 @@ impl HTMLTrackElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTrackElement> {
+        // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks
+        // > When a track element is created, it must be associated
+        // > with a new text track (with its value set as defined below).
         let track = TextTrack::new(
             cx,
             document.window(),
@@ -291,6 +294,15 @@ impl VirtualMethods for HTMLTrackElement {
                 // > (This also causes the algorithm above to stop adding cues from the resource
                 // > being obtained using the previously given URL, if any.)
                 self.track.empty_cue_list();
+            },
+            local_name!("kind") |
+            local_name!("label") |
+            local_name!("srclang") |
+            local_name!("id") => {
+                // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks
+                // > As the kind, label, srclang, and id attributes are set, changed,
+                // > or removed, the text track must update accordingly, as per the definitions above.
+                self.track.update_attributes_from_track_element(self);
             },
             _ => {},
         }

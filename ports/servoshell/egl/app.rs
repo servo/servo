@@ -23,7 +23,9 @@ use url::Url;
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
-use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
+use crate::window::{
+    PlatformWindow, ServoShellWindow, ServoShellWindowId, TopLevelWebViewCreationRequest,
+};
 
 pub(crate) struct EmbeddedPlatformWindow {
     host: Rc<dyn HostTrait>,
@@ -370,8 +372,10 @@ impl App {
             current_can_go_forward: Default::default(),
             current_load_status: Default::default(),
         });
-        self.state
-            .open_window(platform_window, self.initial_url.clone());
+        self.state.open_window(
+            platform_window,
+            TopLevelWebViewCreationRequest::WithUrl(self.initial_url.clone()),
+        );
     }
 
     pub(crate) fn servo(&self) -> &Servo {
@@ -397,8 +401,10 @@ impl App {
     }
 
     pub(crate) fn create_and_activate_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
-        self.window()
-            .create_and_activate_toplevel_webview(self.state.clone(), url)
+        self.window().create_and_activate_toplevel_webview(
+            self.state.clone(),
+            TopLevelWebViewCreationRequest::WithUrl(url),
+        )
     }
 
     /// The active webview will be immediately valid via `active_or_newest_webview()`
@@ -648,13 +654,6 @@ impl App {
     pub fn media_session_action(&self, action: MediaSessionActionType) {
         if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_media_session_action_event(action);
-            self.spin_event_loop();
-        }
-    }
-
-    pub fn set_throttled(&self, throttled: bool) {
-        if let Some(webview) = self.active_or_newest_webview() {
-            webview.set_throttled(throttled);
             self.spin_event_loop();
         }
     }

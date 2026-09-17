@@ -6,6 +6,8 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::collections::HashMap;
 
 use net_traits::ResourceThreads;

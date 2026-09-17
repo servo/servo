@@ -2,19 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use webgpu_traits::{ComputePass, ComputePassId, RenderPass, RenderPassId};
-use wgpu_core::id::markers::{
-    Adapter, BindGroup, BindGroupLayout, Buffer, CommandBuffer, CommandEncoder, ComputePipeline,
-    Device, ExternalTexture, PipelineLayout, QuerySet, Queue, RenderBundle, RenderBundleEncoder,
-    RenderPipeline, Sampler, ShaderModule, Texture, TextureView,
-};
-use wgpu_core::id::{
-    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
-    ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId, QuerySetId, QueueId,
-    RenderBundleEncoderId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId, TextureId,
-    TextureViewId,
-};
-use wgpu_core::identity::IdentityManager;
+use webgpu_traits::IdentityManager;
+use webgpu_traits::id::*;
+use webgpu_traits::markers::*;
 
 #[derive(Debug)]
 pub struct IdentityHub {

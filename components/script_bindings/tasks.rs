@@ -8,6 +8,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+#[macro_export]
 macro_rules! task {
     ($name:ident: |$($field:ident: $field_type:ty$(,)*)*| $body:tt) => {{
         #[allow(non_camel_case_types)]
@@ -16,7 +17,7 @@ macro_rules! task {
             task: F,
         }
         #[expect(unsafe_code)]
-        unsafe impl<F> crate::JSTraceable for $name<F> {
+        unsafe impl<F> js::gc::Traceable for $name<F> {
             #[expect(unsafe_code)]
             unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
                 unsafe { $(self.$field.trace(tracer);)* }
@@ -25,7 +26,7 @@ macro_rules! task {
                 // or moved into fields in the struct (and therefore traced).
             }
         }
-        impl<F> crate::tasks::task::NonSendTaskOnce for $name<F>
+        impl<F> $crate::task::NonSendTaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce($($field_type,)*),
         {
@@ -42,7 +43,7 @@ macro_rules! task {
     ($name:ident: move || $body:tt) => {{
         #[allow(non_camel_case_types)]
         struct $name<F>(F);
-        impl<F> crate::tasks::task::TaskOnce for $name<F>
+        impl<F> $crate::tasks::TaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce() + Send,
         {
@@ -64,7 +65,7 @@ macro_rules! task {
             task: F,
         }
         #[expect(unsafe_code)]
-        unsafe impl<F> crate::JSTraceable for $name<F> {
+        unsafe impl<F> js::gc::Traceable for $name<F> {
             #[expect(unsafe_code)]
             unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
                 unsafe { $(self.$field.trace(tracer);)* }
@@ -73,7 +74,7 @@ macro_rules! task {
                 // or moved into fields in the struct (and therefore traced).
             }
         }
-        impl<F> crate::tasks::task::NonSendTaskOnce for $name<F>
+        impl<F> $crate::tasks::NonSendTaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce(&mut js::context::JSContext, $($field_type,)*),
         {
@@ -90,7 +91,7 @@ macro_rules! task {
     ($name:ident: move |$cx: ident| $body:tt) => {{
         #[allow(non_camel_case_types)]
         struct $name<F>(F);
-        impl<F> crate::tasks::task::TaskOnce for $name<F>
+        impl<F> $crate::tasks::TaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce(&mut js::context::JSContext) + Send,
         {
@@ -108,7 +109,7 @@ macro_rules! task {
 
 /// A task that can be sent between threads and run.
 /// The name method is for profiling purposes.
-pub(crate) trait TaskOnce: Send {
+pub trait TaskOnce: Send {
     fn name(&self) -> &'static str {
         ::std::any::type_name::<Self>()
     }
@@ -117,19 +118,19 @@ pub(crate) trait TaskOnce: Send {
 }
 
 /// A task that must be run on the same thread it originated in.
-pub(crate) trait NonSendTaskOnce: crate::JSTraceable {
+pub trait NonSendTaskOnce: crate::JSTraceable {
     fn run_once(self, cx: &mut js::context::JSContext);
 }
 
 /// A boxed version of `TaskOnce`.
-pub(crate) trait TaskBox: Send {
+pub trait TaskBox: Send {
     fn name(&self) -> &'static str;
 
     fn run_box(self: Box<Self>, cx: &mut js::context::JSContext);
 }
 
 /// A boxed version of `NonSendTaskOnce`.
-pub(crate) trait NonSendTaskBox: crate::JSTraceable {
+pub trait NonSendTaskBox: crate::JSTraceable {
     fn run_box(self: Box<Self>, cx: &mut js::context::JSContext);
 }
 
@@ -165,14 +166,14 @@ impl fmt::Debug for dyn TaskBox {
 
 /// Encapsulated state required to create cancellable tasks from non-script threads.
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
-pub(crate) struct TaskCanceller {
+pub struct TaskCanceller {
     #[conditional_malloc_size_of]
-    pub(crate) cancelled: Arc<AtomicBool>,
+    pub cancelled: Arc<AtomicBool>,
 }
 
 impl TaskCanceller {
     /// Returns a wrapped `task` that will be cancelled if the `TaskCanceller` says so.
-    pub(crate) fn wrap_task<T>(&self, task: T) -> impl TaskOnce + use<T>
+    pub fn wrap_task<T>(&self, task: T) -> impl TaskOnce + use<T>
     where
         T: TaskOnce,
     {
@@ -182,7 +183,7 @@ impl TaskCanceller {
         }
     }
 
-    pub(crate) fn cancelled(&self) -> bool {
+    pub fn cancelled(&self) -> bool {
         self.cancelled.load(Ordering::SeqCst)
     }
 }

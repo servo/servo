@@ -4,6 +4,8 @@
 
 //! The set of animations for a document.
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::cell::Cell;
 use std::sync::Arc;
 use std::time::Duration;
@@ -146,15 +148,17 @@ impl AnimationManager {
             self.start_pending_animations(key, set, now, pipeline_id);
 
             // When necessary, iterate our running animations to the next iteration.
-            for animation in set.animations.iter_mut() {
-                if animation.iterate_if_necessary(now) {
-                    self.add_animation_event(
-                        key,
-                        animation,
-                        TransitionOrAnimationEventType::AnimationIteration,
-                        now,
-                        pipeline_id,
-                    );
+            if now > self.timeline_value_at_last_dirty.get() {
+                for animation in set.animations.iter_mut() {
+                    if animation.iterate_if_necessary(now) {
+                        self.add_animation_event(
+                            key,
+                            animation,
+                            TransitionOrAnimationEventType::AnimationIteration,
+                            now,
+                            pipeline_id,
+                        );
+                    }
                 }
             }
 

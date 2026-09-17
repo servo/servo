@@ -7,26 +7,29 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#textFieldSelection>
 
-use std::cell::Ref;
+use std::cell::{Ref, RefMut};
 
-use script_bindings::cell::DomRefCell;
+use js::context::JSContext;
+use script_bindings::inheritance::Castable;
+use script_bindings::refcounted::Trusted;
 use servo_base::text::Utf16CodeUnits;
 
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
-use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::html::form_controls::text_input::{
-    EmbedderClipboardProvider, SelectionDirection, SelectionState, TextInput,
-};
-use crate::dom::node::{Node, NodeTraits};
-use crate::dom::types::Element;
+use crate::dom::html::form_controls::text_input::{SelectionDirection, SelectionState, TextInput};
+use crate::dom::node::NodeTraits;
+use crate::dom::text_input::{EmbedderClipboardProvider, InputEventType, IsComposing};
+use crate::dom::types::InputEvent;
+use crate::dom::{Element, Event};
 
-pub(crate) trait TextControlElement:
-    DerivedFrom<EventTarget> + DerivedFrom<Node> + DerivedFrom<Element>
-{
+pub(crate) trait TextControlElement {
+    fn as_element(&self) -> &Element;
+    fn text_input<'a>(&'a self) -> Ref<'a, TextInput<EmbedderClipboardProvider>>;
+    fn text_input_mut<'a>(&'a self) -> RefMut<'a, TextInput<EmbedderClipboardProvider>>;
     fn selection_api_applies(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
     fn has_uncollapsed_selection(&self) -> bool;
@@ -38,26 +41,60 @@ pub(crate) trait TextControlElement:
     }
     fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString>;
     fn value_text(&self) -> DOMString;
-}
+    fn read_only_or_disabled(&self) -> bool;
+    fn handle_text_content_changed(&self, cx: &mut JSContext);
 
-pub(crate) struct TextControlSelection<'a, E: TextControlElement> {
-    element: &'a E,
-    textinput: &'a DomRefCell<TextInput<EmbedderClipboardProvider>>,
-}
+    fn insert_content(&self, cx: &mut JSContext, text_content: &str) {
+        self.text_input_mut().insert(text_content);
+        self.handle_text_content_changed(cx);
+    }
 
-impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
-    pub(crate) fn new(
-        element: &'a E,
-        textinput: &'a DomRefCell<TextInput<EmbedderClipboardProvider>>,
-    ) -> Self {
-        TextControlSelection { element, textinput }
+    fn remove_the_contents_of_the_selection(&self, cx: &mut JSContext) {
+        self.text_input_mut().delete_selection();
+        self.handle_text_content_changed(cx);
+    }
+
+    /// <https://w3c.github.io/uievents/#event-type-input>
+    fn queue_input_event(
+        &self,
+        data: Option<String>,
+        is_composing: IsComposing,
+        input_type: InputEventType,
+    ) {
+        let element = self.as_element();
+        let target = Trusted::new(element.upcast::<EventTarget>());
+        element
+            .owner_global()
+            .task_manager()
+            .user_interaction_task_source()
+            .queue(task!(fire_input_event: move |cx| {
+                let target = target.root();
+                let global = target.global();
+                let window = global.as_window();
+                let event = InputEvent::new(
+                    cx,
+                    window,
+                    None,
+                    atom!("input"),
+                    true,
+                    false,
+                    Some(window),
+                    0,
+                    data.map(DOMString::from),
+                    is_composing.into(),
+                    input_type.as_str().into(),
+                );
+                let event = event.upcast::<Event>();
+                event.set_composed(true);
+                event.fire(cx, &target);
+            }));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
-    pub(crate) fn dom_select(&self) {
+    fn dom_select(&self) {
         // Step 1: If this element is an input element, and either select() does not apply
         // to this element or the corresponding control has no selectable text, return.
-        if !self.element.has_selectable_text() {
+        if !self.has_selectable_text() {
             return;
         }
 
@@ -71,9 +108,9 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    pub(crate) fn dom_start(&self) -> Option<Utf16CodeUnits> {
+    fn dom_start(&self) -> Option<Utf16CodeUnits> {
         // Step 1
-        if !self.element.selection_api_applies() {
+        if !self.selection_api_applies() {
             return None;
         }
 
@@ -82,10 +119,10 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    pub(crate) fn set_dom_start(&self, start: Option<Utf16CodeUnits>) -> ErrorResult {
+    fn set_dom_start(&self, start: Option<Utf16CodeUnits>) -> ErrorResult {
         // Step 1: If this element is an input element, and selectionStart does not apply
         // to this element, throw an "InvalidStateError" DOMException.
-        if !self.element.selection_api_applies() {
+        if !self.selection_api_applies() {
             return Err(Error::InvalidState(Some(
                 "Selection API does not apply to input element".into(),
             )));
@@ -107,10 +144,10 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    pub(crate) fn dom_end(&self) -> Option<Utf16CodeUnits> {
+    fn dom_end(&self) -> Option<Utf16CodeUnits> {
         // Step 1: If this element is an input element, and selectionEnd does not apply to
         // this element, return null.
-        if !self.element.selection_api_applies() {
+        if !self.selection_api_applies() {
             return None;
         }
 
@@ -122,10 +159,10 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    pub(crate) fn set_dom_end(&self, end: Option<Utf16CodeUnits>) -> ErrorResult {
+    fn set_dom_end(&self, end: Option<Utf16CodeUnits>) -> ErrorResult {
         // Step 1: If this element is an input element, and selectionEnd does not apply to
         // this element, throw an "InvalidStateError" DOMException.
-        if !self.element.selection_api_applies() {
+        if !self.selection_api_applies() {
             return Err(Error::InvalidState(Some(
                 "Selection API does not apply to input element".into(),
             )));
@@ -139,9 +176,9 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    pub(crate) fn dom_direction(&self) -> Option<DOMString> {
+    fn dom_direction(&self) -> Option<DOMString> {
         // Step 1
-        if !self.element.selection_api_applies() {
+        if !self.selection_api_applies() {
             return None;
         }
 
@@ -149,9 +186,9 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    pub(crate) fn set_dom_direction(&self, direction: Option<DOMString>) -> ErrorResult {
+    fn set_dom_direction(&self, direction: Option<DOMString>) -> ErrorResult {
         // Step 1
-        if !self.element.selection_api_applies() {
+        if !self.selection_api_applies() {
             return Err(Error::InvalidState(Some(
                 "Selection API does not apply to input element".into(),
             )));
@@ -168,14 +205,14 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
-    pub(crate) fn set_dom_range(
+    fn set_dom_range(
         &self,
         start: Utf16CodeUnits,
         end: Utf16CodeUnits,
         direction: Option<DOMString>,
     ) -> ErrorResult {
         // Step 1
-        if !self.element.selection_api_applies() {
+        if !self.selection_api_applies() {
             return Err(Error::InvalidState(Some(
                 "Selection API does not apply to input element".into(),
             )));
@@ -192,7 +229,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
-    pub(crate) fn set_dom_range_text(
+    fn set_dom_range_text(
         &self,
         replacement: DOMString,
         start: Option<Utf16CodeUnits>,
@@ -201,14 +238,14 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     ) -> ErrorResult {
         // Step 1: If this element is an input element, and setRangeText() does not apply
         // to this element, throw an "InvalidStateError" DOMException.
-        if !self.element.selection_api_applies() {
+        if !self.selection_api_applies() {
             return Err(Error::InvalidState(Some(
                 "Selection API does not apply to input element".into(),
             )));
         }
 
         // Step 2: Set this element's dirty value flag to true.
-        self.element.set_dirty_value_flag(true);
+        self.set_dirty_value_flag(true);
 
         // Step 3: If the method has only one argument, then let start and end have the
         // values of the selectionStart attribute and the selectionEnd attribute
@@ -231,11 +268,11 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
 
         // Save the original selection state to later pass to set_selection_range, because we will
         // change the selection state in order to replace the text in the range.
-        let original_selection_state = self.textinput.borrow().selection_state();
+        let original_selection_state = self.text_input().selection_state();
 
         // Step 5: If start is greater than the length of the relevant value of the text
         // control, then set it to the length of the relevant value of the text control.
-        let content_length = self.textinput.borrow().len_utf16();
+        let content_length = self.text_input().len_utf16();
         if start > content_length {
             start = content_length;
         }
@@ -260,14 +297,14 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
             // Step: 10: Insert the value of the first argument into the text of the
             // relevant value of the text control, immediately before the startth code
             // unit.
-            let mut textinput = self.textinput.borrow_mut();
-            textinput.set_selection_range_utf16(start, end, SelectionDirection::None);
-            textinput.replace_selection(&replacement);
+            let mut text_input = self.text_input_mut();
+            text_input.set_selection_range_utf16(start, end, SelectionDirection::None);
+            text_input.replace_selection(&replacement);
         }
 
         // Step 11: Let *new length* be the length of the value of the first argument.
         //
-        // Must come before the textinput.replace_selection() call, as replacement gets moved in
+        // Must come before the text_input.replace_selection() call, as replacement gets moved in
         // that call.
         let new_length = replacement.len_utf16();
 
@@ -343,15 +380,15 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     fn start(&self) -> Utf16CodeUnits {
-        self.textinput.borrow().selection_start_utf16()
+        self.text_input().selection_start_utf16()
     }
 
     fn end(&self) -> Utf16CodeUnits {
-        self.textinput.borrow().selection_end_utf16()
+        self.text_input().selection_end_utf16()
     }
 
     fn direction(&self) -> SelectionDirection {
-        self.textinput.borrow().selection_direction()
+        self.text_input().selection_direction()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-selection-range>
@@ -363,7 +400,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         original_selection_state: Option<SelectionState>,
     ) {
         let original_selection_state =
-            original_selection_state.unwrap_or_else(|| self.textinput.borrow().selection_state());
+            original_selection_state.unwrap_or_else(|| self.text_input().selection_state());
 
         // To set the selection range with an integer or null start, an integer or null or
         // the special value infinity end, and optionally a string direction, run the
@@ -390,7 +427,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // the direction argument was not given, set direction to "none".
         //
         // Step 5: Set the selection direction of the text control to direction.
-        self.textinput.borrow_mut().set_selection_range_utf16(
+        self.text_input_mut().set_selection_range_utf16(
             start,
             end,
             direction.unwrap_or(SelectionDirection::None),
@@ -400,20 +437,21 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // modified (in either extent or direction), then queue an element task on the
         // user interaction task source given the element to fire an event named select at
         // the element, with the bubbles attribute initialized to true.
-        if self.textinput.borrow().selection_state() == original_selection_state {
+        if self.text_input().selection_state() == original_selection_state {
             return;
         }
 
-        self.element
+        let element = self.as_element();
+        element
             .owner_global()
             .task_manager()
             .user_interaction_task_source()
             .queue_event(
-                self.element.upcast::<EventTarget>(),
+                element.upcast::<EventTarget>(),
                 atom!("select"),
                 EventBubbles::Bubbles,
                 EventCancelable::NotCancelable,
             );
-        self.element.maybe_update_shared_selection();
+        self.maybe_update_shared_selection();
     }
 }

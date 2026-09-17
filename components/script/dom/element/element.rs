@@ -4,6 +4,8 @@
 
 //! Element nodes.
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::borrow::Cow;
 use std::cell::{Cell, LazyCell};
 use std::default::Default;
@@ -4615,6 +4617,22 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1. Let target be the object on which this method was called.
         let target = self;
 
+        // Step 3. If options is a KeyframeAnimationOptions object, let timeline be the timeline member of
+        // options or, if timeline member of options is missing, the default document timeline of the node document
+        // of the element on which this method was called.
+        let timeline =
+            if let UnrestrictedDoubleOrKeyframeAnimationOptions::KeyframeAnimationOptions(options) =
+                &options
+            {
+                options.timeline.clone().flatten()
+            } else {
+                None
+            };
+        let timeline = timeline.unwrap_or_else(|| {
+            let document = self.owner_document();
+            DomRoot::upcast(document.Timeline())
+        });
+
         // Step 2. Construct a new KeyframeEffect object effect in the relevant Realm
         // of target by using the same procedure as the KeyframeEffect(target, keyframes, options)
         // constructor, passing target as the target argument, and the keyframes and options arguments
@@ -4633,14 +4651,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let effect =
             KeyframeEffect::Constructor(cx, &window, None, Some(target), keyframes, parent_options);
 
-        // TODO: Step 3. If options is a KeyframeAnimationOptions object, let timeline be the timeline member of
-        // options or, if timeline member of options is missing, the default document timeline of the node document
-        // of the element on which this method was called.
-
         // Step 4. Construct a new Animation object, animation, in the relevant Realm of target by using
         // the same procedure as the Animation() constructor, passing effect and timeline as arguments of
         // the same name.
-        let animation = Animation::Constructor(cx, &window, None, Some(effect.upcast()));
+        let animation = Animation::Constructor(
+            cx,
+            &window,
+            None,
+            Some(effect.upcast()),
+            Some(Some(&timeline)),
+        );
 
         // TODO: Step 5. If options is a KeyframeAnimationOptions object, assign the value of the id member of options
         // to animation’s id attribute.

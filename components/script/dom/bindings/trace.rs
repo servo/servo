@@ -49,7 +49,6 @@ use crate::dom::srcset::SourceSet;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::event_loop::script_thread::IncompleteParserContexts;
 use crate::runtime::script_runtime::StreamConsumer;
-use crate::tasks::task::TaskBox;
 
 /// Wrapper type for nop traceble
 ///
@@ -222,8 +221,6 @@ unsafe impl<K, V: JSTraceable, S> JSTraceable for HashMapTracedValues<K, V, S> {
         }
     }
 }
-
-unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 
 unsafe_no_jsmanaged_fields!(IncompleteParserContexts);
 

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::cell::{OnceCell, RefCell, RefMut};
 use std::collections::HashSet;
 use std::default::Default;
@@ -65,7 +67,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 #[cfg(feature = "webcrypto")]
 use crate::dom::crypto::Crypto;
@@ -100,7 +102,7 @@ use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::modules::script_module::ScriptFetchOptions;
+use crate::modules::script_module::{ModuleRequest, ModuleStatus, ScriptFetchOptions};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::{MicrotaskRunnable, UserMicrotask, job_queue_microtask_checkpoint};
 use crate::runtime::script_runtime::{IntroductionType, Runtime, get_reports};
@@ -381,6 +383,11 @@ pub(crate) struct WorkerGlobalScope {
     #[conditional_malloc_size_of]
     #[no_trace]
     font_context: Arc<FontContext>,
+
+    /// module map is used when importing JavaScript modules
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
+    #[ignore_malloc_size_of = "mozjs"]
+    module_map: DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>,
 }
 
 impl WorkerGlobalScope {
@@ -455,7 +462,14 @@ impl WorkerGlobalScope {
             )),
             origin: MutableOrigin::new(init.origin),
             font_context,
+            module_map: Default::default(),
         }
+    }
+
+    pub(crate) fn module_map(
+        &self,
+    ) -> &DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>> {
+        &self.module_map
     }
 
     pub(crate) fn font_context(&self) -> Arc<FontContext> {

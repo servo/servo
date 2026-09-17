@@ -17,10 +17,10 @@ use script_bindings::codegen::GenericUnionTypes::RangeEnforcedUnsignedLongSequen
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
-    WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice,
-    WebGPURenderPass, WebGPURequest,
+    PassChannel, RenderPassColorAttachment, RenderPassDepthStencilAttachment, WebGPU,
+    WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice, WebGPURenderPass,
+    WebGPURequest,
 };
-use wgpu_core::command as wgpu_com;
 
 use crate::JSTraceable;
 use crate::dom::bindings::error::Fallible;
@@ -34,7 +34,7 @@ use crate::gpuconvert::{
 };
 use crate::gpuqueryset::GPUQuerySet;
 use crate::gpurenderpassencoder::GPURenderPassEncoder;
-use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUCommandEncoder {
@@ -101,8 +101,7 @@ impl<D: Equivalence> GPUCommandEncoder<D> {
 impl<D> GPUCommandEncoder<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D> + DomGlobalGeneric<D>,
-    Self: DomGlobalGeneric<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     pub(crate) fn id(&self) -> WebGPUCommandEncoder {
         self.droppable.encoder
@@ -113,7 +112,7 @@ where
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut JSContext,
         device: &D::GPUDevice,
         descriptor: &GPUCommandEncoderDescriptor,
@@ -150,10 +149,7 @@ where
 impl<D> GPUCommandEncoderMethods<D> for GPUCommandEncoder<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
-    D::Promise: PromiseHelpers<D>,
-    Self: DomGlobalGeneric<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
@@ -210,33 +206,35 @@ where
         cx: &mut JSContext,
         descriptor: &GPURenderPassDescriptor<D>,
     ) -> Fallible<DomRoot<GPURenderPassEncoder<D>>> {
-        let depth_stencil_attachment = descriptor.depthStencilAttachment.as_ref().map(|ds| {
-            wgpu_com::RenderPassDepthStencilAttachment {
-                depth: wgpu_com::PassChannel {
-                    load_op: ds
-                        .depthLoadOp
-                        .as_ref()
-                        .map(|l| convert_load_op(l, ds.depthClearValue.map(|v| *v))),
-                    store_op: ds.depthStoreOp.as_ref().map(WebGPUConvert::convert),
-                    read_only: ds.depthReadOnly,
-                },
-                stencil: wgpu_com::PassChannel {
-                    load_op: ds
-                        .stencilLoadOp
-                        .as_ref()
-                        .map(|l| convert_load_op(l, Some(ds.stencilClearValue))),
-                    store_op: ds.stencilStoreOp.as_ref().map(WebGPUConvert::convert),
-                    read_only: ds.stencilReadOnly,
-                },
-                view: convert_texture_for_wgpu_with_cx(cx, &ds.view).0,
-            }
-        });
+        let depth_stencil_attachment =
+            descriptor
+                .depthStencilAttachment
+                .as_ref()
+                .map(|ds| RenderPassDepthStencilAttachment {
+                    depth: PassChannel {
+                        load_op: ds
+                            .depthLoadOp
+                            .as_ref()
+                            .map(|l| convert_load_op(l, ds.depthClearValue.map(|v| *v))),
+                        store_op: ds.depthStoreOp.as_ref().map(WebGPUConvert::convert),
+                        read_only: ds.depthReadOnly,
+                    },
+                    stencil: PassChannel {
+                        load_op: ds
+                            .stencilLoadOp
+                            .as_ref()
+                            .map(|l| convert_load_op(l, Some(ds.stencilClearValue))),
+                        store_op: ds.stencilStoreOp.as_ref().map(WebGPUConvert::convert),
+                        read_only: ds.stencilReadOnly,
+                    },
+                    view: convert_texture_for_wgpu_with_cx(cx, &ds.view).0,
+                });
 
         let color_attachments = descriptor
             .colorAttachments
             .iter()
             .map(|color| -> Fallible<_> {
-                Ok(Some(wgpu_com::RenderPassColorAttachment {
+                Ok(Some(RenderPassColorAttachment {
                     resolve_target: color
                         .resolveTarget
                         .as_ref()

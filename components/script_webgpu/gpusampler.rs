@@ -13,15 +13,15 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUSamplerDescriptor, GPUSamplerMethods, GPUSamplerWrap,
 };
+use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
-use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
-use wgpu_core::resource::SamplerDescriptor;
+use webgpu_traits::{SamplerDescriptor, WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::gpuconvert::WebGPUConvert;
-use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUSampler {
@@ -100,14 +100,14 @@ impl<D: Equivalence> GPUSampler<D> {
 impl<D> GPUSampler<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     pub(crate) fn id(&self) -> WebGPUSampler {
         self.dropppable.sampler
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut JSContext,
         device: &D::GPUDevice,
         descriptor: &GPUSamplerDescriptor,

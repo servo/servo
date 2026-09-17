@@ -26,16 +26,16 @@ use js::rust::wrappers2::{
 };
 use js::rust::{
     CustomAutoRooterGuard, Handle, MutableHandleObject,
-    MutableHandleValue as SafeMutableHandleValue,
+    MutableHandleValue as SafeMutableHandleValue, Trace,
 };
 use js::typedarray::{
     ArrayBufferU8, ArrayBufferViewU8, CreateWith, TypedArray, TypedArrayElement,
     TypedArrayElementCreator,
 };
 
-use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::codegen::GenericUnionTypes::ArrayBufferViewOrArrayBuffer;
+use crate::error::{Error, Fallible};
+use crate::trace::RootedTraceableBox;
 
 pub(crate) type RootedTypedArray<T> = RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>;
 
@@ -67,7 +67,7 @@ impl Clone for BufferSource {
     }
 }
 
-pub(crate) enum ArrayBufferViewOrArrayBufferRef<'a> {
+pub enum ArrayBufferViewOrArrayBufferRef<'a> {
     ArrayBufferView(&'a RootedTypedArray<ArrayBufferViewU8>),
     ArrayBuffer(&'a RootedTypedArray<ArrayBufferU8>),
 }
@@ -117,7 +117,7 @@ impl<'a> From<&'a ArrayBufferViewOrArrayBuffer> for ArrayBufferViewOrArrayBuffer
 ///
 /// - **SharedArrayBuffer**: Not applicable — `ArrayBufferViewOrArrayBuffer`
 ///   does not include a SharedArrayBuffer variant.
-pub(crate) fn get_buffer_source_copy(source: ArrayBufferViewOrArrayBufferRef<'_>) -> Vec<u8> {
+pub fn get_buffer_source_copy(source: ArrayBufferViewOrArrayBufferRef<'_>) -> Vec<u8> {
     match source {
         ArrayBufferViewOrArrayBufferRef::ArrayBufferView(view) => view.to_vec(),
         ArrayBufferViewOrArrayBufferRef::ArrayBuffer(buffer) => buffer.to_vec(),
@@ -129,7 +129,7 @@ pub(crate) fn get_buffer_source_copy(source: ArrayBufferViewOrArrayBufferRef<'_>
 ///
 /// Use this instead of [`get_buffer_source_copy`] when the data is consumed
 /// synchronously — it avoids the allocation of a `Vec<u8>`.
-pub(crate) fn get_buffer_source_slice<'a>(
+pub fn get_buffer_source_slice<'a>(
     source: &'a ArrayBufferViewOrArrayBuffer,
     no_gc: &'a NoGC,
 ) -> &'a [u8] {
@@ -140,7 +140,7 @@ pub(crate) fn get_buffer_source_slice<'a>(
     .unwrap_or(&[])
 }
 
-pub(crate) fn create_heap_buffer_source_with_length<T>(
+pub fn create_heap_buffer_source_with_length<T>(
     cx: &mut JSContext,
     len: u32,
 ) -> Fallible<RootedTraceableBox<HeapBufferSource<T>>>
@@ -161,7 +161,7 @@ where
 }
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct HeapBufferSource<T> {
+pub struct HeapBufferSource<T> {
     buffer_source: BufferSource,
     phantom: PhantomData<T>,
 }
@@ -202,7 +202,7 @@ where
     T: TypedArrayElement,
 {
     /// Create a buffer source from a rooted ArrayBuffer or ArrayBufferView.
-    pub(crate) fn new(object: Handle<*mut JSObject>) -> HeapBufferSource<T> {
+    pub fn new(object: Handle<*mut JSObject>) -> HeapBufferSource<T> {
         let object = object.get();
         assert!(!object.is_null());
 
@@ -217,7 +217,7 @@ where
         }
     }
 
-    pub(crate) fn from_view(
+    pub fn from_view(
         cx: &mut JSContext,
         chunk: CustomAutoRooterGuard<TypedArray<T, *mut JSObject>>,
     ) -> RootedTraceableBox<HeapBufferSource<T>> {
@@ -225,14 +225,15 @@ where
         RootedTraceableBox::new(HeapBufferSource::<T>::new(object.handle()))
     }
 
-    pub(crate) fn default() -> Self {
+    #[expect(clippy::should_implement_trait)]
+    pub fn default() -> Self {
         HeapBufferSource {
             buffer_source: BufferSource::ArrayBufferView(Heap::boxed(std::ptr::null_mut())),
             phantom: PhantomData,
         }
     }
 
-    pub(crate) fn is_initialized(&self) -> bool {
+    pub fn is_initialized(&self) -> bool {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
                 !buffer.get().is_null()
@@ -240,7 +241,8 @@ where
         }
     }
 
-    pub(crate) fn get_typed_array(&self) -> Result<RootedTypedArray<T>, ()> {
+    #[expect(clippy::result_unit_err)]
+    pub fn get_typed_array(&self) -> Result<RootedTypedArray<T>, ()> {
         TypedArray::from(match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
                 buffer.get()
@@ -249,7 +251,7 @@ where
         .map(RootedTraceableBox::new)
     }
 
-    pub(crate) fn get_buffer_view_value(
+    pub fn get_buffer_view_value(
         &self,
         cx: &mut JSContext,
         mut handle_mut: SafeMutableHandleValue,
@@ -265,7 +267,7 @@ where
         }
     }
 
-    pub(crate) fn get_array_buffer_view_buffer(
+    pub fn get_array_buffer_view_buffer(
         &self,
         cx: &mut JSContext,
     ) -> RootedTraceableBox<HeapBufferSource<ArrayBufferU8>> {
@@ -286,7 +288,7 @@ where
     }
 
     /// <https://tc39.es/ecma262/#sec-detacharraybuffer>
-    pub(crate) fn detach_buffer(&self, cx: &mut JSContext) -> bool {
+    pub fn detach_buffer(&self, cx: &mut JSContext) -> bool {
         assert!(self.is_initialized());
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
@@ -308,7 +310,7 @@ where
         }
     }
 
-    pub(crate) fn typed_array_to_option(&self) -> Option<RootedTypedArray<T>> {
+    pub fn typed_array_to_option(&self) -> Option<RootedTypedArray<T>> {
         if self.is_initialized() {
             self.get_typed_array().ok()
         } else {
@@ -317,7 +319,7 @@ where
         }
     }
 
-    pub(crate) fn is_detached_buffer(&self, cx: &mut JSContext) -> bool {
+    pub fn is_detached_buffer(&self, cx: &mut JSContext) -> bool {
         assert!(self.is_initialized());
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
@@ -336,7 +338,7 @@ where
         }
     }
 
-    pub(crate) fn viewed_buffer_array_byte_length(&self, cx: &mut JSContext) -> usize {
+    pub fn viewed_buffer_array_byte_length(&self, cx: &mut JSContext) -> usize {
         assert!(self.is_initialized());
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
@@ -355,7 +357,7 @@ where
         }
     }
 
-    pub(crate) fn byte_length(&self) -> usize {
+    pub fn byte_length(&self) -> usize {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => unsafe {
                 JS_GetArrayBufferViewByteLength(*buffer.handle())
@@ -366,7 +368,7 @@ where
         }
     }
 
-    pub(crate) fn get_byte_offset(&self) -> usize {
+    pub fn get_byte_offset(&self) -> usize {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => unsafe {
                 JS_GetArrayBufferViewByteOffset(*buffer.handle())
@@ -377,7 +379,7 @@ where
         }
     }
 
-    pub(crate) fn get_typed_array_length(&self) -> usize {
+    pub fn get_typed_array_length(&self) -> usize {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => unsafe {
                 JS_GetTypedArrayLength(*buffer.handle())
@@ -389,7 +391,7 @@ where
     }
 
     /// <https://tc39.es/ecma262/#typedarray>
-    pub(crate) fn has_typed_array_name(&self) -> bool {
+    pub fn has_typed_array_name(&self) -> bool {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => unsafe {
                 JS_IsTypedArrayObject(*buffer.handle())
@@ -398,7 +400,7 @@ where
         }
     }
 
-    pub(crate) fn get_array_buffer_view_type(&self) -> Type {
+    pub fn get_array_buffer_view_type(&self) -> Type {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => unsafe {
                 JS_GetArrayBufferViewType(*buffer.handle())
@@ -407,7 +409,7 @@ where
         }
     }
 
-    pub(crate) fn is_array_buffer_object(&self) -> bool {
+    pub fn is_array_buffer_object(&self) -> bool {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
                 IsArrayBufferObject(*heap.handle())
@@ -416,7 +418,7 @@ where
     }
 
     /// <https://tc39.es/ecma262/#sec-clonearraybuffer>
-    pub(crate) fn clone_array_buffer(
+    pub fn clone_array_buffer(
         &self,
         cx: &mut JSContext,
         byte_offset: usize,
@@ -463,7 +465,7 @@ where
     }
     /// <https://streams.spec.whatwg.org/#abstract-opdef-cloneasuint8array>
     #[expect(unsafe_code)]
-    pub(crate) fn clone_as_uint8_array(
+    pub fn clone_as_uint8_array(
         &self,
         cx: &mut JSContext,
     ) -> Fallible<RootedTraceableBox<HeapBufferSource<ArrayBufferViewU8>>> {
@@ -493,7 +495,7 @@ where
         }
     }
 
-    pub(crate) fn is_undefined(&self) -> bool {
+    pub fn is_undefined(&self) -> bool {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
                 buffer.get().is_null()
@@ -507,7 +509,8 @@ where
     T: TypedArrayElement + TypedArrayElementCreator + 'static,
     T::Element: Clone + Copy,
 {
-    pub(crate) fn acquire_data(&self, cx: &mut JSContext) -> Result<Vec<T::Element>, ()> {
+    #[expect(clippy::result_unit_err)]
+    pub fn acquire_data(&self, cx: &mut JSContext) -> Result<Vec<T::Element>, ()> {
         assert!(self.is_initialized());
 
         typedarray!(&in(cx) let array: TypedArray = match &self.buffer_source {
@@ -537,7 +540,8 @@ where
         data
     }
 
-    pub(crate) fn copy_data_to(
+    #[expect(clippy::result_unit_err)]
+    pub fn copy_data_to(
         &self,
         cx: &mut JSContext,
         dest: &mut [T::Element],
@@ -561,7 +565,8 @@ where
         Ok(())
     }
 
-    pub(crate) fn copy_data_from(
+    #[expect(clippy::result_unit_err)]
+    pub fn copy_data_from(
         &self,
         cx: &mut JSContext,
         source: CustomAutoRooterGuard<TypedArray<T, *mut JSObject>>,
@@ -587,7 +592,8 @@ where
         Ok(())
     }
 
-    pub(crate) fn set_data(&self, cx: &mut JSContext, data: &[T::Element]) -> Result<(), ()> {
+    #[expect(clippy::result_unit_err)]
+    pub fn set_data(&self, cx: &mut JSContext, data: &[T::Element]) -> Result<(), ()> {
         rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
         let _ = create_buffer_source::<T>(cx, data, array.handle_mut())?;
 
@@ -601,7 +607,7 @@ where
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-cancopydatablockbytes>
     // CanCopyDataBlockBytes(descriptorBuffer, destStart, queueBuffer, queueByteOffset, bytesToCopy)
-    pub(crate) fn can_copy_data_block_bytes(
+    pub fn can_copy_data_block_bytes(
         &self,
         cx: &mut JSContext,
         to_index: usize,
@@ -655,7 +661,7 @@ where
         true
     }
 
-    pub(crate) fn copy_data_block_bytes(
+    pub fn copy_data_block_bytes(
         &self,
         cx: &mut JSContext,
         dest_start: usize,
@@ -681,7 +687,7 @@ where
     }
 
     /// <https://streams.spec.whatwg.org/#can-transfer-array-buffer>
-    pub(crate) fn can_transfer_array_buffer(&self, cx: &mut JSContext) -> bool {
+    pub fn can_transfer_array_buffer(&self, cx: &mut JSContext) -> bool {
         // Assert: O is an Object.
         // Assert: O has an [[ArrayBufferData]] internal slot.
         assert!(self.is_array_buffer_object());
@@ -710,7 +716,7 @@ where
     }
 
     /// <https://streams.spec.whatwg.org/#transfer-array-buffer>
-    pub(crate) fn transfer_array_buffer(
+    pub fn transfer_array_buffer(
         &self,
         cx: &mut JSContext,
     ) -> Fallible<RootedTraceableBox<HeapBufferSource<ArrayBufferU8>>> {
@@ -759,7 +765,7 @@ where
     }
 }
 
-unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> {
+unsafe impl<T> Trace for HeapBufferSource<T> {
     #[inline]
     unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
         match &self.buffer_source {
@@ -771,7 +777,8 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> 
 }
 
 /// <https://webidl.spec.whatwg.org/#arraybufferview-create>
-pub(crate) fn create_buffer_source<T>(
+#[expect(clippy::result_unit_err)]
+pub fn create_buffer_source<T>(
     cx: &mut JSContext,
     data: &[T::Element],
     mut dest: MutableHandleObject,
@@ -809,7 +816,7 @@ where
     }
 }
 
-pub(crate) fn byte_size(byte_type: Type) -> u64 {
+pub fn byte_size(byte_type: Type) -> u64 {
     match byte_type {
         Type::Int8 | Type::Uint8 | Type::Uint8Clamped => 1,
         Type::Int16 | Type::Uint16 | Type::Float16 => 2,
@@ -821,7 +828,7 @@ pub(crate) fn byte_size(byte_type: Type) -> u64 {
 }
 
 #[derive(Clone, Eq, JSTraceable, MallocSizeOf, PartialEq)]
-pub(crate) enum Constructor {
+pub enum Constructor {
     DataView,
     Name(
         #[ignore_malloc_size_of = "mozjs"]
@@ -830,7 +837,7 @@ pub(crate) enum Constructor {
     ),
 }
 
-pub(crate) fn create_buffer_source_with_constructor(
+pub fn create_buffer_source_with_constructor(
     cx: &mut JSContext,
     constructor: &Constructor,
     buffer_source: &HeapBufferSource<ArrayBufferU8>,
@@ -972,7 +979,7 @@ fn construct_typed_array(
     }
 }
 
-pub(crate) fn create_array_buffer_with_size(
+pub fn create_array_buffer_with_size(
     cx: &mut JSContext,
     size: usize,
 ) -> Fallible<RootedTraceableBox<HeapBufferSource<ArrayBufferU8>>> {

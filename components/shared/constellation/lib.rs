@@ -86,8 +86,10 @@ pub enum EmbedderToConstellationMessage {
     ExitFullScreen(WebViewId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
-    /// Set whether to use less resources, by stopping animations and running timers at a heavily limited rate.
-    SetWebViewThrottled(WebViewId, bool),
+    /// Notify the Constellation that a WebView has been hidden. Hidden `WebView`s are throttled,
+    /// which means they use less resources, by stopping animations and running timers at a
+    /// heavily limited rate.
+    SetWebViewHidden(WebViewId, bool),
     /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
     /// given pipeline via the constellation.
     SetScrollStates(PipelineId, ScrollStateUpdate),
@@ -127,7 +129,8 @@ pub enum UserContentManagerAction {
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
-/// constellation.
+/// constellation and then forwarded to the script thread.
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PaintMetricEvent {
     FirstPaint(CrossProcessInstant, bool /* first_reflow */),
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),

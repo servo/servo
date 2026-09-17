@@ -136,7 +136,7 @@ use rand::{RngExt, SeedableRng, make_rng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, MouseButtons,
-    NewPipelineInfo, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
+    NewPipelineInfo, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_background_hang_monitor::HangMonitorRegister;
 use servo_base::generic_channel;
@@ -1007,7 +1007,6 @@ where
         // https://github.com/servo/ipc-channel/issues/138
         load_data: LoadData,
         is_private: bool,
-        throttled: bool,
         target_snapshot_params: TargetSnapshotParams,
         name: Option<String>,
     ) {
@@ -1016,13 +1015,12 @@ where
         }
 
         debug!("Creating new pipeline ({new_pipeline_id:?}) in {browsing_context_id}");
-        let Some(theme) = self
-            .webviews
-            .get(&webview_id)
-            .map(ConstellationWebView::theme)
-        else {
-            warn!("Tried to create Pipeline for uknown WebViewId: {webview_id:?}");
-            return;
+        let (webview_hidden, theme) = {
+            let Some(webview) = self.webviews.get(&webview_id) else {
+                warn!("Tried to create Pipeline for uknown WebViewId: {webview_id:?}");
+                return;
+            };
+            (webview.hidden(), webview.theme())
         };
 
         let event_loop = match self.get_or_create_event_loop_for_new_pipeline(
@@ -1054,7 +1052,7 @@ where
             target_snapshot_params,
             frame_name: name,
         };
-        let pipeline = match Pipeline::spawn(new_pipeline_info, event_loop, self, throttled) {
+        let pipeline = match Pipeline::spawn(new_pipeline_info, event_loop, self, webview_hidden) {
             Ok(pipeline) => pipeline,
             Err(error) => return self.handle_send_error(new_pipeline_id, error),
         };
@@ -1144,7 +1142,6 @@ where
         viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
-        throttled: bool,
     ) {
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
             println!("Adding BrowsingContext for unknown WebView: {webview_id:?}");
@@ -1187,7 +1184,6 @@ where
             viewport_details,
             is_private,
             inherited_secure_context,
-            throttled,
         );
         self.browsing_contexts
             .insert(browsing_context_id, browsing_context);
@@ -1401,8 +1397,8 @@ where
             EmbedderToConstellationMessage::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
-            EmbedderToConstellationMessage::SetWebViewThrottled(webview_id, throttled) => {
-                self.set_webview_throttled(webview_id, throttled);
+            EmbedderToConstellationMessage::SetWebViewHidden(webview_id, hidden) => {
+                self.set_webview_hidden(webview_id, hidden);
             },
             EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_states) => {
                 self.handle_set_scroll_states(pipeline_id, scroll_states)
@@ -1716,7 +1712,7 @@ where
                     .schedule_broadcast(router_id, message);
             },
             ScriptToConstellationMessage::PipelineExited => {
-                self.handle_pipeline_exited(source_pipeline_id);
+                self.handle_pipeline_exited(source_pipeline_id, PipelineExitSource::Constellation);
             },
             ScriptToConstellationMessage::DiscardDocument => {
                 self.handle_discard_document(webview_id, source_pipeline_id);
@@ -1842,9 +1838,6 @@ where
                     focused_browsing_context_id,
                     remote_focus_operation,
                 );
-            },
-            ScriptToConstellationMessage::SetThrottledComplete(throttled) => {
-                self.handle_set_throttled_complete(source_pipeline_id, throttled);
             },
             ScriptToConstellationMessage::RemoveIFrame(browsing_context_id, response_sender) => {
                 let removed_pipeline_ids =
@@ -2958,7 +2951,7 @@ where
         self.async_runtime.shutdown();
     }
 
-    fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
+    fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId, exit_source: PipelineExitSource) {
         debug!("{}: Exited", pipeline_id);
         self.remove_worker_animation_frame_providers_for_pipeline(pipeline_id);
 
@@ -2978,7 +2971,7 @@ where
         self.paint_proxy.send(PaintMessage::PipelineExited(
             pipeline.webview_id,
             pipeline.id,
-            PipelineExitSource::Constellation,
+            exit_source,
         ));
     }
 
@@ -3019,13 +3012,29 @@ where
         debug!("Panic handler for {event_loop_id:?}: {reason:?}",);
 
         let mut webview_ids = HashSet::new();
+        let mut crashed_pipelines = Vec::new();
         for pipeline in self.pipelines.values() {
             if pipeline.event_loop.id() == event_loop_id {
+                crashed_pipelines.push(pipeline.id);
                 webview_ids.insert(pipeline.webview_id);
             }
         }
+
         for webview_id in webview_ids {
             self.handle_panic_in_webview(webview_id, &reason, &backtrace);
+        }
+
+        for pipeline_id in crashed_pipelines {
+            self.close_pipeline(
+                pipeline_id,
+                DiscardBrowsingContext::No,
+                ExitPipelineMode::Force,
+            );
+            // The pipeline is now unreachable, so we should consider it gone. We should
+            // not try to send any subsequent messages to this pipeline. all() here ensures
+            // that `Paint` cleans up the pipeline display immediately without waiting for
+            // confirmation from the event loop.
+            self.handle_pipeline_exited(pipeline_id, PipelineExitSource::all());
         }
     }
 
@@ -3035,7 +3044,6 @@ where
         reason: &String,
         backtrace: &Option<String>,
     ) {
-        let browsing_context_id = BrowsingContextId::from(webview_id);
         self.constellation_to_embedder_proxy
             .send(ConstellationToEmbedderMsg::Panic(
                 webview_id,
@@ -3043,17 +3051,22 @@ where
                 backtrace.clone(),
             ));
 
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) else {
             return warn!("failed browsing context is missing");
         };
         let viewport_details = browsing_context.viewport_details;
         let pipeline_id = browsing_context.pipeline_id;
-        let throttled = browsing_context.throttled;
 
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             return warn!("failed pipeline is missing");
         };
         let opener = pipeline.opener;
+
+        let old_pipeline_id = pipeline_id;
+        let Some(old_load_data) = self.refresh_load_data(pipeline_id) else {
+            return warn!("failed pipeline is missing");
+        };
 
         self.close_browsing_context_children(
             webview_id,
@@ -3062,10 +3075,6 @@ where
             ExitPipelineMode::Force,
         );
 
-        let old_pipeline_id = pipeline_id;
-        let Some(old_load_data) = self.refresh_load_data(pipeline_id) else {
-            return warn!("failed pipeline is missing");
-        };
         if old_load_data.crash.is_some() {
             return error!("crash page crashed");
         }
@@ -3094,7 +3103,6 @@ where
             viewport_details,
             new_load_data,
             is_private,
-            throttled,
             TargetSnapshotParams::default(),
             None,
         );
@@ -3295,7 +3303,6 @@ where
         let browsing_context_id = BrowsingContextId::from(webview_id);
         let load_data = LoadData::new_for_new_unrelated_webview(url);
         let is_private = false;
-        let throttled = false;
 
         // Register this new top-level browsing context id as a webview and set
         // its focused browsing context to be itself.
@@ -3310,7 +3317,6 @@ where
                 parent_pipeline_id: None,
                 is_private,
                 inherited_secure_context: None,
-                throttled,
             }),
             viewport_details,
         });
@@ -3334,7 +3340,6 @@ where
             viewport_details,
             load_data,
             is_private,
-            throttled,
             TargetSnapshotParams::default(),
             None,
         );
@@ -3537,7 +3542,6 @@ where
         };
 
         let browsing_context_size = browsing_context.viewport_details;
-        let browsing_context_throttled = browsing_context.throttled;
         // TODO(servo#30571) revert to debug_assert_eq!() once underlying bug is fixed
         #[cfg(debug_assertions)]
         if !(browsing_context_size == load_info.viewport_details) {
@@ -3556,7 +3560,6 @@ where
             browsing_context_size,
             load_info.load_data,
             is_private,
-            browsing_context_throttled,
             target_snapshot_params,
             name,
         );
@@ -3597,9 +3600,9 @@ where
                     );
                 },
             };
-        let (is_parent_private, is_parent_throttled, is_parent_secure) =
+        let (is_parent_private, is_parent_secure) =
             match self.browsing_contexts.get(&parent_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.throttled, ctx.inherited_secure_context),
+                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context),
                 None => {
                     return warn!(
                         "{}: New iframe {} loaded in closed parent browsing context",
@@ -3607,6 +3610,11 @@ where
                     );
                 },
             };
+
+        let webview_hidden = self
+            .webviews
+            .get(&webview_id)
+            .is_none_or(|webview| webview.hidden());
         let is_private = is_private || is_parent_private;
         let pipeline = Pipeline::new_already_spawned(
             new_pipeline_id,
@@ -3615,7 +3623,7 @@ where
             None,
             script_sender,
             self.paint_proxy.clone(),
-            is_parent_throttled,
+            webview_hidden,
             load_info.load_data,
         );
 
@@ -3633,7 +3641,6 @@ where
                     parent_pipeline_id: Some(parent_pipeline_id),
                     is_private,
                     inherited_secure_context: is_parent_secure,
-                    throttled: is_parent_throttled,
                 }),
                 viewport_details: load_info.viewport_details,
             });
@@ -3684,9 +3691,9 @@ where
                     );
                 },
             };
-        let (is_opener_private, is_opener_throttled, is_opener_secure) =
+        let (is_opener_private, is_opener_secure) =
             match self.browsing_contexts.get(&opener_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.throttled, ctx.inherited_secure_context),
+                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context),
                 None => {
                     return warn!(
                         "{}: New auxiliary {} loaded in closed opener browsing context",
@@ -3702,7 +3709,10 @@ where
             Some(opener_browsing_context_id),
             script_sender,
             self.paint_proxy.clone(),
-            is_opener_throttled,
+            // New auxiliary WebViews start out as visible. The embedder can still
+            // hide it with an explicit call to `WebView::hide()` in which case a
+            // followup message will arrive to the Constellation to hide it.
+            false, /* hidden */
             load_data,
         );
         let _ = response_sender.send(Some(AuxiliaryWebViewCreationResponse {
@@ -3729,7 +3739,6 @@ where
                 parent_pipeline_id: None,
                 is_private: is_opener_private,
                 inherited_secure_context: is_opener_secure,
-                throttled: is_opener_throttled,
             }),
             viewport_details,
         });
@@ -4169,14 +4178,13 @@ where
                 return None;
             },
         };
-        let (viewport_details, pipeline_id, parent_pipeline_id, is_private, is_throttled) =
+        let (viewport_details, pipeline_id, parent_pipeline_id, is_private) =
             match self.browsing_contexts.get(&browsing_context_id) {
                 Some(ctx) => (
                     ctx.viewport_details,
                     ctx.pipeline_id,
                     ctx.parent_pipeline_id,
                     ctx.is_private,
-                    ctx.throttled,
                 ),
                 None => {
                     // This should technically never happen (since `load_url` is
@@ -4266,7 +4274,6 @@ where
                     viewport_details,
                     load_data,
                     is_private,
-                    is_throttled,
                     target_snapshot_params,
                     None,
                 );
@@ -4655,27 +4662,20 @@ where
                 load_data.history_navigation = true;
                 load_data.reload_navigation = false;
 
-                let (
-                    webview_id,
-                    old_pipeline_id,
-                    parent_pipeline_id,
-                    viewport_details,
-                    is_private,
-                    throttled,
-                ) = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(ctx) => (
-                        ctx.webview_id,
-                        ctx.pipeline_id,
-                        ctx.parent_pipeline_id,
-                        ctx.viewport_details,
-                        ctx.is_private,
-                        ctx.throttled,
-                    ),
-                    None => {
-                        warn!("No browsing context to traverse!");
-                        return None;
-                    },
-                };
+                let (webview_id, old_pipeline_id, parent_pipeline_id, viewport_details, is_private) =
+                    match self.browsing_contexts.get(&browsing_context_id) {
+                        Some(ctx) => (
+                            ctx.webview_id,
+                            ctx.pipeline_id,
+                            ctx.parent_pipeline_id,
+                            ctx.viewport_details,
+                            ctx.is_private,
+                        ),
+                        None => {
+                            warn!("No browsing context to traverse!");
+                            return None;
+                        },
+                    };
                 let opener = match self.pipelines.get(&old_pipeline_id) {
                     Some(pipeline) => pipeline.opener,
                     None => None,
@@ -4690,7 +4690,6 @@ where
                     viewport_details,
                     load_data.clone(),
                     is_private,
-                    throttled,
                     // TODO(jdm): We need to store the original target snapshot params
                     // with the pipeline when it's created, so we can support reloading
                     // a discarded document properly.
@@ -4734,7 +4733,7 @@ where
 
         self.unload_document(old_pipeline_id);
 
-        if let Some(new_pipeline) = self.pipelines.get(&new_pipeline_id) {
+        if let Some(new_pipeline) = self.pipelines.get_mut(&new_pipeline_id) {
             if let Some(ref chan) = self.devtools_sender {
                 let state = NavigationState::Start(new_pipeline.url.clone());
                 let _ = chan.send(DevtoolsControlMsg::FromScript(
@@ -4752,7 +4751,16 @@ where
                 ));
             }
 
-            new_pipeline.set_throttled(false);
+            new_pipeline.set_has_active_document(true);
+
+            // When navigating away from a Pipeline it is throttled, so if the WebView
+            // is not hidden we must now unthrottle it.
+            let webview_hidden = self
+                .webviews
+                .get(&webview_id)
+                .is_none_or(|webview| webview.hidden());
+            new_pipeline.send_throttle_messages(webview_hidden);
+
             self.notify_focus_state(new_pipeline_id);
         }
 
@@ -5172,28 +5180,6 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_set_throttled_complete(&mut self, pipeline_id: PipelineId, throttled: bool) {
-        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-            return warn!("{pipeline_id}: Visibility change for closed browsing context",);
-        };
-        let Some(browsing_context) = self.browsing_contexts.get(&pipeline.browsing_context_id)
-        else {
-            return warn!("{}: Visibility change for closed pipeline", pipeline_id);
-        };
-        let Some(parent_pipeline_id) = browsing_context.parent_pipeline_id else {
-            return;
-        };
-
-        let msg = ScriptThreadMessage::SetThrottledInContainingIframe(
-            pipeline.webview_id,
-            parent_pipeline_id,
-            browsing_context.id,
-            throttled,
-        );
-        self.send_message_to_pipeline(parent_pipeline_id, msg, "Parent pipeline closed");
-    }
-
-    #[servo_tracing::instrument(skip_all)]
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
         size: UntypedSize2D<u64>,
@@ -5288,17 +5274,19 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn set_webview_throttled(&mut self, webview_id: WebViewId, throttled: bool) {
-        let browsing_context_id = BrowsingContextId::from(webview_id);
-        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.pipeline_id,
-            None => {
-                return warn!("{browsing_context_id}: Tried to SetWebViewThrottled after closure");
-            },
-        };
-        match self.pipelines.get(&pipeline_id) {
-            None => warn!("{pipeline_id}: Tried to SetWebViewThrottled after closure"),
-            Some(pipeline) => pipeline.set_throttled(throttled),
+    fn set_webview_hidden(&mut self, webview_id: WebViewId, hidden: bool) {
+        if self
+            .webviews
+            .get_mut(&webview_id)
+            .is_none_or(|webview| !webview.set_hidden(hidden))
+        {
+            return;
+        }
+
+        for pipeline in self.pipelines.values() {
+            if pipeline.webview_id == webview_id {
+                pipeline.send_throttle_messages(hidden);
+            }
         }
     }
 
@@ -5475,7 +5463,6 @@ where
                     change.viewport_details,
                     new_context_info.is_private,
                     new_context_info.inherited_secure_context,
-                    new_context_info.throttled,
                 );
                 self.update_activity(change.new_pipeline_id);
             },
@@ -6037,11 +6024,12 @@ where
 
     /// Send a message to script requesting the document associated with this pipeline runs the 'unload' algorithm.
     #[servo_tracing::instrument(skip_all)]
-    fn unload_document(&self, pipeline_id: PipelineId) {
-        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            pipeline.set_throttled(true);
-            let msg = ScriptThreadMessage::UnloadDocument(pipeline_id);
-            let _ = pipeline.event_loop.send(msg);
+    fn unload_document(&mut self, pipeline_id: PipelineId) {
+        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            pipeline.set_has_active_document(false);
+            let _ = pipeline
+                .event_loop
+                .send(ScriptThreadMessage::UnloadDocument(pipeline_id));
         }
     }
 
@@ -6094,7 +6082,13 @@ where
         };
 
         // Inform script and paint that this pipeline has exited.
-        pipeline.send_exit_message_to_script(dbc);
+        if !pipeline.send_exit_message_to_script(dbc) {
+            // The pipeline is now unreachable, so we should consider it gone. We should
+            // not try to send any subsequent messages to this pipeline. all() here ensures
+            // that `Paint` cleans up the pipeline display immediately without waiting for
+            // confirmation from the event loop.
+            self.handle_pipeline_exited(pipeline_id, PipelineExitSource::all());
+        }
 
         // Remove this pipeline from pending changes if it hasn't loaded yet.
         if let Some(webview) = self.webviews.get_mut(&webview_id) {
@@ -6274,30 +6268,11 @@ where
             warn!("Discarding paint metric event for unknown pipeline");
             return;
         };
-        let (metric_type, metric_value, first_reflow) = match event {
-            PaintMetricEvent::FirstPaint(metric_value, first_reflow) => (
-                ProgressiveWebMetricType::FirstPaint,
-                metric_value,
-                first_reflow,
-            ),
-            PaintMetricEvent::FirstContentfulPaint(metric_value, first_reflow) => (
-                ProgressiveWebMetricType::FirstContentfulPaint,
-                metric_value,
-                first_reflow,
-            ),
-            PaintMetricEvent::LargestContentfulPaint(metric_value, id) => (
-                ProgressiveWebMetricType::LargestContentfulPaint { id },
-                metric_value,
-                false, // LCP doesn't care about first reflow
-            ),
-        };
-        if let Err(error) = pipeline.event_loop.send(ScriptThreadMessage::PaintMetric(
-            pipeline_id,
-            metric_type,
-            metric_value,
-            first_reflow,
-        )) {
-            warn!("Could not sent paint metric event to pipeline: {pipeline_id:?}: {error:?}");
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::PaintMetric(pipeline_id, event))
+        {
+            warn!("Could not send paint metric event to pipeline: {pipeline_id:?}: {error:?}");
         }
     }
 

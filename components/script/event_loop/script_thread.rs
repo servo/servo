@@ -17,6 +17,8 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
@@ -77,8 +79,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
-    NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
-    UpdatePipelineIdReason,
+    NewPipelineInfo, Painter, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -93,10 +94,10 @@ use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::opts::{self, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
 use servo_constellation_traits::{
-    HistoryTraversalSource, LoadData, LoadOrigin, NavigationHistoryBehavior, RemoteFocusOperation,
-    ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
-    ScrollStateUpdate, SessionHistoryTraversalRequest, StructuredSerializedData,
-    TargetSnapshotParams, TraversalDirection, WindowSizeType,
+    HistoryTraversalSource, LoadData, LoadOrigin, NavigationHistoryBehavior, PaintMetricEvent,
+    RemoteFocusOperation, ScreenshotReadinessResponse, ScriptToConstellationChan,
+    ScriptToConstellationMessage, ScrollStateUpdate, SessionHistoryTraversalRequest,
+    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use smallvec::SmallVec;
@@ -1148,21 +1149,24 @@ impl ScriptThread {
             let mut realm = enter_auto_realm(cx, &*document);
             let cx = &mut realm.current_realm();
 
-            // > 11. For each doc of docs, update animations and send events for doc, passing
-            // > in relative high resolution time given frameTimestamp and doc's relevant
-            // > global object as the timestamp [WEBANIMATIONS]
-            document.update_animations_and_send_events(cx);
+            // Do not update animations or run rAFs if a Document is throttled.
+            if !document.window().throttled() {
+                // > 11. For each doc of docs, update animations and send events for doc, passing
+                // > in relative high resolution time given frameTimestamp and doc's relevant
+                // > global object as the timestamp [WEBANIMATIONS]
+                document.update_animations_and_send_events(cx);
 
-            // TODO(#31866): Implement "run the fullscreen steps" from
-            // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
+                // TODO(#31866): Implement "run the fullscreen steps" from
+                // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
 
-            // TODO(#31868): Implement the "context lost steps" from
-            // https://html.spec.whatwg.org/multipage/#context-lost-steps.
+                // TODO(#31868): Implement the "context lost steps" from
+                // https://html.spec.whatwg.org/multipage/#context-lost-steps.
 
-            // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
-            // > in the relative high resolution time given frameTimestamp and doc's
-            // > relevant global object as the timestamp.
-            document.run_the_animation_frame_callbacks(cx);
+                // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
+                // > in the relative high resolution time given frameTimestamp and doc's
+                // > relevant global object as the timestamp.
+                document.run_the_animation_frame_callbacks(cx);
+            }
 
             // Run the resize observer steps.
             let mut depth = Default::default();
@@ -1733,19 +1737,9 @@ impl ScriptThread {
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
                 self.handle_set_document_activity_msg(cx, pipeline_id, activity)
             },
-            ScriptThreadMessage::SetThrottled(webview_id, pipeline_id, throttled) => {
-                self.handle_set_throttled_msg(webview_id, pipeline_id, throttled)
+            ScriptThreadMessage::SetThrottled(pipeline_id, throttled) => {
+                self.handle_set_throttled_msg(pipeline_id, throttled)
             },
-            ScriptThreadMessage::SetThrottledInContainingIframe(
-                _,
-                parent_pipeline_id,
-                browsing_context_id,
-                throttled,
-            ) => self.handle_set_throttled_in_containing_iframe_msg(
-                parent_pipeline_id,
-                browsing_context_id,
-                throttled,
-            ),
             ScriptThreadMessage::PostMessage {
                 target: target_pipeline_id,
                 source_webview,
@@ -1838,12 +1832,9 @@ impl ScriptThread {
             ) => {
                 self.handle_exit_pipeline_msg(webview_id, pipeline_id, discard_browsing_context, cx)
             },
-            ScriptThreadMessage::PaintMetric(
-                pipeline_id,
-                metric_type,
-                metric_value,
-                first_reflow,
-            ) => self.handle_paint_metric(cx, pipeline_id, metric_type, metric_value, first_reflow),
+            ScriptThreadMessage::PaintMetric(pipeline_id, event) => {
+                self.handle_paint_metric(cx, pipeline_id, event)
+            },
             ScriptThreadMessage::MediaSessionAction(pipeline_id, action) => {
                 self.handle_media_session_action(cx, pipeline_id, action)
             },
@@ -2755,39 +2746,7 @@ impl ScriptThread {
         reports_chan.send(ProcessReports::new(reports));
     }
 
-    /// Updates iframe element after a change in visibility
-    fn handle_set_throttled_in_containing_iframe_msg(
-        &self,
-        parent_pipeline_id: PipelineId,
-        browsing_context_id: BrowsingContextId,
-        throttled: bool,
-    ) {
-        let iframe = self
-            .documents
-            .borrow()
-            .find_iframe(parent_pipeline_id, browsing_context_id);
-        if let Some(iframe) = iframe {
-            iframe.set_throttled(throttled);
-        }
-    }
-
-    fn handle_set_throttled_msg(
-        &self,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        throttled: bool,
-    ) {
-        // Separate message sent since parent script thread could be different (Iframe of different
-        // domain)
-        self.senders
-            .pipeline_to_constellation_sender
-            .send((
-                webview_id,
-                pipeline_id,
-                ScriptToConstellationMessage::SetThrottledComplete(throttled),
-            ))
-            .unwrap();
-
+    fn handle_set_throttled_msg(&self, pipeline_id: PipelineId, throttled: bool) {
         let window = self.documents.borrow().find_window(pipeline_id);
         match window {
             Some(window) => {
@@ -4414,17 +4373,13 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
-        metric_type: ProgressiveWebMetricType,
-        metric_value: CrossProcessInstant,
-        first_reflow: bool,
+        event: PaintMetricEvent,
     ) {
         match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => {
-                document.handle_paint_metric(cx, metric_type, metric_value, first_reflow)
+            Some(document) => document.handle_paint_metric(cx, event),
+            None => {
+                warn!("Received paint metric ({event:?}) for unknown document: {pipeline_id:?}")
             },
-            None => warn!(
-                "Received paint metric ({metric_type:?}) for unknown document: {pipeline_id:?}"
-            ),
         }
     }
 

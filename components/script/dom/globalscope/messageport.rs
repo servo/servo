@@ -12,7 +12,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers2::JS_NewObject;
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use servo_base::id::{MessagePortId, MessagePortIndex};
@@ -231,8 +231,7 @@ impl MessagePort {
         // Done in `global.post_messageport_msg`.
 
         // Let options be «[ "transfer" → « » ]».
-        let mut rooted = CustomAutoRooter::new(vec![]);
-        let transfer = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
+        auto_root!(&in(cx) let transfer = Vec::<*mut JSObject>::new());
 
         // Run the message port post message steps providing targetPort, message, and options.
         rooted!(&in(cx) let mut message_val = UndefinedValue());
@@ -314,15 +313,12 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
         if self.detached.get() {
             return Ok(());
         }
-        let mut rooted = CustomAutoRooter::new(
+        auto_root!(&in(cx) let guard =
             options
                 .transfer
                 .iter()
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-                .collect(),
-        );
-        #[expect(unsafe_code)]
-        let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
+                .collect::<Vec<_>>());
         self.post_message_impl(cx, message, guard)
     }
 

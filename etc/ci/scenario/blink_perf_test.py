@@ -153,18 +153,17 @@ def run_single_test(
     print(f"Testing url: {url}")
     text = None
     try:
-        before_get = time.perf_counter()
-        driver.get(url)
-        after_get = time.perf_counter()
         page_loading_timeout = cli_args.page_loading_timeout
         if page_loading_timeout is None:
             special_case_time = next(
                 (value for s, value in tests_that_take_extra_time_to_load if test_file_name in s), None
             )
-            if special_case_time is not None:
-                page_loading_timeout = special_case_time
-            else:
-                page_loading_timeout = 2
+            page_loading_timeout = special_case_time if special_case_time is not None else 2
+
+        driver.set_page_load_timeout(page_loading_timeout)
+        before_get = time.perf_counter()
+        driver.get(url)
+        after_get = time.perf_counter()
         if after_get - before_get > page_loading_timeout:
             raise TimeoutError(f"Page loading took {(after_get - before_get):.2f}s (> {page_loading_timeout}s limit)")
         print(f">>> Page loading took {(after_get - before_get):.2f}s")
@@ -352,6 +351,8 @@ def run_tests(port: int, cli_args: argparse.Namespace, hdc: Optional[HarmonyDevi
             for file in files:
                 dir[:] = [d for d in dir if d != "resources"]
                 filePath = file
+                if not filePath.endswith(".html"):
+                    continue
                 if skip_until is None or skip_until in filePath:
                     if not cli_args.single_test:
                         skip_until = None

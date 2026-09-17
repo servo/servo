@@ -8,8 +8,8 @@ use euclid::Rect;
 use style::selector_parser::PseudoElement;
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
+use uuid::Uuid;
 
-use crate::dom::UniqueId;
 use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementRegistry, CustomElementState,
@@ -38,7 +38,8 @@ pub(crate) struct NodeRareData {
     /// Registered observers for this node.
     pub(crate) mutation_observers: Vec<RegisteredObserver>,
     /// Lazily-generated Unique Id for this node.
-    pub(crate) unique_id: Option<UniqueId>,
+    #[no_trace]
+    pub(crate) unique_id: Option<Uuid>,
 
     pub(crate) slottable_data: SlottableData,
 

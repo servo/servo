@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -93,7 +95,6 @@ pub(crate) struct HTMLIFrameElement {
     #[no_trace]
     sandboxing_flag_set: Cell<Option<SandboxingFlagSet>>,
     load_blocker: DomRefCell<Option<LoadBlocker>>,
-    throttled: Cell<bool>,
     #[conditional_malloc_size_of]
     script_window_proxies: Rc<ScriptWindowProxies>,
     /// <https://html.spec.whatwg.org/multipage/#current-navigation-was-lazy-loaded>
@@ -674,7 +675,6 @@ impl HTMLIFrameElement {
             sandbox: Default::default(),
             sandboxing_flag_set: Cell::new(None),
             load_blocker: DomRefCell::new(None),
-            throttled: Cell::new(false),
             script_window_proxies: ScriptThread::window_proxies(),
             current_navigation_was_lazy_loaded: Default::default(),
             lazy_load_resumption_steps: Default::default(),
@@ -720,12 +720,6 @@ impl HTMLIFrameElement {
         self.sandboxing_flag_set
             .get()
             .unwrap_or_else(SandboxingFlagSet::empty)
-    }
-
-    pub(crate) fn set_throttled(&self, throttled: bool) {
-        if self.throttled.get() != throttled {
-            self.throttled.set(throttled);
-        }
     }
 
     /// Note a pending navigation.

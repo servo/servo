@@ -14,15 +14,17 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUPipelineLayoutDescriptor, GPUPipelineLayoutMethods, GPUPipelineLayoutWrap,
 };
+use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
-use webgpu_traits::{WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest};
-use wgpu_core::binding_model::PipelineLayoutDescriptor;
+use webgpu_traits::{
+    PipelineLayoutDescriptor, WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest,
+};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::gpuconvert::WebGPUConvert;
-use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise};
 
 #[derive(MallocSizeOf)]
 struct DroppableGPUPipelineLayout {
@@ -104,9 +106,9 @@ where
 impl<D> GPUPipelineLayout<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
-    pub fn id(&self) -> WebGPUPipelineLayout {
+    pub(crate) fn id(&self) -> WebGPUPipelineLayout {
         self.droppable.pipeline_layout
     }
 
@@ -116,7 +118,7 @@ where
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut JSContext,
         device: &D::GPUDevice,
         descriptor: &GPUPipelineLayoutDescriptor<D>,

@@ -22,14 +22,13 @@ use script_bindings::interfaces::{PromiseHelpers, StackRootPromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
-use webgpu_traits::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
-use wgpu_core::device::HostMap;
+use webgpu_traits::{HostMap, Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
 
 use crate::datablock::DataBlock;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::gpuconvert::WebGPUConvert;
-use crate::traits::{Equivalence, GPUDeviceTrait, WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -68,7 +67,7 @@ impl ActiveBufferMapping {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct DroppableGPUBuffer {
+pub(crate) struct DroppableGPUBuffer {
     #[no_trace]
     channel: WebGPU,
     #[no_trace]
@@ -158,16 +157,14 @@ where
 impl<D> GPUBuffer<D>
 where
     D: Equivalence,
-    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
-    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     pub fn id(&self) -> WebGPUBuffer {
         self.droppable.buffer
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
-    pub fn create(
+    pub(crate) fn create(
         cx: &mut js::context::JSContext,
         device: &D::GPUDevice,
         descriptor: &GPUBufferDescriptor,
@@ -220,12 +217,7 @@ where
 impl<D> GPUBufferMethods<D> for GPUBuffer<D>
 where
     D: Equivalence,
-    D::Promise: PromiseHelpers<D> + PartialEq,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromiseTrait<D>,
-    D::GPUDevice: GPUDeviceTrait<D>,
-    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
-    D::Promise: PromiseHelpers<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self, cx: &mut js::context::JSContext) {
@@ -315,7 +307,7 @@ where
             },
         };
 
-        let callback = promise.callback_promise_gpubuffer(self);
+        let callback = promise.callback_promise_dom_manipulation_task_source(self);
         if let Err(e) = self
             .droppable
             .channel
@@ -456,7 +448,7 @@ where
 impl<D> GPUBuffer<D>
 where
     D: Equivalence,
-    D::GPUDevice: GPUDeviceTrait<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     pub fn map_failure(
         &self,

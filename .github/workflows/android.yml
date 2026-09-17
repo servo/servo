@@ -71,11 +71,14 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: 'tools platform-tools platforms;android-34'
+          packages: 'platform-tools platforms;android-34'
       - name: Install Android NDK
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
+          # When updating this version, be sure to update the README instructions as well
+          # as the corresponding page in the book:
+          # https://book.servo.org/building/android.html.
           ndk-version: r29
       - name: Setup Gradle caches
         uses: gradle/actions/setup-gradle@v4

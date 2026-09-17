@@ -18,9 +18,10 @@ use js::rust::wrappers2::{
     JS_NewObject, NewDateObject, ObjectIsDate, SameValue,
 };
 use js::rust::{HandleValue, MutableHandleValue};
-use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
+use js::typedarray::{ArrayBuffer, ArrayBufferU8, ArrayBufferView};
 use storage_traits::indexeddb::{BackendError, IndexedDBKeyRange, IndexedDBKeyType};
 
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
@@ -67,28 +68,21 @@ pub fn key_type_to_jsval(
             date.to_jsval(cx, result);
         },
 
-        IndexedDBKeyType::Binary(b) => unsafe {
+        IndexedDBKeyType::Binary(b) => {
             // Step 3.1. Let len be value’s length.
-            let len = b.len();
 
             // Step 3.2. Let buffer be the result of executing the ECMAScript
             // ArrayBuffer constructor with len.
             rooted!(&in(cx) let mut buffer = ptr::null_mut::<js::jsapi::JSObject>());
-            assert!(
-                ArrayBuffer::create(cx, CreateWith::Length(len), buffer.handle_mut()).is_ok(),
-                "Failed to convert IndexedDB binary key into an ArrayBuffer"
-            );
 
             // Step 3.3. Assert: buffer is not an abrupt completion.
 
             // Step 3.4. Set the entries in buffer’s [[ArrayBufferData]] internal slot to the
             // entries in value.
-            let mut array_buffer = ArrayBuffer::from(buffer.get())
-                .expect("ArrayBuffer::create should create an ArrayBuffer object");
-            array_buffer
-                .as_mut_slice_safe(cx.no_gc())
-                .expect("Can't be detached")
-                .copy_from_slice(b);
+            assert!(
+                create_buffer_source::<ArrayBufferU8>(cx, b, buffer.handle_mut()).is_ok(),
+                "Failed to convert IndexedDB binary key into an ArrayBuffer"
+            );
 
             // Step 3.5. Return buffer.
             result.set(ObjectValue(buffer.get()));
