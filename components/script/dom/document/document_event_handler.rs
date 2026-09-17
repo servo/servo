@@ -10,11 +10,10 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use embedder_traits::{
-    Cursor, CursorMetadata, EmbedderMsg, ImeEvent, InputEvent, InputEventId,
-    InputEventOutcome, InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent,
-    TouchEventType, TouchId, TouchPointerType, UntrustedNodeAddress,
-    WheelEvent as EmbedderWheelEvent,
+    Cursor, CursorMetadata, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
+    InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
+    TouchId, TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{

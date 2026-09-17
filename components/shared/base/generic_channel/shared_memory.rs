@@ -13,10 +13,10 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::generic_channel::use_ipc;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct GenericSharedMemory(GenericSharedMemoryVariant);
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 enum GenericSharedMemoryVariant {
     Ipc(IpcSharedMemory),
     InProcess(Arc<Vec<u8>>),
