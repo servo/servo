@@ -70,7 +70,7 @@ pub trait DomHelpers<D: DomTypes> {
 
 /// Operations that must be invoked from the generated bindings.
 #[expect(unsafe_code)]
-pub trait GlobalScopeHelpers<D: DomTypes> {
+pub trait GlobalScopeHelpers<D: DomTypes>: DomObject + Sized {
     fn from_current_realm(realm: &'_ mut CurrentRealm) -> DomRoot<D::GlobalScope>;
 
     /// # Safety
@@ -91,6 +91,7 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
     fn pipeline_id(&self) -> PipelineId;
 
     fn script_to_constellation_chan(&self) -> ScriptToConstellationChan;
+    fn entry() -> DomRoot<Self>;
 }
 
 pub trait HeapTracedPromiseHelpers<D: DomTypes> {

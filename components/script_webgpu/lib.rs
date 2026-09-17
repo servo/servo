@@ -32,6 +32,7 @@ pub mod gpuoutofmemoryerror;
 pub mod gpupipelineerror;
 pub mod gpupipelinelayout;
 pub mod gpuqueryset;
+pub mod gpuqueue;
 pub mod gpurenderbundle;
 pub mod gpurenderbundleencoder;
 pub mod gpurenderpassencoder;
@@ -122,6 +123,7 @@ pub(crate) mod codegen {
         use crate::gpupipelineerror::GPUPipelineError;
         use crate::gpupipelinelayout::GPUPipelineLayout;
         use crate::gpuqueryset::GPUQuerySet;
+        use crate::gpuqueue::GPUQueue;
         use crate::gpurenderbundle::GPURenderBundle;
         use crate::gpurenderbundleencoder::GPURenderBundleEncoder;
         use crate::gpurenderpassencoder::GPURenderPassEncoder;

@@ -9466,6 +9466,7 @@ dependencies = [
  "servo-malloc-size-of",
  "servo-pixels",
  "servo-script-bindings",
+ "servo-url",
  "servo-webgpu-traits",
  "stylo_atoms",
  "trait-set",

@@ -70,8 +70,8 @@ use crate::gpusupportedlimits::GPUSupportedLimits;
 use crate::gputexture::GPUTexture;
 use crate::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::traits::{
-    Equivalence, EventTargetTrait, GPUQueueTrait, WebGPUGlobalTrait, WebGPUPromise,
-    WebGPUPromiseCallbackTrait, WebGPURootedPromiseTrait, WebGPUTracedPromiseTrait,
+    Equivalence, EventTargetTrait, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait,
+    WebGPURootedPromiseTrait, WebGPUTracedPromiseTrait,
 };
 
 macro_rules! event_handler(
