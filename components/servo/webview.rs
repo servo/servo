@@ -480,7 +480,7 @@ impl WebView {
                 .inner()
                 .cursor_registry
                 .get(&cursor_id)
-                .map(|cursor| cursor.clone())
+                .cloned()
                 .unwrap_or_default(),
         };
         if self.inner().cursor == cursor {

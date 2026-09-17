@@ -16,7 +16,7 @@ pub mod webdriver;
 
 use std::collections::HashMap;
 use std::ffi::c_void;
-use std::fmt::{Debug, Display, Error, Formatter};
+use std::fmt::{Debug, Display, Error, Formatter, Result as FmtResult};
 use std::hash::Hash;
 use std::ops::Range;
 use std::rc::Rc;
@@ -235,11 +235,23 @@ impl CustomCursorImage {
     }
 }
 
+impl Debug for CustomCursorImage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        f.debug_struct("CustomCursorImage")
+            .field("width", &self.image.width)
+            .field("height", &self.image.height)
+            .field("format", &self.image.format)
+            .field("metadata", &self.metadata)
+            .finish()
+    }
+}
+
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub enum Cursor {
     None,
+    #[default]
     Default,
     Pointer,
     ContextMenu,
@@ -275,12 +287,6 @@ pub enum Cursor {
     ZoomIn,
     ZoomOut,
     Url(CustomCursorImage),
-}
-
-impl Default for Cursor {
-    fn default() -> Self {
-        Cursor::Default
-    }
 }
 
 #[repr(u8)]
