@@ -20,9 +20,9 @@
         const selection = getSelection();
         assert_equals(selection.rangeCount, 1);
         const range = selection.getRangeAt(0);
-        assert_equals(range.startContainer, document);
+        assert_equals(range.startContainer, document.documentElement);
         assert_equals(range.startOffset, 0);
-        assert_equals(range.endOffset, document.childNodes.length);
+        assert_equals(range.endOffset, document.documentElement.childNodes.length);
     })
     </script>
 </body>
