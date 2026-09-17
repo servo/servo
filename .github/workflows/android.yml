@@ -76,6 +76,9 @@ jobs:
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
+          # When updating this version, be sure to update the README instructions as well
+          # as the corresponding page in the book:
+          # https://book.servo.org/building/android.html.
           ndk-version: r29
       - name: Setup Gradle caches
         uses: gradle/actions/setup-gradle@v4
