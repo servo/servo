@@ -241,7 +241,9 @@ impl WebGLExtensions {
         let Some(extension) = extensions.get(&name) else {
             return;
         };
-        extension.instance_or_init(cx, ctx, self, rval);
+        if extension.is_supported(self) {
+            extension.instance_or_init(cx, ctx, self, rval);
+        }
     }
 
     pub(crate) fn is_enabled<T>(&self) -> bool
