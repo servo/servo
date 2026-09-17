@@ -2558,16 +2558,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         &self,
         cx: &mut js::context::JSContext,
         name: DOMString,
-        mut return_value: MutableHandleObject,
+        rval: MutableHandleObject,
     ) {
         self.extension_manager
             .init_once(|| self.get_gl_extensions());
-        return_value.set(
-            self.extension_manager
-                .get_or_init_extension(cx, &name, self)
-                .map(|nonnull| nonnull.as_ptr())
-                .unwrap_or(ptr::null_mut()),
-        );
+        self.extension_manager
+            .get_or_init_extension(cx, &name, self, rval);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
