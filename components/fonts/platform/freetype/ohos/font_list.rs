@@ -541,21 +541,25 @@ mod test {
     #[test]
     fn test_get_system_font_families() {
         use super::get_system_font_families;
-        let families = get_system_font_families(vec![PathBuf::from("NotoSansCJK-Regular.ttc")]);
+        let fonts_dir = PathBuf::from(super::OHOS_FONTS_DIR);
+        let families = get_system_font_families(vec![fonts_dir.join("NotoSansCJK-Regular.ttc")]);
         assert_eq!(families.len(), 1);
         let family = families.first().unwrap();
         assert_eq!(family.name, "Noto Sans CJK".to_string());
 
-        let families = get_system_font_families(vec![
-            PathBuf::from("NotoSerifGeorgian[wdth,wght].ttf"),
-            PathBuf::from("HarmonyOS_Sans_Naskh_Arabic_UI.ttf"),
-            PathBuf::from("HarmonyOS_Sans_Condensed.ttf"),
-            PathBuf::from("HarmonyOS_Sans_Condensed_Italic.ttf"),
-            PathBuf::from("NotoSansDevanagariUI-Bold.ttf"),
-            PathBuf::from("NotoSansDevanagariUI-Medium.ttf"),
-            PathBuf::from("NotoSansDevanagariUI-Regular.ttf"),
-            PathBuf::from("NotoSansDevanagariUI-SemiBold.ttf"),
-        ]);
+        let families_paths = [
+            "NotoSerifGeorgian[wdth,wght].ttf",
+            "HarmonyOS_Sans_Naskh_Arabic_UI.ttf",
+            "HarmonyOS_Sans_Condensed.ttf",
+            "HarmonyOS_Sans_Condensed_Italic.ttf",
+            "NotoSansDevanagariUI-Bold.ttf",
+            "NotoSansDevanagariUI-Medium.ttf",
+            "NotoSansDevanagariUI-Regular.ttf",
+            "NotoSansDevanagariUI-SemiBold.ttf",
+        ]
+        .map(|filename| fonts_dir.join(filename))
+        .to_vec();
+        let families = get_system_font_families(families_paths);
         assert_eq!(families.len(), 4);
     }
 
