@@ -2406,7 +2406,7 @@ impl CanvasState {
 
         // > Step 7: Find the anchor point for the line of text.
         let start =
-            self.find_anchor_point_for_line_of_text(origin, &first_font.metrics(), total_advance);
+            self.find_anchor_point_for_line_of_text(origin, first_font.metrics(), total_advance);
 
         // > Step 8: Let result be an array constructed by iterating over each glyph in the inline box
         // > from left to right (if any), adding to the array, for each glyph, the shape of the glyph

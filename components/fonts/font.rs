@@ -402,7 +402,7 @@ impl Font {
     }
 
     pub fn initialize_remaining_fields(&self) {
-        let _ = self.metrics.set(Arc::new(self.handle.metrics()));
+        self.metrics.get_or_init(|| Arc::new(self.handle.metrics()));
     }
 
     pub fn metrics(&self) -> &Arc<FontMetrics> {
