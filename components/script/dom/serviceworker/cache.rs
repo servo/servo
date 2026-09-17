@@ -4,7 +4,6 @@
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -14,7 +13,6 @@ use servo_base::generic_channel::{GenericCallback, GenericSend};
 use servo_url::ServoUrl;
 use storage_traits::cache_storage::{CacheStorageThreadMessage, CacheStorageThreadResponse};
 
-use crate::dom::Promise;
 use crate::dom::bindings::codegen::Bindings::CacheBinding::CacheMethods;
 use crate::dom::bindings::codegen::GenericBindings::CacheBinding::CacheQueryOptions;
 use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
@@ -24,6 +22,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::fetch::request::Request;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::{Promise, RootedPromise, TracedPromise};
 
 /// <https://w3c.github.io/ServiceWorker/#cache>
 #[dom_struct]
@@ -39,8 +38,7 @@ pub(crate) struct Cache {
     callback: RefCell<Option<GenericCallback<CacheStorageThreadResponse>>>,
 
     // Dequeue of pending promises for backend operations.
-    #[conditional_malloc_size_of]
-    pending_promises: RefCell<VecDeque<Rc<Promise>>>,
+    pending_promises: RefCell<VecDeque<TracedPromise>>,
 }
 
 impl Cache {
@@ -95,7 +93,12 @@ impl Cache {
         let response = match response {
             Some(response) => response,
             None => {
-                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
+                let Some(promise) = self
+                    .pending_promises
+                    .borrow_mut()
+                    .pop_front()
+                    .map(|promise| promise.root(cx))
+                else {
                     error!("No pending promise for Cache response.");
                     return;
                 };
@@ -117,7 +120,12 @@ impl Cache {
                 // Step 5.4.1: Let requestList be a list.
                 let mut request_list: Vec<DomRoot<Request>> = Vec::new();
 
-                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
+                let Some(promise) = self
+                    .pending_promises
+                    .borrow_mut()
+                    .pop_front()
+                    .map(|promise| promise.root(cx))
+                else {
                     debug_assert!(false, "No pending promise for Cache KeysResult response.");
                     return;
                 };
@@ -161,7 +169,7 @@ impl CacheMethods<crate::DomTypeHolder> for Cache {
         cx: &mut JSContext,
         request: Option<RequestOrUSVString>,
         _options: &CacheQueryOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // Step 1: Let r be null.
         let mut r: Option<DomRoot<Request>> = None;
 
@@ -171,7 +179,7 @@ impl CacheMethods<crate::DomTypeHolder> for Cache {
 
         // Step 4: Let promise be a new promise.
         // Note: step re-ordered to make it available in Step 2.
-        let promise = Promise::new(cx, &global);
+        let promise = Promise::new_rooted(cx, &global);
 
         // Step 2: If the optional argument request is not omitted, then:
         if let Some(request) = request {
@@ -218,7 +226,7 @@ impl CacheMethods<crate::DomTypeHolder> for Cache {
 
         self.pending_promises
             .borrow_mut()
-            .push_back(promise.clone());
+            .push_back(promise.to_traced());
 
         promise
     }

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
@@ -12,6 +10,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::{Dom, DomRoot};
 use servo_url::ServoUrl;
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::CookieStoreBinding::CookieStoreGetOptions;
 use crate::dom::bindings::codegen::Bindings::CookieStoreManagerBinding::CookieStoreManagerMethods;
 use crate::dom::bindings::error::Error;
@@ -105,11 +104,11 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
         &self,
         cx: &mut JSContext,
         subscriptions: Vec<CookieStoreGetOptions>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // Step 1. Let settings be this's relevant settings object.
         // Step 2. Let registration be this's registration.
         // Step 3. Let p be a new promise.
-        let promise = Promise::new(cx, &self.global());
+        let promise = Promise::new_rooted(cx, &self.global());
         // Step 4.1. Let subscription list be registration's associated cookie
         // change subscription list.
 
@@ -142,10 +141,10 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestoremanager-getsubscriptions>
-    fn GetSubscriptions(&self, cx: &mut JSContext) -> Rc<Promise> {
+    fn GetSubscriptions(&self, cx: &mut JSContext) -> RootedPromise {
         // Step 1. Let registration be this's registration.
         // Step 2. Let p be a new promise.
-        let promise = Promise::new(cx, &self.global());
+        let promise = Promise::new_rooted(cx, &self.global());
         // Step 3.1. Let subscriptions be registration's associated cookie
         // change subscription list.
         let subscriptions = self.subscriptions.borrow();
@@ -162,11 +161,11 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
         &self,
         cx: &mut JSContext,
         subscriptions: Vec<CookieStoreGetOptions>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // Step 1. Let settings be this's relevant settings object.
         // Step 2. Let registration be this's registration.
         // Step 3. Let p be a new promise.
-        let promise = Promise::new(cx, &self.global());
+        let promise = Promise::new_rooted(cx, &self.global());
         // Step 4.1. Let subscription list be registration's associated cookie
         // change subscription list.
 
