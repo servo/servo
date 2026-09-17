@@ -426,14 +426,6 @@ impl RunningAppState {
 
         self.handle_webdriver_messages(create_platform_window);
 
-        /* #[cfg(all(
-            feature = "gamepad",
-            not(any(target_os = "android", target_env = "ohos"))
-        ))]
-        if servo::pref!(dom_gamepad_enabled) {
-            self.handle_gamepad_events();
-        } */
-
         self.servo.spin_event_loop();
 
         for window in self.windows.borrow().values() {
