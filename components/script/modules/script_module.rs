@@ -643,17 +643,15 @@ impl FetchResponseListener for ModuleContext {
             network_listener::submit_timing(cx, &self, &response, &timing);
         }
 
-        let module_map = global.module_map();
-
         // Step 1. If any of the following are true: bodyBytes is null or failure; or response's
         // status is not an ok status, then:
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
             // Step 1.1. Let callbacks be moduleMap[(url, moduleType)].
             // Step 1.2. Remove moduleMap[(url, moduleType)].
-            let Some(ModuleStatus::Fetching(callbacks)) =
+            let Some(ModuleStatus::Fetching(callbacks)) = global.with_module_map(|module_map| {
                 module_map.safe_borrow_mut(cx).remove(&self.module_request)
-            else {
+            }) else {
                 return error!("Processing response for a non pending module request");
             };
 
@@ -761,35 +759,37 @@ impl FetchResponseListener for ModuleContext {
             _ => {},
         }
 
-        let callbacks = match module_map
-            .safe_borrow_mut(cx)
-            .entry(self.module_request.clone())
-        {
-            Entry::Occupied(mut entry) => {
-                // Step 9. If moduleScript is null, then remove moduleMap[(url, moduleType)];
-                // otherwise set moduleMap[(url, moduleType)] to moduleScript.
-                let old_value = match module_script.as_ref() {
-                    None => entry.remove(),
-                    Some(module_script) => {
-                        entry.insert(ModuleStatus::Loaded(module_script.clone()))
-                    },
-                };
+        let callbacks = global.with_module_map(|module_map| {
+            match module_map
+                .safe_borrow_mut(cx)
+                .entry(self.module_request.clone())
+            {
+                Entry::Occupied(mut entry) => {
+                    // Step 9. If moduleScript is null, then remove moduleMap[(url, moduleType)];
+                    // otherwise set moduleMap[(url, moduleType)] to moduleScript.
+                    let old_value = match module_script.as_ref() {
+                        None => entry.remove(),
+                        Some(module_script) => {
+                            entry.insert(ModuleStatus::Loaded(module_script.clone()))
+                        },
+                    };
 
-                match old_value {
-                    ModuleStatus::Loaded(_) => {
-                        return error!("Processing response for a non pending module request");
-                    },
-                    ModuleStatus::Fetching(callbacks) => callbacks,
-                }
-            },
-            Entry::Vacant(_) => {
-                return error!("Processing response for a non pending module request");
-            },
-        };
+                    match old_value {
+                        ModuleStatus::Loaded(_) => None,
+                        ModuleStatus::Fetching(callbacks) => Some(callbacks),
+                    }
+                },
+                Entry::Vacant(_) => None,
+            }
+        });
 
-        // Step 10. For each callback of callbacks: run callback given moduleScript.
-        for callback in callbacks {
-            (callback)(cx, module_script.clone());
+        if let Some(callbacks) = callbacks {
+            // Step 10. For each callback of callbacks: run callback given moduleScript.
+            for callback in callbacks {
+                (callback)(cx, module_script.clone());
+            }
+        } else {
+            error!("Processing response for a non pending module request");
         }
     }
 
@@ -1350,28 +1350,39 @@ pub(crate) fn fetch_a_single_module_script(
     let module_request = (url.url(), module_type);
 
     // Step 4. Let moduleMap be settingsObject's module map.
-    let module_map = global.module_map();
-    let mut module_map_borrow = module_map.safe_borrow_mut(cx);
+    let occupied = global.with_module_map(|module_map| {
+        let mut module_map_borrow = module_map.safe_borrow_mut(cx);
 
-    let entry = module_map_borrow.entry(module_request.clone());
+        let entry = module_map_borrow.entry(module_request.clone());
 
-    match entry {
-        Entry::Occupied(mut entry) => match entry.get_mut() {
-            // Step 5. If moduleMap[(url, moduleType)] is a module script, run onComplete given
-            // moduleMap[(url, moduleType)], and return.
-            ModuleStatus::Loaded(module_tree) => {
-                let module = module_tree.clone();
-                drop(module_map_borrow);
-                return on_complete(cx, Some(module));
+        match entry {
+            Entry::Occupied(mut entry) => {
+                match entry.get_mut() {
+                    // Step 5. If moduleMap[(url, moduleType)] is a module script, run onComplete given
+                    // moduleMap[(url, moduleType)], and return.
+                    ModuleStatus::Loaded(module_tree) => {
+                        let module = module_tree.clone();
+                        drop(module_map_borrow);
+                        on_complete(cx, Some(module));
+                    },
+                    // Step 6. If moduleMap[(url, moduleType)] is a list, append onComplete to
+                    // moduleMap[(url, moduleType)], and return.
+                    ModuleStatus::Fetching(callbacks) => {
+                        callbacks.push(Box::new(on_complete));
+                    },
+                }
+                true
             },
-            // Step 6. If moduleMap[(url, moduleType)] is a list, append onComplete to
-            // moduleMap[(url, moduleType)], and return.
-            ModuleStatus::Fetching(callbacks) => return callbacks.push(Box::new(on_complete)),
-        },
-        // Step 7. Set moduleMap[(url, moduleType)] to « onComplete ».
-        Entry::Vacant(entry) => {
-            entry.insert(ModuleStatus::Fetching(vec![Box::new(on_complete)]));
-        },
+            // Step 7. Set moduleMap[(url, moduleType)] to « onComplete ».
+            Entry::Vacant(entry) => {
+                entry.insert(ModuleStatus::Fetching(vec![Box::new(on_complete)]));
+                false
+            },
+        }
+    });
+
+    if occupied {
+        return;
     }
 
     // We only need a policy container when fetching the root of a module worker.
