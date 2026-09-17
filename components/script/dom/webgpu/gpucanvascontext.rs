@@ -19,10 +19,9 @@ use script_webgpu::gpuconvert::convert_texture_descriptor;
 use servo_base::{Epoch, generic_channel};
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPU, WebGPUContextId,
-    WebGPURequest,
+    WebGPURequest, id,
 };
 use webrender_api::{ImageFormat, ImageKey};
-use wgpu_core::id;
 
 use super::gputexture::GPUTexture;
 use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
