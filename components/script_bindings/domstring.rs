@@ -315,10 +315,20 @@ impl DOMString {
 
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
     /// to the JSString. Otherwise do the conversion to utf8 now.
+    /// <https://webidl.spec.whatwg.org/#js-DOMString>
     pub fn from_js_string(
         cx: &mut JSContext,
         value: HandleValue,
     ) -> Result<DOMString, DOMStringErrorType> {
+        // Step 1: If V is null
+        // and the conversion is to an IDL type associated
+        // with the [LegacyNullToEmptyString] extended attribute,
+        // then return the DOMString value that represents the empty string.
+        // TODO.
+
+        // Step 2: Let x be ? ToString(V).
+        // Step 3: Return the IDL DOMString value that represents the same sequence of
+        // code units as the one the JavaScript String value x represents.
         let string_ptr = unsafe { js::rust::ToString(cx, value) };
         if string_ptr.is_null() {
             debug!("ToString failed");
