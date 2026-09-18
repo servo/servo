@@ -81,9 +81,7 @@ mod platform {
         }
 
         #[expect(unsafe_code)]
-        /// # Safety
-        ///
-        /// The LocalFontIdentifier and caller need to be in the same process.
+        /// Returns memory mapped font data.
         pub fn font_data_and_index_mmap(&self) -> Option<FontDataAndIndex<Mmap>> {
             let file = File::open(Path::new(&*self.path)).ok()?;
             let data = unsafe { Mmap::map(&file).ok()? };
