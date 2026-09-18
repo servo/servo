@@ -328,7 +328,8 @@ impl malloc_size_of::MallocSizeOf for Font {
         // TODO: Collect memory usage for platform fonts and for shapers.
         // This skips the template, because they are already stored in the template cache.
 
-        self.metrics().size_of(ops) +
+        let metrics_size = self.metrics.get().map_or(0, |metrics| metrics.size_of(ops));
+        metrics_size +
             self.descriptor.size_of(ops) +
             self.cached_shape_data.read().size_of(ops) +
             self.font_instance_key
@@ -345,7 +346,6 @@ impl Font {
         descriptor: FontDescriptor,
         data: Option<FontData>,
         synthesized_small_caps: Option<FontRef>,
-        lazy_load: bool,
     ) -> Result<Font, &'static str> {
         let synthetic_bold = {
             let is_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD;
@@ -372,16 +372,10 @@ impl Font {
             handle
         };
 
-        let metrics = if lazy_load {
-            OnceLock::new()
-        } else {
-            OnceLock::from(Arc::new(handle.metrics()))
-        };
-
         Ok(Font {
             handle,
             template,
-            metrics,
+            metrics: OnceLock::new(),
             descriptor,
             data_and_index: data
                 .map(|data| OnceLock::from(FontDataAndIndex { data, index: 0 }))
@@ -399,10 +393,6 @@ impl Font {
     /// A unique identifier for the font, allowing comparison.
     pub fn identifier(&self) -> AtomicRef<'_, FontIdentifier> {
         self.template.identifier()
-    }
-
-    pub fn initialize_remaining_fields(&self) {
-        self.metrics.get_or_init(|| Arc::new(self.handle.metrics()));
     }
 
     pub fn metrics(&self) -> &Arc<FontMetrics> {
@@ -853,7 +843,13 @@ impl FontGroup {
                 },
                 _ => {},
             }
-            font.has_glyph_for(options.character)
+            let glyph_exists_in_font = font.has_glyph_for(options.character);
+
+            if glyph_exists_in_font {
+                font.metrics();
+            }
+
+            glyph_exists_in_font
         };
 
         let char_in_template =
@@ -1027,19 +1023,9 @@ impl FontGroupFamilyTemplate {
         if !template_predicate(self.template.clone()) {
             return None;
         }
-        let res = self
-            .font(font_context, font_descriptor)
-            .filter(font_predicate);
 
-        match res {
-            Some(fontref_res) => {
-                fontref_res.initialize_remaining_fields();
-                return Some(fontref_res);
-            },
-            None => {
-                return None;
-            },
-        }
+        self.font(font_context, font_descriptor)
+            .filter(font_predicate)
     }
 }
 

@@ -47,14 +47,10 @@ fn make_font(path: PathBuf) -> Font {
         synthesis_weight: FontSynthesis::Auto,
         optical_sizing: FontOpticalSizing::Auto,
     };
-    Font::new(
-        FontTemplateRef::new(template),
-        descriptor,
-        Some(data),
-        None,
-        false,
-    )
-    .unwrap()
+    let font = Font::new(FontTemplateRef::new(template), descriptor, Some(data), None).unwrap();
+    font.metrics();
+
+    font
 }
 
 #[test]
