@@ -104,9 +104,8 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-addlistener>
-    fn AddListener(&self, cx: &JSContext, listener: Option<RootedCallback<EventListener>>) {
+    fn AddListener(&self, listener: Option<RootedCallback<EventListener>>) {
         self.upcast::<EventTarget>().add_event_listener(
-            cx,
             DOMString::from_static("change"),
             listener,
             AddEventListenerOptions {
@@ -119,11 +118,10 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-removelistener>
-    fn RemoveListener(&self, cx: &JSContext, listener: Option<RootedCallback<EventListener>>) {
+    fn RemoveListener(&self, listener: Option<RootedCallback<EventListener>>) {
         self.upcast::<EventTarget>().remove_event_listener(
-            cx,
             DOMString::from_static("change"),
-            &listener,
+            listener.as_deref(),
             &EventListenerOptions { capture: false },
         );
     }

@@ -205,12 +205,8 @@ impl AbortSignal {
             },
             AbortAlgorithm::DomEventListener(removable_listener) => {
                 removable_listener.event_target.remove_event_listener(
-                    cx,
                     removable_listener.ty.clone(),
-                    &removable_listener
-                        .listener
-                        .as_ref()
-                        .map(|listener| listener.root()),
+                    removable_listener.listener.as_deref(),
                     &removable_listener.options,
                 );
             },

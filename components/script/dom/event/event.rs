@@ -1309,7 +1309,7 @@ fn invoke(
     let found = inner_invoke(
         cx,
         event,
-        &*listeners,
+        &listeners,
         phase,
         invocation_target_in_shadow_tree,
         timeline_window,
@@ -1339,7 +1339,7 @@ fn invoke(
         inner_invoke(
             cx,
             event,
-            &*listeners,
+            &listeners,
             phase,
             invocation_target_in_shadow_tree,
             timeline_window,

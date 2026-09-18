@@ -116,12 +116,6 @@ impl<T> std::ops::Deref for TracedCallback<T> {
     }
 }
 
-impl<T> TracedCallback<T> {
-    pub fn root(&self) -> RootedCallback<T> {
-        RootedCallback(self.0.clone())
-    }
-}
-
 impl<T> From<Rc<T>> for TracedCallback<T> {
     fn from(callback: Rc<T>) -> Self {
         Self(callback)
