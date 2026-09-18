@@ -1466,7 +1466,7 @@ fn position_in_flat_tree_for_selection(
 impl Node {
     /// Get the `Utf16CodeUnits` offset for the given offset if `self` is a
     /// `CharacterData` or else return the offset in the child list.
-    fn to_sibling_or_utf16_offset(&self, offset: Utf32CodeUnitsOrNodeOffset) -> u32 {
+    pub(crate) fn to_sibling_or_utf16_offset(&self, offset: Utf32CodeUnitsOrNodeOffset) -> u32 {
         if let Some(character_data) = self.downcast::<CharacterData>() {
             // TODO: ensure that each `CharacterData` holds no more than 4 GiB?
             offset
@@ -1690,7 +1690,7 @@ impl<'no_gc> Iterator for VisibleSelectionTraversal<'no_gc> {
 
 struct VisibleSelectionFlagUpdate<'no_gc> {
     no_gc: &'no_gc NoGC,
-    /// The nodes that previously had the OVERLAPS_VISUAL_DOCUMENT_SELECTION set on them before
+    /// The nodes that previously had the OVERLAPS_DOCUMENT_SELECTION set on them before
     /// this flag update.
     ///
     /// Hash keys are pointer addresses which are not directly controlled by web content

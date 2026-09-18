@@ -31,7 +31,6 @@ use layout_api::{
     NodeRenderingType, PhysicalSides, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, uintptr_t};
-use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
@@ -52,7 +51,6 @@ use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::dom_apis::{QueryAll, QueryFirst};
 use style::selector_parser::PseudoElement;
-use style::values::computed::UserSelect;
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -120,7 +118,6 @@ use crate::dom::node::nodelist::NodeList;
 use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::raredata::NodeRareData;
-use crate::dom::selection::UsedUserSelect;
 use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::servoparser::serialize_html_fragment;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
@@ -2265,75 +2262,6 @@ impl Node {
         }
         // > and either it is an HTML element, or it is an svg or math element, or it is not an Element and its parent is an HTML element.
         html_element.is_some() || (!self.is::<Element>() && parent.is::<HTMLElement>())
-    }
-
-    /// Returns the used value of <https://drafts.csswg.org/css-ui-4/#propdef-user-select>.
-    ///
-    /// It is the caller’s responsibility to ensure that style is up to date for this node and
-    /// its (flat tree) ancestors.
-    ///
-    /// `cache` can be initialized with `Default::default()`, and should be shared across calls
-    /// for nodes that may share some (flat tree) ancestors.
-    pub(crate) fn used_user_select<'no_gc>(
-        &self,
-        no_gc: &'no_gc NoGC,
-        cache: &mut FxHashMap<UnrootedDom<'no_gc, Node>, UsedUserSelect>,
-    ) -> UsedUserSelect {
-        let cache_key = UnrootedDom::from_ref(self, no_gc);
-        if let Some(&used_value) = cache.get(&cache_key) {
-            return used_value;
-        }
-        // > The used value is the same as the computed value, except:
-        // >
-        // > 1. on editable elements where the used value is always `contain`
-        // >    regardless of the computed value
-        // > 2. when the computed value is `auto`, in which case the used value
-        // >    is one of the other values as defined below
-        // >
-        // > For the purpose of this specification, an editable element is
-        // > either an editing host or a mutable form control with textual
-        // > content, such as textarea.
-        //
-        // For form controls, we handle selection separately without looking at
-        // `user-select`.
-        if self.is_editing_host() {
-            let used_value = UsedUserSelect::Contain;
-            cache.insert(cache_key, used_value);
-            return used_value;
-        }
-        let computed_value = self
-            .downcast()
-            .and_then(Element::computed_user_select)
-            // Non-element nodes and unstyled elements: use the initial value
-            .unwrap_or(UserSelect::Auto);
-        let used_value = match computed_value {
-            UserSelect::Text => UsedUserSelect::Text,
-            UserSelect::None => UsedUserSelect::None,
-            UserSelect::Contain => UsedUserSelect::Contain,
-            UserSelect::All => UsedUserSelect::All,
-            UserSelect::Auto => {
-                let parent_used_value = self
-                    .upcast::<Node>()
-                    .parent_in_flat_tree(no_gc)
-                    .into_parent()
-                    .map(|parent| parent.used_user_select(no_gc, cache));
-                // > The used value of `auto` is determined as follows:
-                // > * On the `::before` and `::after` pseudo-elements, the used value is `none`
-                // > * If the element is an editable element, the used value is `contain`
-                // > * Otherwise, if the used value of `user-select` on the parent of this element
-                // >   is `all`, the used value is `all`
-                // > * Otherwise, if the used value of `user-select` on the parent of this element
-                // >   is `none`, the used value is `none`
-                // > * Otherwise, the used value is `text`
-                match parent_used_value {
-                    Some(UsedUserSelect::All) => UsedUserSelect::All,
-                    Some(UsedUserSelect::None) => UsedUserSelect::None,
-                    _ => UsedUserSelect::Text,
-                }
-            },
-        };
-        cache.insert(cache_key, used_value);
-        used_value
     }
 }
 

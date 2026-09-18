@@ -1097,9 +1097,10 @@ impl Element {
         })
     }
 
-    /// Returns the computed value of <https://drafts.csswg.org/css-ui-4/#propdef-user-select>
+    /// Returns the computed value of the [`user-select`] property. Returns `None` if the
+    /// element is unstyled.
     ///
-    /// Returns `None` if the element is unstyle
+    /// [`user-select`]: <https://drafts.csswg.org/css-ui-4/#propdef-user-select>
     pub(crate) fn computed_user_select(&self) -> Option<UserSelect> {
         Some(
             self.style_data
