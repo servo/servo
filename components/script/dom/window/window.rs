@@ -2717,11 +2717,11 @@ impl Window {
 
         let mut rooted_nodes_for_accessibility_integrity_check = None;
         let mut accessibility_damage = None;
-        let should_reflow = matches!(
+        let should_update_accessibility_tree = matches!(
             reflow_goal,
             ReflowGoal::UpdateTheRendering | ReflowGoal::LayoutQuery(QueryMsg::AccessKitNodeQuery)
         );
-        if should_reflow && self.layout().accessibility_active() {
+        if should_update_accessibility_tree && self.layout().accessibility_active() {
             rooted_nodes_for_accessibility_integrity_check =
                 document.rooted_nodes_for_accessibility_integrity_check();
             let mut accessibility_data = document.accessibility_data_mut();
@@ -3147,7 +3147,6 @@ impl Window {
         &self,
         element: TrustedNodeAddress,
     ) -> Option<accesskit::Node> {
-        self.layout().set_force_accessibility_update();
         self.layout_reflow(QueryMsg::AccessKitNodeQuery);
         self.layout.borrow().query_accesskit_node(element)
     }
