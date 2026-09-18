@@ -5,7 +5,7 @@
 use js::jsapi::HandleObject;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUDeviceLostReason;
-use webgpu_traits::{RequestDeviceError, WebGPUDeviceResponse};
+use webgpu_traits::{Features, Limits, RequestDeviceError, WebGPUDeviceResponse};
 
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -65,8 +65,8 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     self.channel(),
                     self,
                     HandleObject::null(),
-                    wgpu_types::Features::default(),
-                    wgpu_types::Limits::default(),
+                    Features::default(),
+                    Limits::default(),
                     device_id,
                     queue_id,
                     String::new(),
