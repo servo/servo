@@ -18,8 +18,7 @@ use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
 use servo_constellation_traits::ScriptToConstellationMessage;
-use webgpu_traits::RequestAdapterOptions;
-use wgpu_types::PowerPreference;
+use webgpu_traits::{PowerPreference, RequestAdapterOptions};
 
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::error::Error;

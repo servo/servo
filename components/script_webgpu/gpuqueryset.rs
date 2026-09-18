@@ -16,7 +16,7 @@ use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
-use webgpu_traits::{WebGPU, WebGPUQuerySet, WebGPURequest};
+use webgpu_traits::{Features, WebGPU, WebGPUQuerySet, WebGPURequest};
 
 use crate::JSTraceable;
 use crate::dom::bindings::str::USVString;
@@ -108,7 +108,7 @@ where
             !device
                 .Features()
                 .wgpu_features()
-                .contains(wgpu_types::Features::TIMESTAMP_QUERY)
+                .contains(Features::TIMESTAMP_QUERY)
         {
             // Throw a TypeError.
             return Err(Error::Type(

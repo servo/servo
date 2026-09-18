@@ -38,4 +38,3 @@ servo-url = { workspace = true }
 servo-base = { workspace = true }
 trait-set = { workspace = true }
 webgpu_traits = { workspace = true }
-wgpu-types = { workspace = true }

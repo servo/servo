@@ -17,8 +17,9 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
-    RenderBundleCommand, RenderBundleEncoderDescriptor, WebGPU, WebGPURenderBundle,
-    WebGPURenderBundleEncoder, WebGPURequest,
+    BufferSize, RenderBundleCommand, RenderBundleDepthStencil, RenderBundleDescriptor,
+    RenderBundleEncoderDescriptor, WebGPU, WebGPURenderBundle, WebGPURenderBundleEncoder,
+    WebGPURequest,
 };
 
 use crate::JSTraceable;
@@ -135,7 +136,7 @@ where
                 .map(|dsf| {
                     device
                         .validate_texture_format_required_features(&dsf)
-                        .map(|format| wgpu_types::RenderBundleDepthStencil {
+                        .map(|format| RenderBundleDepthStencil {
                             format,
                             depth_read_only: descriptor.depthReadOnly,
                             stencil_read_only: descriptor.stencilReadOnly,
@@ -255,7 +256,7 @@ where
                         buffer_id: buffer.id().0,
                         index_format: index_format.convert(),
                         offset,
-                        size: wgpu_types::BufferSize::new(size),
+                        size: BufferSize::new(size),
                     },
                     device_id: self.device.id().0,
                 })
@@ -279,7 +280,7 @@ where
                         slot,
                         buffer_id: buffer.map(|b| b.id().0),
                         offset,
-                        size: wgpu_types::BufferSize::new(size),
+                        size: BufferSize::new(size),
                     },
                     device_id: self.device.id().0,
                 })
@@ -456,7 +457,7 @@ where
         cx: &mut JSContext,
         descriptor: &GPURenderBundleDescriptor,
     ) -> DomRoot<D::GPURenderBundle> {
-        let desc = wgpu_types::RenderBundleDescriptor {
+        let desc = RenderBundleDescriptor {
             label: (&descriptor.parent).convert(),
         };
         let render_bundle_id = self

@@ -13,7 +13,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUSupportedLimitsMethods, GPUSupportedLimitsWrap,
 };
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
-use wgpu_types::Limits;
+use webgpu_traits::Limits;
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;

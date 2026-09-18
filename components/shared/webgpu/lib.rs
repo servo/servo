@@ -56,7 +56,21 @@ pub use wgpu_core::resource::{
     BufferAccessError, QuerySetDescriptor, SamplerDescriptor, TextureDescriptor,
     TextureViewDescriptor,
 };
-use wgpu_types::{AdapterInfo, COPY_BYTES_PER_ROW_ALIGNMENT, DeviceDescriptor, Features, Limits};
+use wgpu_types::COPY_BYTES_PER_ROW_ALIGNMENT;
+pub use wgpu_types::{
+    AdapterInfo, AddressMode, AstcBlock, AstcChannel, BindGroupLayoutEntry, BindingType,
+    BlendComponent, BlendFactor, BlendOperation, BlendState, BufferAddress, BufferBindingType,
+    BufferDescriptor, BufferSize, BufferUsages, COPY_BUFFER_ALIGNMENT, Color, ColorTargetState,
+    ColorWrites, CommandBufferDescriptor, CommandEncoderDescriptor, CompareFunction,
+    DepthBiasState, DepthStencilState, DeviceDescriptor, DeviceType, ExperimentalFeatures,
+    Extent3d, Face, Features, FilterMode, FrontFace, ImageSubresourceRange, IndexFormat, Limits,
+    MAP_ALIGNMENT, MemoryHints, MipmapFilterMode, MultisampleState, Origin2d, Origin3d,
+    PowerPreference, PredefinedColorSpace, PrimitiveState, PrimitiveTopology, QueryType,
+    RenderBundleDepthStencil, RenderBundleDescriptor, SamplerBindingType, ShaderStages,
+    StencilFaceState, StencilOperation, StencilState, StorageTextureAccess, TexelCopyBufferLayout,
+    TextureAspect, TextureDimension, TextureFormat, TextureSampleType, TextureUsages,
+    TextureViewDimension, Trace, VertexAttribute, VertexFormat, VertexStepMode,
+};
 
 pub use crate::error::*;
 pub use crate::ids::*;

@@ -38,10 +38,11 @@ use script_bindings::traits::DomEventTrait;
 use script_bindings::{DomTypes, cformat, task};
 use stylo_atoms::atom;
 use webgpu_traits::{
-    FragmentState, RenderPipelineDescriptor, VertexBufferLayout, VertexState, WebGPU, WebGPUDevice,
-    WebGPUQueue, WebGPURequest,
+    BlendState, ColorTargetState, ColorWrites, DepthBiasState, DepthStencilState, Features,
+    FragmentState, Limits, MultisampleState, RenderPipelineDescriptor, StencilFaceState,
+    StencilState, TextureFormat, VertexAttribute, VertexBufferLayout, VertexState, VertexStepMode,
+    WebGPU, WebGPUDevice, WebGPUQueue, WebGPURequest,
 };
-use wgpu_types::{self, TextureFormat};
 
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use crate::PipelineLayout;
@@ -181,8 +182,8 @@ where
         channel: WebGPU,
         adapter: &GPUAdapter<D>,
         extensions: HandleObject,
-        features: wgpu_types::Features,
-        limits: wgpu_types::Limits,
+        features: Features,
+        limits: Limits,
         device: WebGPUDevice,
         queue: WebGPUQueue,
         label: String,
@@ -326,16 +327,14 @@ where
                             Some(VertexBufferLayout {
                                 array_stride: buffer.arrayStride,
                                 step_mode: match buffer.stepMode {
-                                    GPUVertexStepMode::Vertex => wgpu_types::VertexStepMode::Vertex,
-                                    GPUVertexStepMode::Instance => {
-                                        wgpu_types::VertexStepMode::Instance
-                                    },
+                                    GPUVertexStepMode::Vertex => VertexStepMode::Vertex,
+                                    GPUVertexStepMode::Instance => VertexStepMode::Instance,
                                 },
                                 attributes: Cow::Owned(
                                     buffer
                                         .attributes
                                         .iter()
-                                        .map(|att| wgpu_types::VertexAttribute {
+                                        .map(|att| VertexAttribute {
                                             format: att.format.convert(),
                                             offset: att.offset,
                                             shader_location: att.shaderLocation,
@@ -360,14 +359,13 @@ where
                                 .map(|state| {
                                     self.validate_texture_format_required_features(&state.format)
                                         .map(|format| {
-                                            Some(wgpu_types::ColorTargetState {
+                                            Some(ColorTargetState {
                                                 format,
-                                                write_mask:
-                                                    wgpu_types::ColorWrites::from_bits_retain(
-                                                        state.writeMask,
-                                                    ),
+                                                write_mask: ColorWrites::from_bits_retain(
+                                                    state.writeMask,
+                                                ),
                                                 blend: state.blend.as_ref().map(|blend| {
-                                                    wgpu_types::BlendState {
+                                                    BlendState {
                                                         color: (&blend.color).convert(),
                                                         alpha: (&blend.alpha).convert(),
                                                     }
@@ -386,19 +384,19 @@ where
                 .as_ref()
                 .map(|dss_desc| {
                     self.validate_texture_format_required_features(&dss_desc.format)
-                        .map(|format| wgpu_types::DepthStencilState {
+                        .map(|format| DepthStencilState {
                             format,
                             depth_write_enabled: dss_desc.depthWriteEnabled,
                             depth_compare: dss_desc.depthCompare.map(|dc| dc.convert()),
-                            stencil: wgpu_types::StencilState {
-                                front: wgpu_types::StencilFaceState {
+                            stencil: StencilState {
+                                front: StencilFaceState {
                                     compare: dss_desc.stencilFront.compare.convert(),
 
                                     fail_op: dss_desc.stencilFront.failOp.convert(),
                                     depth_fail_op: dss_desc.stencilFront.depthFailOp.convert(),
                                     pass_op: dss_desc.stencilFront.passOp.convert(),
                                 },
-                                back: wgpu_types::StencilFaceState {
+                                back: StencilFaceState {
                                     compare: dss_desc.stencilBack.compare.convert(),
                                     fail_op: dss_desc.stencilBack.failOp.convert(),
                                     depth_fail_op: dss_desc.stencilBack.depthFailOp.convert(),
@@ -407,7 +405,7 @@ where
                                 read_mask: dss_desc.stencilReadMask,
                                 write_mask: dss_desc.stencilWriteMask,
                             },
-                            bias: wgpu_types::DepthBiasState {
+                            bias: DepthBiasState {
                                 constant: dss_desc.depthBias,
                                 slope_scale: *dss_desc.depthBiasSlopeScale,
                                 clamp: *dss_desc.depthBiasClamp,
@@ -415,7 +413,7 @@ where
                         })
                 })
                 .transpose()?,
-            multisample: wgpu_types::MultisampleState {
+            multisample: MultisampleState {
                 count: descriptor.multisample.count,
                 mask: descriptor.multisample.mask as u64,
                 alpha_to_coverage_enabled: descriptor.multisample.alphaToCoverageEnabled,
