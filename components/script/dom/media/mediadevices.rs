@@ -7,7 +7,11 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
+use script_bindings::codegen::GenericBindings::EventHandlerBinding::EventHandlerNonNull;
+use script_bindings::inheritance::Castable;
+use script_bindings::refcounted::Trusted;
 use script_bindings::reflector::reflect_dom_object_with_cx;
+use servo_base::generic_channel::GenericCallback;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
@@ -42,7 +46,29 @@ impl MediaDevices {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<MediaDevices> {
-        reflect_dom_object_with_cx(Box::new(MediaDevices::new_inherited()), global, cx)
+        let this = reflect_dom_object_with_cx(Box::new(MediaDevices::new_inherited()), global, cx);
+
+        let task_source = this
+            .global()
+            .task_manager()
+            .user_interaction_task_source()
+            .to_sendable();
+        let callback = GenericCallback::new({
+            let this: Trusted<MediaDevices> = Trusted::new(&this);
+            move |_| {
+                let this = this.clone();
+                task_source.queue(task!(fire_devicechange: move |cx| {
+                    let this = this.root();
+                    this.upcast::<EventTarget>().fire_event(cx, "devicechange".into());
+                }));
+            }
+        })
+        .unwrap();
+        ServoMedia::get()
+            .get_device_monitor()
+            .add_devicechange_callback(callback);
+
+        this
     }
 }
 
@@ -110,6 +136,23 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
 
         // Step 3.
         p
+    }
+
+    fn GetOndevicechange(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>> {
+        self.upcast::<EventTarget>()
+            .get_event_handler_common(cx, "devicechange")
+    }
+
+    fn SetOndevicechange(
+        &self,
+        cx: &mut JSContext,
+        listener: Option<Rc<EventHandlerNonNull<crate::DomTypeHolder>>>,
+    ) {
+        self.upcast::<EventTarget>()
+            .set_event_handler_common(cx, "devicechange", listener)
     }
 }
 
