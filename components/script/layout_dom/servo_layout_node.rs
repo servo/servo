@@ -105,7 +105,7 @@ impl<'dom> ServoLayoutNode<'dom> {
     }
 
     /// Whether this node or one of its ancestors has the `containertiming` attribute set.
-    /// <https://wicg.github.io/container-timing/>
+    /// <https://wicg.github.io/container-timing/#contributes-to-container-timing>
     pub fn has_container_timing(&self) -> bool {
         unsafe { self.node.get_flag(NodeFlags::HAS_CONTAINER_TIMING) }
     }
@@ -362,31 +362,30 @@ unsafe fn servo_layout_node_from_opaque(
     }
 }
 
-/// Returns the nearest ancestor element that has a `containertiming` attribute.
-pub fn container_timing_root_for_node(
+/// Returns every ancestor element, starting at `node` itself and ordered nearest-first, that
+/// has a `containertiming` attribute.
+/// <https://wicg.github.io/container-timing/#get-the-container-root-element>
+pub fn container_timing_roots_for_node(
     opaque: style::dom::OpaqueNode,
-) -> Option<style::dom::OpaqueNode> {
+) -> Vec<style::dom::OpaqueNode> {
     use html5ever::{LocalName, ns};
 
     // Safety: see `servo_layout_node_from_opaque`.
     let node = unsafe { servo_layout_node_from_opaque(opaque) };
 
-    let mut ancestor = unsafe { node.dangerous_dom_parent() };
-    loop {
-        match ancestor {
-            None => break None,
-            Some(current) => {
-                if let Some(element) = current.as_html_element() &&
-                    element
-                        .attribute(&ns!(), &LocalName::from("containertiming"))
-                        .is_some()
-                {
-                    break Some(current.opaque());
-                }
-                ancestor = unsafe { current.dangerous_dom_parent() };
-            },
+    let mut roots = Vec::new();
+    let mut candidate = Some(node);
+    while let Some(current) = candidate {
+        if let Some(element) = current.as_html_element() &&
+            element
+                .attribute(&ns!(), &LocalName::from("containertiming"))
+                .is_some()
+        {
+            roots.push(current.opaque());
         }
+        candidate = unsafe { current.dangerous_dom_parent() };
     }
+    roots
 }
 
 /// Returns the `containertiming` identifier for the given root node.

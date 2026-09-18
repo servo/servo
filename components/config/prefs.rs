@@ -301,8 +301,7 @@ pub struct Preferences {
     pub js_wasm_enabled: bool,
     pub js_wasm_ion_enabled: bool,
     // Container Timing: <https://wicg.github.io/container-timing/>
-    // TODO: promote to a `// feature:` annotation once there is a tracking issue to
-    // reference, so this shows up in the experimental features documentation.
+    // TODO: Promote to feature
     pub container_timing_enabled: bool,
     // feature: Largest Contentful Paint | #42000 | Web/API/LargestContentfulPaint
     pub largest_contentful_paint_enabled: bool,

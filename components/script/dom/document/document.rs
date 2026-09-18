@@ -3617,8 +3617,6 @@ impl Document {
 
     /// Build the `PerformanceContainerTiming` entries for the Container Timing updates
     /// that were presented in the frame composited at `paint_time`.
-    ///
-    /// <https://wicg.github.io/container-timing/>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn container_timing_entries(
         &self,

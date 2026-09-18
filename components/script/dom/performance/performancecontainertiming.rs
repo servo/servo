@@ -41,7 +41,6 @@ pub(crate) struct PerformanceContainerTiming {
 }
 
 impl PerformanceContainerTiming {
-    #[expect(clippy::too_many_arguments)]
     fn new_inherited(
         identifier: DOMString,
         intersection_rect: Box2D<f32, LayoutPixel>,

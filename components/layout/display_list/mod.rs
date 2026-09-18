@@ -705,27 +705,23 @@ impl DisplayListBuilder<'_> {
 
     /// Accumulate a painted fragment into its Container Timing container, if it is
     /// inside one.
-    ///
-    /// <https://wicg.github.io/container-timing/>
     #[allow(clippy::too_many_arguments)]
     fn collect_container_timing_record(
         &mut self,
         state: &TraversalState,
         bounds: LayoutRect,
         clip_rect: LayoutRect,
-        tag: Option<Tag>,
         flags: FragmentFlags,
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
-        // `HAS_CONTAINER_TIMING` is inherited down the DOM from the element carrying the
-        // attribute, so this rejects the whole page in the common case where the API is
-        // unused, before doing any ancestor walking.
         if !self.container_timing_enabled || !flags.contains(FragmentFlags::HAS_CONTAINER_TIMING) {
             return;
         }
 
-        let Some(tag) = tag else {
+        // If there's no containing element tag we should skip
+        // similar behavior to LCP collection
+        let Some(tag) = state.containing_element_tag else {
             return;
         };
 
@@ -930,7 +926,6 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                     state,
                     rect,
                     common.clip_rect,
-                    fragment.base.tag,
                     fragment.base.flags,
                     fragment.natural_width,
                     fragment.natural_height,
@@ -1251,7 +1246,6 @@ impl Fragment {
             state,
             glyph_bounds,
             common.clip_rect,
-            fragment.base.tag,
             fragment.base.flags,
             None,
             None,
@@ -1998,7 +1992,6 @@ impl<'a> BuilderForBoxFragment<'a> {
                             state,
                             layer.bounds,
                             layer.common.clip_rect,
-                            self.fragment.base.tag,
                             self.fragment.base.flags,
                             natural_width,
                             natural_height,

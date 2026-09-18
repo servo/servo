@@ -10,12 +10,10 @@ use webrender_api::units::LayoutPixel;
 /// fragments (e.g. two overlapping `<img>`s) aren't double-counted.
 ///
 /// Mirrors the approach Chromium's Container Timing implementation takes with
-/// `cc::Region` in `ContainerTiming::Record::MaybeUpdateLastNewPaintedArea`: keep a
-/// region of everything painted so far, skip anything already fully covered, and
-/// only ever add the non-overlapping remainder of a new rect
+/// `cc::Region`
 #[derive(Clone, Debug, Default)]
 pub(crate) struct PaintedRegion {
-    /// Invariant: no two rects in this list overlap.
+    /// No two rects in this list overlap.
     rects: Vec<Box2D<f32, LayoutPixel>>,
 }
 
@@ -57,16 +55,20 @@ impl PaintedRegion {
     }
 
     /// Merges `rect` into the region, splitting it against existing rects so the
-    /// region remains disjoint. Pixel-snaps outward first, both to bound the
-    /// number of distinct rects that can accumulate and to avoid spurious area
-    /// growth from sub-pixel jitter between builds (matching Chromium's use of
+    /// region remains disjoint. (matches Chromium's use of
     /// `gfx::ToEnclosingRect` before touching `cc::Region`).
     pub(crate) fn union(&mut self, rect: Box2D<f32, LayoutPixel>) {
         let rect = rect.round_out();
-        if rect.is_empty() {
+        if rect.is_empty() || self.contains(rect) {
             return;
         }
         self.rects.extend(subtract_all(rect, &self.rects));
+    }
+
+    pub(crate) fn merge(&mut self, other: &PaintedRegion) {
+        for &rect in &other.rects {
+            self.union(rect);
+        }
     }
 }
 
@@ -103,29 +105,24 @@ fn subtract_one(
     }
 
     let mut out = Vec::with_capacity(4);
-    // Above the intersection, full width of `a`.
     if i.min.y > a.min.y {
         out.push(Box2D::new(
             Point2D::new(a.min.x, a.min.y),
             Point2D::new(a.max.x, i.min.y),
         ));
     }
-    // Below the intersection, full width of `a`.
     if i.max.y < a.max.y {
         out.push(Box2D::new(
             Point2D::new(a.min.x, i.max.y),
             Point2D::new(a.max.x, a.max.y),
         ));
     }
-    // Left of the intersection, clipped to the intersection's height so it
-    // doesn't overlap the strips above/below.
     if i.min.x > a.min.x {
         out.push(Box2D::new(
             Point2D::new(a.min.x, i.min.y),
             Point2D::new(i.min.x, i.max.y),
         ));
     }
-    // Right of the intersection, likewise clipped.
     if i.max.x < a.max.x {
         out.push(Box2D::new(
             Point2D::new(i.max.x, i.min.y),

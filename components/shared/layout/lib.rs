@@ -638,7 +638,6 @@ pub struct ReflowResult {
     /// The LCP candidate during this layout pass, if any.
     pub lcp_candidate: Option<LCPCandidate>,
     /// The containers whose painted area grew during this layout pass, if any.
-    /// <https://wicg.github.io/container-timing/>
     pub container_timing_records: Vec<ContainerTimingRecord>,
 }
 
