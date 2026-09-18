@@ -7,9 +7,7 @@ pub use canvas_context::{ContextData, WebGpuExternalImages};
 use log::warn;
 use servo_base::generic_channel::{self, GenericReceiver};
 use webgpu_traits::{WebGPU, WebGPUMsg};
-pub use wgpu_core as wgc;
 use wgpu_thread::WGPU;
-pub use wgpu_types as wgt;
 
 mod poll_thread;
 mod wgpu_thread;

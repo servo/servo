@@ -38,7 +38,7 @@ pub use wgpu_core::binding_model::{
 pub use wgpu_core::command::{
     ComputePassDescriptor, LoadOp, PassChannel, PassTimestampWrites, RenderBundleDescriptor,
     RenderBundleEncoderDescriptor, RenderPassColorAttachment, RenderPassDepthStencilAttachment,
-    StoreOp, TexelCopyBufferInfo, TexelCopyTextureInfo,
+    RenderPassDescriptor, StoreOp, TexelCopyBufferInfo, TexelCopyTextureInfo,
 };
 pub use wgpu_core::device::HostMap;
 use wgpu_core::id::{ComputePipelineId, DeviceId, QueueId, RenderPipelineId};
@@ -49,7 +49,7 @@ pub use wgpu_core::naga::front::wgsl::ImplementedLanguageExtension;
 use wgpu_core::pipeline::CreateShaderModuleError;
 pub use wgpu_core::pipeline::{
     ComputePipelineDescriptor, FragmentState, ProgrammableStageDescriptor,
-    RenderPipelineDescriptor, VertexBufferLayout, VertexState,
+    RenderPipelineDescriptor, ShaderModuleDescriptor, VertexBufferLayout, VertexState,
 };
 pub use wgpu_core::resource::{
     BufferAccessError, BufferDescriptor, QuerySetDescriptor, SamplerDescriptor, TextureDescriptor,
