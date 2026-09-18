@@ -5653,7 +5653,7 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
         ]
         joinedEnumValues = "\n".join(enumValues)
         joinedEnumConversions = "\n".join(enumConversions)
-        derives = ["JSTraceable"] + self.derives
+        derives = self.derives
         manualImpls = "\n".join(map(lambda t: self.manualImpl(t, templateVars), self.manualImpls))
         return f"""
 #[derive({", ".join(derives)})]
@@ -7712,11 +7712,8 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         memberDecls = [f"    pub {self.makeMemberName(m[0].identifier.name)}: {self.getMemberType(m)},"
                        for m in self.memberInfo]
 
-        derive = ["JSTraceable"] + self.derives
+        derive = self.derives
         default = ""
-        mustRoot = ""
-        if self.membersNeedTracing():
-            mustRoot = "#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]\n"
 
         # We can't unconditionally derive Default here, because union types can have unique
         # default values provided for each usage. Instead, whenever possible we re-use the empty()
@@ -7750,7 +7747,6 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         joinedMemberDecls = '\n'.join(memberDecls)
         return (
             f"#[derive({', '.join(derive)})]\n"
-            f"{mustRoot}"
             f"pub struct {self.makeClassName(d)}{self.generic} {{\n"
             f"{inheritance}"
             f"{joinedMemberDecls}\n"
@@ -7807,14 +7803,11 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             memberInserts = [CGGeneric("self.parent.to_jsobject(cx, obj.reborrow());\n")] + memberInserts
 
         selfName = self.makeClassName(d)
-        if self.membersNeedTracing():
-            actualType = f"RootedTraceableBox<{selfName}{self.genericSuffix}>"
-            preInitial = f"let dictionary = RootedTraceableBox::new({selfName} {{\n"
-            postInitial = "});\n"
-        else:
-            actualType = f"{selfName}{self.genericSuffix}"
-            preInitial = f"let dictionary = {selfName} {{\n"
-            postInitial = "};\n"
+
+        actualType = f"{selfName}{self.genericSuffix}"
+        preInitial = f"let dictionary = {selfName} {{\n"
+        postInitial = "};\n"
+
         initParent = f"parent: {initParent},\n" if initParent else ""
         memberInits = CGList([memberInit(member) for member in self.memberInfo])
 
@@ -8371,12 +8364,6 @@ def type_needs_tracing(t: IDLObject) -> bool:
 
     if t.isDictionary():
         assert isinstance(t, IDLDictionary)
-        if t.parent and type_needs_tracing(t.parent):
-            return True
-
-        if any(type_needs_tracing(member.type) for member in t.members):
-            return True
-
         return False
 
     if t.isInterface():

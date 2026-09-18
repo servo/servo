@@ -568,16 +568,16 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn GetDictionaryWithTypedArray(
         &self,
         cx: &mut JSContext,
-        _dictionary: RootedTraceableBox<TestDictionaryWithTypedArray>,
+        _dictionary: &TestDictionaryWithTypedArray,
     ) {
         self.global().as_window().gc(cx);
     }
-    fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> RootedTraceableBox<TestDictionary> {
-        RootedTraceableBox::new(TestDictionary {
+    fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> TestDictionary {
+        TestDictionary {
             anyValue: RootedTraceableBox::new(Heap::default()),
             booleanValue: None,
             byteValue: None,
-            dict: RootedTraceableBox::new(TestDictionaryDefaults {
+            dict: TestDictionaryDefaults {
                 UnrestrictedDoubleValue: 0.0,
                 anyValue: RootedTraceableBox::new(Heap::default()),
                 arrayValue: Vec::new(),
@@ -614,7 +614,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
                 unsignedLongValue: 0,
                 unsignedShortValue: 0,
                 usvstringValue: USVString(String::new()),
-            }),
+            },
             doubleValue: None,
             enumValue: None,
             floatValue: None,
@@ -639,10 +639,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             nonRequiredNullable2: Some(None),
             noCallbackImport: None,
             noCallbackImport2: None,
-        })
+        }
     }
 
-    fn DictMatchesPassedValues(&self, arg: RootedTraceableBox<TestDictionary>) -> bool {
+    fn DictMatchesPassedValues(&self, arg: &TestDictionary) -> bool {
         arg.type_.as_ref().is_some_and(|s| s == "success") &&
             arg.nonRequiredNullable.is_none() &&
             arg.nonRequiredNullable2 == Some(None) &&
