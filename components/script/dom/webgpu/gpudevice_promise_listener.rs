@@ -16,7 +16,7 @@ use crate::dom::types::{
 };
 use crate::routed_promise::RoutedPromiseListener;
 
-impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
+impl RoutedPromiseListener<crate::DomTypeHolder, WebGPUPoppedErrorScopeResponse> for GPUDevice {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,
@@ -37,7 +37,7 @@ impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
     }
 }
 
-impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
+impl RoutedPromiseListener<crate::DomTypeHolder, WebGPUComputePipelineResponse> for GPUDevice {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,
@@ -77,7 +77,7 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
     }
 }
 
-impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
+impl RoutedPromiseListener<crate::DomTypeHolder, WebGPURenderPipelineResponse> for GPUDevice {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,

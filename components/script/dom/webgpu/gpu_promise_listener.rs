@@ -12,7 +12,7 @@ use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::promise::RootedPromise;
 use crate::routed_promise::RoutedPromiseListener;
 
-impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
+impl RoutedPromiseListener<crate::DomTypeHolder, WebGPUAdapterResponse> for GPU {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,

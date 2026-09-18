@@ -9386,6 +9386,7 @@ dependencies = [
  "phf_shared 0.14.0",
  "regex",
  "rustc-hash 2.1.3",
+ "serde",
  "serde_json",
  "servo-base",
  "servo-config",

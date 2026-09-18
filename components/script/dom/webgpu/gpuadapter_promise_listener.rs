@@ -14,7 +14,7 @@ use crate::dom::promise::RootedPromise;
 use crate::dom::types::GPUDevice;
 use crate::routed_promise::RoutedPromiseListener;
 
-impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
+impl RoutedPromiseListener<crate::DomTypeHolder, WebGPUDeviceResponse> for GPUAdapter {
     /// <https://www.w3.org/TR/webgpu/#dom-gpuadapter-requestdevice>
     fn handle_response(
         &self,

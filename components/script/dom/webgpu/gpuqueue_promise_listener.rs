@@ -6,7 +6,7 @@ use crate::dom::promise::RootedPromise;
 use crate::dom::types::GPUQueue;
 use crate::routed_promise::RoutedPromiseListener;
 
-impl RoutedPromiseListener<()> for GPUQueue {
+impl RoutedPromiseListener<crate::DomTypeHolder, ()> for GPUQueue {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,

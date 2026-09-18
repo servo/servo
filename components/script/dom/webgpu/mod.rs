@@ -200,7 +200,9 @@ pub(crate) mod wgsllanguagefeatures {
 
 impl<S, T> WebGPUPromiseCallbackTrait<crate::DomTypeHolder, S, T> for RootedPromise
 where
-    S: DomObject + DomGlobalGeneric<crate::DomTypeHolder> + RoutedPromiseListener<T>,
+    S: DomObject
+        + DomGlobalGeneric<crate::DomTypeHolder>
+        + RoutedPromiseListener<crate::DomTypeHolder, T>,
     T: Serialize + 'static + Send + DeserializeOwned,
 {
     fn callback_promise_dom_manipulation_task_source(&self, d: &S) -> GenericCallback<T> {

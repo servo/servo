@@ -9,7 +9,9 @@ use crate::dom::promise::RootedPromise;
 use crate::dom::types::{GPUCompilationInfo, GPUShaderModule};
 use crate::routed_promise::RoutedPromiseListener;
 
-impl RoutedPromiseListener<Option<ShaderCompilationInfo>> for GPUShaderModule {
+impl RoutedPromiseListener<crate::DomTypeHolder, Option<ShaderCompilationInfo>>
+    for GPUShaderModule
+{
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,

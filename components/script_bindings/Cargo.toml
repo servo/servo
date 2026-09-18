@@ -41,6 +41,7 @@ phf = { workspace = true }
 profile_traits = { workspace = true }
 regex = { workspace = true }
 rustc-hash = { workspace = true }
+serde = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-constellation-traits = { workspace = true }

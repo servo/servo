@@ -95,7 +95,7 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
     }
 }
 
-impl RoutedPromiseListener<AllowOrDeny> for WakeLock {
+impl RoutedPromiseListener<crate::DomTypeHolder, AllowOrDeny> for WakeLock {
     /// <https://w3c.github.io/screen-wake-lock/#the-request-method>
     fn handle_response(&self, cx: &mut JSContext, response: AllowOrDeny, promise: &RootedPromise) {
         match response {

@@ -8,7 +8,7 @@ use crate::dom::promise::RootedPromise;
 use crate::dom::types::GPUBuffer;
 use crate::routed_promise::RoutedPromiseListener;
 
-impl RoutedPromiseListener<Result<Mapping, BufferAccessError>> for GPUBuffer {
+impl RoutedPromiseListener<crate::DomTypeHolder, Result<Mapping, BufferAccessError>> for GPUBuffer {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,
