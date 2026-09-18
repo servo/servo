@@ -6,7 +6,6 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
@@ -98,7 +97,7 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
-use crate::dom::referrer_policy_for_element;
+use crate::dom::{RootedPromise, TracedPromise, referrer_policy_for_element};
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttracklist::TextTrackList;
@@ -546,12 +545,10 @@ pub(crate) struct HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
     delaying_the_load_event_flag: DomRefCell<Option<LoadBlocker>>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-pending-play-promises>
-    #[conditional_malloc_size_of]
-    pending_play_promises: DomRefCell<Vec<Rc<Promise>>>,
+    pending_play_promises: DomRefCell<Vec<TracedPromise>>,
     /// Play promises which are soon to be fulfilled by a queued task.
     #[expect(clippy::type_complexity)]
-    #[conditional_malloc_size_of]
-    in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
+    in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[TracedPromise]>, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     player: DomRefCell<Option<Arc<Mutex<dyn Player>>>>,
@@ -1066,7 +1063,7 @@ impl HTMLMediaElement {
                     self.queue_media_element_task_to_fire_event(atom!("waiting"));
                 },
                 ReadyState::HaveFutureData | ReadyState::HaveEnoughData => {
-                    self.notify_about_playing();
+                    self.notify_about_playing(cx);
                 },
             }
         }
@@ -1075,7 +1072,7 @@ impl HTMLMediaElement {
         // element task given the media element to resolve pending play promises with the
         // result.
         else if state == ReadyState::HaveFutureData || state == ReadyState::HaveEnoughData {
-            self.take_pending_play_promises(Ok(()));
+            self.take_pending_play_promises(cx, Ok(()));
 
             let this = Trusted::new(self);
             let generation_id = self.generation_id.get();
@@ -1100,7 +1097,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#internal-pause-steps>
-    fn internal_pause_steps(&self) {
+    fn internal_pause_steps(&self, cx: &JSContext) {
         // Step 1. Set the media element's can autoplay flag to false.
         self.autoplaying.set(false);
 
@@ -1110,7 +1107,7 @@ impl HTMLMediaElement {
             self.paused.set(true);
 
             // Step 2.2. Take pending play promises and let promises be the result.
-            self.take_pending_play_promises(Err(Error::Abort(Some(
+            self.take_pending_play_promises(cx, Err(Error::Abort(Some(
                 "Media element was paused".into(),
             ))));
 
@@ -1154,9 +1151,9 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#notify-about-playing>
-    fn notify_about_playing(&self) {
+    fn notify_about_playing(&self, cx: &JSContext) {
         // Step 1. Take pending play promises and let promises be the result.
-        self.take_pending_play_promises(Ok(()));
+        self.take_pending_play_promises(cx, Ok(()));
 
         // Step 2. Queue a media element task given the element and the following steps:
         let this = Trusted::new(self);
@@ -1279,7 +1276,7 @@ impl HTMLMediaElement {
                 // > If the element's paused attribute is false, the user agent must notify about playing
                 // > for the element.
                 if !self.Paused() {
-                    self.notify_about_playing();
+                    self.notify_about_playing(cx);
                 }
             },
 
@@ -1292,7 +1289,7 @@ impl HTMLMediaElement {
                 if old_ready_state <= ReadyState::HaveCurrentData {
                     self.queue_media_element_task_to_fire_event(atom!("canplay"));
                     if !self.Paused() {
-                        self.notify_about_playing();
+                        self.notify_about_playing(cx);
                     }
                 }
 
@@ -1324,7 +1321,7 @@ impl HTMLMediaElement {
                     self.queue_media_element_task_to_fire_event(atom!("play"));
 
                     // Step 4. Notify about playing for the element.
-                    self.notify_about_playing();
+                    self.notify_about_playing(cx);
                 }
 
                 // > Alternatively, if the element is a video element,
@@ -1470,7 +1467,7 @@ impl HTMLMediaElement {
         // Step 9.attribute.1. If the src attribute's value is the empty string, then end
         // the synchronous section, and jump down to the failed with attribute step below.
         if src.is_empty() {
-            self.queue_dedicated_media_source_failure_steps();
+            self.queue_dedicated_media_source_failure_steps(cx);
             return;
         }
 
@@ -1478,7 +1475,7 @@ impl HTMLMediaElement {
         // the src attribute's value, relative to the media element's node document when the
         // src attribute was last changed.
         let Ok(url_record) = base_url.join(src) else {
-            self.queue_dedicated_media_source_failure_steps();
+            self.queue_dedicated_media_source_failure_steps(cx);
             return;
         };
 
@@ -1691,14 +1688,14 @@ impl HTMLMediaElement {
                 // the media resource failed to load. Take pending play promises and queue a media
                 // element task given the media element to run the dedicated media source failure
                 // steps with the result.
-                self.queue_dedicated_media_source_failure_steps();
+                self.queue_dedicated_media_source_failure_steps(cx);
             },
             LoadState::LoadingFromSrcAttribute => {
                 // Step 9.attribute.6. Failed with attribute: Reaching this step indicates that the
                 // media resource failed to load or that urlRecord is failure. Take pending play
                 // promises and queue a media element task given the media element to run the
                 // dedicated media source failure steps with the result.
-                self.queue_dedicated_media_source_failure_steps();
+                self.queue_dedicated_media_source_failure_steps(cx);
             },
             LoadState::LoadingFromSourceChild => {
                 // Step 9.children.10. Failed with elements: Queue a media element task given the
@@ -1896,10 +1893,10 @@ impl HTMLMediaElement {
     /// Queues a task to run the [dedicated media source failure steps][steps].
     ///
     /// [steps]: https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps
-    fn queue_dedicated_media_source_failure_steps(&self) {
+    fn queue_dedicated_media_source_failure_steps(&self, cx: &JSContext) {
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
-        self.take_pending_play_promises(Err(Error::NotSupported(Some(
+        self.take_pending_play_promises(cx, Err(Error::NotSupported(Some(
             "Media source is not supported".into(),
         ))));
         self.owner_global()
@@ -2059,7 +2056,7 @@ impl HTMLMediaElement {
 
                 // Step 7.6.2. Take pending play promises and reject pending play promises with the
                 // result and an "AbortError" DOMException.
-                self.take_pending_play_promises(Err(Error::Abort(Some(
+                self.take_pending_play_promises(cx, Err(Error::Abort(Some(
                     "Playback interrupted by new resource load".into(),
                 ))));
                 self.fulfill_in_flight_play_promises(cx, |_| ());
@@ -2119,10 +2116,10 @@ impl HTMLMediaElement {
     }
 
     /// Appends a promise to the list of pending play promises.
-    fn push_pending_play_promise(&self, promise: &Rc<Promise>) {
+    fn push_pending_play_promise(&self, promise: &RootedPromise) {
         self.pending_play_promises
             .borrow_mut()
-            .push(promise.clone());
+            .push(promise.to_traced());
     }
 
     /// Takes the pending play promises.
@@ -2135,11 +2132,11 @@ impl HTMLMediaElement {
     /// Each call to this method must be followed by a call to
     /// `fulfill_in_flight_play_promises`, to actually fulfill the promises
     /// which were taken and moved to the in-flight queue.
-    fn take_pending_play_promises(&self, result: ErrorResult) {
+    fn take_pending_play_promises(&self, cx: &JSContext, result: ErrorResult) {
         let pending_play_promises = std::mem::take(&mut *self.pending_play_promises.borrow_mut());
         self.in_flight_play_promises_queue
-            .borrow_mut()
-            .push_back((pending_play_promises.into(), result));
+        .borrow_mut()
+        .push_back((pending_play_promises.into(), result));
     }
 
     /// Fulfills the next in-flight play promises queue after running a closure.
@@ -2154,17 +2151,11 @@ impl HTMLMediaElement {
     where
         F: FnOnce(&mut JSContext),
     {
-        let (promises, result) = self
-            .in_flight_play_promises_queue
-            .borrow_mut()
-            .pop_front()
-            .expect("there should be at least one list of in flight play promises");
+        let mut promises = self.in_flight_play_promises_queue.borrow_mut().pop_front().expect("there should be at least one list of in flight play promises");
         f(cx);
-        for promise in &*promises {
-            match result {
-                Ok(ref value) => promise.resolve_native(cx, value),
-                Err(ref error) => promise.reject_error(cx, error.clone()),
-            }
+        match promises.1 {
+            Ok(ref value) => promises.0.iter().for_each(|promise| promise.root(cx).resolve_native(cx, value)),
+            Err(ref error) => promises.0.iter().for_each(|promise| promise.root(cx).reject_error(cx, error.clone())),
         }
     }
 
@@ -2642,7 +2633,7 @@ impl HTMLMediaElement {
 
                     // Step 3.2.3. Take pending play promises and reject pending play promises with
                     // the result and an "AbortError" DOMException.
-                    this.take_pending_play_promises(Err(Error::Abort(Some("Media playback finished".into()))));
+                    this.take_pending_play_promises(cx, Err(Error::Abort(Some("Media playback finished".into()))));
                     this.fulfill_in_flight_play_promises(cx, |_| ());
                 }
 
@@ -3479,7 +3470,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-muted>
-    fn SetMuted(&self, _cx: &mut JSContext, value: bool) {
+    fn SetMuted(&self, cx: &mut JSContext, value: bool) {
         if self.muted.get() == value {
             return;
         }
@@ -3499,7 +3490,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         // Then, if the media element is not allowed to play, the user agent must run the internal
         // pause steps for the media element.
         if !self.is_allowed_to_play() {
-            self.internal_pause_steps();
+            self.internal_pause_steps(cx);
         }
     }
 
@@ -3559,8 +3550,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-play>
-    fn Play(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn Play(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
 
         // TODO Step 1. If the media element is not allowed to play, then return a promise rejected
         // with a "NotAllowedError" DOMException.
@@ -3600,7 +3591,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         }
 
         // Step 2. Run the internal pause steps for the media element.
-        self.internal_pause_steps();
+        self.internal_pause_steps(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-paused>
@@ -3813,7 +3804,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-volume>
-    fn SetVolume(&self, _cx: &mut JSContext, value: Finite<f64>) -> ErrorResult {
+    fn SetVolume(&self, cx: &mut JSContext, value: Finite<f64>) -> ErrorResult {
         // If the new value is outside the range 0.0 to 1.0 inclusive, then, on setting, an
         // "IndexSizeError" DOMException must be thrown instead.
         let minimum_volume = 0.0;
@@ -3843,7 +3834,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         // Then, if the media element is not allowed to play, the user agent must run the internal
         // pause steps for the media element.
         if !self.is_allowed_to_play() {
-            self.internal_pause_steps();
+            self.internal_pause_steps(cx);
         }
 
         Ok(())
@@ -3988,7 +3979,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                     return;
                 }
                 // Step 3. ⌛ Run the internal pause steps for the media element.
-                elem.internal_pause_steps();
+                elem.internal_pause_steps(cx);
             },
             &MediaElementMicrotask::Seeked {
                 ref elem,

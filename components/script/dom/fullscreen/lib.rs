@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use embedder_traits::EmbedderMsg;
 use html5ever::{local_name, ns};
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use servo_config::pref;
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
@@ -36,14 +35,14 @@ use crate::tasks::task_source::TaskSourceName;
 
 impl Document {
     /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
-    pub(crate) fn enter_fullscreen(&self, cx: &mut CurrentRealm, pending: &Element) -> Rc<Promise> {
+    pub(crate) fn enter_fullscreen(&self, cx: &mut CurrentRealm, pending: &Element) -> RootedPromise {
         // Step 1
         // > Let pendingDoc be this’s node document.
         // `Self` is the pending document.
 
         // Step 2
         // > Let promise be a new promise.
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
 
         // Step 3
         // > If pendingDoc is not fully active, then reject promise with a TypeError exception and return promise.
@@ -129,7 +128,7 @@ impl Document {
 
         let trusted_pending = Trusted::new(pending);
         let trusted_pending_doc = Trusted::new(self);
-        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_promise = TrustedPromise::from(&promise);
         let handler = ElementPerformFullscreenEnter::new(
             trusted_pending,
             trusted_pending_doc,
@@ -149,13 +148,13 @@ impl Document {
     }
 
     /// <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
-    pub(crate) fn exit_fullscreen(&self, cx: &mut JSContext) -> Rc<Promise> {
+    pub(crate) fn exit_fullscreen(&self, cx: &mut JSContext) -> RootedPromise {
         let global = self.global();
 
         // Step 1
         // > Let promise be a new promise
         let mut realm = CurrentRealm::assert(cx);
-        let promise = Promise::new_in_realm(&mut realm);
+        let promise = Promise::new_in_realm_rooted(&mut realm);
 
         // Step 2
         // > If doc is not fully active or doc’s fullscreen element is null, then reject promise with a TypeError exception and return promise.
@@ -183,7 +182,7 @@ impl Document {
         // Step 8
         // > Return promise, and run the remaining steps in parallel.
         let trusted_element = Trusted::new(&*element);
-        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_promise = TrustedPromise::from(&promise);
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
         let pipeline_id = Some(global.pipeline_id());
         let script_msg = CommonScriptMsg::Task(

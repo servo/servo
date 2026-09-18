@@ -26,6 +26,7 @@ use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
 
 use crate::DomTypeHolder;
+use crate::dom::{RootedPromise, TracedPromise};
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
     CustomElementConstructor, CustomElementRegistryMethods, ElementDefinitionOptions,
@@ -75,11 +76,10 @@ pub(crate) struct CustomElementRegistry {
 
     window: Dom<Window>,
 
-    #[conditional_malloc_size_of]
     /// It is safe to use FxBuildHasher here as `LocalName` is an `Atom` in the string_cache.
     /// These get a u32 hashed instead of a string.
     /// <https://html.spec.whatwg.org/multipage/#when-defined-promise-map>
-    when_defined: DomRefCell<HashMapTracedValues<LocalName, Rc<Promise>, FxBuildHasher>>,
+    when_defined: DomRefCell<HashMapTracedValues<LocalName, TracedPromise, FxBuildHasher>>,
 
     /// <https://html.spec.whatwg.org/multipage/#element-definition-is-running>
     element_definition_is_running: Cell<bool>,
@@ -628,7 +628,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 19: If this's when-defined promise map[name] exists:
         // Step 19.2: Remove this's when-defined promise map[name].
-        let promise = self.when_defined.borrow_mut().remove(&name);
+        let promise = self.when_defined.borrow_mut().remove(&name).map(|promise| promise.root(cx));
         if let Some(promise) = promise {
             rooted!(&in(cx) let mut constructor = UndefinedValue());
             definition
@@ -659,12 +659,12 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
-    fn WhenDefined(&self, realm: &mut CurrentRealm, name: DOMString) -> Rc<Promise> {
+    fn WhenDefined(&self, realm: &mut CurrentRealm, name: DOMString) -> RootedPromise {
         let name = LocalName::from(name);
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
-            let promise = Promise::new_in_realm(realm);
+            let promise = Promise::new_in_realm_rooted(realm);
             let error = DOMException::new(
                 realm,
                 self.window.as_global_scope(),
@@ -680,16 +680,16 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             definition
                 .constructor
                 .to_jsval(realm, constructor.handle_mut());
-            let promise = Promise::new_in_realm(realm);
+            let promise = Promise::new_in_realm_rooted(realm);
             promise.resolve_native(realm, &constructor.get());
             return promise;
         }
 
         // Steps 3, 4, 5, 6
-        let existing_promise = self.when_defined.borrow().get(&name).cloned();
+        let existing_promise = self.when_defined.borrow().get(&name).map(|promise| promise.root(realm));
         existing_promise.unwrap_or_else(|| {
-            let promise = Promise::new_in_realm(realm);
-            self.when_defined.borrow_mut().insert(name, promise.clone());
+            let promise = Promise::new_in_realm_rooted(realm);
+            self.when_defined.borrow_mut().insert(name, promise.to_traced());
             promise
         })
     }
