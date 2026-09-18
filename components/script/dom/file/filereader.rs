@@ -478,16 +478,13 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
         self.error.get()
     }
 
-    #[expect(unsafe_code)]
     /// <https://w3c.github.io/FileAPI/#dfn-result>
     fn GetResult(&self) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
             FileReaderResult::String(ref string) => StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {
                 let result = RootedTraceableBox::new(Heap::default());
-                unsafe {
-                    result.set((*arr_buffer.ptr.get()).to_object());
-                }
+                result.set(arr_buffer.handle().to_object());
                 StringOrObject::Object(result)
             },
         })
