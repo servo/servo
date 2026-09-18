@@ -35,7 +35,11 @@ use crate::tasks::task_source::TaskSourceName;
 
 impl Document {
     /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
-    pub(crate) fn enter_fullscreen(&self, cx: &mut CurrentRealm, pending: &Element) -> RootedPromise {
+    pub(crate) fn enter_fullscreen(
+        &self,
+        cx: &mut CurrentRealm,
+        pending: &Element,
+    ) -> RootedPromise {
         // Step 1
         // > Let pendingDoc be this’s node document.
         // `Self` is the pending document.

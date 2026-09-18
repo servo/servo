@@ -26,7 +26,6 @@ use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
 
 use crate::DomTypeHolder;
-use crate::dom::{RootedPromise, TracedPromise};
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
     CustomElementConstructor, CustomElementRegistryMethods, ElementDefinitionOptions,
@@ -54,6 +53,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::promise::Promise;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
+use crate::dom::{RootedPromise, TracedPromise};
 use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::CustomElementReactionMicrotask;
@@ -628,7 +628,11 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 19: If this's when-defined promise map[name] exists:
         // Step 19.2: Remove this's when-defined promise map[name].
-        let promise = self.when_defined.borrow_mut().remove(&name).map(|promise| promise.root(cx));
+        let promise = self
+            .when_defined
+            .borrow_mut()
+            .remove(&name)
+            .map(|promise| promise.root(cx));
         if let Some(promise) = promise {
             rooted!(&in(cx) let mut constructor = UndefinedValue());
             definition
@@ -686,10 +690,16 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         }
 
         // Steps 3, 4, 5, 6
-        let existing_promise = self.when_defined.borrow().get(&name).map(|promise| promise.root(realm));
+        let existing_promise = self
+            .when_defined
+            .borrow()
+            .get(&name)
+            .map(|promise| promise.root(realm));
         existing_promise.unwrap_or_else(|| {
             let promise = Promise::new_in_realm_rooted(realm);
-            self.when_defined.borrow_mut().insert(name, promise.to_traced());
+            self.when_defined
+                .borrow_mut()
+                .insert(name, promise.to_traced());
             promise
         })
     }

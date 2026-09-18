@@ -29,7 +29,6 @@ use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
-use crate::dom::{RootedPromise, TracedPromise};
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRect_Binding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::Element_Binding::ElementMethods;
@@ -67,6 +66,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::srcset::SourceSet;
 use crate::dom::window::Window;
+use crate::dom::{RootedPromise, TracedPromise};
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
 use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
@@ -1121,7 +1121,9 @@ impl HTMLImageElement {
                 )),
             );
         } else {
-            self.image_decode_promises.borrow_mut().push(promise.to_traced());
+            self.image_decode_promises
+                .borrow_mut()
+                .push(promise.to_traced());
         }
     }
 

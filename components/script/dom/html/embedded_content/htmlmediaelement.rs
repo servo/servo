@@ -97,7 +97,6 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
-use crate::dom::{RootedPromise, TracedPromise, referrer_policy_for_element};
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttracklist::TextTrackList;
@@ -106,6 +105,7 @@ use crate::dom::trackevent::TrackEvent;
 use crate::dom::url::URL;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::videotracklist::VideoTrackList;
+use crate::dom::{RootedPromise, TracedPromise, referrer_policy_for_element};
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
 use crate::fetch::fetch::{
@@ -1107,9 +1107,10 @@ impl HTMLMediaElement {
             self.paused.set(true);
 
             // Step 2.2. Take pending play promises and let promises be the result.
-            self.take_pending_play_promises(cx, Err(Error::Abort(Some(
-                "Media element was paused".into(),
-            ))));
+            self.take_pending_play_promises(
+                cx,
+                Err(Error::Abort(Some("Media element was paused".into()))),
+            );
 
             // Step 2.3. Queue a media element task given the media element and the following steps:
             let this = Trusted::new(self);
@@ -1896,9 +1897,12 @@ impl HTMLMediaElement {
     fn queue_dedicated_media_source_failure_steps(&self, cx: &JSContext) {
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
-        self.take_pending_play_promises(cx, Err(Error::NotSupported(Some(
-            "Media source is not supported".into(),
-        ))));
+        self.take_pending_play_promises(
+            cx,
+            Err(Error::NotSupported(Some(
+                "Media source is not supported".into(),
+            ))),
+        );
         self.owner_global()
             .task_manager()
             .media_element_task_source()
@@ -2056,9 +2060,12 @@ impl HTMLMediaElement {
 
                 // Step 7.6.2. Take pending play promises and reject pending play promises with the
                 // result and an "AbortError" DOMException.
-                self.take_pending_play_promises(cx, Err(Error::Abort(Some(
-                    "Playback interrupted by new resource load".into(),
-                ))));
+                self.take_pending_play_promises(
+                    cx,
+                    Err(Error::Abort(Some(
+                        "Playback interrupted by new resource load".into(),
+                    ))),
+                );
                 self.fulfill_in_flight_play_promises(cx, |_| ());
             }
 
@@ -2135,8 +2142,8 @@ impl HTMLMediaElement {
     fn take_pending_play_promises(&self, cx: &JSContext, result: ErrorResult) {
         let pending_play_promises = std::mem::take(&mut *self.pending_play_promises.borrow_mut());
         self.in_flight_play_promises_queue
-        .borrow_mut()
-        .push_back((pending_play_promises.into(), result));
+            .borrow_mut()
+            .push_back((pending_play_promises.into(), result));
     }
 
     /// Fulfills the next in-flight play promises queue after running a closure.
@@ -2151,11 +2158,21 @@ impl HTMLMediaElement {
     where
         F: FnOnce(&mut JSContext),
     {
-        let mut promises = self.in_flight_play_promises_queue.borrow_mut().pop_front().expect("there should be at least one list of in flight play promises");
+        let mut promises = self
+            .in_flight_play_promises_queue
+            .borrow_mut()
+            .pop_front()
+            .expect("there should be at least one list of in flight play promises");
         f(cx);
         match promises.1 {
-            Ok(ref value) => promises.0.iter().for_each(|promise| promise.root(cx).resolve_native(cx, value)),
-            Err(ref error) => promises.0.iter().for_each(|promise| promise.root(cx).reject_error(cx, error.clone())),
+            Ok(ref value) => promises
+                .0
+                .iter()
+                .for_each(|promise| promise.root(cx).resolve_native(cx, value)),
+            Err(ref error) => promises
+                .0
+                .iter()
+                .for_each(|promise| promise.root(cx).reject_error(cx, error.clone())),
         }
     }
 
