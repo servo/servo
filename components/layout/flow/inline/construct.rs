@@ -5,6 +5,7 @@
 use std::borrow::Cow;
 use std::cell::LazyCell;
 use std::ops::Range;
+use std::sync::{Arc, OnceLock};
 
 use atomic_refcell::AtomicRefCell;
 use icu_properties::CodePointMapData;
@@ -46,6 +47,10 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// The collection of text strings that make up this [`InlineFormattingContext`] under
     /// construction.
     pub text_segments: Vec<String>,
+
+    /// A slot used to share the full text string of the [`InlineFormattingContext`] this
+    /// builder will ultimately build.
+    pub text_content_slot: Arc<OnceLock<String>>,
 
     /// The current offset in the final text string of this [`InlineFormattingContext`],
     /// used to properly set the text range of new [`InlineItem::TextRun`]s.
@@ -471,6 +476,7 @@ impl InlineFormattingContextBuilder {
         let text_run = ArcRefCell::new(TextRun::new(
             info.into(),
             SharedTextRunData {
+                text_content: self.text_content_slot.clone(),
                 inline_styles: current_inline_styles,
                 character_range_in_ifc_text: new_character_range,
                 original_offset: original_size_before,

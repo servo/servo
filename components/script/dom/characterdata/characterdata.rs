@@ -116,6 +116,15 @@ impl CharacterData {
             .as_ref()
             .is_some_and(|layout_data| layout_data.set_text_run_selection(new_range))
     }
+
+    /// Returns the rendered text for this [`CharacterData`].
+    pub(crate) fn rendered_text(&self, range: RangeAny<Utf32CodeUnits>) -> Option<String> {
+        self.upcast::<Node>()
+            .layout_data()
+            .borrow()
+            .as_ref()
+            .and_then(|layout_data| layout_data.rendered_text(range))
+    }
 }
 
 impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {

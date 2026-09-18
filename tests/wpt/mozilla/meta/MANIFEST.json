@@ -15549,6 +15549,22 @@
      ]
     ]
    },
+   "selection": {
+    "toString-display-none.html": [
+     "1324602119ccf4ef4aabb258454e4f85eca19b61",
+     [
+      null,
+      {}
+     ]
+    ],
+    "toString-slots.html": [
+     "093d50b6f15a0ad48cc3c2814982ede01aa01da8",
+     [
+      null,
+      {}
+     ]
+    ]
+   },
    "shadow-dom": {
     "getrootnode-in-deeply-nested-shadow.html": [
      "355cc270e6020f40176afac26c49a14a59b67169",

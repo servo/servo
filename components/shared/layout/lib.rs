@@ -88,6 +88,10 @@ pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait + Send + Sync + 'stati
     /// Set whether or not this node is selected when it is an element. Returns `true`
     /// if anything changed that requires a new display list.
     fn set_element_selection(&self, selected: bool) -> bool;
+
+    /// Get the text rendered by this node, if it is a `CharacterData` node and produces
+    /// a `TextRun` in the box tree.
+    fn rendered_text(&self, range: RangeAny<Utf32CodeUnits>) -> Option<String>;
 }
 
 pub trait LayoutDataTrait: GenericLayoutDataTrait + Default {}
