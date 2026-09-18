@@ -49,10 +49,6 @@ pub(crate) struct PipelineDetails {
     pub lcp_candidates: VecDeque<(WebRenderEpoch, (LCPCandidateID, usize), PaintTimingInfo)>,
 
     /// Container Timing updates waiting to be presented, in order by [WebRenderEpoch].
-    /// Unlike LCP, a single display list can carry several of these — one per container
-    /// whose painted area grew — and a container can be reported many times over a
-    /// document's life, so this holds a batch per epoch rather than a single candidate.
-    /// <https://wicg.github.io/container-timing/>
     pub container_timing_candidates: VecDeque<(WebRenderEpoch, Vec<ContainerTimingID>)>,
 
     /// The CSS pixel to device pixel scale of the viewport of this pipeline, including

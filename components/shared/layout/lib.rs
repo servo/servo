@@ -659,7 +659,6 @@ pub struct ReflowResult {
     /// Actions which have been requested by assistive technology, if any.
     pub pending_accessibility_actions: Vec<AccessibilityActionRequest>,
     /// The containers whose painted area grew during this layout pass, if any.
-    /// <https://wicg.github.io/container-timing/>
     pub container_timing_records: Vec<ContainerTimingRecord>,
 }
 

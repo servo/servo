@@ -25,11 +25,9 @@ use crate::dom::globalscope::GlobalScope;
 pub(crate) struct PerformanceContainerTiming {
     entry: PerformanceEntry,
     identifier: DOMString,
-    intersection_rect_x: f64,
-    intersection_rect_y: f64,
-    intersection_rect_width: f64,
-    intersection_rect_height: f64,
-    size: u64,
+    #[no_trace]
+    intersection_rect: Box2D<f32, LayoutPixel>,
+    size: f32,
     #[no_trace]
     first_render_time: CrossProcessInstant,
     #[no_trace]
@@ -41,7 +39,6 @@ pub(crate) struct PerformanceContainerTiming {
 }
 
 impl PerformanceContainerTiming {
-    #[expect(clippy::too_many_arguments)]
     fn new_inherited(
         identifier: DOMString,
         intersection_rect: Box2D<f32, LayoutPixel>,
@@ -59,11 +56,8 @@ impl PerformanceContainerTiming {
                 Duration::ZERO,
             ),
             identifier,
-            intersection_rect_x: intersection_rect.min.x as f64,
-            intersection_rect_y: intersection_rect.min.y as f64,
-            intersection_rect_width: intersection_rect.width() as f64,
-            intersection_rect_height: intersection_rect.height() as f64,
-            size: size.round() as u64,
+            intersection_rect,
+            size,
             first_render_time,
             paint_time,
             last_painted_element: last_painted_element.map(Dom::from_ref),
@@ -111,16 +105,16 @@ impl PerformanceContainerTimingMethods<crate::DomTypeHolder> for PerformanceCont
             cx,
             &self.global(),
             None,
-            self.intersection_rect_x,
-            self.intersection_rect_y,
-            self.intersection_rect_width,
-            self.intersection_rect_height,
+            self.intersection_rect.min.x as f64,
+            self.intersection_rect.min.y as f64,
+            self.intersection_rect.width() as f64,
+            self.intersection_rect.height() as f64,
         )
     }
 
     /// <https://wicg.github.io/container-timing/#dom-performancecontainertiming-size>
     fn Size(&self) -> u64 {
-        self.size
+        self.size.round() as u64
     }
 
     /// <https://wicg.github.io/container-timing/#dom-performancecontainertiming-firstrendertime>
