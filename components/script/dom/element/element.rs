@@ -58,7 +58,7 @@ use style::selector_parser::{RestyleDamage, SelectorParser, Snapshot};
 use style::shared_lock::Locked;
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, UrlExtraData};
-use style::values::computed::Overflow;
+use style::values::computed::{Overflow, UserSelect};
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
@@ -1095,6 +1095,24 @@ impl Element {
                 .display
                 .is_none()
         })
+    }
+
+    /// Returns the computed value of the [`user-select`] property. Returns `None` if the
+    /// element is unstyled.
+    ///
+    /// [`user-select`]: <https://drafts.csswg.org/css-ui-4/#propdef-user-select>
+    pub(crate) fn computed_user_select(&self) -> Option<UserSelect> {
+        Some(
+            self.style_data
+                .borrow()
+                .as_ref()?
+                .element_data
+                .borrow()
+                .styles
+                .primary()
+                .get_ui()
+                .user_select,
+        )
     }
 
     pub(crate) fn check_style_on_self_or_eager_pseudos(

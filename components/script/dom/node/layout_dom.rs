@@ -259,7 +259,9 @@ impl<'dom> LayoutDom<'dom, Node> {
         }
 
         let unsafe_self = self.unsafe_get();
-        if !unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
+        if !unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) ||
+            unsafe_self.get_flag(NodeFlags::SELECTION_INHIBITED)
+        {
             return None;
         }
 

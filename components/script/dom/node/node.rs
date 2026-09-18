@@ -125,7 +125,9 @@ use crate::dom::text::Text;
 use crate::dom::traversal::LightDomNoGcTraversal;
 use crate::dom::types::{CDATASection, KeyboardEvent, MouseEvent, ProcessingInstruction};
 use crate::dom::window::Window;
-use crate::drag::document_selection_drag::DocumentSelectionDragHandler;
+use crate::drag::document_selection_drag::{
+    DocumentSelectionDragHandler, adjust_anchor_for_user_select,
+};
 use crate::drag::drag_gesture::{DragGesture, DragHandler};
 use crate::event_loop::document_loader::DocumentLoader;
 use crate::event_loop::script_thread::ScriptThread;
@@ -244,6 +246,10 @@ bitflags! {
         /// have it set too. Conversely, if a node has this flag unset then all its flat
         /// tree descendants have it unset too.
         const OVERLAPS_DOCUMENT_SELECTION = 1 << 14;
+
+        /// For nodes with the `OVERLAPS_DOCUMENT_SELECTION`, whether the used value of
+        /// [`user-select`](https://drafts.csswg.org/css-ui-4/#propdef-user-select) is `none`.
+        const SELECTION_INHIBITED = 1 << 15;
     }
 }
 
@@ -385,7 +391,8 @@ impl Node {
             .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
             .union(NodeFlags::HAS_SNAPSHOT)
             .union(NodeFlags::HANDLED_SNAPSHOT)
-            .union(NodeFlags::OVERLAPS_DOCUMENT_SELECTION);
+            .union(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)
+            .union(NodeFlags::SELECTION_INHIBITED);
 
         for node in root.traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No) {
             node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
@@ -469,7 +476,8 @@ impl Node {
             .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
             .union(NodeFlags::HAS_SNAPSHOT)
             .union(NodeFlags::HANDLED_SNAPSHOT)
-            .union(NodeFlags::OVERLAPS_DOCUMENT_SELECTION);
+            .union(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)
+            .union(NodeFlags::SELECTION_INHIBITED);
 
         let document = root.owner_document();
         for node in root.traverse_preorder(ShadowIncluding::No) {
@@ -4620,11 +4628,16 @@ impl VirtualMethods for Node {
             .as_ref()
             .map(|(node, offset)| (node, *offset))
             .unwrap_or((&hit_test_result.node, Utf32CodeUnitsOrNodeOffset(0)));
-        selection.collapse_to_dom_position(cx, container, offset);
+        let Some((container, offset, user_select_contain_node)) =
+            adjust_anchor_for_user_select(cx, container.clone(), offset)
+        else {
+            return;
+        };
+        selection.collapse_to_dom_position(cx, &container, offset);
         document
             .event_handler()
             .install_drag_gesture(DragGesture::new(DragHandler::DocumentSelection(
-                DocumentSelectionDragHandler,
+                DocumentSelectionDragHandler::new(user_select_contain_node.as_deref()),
             )));
         event.upcast::<Event>().mark_as_handled();
     }
