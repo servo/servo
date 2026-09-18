@@ -7,7 +7,6 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::error::throw_type_error;
-use js::gc::{HandleValue, MutableHandleValue};
 use js::jsapi::CallArgs;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleObject;
@@ -87,11 +86,10 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
 }
 
 /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
-#[expect(unsafe_code)]
 fn byte_length_queuing_strategy_size(cx: &mut js::context::JSContext, args: CallArgs) -> bool {
     // Step 1. Let steps be the following steps, given chunk:
     // Step 1.1. Return ? GetV(chunk, "byteLength").
-    let chunk = unsafe { HandleValue::from_raw(args.get(0)) };
+    rooted!(&in(cx) let chunk = args.get(0).get());
 
     // https://tc39.es/ecma262/#sec-getv
     // Let O be ? ToObject(V).
@@ -113,8 +111,11 @@ fn byte_length_queuing_strategy_size(cx: &mut js::context::JSContext, args: Call
     rooted!(&in(cx) let object = chunk.to_object());
 
     // Return ? O.[[Get]](P, V).
-    get_property_jsval(cx, object.handle(), c"byteLength", unsafe {
-        MutableHandleValue::from_raw(args.rval())
-    })
-    .is_ok()
+    rooted!(&in(cx) let mut byte_length = UndefinedValue());
+    if get_property_jsval(cx, object.handle(), c"byteLength", byte_length.handle_mut()).is_err() {
+        return false;
+    }
+
+    args.rval().set(byte_length.get());
+    true
 }
