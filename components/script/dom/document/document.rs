@@ -100,6 +100,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ScrollLogicalPosition;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
 #[cfg(any(feature = "webxr", feature = "gamepad"))]
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
@@ -6172,6 +6173,20 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         //
         // > String replace all with the given value within element.
         node.set_text_content_for_element(cx, Some(title));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-dir>
+    fn Dir(&self) -> DOMString {
+        self.get_html_element()
+            .map(|html| html.upcast::<HTMLElement>().Dir())
+            .unwrap_or_default()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-dir>
+    fn SetDir(&self, cx: &mut JSContext, dir: DOMString) {
+        if let Some(html) = self.get_html_element() {
+            html.upcast::<HTMLElement>().SetDir(cx, dir);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-head>
