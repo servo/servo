@@ -687,6 +687,7 @@ impl HeadedWindow {
                     webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
                         delta,
                         point.into(),
+                        self.modifiers_state.get().shift_key(),
                     )));
                 },
                 WindowEvent::Touch(touch) => {

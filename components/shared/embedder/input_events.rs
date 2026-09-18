@@ -340,11 +340,17 @@ pub struct WheelDelta {
 pub struct WheelEvent {
     pub delta: WheelDelta,
     pub point: WebViewPoint,
+    // Swap x, y value on condition
+    pub swap_axes: bool,
 }
 
 impl WheelEvent {
-    pub fn new(delta: WheelDelta, point: WebViewPoint) -> Self {
-        WheelEvent { delta, point }
+    pub fn new(delta: WheelDelta, point: WebViewPoint, swap_axes: bool) -> Self {
+        WheelEvent {
+            delta,
+            point,
+            swap_axes,
+        }
     }
 }
 
