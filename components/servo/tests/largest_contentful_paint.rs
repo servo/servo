@@ -6,9 +6,11 @@
 mod common;
 
 use std::rc::Rc;
+use std::thread::sleep;
+use std::time::Duration;
 
 use euclid::Point2D;
-use servo::{InputEvent, JSValue, MouseButton, MouseMoveEvent, WebViewBuilder};
+use servo::{InputEvent, JSValue, MouseButton, MouseMoveEvent, WebView, WebViewBuilder};
 use servo_config::prefs::Preferences;
 use url::Url;
 use webrender_api::units::DevicePoint;
@@ -49,6 +51,15 @@ static APPEND_LARGER_IMAGE_SCRIPT: &str = r#"
     })();
 "#;
 
+fn lcp_entry_count(servo_test: &ServoTest, webview: &WebView) -> usize {
+    match evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;")
+        .expect("Should always be able to get LCP count")
+    {
+        JSValue::Number(number) => return number as usize,
+        value => unreachable!("Got an unexpected lcpEntries value: {value:?}"),
+    }
+}
+
 #[test]
 fn test_largest_contentful_paint_js_api() {
     let servo_test = ServoTest::new_with_builder(|builder| {
@@ -71,8 +82,10 @@ fn test_largest_contentful_paint_js_api() {
     }
 
     // The single image should produce exactly one LCP entry.
-    let count = evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;");
-    assert_eq!(count, Ok(JSValue::Number(1.0)));
+    while lcp_entry_count(&servo_test, &webview) == 0 {
+        sleep(Duration::from_millis(1));
+    }
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 1);
 
     // Check the entry's fields.
     let lcp = evaluate_javascript(
@@ -119,8 +132,10 @@ fn test_largest_contentful_paint_js_api_with_mouse_move() {
     }
 
     // The initial image should produce exactly one LCP entry.
-    let count = evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;");
-    assert_eq!(count, Ok(JSValue::Number(1.0)));
+    while lcp_entry_count(&servo_test, &webview) == 0 {
+        sleep(Duration::from_millis(1));
+    }
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 1);
 
     // A mouse move is not an activation-triggering input event, so it should not
     // halt LCP calculation.
@@ -144,12 +159,10 @@ fn test_largest_contentful_paint_js_api_with_mouse_move() {
     }
 
     // Wait for the larger image's LCP entry to be reported.
-    loop {
-        let count = evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;");
-        if count == Ok(JSValue::Number(2.0)) {
-            break;
-        }
+    while lcp_entry_count(&servo_test, &webview) == 1 {
+        sleep(Duration::from_millis(1));
     }
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 2);
 }
 
 #[test]
@@ -174,8 +187,10 @@ fn test_largest_contentful_paint_js_api_with_mouse_click_and_reload() {
     }
 
     // The initial image should produce exactly one LCP entry.
-    let count = evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;");
-    assert_eq!(count, Ok(JSValue::Number(1.0)));
+    while lcp_entry_count(&servo_test, &webview) == 0 {
+        sleep(Duration::from_millis(1));
+    }
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 1);
 
     // Simulate a click, which should halt LCP calculation.
     click_at_point(&webview, Point2D::new(1., 1.), MouseButton::Primary);
@@ -196,8 +211,8 @@ fn test_largest_contentful_paint_js_api_with_mouse_click_and_reload() {
     }
 
     // The LCP entry count should still be 1: the larger image was not reported.
-    let count = evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;");
-    assert_eq!(count, Ok(JSValue::Number(1.0)));
+    // TODO: This check can miss late-added LCP entries.
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 1);
 
     // Reloading the WebView should re-enable LCP reporting.
     webview.reload();
@@ -208,6 +223,8 @@ fn test_largest_contentful_paint_js_api_with_mouse_click_and_reload() {
     }
 
     // After reload, it should produce exactly one LCP entry.
-    let count = evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;");
-    assert_eq!(count, Ok(JSValue::Number(1.0)));
+    while lcp_entry_count(&servo_test, &webview) == 0 {
+        sleep(Duration::from_millis(1));
+    }
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 1);
 }
