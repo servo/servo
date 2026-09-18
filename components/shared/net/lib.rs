@@ -634,6 +634,10 @@ impl ResourceThreads {
             .core_thread
             .send(CoreResourceMsg::EmbedderClearSessionCookies(id));
     }
+
+    pub fn on_background(&self) {
+        let _ = self.core_thread.send(CoreResourceMsg::OnBackground);
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
@@ -777,6 +781,8 @@ pub enum CoreResourceMsg {
     CollectMemoryReport(ReportsChan),
     RevokeTokenForFile(BlobTokenRevocationRequest),
     RefreshTokenForFile(BlobTokenRefreshRequest),
+    /// The application is in a background state (similar to mobile operating systems).
+    OnBackground,
 }
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]

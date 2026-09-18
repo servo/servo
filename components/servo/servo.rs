@@ -1133,6 +1133,18 @@ impl Servo {
         &self.0.site_data_manager
     }
 
+    /// The whole servo application is being moved to an inactive state (similar to mobile operating systems onBackground)
+    pub fn on_background(&self) {
+        self.constellation_proxy()
+            .send(EmbedderToConstellationMessage::OnBackground);
+    }
+
+    /// The whole servo application is being moved to an active state. The inverse of `on_background`
+    pub fn on_foreground(&self) {
+        self.constellation_proxy()
+            .send(EmbedderToConstellationMessage::OnForeground);
+    }
+
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {
         self.0.paint.borrow()
     }

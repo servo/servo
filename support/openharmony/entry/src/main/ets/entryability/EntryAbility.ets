@@ -80,11 +80,13 @@ export default class EntryAbility extends UIAbility {
 
   onForeground() {
     // Ability has brought to foreground
-    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onForeground');
+    hilog.error(0xE0C3, 'ability', '%{public}s', 'Ability onForeground');
+    servoshell.onForeground();
   }
 
   onBackground() {
     // Ability has back to background
-    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onBackground');
+    hilog.error(0xE0C3, 'ability', '%{public}s', 'Ability onBackground');
+    servoshell.onBackground();
   }
 };
