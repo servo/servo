@@ -362,7 +362,9 @@ unsafe fn servo_layout_node_from_opaque(
     }
 }
 
-/// Returns the nearest ancestor element that has a `containertiming` attribute.
+/// Returns the nearest parent element, starting at `node` itself, that has a `containertiming`
+/// attribute.
+/// https://wicg.github.io/container-timing/#get-the-container-root-element
 pub fn container_timing_root_for_node(
     opaque: style::dom::OpaqueNode,
 ) -> Option<style::dom::OpaqueNode> {
@@ -371,9 +373,9 @@ pub fn container_timing_root_for_node(
     // Safety: see `servo_layout_node_from_opaque`.
     let node = unsafe { servo_layout_node_from_opaque(opaque) };
 
-    let mut ancestor = unsafe { node.dangerous_dom_parent() };
+    let mut candidate = Some(node);
     loop {
-        match ancestor {
+        match candidate {
             None => break None,
             Some(current) => {
                 if let Some(element) = current.as_html_element() &&
@@ -383,7 +385,7 @@ pub fn container_timing_root_for_node(
                 {
                     break Some(current.opaque());
                 }
-                ancestor = unsafe { current.dangerous_dom_parent() };
+                candidate = unsafe { current.dangerous_dom_parent() };
             },
         }
     }

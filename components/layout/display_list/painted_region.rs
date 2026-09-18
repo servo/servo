@@ -63,10 +63,17 @@ impl PaintedRegion {
     /// `gfx::ToEnclosingRect` before touching `cc::Region`).
     pub(crate) fn union(&mut self, rect: Box2D<f32, LayoutPixel>) {
         let rect = rect.round_out();
-        if rect.is_empty() {
+        if rect.is_empty() || self.contains(rect) {
             return;
         }
         self.rects.extend(subtract_all(rect, &self.rects));
+    }
+
+    /// Merges every rect of `other` into this region.
+    pub(crate) fn merge(&mut self, other: &PaintedRegion) {
+        for &rect in &other.rects {
+            self.union(rect);
+        }
     }
 }
 
