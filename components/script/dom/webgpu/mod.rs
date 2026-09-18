@@ -35,7 +35,6 @@ use crate::dom::{GlobalScope, Promise};
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::tasks::task::TaskOnce;
 
-pub(crate) mod gpu_promise_listener;
 pub(crate) mod gpu {
     #[expect(clippy::upper_case_acronyms)]
     pub(crate) type GPU = script_webgpu::gpu::GPU<crate::DomTypeHolder>;
