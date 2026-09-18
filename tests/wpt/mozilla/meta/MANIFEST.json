@@ -11096,6 +11096,14 @@
      "3f096b6f5a6611f97f625d8a0420aaa96f2e2b01",
      []
     ],
+    "paint-timing": {
+     "resources": {
+      "paint-timing-iframe.html": [
+       "79cdb6e758437f6d26d596fad87905a0c738df18",
+       []
+      ]
+     }
+    },
     "partial-shadow-dom-layout-style-ref.html": [
      "bf40d2cc35b6b2c1e32afffa0651cb1b26e41fe8",
      []
@@ -14888,6 +14896,17 @@
       {}
      ]
     ],
+    "paint-timing": {
+     "nested-context-eligibility.sub.html": [
+      "9832a63e1eae41b11e62cd862b581dd9e4c57e68",
+      [
+       null,
+       {
+        "timeout": "long"
+       }
+      ]
+     ]
+    },
     "paint-timing.html": [
      "0c1798ec565a77d20d9550b5cec352a0b286c415",
      [
