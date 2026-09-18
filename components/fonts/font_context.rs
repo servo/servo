@@ -951,7 +951,7 @@ impl FontContext {
         data: &[u8],
         descriptors: CSSFontFaceDescriptors,
     ) -> Option<(LowercaseFontFamilyName, FontTemplate)> {
-        let bytes = fontsan::process(data)
+        let mut bytes = fontsan::process(data)
             .inspect_err(|error| {
                 debug!(
                     "Sanitiser rejected FontFace font: family={} with {error:?}",
@@ -959,7 +959,8 @@ impl FontContext {
                 );
             })
             .ok()?;
-        let font_data = FontData::from_bytes(&bytes);
+        bytes.shrink_to_fit();
+        let font_data = FontData::from_vec(bytes);
 
         let identifier = FontIdentifier::ArrayBuffer(Uuid::new_v4());
         let handle =
