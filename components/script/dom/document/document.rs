@@ -3648,8 +3648,6 @@ impl Document {
 
     /// Build the `PerformanceContainerTiming` entries for the Container Timing updates
     /// that were presented in the frame composited at `paint_time`.
-    ///
-    /// <https://wicg.github.io/container-timing/>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn container_timing_entries(
         &self,
@@ -3659,13 +3657,16 @@ impl Document {
     ) -> Vec<DomRoot<PerformanceEntry>> {
         ids.into_iter()
             .filter_map(|id| {
-                let stored = self.container_timing_records.borrow_mut().remove(&id)?;
+                let stored = self
+                    .container_timing_records
+                    .safe_borrow_mut(cx)
+                    .remove(&id)?;
                 // The first frame that painted anything for this container fixes its
                 // `firstRenderTime`; every later update to the same container carries
                 // that same value forward.
                 let first_render_time = *self
                     .container_first_render_times
-                    .borrow_mut()
+                    .safe_borrow_mut(cx)
                     .entry(stored.record.container_id)
                     .or_insert(paint_time);
                 Some(DomRoot::upcast::<PerformanceEntry>(
