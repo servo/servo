@@ -26,7 +26,7 @@ use parking_lot::Mutex;
 use rustls::client::danger::ServerCertVerifier;
 use rustls::client::{ClientConnection, EchStatus};
 use rustls::crypto::{CryptoProvider, aws_lc_rs};
-use rustls::{ClientConfig, ProtocolVersion};
+use rustls::{CipherSuite, ClientConfig, NamedGroup, ProtocolVersion};
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
 use servo_config::pref;
 use tokio::net::TcpStream;
@@ -132,9 +132,9 @@ impl<T> fmt::Debug for InstrumentedStream<T> {
 
 #[derive(Clone, Debug)]
 pub struct TlsHandshakeInfo {
-    pub protocol_version: Option<String>,
-    pub cipher_suite: Option<String>,
-    pub kea_group_name: Option<String>,
+    pub protocol_version: Option<ProtocolVersion>,
+    pub cipher_suite: Option<CipherSuite>,
+    pub kea_group_name: Option<NamedGroup>,
     pub signature_scheme_name: Option<String>,
     pub alpn_protocol: Option<String>,
     pub certificate_chain_der: Vec<Vec<u8>>,
@@ -143,13 +143,11 @@ pub struct TlsHandshakeInfo {
 
 impl TlsHandshakeInfo {
     fn from_connection(conn: &ClientConnection) -> Self {
-        let protocol_version = conn.protocol_version().map(protocol_version_to_string);
-        let cipher_suite = conn
-            .negotiated_cipher_suite()
-            .map(|suite| format!("{:?}", suite.suite()));
+        let protocol_version = conn.protocol_version();
+        let cipher_suite = conn.negotiated_cipher_suite().map(|suite| suite.suite());
         let kea_group_name = conn
             .negotiated_key_exchange_group()
-            .map(|group| format!("{:?}", group.name()));
+            .map(|group| group.name());
         let certificate_chain_der = conn
             .peer_certificates()
             .map(|certs| certs.iter().map(|cert| cert.as_ref().to_vec()).collect())
@@ -168,22 +166,6 @@ impl TlsHandshakeInfo {
             certificate_chain_der,
             used_ech,
         }
-    }
-}
-
-fn protocol_version_to_string(version: ProtocolVersion) -> String {
-    match version {
-        ProtocolVersion::TLSv1_3 => "TLS 1.3".to_string(),
-        ProtocolVersion::TLSv1_2 => "TLS 1.2".to_string(),
-        ProtocolVersion::TLSv1_1 => "TLS 1.1".to_string(),
-        ProtocolVersion::TLSv1_0 => "TLS 1.0".to_string(),
-        ProtocolVersion::SSLv2 => "SSL 2.0".to_string(),
-        ProtocolVersion::SSLv3 => "SSL 3.0".to_string(),
-        ProtocolVersion::DTLSv1_0 => "DTLS 1.0".to_string(),
-        ProtocolVersion::DTLSv1_2 => "DTLS 1.2".to_string(),
-        ProtocolVersion::DTLSv1_3 => "DTLS 1.3".to_string(),
-        ProtocolVersion::Unknown(v) => format!("Unknown(0x{v:04x})"),
-        _ => format!("{version:?}"),
     }
 }
 
