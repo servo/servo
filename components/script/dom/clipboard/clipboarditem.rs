@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ops::Deref;
-use std::rc::Rc;
 use std::str::FromStr;
 
 use data_url::mime::Mime;
@@ -28,18 +27,20 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 
 /// The fulfillment handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-gettype>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct RepresentationDataPromiseFulfillmentHandler {
-    #[conditional_malloc_size_of]
-    promise: Rc<Promise>,
+    promise: TracedPromise,
     type_: String,
 }
+
+impl js::gc::Rootable for RepresentationDataPromiseFulfillmentHandler {}
 
 impl Callback for RepresentationDataPromiseFulfillmentHandler {
     /// Substeps of 8.1.2.1 If representationDataPromise was fulfilled with value v, then:
@@ -76,10 +77,12 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
 /// The rejection handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-gettype>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct RepresentationDataPromiseRejectionHandler {
-    #[conditional_malloc_size_of]
-    promise: Rc<Promise>,
+    promise: TracedPromise,
 }
+
+impl js::gc::Rootable for RepresentationDataPromiseRejectionHandler {}
 
 impl Callback for RepresentationDataPromiseRejectionHandler {
     /// Substeps of 8.1.2.2 If representationDataPromise was rejected, then:
@@ -99,8 +102,7 @@ pub(super) struct Representation {
     #[ignore_malloc_size_of = "Extern type"]
     pub mime_type: Mime,
     pub is_custom: bool,
-    #[conditional_malloc_size_of]
-    pub data: Rc<Promise>,
+    pub data: TracedPromise,
 }
 
 #[dom_struct]
@@ -137,7 +139,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        items: Record<DOMString, Rc<Promise>>,
+        items: Record<DOMString, RootedPromise>,
         options: &ClipboardItemOptions,
     ) -> Fallible<DomRoot<ClipboardItem>> {
         // Step 1 If items is empty, then throw a TypeError.
@@ -194,7 +196,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
             let representation = Representation {
                 mime_type,
                 is_custom,
-                data: value.clone(),
+                data: value.to_traced(),
             };
 
             // Step 6.10 Append representation to this's clipboard item's list of representations.
@@ -246,7 +248,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
     }
 
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-gettype>
-    fn GetType(&self, realm: &mut CurrentRealm, type_: DOMString) -> Fallible<Rc<Promise>> {
+    fn GetType(&self, realm: &mut CurrentRealm, type_: DOMString) -> Fallible<RootedPromise> {
         // Step 1 Let realm be this’s relevant realm.
         let global = self.global();
 
@@ -270,22 +272,23 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         let item_type_list = self.representations.borrow();
 
         // Step 7 Let p be a new promise in realm.
-        let p = Promise::new_in_realm(realm);
+        let p = Promise::new_in_realm_rooted(realm);
 
         // Step 8 For each representation in itemTypeList
         for representation in item_type_list.iter() {
             // Step 8.1 If representation’s MIME type is mimeType and representation’s isCustom is isCustom, then:
             if representation.mime_type == mime_type && representation.is_custom == is_custom {
                 // Step 8.1.1 Let representationDataPromise be the representation’s data.
-                let representation_data_promise = &representation.data;
+                let representation_data_promise = representation.data.root(realm);
 
                 // Step 8.1.2 React to representationDataPromise:
                 let fulfillment_handler = Box::new(RepresentationDataPromiseFulfillmentHandler {
-                    promise: p.clone(),
+                    promise: p.to_traced(),
                     type_: representation.mime_type.to_string(),
                 });
-                let rejection_handler =
-                    Box::new(RepresentationDataPromiseRejectionHandler { promise: p.clone() });
+                let rejection_handler = Box::new(RepresentationDataPromiseRejectionHandler {
+                    promise: p.to_traced(),
+                });
 
                 let handler = PromiseNativeHandler::new(
                     realm,
