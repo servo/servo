@@ -6,13 +6,13 @@
 
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
-use wgpu_core::id::{
+
+use crate::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
     ComputePassEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId,
     QuerySetId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId, RenderPipelineId,
-    SamplerId, ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,
+    SamplerId, ShaderModuleId, TextureId, TextureViewId,
 };
-
 use crate::{DeviceLostReason, Error, WebGPUDevice};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -33,10 +33,8 @@ pub enum WebGPUMsg {
     FreeTexture(TextureId),
     FreeTextureView(TextureViewId),
     FreeSampler(SamplerId),
-    FreeSurface(SurfaceId),
     FreeShaderModule(ShaderModuleId),
     FreeRenderBundle(RenderBundleId),
-    FreeStagingBuffer(StagingBufferId),
     FreeQuerySet(QuerySetId),
     FreeComputePass(ComputePassEncoderId),
     FreeRenderPass(RenderPassEncoderId),

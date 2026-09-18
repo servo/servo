@@ -16,44 +16,19 @@ use servo_base::id::PipelineId;
 use webrender_api::ImageKey;
 use webrender_api::euclid::default::Size2D;
 use webrender_api::units::DeviceIntSize;
-use wgpu_core::Label;
-use wgpu_core::binding_model::{
-    BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
-};
-use wgpu_core::command::{
-    PassTimestampWrites, RenderBundleDescriptor, RenderBundleEncoderDescriptor,
-    RenderPassColorAttachment, RenderPassDepthStencilAttachment, TexelCopyBufferInfo,
-    TexelCopyTextureInfo,
-};
-use wgpu_core::device::HostMap;
-pub use wgpu_core::id::markers::{
-    ComputePassEncoder as ComputePass, RenderPassEncoder as RenderPass,
-};
-use wgpu_core::id::{
-    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
-    ComputePassEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId,
-    QuerySetId, QueueId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId,
-    RenderPipelineId, SamplerId, ShaderModuleId, TextureId, TextureViewId,
-};
-pub use wgpu_core::id::{
-    ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
-};
-use wgpu_core::instance::RequestAdapterOptions;
-use wgpu_core::pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor};
-use wgpu_core::resource::{
-    BufferAccessError, BufferDescriptor, QuerySetDescriptor, SamplerDescriptor, TextureDescriptor,
-    TextureViewDescriptor,
-};
-use wgpu_types::{
-    BufferAddress, CommandBufferDescriptor, CommandEncoderDescriptor, DeviceDescriptor, Extent3d,
-    TexelCopyBufferLayout,
-};
 
+use crate::id::*;
 use crate::{
-    ContextConfiguration, Error, ErrorFilter, Mapping, PRESENTATION_BUFFER_COUNT,
-    RenderBundleCommand, RenderCommand, ShaderCompilationInfo, WebGPUAdapter,
-    WebGPUAdapterResponse, WebGPUComputePipelineResponse, WebGPUContextId, WebGPUDeviceResponse,
-    WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
+    BindGroupDescriptor, BindGroupLayoutDescriptor, BufferAccessError, BufferAddress,
+    BufferDescriptor, CommandBufferDescriptor, CommandEncoderDescriptor, ComputePipelineDescriptor,
+    ContextConfiguration, DeviceDescriptor, Error, ErrorFilter, Extent3d, HostMap, Label, Mapping,
+    PRESENTATION_BUFFER_COUNT, PassTimestampWrites, PipelineLayoutDescriptor, QuerySetDescriptor,
+    RenderBundleCommand, RenderBundleDescriptor, RenderBundleEncoderDescriptor, RenderCommand,
+    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPipelineDescriptor,
+    RequestAdapterOptions, SamplerDescriptor, ShaderCompilationInfo, TexelCopyBufferInfo,
+    TexelCopyBufferLayout, TexelCopyTextureInfo, TextureDescriptor, TextureViewDescriptor,
+    WebGPUAdapter, WebGPUAdapterResponse, WebGPUComputePipelineResponse, WebGPUContextId,
+    WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -270,58 +245,58 @@ pub enum WebGPURequest {
     // Compute Pass
     BeginComputePass {
         command_encoder_id: CommandEncoderId,
-        compute_pass_id: ComputePassId,
+        compute_pass_id: ComputePassEncoderId,
         label: Label<'static>,
         timestamp_writes: Option<PassTimestampWrites>,
         device_id: DeviceId,
     },
     ComputePassSetPipeline {
-        compute_pass_id: ComputePassId,
+        compute_pass_id: ComputePassEncoderId,
         pipeline_id: ComputePipelineId,
         device_id: DeviceId,
     },
     ComputePassSetBindGroup {
-        compute_pass_id: ComputePassId,
+        compute_pass_id: ComputePassEncoderId,
         index: u32,
         bind_group_id: BindGroupId,
         offsets: Vec<u32>,
         device_id: DeviceId,
     },
     ComputePassDispatchWorkgroups {
-        compute_pass_id: ComputePassId,
+        compute_pass_id: ComputePassEncoderId,
         x: u32,
         y: u32,
         z: u32,
         device_id: DeviceId,
     },
     ComputePassDispatchWorkgroupsIndirect {
-        compute_pass_id: ComputePassId,
+        compute_pass_id: ComputePassEncoderId,
         buffer_id: BufferId,
         offset: u64,
         device_id: DeviceId,
     },
     ComputePassPushDebugGroup {
-        compute_pass_id: ComputePassId,
+        compute_pass_id: ComputePassEncoderId,
         label: String,
         device_id: DeviceId,
     },
     ComputePassPopDebugGroup {
-        compute_pass_id: ComputePassId,
+        compute_pass_id: ComputePassEncoderId,
         device_id: DeviceId,
     },
     ComputePassInsertDebugMarker {
-        compute_pass_id: ComputePassId,
+        compute_pass_id: ComputePassEncoderId,
         label: String,
         device_id: DeviceId,
     },
     EndComputePass {
-        compute_pass_id: ComputePassId,
+        compute_pass_id: ComputePassEncoderId,
         device_id: DeviceId,
     },
     // Render Pass
     BeginRenderPass {
         command_encoder_id: CommandEncoderId,
-        render_pass_id: RenderPassId,
+        render_pass_id: RenderPassEncoderId,
         label: Label<'static>,
         color_attachments: Vec<Option<RenderPassColorAttachment>>,
         depth_stencil_attachment: Option<RenderPassDepthStencilAttachment<TextureViewId>>,
@@ -329,12 +304,12 @@ pub enum WebGPURequest {
         device_id: DeviceId,
     },
     RenderPassCommand {
-        render_pass_id: RenderPassId,
+        render_pass_id: RenderPassEncoderId,
         render_command: RenderCommand,
         device_id: DeviceId,
     },
     EndRenderPass {
-        render_pass_id: RenderPassId,
+        render_pass_id: RenderPassEncoderId,
         device_id: DeviceId,
     },
     Submit {

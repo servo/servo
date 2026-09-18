@@ -17,27 +17,23 @@ use pixels::{SharedSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
+use webgpu_traits::id::{
+    self, BufferId, CommandBufferId, CommandEncoderId, DeviceId, QueueId, TextureId,
+};
 use webgpu_traits::{
-    ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPUContextId, WebGPUMsg,
+    BufferDescriptor, BufferUsages, CommandBufferDescriptor, CommandEncoderDescriptor,
+    ContextConfiguration, Extent3d, HostMap, Origin3d, PRESENTATION_BUFFER_COUNT, PendingTexture,
+    TexelCopyBufferInfo, TexelCopyBufferLayout, TexelCopyTextureInfo, TextureAspect,
+    WebGPUContextId, WebGPUMsg,
 };
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageDescriptor, ImageDescriptorFlags,
     ImageFormat, ImageKey,
 };
-use wgpu_core::device::HostMap;
 use wgpu_core::global::Global;
-use wgpu_core::id::{
-    self, BufferId, CommandBufferId, CommandEncoderId, DeviceId, QueueId, TextureId,
-};
-use wgpu_core::resource::{
-    BufferAccessError, BufferDescriptor, BufferMapOperation, CreateBufferError,
-};
-use wgpu_types::{
-    BufferUsages, COPY_BYTES_PER_ROW_ALIGNMENT, CommandBufferDescriptor, CommandEncoderDescriptor,
-    Extent3d, Origin3d, TexelCopyBufferInfo, TexelCopyBufferLayout, TexelCopyTextureInfo,
-    TextureAspect,
-};
+use wgpu_core::resource::{BufferAccessError, BufferMapOperation, CreateBufferError};
+use wgpu_types::COPY_BYTES_PER_ROW_ALIGNMENT;
 
 pub type WebGpuExternalImageMap = Arc<Mutex<FxHashMap<WebGPUContextId, ContextData>>>;
 

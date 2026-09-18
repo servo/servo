@@ -7,7 +7,8 @@
 use serde::{Deserialize, Serialize};
 use wgpu_core::command::PassStateError;
 use wgpu_core::global::Global;
-use wgpu_core::id::{
+
+use crate::id::{
     BindGroupId, BufferId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId,
     RenderPipelineId,
 };
@@ -35,19 +36,19 @@ pub enum RenderCommand {
         width: u32,
         height: u32,
     },
-    SetBlendConstant(wgpu_types::Color),
+    SetBlendConstant(crate::Color),
     SetStencilReference(u32),
     SetIndexBuffer {
         buffer_id: BufferId,
-        index_format: wgpu_types::IndexFormat,
+        index_format: crate::IndexFormat,
         offset: u64,
-        size: Option<wgpu_types::BufferSize>,
+        size: Option<crate::BufferSize>,
     },
     SetVertexBuffer {
         slot: u32,
         buffer_id: Option<BufferId>,
         offset: u64,
-        size: Option<wgpu_types::BufferSize>,
+        size: Option<crate::BufferSize>,
     },
     Draw {
         vertex_count: u32,
@@ -203,15 +204,15 @@ pub enum RenderBundleCommand {
     },
     SetIndexBuffer {
         buffer_id: BufferId,
-        index_format: wgpu_types::IndexFormat,
+        index_format: crate::IndexFormat,
         offset: u64,
-        size: Option<wgpu_types::BufferSize>,
+        size: Option<crate::BufferSize>,
     },
     SetVertexBuffer {
         slot: u32,
         buffer_id: Option<BufferId>,
         offset: u64,
-        size: Option<wgpu_types::BufferSize>,
+        size: Option<crate::BufferSize>,
     },
     Draw {
         vertex_count: u32,

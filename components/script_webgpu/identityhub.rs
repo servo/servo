@@ -24,8 +24,8 @@ pub struct IdentityHub {
     samplers: IdentityManager<Sampler>,
     render_pipelines: IdentityManager<RenderPipeline>,
     render_bundles: IdentityManager<RenderBundle>,
-    compute_passes: IdentityManager<ComputePass>,
-    render_passes: IdentityManager<RenderPass>,
+    compute_passes: IdentityManager<ComputePassEncoder>,
+    render_passes: IdentityManager<RenderPassEncoder>,
     query_sets: IdentityManager<QuerySet>,
     external_textures: IdentityManager<ExternalTexture>,
     render_bundle_encoders: IdentityManager<RenderBundleEncoder>,
@@ -190,19 +190,19 @@ impl IdentityHub {
         self.render_bundles.free(id);
     }
 
-    pub fn create_compute_pass_id(&self) -> ComputePassId {
+    pub fn create_compute_pass_id(&self) -> ComputePassEncoderId {
         self.compute_passes.process()
     }
 
-    pub fn free_compute_pass_id(&self, id: ComputePassId) {
+    pub fn free_compute_pass_id(&self, id: ComputePassEncoderId) {
         self.compute_passes.free(id);
     }
 
-    pub fn create_render_pass_id(&self) -> RenderPassId {
+    pub fn create_render_pass_id(&self) -> RenderPassEncoderId {
         self.render_passes.process()
     }
 
-    pub fn free_render_pass_id(&self, id: RenderPassId) {
+    pub fn free_render_pass_id(&self, id: RenderPassEncoderId) {
         self.render_passes.free(id);
     }
 
