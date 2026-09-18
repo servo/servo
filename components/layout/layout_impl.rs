@@ -20,11 +20,12 @@ use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
 use icu_locale_core::subtags::Language;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, HitTestFlags, HitTestResult,
-    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode,
-    NodeRenderingType, OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun,
-    ReflowRequest, ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, ContainerTimingRecord, DangerousStyleNode,
+    HitTestFlags, HitTestResult, IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutElement,
+    LayoutFactory, LayoutNode, NodeRenderingType, OffsetParentResponse, PhysicalSides, QueryMsg,
+    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult,
+    ReflowStatistics, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    with_layout_state,
 };
 use log::{debug, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -217,6 +218,12 @@ pub struct LayoutThread {
 
     /// Handler for all Paint Timings
     paint_timing_handler: RefCell<Option<PaintTimingHandler>>,
+
+    /// The Container Timing records produced by the display list build of the reflow
+    /// currently in progress, waiting to be handed to script on the [`ReflowResult`].
+    /// Paint receives only their [`servo_base::id::ContainerTimingID`]s, via the display
+    /// list, and hands them back once it knows the frame's real paint time.
+    pending_container_timing_records: RefCell<Vec<ContainerTimingRecord>>,
 
     /// Whether accessibility is active for this Layout.
     accessibility_active: Cell<bool>,
@@ -838,6 +845,7 @@ impl LayoutThread {
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
             paint_timing_handler: Default::default(),
+            pending_container_timing_records: Default::default(),
             user_stylesheets: config.user_stylesheets,
             accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
@@ -1103,6 +1111,9 @@ impl LayoutThread {
             reflow_statistics,
             changed_web_fonts,
             lcp_candidate,
+            container_timing_records: std::mem::take(
+                &mut *self.pending_container_timing_records.borrow_mut(),
+            ),
         })
     }
 
@@ -1542,6 +1553,15 @@ impl LayoutThread {
         } else {
             stacking_context_tree.paint_info.lcp_candidate = None;
         }
+
+        // Paint only needs the IDs in order to attach a paint time to them; the records
+        // themselves go to script on the `ReflowResult`.
+        let container_timing_records = paint_timing_handler.take_container_timing_records();
+        stacking_context_tree.paint_info.container_timing_candidates = container_timing_records
+            .iter()
+            .map(|record| record.id)
+            .collect();
+        *self.pending_container_timing_records.borrow_mut() = container_timing_records;
 
         self.paint_api.send_display_list(
             self.webview_id,

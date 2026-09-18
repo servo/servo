@@ -77,6 +77,7 @@ mod gradient;
 mod hit_test;
 mod paint_timing_handler;
 mod paint_traversal;
+mod painted_region;
 mod stacking_context;
 
 pub(crate) use hit_test::{ClosestFragmentSearch, HitTest};
@@ -130,6 +131,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Whether the `largest_contentul_paint_enabled` preference is enabled.
     largest_contentful_paint_enabled: bool,
+
+    /// Whether the `container_timing_enabled` preference is enabled.
+    container_timing_enabled: bool,
 
     /// The background color used for the shell.
     shell_background_color: AbsoluteColor,
@@ -226,6 +230,7 @@ impl DisplayListBuilder<'_> {
             paint_timing_handler,
             reflow_statistics,
             largest_contentful_paint_enabled: pref!(largest_contentful_paint_enabled),
+            container_timing_enabled: pref!(container_timing_enabled),
             shell_background_color,
         };
 
@@ -697,6 +702,43 @@ impl DisplayListBuilder<'_> {
         );
     }
 
+    /// Accumulate a painted fragment into its Container Timing container, if it is
+    /// inside one.
+    #[allow(clippy::too_many_arguments)]
+    fn collect_container_timing_record(
+        &mut self,
+        state: &TraversalState,
+        bounds: LayoutRect,
+        clip_rect: LayoutRect,
+        flags: FragmentFlags,
+        natural_width: Option<Au>,
+        natural_height: Option<Au>,
+    ) {
+        if !self.container_timing_enabled || !flags.contains(FragmentFlags::HAS_CONTAINER_TIMING) {
+            return;
+        }
+
+        // If there's no containing element tag we should skip
+        // similar behavior to LCP collection
+        let Some(tag) = state.containing_element_tag else {
+            return;
+        };
+
+        let transform = self
+            .paint_info
+            .scroll_tree
+            .cumulative_node_to_root_transform(state.spatial_id);
+
+        self.paint_timing_handler.update_container_timing(
+            tag.node,
+            bounds,
+            clip_rect,
+            transform,
+            natural_width,
+            natural_height,
+        );
+    }
+
     fn visit_stacking_context_reference_frame_info(
         &mut self,
         stacking_context: &StackingContext,
@@ -875,6 +917,15 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                     common.clip_rect,
                     fragment.base.tag,
                     fragment.url.clone(),
+                    fragment.natural_width,
+                    fragment.natural_height,
+                );
+
+                self.collect_container_timing_record(
+                    state,
+                    rect,
+                    common.clip_rect,
+                    fragment.base.flags,
                     fragment.natural_width,
                     fragment.natural_height,
                 );
@@ -1172,6 +1223,15 @@ impl Fragment {
         // An element target is contentful when one or more of the following apply:
         // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
         builder.mark_is_contentful();
+
+        builder.collect_container_timing_record(
+            state,
+            glyph_bounds,
+            common.clip_rect,
+            fragment.base.flags,
+            None,
+            None,
+        );
 
         // Accumulate this text fragment for LCP by the containing element's tag
         if let Some(tag) = state.containing_element_tag &&
@@ -1906,6 +1966,15 @@ impl<'a> BuilderForBoxFragment<'a> {
                             layer.common.clip_rect,
                             self.fragment.base.tag,
                             None,
+                            natural_width,
+                            natural_height,
+                        );
+
+                        builder.collect_container_timing_record(
+                            state,
+                            layer.bounds,
+                            layer.common.clip_rect,
+                            self.fragment.base.flags,
                             natural_width,
                             natural_height,
                         );

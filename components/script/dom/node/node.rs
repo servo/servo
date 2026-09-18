@@ -21,7 +21,7 @@ use embedder_traits::{MouseButton, UntrustedNodeAddress};
 use euclid::default::Size2D;
 use euclid::{Point2D, Rect};
 use html5ever::serialize::HtmlSerializer;
-use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
+use html5ever::{LocalName, Namespace, Prefix, QualName, ns, serialize as html_serialize};
 use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -244,6 +244,9 @@ bitflags! {
         /// have it set too. Conversely, if a node has this flag unset then all its flat
         /// tree descendants have it unset too.
         const OVERLAPS_DOCUMENT_SELECTION = 1 << 14;
+        // Indicate the node is in a hierachy that needs to be considered for ContainerTiming events.
+        // Without this flag, traversal would be expensive.
+        const HAS_CONTAINER_TIMING = 1 << 15;
     }
 }
 
@@ -365,6 +368,16 @@ impl Node {
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
             node.set_flag(NodeFlags::IS_IN_UA_WIDGET, parent_is_in_ua_widget);
+            let self_has_ct = node
+                .downcast::<Element>()
+                .is_some_and(|e| e.has_attribute(&LocalName::from("containertiming")));
+            let inherited_has_ct = node
+                .GetParentNode()
+                .is_some_and(|parent| parent.has_container_timing());
+            node.set_flag(
+                NodeFlags::HAS_CONTAINER_TIMING,
+                inherited_has_ct || self_has_ct,
+            );
 
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
@@ -803,6 +816,14 @@ impl Node {
 
     pub(crate) fn is_in_ua_widget(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_UA_WIDGET)
+    }
+
+    pub(crate) fn set_has_container_timing(&self, has_container_timing: bool) {
+        self.set_flag(NodeFlags::HAS_CONTAINER_TIMING, has_container_timing)
+    }
+
+    pub(crate) fn has_container_timing(&self) -> bool {
+        self.flags.get().contains(NodeFlags::HAS_CONTAINER_TIMING)
     }
 
     /// Returns the type ID of this node.

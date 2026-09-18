@@ -30,7 +30,9 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericCallback;
-use servo_base::id::{LCPCandidateID, MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
+use servo_base::id::{
+    ContainerTimingID, LCPCandidateID, MessagePortId, PipelineId, ScriptEventLoopId, WebViewId,
+};
 use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 pub use structured_data::*;
@@ -135,6 +137,10 @@ pub enum PaintMetricEvent {
     FirstPaint(CrossProcessInstant, bool /* first_reflow */),
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),
     LargestContentfulPaint(CrossProcessInstant, LCPCandidateID),
+    /// The Container Timing updates presented in a single composited frame. Script holds
+    /// the records these IDs refer to; all paint contributes is the frame's paint time.
+    /// <https://wicg.github.io/container-timing/>
+    ContainerTiming(CrossProcessInstant, Vec<ContainerTimingID>),
 }
 
 impl fmt::Debug for EmbedderToConstellationMessage {
