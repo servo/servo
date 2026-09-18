@@ -46,6 +46,7 @@ webcrypto = [
     "dep:elliptic-curve",
     "dep:hkdf",
     "dep:k12",
+    "dep:keccak",
     "dep:ml-dsa",
     "dep:ml-kem",
     "dep:ocb3",
@@ -57,6 +58,7 @@ webcrypto = [
     "dep:sha1",
     "dep:sha2",
     "dep:sha3",
+    "dep:sponge-cursor",
     "dep:x25519-dalek",
     "dep:x448",
     "dep:zeroize",
@@ -136,7 +138,7 @@ js = { workspace = true }
 jstraceable_derive = { workspace = true }
 k12 = { workspace = true, optional = true }
 keyboard-types = { workspace = true }
-keccak = { workspace = true }
+keccak = { workspace = true, optional = true }
 layout_api = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
@@ -192,7 +194,7 @@ sha1 = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
 sha3 = { workspace = true, optional = true }
 smallvec = { workspace = true }
-sponge-cursor = { workspace = true }
+sponge-cursor = { workspace = true, optional = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
 stylo = { workspace = true }
