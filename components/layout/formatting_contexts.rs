@@ -376,7 +376,9 @@ impl IndependentFormattingContext {
     ) {
         self.base.repair_style(new_style);
         match &mut self.contents {
-            IndependentFormattingContextContents::Replaced(_, widget) => {
+            IndependentFormattingContextContents::Replaced(replaced, widget) => {
+                *replaced.selected_style.borrow_mut() = node.selected_style(context);
+
                 if let Some(widget) = widget {
                     let node = node
                         .with_pseudo(PseudoElement::ServoAnonymousBox)
@@ -606,6 +608,17 @@ impl IndependentFormattingContext {
 
     pub(crate) fn subtree_size(&self) -> usize {
         self.base.subtree_size()
+    }
+
+    /// Set whether this [`IndependentFormattingContext`] is selected. Returns `true` if
+    /// anything changed.
+    pub(crate) fn set_selection(&self, selected: bool) -> bool {
+        match &self.contents {
+            IndependentFormattingContextContents::Replaced(replaced_contents, ..) => {
+                replaced_contents.set_selection(selected)
+            },
+            _ => false,
+        }
     }
 }
 

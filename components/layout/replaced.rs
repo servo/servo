@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::{Au, MAX_AU};
 use data_url::DataUrl;
@@ -46,16 +47,22 @@ use crate::sizing::{
     ComputeInlineContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
 };
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, LayoutStyle};
-use crate::{ConstraintSpace, ContainingBlock};
+use crate::{ConstraintSpace, ContainingBlock, SharedStyle};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct ReplacedContents {
+    base_fragment_info: BaseFragmentInfo,
     pub kind: ReplacedContentKind,
     /// Whether or not this [`ReplacedContents`] is due to content replacement, i.e.
     /// `content: <image>` in style.
     pub is_content_replacement: bool,
+    /// Whether or not this replaced element is selected by the document selection.
+    #[conditional_malloc_size_of]
+    pub selected: Arc<AtomicBool>,
+    /// The style to use for selection overlays on top of this replaced content.
+    pub selected_style: SharedStyle,
+    /// The natural size of this replaced content.
     natural_size: NaturalSizes,
-    base_fragment_info: BaseFragmentInfo,
 }
 
 /// The natural dimensions of a replaced element, including a height, width, and
@@ -219,10 +226,12 @@ impl ReplacedContents {
         }
 
         Some(Self {
+            base_fragment_info: node.into(),
             kind,
             is_content_replacement: false,
+            selected: Arc::new(AtomicBool::new(node.replaced_is_selected())),
+            selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
             natural_size,
-            base_fragment_info: node.into(),
         })
     }
 
@@ -336,7 +345,7 @@ impl ReplacedContents {
         {
             // Invalid images are treated as zero-sized.
             let mut replaced_contents = Self::from_image(node, context, image)
-                .unwrap_or_else(|| Self::zero_sized_invalid_image(node));
+                .unwrap_or_else(|| Self::zero_sized_invalid_image(node, context));
 
             replaced_contents.is_content_replacement = true;
             node.clear_fragments_and_dirty_fragment_caches_of_descendants();
@@ -376,14 +385,16 @@ impl ReplacedContents {
             LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
         };
         Some(Self {
+            base_fragment_info: node.into(),
             kind: ReplacedContentKind::Image(ImageInfo {
                 image,
                 showing_broken_image_icon: false,
                 url: Some(image_url.clone().into()),
             }),
             is_content_replacement: false,
+            selected: Arc::new(AtomicBool::new(node.replaced_is_selected())),
+            selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
             natural_size: NaturalSizes::from_width_and_height(width, height),
-            base_fragment_info: node.into(),
         })
     }
 
@@ -398,16 +409,21 @@ impl ReplacedContents {
         }
     }
 
-    pub(crate) fn zero_sized_invalid_image(node: ServoLayoutNode<'_>) -> Self {
+    pub(crate) fn zero_sized_invalid_image(
+        node: ServoLayoutNode<'_>,
+        context: &LayoutContext,
+    ) -> Self {
         Self {
+            base_fragment_info: node.into(),
             kind: ReplacedContentKind::Image(ImageInfo {
                 image: None,
                 showing_broken_image_icon: false,
                 url: None,
             }),
             is_content_replacement: false,
+            selected: Default::default(),
+            selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
             natural_size: NaturalSizes::from_width_and_height(0., 0.),
-            base_fragment_info: node.into(),
         }
     }
 
@@ -528,12 +544,14 @@ impl ReplacedContents {
                     Fragment::Image(Arc::new(ImageFragment {
                         base,
                         style: style.clone().into(),
+                        selected_style: self.selected_style.clone(),
                         clip,
                         image_key: Some(image_key),
                         showing_broken_image_icon: image_info.showing_broken_image_icon,
                         url: image_info.url.clone(),
                         natural_width: self.natural_size.width,
                         natural_height: self.natural_size.height,
+                        selected: self.selected.clone(),
                     }))
                 })
                 .into_iter()
@@ -542,12 +560,14 @@ impl ReplacedContents {
                 vec![Fragment::Image(Arc::new(ImageFragment {
                     base,
                     style: style.clone().into(),
+                    selected_style: self.selected_style.clone(),
                     clip,
                     image_key: video_info.image_key,
                     showing_broken_image_icon: false,
                     url: video_info.poster_url.clone(),
                     natural_width: self.natural_size.width,
                     natural_height: self.natural_size.height,
+                    selected: self.selected.clone(),
                 }))]
             },
             ReplacedContentKind::IFrame(iframe) => {
@@ -586,12 +606,14 @@ impl ReplacedContents {
                 vec![Fragment::Image(Arc::new(ImageFragment {
                     base,
                     style: style.clone().into(),
+                    selected_style: self.selected_style.clone(),
                     clip,
                     image_key: Some(image_key),
                     showing_broken_image_icon: false,
                     url: None,
                     natural_width: self.natural_size.width,
                     natural_height: self.natural_size.height,
+                    selected: self.selected.clone(),
                 }))]
             },
             ReplacedContentKind::SVGElement {
@@ -641,12 +663,14 @@ impl ReplacedContents {
                         Fragment::Image(Arc::new(ImageFragment {
                             base,
                             style: style.clone().into(),
+                            selected_style: self.selected_style.clone(),
                             clip,
                             image_key: Some(image_key),
                             showing_broken_image_icon: false,
                             url: None,
                             natural_width: self.natural_size.width,
                             natural_height: self.natural_size.height,
+                            selected: self.selected.clone(),
                         }))
                     })
                     .into_iter()
@@ -758,6 +782,18 @@ impl ReplacedContents {
             fragments: self.make_fragments(layout_context, &base.style, size),
             specific_layout_info: None,
         }
+    }
+
+    /// Set whether or not this [`ReplacedContents`] is selected. Returns `true` if anything
+    /// changed.
+    pub(crate) fn set_selection(&self, selected: bool) -> bool {
+        // Only build a display list if the value changed and if this isn't an `<iframe>`
+        // or `<audio>` element as they do not paint a selection tint.
+        self.selected.swap(selected, Ordering::Relaxed) != selected &&
+            !matches!(
+                self.kind,
+                ReplacedContentKind::Audio | ReplacedContentKind::IFrame(..)
+            )
     }
 }
 

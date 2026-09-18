@@ -186,32 +186,28 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     }
 
     fn selected_style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
+        // This is a workaround for handling the `::selection` pseudos where it would not
+        // propagate to the children and Shadow DOM elements. For this case, UA widget
+        // inner elements should follow the originating element in terms of selection.
+        if self.node.is_in_ua_widget() &&
+            let Some(shadow_root) = self.node.containing_shadow_root_for_layout()
+        {
+            return Self::from(shadow_root.get_host_for_layout().upcast()).selected_style(context);
+        }
+
         let Some(element) = self.as_element() else {
-            // TODO(stshine): What should the selected style be for text?
-            debug_assert!(self.is_text_node());
-            return self.parent_style(context);
+            return unsafe { self.dangerous_flat_tree_parent() }
+                .expect("Non-element should always have parent")
+                .selected_style(context);
         };
 
-        let style_data = &element.element_data().styles;
-        let get_selected_style = || {
-            // This is a workaround for handling the `::selection` pseudos where it would not
-            // propagate to the children and Shadow DOM elements. For this case, UA widget
-            // inner elements should follow the originating element in terms of selection.
-            if self.node.is_in_ua_widget() {
-                return Some(
-                    Self::from(
-                        self.node
-                            .containing_shadow_root_for_layout()?
-                            .get_host_for_layout()
-                            .upcast(),
-                    )
-                    .selected_style(context),
-                );
-            }
-            style_data.pseudos.get(&PseudoElement::Selection).cloned()
-        };
-
-        get_selected_style().unwrap_or_else(|| style_data.primary().clone())
+        let selected_style = element
+            .element_data()
+            .styles
+            .pseudos
+            .get(&PseudoElement::Selection)
+            .cloned();
+        selected_style.unwrap_or_else(|| self.style(context))
     }
 
     fn initialize_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
@@ -258,6 +254,10 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
 
     fn text_node_paints_caret(&self) -> bool {
         self.node.text_node_paints_caret()
+    }
+
+    fn replaced_is_selected(&self) -> bool {
+        self.node.replaced_is_selected()
     }
 
     fn image_url(&self) -> Option<ServoUrl> {
