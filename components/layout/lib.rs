@@ -155,12 +155,16 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
 #[derive(Clone, Copy, Debug, MallocSizeOf)]
 struct PropagatedBoxTreeData {
     allow_percentage_column_in_tables: bool,
+
+    /// The number a list item marker counts up to, set by the list the item is in.
+    list_item_ordinal: i32,
 }
 
 impl Default for PropagatedBoxTreeData {
     fn default() -> Self {
         Self {
             allow_percentage_column_in_tables: true,
+            list_item_ordinal: 1,
         }
     }
 }
@@ -169,6 +173,14 @@ impl PropagatedBoxTreeData {
     fn disallowing_percentage_table_columns(&self) -> PropagatedBoxTreeData {
         Self {
             allow_percentage_column_in_tables: false,
+            ..*self
+        }
+    }
+
+    fn for_list_item(&self, ordinal: i32) -> PropagatedBoxTreeData {
+        Self {
+            list_item_ordinal: ordinal,
+            ..*self
         }
     }
 }
