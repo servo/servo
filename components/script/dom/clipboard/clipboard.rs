@@ -203,11 +203,11 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
         // Note: Since the previous step is infallible, we don't need to handle this case
 
         // Step 3.4.1.1.3 Let representation be a new representation.
-        let representation = Representation {
+        rooted!(&in(cx) let representation = Representation {
             mime_type,
             is_custom: false,
-            data: Promise::new_resolved(cx, &global, DOMString::from(text)),
-        };
+            data: Promise::new_resolved_rooted(cx, &global, DOMString::from(text)).to_traced(),
+        });
 
         // Step 3.4.1.1.4 If representation’s MIME type essence is "text/plain", then:
 
