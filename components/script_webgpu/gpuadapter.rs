@@ -15,8 +15,10 @@ use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::{DomTypes, cformat};
-use webgpu_traits::{WebGPU, WebGPUAdapter, WebGPURequest};
-use wgpu_types::{AdapterInfo, ExperimentalFeatures, MemoryHints};
+use webgpu_traits::{
+    AdapterInfo, DeviceDescriptor, DeviceType, ExperimentalFeatures, Features, Limits, MemoryHints,
+    Trace, WebGPU, WebGPUAdapter, WebGPURequest,
+};
 
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -91,9 +93,9 @@ where
         channel: WebGPU,
         name: DOMString,
         extensions: HandleObject,
-        features: wgpu_types::Features,
-        limits: wgpu_types::Limits,
-        info: wgpu_types::AdapterInfo,
+        features: Features,
+        limits: Limits,
+        info: AdapterInfo,
         adapter: WebGPUAdapter,
     ) -> DomRoot<Self> {
         let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
@@ -165,7 +167,7 @@ where
             };
 
         // Step 8. Set adapterInfo.isFallbackAdapter to adapter.[[fallback]].
-        let is_fallback_adapter = info.device_type == wgpu_types::DeviceType::Cpu;
+        let is_fallback_adapter = info.device_type == DeviceType::Cpu;
 
         // Step 1. Let adapterInfo be a new GPUAdapterInfo.
         GPUAdapterInfo::new(
@@ -201,7 +203,7 @@ where
         let promise = D::Promise::new_in_realm_rooted(cx);
 
         let callback = promise.callback_promise_dom_manipulation_task_source(self);
-        let mut required_features = wgpu_types::Features::empty();
+        let mut required_features = Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
                 required_features.insert(feature);
@@ -214,7 +216,7 @@ where
             }
         }
 
-        let mut required_limits = wgpu_types::Limits::default();
+        let mut required_limits = Limits::default();
         if let Some(limits) = &descriptor.requiredLimits {
             for (limit, value) in (*limits).iter() {
                 if !set_limit(&mut required_limits, &limit.str(), *value) {
@@ -228,12 +230,12 @@ where
             }
         }
 
-        let desc = wgpu_types::DeviceDescriptor {
+        let desc = DeviceDescriptor {
             required_features,
             required_limits,
             label: Some(descriptor.parent.label.to_string()),
             memory_hints: MemoryHints::MemoryUsage,
-            trace: wgpu_types::Trace::Off,
+            trace: Trace::Off,
             experimental_features: ExperimentalFeatures::disabled(),
         };
         let device_id = self

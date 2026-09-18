@@ -18,7 +18,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_wrap};
-use wgpu_types::Features;
+use webgpu_traits::Features;
 
 use crate::JSTraceable;
 use crate::dom::bindings::error::Fallible;

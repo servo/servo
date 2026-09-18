@@ -17,9 +17,9 @@ use script_bindings::codegen::GenericUnionTypes::RangeEnforcedUnsignedLongSequen
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
-    PassChannel, RenderPassColorAttachment, RenderPassDepthStencilAttachment, WebGPU,
-    WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice, WebGPURenderPass,
-    WebGPURequest,
+    CommandBufferDescriptor, CommandEncoderDescriptor, PassChannel, RenderPassColorAttachment,
+    RenderPassDepthStencilAttachment, WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder,
+    WebGPUComputePass, WebGPUDevice, WebGPURenderPass, WebGPURequest,
 };
 
 use crate::JSTraceable;
@@ -127,7 +127,7 @@ where
             .send(WebGPURequest::CreateCommandEncoder {
                 device_id: device.id().0,
                 command_encoder_id,
-                desc: wgpu_types::CommandEncoderDescriptor {
+                desc: CommandEncoderDescriptor {
                     label: (&descriptor.parent).convert(),
                 },
             })
@@ -395,7 +395,7 @@ where
             .send(WebGPURequest::CommandEncoderFinish {
                 command_encoder_id: self.droppable.encoder.0,
                 device_id: self.device.id().0,
-                desc: wgpu_types::CommandBufferDescriptor {
+                desc: CommandBufferDescriptor {
                     label: (&descriptor.parent).convert(),
                 },
                 command_buffer_id,

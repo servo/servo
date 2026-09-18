@@ -16,7 +16,9 @@ use script_bindings::error::Fallible;
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
-use webgpu_traits::{RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
+use webgpu_traits::{
+    BufferSize, IndexFormat, RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest,
+};
 
 use crate::JSTraceable;
 use crate::dom::bindings::num::Finite;
@@ -212,11 +214,11 @@ where
         self.send_render_command(RenderCommand::SetIndexBuffer {
             buffer_id: buffer.id().0,
             index_format: match index_format {
-                GPUIndexFormat::Uint16 => wgpu_types::IndexFormat::Uint16,
-                GPUIndexFormat::Uint32 => wgpu_types::IndexFormat::Uint32,
+                GPUIndexFormat::Uint16 => IndexFormat::Uint16,
+                GPUIndexFormat::Uint32 => IndexFormat::Uint32,
             },
             offset,
-            size: wgpu_types::BufferSize::new(size),
+            size: BufferSize::new(size),
         })
     }
 
@@ -226,7 +228,7 @@ where
             slot,
             buffer_id: buffer.map(|b| b.id().0),
             offset,
-            size: wgpu_types::BufferSize::new(size),
+            size: BufferSize::new(size),
         })
     }
 

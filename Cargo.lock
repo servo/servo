@@ -9469,7 +9469,6 @@ dependencies = [
  "servo-webgpu-traits",
  "stylo_atoms",
  "trait-set",
- "wgpu-types 30.0.0",
 ]
 
 [[package]]

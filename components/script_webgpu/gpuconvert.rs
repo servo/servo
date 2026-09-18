@@ -22,11 +22,16 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 use script_bindings::codegen::GenericUnionTypes::GPUTextureOrGPUTextureView;
 use script_bindings::interfaces::PromiseHelpers;
 use webgpu_traits::{
-    BindGroupEntry, BindingResource, BufferBinding, ComputePassDescriptor, LoadOp,
-    PassTimestampWrites, ProgrammableStageDescriptor, QuerySetDescriptor, StoreOp,
-    TexelCopyBufferInfo, TexelCopyTextureInfo, TextureDescriptor, WebGPUTextureView,
+    AddressMode, AstcBlock, AstcChannel, BindGroupEntry, BindGroupLayoutEntry, BindingResource,
+    BindingType, BlendComponent, BlendFactor, BlendOperation, BufferAddress, BufferBinding,
+    BufferBindingType, Color, CompareFunction, ComputePassDescriptor, Extent3d, Face, FilterMode,
+    FrontFace, IndexFormat, LoadOp, MipmapFilterMode, Origin2d, Origin3d, PassTimestampWrites,
+    PredefinedColorSpace as WGPUPredefinedColorSpace, PrimitiveState, PrimitiveTopology,
+    ProgrammableStageDescriptor, QuerySetDescriptor, QueryType, SamplerBindingType, ShaderStages,
+    StencilOperation, StorageTextureAccess, StoreOp, TexelCopyBufferInfo, TexelCopyBufferLayout,
+    TexelCopyTextureInfo, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
+    TextureSampleType, TextureUsages, TextureViewDimension, VertexFormat, WebGPUTextureView,
 };
-use wgpu_types::{AstcBlock, AstcChannel, IndexFormat};
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::traits::{Equivalence, WebGPUPromise};
@@ -51,211 +56,205 @@ pub trait WebGPUTryConvert<T> {
     fn try_convert(self) -> Result<T, Self::Error>;
 }
 
-impl WebGPUConvert<wgpu_types::TextureFormat> for GPUTextureFormat {
-    fn convert(self) -> wgpu_types::TextureFormat {
+impl WebGPUConvert<TextureFormat> for GPUTextureFormat {
+    fn convert(self) -> TextureFormat {
         match self {
             // 8-bit formats
-            GPUTextureFormat::R8unorm => wgpu_types::TextureFormat::R8Unorm,
-            GPUTextureFormat::R8snorm => wgpu_types::TextureFormat::R8Snorm,
-            GPUTextureFormat::R8uint => wgpu_types::TextureFormat::R8Uint,
-            GPUTextureFormat::R8sint => wgpu_types::TextureFormat::R8Sint,
+            GPUTextureFormat::R8unorm => TextureFormat::R8Unorm,
+            GPUTextureFormat::R8snorm => TextureFormat::R8Snorm,
+            GPUTextureFormat::R8uint => TextureFormat::R8Uint,
+            GPUTextureFormat::R8sint => TextureFormat::R8Sint,
             // 16-bit formats
-            GPUTextureFormat::R16unorm => wgpu_types::TextureFormat::R16Unorm,
-            GPUTextureFormat::R16snorm => wgpu_types::TextureFormat::R16Snorm,
-            GPUTextureFormat::R16uint => wgpu_types::TextureFormat::R16Uint,
-            GPUTextureFormat::R16sint => wgpu_types::TextureFormat::R16Sint,
-            GPUTextureFormat::R16float => wgpu_types::TextureFormat::R16Float,
-            GPUTextureFormat::Rg8unorm => wgpu_types::TextureFormat::Rg8Unorm,
-            GPUTextureFormat::Rg8snorm => wgpu_types::TextureFormat::Rg8Snorm,
-            GPUTextureFormat::Rg8uint => wgpu_types::TextureFormat::Rg8Uint,
-            GPUTextureFormat::Rg8sint => wgpu_types::TextureFormat::Rg8Sint,
+            GPUTextureFormat::R16unorm => TextureFormat::R16Unorm,
+            GPUTextureFormat::R16snorm => TextureFormat::R16Snorm,
+            GPUTextureFormat::R16uint => TextureFormat::R16Uint,
+            GPUTextureFormat::R16sint => TextureFormat::R16Sint,
+            GPUTextureFormat::R16float => TextureFormat::R16Float,
+            GPUTextureFormat::Rg8unorm => TextureFormat::Rg8Unorm,
+            GPUTextureFormat::Rg8snorm => TextureFormat::Rg8Snorm,
+            GPUTextureFormat::Rg8uint => TextureFormat::Rg8Uint,
+            GPUTextureFormat::Rg8sint => TextureFormat::Rg8Sint,
             // 32-bit formats
-            GPUTextureFormat::R32uint => wgpu_types::TextureFormat::R32Uint,
-            GPUTextureFormat::R32sint => wgpu_types::TextureFormat::R32Sint,
-            GPUTextureFormat::R32float => wgpu_types::TextureFormat::R32Float,
-            GPUTextureFormat::Rg16unorm => wgpu_types::TextureFormat::Rg16Unorm,
-            GPUTextureFormat::Rg16snorm => wgpu_types::TextureFormat::Rg16Snorm,
-            GPUTextureFormat::Rg16uint => wgpu_types::TextureFormat::Rg16Uint,
-            GPUTextureFormat::Rg16sint => wgpu_types::TextureFormat::Rg16Sint,
-            GPUTextureFormat::Rg16float => wgpu_types::TextureFormat::Rg16Float,
-            GPUTextureFormat::Rgba8unorm => wgpu_types::TextureFormat::Rgba8Unorm,
-            GPUTextureFormat::Rgba8unorm_srgb => wgpu_types::TextureFormat::Rgba8UnormSrgb,
-            GPUTextureFormat::Rgba8snorm => wgpu_types::TextureFormat::Rgba8Snorm,
-            GPUTextureFormat::Rgba8uint => wgpu_types::TextureFormat::Rgba8Uint,
-            GPUTextureFormat::Rgba8sint => wgpu_types::TextureFormat::Rgba8Sint,
-            GPUTextureFormat::Bgra8unorm => wgpu_types::TextureFormat::Bgra8Unorm,
-            GPUTextureFormat::Bgra8unorm_srgb => wgpu_types::TextureFormat::Bgra8UnormSrgb,
+            GPUTextureFormat::R32uint => TextureFormat::R32Uint,
+            GPUTextureFormat::R32sint => TextureFormat::R32Sint,
+            GPUTextureFormat::R32float => TextureFormat::R32Float,
+            GPUTextureFormat::Rg16unorm => TextureFormat::Rg16Unorm,
+            GPUTextureFormat::Rg16snorm => TextureFormat::Rg16Snorm,
+            GPUTextureFormat::Rg16uint => TextureFormat::Rg16Uint,
+            GPUTextureFormat::Rg16sint => TextureFormat::Rg16Sint,
+            GPUTextureFormat::Rg16float => TextureFormat::Rg16Float,
+            GPUTextureFormat::Rgba8unorm => TextureFormat::Rgba8Unorm,
+            GPUTextureFormat::Rgba8unorm_srgb => TextureFormat::Rgba8UnormSrgb,
+            GPUTextureFormat::Rgba8snorm => TextureFormat::Rgba8Snorm,
+            GPUTextureFormat::Rgba8uint => TextureFormat::Rgba8Uint,
+            GPUTextureFormat::Rgba8sint => TextureFormat::Rgba8Sint,
+            GPUTextureFormat::Bgra8unorm => TextureFormat::Bgra8Unorm,
+            GPUTextureFormat::Bgra8unorm_srgb => TextureFormat::Bgra8UnormSrgb,
             // Packed 32-bit formats
-            GPUTextureFormat::Rgb9e5ufloat => wgpu_types::TextureFormat::Rgb9e5Ufloat,
-            GPUTextureFormat::Rgb10a2uint => wgpu_types::TextureFormat::Rgb10a2Uint,
-            GPUTextureFormat::Rgb10a2unorm => wgpu_types::TextureFormat::Rgb10a2Unorm,
-            GPUTextureFormat::Rg11b10ufloat => wgpu_types::TextureFormat::Rg11b10Ufloat,
+            GPUTextureFormat::Rgb9e5ufloat => TextureFormat::Rgb9e5Ufloat,
+            GPUTextureFormat::Rgb10a2uint => TextureFormat::Rgb10a2Uint,
+            GPUTextureFormat::Rgb10a2unorm => TextureFormat::Rgb10a2Unorm,
+            GPUTextureFormat::Rg11b10ufloat => TextureFormat::Rg11b10Ufloat,
             // 64-bit formats
-            GPUTextureFormat::Rg32uint => wgpu_types::TextureFormat::Rg32Uint,
-            GPUTextureFormat::Rg32sint => wgpu_types::TextureFormat::Rg32Sint,
-            GPUTextureFormat::Rg32float => wgpu_types::TextureFormat::Rg32Float,
-            GPUTextureFormat::Rgba16unorm => wgpu_types::TextureFormat::Rgba16Unorm,
-            GPUTextureFormat::Rgba16snorm => wgpu_types::TextureFormat::Rgba16Snorm,
-            GPUTextureFormat::Rgba16uint => wgpu_types::TextureFormat::Rgba16Uint,
-            GPUTextureFormat::Rgba16sint => wgpu_types::TextureFormat::Rgba16Sint,
-            GPUTextureFormat::Rgba16float => wgpu_types::TextureFormat::Rgba16Float,
+            GPUTextureFormat::Rg32uint => TextureFormat::Rg32Uint,
+            GPUTextureFormat::Rg32sint => TextureFormat::Rg32Sint,
+            GPUTextureFormat::Rg32float => TextureFormat::Rg32Float,
+            GPUTextureFormat::Rgba16unorm => TextureFormat::Rgba16Unorm,
+            GPUTextureFormat::Rgba16snorm => TextureFormat::Rgba16Snorm,
+            GPUTextureFormat::Rgba16uint => TextureFormat::Rgba16Uint,
+            GPUTextureFormat::Rgba16sint => TextureFormat::Rgba16Sint,
+            GPUTextureFormat::Rgba16float => TextureFormat::Rgba16Float,
             // 96-bit formats
-            GPUTextureFormat::Rgba32uint => wgpu_types::TextureFormat::Rgba32Uint,
-            GPUTextureFormat::Rgba32sint => wgpu_types::TextureFormat::Rgba32Sint,
-            GPUTextureFormat::Rgba32float => wgpu_types::TextureFormat::Rgba32Float,
+            GPUTextureFormat::Rgba32uint => TextureFormat::Rgba32Uint,
+            GPUTextureFormat::Rgba32sint => TextureFormat::Rgba32Sint,
+            GPUTextureFormat::Rgba32float => TextureFormat::Rgba32Float,
             // Depth/stencil formats
-            GPUTextureFormat::Stencil8 => wgpu_types::TextureFormat::Stencil8,
-            GPUTextureFormat::Depth16unorm => wgpu_types::TextureFormat::Depth16Unorm,
-            GPUTextureFormat::Depth24plus => wgpu_types::TextureFormat::Depth24Plus,
-            GPUTextureFormat::Depth24plus_stencil8 => {
-                wgpu_types::TextureFormat::Depth24PlusStencil8
-            },
-            GPUTextureFormat::Depth32float => wgpu_types::TextureFormat::Depth32Float,
+            GPUTextureFormat::Stencil8 => TextureFormat::Stencil8,
+            GPUTextureFormat::Depth16unorm => TextureFormat::Depth16Unorm,
+            GPUTextureFormat::Depth24plus => TextureFormat::Depth24Plus,
+            GPUTextureFormat::Depth24plus_stencil8 => TextureFormat::Depth24PlusStencil8,
+            GPUTextureFormat::Depth32float => TextureFormat::Depth32Float,
             // "depth32float-stencil8" feature
-            GPUTextureFormat::Depth32float_stencil8 => {
-                wgpu_types::TextureFormat::Depth32FloatStencil8
-            },
+            GPUTextureFormat::Depth32float_stencil8 => TextureFormat::Depth32FloatStencil8,
             // BC compressed formats usable if "texture-compression-bc" is both
             // supported by the device/user agent and enabled in requestDevice.
-            GPUTextureFormat::Bc1_rgba_unorm => wgpu_types::TextureFormat::Bc1RgbaUnorm,
-            GPUTextureFormat::Bc1_rgba_unorm_srgb => wgpu_types::TextureFormat::Bc1RgbaUnormSrgb,
-            GPUTextureFormat::Bc2_rgba_unorm => wgpu_types::TextureFormat::Bc2RgbaUnorm,
-            GPUTextureFormat::Bc2_rgba_unorm_srgb => wgpu_types::TextureFormat::Bc2RgbaUnormSrgb,
-            GPUTextureFormat::Bc3_rgba_unorm => wgpu_types::TextureFormat::Bc3RgbaUnorm,
-            GPUTextureFormat::Bc3_rgba_unorm_srgb => wgpu_types::TextureFormat::Bc3RgbaUnormSrgb,
-            GPUTextureFormat::Bc4_r_unorm => wgpu_types::TextureFormat::Bc4RUnorm,
-            GPUTextureFormat::Bc4_r_snorm => wgpu_types::TextureFormat::Bc4RSnorm,
-            GPUTextureFormat::Bc5_rg_unorm => wgpu_types::TextureFormat::Bc5RgUnorm,
-            GPUTextureFormat::Bc5_rg_snorm => wgpu_types::TextureFormat::Bc5RgSnorm,
-            GPUTextureFormat::Bc6h_rgb_ufloat => wgpu_types::TextureFormat::Bc6hRgbUfloat,
-            GPUTextureFormat::Bc6h_rgb_float => wgpu_types::TextureFormat::Bc6hRgbFloat,
-            GPUTextureFormat::Bc7_rgba_unorm => wgpu_types::TextureFormat::Bc7RgbaUnorm,
-            GPUTextureFormat::Bc7_rgba_unorm_srgb => wgpu_types::TextureFormat::Bc7RgbaUnormSrgb,
+            GPUTextureFormat::Bc1_rgba_unorm => TextureFormat::Bc1RgbaUnorm,
+            GPUTextureFormat::Bc1_rgba_unorm_srgb => TextureFormat::Bc1RgbaUnormSrgb,
+            GPUTextureFormat::Bc2_rgba_unorm => TextureFormat::Bc2RgbaUnorm,
+            GPUTextureFormat::Bc2_rgba_unorm_srgb => TextureFormat::Bc2RgbaUnormSrgb,
+            GPUTextureFormat::Bc3_rgba_unorm => TextureFormat::Bc3RgbaUnorm,
+            GPUTextureFormat::Bc3_rgba_unorm_srgb => TextureFormat::Bc3RgbaUnormSrgb,
+            GPUTextureFormat::Bc4_r_unorm => TextureFormat::Bc4RUnorm,
+            GPUTextureFormat::Bc4_r_snorm => TextureFormat::Bc4RSnorm,
+            GPUTextureFormat::Bc5_rg_unorm => TextureFormat::Bc5RgUnorm,
+            GPUTextureFormat::Bc5_rg_snorm => TextureFormat::Bc5RgSnorm,
+            GPUTextureFormat::Bc6h_rgb_ufloat => TextureFormat::Bc6hRgbUfloat,
+            GPUTextureFormat::Bc6h_rgb_float => TextureFormat::Bc6hRgbFloat,
+            GPUTextureFormat::Bc7_rgba_unorm => TextureFormat::Bc7RgbaUnorm,
+            GPUTextureFormat::Bc7_rgba_unorm_srgb => TextureFormat::Bc7RgbaUnormSrgb,
             // ETC2 compressed formats usable if "texture-compression-etc2" is both
             // supported by the device/user agent and enabled in requestDevice.
-            GPUTextureFormat::Etc2_rgb8unorm => wgpu_types::TextureFormat::Etc2Rgb8Unorm,
-            GPUTextureFormat::Etc2_rgb8unorm_srgb => wgpu_types::TextureFormat::Etc2Rgb8UnormSrgb,
-            GPUTextureFormat::Etc2_rgb8a1unorm => wgpu_types::TextureFormat::Etc2Rgb8A1Unorm,
-            GPUTextureFormat::Etc2_rgb8a1unorm_srgb => {
-                wgpu_types::TextureFormat::Etc2Rgb8A1UnormSrgb
-            },
-            GPUTextureFormat::Etc2_rgba8unorm => wgpu_types::TextureFormat::Etc2Rgba8Unorm,
-            GPUTextureFormat::Etc2_rgba8unorm_srgb => wgpu_types::TextureFormat::Etc2Rgba8UnormSrgb,
-            GPUTextureFormat::Eac_r11unorm => wgpu_types::TextureFormat::EacR11Unorm,
-            GPUTextureFormat::Eac_r11snorm => wgpu_types::TextureFormat::EacR11Snorm,
-            GPUTextureFormat::Eac_rg11unorm => wgpu_types::TextureFormat::EacRg11Unorm,
-            GPUTextureFormat::Eac_rg11snorm => wgpu_types::TextureFormat::EacRg11Snorm,
+            GPUTextureFormat::Etc2_rgb8unorm => TextureFormat::Etc2Rgb8Unorm,
+            GPUTextureFormat::Etc2_rgb8unorm_srgb => TextureFormat::Etc2Rgb8UnormSrgb,
+            GPUTextureFormat::Etc2_rgb8a1unorm => TextureFormat::Etc2Rgb8A1Unorm,
+            GPUTextureFormat::Etc2_rgb8a1unorm_srgb => TextureFormat::Etc2Rgb8A1UnormSrgb,
+            GPUTextureFormat::Etc2_rgba8unorm => TextureFormat::Etc2Rgba8Unorm,
+            GPUTextureFormat::Etc2_rgba8unorm_srgb => TextureFormat::Etc2Rgba8UnormSrgb,
+            GPUTextureFormat::Eac_r11unorm => TextureFormat::EacR11Unorm,
+            GPUTextureFormat::Eac_r11snorm => TextureFormat::EacR11Snorm,
+            GPUTextureFormat::Eac_rg11unorm => TextureFormat::EacRg11Unorm,
+            GPUTextureFormat::Eac_rg11snorm => TextureFormat::EacRg11Snorm,
             // ASTC compressed formats usable if "texture-compression-astc" is both
             // supported by the device/user agent and enabled in requestDevice.
-            GPUTextureFormat::Astc_4x4_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_4x4_unorm => TextureFormat::Astc {
                 block: AstcBlock::B4x4,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_4x4_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_4x4_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B4x4,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_5x4_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_5x4_unorm => TextureFormat::Astc {
                 block: AstcBlock::B5x4,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_5x4_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_5x4_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B5x4,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_5x5_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_5x5_unorm => TextureFormat::Astc {
                 block: AstcBlock::B5x5,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_5x5_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_5x5_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B5x5,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_6x5_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_6x5_unorm => TextureFormat::Astc {
                 block: AstcBlock::B6x5,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_6x5_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_6x5_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B6x5,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_6x6_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_6x6_unorm => TextureFormat::Astc {
                 block: AstcBlock::B6x6,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_6x6_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_6x6_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B6x6,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_8x5_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_8x5_unorm => TextureFormat::Astc {
                 block: AstcBlock::B8x5,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_8x5_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_8x5_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B8x5,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_8x6_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_8x6_unorm => TextureFormat::Astc {
                 block: AstcBlock::B8x6,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_8x6_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_8x6_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B8x6,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_8x8_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_8x8_unorm => TextureFormat::Astc {
                 block: AstcBlock::B8x8,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_8x8_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_8x8_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B8x8,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_10x5_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_10x5_unorm => TextureFormat::Astc {
                 block: AstcBlock::B10x5,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_10x5_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_10x5_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B10x5,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_10x6_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_10x6_unorm => TextureFormat::Astc {
                 block: AstcBlock::B10x6,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_10x6_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_10x6_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B10x6,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_10x8_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_10x8_unorm => TextureFormat::Astc {
                 block: AstcBlock::B10x8,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_10x8_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_10x8_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B10x8,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_10x10_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_10x10_unorm => TextureFormat::Astc {
                 block: AstcBlock::B10x10,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_10x10_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_10x10_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B10x10,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_12x10_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_12x10_unorm => TextureFormat::Astc {
                 block: AstcBlock::B12x10,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_12x10_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_12x10_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B12x10,
                 channel: AstcChannel::UnormSrgb,
             },
-            GPUTextureFormat::Astc_12x12_unorm => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_12x12_unorm => TextureFormat::Astc {
                 block: AstcBlock::B12x12,
                 channel: AstcChannel::Unorm,
             },
-            GPUTextureFormat::Astc_12x12_unorm_srgb => wgpu_types::TextureFormat::Astc {
+            GPUTextureFormat::Astc_12x12_unorm_srgb => TextureFormat::Astc {
                 block: AstcBlock::B12x12,
                 channel: AstcChannel::UnormSrgb,
             },
@@ -263,12 +262,12 @@ impl WebGPUConvert<wgpu_types::TextureFormat> for GPUTextureFormat {
     }
 }
 
-impl WebGPUTryConvert<wgpu_types::Extent3d> for &GPUExtent3D {
+impl WebGPUTryConvert<Extent3d> for &GPUExtent3D {
     type Error = Error;
 
-    fn try_convert(self) -> Result<wgpu_types::Extent3d, Self::Error> {
+    fn try_convert(self) -> Result<Extent3d, Self::Error> {
         match *self {
-            GPUExtent3D::GPUExtent3DDict(ref dict) => Ok(wgpu_types::Extent3d {
+            GPUExtent3D::GPUExtent3DDict(ref dict) => Ok(Extent3d {
                 width: dict.width,
                 height: dict.height,
                 depth_or_array_layers: dict.depthOrArrayLayers,
@@ -280,7 +279,7 @@ impl WebGPUTryConvert<wgpu_types::Extent3d> for &GPUExtent3D {
                         c"GPUExtent3D size must be between 1 and 3 (inclusive)".to_owned(),
                     ))
                 } else {
-                    Ok(wgpu_types::Extent3d {
+                    Ok(Extent3d {
                         width: v[0],
                         height: v.get(1).copied().unwrap_or(1),
                         depth_or_array_layers: v.get(2).copied().unwrap_or(1),
@@ -291,82 +290,82 @@ impl WebGPUTryConvert<wgpu_types::Extent3d> for &GPUExtent3D {
     }
 }
 
-impl WebGPUConvert<wgpu_types::TexelCopyBufferLayout> for &GPUTexelCopyBufferLayout {
-    fn convert(self) -> wgpu_types::TexelCopyBufferLayout {
-        wgpu_types::TexelCopyBufferLayout {
-            offset: self.offset as wgpu_types::BufferAddress,
+impl WebGPUConvert<TexelCopyBufferLayout> for &GPUTexelCopyBufferLayout {
+    fn convert(self) -> TexelCopyBufferLayout {
+        TexelCopyBufferLayout {
+            offset: self.offset as BufferAddress,
             bytes_per_row: self.bytesPerRow,
             rows_per_image: self.rowsPerImage,
         }
     }
 }
 
-impl WebGPUConvert<wgpu_types::VertexFormat> for GPUVertexFormat {
-    fn convert(self) -> wgpu_types::VertexFormat {
+impl WebGPUConvert<VertexFormat> for GPUVertexFormat {
+    fn convert(self) -> VertexFormat {
         match self {
-            GPUVertexFormat::Uint8 => wgpu_types::VertexFormat::Uint8,
-            GPUVertexFormat::Uint8x2 => wgpu_types::VertexFormat::Uint8x2,
-            GPUVertexFormat::Uint8x4 => wgpu_types::VertexFormat::Uint8x4,
-            GPUVertexFormat::Sint8 => wgpu_types::VertexFormat::Sint8,
-            GPUVertexFormat::Sint8x2 => wgpu_types::VertexFormat::Sint8x2,
-            GPUVertexFormat::Sint8x4 => wgpu_types::VertexFormat::Sint8x4,
-            GPUVertexFormat::Unorm8 => wgpu_types::VertexFormat::Unorm8,
-            GPUVertexFormat::Unorm8x2 => wgpu_types::VertexFormat::Unorm8x2,
-            GPUVertexFormat::Unorm8x4 => wgpu_types::VertexFormat::Unorm8x4,
-            GPUVertexFormat::Snorm8 => wgpu_types::VertexFormat::Snorm8,
-            GPUVertexFormat::Snorm8x2 => wgpu_types::VertexFormat::Snorm8x2,
-            GPUVertexFormat::Snorm8x4 => wgpu_types::VertexFormat::Snorm8x4,
-            GPUVertexFormat::Uint16 => wgpu_types::VertexFormat::Uint16,
-            GPUVertexFormat::Uint16x2 => wgpu_types::VertexFormat::Uint16x2,
-            GPUVertexFormat::Uint16x4 => wgpu_types::VertexFormat::Uint16x4,
-            GPUVertexFormat::Sint16 => wgpu_types::VertexFormat::Sint16,
-            GPUVertexFormat::Sint16x2 => wgpu_types::VertexFormat::Sint16x2,
-            GPUVertexFormat::Sint16x4 => wgpu_types::VertexFormat::Sint16x4,
-            GPUVertexFormat::Unorm16 => wgpu_types::VertexFormat::Unorm16,
-            GPUVertexFormat::Unorm16x2 => wgpu_types::VertexFormat::Unorm16x2,
-            GPUVertexFormat::Unorm16x4 => wgpu_types::VertexFormat::Unorm16x4,
-            GPUVertexFormat::Snorm16 => wgpu_types::VertexFormat::Snorm16,
-            GPUVertexFormat::Snorm16x2 => wgpu_types::VertexFormat::Snorm16x2,
-            GPUVertexFormat::Snorm16x4 => wgpu_types::VertexFormat::Snorm16x4,
-            GPUVertexFormat::Float16 => wgpu_types::VertexFormat::Float16,
-            GPUVertexFormat::Float16x2 => wgpu_types::VertexFormat::Float16x2,
-            GPUVertexFormat::Float16x4 => wgpu_types::VertexFormat::Float16x4,
-            GPUVertexFormat::Float32 => wgpu_types::VertexFormat::Float32,
-            GPUVertexFormat::Float32x2 => wgpu_types::VertexFormat::Float32x2,
-            GPUVertexFormat::Float32x3 => wgpu_types::VertexFormat::Float32x3,
-            GPUVertexFormat::Float32x4 => wgpu_types::VertexFormat::Float32x4,
-            GPUVertexFormat::Uint32 => wgpu_types::VertexFormat::Uint32,
-            GPUVertexFormat::Uint32x2 => wgpu_types::VertexFormat::Uint32x2,
-            GPUVertexFormat::Uint32x3 => wgpu_types::VertexFormat::Uint32x3,
-            GPUVertexFormat::Uint32x4 => wgpu_types::VertexFormat::Uint32x4,
-            GPUVertexFormat::Sint32 => wgpu_types::VertexFormat::Sint32,
-            GPUVertexFormat::Sint32x2 => wgpu_types::VertexFormat::Sint32x2,
-            GPUVertexFormat::Sint32x3 => wgpu_types::VertexFormat::Sint32x3,
-            GPUVertexFormat::Sint32x4 => wgpu_types::VertexFormat::Sint32x4,
-            GPUVertexFormat::Unorm10_10_10_2 => wgpu_types::VertexFormat::Unorm10_10_10_2,
-            GPUVertexFormat::Unorm8x4_bgra => wgpu_types::VertexFormat::Unorm8x4Bgra,
+            GPUVertexFormat::Uint8 => VertexFormat::Uint8,
+            GPUVertexFormat::Uint8x2 => VertexFormat::Uint8x2,
+            GPUVertexFormat::Uint8x4 => VertexFormat::Uint8x4,
+            GPUVertexFormat::Sint8 => VertexFormat::Sint8,
+            GPUVertexFormat::Sint8x2 => VertexFormat::Sint8x2,
+            GPUVertexFormat::Sint8x4 => VertexFormat::Sint8x4,
+            GPUVertexFormat::Unorm8 => VertexFormat::Unorm8,
+            GPUVertexFormat::Unorm8x2 => VertexFormat::Unorm8x2,
+            GPUVertexFormat::Unorm8x4 => VertexFormat::Unorm8x4,
+            GPUVertexFormat::Snorm8 => VertexFormat::Snorm8,
+            GPUVertexFormat::Snorm8x2 => VertexFormat::Snorm8x2,
+            GPUVertexFormat::Snorm8x4 => VertexFormat::Snorm8x4,
+            GPUVertexFormat::Uint16 => VertexFormat::Uint16,
+            GPUVertexFormat::Uint16x2 => VertexFormat::Uint16x2,
+            GPUVertexFormat::Uint16x4 => VertexFormat::Uint16x4,
+            GPUVertexFormat::Sint16 => VertexFormat::Sint16,
+            GPUVertexFormat::Sint16x2 => VertexFormat::Sint16x2,
+            GPUVertexFormat::Sint16x4 => VertexFormat::Sint16x4,
+            GPUVertexFormat::Unorm16 => VertexFormat::Unorm16,
+            GPUVertexFormat::Unorm16x2 => VertexFormat::Unorm16x2,
+            GPUVertexFormat::Unorm16x4 => VertexFormat::Unorm16x4,
+            GPUVertexFormat::Snorm16 => VertexFormat::Snorm16,
+            GPUVertexFormat::Snorm16x2 => VertexFormat::Snorm16x2,
+            GPUVertexFormat::Snorm16x4 => VertexFormat::Snorm16x4,
+            GPUVertexFormat::Float16 => VertexFormat::Float16,
+            GPUVertexFormat::Float16x2 => VertexFormat::Float16x2,
+            GPUVertexFormat::Float16x4 => VertexFormat::Float16x4,
+            GPUVertexFormat::Float32 => VertexFormat::Float32,
+            GPUVertexFormat::Float32x2 => VertexFormat::Float32x2,
+            GPUVertexFormat::Float32x3 => VertexFormat::Float32x3,
+            GPUVertexFormat::Float32x4 => VertexFormat::Float32x4,
+            GPUVertexFormat::Uint32 => VertexFormat::Uint32,
+            GPUVertexFormat::Uint32x2 => VertexFormat::Uint32x2,
+            GPUVertexFormat::Uint32x3 => VertexFormat::Uint32x3,
+            GPUVertexFormat::Uint32x4 => VertexFormat::Uint32x4,
+            GPUVertexFormat::Sint32 => VertexFormat::Sint32,
+            GPUVertexFormat::Sint32x2 => VertexFormat::Sint32x2,
+            GPUVertexFormat::Sint32x3 => VertexFormat::Sint32x3,
+            GPUVertexFormat::Sint32x4 => VertexFormat::Sint32x4,
+            GPUVertexFormat::Unorm10_10_10_2 => VertexFormat::Unorm10_10_10_2,
+            GPUVertexFormat::Unorm8x4_bgra => VertexFormat::Unorm8x4Bgra,
         }
     }
 }
 
-impl WebGPUConvert<wgpu_types::PrimitiveState> for &GPUPrimitiveState {
-    fn convert(self) -> wgpu_types::PrimitiveState {
-        wgpu_types::PrimitiveState {
+impl WebGPUConvert<PrimitiveState> for &GPUPrimitiveState {
+    fn convert(self) -> PrimitiveState {
+        PrimitiveState {
             topology: self.topology.convert(),
             strip_index_format: self
                 .stripIndexFormat
                 .map(|index_format| match index_format {
-                    GPUIndexFormat::Uint16 => wgpu_types::IndexFormat::Uint16,
-                    GPUIndexFormat::Uint32 => wgpu_types::IndexFormat::Uint32,
+                    GPUIndexFormat::Uint16 => IndexFormat::Uint16,
+                    GPUIndexFormat::Uint32 => IndexFormat::Uint32,
                 }),
             front_face: match self.frontFace {
-                GPUFrontFace::Ccw => wgpu_types::FrontFace::Ccw,
-                GPUFrontFace::Cw => wgpu_types::FrontFace::Cw,
+                GPUFrontFace::Ccw => FrontFace::Ccw,
+                GPUFrontFace::Cw => FrontFace::Cw,
             },
             cull_mode: match self.cullMode {
                 GPUCullMode::None => None,
-                GPUCullMode::Front => Some(wgpu_types::Face::Front),
-                GPUCullMode::Back => Some(wgpu_types::Face::Back),
+                GPUCullMode::Front => Some(Face::Front),
+                GPUCullMode::Back => Some(Face::Back),
             },
             unclipped_depth: self.clampDepth,
             ..Default::default()
@@ -374,109 +373,109 @@ impl WebGPUConvert<wgpu_types::PrimitiveState> for &GPUPrimitiveState {
     }
 }
 
-impl WebGPUConvert<wgpu_types::PrimitiveTopology> for &GPUPrimitiveTopology {
-    fn convert(self) -> wgpu_types::PrimitiveTopology {
+impl WebGPUConvert<PrimitiveTopology> for &GPUPrimitiveTopology {
+    fn convert(self) -> PrimitiveTopology {
         match self {
-            GPUPrimitiveTopology::Point_list => wgpu_types::PrimitiveTopology::PointList,
-            GPUPrimitiveTopology::Line_list => wgpu_types::PrimitiveTopology::LineList,
-            GPUPrimitiveTopology::Line_strip => wgpu_types::PrimitiveTopology::LineStrip,
-            GPUPrimitiveTopology::Triangle_list => wgpu_types::PrimitiveTopology::TriangleList,
-            GPUPrimitiveTopology::Triangle_strip => wgpu_types::PrimitiveTopology::TriangleStrip,
+            GPUPrimitiveTopology::Point_list => PrimitiveTopology::PointList,
+            GPUPrimitiveTopology::Line_list => PrimitiveTopology::LineList,
+            GPUPrimitiveTopology::Line_strip => PrimitiveTopology::LineStrip,
+            GPUPrimitiveTopology::Triangle_list => PrimitiveTopology::TriangleList,
+            GPUPrimitiveTopology::Triangle_strip => PrimitiveTopology::TriangleStrip,
         }
     }
 }
 
-impl WebGPUConvert<wgpu_types::AddressMode> for GPUAddressMode {
-    fn convert(self) -> wgpu_types::AddressMode {
+impl WebGPUConvert<AddressMode> for GPUAddressMode {
+    fn convert(self) -> AddressMode {
         match self {
-            GPUAddressMode::Clamp_to_edge => wgpu_types::AddressMode::ClampToEdge,
-            GPUAddressMode::Repeat => wgpu_types::AddressMode::Repeat,
-            GPUAddressMode::Mirror_repeat => wgpu_types::AddressMode::MirrorRepeat,
+            GPUAddressMode::Clamp_to_edge => AddressMode::ClampToEdge,
+            GPUAddressMode::Repeat => AddressMode::Repeat,
+            GPUAddressMode::Mirror_repeat => AddressMode::MirrorRepeat,
         }
     }
 }
 
-impl WebGPUConvert<wgpu_types::FilterMode> for GPUFilterMode {
-    fn convert(self) -> wgpu_types::FilterMode {
+impl WebGPUConvert<FilterMode> for GPUFilterMode {
+    fn convert(self) -> FilterMode {
         match self {
-            GPUFilterMode::Nearest => wgpu_types::FilterMode::Nearest,
-            GPUFilterMode::Linear => wgpu_types::FilterMode::Linear,
+            GPUFilterMode::Nearest => FilterMode::Nearest,
+            GPUFilterMode::Linear => FilterMode::Linear,
         }
     }
 }
 
-impl WebGPUConvert<wgpu_types::MipmapFilterMode> for GPUMipmapFilterMode {
-    fn convert(self) -> wgpu_types::MipmapFilterMode {
+impl WebGPUConvert<MipmapFilterMode> for GPUMipmapFilterMode {
+    fn convert(self) -> MipmapFilterMode {
         match self {
-            GPUMipmapFilterMode::Nearest => wgpu_types::MipmapFilterMode::Nearest,
-            GPUMipmapFilterMode::Linear => wgpu_types::MipmapFilterMode::Linear,
+            GPUMipmapFilterMode::Nearest => MipmapFilterMode::Nearest,
+            GPUMipmapFilterMode::Linear => MipmapFilterMode::Linear,
         }
     }
 }
 
-impl WebGPUConvert<wgpu_types::TextureViewDimension> for GPUTextureViewDimension {
-    fn convert(self) -> wgpu_types::TextureViewDimension {
+impl WebGPUConvert<TextureViewDimension> for GPUTextureViewDimension {
+    fn convert(self) -> TextureViewDimension {
         match self {
-            GPUTextureViewDimension::_1d => wgpu_types::TextureViewDimension::D1,
-            GPUTextureViewDimension::_2d => wgpu_types::TextureViewDimension::D2,
-            GPUTextureViewDimension::_2d_array => wgpu_types::TextureViewDimension::D2Array,
-            GPUTextureViewDimension::Cube => wgpu_types::TextureViewDimension::Cube,
-            GPUTextureViewDimension::Cube_array => wgpu_types::TextureViewDimension::CubeArray,
-            GPUTextureViewDimension::_3d => wgpu_types::TextureViewDimension::D3,
+            GPUTextureViewDimension::_1d => TextureViewDimension::D1,
+            GPUTextureViewDimension::_2d => TextureViewDimension::D2,
+            GPUTextureViewDimension::_2d_array => TextureViewDimension::D2Array,
+            GPUTextureViewDimension::Cube => TextureViewDimension::Cube,
+            GPUTextureViewDimension::Cube_array => TextureViewDimension::CubeArray,
+            GPUTextureViewDimension::_3d => TextureViewDimension::D3,
         }
     }
 }
 
-impl WebGPUConvert<wgpu_types::CompareFunction> for GPUCompareFunction {
-    fn convert(self) -> wgpu_types::CompareFunction {
+impl WebGPUConvert<CompareFunction> for GPUCompareFunction {
+    fn convert(self) -> CompareFunction {
         match self {
-            GPUCompareFunction::Never => wgpu_types::CompareFunction::Never,
-            GPUCompareFunction::Less => wgpu_types::CompareFunction::Less,
-            GPUCompareFunction::Equal => wgpu_types::CompareFunction::Equal,
-            GPUCompareFunction::Less_equal => wgpu_types::CompareFunction::LessEqual,
-            GPUCompareFunction::Greater => wgpu_types::CompareFunction::Greater,
-            GPUCompareFunction::Not_equal => wgpu_types::CompareFunction::NotEqual,
-            GPUCompareFunction::Greater_equal => wgpu_types::CompareFunction::GreaterEqual,
-            GPUCompareFunction::Always => wgpu_types::CompareFunction::Always,
+            GPUCompareFunction::Never => CompareFunction::Never,
+            GPUCompareFunction::Less => CompareFunction::Less,
+            GPUCompareFunction::Equal => CompareFunction::Equal,
+            GPUCompareFunction::Less_equal => CompareFunction::LessEqual,
+            GPUCompareFunction::Greater => CompareFunction::Greater,
+            GPUCompareFunction::Not_equal => CompareFunction::NotEqual,
+            GPUCompareFunction::Greater_equal => CompareFunction::GreaterEqual,
+            GPUCompareFunction::Always => CompareFunction::Always,
         }
     }
 }
 
-impl WebGPUConvert<wgpu_types::BlendFactor> for &GPUBlendFactor {
-    fn convert(self) -> wgpu_types::BlendFactor {
+impl WebGPUConvert<BlendFactor> for &GPUBlendFactor {
+    fn convert(self) -> BlendFactor {
         match self {
-            GPUBlendFactor::Zero => wgpu_types::BlendFactor::Zero,
-            GPUBlendFactor::One => wgpu_types::BlendFactor::One,
-            GPUBlendFactor::Src => wgpu_types::BlendFactor::Src,
-            GPUBlendFactor::One_minus_src => wgpu_types::BlendFactor::OneMinusSrc,
-            GPUBlendFactor::Src_alpha => wgpu_types::BlendFactor::SrcAlpha,
-            GPUBlendFactor::One_minus_src_alpha => wgpu_types::BlendFactor::OneMinusSrcAlpha,
-            GPUBlendFactor::Dst => wgpu_types::BlendFactor::Dst,
-            GPUBlendFactor::One_minus_dst => wgpu_types::BlendFactor::OneMinusDst,
-            GPUBlendFactor::Dst_alpha => wgpu_types::BlendFactor::DstAlpha,
-            GPUBlendFactor::One_minus_dst_alpha => wgpu_types::BlendFactor::OneMinusDstAlpha,
-            GPUBlendFactor::Src_alpha_saturated => wgpu_types::BlendFactor::SrcAlphaSaturated,
-            GPUBlendFactor::Constant => wgpu_types::BlendFactor::Constant,
-            GPUBlendFactor::One_minus_constant => wgpu_types::BlendFactor::OneMinusConstant,
-            GPUBlendFactor::Src1 => wgpu_types::BlendFactor::Src1,
-            GPUBlendFactor::One_minus_src1 => wgpu_types::BlendFactor::OneMinusSrc1,
-            GPUBlendFactor::Src1_alpha => wgpu_types::BlendFactor::Src1Alpha,
-            GPUBlendFactor::One_minus_src1_alpha => wgpu_types::BlendFactor::OneMinusSrc1Alpha,
+            GPUBlendFactor::Zero => BlendFactor::Zero,
+            GPUBlendFactor::One => BlendFactor::One,
+            GPUBlendFactor::Src => BlendFactor::Src,
+            GPUBlendFactor::One_minus_src => BlendFactor::OneMinusSrc,
+            GPUBlendFactor::Src_alpha => BlendFactor::SrcAlpha,
+            GPUBlendFactor::One_minus_src_alpha => BlendFactor::OneMinusSrcAlpha,
+            GPUBlendFactor::Dst => BlendFactor::Dst,
+            GPUBlendFactor::One_minus_dst => BlendFactor::OneMinusDst,
+            GPUBlendFactor::Dst_alpha => BlendFactor::DstAlpha,
+            GPUBlendFactor::One_minus_dst_alpha => BlendFactor::OneMinusDstAlpha,
+            GPUBlendFactor::Src_alpha_saturated => BlendFactor::SrcAlphaSaturated,
+            GPUBlendFactor::Constant => BlendFactor::Constant,
+            GPUBlendFactor::One_minus_constant => BlendFactor::OneMinusConstant,
+            GPUBlendFactor::Src1 => BlendFactor::Src1,
+            GPUBlendFactor::One_minus_src1 => BlendFactor::OneMinusSrc1,
+            GPUBlendFactor::Src1_alpha => BlendFactor::Src1Alpha,
+            GPUBlendFactor::One_minus_src1_alpha => BlendFactor::OneMinusSrc1Alpha,
         }
     }
 }
 
-impl WebGPUConvert<wgpu_types::BlendComponent> for &GPUBlendComponent {
-    fn convert(self) -> wgpu_types::BlendComponent {
-        wgpu_types::BlendComponent {
+impl WebGPUConvert<BlendComponent> for &GPUBlendComponent {
+    fn convert(self) -> BlendComponent {
+        BlendComponent {
             src_factor: self.srcFactor.convert(),
             dst_factor: self.dstFactor.convert(),
             operation: match self.operation {
-                GPUBlendOperation::Add => wgpu_types::BlendOperation::Add,
-                GPUBlendOperation::Subtract => wgpu_types::BlendOperation::Subtract,
-                GPUBlendOperation::Reverse_subtract => wgpu_types::BlendOperation::ReverseSubtract,
-                GPUBlendOperation::Min => wgpu_types::BlendOperation::Min,
-                GPUBlendOperation::Max => wgpu_types::BlendOperation::Max,
+                GPUBlendOperation::Add => BlendOperation::Add,
+                GPUBlendOperation::Subtract => BlendOperation::Subtract,
+                GPUBlendOperation::Reverse_subtract => BlendOperation::ReverseSubtract,
+                GPUBlendOperation::Min => BlendOperation::Min,
+                GPUBlendOperation::Max => BlendOperation::Max,
             },
         }
     }
@@ -498,17 +497,17 @@ impl WebGPUConvert<StoreOp> for &GPUStoreOp {
     }
 }
 
-impl WebGPUConvert<wgpu_types::StencilOperation> for GPUStencilOperation {
-    fn convert(self) -> wgpu_types::StencilOperation {
+impl WebGPUConvert<StencilOperation> for GPUStencilOperation {
+    fn convert(self) -> StencilOperation {
         match self {
-            GPUStencilOperation::Keep => wgpu_types::StencilOperation::Keep,
-            GPUStencilOperation::Zero => wgpu_types::StencilOperation::Zero,
-            GPUStencilOperation::Replace => wgpu_types::StencilOperation::Replace,
-            GPUStencilOperation::Invert => wgpu_types::StencilOperation::Invert,
-            GPUStencilOperation::Increment_clamp => wgpu_types::StencilOperation::IncrementClamp,
-            GPUStencilOperation::Decrement_clamp => wgpu_types::StencilOperation::DecrementClamp,
-            GPUStencilOperation::Increment_wrap => wgpu_types::StencilOperation::IncrementWrap,
-            GPUStencilOperation::Decrement_wrap => wgpu_types::StencilOperation::DecrementWrap,
+            GPUStencilOperation::Keep => StencilOperation::Keep,
+            GPUStencilOperation::Zero => StencilOperation::Zero,
+            GPUStencilOperation::Replace => StencilOperation::Replace,
+            GPUStencilOperation::Invert => StencilOperation::Invert,
+            GPUStencilOperation::Increment_clamp => StencilOperation::IncrementClamp,
+            GPUStencilOperation::Decrement_clamp => StencilOperation::DecrementClamp,
+            GPUStencilOperation::Increment_wrap => StencilOperation::IncrementWrap,
+            GPUStencilOperation::Decrement_wrap => StencilOperation::DecrementWrap,
         }
     }
 }
@@ -526,10 +525,10 @@ where
     }
 }
 
-impl WebGPUTryConvert<wgpu_types::Origin3d> for &GPUOrigin3D {
+impl WebGPUTryConvert<Origin3d> for &GPUOrigin3D {
     type Error = Error;
 
-    fn try_convert(self) -> Result<wgpu_types::Origin3d, Self::Error> {
+    fn try_convert(self) -> Result<Origin3d, Self::Error> {
         match self {
             GPUOrigin3D::RangeEnforcedUnsignedLongSequence(v) => {
                 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuorigin3d-shape
@@ -538,14 +537,14 @@ impl WebGPUTryConvert<wgpu_types::Origin3d> for &GPUOrigin3D {
                         c"sequence is too long for GPUOrigin3D".to_owned(),
                     ))
                 } else {
-                    Ok(wgpu_types::Origin3d {
+                    Ok(Origin3d {
                         x: v.first().copied().unwrap_or(0),
                         y: v.get(1).copied().unwrap_or(0),
                         z: v.get(2).copied().unwrap_or(0),
                     })
                 }
             },
-            GPUOrigin3D::GPUOrigin3DDict(d) => Ok(wgpu_types::Origin3d {
+            GPUOrigin3D::GPUOrigin3DDict(d) => Ok(Origin3d {
                 x: d.x,
                 y: d.y,
                 z: d.z,
@@ -554,11 +553,11 @@ impl WebGPUTryConvert<wgpu_types::Origin3d> for &GPUOrigin3D {
     }
 }
 
-impl WebGPUTryConvert<wgpu_types::Origin2d> for &GPUOrigin2D {
+impl WebGPUTryConvert<Origin2d> for &GPUOrigin2D {
     type Error = Error;
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuorigin2d-shape>
-    fn try_convert(self) -> Result<wgpu_types::Origin2d, Self::Error> {
+    fn try_convert(self) -> Result<Origin2d, Self::Error> {
         match self {
             GPUOrigin2D::RangeEnforcedUnsignedLongSequence(v) => {
                 if v.len() > 2 {
@@ -566,13 +565,13 @@ impl WebGPUTryConvert<wgpu_types::Origin2d> for &GPUOrigin2D {
                         c"sequence is too long for GPUOrigin2D".to_owned(),
                     ))
                 } else {
-                    Ok(wgpu_types::Origin2d {
+                    Ok(Origin2d {
                         x: v.first().copied().unwrap_or(0),
                         y: v.get(1).copied().unwrap_or(0),
                     })
                 }
             },
-            GPUOrigin2D::GPUOrigin2DDict(d) => Ok(wgpu_types::Origin2d { x: d.x, y: d.y }),
+            GPUOrigin2D::GPUOrigin2DDict(d) => Ok(Origin2d { x: d.x, y: d.y }),
         }
     }
 }
@@ -591,13 +590,13 @@ where
             origin: self
                 .origin
                 .as_ref()
-                .map(WebGPUTryConvert::<wgpu_types::Origin3d>::try_convert)
+                .map(WebGPUTryConvert::<Origin3d>::try_convert)
                 .transpose()?
                 .unwrap_or_default(),
             aspect: match self.aspect {
-                GPUTextureAspect::All => wgpu_types::TextureAspect::All,
-                GPUTextureAspect::Stencil_only => wgpu_types::TextureAspect::StencilOnly,
-                GPUTextureAspect::Depth_only => wgpu_types::TextureAspect::DepthOnly,
+                GPUTextureAspect::All => TextureAspect::All,
+                GPUTextureAspect::Stencil_only => TextureAspect::StencilOnly,
+                GPUTextureAspect::Depth_only => TextureAspect::DepthOnly,
             },
         })
     }
@@ -616,7 +615,7 @@ impl<'a> WebGPUConvert<Option<Cow<'a, str>>> for &GPUObjectDescriptorBase {
 pub(crate) fn convert_bind_group_layout_entry<D>(
     bgle: &GPUBindGroupLayoutEntry,
     device: &D::GPUDevice,
-) -> Fallible<Result<wgpu_types::BindGroupLayoutEntry, webgpu_traits::Error>>
+) -> Fallible<Result<BindGroupLayoutEntry, webgpu_traits::Error>>
 where
     D: Equivalence,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
@@ -626,47 +625,43 @@ where
         bgle.storageTexture.is_some() as u8 +
         bgle.texture.is_some() as u8;
     let ty = if let Some(buffer) = &bgle.buffer {
-        Some(wgpu_types::BindingType::Buffer {
+        Some(BindingType::Buffer {
             ty: match buffer.type_ {
-                GPUBufferBindingType::Uniform => wgpu_types::BufferBindingType::Uniform,
-                GPUBufferBindingType::Storage => {
-                    wgpu_types::BufferBindingType::Storage { read_only: false }
-                },
+                GPUBufferBindingType::Uniform => BufferBindingType::Uniform,
+                GPUBufferBindingType::Storage => BufferBindingType::Storage { read_only: false },
                 GPUBufferBindingType::Read_only_storage => {
-                    wgpu_types::BufferBindingType::Storage { read_only: true }
+                    BufferBindingType::Storage { read_only: true }
                 },
             },
             has_dynamic_offset: buffer.hasDynamicOffset,
             min_binding_size: NonZeroU64::new(buffer.minBindingSize),
         })
     } else if let Some(sampler) = &bgle.sampler {
-        Some(wgpu_types::BindingType::Sampler(match sampler.type_ {
-            GPUSamplerBindingType::Filtering => wgpu_types::SamplerBindingType::Filtering,
-            GPUSamplerBindingType::Non_filtering => wgpu_types::SamplerBindingType::NonFiltering,
-            GPUSamplerBindingType::Comparison => wgpu_types::SamplerBindingType::Comparison,
+        Some(BindingType::Sampler(match sampler.type_ {
+            GPUSamplerBindingType::Filtering => SamplerBindingType::Filtering,
+            GPUSamplerBindingType::Non_filtering => SamplerBindingType::NonFiltering,
+            GPUSamplerBindingType::Comparison => SamplerBindingType::Comparison,
         }))
     } else if let Some(storage) = &bgle.storageTexture {
-        Some(wgpu_types::BindingType::StorageTexture {
+        Some(BindingType::StorageTexture {
             access: match storage.access {
-                GPUStorageTextureAccess::Write_only => wgpu_types::StorageTextureAccess::WriteOnly,
-                GPUStorageTextureAccess::Read_only => wgpu_types::StorageTextureAccess::ReadOnly,
-                GPUStorageTextureAccess::Read_write => wgpu_types::StorageTextureAccess::ReadWrite,
+                GPUStorageTextureAccess::Write_only => StorageTextureAccess::WriteOnly,
+                GPUStorageTextureAccess::Read_only => StorageTextureAccess::ReadOnly,
+                GPUStorageTextureAccess::Read_write => StorageTextureAccess::ReadWrite,
             },
             format: device.validate_texture_format_required_features(&storage.format)?,
             view_dimension: storage.viewDimension.convert(),
         })
     } else if let Some(texture) = &bgle.texture {
-        Some(wgpu_types::BindingType::Texture {
+        Some(BindingType::Texture {
             sample_type: match texture.sampleType {
-                GPUTextureSampleType::Float => {
-                    wgpu_types::TextureSampleType::Float { filterable: true }
-                },
+                GPUTextureSampleType::Float => TextureSampleType::Float { filterable: true },
                 GPUTextureSampleType::Unfilterable_float => {
-                    wgpu_types::TextureSampleType::Float { filterable: false }
+                    TextureSampleType::Float { filterable: false }
                 },
-                GPUTextureSampleType::Depth => wgpu_types::TextureSampleType::Depth,
-                GPUTextureSampleType::Sint => wgpu_types::TextureSampleType::Sint,
-                GPUTextureSampleType::Uint => wgpu_types::TextureSampleType::Uint,
+                GPUTextureSampleType::Depth => TextureSampleType::Depth,
+                GPUTextureSampleType::Sint => TextureSampleType::Sint,
+                GPUTextureSampleType::Uint => TextureSampleType::Uint,
             },
             view_dimension: texture.viewDimension.convert(),
             multisampled: texture.multisampled,
@@ -686,9 +681,9 @@ where
         "Exactly on entry type must be provided".to_string(),
     ));
 
-    Ok(ty.map(|ty| wgpu_types::BindGroupLayoutEntry {
+    Ok(ty.map(|ty| BindGroupLayoutEntry {
         binding: bgle.binding,
-        visibility: wgpu_types::ShaderStages::from_bits_retain(bgle.visibility),
+        visibility: ShaderStages::from_bits_retain(bgle.visibility),
         ty,
         count: None,
     }))
@@ -697,7 +692,7 @@ where
 pub fn convert_texture_descriptor<D>(
     descriptor: &GPUTextureDescriptor,
     device: &D::GPUDevice,
-) -> Fallible<(TextureDescriptor<'static>, wgpu_types::Extent3d)>
+) -> Fallible<(TextureDescriptor<'static>, Extent3d)>
 where
     D: Equivalence,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
@@ -710,7 +705,7 @@ where
         sample_count: descriptor.sampleCount,
         dimension: descriptor.dimension.convert(),
         format: device.validate_texture_format_required_features(&descriptor.format)?,
-        usage: wgpu_types::TextureUsages::from_bits_retain(descriptor.usage),
+        usage: TextureUsages::from_bits_retain(descriptor.usage),
         view_formats: descriptor
             .viewFormats
             .iter()
@@ -720,17 +715,17 @@ where
     Ok((desc, size))
 }
 
-impl WebGPUTryConvert<wgpu_types::Color> for &GPUColor {
+impl WebGPUTryConvert<Color> for &GPUColor {
     type Error = Error;
 
-    fn try_convert(self) -> Result<wgpu_types::Color, Self::Error> {
+    fn try_convert(self) -> Result<Color, Self::Error> {
         match self {
             GPUColor::DoubleSequence(s) => {
                 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpucolor-shape
                 if s.len() != 4 {
                     Err(Error::Type(c"GPUColor sequence must be len 4".to_owned()))
                 } else {
-                    Ok(wgpu_types::Color {
+                    Ok(Color {
                         r: *s[0],
                         g: *s[1],
                         b: *s[2],
@@ -738,7 +733,7 @@ impl WebGPUTryConvert<wgpu_types::Color> for &GPUColor {
                     })
                 }
             },
-            GPUColor::GPUColorDict(d) => Ok(wgpu_types::Color {
+            GPUColor::GPUColorDict(d) => Ok(Color {
                 r: *d.r,
                 g: *d.g,
                 b: *d.b,
@@ -817,24 +812,24 @@ where
     }
 }
 
-impl WebGPUConvert<wgpu_types::TextureDimension> for GPUTextureDimension {
-    fn convert(self) -> wgpu_types::TextureDimension {
+impl WebGPUConvert<TextureDimension> for GPUTextureDimension {
+    fn convert(self) -> TextureDimension {
         match self {
-            GPUTextureDimension::_1d => wgpu_types::TextureDimension::D1,
-            GPUTextureDimension::_2d => wgpu_types::TextureDimension::D2,
-            GPUTextureDimension::_3d => wgpu_types::TextureDimension::D3,
+            GPUTextureDimension::_1d => TextureDimension::D1,
+            GPUTextureDimension::_2d => TextureDimension::D2,
+            GPUTextureDimension::_3d => TextureDimension::D3,
         }
     }
 }
 
-impl WebGPUConvert<wgpu_types::PredefinedColorSpace> for PredefinedColorSpace {
-    fn convert(self) -> wgpu_types::PredefinedColorSpace {
+impl WebGPUConvert<WGPUPredefinedColorSpace> for PredefinedColorSpace {
+    fn convert(self) -> WGPUPredefinedColorSpace {
         match self {
             PredefinedColorSpace::Srgb | PredefinedColorSpace::Srgb_linear => {
-                wgpu_types::PredefinedColorSpace::Srgb
+                WGPUPredefinedColorSpace::Srgb
             },
             PredefinedColorSpace::Display_p3 | PredefinedColorSpace::Display_p3_linear => {
-                wgpu_types::PredefinedColorSpace::DisplayP3
+                WGPUPredefinedColorSpace::DisplayP3
             },
         }
     }
@@ -846,8 +841,8 @@ impl WebGPUConvert<QuerySetDescriptor<'static>> for &GPUQuerySetDescriptor {
             label: (&self.parent).convert(),
             count: self.count,
             ty: match self.type_ {
-                GPUQueryType::Occlusion => wgpu_types::QueryType::Occlusion,
-                GPUQueryType::Timestamp => wgpu_types::QueryType::Timestamp,
+                GPUQueryType::Occlusion => QueryType::Occlusion,
+                GPUQueryType::Timestamp => QueryType::Timestamp,
             },
         }
     }
