@@ -4240,7 +4240,7 @@ impl ScriptThread {
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         context.process_response(self, cx, Ok(FetchMetadata::Unfiltered(meta)));
-        context.set_policy_container(policy_container.as_ref());
+        context.set_policy_container(policy_container);
         context.set_about_base_url(about_base_url);
         context.process_response_chunk(cx, chunk.into());
         context.process_response_eof(
@@ -4285,7 +4285,7 @@ impl ScriptThread {
             source_origin,
         );
         context.process_response(self, cx, Ok(FetchMetadata::Unfiltered(meta)));
-        context.set_policy_container(policy_container.as_ref());
+        context.set_policy_container(policy_container);
         context.set_about_base_url(about_base_url);
         context.process_response_chunk(cx, Bytes::copy_from_slice(&chunk));
         context.process_response_eof(
