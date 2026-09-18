@@ -18,7 +18,9 @@ use gleam::gl::RENDERER;
 use image::RgbaImage;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
-use paint_api::display_list::{PaintDisplayListInfo, PaintTimingReport, ScrollType};
+use paint_api::display_list::{
+    PaintDisplayListInfo, PaintTimingInfo, PaintTimingReport, ScrollType,
+};
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
@@ -465,6 +467,14 @@ impl Painter {
     /// current time, inform the constellation about it and remove the pending metric from
     /// the list.
     fn send_pending_paint_metrics_messages_after_composite(&mut self) {
+        // From: <https://www.w3.org/TR/paint-timing/#mark-paint-timing>
+        // Step 12.2. Set paintTimingInfo’s implementation-defined presentation
+        // time to the current high resolution time given document’s relevant
+        // global object.
+        //
+        // Note: As per Servo, this is next in line after `Painter::render`,
+        // when the frame is presented to the screen. So we append current time
+        // to [`PaintTimingInfo`] and send it to constellation.
         let paint_time = CrossProcessInstant::now();
         let mut paint_metric_events = Vec::new();
 
@@ -483,7 +493,9 @@ impl Painter {
                     // CrossProcessPaintMessage::SendInitialTransaction sends an
                     // empty display list to WebRender which can happen before we receive
                     // the first "real" display list.
-                    PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
+                    PaintMetricState::Seen(epoch, first_reflow, paint_timing_info)
+                        if epoch <= current_epoch =>
+                    {
                         assert!(epoch <= current_epoch);
                         #[cfg(feature = "tracing")]
                         tracing::info!(
@@ -496,7 +508,10 @@ impl Painter {
 
                         paint_metric_events.push((
                             *pipeline_id,
-                            PaintMetricEvent::FirstPaint(paint_time, first_reflow),
+                            PaintMetricEvent::FirstPaint(
+                                paint_timing_info.with_presentation_time(paint_time),
+                                first_reflow,
+                            ),
                         ));
 
                         pipeline.first_paint_metric = PaintMetricState::Sent;
@@ -505,7 +520,9 @@ impl Painter {
                 }
 
                 match pipeline.first_contentful_paint_metric {
-                    PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
+                    PaintMetricState::Seen(epoch, first_reflow, paint_timing_info)
+                        if epoch <= current_epoch =>
+                    {
                         #[cfg(feature = "tracing")]
                         tracing::info!(
                             name: "FirstContentfulPaint",
@@ -516,7 +533,10 @@ impl Painter {
                         );
                         paint_metric_events.push((
                             *pipeline_id,
-                            PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
+                            PaintMetricEvent::FirstContentfulPaint(
+                                paint_timing_info.with_presentation_time(paint_time),
+                                first_reflow,
+                            ),
                         ));
                         pipeline.first_contentful_paint_metric = PaintMetricState::Sent;
                     },
@@ -524,9 +544,11 @@ impl Painter {
                 }
 
                 let pending_lcp_candidates = &mut pipeline.lcp_candidates;
-                while let Some((epoch, (id, area))) = pending_lcp_candidates.pop_front() {
+                while let Some((epoch, (id, area), paint_timing_info)) =
+                    pending_lcp_candidates.pop_front()
+                {
                     if epoch > current_epoch {
-                        pending_lcp_candidates.push_front((epoch, (id, area)));
+                        pending_lcp_candidates.push_front((epoch, (id, area), paint_timing_info));
                         break;
                     }
                     #[cfg(feature = "tracing")]
@@ -539,7 +561,10 @@ impl Painter {
                     );
                     paint_metric_events.push((
                         *pipeline_id,
-                        PaintMetricEvent::LargestContentfulPaint(paint_time, id),
+                        PaintMetricEvent::LargestContentfulPaint(
+                            paint_timing_info.with_presentation_time(paint_time),
+                            id,
+                        ),
                     ));
                 }
             }
@@ -991,7 +1016,8 @@ impl Painter {
                 .paint_timing_report
                 .contains(PaintTimingReport::FirstPaint)
         {
-            details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
+            details.first_paint_metric =
+                PaintMetricState::Seen(epoch, first_reflow, display_list_info.paint_timing_info);
         }
 
         if details.first_contentful_paint_metric == PaintMetricState::Waiting &&
@@ -999,11 +1025,16 @@ impl Painter {
                 .paint_timing_report
                 .contains(PaintTimingReport::FirstContentfulPaint)
         {
-            details.first_contentful_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
+            details.first_contentful_paint_metric =
+                PaintMetricState::Seen(epoch, first_reflow, display_list_info.paint_timing_info);
         }
 
         if let Some(lcp_candidate) = display_list_info.lcp_candidate {
-            details.lcp_candidates.push_back((epoch, lcp_candidate));
+            details.lcp_candidates.push_back((
+                epoch,
+                lcp_candidate,
+                display_list_info.paint_timing_info,
+            ));
         }
 
         details.animations.handle_new_display_list(
@@ -1578,7 +1609,12 @@ pub(crate) enum PaintMetricState {
     Waiting,
     /// The painter has processed the display list which will trigger this event, marked the Servo
     /// instance ready to paint, and is waiting for the given epoch to actually be rendered.
-    Seen(WebRenderEpoch, bool /* first_reflow */),
+    /// Carries the paint timing info of the display list that triggered this metric.
+    Seen(
+        WebRenderEpoch,
+        bool, /* first_reflow */
+        PaintTimingInfo,
+    ),
     /// The metric has been sent to the constellation and no more work needs to be done.
     Sent,
 }

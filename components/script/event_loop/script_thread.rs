@@ -1199,8 +1199,6 @@ impl ScriptThread {
             // TODO(stevennovaryo): The time attribute should be relative to the time origin of the global object
             document.update_intersection_observer_steps(cx, CrossProcessInstant::now());
 
-            // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
-
             // See <https://github.com/whatwg/html/issues/12704>.
             // Unspecified, but necessary: Any of the previous callbacks may have put the
             // document into a render-blocked state. If that's the case, then abort the
@@ -1208,6 +1206,9 @@ impl ScriptThread {
             if document.is_render_blocked() {
                 continue;
             }
+
+            // > 21. For each doc of docs, mark paint timing for doc.
+            // Note: Implemented inside `Document::update_the_rendering`
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.

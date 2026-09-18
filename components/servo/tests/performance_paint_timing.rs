@@ -60,6 +60,10 @@ fn test_paint_timing_js_api() {
         );
         assert!(obj.get("startTime").is_some());
         assert_eq!(obj.get("duration"), Some(JSValue::Number(0.0)).as_ref());
+        assert!(matches!(obj.get("paintTime"), Some(JSValue::Number(value)) if *value >= 0.0));
+        assert!(
+            matches!(obj.get("presentationTime"), Some(JSValue::Number(value)) if *value >= 0.0)
+        );
     } else {
         panic!("first-paint entry is not an object");
     }
@@ -81,6 +85,10 @@ fn test_paint_timing_js_api() {
         );
         assert!(obj.get("startTime").is_some());
         assert_eq!(obj.get("duration"), Some(JSValue::Number(0.0)).as_ref());
+        assert!(matches!(obj.get("paintTime"), Some(JSValue::Number(value)) if *value >= 0.0));
+        assert!(
+            matches!(obj.get("presentationTime"), Some(JSValue::Number(value)) if *value >= 0.0)
+        );
     } else {
         panic!("first-contentful-paint entry is not an object");
     }
