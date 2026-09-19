@@ -101,6 +101,9 @@ webdriver_server = { workspace = true }
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = { workspace = true }
 jni = { workspace = true }
+# https://github.com/servo/servo/issues/32175
+# By default Android enforce the tagged pointers feature, which does not work well with mozjs.
+# Like Gecko, replace the system allocator with jemalloc.
 servo-allocator = { workspace = true, features = ["use-jemalloc"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
