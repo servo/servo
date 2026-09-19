@@ -8,25 +8,32 @@ use js::realm::CurrentRealm;
 use jstraceable_derive::JSTraceable;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::callback::CallbackContainer;
+use script_bindings::codegen::GenericBindings::EventHandlerBinding::EventHandlerNonNull;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
-    GPUAdapterMethods, GPUAdapterWrap, GPUDeviceDescriptor,
+    GPUAdapterMethods, GPUAdapterWrap, GPUDeviceDescriptor, GPUDeviceLostReason,
 };
 use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
+use script_bindings::routed_promise::RoutedPromiseListener;
 use script_bindings::{DomTypes, cformat};
 use webgpu_traits::{
     AdapterInfo, DeviceDescriptor, DeviceType, ExperimentalFeatures, Features, Limits, MemoryHints,
-    Trace, WebGPU, WebGPUAdapter, WebGPURequest,
+    RequestDeviceError, Trace, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
 };
 
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::gpuadapterinfo::GPUAdapterInfo;
+use crate::gpudevice::GPUDevice;
 use crate::gpusupportedfeatures::{GPUSupportedFeatures, gpu_to_wgt_feature};
 use crate::gpusupportedlimits::{GPUSupportedLimits, set_limit};
-use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait};
+use crate::traits::{
+    Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait,
+    WebGPURootedPromiseTrait,
+};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUAdapter {
@@ -290,15 +297,6 @@ where
         DomRoot::from_ref(&self.info)
     }
 }
-
-use script_bindings::callback::CallbackContainer;
-use script_bindings::codegen::GenericBindings::EventHandlerBinding::EventHandlerNonNull;
-use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUDeviceLostReason;
-use script_bindings::routed_promise::RoutedPromiseListener;
-use webgpu_traits::{RequestDeviceError, WebGPUDeviceResponse};
-
-use crate::gpudevice::GPUDevice;
-use crate::traits::WebGPURootedPromiseTrait;
 
 impl<D: Equivalence> RoutedPromiseListener<D, WebGPUDeviceResponse> for GPUAdapter<D>
 where

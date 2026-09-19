@@ -290,10 +290,6 @@ where
         }
     }
 
-    pub(crate) fn is_lost(&self) -> bool {
-        self.lost_promise.borrow().is_fulfilled()
-    }
-
     pub(crate) fn get_pipeline_layout_data(
         &self,
         layout: &GPUPipelineLayoutOrGPUAutoLayoutMode<D>,
@@ -427,8 +423,6 @@ where
 impl<D> GPUDevice<D>
 where
     D: Equivalence,
-    //<D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
-    //EventHandlerNonNull<D>: CallbackContainer<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
     pub fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
@@ -445,6 +439,10 @@ where
                 GPUDeviceLostInfo::<D>::new(cx, &*this.global_from_reflector(), msg.into(), reason);
             lost_promise.resolve_native(cx, &*lost);
         }));
+    }
+
+    pub(crate) fn is_lost(&self) -> bool {
+        self.lost_promise.borrow().is_fulfilled()
     }
 }
 

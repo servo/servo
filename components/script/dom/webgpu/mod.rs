@@ -53,7 +53,6 @@ pub(crate) mod gpubindgrouplayout {
     pub(crate) type GPUBindGroupLayout =
         script_webgpu::gpubindgrouplayout::GPUBindGroupLayout<crate::DomTypeHolder>;
 }
-pub(crate) mod gpubuffer_promise_listener;
 pub(crate) mod gpubuffer {
     pub(crate) type GPUBuffer = script_webgpu::gpubuffer::GPUBuffer<crate::DomTypeHolder>;
 }
