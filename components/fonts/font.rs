@@ -29,6 +29,7 @@ use read_fonts::types::Tag;
 use read_fonts::{FontRead, ReadError};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::PainterId;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use skrifa::string::LocalizedString;
@@ -112,7 +113,7 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_template(
         template: FontTemplateRef,
         pt_size: Option<Au>,
-        data: &Option<FontData>,
+        data: &Option<FontData<GenericSharedMemory>>,
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
@@ -140,7 +141,7 @@ pub trait PlatformFontMethods: Sized {
 
     fn new_from_data(
         font_identifier: FontIdentifier,
-        data: &FontData,
+        data: &FontData<GenericSharedMemory>,
         pt_size: Option<Au>,
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str>;
@@ -277,7 +278,7 @@ pub struct Font {
 
     /// The data for this font. And the index of the font within the data (in case it's a TTC)
     /// This might be uninitialized for system fonts.
-    data_and_index: OnceLock<FontDataAndIndex>,
+    data_and_index: OnceLock<FontDataAndIndex<GenericSharedMemory>>,
 
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
@@ -343,7 +344,7 @@ impl Font {
     pub fn new(
         template: FontTemplateRef,
         descriptor: FontDescriptor,
-        data: Option<FontData>,
+        data: Option<FontData<GenericSharedMemory>>,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
         let synthetic_bold = {
@@ -418,7 +419,9 @@ impl Font {
 
     /// Return the data for this `Font`. Note that this is currently highly inefficient for system
     /// fonts and should not be used except in legacy canvas code.
-    pub fn font_data_and_index(&self) -> Result<&FontDataAndIndex, FontDataError> {
+    pub fn font_data_and_index(
+        &self,
+    ) -> Result<&FontDataAndIndex<GenericSharedMemory>, FontDataError> {
         if let Some(data_and_index) = self.data_and_index.get() {
             return Ok(data_and_index);
         }

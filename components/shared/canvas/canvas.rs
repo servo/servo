@@ -8,14 +8,14 @@ use std::str::FromStr;
 use euclid::Angle;
 use euclid::approxeq::ApproxEq;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
-use fonts_traits::{FontDataAndIndex, FontIdentifier};
+use fonts_traits::{FontDataAndIndex, FontIdentifier, Mmap};
 use kurbo::{BezPath, ParamCurveNearest as _, PathEl, Point, Shape, Triangle};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::SharedSnapshot;
 use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
-use servo_base::generic_channel::GenericSender;
+use servo_base::generic_channel::{GenericSender, GenericSharedMemory};
 use strum::{Display, EnumString};
 use style::color::AbsoluteColor;
 use webrender_api::ImageKey;
@@ -785,17 +785,25 @@ pub struct CanvasFont {
     pub identifier: FontIdentifier,
     /// If this font is a web font, this field contains the data for the font. If
     /// the font is a local font, it will be `None`.
-    pub data: Option<FontDataAndIndex>,
+    pub data: Option<FontDataAndIndex<GenericSharedMemory>>,
+}
+
+pub enum FontBackingStoreType {
+    MmapFont(FontDataAndIndex<Mmap>),
+    SharedFont(FontDataAndIndex<GenericSharedMemory>),
 }
 
 impl CanvasFont {
-    pub fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
-        self.data.clone().or_else(|| match &self.identifier {
-            FontIdentifier::Local(local_font_identifier) => {
-                local_font_identifier.font_data_and_index()
+    pub fn font_data_and_index(&self) -> Option<FontBackingStoreType> {
+        match &self.identifier {
+            FontIdentifier::Local(local_font_identifier) => local_font_identifier
+                .font_data_and_index_mmap()
+                .map(FontBackingStoreType::MmapFont),
+            FontIdentifier::Web(_) => self.data.clone().map(FontBackingStoreType::SharedFont),
+            FontIdentifier::ArrayBuffer(_) => {
+                self.data.clone().map(FontBackingStoreType::SharedFont)
             },
-            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => None,
-        })
+        }
     }
 }
 

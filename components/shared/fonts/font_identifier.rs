@@ -28,10 +28,12 @@ impl FontIdentifier {
 mod platform {
     use std::fs::File;
     use std::path::{Path, PathBuf};
+    use std::sync::Arc;
 
     use malloc_size_of_derive::MallocSizeOf;
     use memmap2::Mmap;
     use serde::{Deserialize, Serialize};
+    use servo_base::generic_channel::GenericSharedMemory;
     use style::Atom;
     use webrender_api::NativeFontHandle;
 
@@ -67,13 +69,25 @@ mod platform {
         }
 
         #[expect(unsafe_code)]
-        pub fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
+        pub fn font_data_and_index(&self) -> Option<FontDataAndIndex<GenericSharedMemory>> {
             let file = File::open(Path::new(&*self.path)).ok()?;
             let mmap = unsafe { Mmap::map(&file).ok()? };
             let data = FontData::from_bytes(&mmap);
 
             Some(FontDataAndIndex {
                 data,
+                index: self.face_index as u32,
+            })
+        }
+
+        #[expect(unsafe_code)]
+        /// Returns memory mapped font data.
+        pub fn font_data_and_index_mmap(&self) -> Option<FontDataAndIndex<Mmap>> {
+            let file = File::open(Path::new(&*self.path)).ok()?;
+            let data = unsafe { Mmap::map(&file).ok()? };
+
+            Some(FontDataAndIndex {
+                data: FontData(Arc::new(data)),
                 index: self.face_index as u32,
             })
         }
