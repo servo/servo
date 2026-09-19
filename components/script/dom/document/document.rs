@@ -1083,7 +1083,6 @@ impl Document {
 
         // Set the document's activity level, reflow if necessary, and suspend or resume timers.
         self.activity.set(activity);
-        let media = ServoMedia::get();
         let pipeline_id = self.window().pipeline_id();
         let client_context_id =
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
@@ -1092,7 +1091,10 @@ impl Document {
             if !self.window_detached() {
                 self.window().suspend(cx);
             }
-            media.suspend(&client_context_id);
+
+            if let Some(media) = ServoMedia::try_get() {
+                media.suspend(&client_context_id);
+            }
             return;
         }
 
@@ -1104,7 +1106,9 @@ impl Document {
         self.notify_embedder_favicon();
         self.dirty_all_nodes(cx.no_gc());
         self.window().resume(cx);
-        media.resume(&client_context_id);
+        if let Some(media) = ServoMedia::try_get() {
+            media.resume(&client_context_id);
+        }
 
         if self.ready_state.get() != DocumentReadyState::Complete {
             return;
