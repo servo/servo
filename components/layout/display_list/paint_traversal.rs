@@ -89,11 +89,11 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         // > current invocation of this algorithm) into canvas.
         //
         // Unlike in the specification, this is done before painting positioned descendants
-        // (steps 9 and 10). The specification allows painting outlines either in-band
-        // (under all in-flow content) or out-of-band (over everything), but other browsers
-        // paint outlines above in-flow content and negative `z-index` descendants, yet
-        // below positioned descendants with `z-index: auto` or higher.
-        // See <https://github.com/servo/servo/issues/46686>.
+        // (steps 9 and 10). Other engines collect outlines out-of-band, but paint them
+        // after in-flow content and negative `z-index` descendants, and before positioned
+        // descendants with `z-index: auto` or higher. This matches neither spec in-band
+        // nor spec out-of-band; see <https://github.com/w3c/csswg-drafts/issues/14513>
+        // and <https://github.com/servo/servo/issues/46686>.
         if old_outlines_length < self.outlines.len() {
             for (state, outline_fragment) in &self.outlines.split_off(old_outlines_length) {
                 self.handler.visit_box_for_outline(state, outline_fragment);
