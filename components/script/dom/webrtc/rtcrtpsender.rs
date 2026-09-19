@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
@@ -15,7 +13,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::{Promise, RootedPromise};
 
 #[dom_struct]
 pub(crate) struct RTCRtpSender {
@@ -52,7 +50,11 @@ impl RTCRtpSenderMethods<crate::DomTypeHolder> for RTCRtpSender {
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-setparameters>
-    fn SetParameters(&self, cx: &mut JSContext, _parameters: &RTCRtpSendParameters) -> Rc<Promise> {
-        Promise::new_resolved(cx, &self.global(), ())
+    fn SetParameters(
+        &self,
+        cx: &mut JSContext,
+        _parameters: &RTCRtpSendParameters,
+    ) -> RootedPromise {
+        Promise::new_resolved_rooted(cx, &self.global(), ())
     }
 }
