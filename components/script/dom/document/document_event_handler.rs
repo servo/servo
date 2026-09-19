@@ -21,7 +21,7 @@ use embedder_traits::{
 };
 use euclid::{Point2D, Vector2D};
 use js::context::{JSContext, NoGC};
-use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
+use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
 use layout_api::{HitTestFlags, ScrollContainerQueryFlags, node_id_from_scroll_id};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
@@ -65,6 +65,7 @@ use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
+use crate::dom::text_input::CMD_OR_CONTROL;
 use crate::dom::types::{
     CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLElement,
     HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
@@ -418,8 +419,16 @@ impl DocumentEventHandler {
 
     /// When an event should be fired on the element that has focus, this returns the target. If
     /// there is no associated element with the focused area (such as when the viewport is focused),
-    /// then the body is returned. If no body is returned then the `Window` is returned.
+    /// then the body is returned. If no body is returned then the `Document` is returned.
     pub(crate) fn target_for_events_following_focus(&self) -> DomRoot<EventTarget> {
+        // From <https://w3c.github.io/uievents/#events-keyboard-event-order>:
+        //
+        // > The event target of a key event is the currently focused element which is processing
+        // > the keyboard activity. This is often an HTML input element or a textual element which
+        // > is editable, but MAY be an element defined by the host language to accept keyboard
+        // > input for non-text purposes, such as the activation of an accelerator key or trigger of
+        // > some other behavior. If no suitable element is in focus, the event target will be the
+        // > HTML body element if available, otherwise the root element.
         let document = self.window.Document();
         match &*document.focus_handler().focused_area() {
             FocusableArea::Node { node, .. } => DomRoot::from_ref(node.upcast()),
@@ -429,7 +438,7 @@ impl DocumentEventHandler {
             FocusableArea::Viewport => document
                 .GetBody()
                 .map(DomRoot::upcast)
-                .unwrap_or_else(|| DomRoot::from_ref(self.window.upcast())),
+                .unwrap_or_else(|| DomRoot::from_ref(self.window.Document().upcast())),
         }
     }
 
@@ -2056,25 +2065,42 @@ impl DocumentEventHandler {
             return;
         }
 
-        let mut is_space = false;
-        let scroll = match event.key() {
-            Key::Named(NamedKey::ArrowDown) => KeyboardScroll::Down,
-            Key::Named(NamedKey::ArrowLeft) => KeyboardScroll::Left,
-            Key::Named(NamedKey::ArrowRight) => KeyboardScroll::Right,
-            Key::Named(NamedKey::ArrowUp) => KeyboardScroll::Up,
-            Key::Named(NamedKey::End) => KeyboardScroll::End,
-            Key::Named(NamedKey::Home) => KeyboardScroll::Home,
-            Key::Named(NamedKey::PageDown) => KeyboardScroll::PageDown,
-            Key::Named(NamedKey::PageUp) => KeyboardScroll::PageUp,
-            Key::Character(string) if &string == " " => {
-                is_space = true;
-                if event.modifiers().contains(Modifiers::SHIFT) {
-                    KeyboardScroll::PageUp
-                } else {
-                    KeyboardScroll::PageDown
-                }
-            },
-            Key::Named(NamedKey::Tab) => {
+        ShortcutMatcher::new(KeyState::Down, event.key(), event.modifiers())
+            .shortcut(CMD_OR_CONTROL, 'A', || {
+                let editing_context = document.editing_context(cx.no_gc(), node);
+                editing_context.select_all(cx);
+            })
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowDown), || {
+                self.do_keyboard_scroll(cx, KeyboardScroll::Down)
+            })
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowLeft), || {
+                self.do_keyboard_scroll(cx, KeyboardScroll::Left)
+            })
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowRight), || {
+                self.do_keyboard_scroll(cx, KeyboardScroll::Right)
+            })
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowUp), || {
+                self.do_keyboard_scroll(cx, KeyboardScroll::Up)
+            })
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::End), || {
+                self.do_keyboard_scroll(cx, KeyboardScroll::End)
+            })
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::Home), || {
+                self.do_keyboard_scroll(cx, KeyboardScroll::Home)
+            })
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageDown), || {
+                self.do_keyboard_scroll(cx, KeyboardScroll::PageDown)
+            })
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageUp), || {
+                self.do_keyboard_scroll(cx, KeyboardScroll::PageUp)
+            })
+            .shortcut(Modifiers::empty(), ' ', || {
+                self.do_keyboard_scroll(cx, KeyboardScroll::PageDown)
+            })
+            .shortcut(Modifiers::SHIFT, ' ', || {
+                self.do_keyboard_scroll(cx, KeyboardScroll::PageUp)
+            })
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::Tab), || {
                 // From <https://w3c.github.io/uievents/#keydown>:
                 //
                 // > If the key is the Tab key, the default action MUST be to shift the document focus
@@ -2083,16 +2109,12 @@ impl DocumentEventHandler {
                 document
                     .focus_handler()
                     .sequential_focus_navigation_via_keyboard_event(cx, event);
-                return;
-            },
-            _ => return,
-        };
-
-        if !event.modifiers().is_empty() && !is_space {
-            return;
-        }
-
-        self.do_keyboard_scroll(cx, scroll);
+            })
+            .shortcut(Modifiers::SHIFT, Key::Named(NamedKey::Tab), || {
+                document
+                    .focus_handler()
+                    .sequential_focus_navigation_via_keyboard_event(cx, event);
+            });
     }
 
     pub(crate) fn do_keyboard_scroll(&self, cx: &mut JSContext, scroll: KeyboardScroll) {
