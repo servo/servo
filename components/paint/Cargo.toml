@@ -20,9 +20,8 @@ webgl = ["dep:webgl"]
 webgpu = ["dep:webgpu"]
 webxr = ["webgl", "dep:webxr", "dep:webxr-api"]
 
-[lints.clippy]
-unwrap_used = "deny"
-panic = "deny"
+[lints]
+workspace = true
 
 [dependencies]
 bitflags = { workspace = true }

@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::panic)]
 
 use std::cell::Cell;
 use std::rc::Rc;
