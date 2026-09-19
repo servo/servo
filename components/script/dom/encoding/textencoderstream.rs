@@ -132,7 +132,7 @@ pub(crate) fn encode_and_enqueue_a_chunk(
 ) -> Fallible<()> {
     // Step 1. Let input be the result of converting chunk to a DOMString.
     let Ok(input) = DOMString::from_js_string(cx, chunk) else {
-        return Err(Error::Type(c"Cannot convert chunk to DOMString".to_owned()));
+        return Err(Error::JSFailed);
     };
 
     // Step 2. Convert input to an I/O queue of code units.

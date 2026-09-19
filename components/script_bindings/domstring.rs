@@ -331,19 +331,19 @@ impl DOMString {
         // code units as the one the JavaScript String value x represents.
         // Note: unclear whether `jsstr_to_string` preserve the sequence of code units
         // as meant by the spec (it uses `String::from_utf16_lossy`).
-        let string_ptr = unsafe { js::rust::ToString(cx, value) };
+        rooted!(&in(cx) let string_ptr = unsafe { js::rust::ToString(cx, value) });
         if string_ptr.is_null() {
             debug!("ToString failed");
             Err(DOMStringErrorType::JSConversionError)
         } else {
-            let latin1 = unsafe { js::jsapi::JS_DeprecatedStringHasLatin1Chars(string_ptr) };
+            let latin1 = unsafe { js::jsapi::JS_DeprecatedStringHasLatin1Chars(*string_ptr) };
             let inner = if latin1 {
-                let h = RootedTraceableBox::from_box(Heap::boxed(string_ptr));
+                let h = RootedTraceableBox::from_box(Heap::boxed(*string_ptr));
                 DOMStringType::JSString(h)
             } else {
                 // We need to convert the string anyway as it is not just latin1
                 DOMStringType::Rust(unsafe {
-                    jsstr_to_string(cx, NonNull::new(string_ptr).unwrap())
+                    jsstr_to_string(cx, NonNull::new(*string_ptr).unwrap())
                 })
             };
             Ok(DOMString(RefCell::new(inner)))
