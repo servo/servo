@@ -763,6 +763,11 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 let mut block_level = block_level.borrow_mut();
                 match &mut *block_level {
                     BlockLevelBox::Independent(independent_formatting_context) => {
+                        if box_style.position.is_absolutely_positioned() ||
+                            box_style.float.is_floating()
+                        {
+                            return false;
+                        }
                         let DisplayGeneratingBox::OutsideInside {
                             outside: DisplayOutside::Block,
                             inside: display_inside,
