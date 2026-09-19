@@ -33,7 +33,7 @@ openxr = { workspace = true, optional = true }
 profile_traits = { workspace = true }
 raw-window-handle = { workspace = true }
 servo-base = { workspace = true }
-surfman = { workspace = true, features = ["chains", "sm-raw-window-handle-06"] }
+surfman = { workspace = true }
 webxr-api = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
