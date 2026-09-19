@@ -23,6 +23,7 @@ use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
+use crate::event_loop::document_loader::LoadType;
 use crate::fetch::fetch::RequestWithGlobalScope;
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 
@@ -71,6 +72,7 @@ impl FetchResponseListener for LayoutImageContext {
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
         network_listener::submit_timing(cx, &self, &response, &timing);
+        self.doc.root().finish_load(LoadType::Image(self.url), cx);
     }
 
     fn process_csp_violations(
@@ -119,13 +121,16 @@ pub(crate) fn fetch_image_for_layout(
     let global = node.owner_global();
     let request = RequestBuilder::new(
         Some(document.webview_id()),
-        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
         global.get_referrer(),
     )
     .destination(Destination::Image)
     .is_internal_request(is_internal_request)
     .with_global_scope(&global);
 
-    // Layout image loads do not delay the document load event.
-    document.fetch_background(request, context);
+    // Even though https://github.com/w3c/csswg-drafts/issues/1088 has not been resolved,
+    // if we don't make this blocking we experience a lot of flakiness in WPT tests. These
+    // tests generally assume that `background-image` loads block the document load event.
+    // Hence we match other browsers behavior and make all of such fetches blocking.
+    document.fetch_blocking(LoadType::Image(url), request, context);
 }
