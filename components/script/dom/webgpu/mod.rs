@@ -149,7 +149,6 @@ pub(crate) mod gpurenderpipeline {
 pub(crate) mod gpusampler {
     pub(crate) type GPUSampler = script_webgpu::gpusampler::GPUSampler<crate::DomTypeHolder>;
 }
-pub(crate) mod gpushadermodule_promise_listener;
 pub(crate) mod gpushadermodule {
     pub(crate) type GPUShaderModule =
         script_webgpu::gpushadermodule::GPUShaderModule<crate::DomTypeHolder>;
