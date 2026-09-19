@@ -43,7 +43,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
-use crate::dom::promise::Promise;
 use crate::dom::rtcdatachannel::RTCDataChannel;
 use crate::dom::rtcdatachannelevent::RTCDataChannelEvent;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
@@ -52,6 +51,7 @@ use crate::dom::rtcrtptransceiver::RTCRtpTransceiver;
 use crate::dom::rtcsessiondescription::RTCSessionDescription;
 use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
+use crate::dom::{Promise, RootedPromise, TracedPromise};
 use crate::realms::enter_auto_realm;
 use crate::tasks::task_source::SendableTaskSource;
 
@@ -65,10 +65,8 @@ pub(crate) struct RTCPeerConnection {
     // Helps track state changes between the time createOffer/createAnswer
     // is called and resolved
     offer_answer_generation: Cell<u32>,
-    #[conditional_malloc_size_of]
-    offer_promises: DomRefCell<Vec<Rc<Promise>>>,
-    #[conditional_malloc_size_of]
-    answer_promises: DomRefCell<Vec<Rc<Promise>>>,
+    offer_promises: DomRefCell<Vec<TracedPromise>>,
+    answer_promises: DomRefCell<Vec<TracedPromise>>,
     local_description: MutNullableDom<RTCSessionDescription>,
     remote_description: MutNullableDom<RTCSessionDescription>,
     gathering_state: Cell<RTCIceGatheringState>,
@@ -557,8 +555,8 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         &self,
         current_realm: &mut CurrentRealm,
         candidate: &RTCIceCandidateInit,
-    ) -> Rc<Promise> {
-        let p = Promise::new_in_realm(current_realm);
+    ) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(current_realm);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
             p.reject_error(
                 current_realm,
@@ -598,13 +596,13 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         &self,
         current_realm: &mut CurrentRealm,
         _options: &RTCOfferOptions,
-    ) -> Rc<Promise> {
-        let p = Promise::new_in_realm(current_realm);
+    ) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(current_realm);
         if self.closed.get() {
             p.reject_error(current_realm, Error::InvalidState(None));
             return p;
         }
-        self.offer_promises.borrow_mut().push(p.clone());
+        self.offer_promises.borrow_mut().push(p.to_traced());
         self.create_offer();
         p
     }
@@ -614,13 +612,13 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         &self,
         current_realm: &mut CurrentRealm,
         _options: &RTCAnswerOptions,
-    ) -> Rc<Promise> {
-        let p = Promise::new_in_realm(current_realm);
+    ) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(current_realm);
         if self.closed.get() {
             p.reject_error(current_realm, Error::InvalidState(None));
             return p;
         }
-        self.answer_promises.borrow_mut().push(p.clone());
+        self.answer_promises.borrow_mut().push(p.to_traced());
         self.create_answer();
         p
     }
@@ -640,12 +638,12 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         &self,
         current_realm: &mut CurrentRealm,
         desc: &RTCSessionDescriptionInit,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // XXXManishearth validate the current state
-        let p = Promise::new_in_realm(current_realm);
+        let p = Promise::new_in_realm_rooted(current_realm);
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.convert();
-        let trusted_promise = TrustedPromise::new(p.clone());
+        let trusted_promise = TrustedPromise::from(&p);
         let task_source = self
             .global()
             .task_manager()
@@ -683,12 +681,12 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         &self,
         current_realm: &mut CurrentRealm,
         desc: &RTCSessionDescriptionInit,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // XXXManishearth validate the current state
-        let p = Promise::new_in_realm(current_realm);
+        let p = Promise::new_in_realm_rooted(current_realm);
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.convert();
-        let trusted_promise = TrustedPromise::new(p.clone());
+        let trusted_promise = TrustedPromise::from(&p);
         let task_source = self
             .global()
             .task_manager()
