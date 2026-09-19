@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<body>
+<p>paint timing frame</p>
+<script>
+  // Report each paint-timing entry to the embedder as it is observed. This
+  // works even across origins, where the embedder cannot read this frame's
+  // `performance` object directly.
+  new PerformanceObserver(list => {
+    for (const entry of list.getEntries()) {
+      parent.postMessage({type: 'paint-entry', name: entry.name}, '*');
+    }
+  }).observe({type: 'paint', buffered: true});
+</script>
+</body>

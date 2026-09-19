@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Paint Timing: nested browsing context eligibility</title>
+<link rel="author" title="Shubham Gupta" href="mailto:shubhamg13.work@gmail.com">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+setup({hide_test_state: true});
+
+// Load `src` in a new iframe and resolve with the paint-timing entry names that
+// the frame reports to this document. When `waitForBoth` is true, wait until
+// both first-paint and first-contentful-paint have been reported; otherwise
+// resolve after a settling period.
+function loadFrameAndGetPaintEntries(t, src, waitForBoth) {
+  return new Promise(resolve => {
+    const names = [];
+    const frame = document.createElement('iframe');
+    addEventListener('message', function onMessage(event) {
+      if (!event.data || event.data.type !== 'paint-entry' ||
+          event.source !== frame.contentWindow) {
+        return;
+      }
+      names.push(event.data.name);
+      if (waitForBoth && names.includes('first-paint') &&
+          names.includes('first-contentful-paint')) {
+        resolve(names);
+      }
+    });
+    frame.addEventListener('load', () => t.step_timeout(() => resolve(names), 500));
+    frame.src = src;
+    document.body.appendChild(frame);
+  });
+}
+
+promise_test(async t => {
+  assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+
+  const names = await loadFrameAndGetPaintEntries(
+    t, 'resources/paint-timing-iframe.html', true);
+  assert_true(names.includes('first-paint'),
+    `Same-origin nested browsing context reported first-paint (got [${names}]).`);
+  assert_true(names.includes('first-contentful-paint'),
+    `Same-origin nested browsing context reported first-contentful-paint (got [${names}]).`);
+}, 'Same-origin nested browsing contexts are paint-timing eligible.');
+
+promise_test(async t => {
+  assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+
+  // Whether a nested browsing context is configured to report paint timing is
+  // user-agent defined. Servo only enables it for same-origin nested browsing
+  // contexts, so this cross-origin frame must not report any paint timing.
+  const src = 'http://{{domains[www]}}:{{ports[http][1]}}' +
+              '/_mozilla/mozilla/paint-timing/resources/paint-timing-iframe.html';
+  const names = await loadFrameAndGetPaintEntries(t, src, false);
+  assert_array_equals(names, [],
+    'Cross-origin nested browsing context reported no paint timing.');
+}, 'Cross-origin nested browsing contexts are not paint-timing eligible.');
+</script>
+</body>
+</html>
