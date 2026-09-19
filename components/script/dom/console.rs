@@ -21,8 +21,8 @@ use js::rust::wrappers2::{
     GetArrayLength, GetBuiltinClass, GetPropertyKeys, GetSavedFrameColumn,
     GetSavedFrameFunctionDisplayName, GetSavedFrameLine, GetSavedFrameSource,
     JS_ClearPendingException, JS_GetElement, JS_GetFunctionDisplayId, JS_GetFunctionId,
-    JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_IdToValue, JS_Stringify,
-    JS_ValueToFunction, JS_ValueToSource, MapEntries, MapSize,
+    JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_GetPrototype, JS_IdToValue,
+    JS_Stringify, JS_ValueToFunction, JS_ValueToSource, MapEntries, MapSize,
 };
 use js::rust::{
     CapturedJSStack, HandleObject, HandleValue, IdVector, ToNumber, ToString,
@@ -204,6 +204,7 @@ fn console_argument_from_handle_value(
             }
 
             seen.push(handle_value.asBits_);
+            rooted!(&in(cx) let object = handle_value.to_object());
             let console_object = console_object_from_handle_value(cx, handle_value, seen);
             let js_value = seen.pop();
             debug_assert_eq!(js_value, Some(handle_value.asBits_));
@@ -214,6 +215,7 @@ fn console_argument_from_handle_value(
                     class,
                     own_property_length: preview.own_properties_length,
                     preview: Some(Box::new(preview)),
+                    prototype: object_prototype_debugger_value(cx, object.handle(), 0),
                 });
             }
 
@@ -233,6 +235,47 @@ fn console_argument_from_handle_value(
             DebuggerValue::StringValue("<error>".into())
         },
     }
+}
+
+#[expect(unsafe_code)]
+fn object_prototype_debugger_value(
+    cx: &mut JSContext,
+    object: HandleObject,
+    depth: usize,
+) -> Option<Box<DebuggerValue>> {
+    if depth >= MAX_LOG_DEPTH {
+        return None;
+    }
+
+    rooted!(&in(cx) let mut prototype = ptr::null_mut::<jsapi::JSObject>());
+    if unsafe { !JS_GetPrototype(cx, object, prototype.handle_mut()) } {
+        return None;
+    }
+    if prototype.is_null() {
+        return Some(Box::new(DebuggerValue::NullValue(false)));
+    }
+
+    let mut prototype_class = ESClass::Other;
+    if !unsafe { GetBuiltinClass(cx, prototype.handle(), &mut prototype_class as *mut _) } {
+        return None;
+    }
+
+    let class = match prototype_class {
+        ESClass::Object => "Object",
+        ESClass::Array => "Array",
+        ESClass::Map => "Map",
+        ESClass::Function => "Function",
+        ESClass::Other => return None,
+        _ => return None,
+    };
+
+    Some(Box::new(DebuggerValue::ObjectValue {
+        actor: None,
+        class: class.to_owned(),
+        own_property_length: None,
+        preview: None,
+        prototype: object_prototype_debugger_value(cx, prototype.handle(), depth + 1),
+    }))
 }
 
 fn accessor_value_from_property_descriptor(descriptor: &PropertyDescriptor) -> DebuggerValue {
