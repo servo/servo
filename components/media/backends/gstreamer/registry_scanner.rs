@@ -4,15 +4,58 @@
 
 use std::collections::HashSet;
 use std::str::FromStr;
-use std::sync::LazyLock;
+use std::sync::Mutex;
 
 // The GStreamer registry holds the metadata of the set of plugins available in the host.
 // This scanner is used to lazily analyze the registry and to provide information about
 // the set of supported mime types and codecs that the backend is able to deal with.
-pub static GSTREAMER_REGISTRY_SCANNER: LazyLock<GStreamerRegistryScanner> =
-    LazyLock::new(GStreamerRegistryScanner::new);
+pub(crate) static GSTREAMER_REGISTRY_SCANNER: CachedGStreamerRegistryScanner =
+    CachedGStreamerRegistryScanner::new();
 
-pub struct GStreamerRegistryScanner {
+/// A lazily-initialized snapshot of the registry, which will be automatically
+/// rescanned if the registry contents have changed since the last time a scan
+/// occurred.
+pub(crate) struct CachedGStreamerRegistryScanner(Mutex<Option<GStreamerRegistryScannerSnapshot>>);
+
+impl CachedGStreamerRegistryScanner {
+    const fn new() -> Self {
+        Self(Mutex::new(None))
+    }
+
+    pub(crate) fn is_container_type_supported(&self, container_type: &str) -> bool {
+        self.with_scanner(|scanner| scanner.is_container_type_supported(container_type))
+    }
+
+    pub(crate) fn are_all_codecs_supported(&self, codecs: &Vec<&str>) -> bool {
+        self.with_scanner(|scanner| scanner.are_all_codecs_supported(codecs))
+    }
+
+    fn with_scanner(&self, f: impl FnOnce(&GStreamerRegistryScanner) -> bool) -> bool {
+        let cookie = gstreamer::Registry::get().feature_list_cookie();
+        let mut cached = self.0.lock().unwrap();
+        let scanner = match &*cached {
+            Some(snapshot) if snapshot.feature_cookie == cookie => &snapshot.scanner,
+            _ => {
+                let snapshot = GStreamerRegistryScannerSnapshot {
+                    feature_cookie: cookie,
+                    scanner: GStreamerRegistryScanner::new(),
+                };
+                *cached = Some(snapshot);
+                &cached.as_ref().unwrap().scanner
+            },
+        };
+        f(scanner)
+    }
+}
+
+/// A registry scanner paired with a generational token from when the scanner
+/// was initialized. If the registry contents change, the token won't match.
+struct GStreamerRegistryScannerSnapshot {
+    feature_cookie: u32,
+    scanner: GStreamerRegistryScanner,
+}
+
+pub(crate) struct GStreamerRegistryScanner {
     supported_mime_types: HashSet<&'static str>,
     supported_codecs: HashSet<&'static str>,
 }
