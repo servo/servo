@@ -21,11 +21,13 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
     GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
     GPUDeviceMethods, GPUDeviceWrap, GPUErrorFilter, GPUExternalTextureDescriptor,
-    GPUPipelineLayoutDescriptor, GPUQuerySetDescriptor, GPURenderBundleEncoderDescriptor,
-    GPURenderPipelineDescriptor, GPUSamplerDescriptor, GPUShaderModuleDescriptor,
-    GPUTextureDescriptor, GPUTextureFormat, GPUUncapturedErrorEventInit, GPUVertexStepMode,
+    GPUPipelineErrorReason, GPUPipelineLayoutDescriptor, GPUQuerySetDescriptor,
+    GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor, GPUSamplerDescriptor,
+    GPUShaderModuleDescriptor, GPUTextureDescriptor, GPUTextureFormat, GPUUncapturedErrorEventInit,
+    GPUVertexStepMode,
 };
 use script_bindings::codegen::GenericUnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
+use script_bindings::conversions::DerivedFrom;
 use script_bindings::error::Error;
 use script_bindings::inheritance::Castable;
 use script_bindings::interfaces::{
@@ -34,14 +36,17 @@ use script_bindings::interfaces::{
 use script_bindings::reflector::{
     DomGlobalGeneric, reflect_weak_referenceable_dom_object_with_cx_and_wrap,
 };
-use script_bindings::traits::DomEventTrait;
+use script_bindings::routed_promise::RoutedPromiseListener;
+use script_bindings::traits::{DomEventTrait, DomExceptionTrait};
 use script_bindings::{DomTypes, cformat, task};
 use stylo_atoms::atom;
 use webgpu_traits::{
     BlendState, ColorTargetState, ColorWrites, DepthBiasState, DepthStencilState, Features,
-    FragmentState, Limits, MultisampleState, RenderPipelineDescriptor, StencilFaceState,
+    FragmentState, Limits, MultisampleState, PopError, RenderPipelineDescriptor, StencilFaceState,
     StencilState, TextureFormat, VertexAttribute, VertexBufferLayout, VertexState, VertexStepMode,
-    WebGPU, WebGPUDevice, WebGPUQueue, WebGPURequest,
+    WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
+    WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
+    WebGPURenderPipelineResponse, WebGPURequest,
 };
 
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
@@ -61,6 +66,7 @@ use crate::gpucomputepipeline::GPUComputePipeline;
 use crate::gpuconvert::WebGPUConvert;
 use crate::gpuerror::{AsWebGpu, GPUError};
 use crate::gpuexternaltexture::GPUExternalTexture;
+use crate::gpupipelineerror::GPUPipelineError;
 use crate::gpupipelinelayout::GPUPipelineLayout;
 use crate::gpuqueryset::GPUQuerySet;
 use crate::gpurenderbundleencoder::GPURenderBundleEncoder;
@@ -227,10 +233,6 @@ where
 
     pub fn queue_id(&self) -> WebGPUQueue {
         self.default_queue.id()
-    }
-
-    pub fn channel(&self) -> WebGPU {
-        self.droppable.channel.clone()
     }
 
     pub(crate) fn dispatch_error(&self, error: webgpu_traits::Error) {
@@ -424,6 +426,10 @@ impl<D> GPUDevice<D>
 where
     D: Equivalence,
 {
+    pub fn channel(&self) -> WebGPU {
+        self.droppable.channel.clone()
+    }
+
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
     pub fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
         let this = Trusted::new(self);
@@ -700,6 +706,137 @@ where
             {
                 warn!("Failed to send DestroyDevice ({:?}) ({})", self.id().0, e);
             }
+        }
+    }
+}
+
+impl<D: Equivalence> RoutedPromiseListener<D, WebGPUPoppedErrorScopeResponse> for GPUDevice<D>
+where
+    Self: DomGlobalGeneric<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
+    D::GPUError: Castable,
+    D::GPUValidationError: DerivedFrom<GPUError<D>>,
+    D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
+    D::GPUInternalError: DerivedFrom<GPUError<D>>,
+    D::DOMException: DomExceptionTrait,
+{
+    fn handle_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        response: WebGPUPoppedErrorScopeResponse,
+        promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
+    ) {
+        match response {
+            Ok(None) | Err(PopError::Lost) => {
+                promise.resolve_native(cx, &None::<Option<GPUError<D>>>)
+            },
+            Err(PopError::Empty) => promise.reject_error(
+                cx,
+                Error::Operation(Some("Error scope stack is empty".into())),
+            ),
+            Ok(Some(error)) => {
+                let error = GPUError::<D>::from_error(cx, &self.global_from_reflector(), error);
+                promise.resolve_native(cx, &error);
+            },
+        }
+    }
+}
+
+impl<D: Equivalence> RoutedPromiseListener<D, WebGPUComputePipelineResponse> for GPUDevice<D>
+where
+    Self: DomGlobalGeneric<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
+    D::GPUError: Castable,
+    D::GPUValidationError: DerivedFrom<GPUError<D>>,
+    D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
+    D::GPUInternalError: DerivedFrom<GPUError<D>>,
+    D::DOMException: DomExceptionTrait,
+{
+    fn handle_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        response: WebGPUComputePipelineResponse,
+        promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
+    ) {
+        match response {
+            Ok(pipeline) => {
+                let gpu_compute_pipeline = GPUComputePipeline::<D>::new(
+                    cx,
+                    &self.global_from_reflector(),
+                    WebGPUComputePipeline(pipeline.id),
+                    pipeline.label.into(),
+                    self,
+                );
+                promise.resolve_native(cx, &gpu_compute_pipeline)
+            },
+            Err(webgpu_traits::Error::Validation(msg)) => {
+                let gpu_pipeline_error = GPUPipelineError::<D>::new(
+                    cx,
+                    &self.global_from_reflector(),
+                    msg.into(),
+                    GPUPipelineErrorReason::Validation,
+                );
+                promise.reject_native(cx, &gpu_pipeline_error)
+            },
+            Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
+                let gpu_pipeline_error = GPUPipelineError::<D>::new(
+                    cx,
+                    &self.global_from_reflector(),
+                    msg.into(),
+                    GPUPipelineErrorReason::Internal,
+                );
+                promise.reject_native(cx, &gpu_pipeline_error)
+            },
+        }
+    }
+}
+
+impl<D: Equivalence> RoutedPromiseListener<D, WebGPURenderPipelineResponse> for GPUDevice<D>
+where
+    Self: DomGlobalGeneric<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
+    D::GPUError: Castable,
+    D::GPUValidationError: DerivedFrom<GPUError<D>>,
+    D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
+    D::GPUInternalError: DerivedFrom<GPUError<D>>,
+    D::DOMException: DomExceptionTrait,
+{
+    fn handle_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        response: WebGPURenderPipelineResponse,
+        promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
+    ) {
+        match response {
+            Ok(pipeline) => {
+                let gpu_pipeline = GPURenderPipeline::<D>::new(
+                    cx,
+                    &self.global_from_reflector(),
+                    WebGPURenderPipeline(pipeline.id),
+                    pipeline.label.into(),
+                    self,
+                );
+                promise.resolve_native(cx, &gpu_pipeline)
+            },
+            Err(webgpu_traits::Error::Validation(msg)) => {
+                let pipeline_error = GPUPipelineError::<D>::new(
+                    cx,
+                    &self.global_from_reflector(),
+                    msg.into(),
+                    GPUPipelineErrorReason::Validation,
+                );
+
+                promise.reject_native(cx, &pipeline_error)
+            },
+            Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
+                let pipeline_error = GPUPipelineError::<D>::new(
+                    cx,
+                    &self.global_from_reflector(),
+                    msg.into(),
+                    GPUPipelineErrorReason::Internal,
+                );
+                promise.reject_native(cx, &pipeline_error)
+            },
         }
     }
 }

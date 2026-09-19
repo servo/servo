@@ -102,6 +102,9 @@ pub trait HeapTracedPromiseHelpers<D: DomTypes> {
 pub trait StackRootPromiseHelpers<D: DomTypes> {
     type HeapTraced;
     fn to_traced(&self) -> Self::HeapTraced;
+    fn reject_native<T>(&self, cx: &mut JSContext, val: &T)
+    where
+        T: ToJSValConvertible;
 }
 
 pub trait PromiseHelpers<D: DomTypes> {

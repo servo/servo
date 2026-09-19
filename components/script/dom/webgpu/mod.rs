@@ -89,7 +89,6 @@ pub(crate) mod gpucomputepipeline {
     pub(crate) type GPUComputePipeline =
         script_webgpu::gpucomputepipeline::GPUComputePipeline<crate::DomTypeHolder>;
 }
-pub(crate) mod gpudevice_promise_listener;
 pub(crate) mod gpudevice {
     pub(crate) type GPUDevice = script_webgpu::gpudevice::GPUDevice<crate::DomTypeHolder>;
 }
