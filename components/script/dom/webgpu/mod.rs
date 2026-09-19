@@ -39,7 +39,6 @@ pub(crate) mod gpu {
     #[expect(clippy::upper_case_acronyms)]
     pub(crate) type GPU = script_webgpu::gpu::GPU<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuadapter_promise_listener;
 pub(crate) mod gpuadapter {
     pub(crate) type GPUAdapter = script_webgpu::gpuadapter::GPUAdapter<crate::DomTypeHolder>;
 }
@@ -225,13 +224,20 @@ impl WebGPURootedPromiseTrait<crate::DomTypeHolder> for RootedPromise {
     }
 }
 
-impl WebGPUGlobalTrait for GlobalScope {
+impl WebGPUGlobalTrait<crate::DomTypeHolder> for GlobalScope {
     fn global_wgpu_id_hub(&self) -> Arc<script_webgpu::identityhub::IdentityHub> {
         self.wgpu_id_hub()
     }
 
     fn queue_webgpu_task_source(&self, task: impl TaskOnce + 'static) {
         self.task_manager().webgpu_task_source().queue(task);
+    }
+
+    fn add_webgpu_device(
+        &self,
+        device: &script_webgpu::gpudevice::GPUDevice<crate::DomTypeHolder>,
+    ) {
+        self.add_gpu_device(device)
     }
 }
 

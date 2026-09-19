@@ -18,7 +18,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::EventBinding::EventInit;
 use script_bindings::codegen::GenericBindings::EventHandlerBinding::EventHandlerNonNull;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
-    GPUAdapterMethods, GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
+    GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
     GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
     GPUDeviceMethods, GPUDeviceWrap, GPUErrorFilter, GPUExternalTextureDescriptor,
     GPUPipelineLayoutDescriptor, GPUQuerySetDescriptor, GPURenderBundleEncoderDescriptor,
@@ -145,7 +145,7 @@ pub struct GPUDevice<D: DomTypes> {
 impl<D> GPUDevice<D>
 where
     D: Equivalence,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
     EventHandlerNonNull<D>: CallbackContainer<D>,
 {
     #[allow(clippy::too_many_arguments)]
@@ -191,7 +191,7 @@ where
         let queue = D::GPUQueue::new(cx, global, channel.clone(), queue);
         let limits = GPUSupportedLimits::new(cx, global, limits);
         let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
-        let adapter_info = GPUAdapterInfo::clone_from(cx, global, &adapter.Info());
+        let adapter_info = GPUAdapterInfo::clone_from(cx, global, &adapter.info());
         let lost_promise = <D::Promise as PromiseHelpers<D>>::StackRoot::new_rooted(cx, global);
         let device = reflect_weak_referenceable_dom_object_with_cx_and_wrap::<D, _, _>(
             cx,
@@ -422,7 +422,14 @@ where
         };
         Ok(desc)
     }
+}
 
+impl<D> GPUDevice<D>
+where
+    D: Equivalence,
+    //<D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
+    //EventHandlerNonNull<D>: CallbackContainer<D>,
+{
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
     pub fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
         let this = Trusted::new(self);
