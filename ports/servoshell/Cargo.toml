@@ -101,6 +101,7 @@ webdriver_server = { workspace = true }
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = { workspace = true }
 jni = { workspace = true }
+servo-allocator = { workspace = true, features = ["use-jemalloc"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
