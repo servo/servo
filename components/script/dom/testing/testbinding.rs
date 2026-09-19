@@ -20,6 +20,7 @@ use js::rust::{
     CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue,
 };
 use js::typedarray::{self, HeapUint8ClampedArray};
+use script_bindings::callback::RootedCallback;
 use script_bindings::cformat;
 use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
@@ -687,7 +688,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassAny(&self, _: HandleValue) {}
     fn PassObject(&self, _: *mut JSObject) {}
     fn PassCallbackFunction(&self, _: Rc<Function>) {}
-    fn PassCallbackInterface(&self, _: Rc<EventListener>) {}
+    fn PassCallbackInterface(&self, _: RootedCallback<EventListener>) {}
     fn PassSequence(&self, _: Vec<i32>) {}
     fn PassAnySequence(&self, _: CustomAutoRooterGuard<Vec<JSVal>>) {}
     fn AnySequencePassthrough(
@@ -777,7 +778,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassNullableUnion5(&self, _: Option<UnsignedLongOrBoolean>) {}
     fn PassNullableUnion6(&self, _: Option<ByteStringOrLong>) {}
     fn PassNullableCallbackFunction(&self, _: Option<Rc<Function>>) {}
-    fn PassNullableCallbackInterface(&self, _: Option<Rc<EventListener>>) {}
+    fn PassNullableCallbackInterface(&self, _: Option<RootedCallback<EventListener>>) {}
     fn PassNullableSequence(&self, _: Option<Vec<i32>>) {}
 
     fn PassOptionalBoolean(&self, _: Option<bool>) {}
@@ -807,7 +808,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOptionalAny(&self, _: HandleValue) {}
     fn PassOptionalObject(&self, _: Option<*mut JSObject>) {}
     fn PassOptionalCallbackFunction(&self, _: Option<Rc<Function>>) {}
-    fn PassOptionalCallbackInterface(&self, _: Option<Rc<EventListener>>) {}
+    fn PassOptionalCallbackInterface(&self, _: Option<RootedCallback<EventListener>>) {}
     fn PassOptionalSequence(&self, _: Option<Vec<i32>>) {}
 
     fn PassOptionalNullableBoolean(&self, _: Option<Option<bool>>) {}
@@ -836,7 +837,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOptionalNullableUnion5(&self, _: Option<Option<UnsignedLongOrBoolean>>) {}
     fn PassOptionalNullableUnion6(&self, _: Option<Option<ByteStringOrLong>>) {}
     fn PassOptionalNullableCallbackFunction(&self, _: Option<Option<Rc<Function>>>) {}
-    fn PassOptionalNullableCallbackInterface(&self, _: Option<Option<Rc<EventListener>>>) {}
+    fn PassOptionalNullableCallbackInterface(
+        &self,
+        _: Option<Option<RootedCallback<EventListener>>>,
+    ) {
+    }
     fn PassOptionalNullableSequence(&self, _: Option<Option<Vec<i32>>>) {}
 
     fn PassOptionalBooleanWithDefault(&self, _: bool) {}
@@ -876,7 +881,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOptionalNullableUnionWithDefault(&self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(&self, _: Option<EventOrString>) {}
     // fn PassOptionalNullableCallbackFunctionWithDefault(self, _: Option<Function>) {}
-    fn PassOptionalNullableCallbackInterfaceWithDefault(&self, _: Option<Rc<EventListener>>) {}
+    fn PassOptionalNullableCallbackInterfaceWithDefault(
+        &self,
+        _: Option<RootedCallback<EventListener>>,
+    ) {
+    }
     fn PassOptionalAnyWithDefault(&self, _: HandleValue) {}
 
     fn PassOptionalNullableBooleanWithNonNullDefault(&self, _: Option<bool>) {}

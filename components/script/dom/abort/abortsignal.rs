@@ -14,6 +14,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_SetPendingException;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use script_bindings::callback::TracedCallback;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
@@ -60,8 +61,7 @@ pub(crate) enum AbortAlgorithm {
 pub(crate) struct RemovableDomEventListener {
     pub(crate) event_target: Dom<EventTarget>,
     pub(crate) ty: DOMString,
-    #[conditional_malloc_size_of]
-    pub(crate) listener: Option<Rc<EventListener>>,
+    pub(crate) listener: Option<TracedCallback<EventListener>>,
     pub(crate) options: EventListenerOptions,
 }
 
@@ -206,7 +206,7 @@ impl AbortSignal {
             AbortAlgorithm::DomEventListener(removable_listener) => {
                 removable_listener.event_target.remove_event_listener(
                     removable_listener.ty.clone(),
-                    &removable_listener.listener,
+                    removable_listener.listener.as_deref(),
                     &removable_listener.options,
                 );
             },

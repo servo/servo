@@ -465,14 +465,14 @@ macro_rules! unsafe_no_jsmanaged_fields(
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
     ($handler: ty, $event_type: ident, $getter: ident, $setter: ident, $setter_fn: ident) => (
-        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<::std::rc::Rc<$handler>> {
+        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<script_bindings::callback::RootedCallback<$handler>> {
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::eventtarget::EventTarget;
             let eventtarget = self.upcast::<EventTarget>();
             eventtarget.get_event_handler_common(cx, stringify!($event_type))
         }
 
-        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<::std::rc::Rc<$handler>>) {
+        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<script_bindings::callback::RootedCallback<$handler>>) {
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::eventtarget::EventTarget;
             let eventtarget = self.upcast::<EventTarget>();
@@ -483,7 +483,7 @@ macro_rules! define_event_handler(
 
 macro_rules! define_window_owned_event_handler(
     ($handler: ty, $event_type: ident, $getter: ident, $setter: ident) => (
-        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<::std::rc::Rc<$handler>> {
+        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<script_bindings::callback::RootedCallback<$handler>> {
             let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().$getter(cx)
@@ -492,7 +492,7 @@ macro_rules! define_window_owned_event_handler(
             }
         }
 
-        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<::std::rc::Rc<$handler>>) {
+        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<script_bindings::callback::RootedCallback<$handler>>) {
             let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().$setter(cx, listener)
@@ -519,7 +519,7 @@ macro_rules! event_handler(
 /// only to interested pipelines.
 macro_rules! registered_event_handler(
     ($interest:expr, $event_type: ident, $getter: ident, $setter: ident) => (
-        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<::std::rc::Rc<
+        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<script_bindings::callback::RootedCallback<
             crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
         >> {
             use crate::dom::bindings::inheritance::Castable;
@@ -528,7 +528,7 @@ macro_rules! registered_event_handler(
             eventtarget.get_event_handler_common(cx, stringify!($event_type))
         }
 
-        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<::std::rc::Rc<
+        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<script_bindings::callback::RootedCallback<
             crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
         >>) {
             use crate::dom::bindings::inheritance::Castable;
