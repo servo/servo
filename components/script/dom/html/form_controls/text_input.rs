@@ -553,15 +553,15 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
-    pub(crate) fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
+    pub(crate) fn handle_keypress(&mut self, event: &KeyboardEvent) -> KeyReaction {
         let key = event.key();
         let mods = event.modifiers();
-        self.handle_keydown_aux(key, mods, cfg!(target_os = "macos"))
+        self.handle_keypress_aux(key, mods, cfg!(target_os = "macos"))
     }
 
     // This function exists for easy unit testing.
     // To test Mac OS shortcuts on other systems a flag is passed.
-    pub fn handle_keydown_aux(
+    pub fn handle_keypress_aux(
         &mut self,
         key: Key,
         mut mods: Modifiers,

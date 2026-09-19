@@ -152,6 +152,27 @@ impl KeyboardEvent {
         self.modifiers.get()
     }
 
+    /// Returns true iff a keypress event will attempt to fire based on the contents of the key
+    /// press. Note that this does not mean the key state (down or up).
+    ///
+    /// From <https://w3c.github.io/uievents/#keypress>:
+    /// > If supported by a user agent, this event MUST be dispatched when a key is pressed
+    /// > down, if and only if that key normally produces a character value.
+    pub(crate) fn emits_keypress_event(&self) -> bool {
+        matches!(self.key(), Key::Character(_) | Key::Named(NamedKey::Enter)) && !self.IsComposing()
+    }
+
+    /// Returns true iff the keyboard event happens right before an element with editable content
+    /// will be modified.
+    ///
+    /// <https://w3c.github.io/uievents/#keypress-event-order>
+    pub(crate) fn modifies_editable_content(&self) -> bool {
+        let event_type = self.upcast::<Event>().type_();
+        // Changes to editable content should happen after both keypress and keydown.
+        event_type == atom!("keypress") ||
+            (event_type == atom!("keydown") && !self.emits_keypress_event())
+    }
+
     /// <https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent>
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn init_event(

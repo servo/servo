@@ -782,13 +782,26 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     // copied and modified from htmlinputelement.rs
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
-        if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
-            if let Some(keyboard_event) = event.downcast::<KeyboardEvent>() {
-                // This can't be inlined, as holding on to text_input.borrow_mut()
-                // during self.implicit_submission will cause a panic.
-                let action = self.text_input.borrow_mut().handle_keydown(keyboard_event);
-                self.handle_key_reaction(cx, action, event);
-            }
+        if let Some(keyboard_event) = event.downcast::<KeyboardEvent>() &&
+            keyboard_event.modifies_editable_content() &&
+            !event.DefaultPrevented() &&
+            self.upcast::<Element>().has_css_layout_box()
+        {
+            // Falling into this case indicates that the keyboard event should modify the text
+            // input.
+            //
+            // This can't be inlined, as holding on to text_input.borrow_mut()
+            // during self.implicit_submission will cause a panic.
+            let action = self.text_input.borrow_mut().handle_keypress(keyboard_event);
+            self.handle_key_reaction(cx, action, event);
+        } else if event.type_() == atom!("keydown") &&
+            !event.DefaultPrevented() &&
+            self.upcast::<Element>().has_css_layout_box()
+        {
+            // Falling into this case indicates that a keypress will follow the keydown event, so
+            // we shouldn't write to the text input, but still mark as handled to prevent the
+            // document from potentially writing into the text control element.
+            event.mark_as_handled();
         } else if event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
             event.type_() == atom!("compositionend")

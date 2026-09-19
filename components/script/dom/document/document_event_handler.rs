@@ -1621,14 +1621,7 @@ impl DocumentEventHandler {
         // (and keypress if supported) events from being generated
         // TODO: keypress should be deprecated and superceded by beforeinput
 
-        let is_character_value_key = matches!(
-            keyboard_event.event.key,
-            Key::Character(_) | Key::Named(NamedKey::Enter)
-        );
-        if keyboard_event.event.state == KeyState::Down &&
-            is_character_value_key &&
-            !keyboard_event.event.is_composing
-        {
+        if keyboard_event.event.state == KeyState::Down && keyevent.emits_keypress_event() {
             // https://w3c.github.io/uievents/#keypress-event-order
             let keypress_event = KeyboardEvent::new_with_platform_keyboard_event(
                 cx,
