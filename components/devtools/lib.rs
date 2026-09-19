@@ -904,6 +904,7 @@ impl DevtoolsInstance {
             class,
             own_property_length,
             preview,
+            prototype,
         } = value
         else {
             return;
@@ -915,6 +916,7 @@ impl DevtoolsInstance {
             class,
             own_property_length,
             preview.map(|preview| *preview),
+            prototype.map(|prototype| *prototype),
         );
         let _ = result_sender.send(object_actor);
     }
@@ -1048,6 +1050,7 @@ pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerVa
             class,
             own_property_length,
             preview,
+            prototype,
         } => {
             let object_name = ObjectActor::register(
                 registry,
@@ -1055,6 +1058,7 @@ pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerVa
                 class,
                 own_property_length,
                 preview.map(|preview| *preview),
+                prototype.map(|prototype| *prototype),
             );
             let object_msg = registry.encode::<ObjectActor, _>(&object_name);
             let value = serde_json::to_value(object_msg).unwrap_or_default();
