@@ -22,8 +22,7 @@ pub use surfman::Error;
 use surfman::chains::{PreserveBuffer, SwapChain};
 use surfman::{
     Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, GLApi,
-    GLVersion, NativeContext, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture,
-    SurfaceType,
+    GLVersion, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture, SurfaceType,
 };
 use webrender_api::units::{DeviceIntRect, DevicePixel};
 
@@ -204,13 +203,6 @@ impl SurfmanRenderingContext {
         self.device
             .borrow()
             .present_bound_surface(&mut self.context.borrow_mut())
-    }
-
-    #[expect(dead_code)]
-    fn native_context(&self) -> NativeContext {
-        let device = &self.device.borrow();
-        let context = &self.context.borrow();
-        device.native_context(context)
     }
 
     fn framebuffer(&self) -> Option<NativeFramebuffer> {
