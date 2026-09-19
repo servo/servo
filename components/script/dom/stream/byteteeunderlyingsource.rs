@@ -7,8 +7,9 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
-use js::jsval::ObjectValue;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::{Heap, Value};
+use js::jsval::UndefinedValue;
 use js::rust::HandleValue as SafeHandleValue;
 use js::typedarray::ArrayBufferViewU8;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
@@ -472,16 +473,14 @@ impl ByteTeeUnderlyingSource {
         }
     }
 
-    #[expect(unsafe_code)]
     fn resolve_cancel_promise(&self, cx: &mut JSContext) {
         // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
         rooted_vec!(let mut reasons_values);
         reasons_values.push(self.reason_1.get());
         reasons_values.push(self.reason_2.get());
 
-        let reasons_values_array = HandleValueArray::from(&reasons_values);
-        rooted!(&in(cx) let reasons = unsafe { NewArrayObject(cx.raw_cx(), &reasons_values_array) });
-        rooted!(&in(cx) let reasons_value = ObjectValue(reasons.get()));
+        rooted!(&in(cx) let mut reasons_value = UndefinedValue());
+        reasons_values.to_jsval(cx, reasons_value.handle_mut());
 
         // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
         let cancel_result = self
