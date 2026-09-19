@@ -10,7 +10,7 @@ use style::attr::AttrValue;
 use crate::dom::bindings::inheritance::{
     Castable, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId,
     NodeTypeId, SVGElementTypeId, SVGGeometryElementTypeId, SVGGradientElementTypeId,
-    SVGGraphicsElementTypeId,
+    SVGGraphicsElementTypeId, SVGTextContentElementTypeId, SVGTextPositioningElementTypeId,
 };
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -68,6 +68,7 @@ use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, MoveContext, Node, UnbindContext,
 };
 use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::svg::svgaelement::SVGAElement;
 use crate::dom::svg::svgcircleelement::SVGCircleElement;
 use crate::dom::svg::svgdefselement::SVGDefsElement;
 use crate::dom::svg::svgelement::SVGElement;
@@ -77,6 +78,7 @@ use crate::dom::svg::svgimageelement::SVGImageElement;
 use crate::dom::svg::svglineargradientelement::SVGLinearGradientElement;
 use crate::dom::svg::svglineelement::SVGLineElement;
 use crate::dom::svg::svgpathelement::SVGPathElement;
+use crate::dom::svg::svgpatternelement::SVGPatternElement;
 use crate::dom::svg::svgpolygonelement::SVGPolygonElement;
 use crate::dom::svg::svgpolylineelement::SVGPolylineElement;
 use crate::dom::svg::svgradialgradientelement::SVGRadialGradientElement;
@@ -84,6 +86,8 @@ use crate::dom::svg::svgrectelement::SVGRectElement;
 use crate::dom::svg::svgstopelement::SVGStopElement;
 use crate::dom::svg::svgsvgelement::SVGSVGElement;
 use crate::dom::svg::svgsymbolelement::SVGSymbolElement;
+use crate::dom::svg::svgtextelement::SVGTextElement;
+use crate::dom::svg::svgtspanelement::SVGTSpanElement;
 use crate::dom::svg::svguseelement::SVGUseElement;
 use crate::dom::types::MouseEvent;
 
@@ -383,6 +387,20 @@ pub(crate) fn vtable_for(node: &Node) -> &dyn VirtualMethods {
             SVGGraphicsElementTypeId::SVGImageElement,
         ))) => node.downcast::<SVGImageElement>().unwrap() as &dyn VirtualMethods,
         NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGTextContentElement(
+                SVGTextContentElementTypeId::SVGTextPositioningElement(
+                    SVGTextPositioningElementTypeId::SVGTextElement,
+                ),
+            ),
+        ))) => node.downcast::<SVGTextElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGTextContentElement(
+                SVGTextContentElementTypeId::SVGTextPositioningElement(
+                    SVGTextPositioningElementTypeId::SVGTSpanElement,
+                ),
+            ),
+        ))) => node.downcast::<SVGTSpanElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
             SVGGraphicsElementTypeId::SVGGeometryElement(SVGGeometryElementTypeId::SVGRectElement),
         ))) => node.downcast::<SVGRectElement>().unwrap() as &dyn VirtualMethods,
         NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
@@ -425,6 +443,12 @@ pub(crate) fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGStopElement)) => {
             node.downcast::<SVGStopElement>().unwrap() as &dyn VirtualMethods
         },
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGPatternElement)) => {
+            node.downcast::<SVGPatternElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGAElement,
+        ))) => node.downcast::<SVGAElement>().unwrap() as &dyn VirtualMethods,
         NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGElement)) => {
             node.downcast::<SVGElement>().unwrap() as &dyn VirtualMethods
         },
