@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo_webvtt::shared_test_setup::{compute_result_in_seconds, parser_with_dummy_sink};
-use servo_webvtt::{
-    WebVttCue, WebVttCueSize, WebVttLineAndPositionSetting, WebVttParserError, WebVttSnapToLines,
-    WebVttTextAlignment, WebVttWritingDirection,
+use servo_webvtt::WebVttParserError;
+use servo_webvtt::cue::settings::{
+    WebVttCue, WebVttCueSize, WebVttLineAndPositionSetting, WebVttSnapToLines, WebVttTextAlignment,
+    WebVttWritingDirection,
 };
+use servo_webvtt::shared_test_setup::{compute_result_in_seconds, parser_with_dummy_sink};
 
 macro_rules! include_vtt_file {
     ($file:expr $(,)?) => {
