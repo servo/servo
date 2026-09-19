@@ -6,7 +6,7 @@ pub(crate) use self::window::*;
 pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;
 pub(crate) mod history;
-mod layout_image;
+pub(crate) mod layout_image;
 pub(crate) mod location;
 pub(crate) mod screen;
 pub(crate) mod scrolling_box;

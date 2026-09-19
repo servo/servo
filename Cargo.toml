@@ -133,6 +133,7 @@ hyper-util = { version = "0.1", features = ["client-legacy", "client-proxy", "ht
 icu_locale_core = "2.1.0"
 icu_properties = "2.1.0"
 icu_segmenter = "2.1.0"
+ico = "0.5"
 image = { version = "0.25", default-features = false, features = ["bmp", "gif", "ico", "jpeg", "png", "rayon", "webp"] }
 imsz = "0.4"
 indexmap = { version = "2.14.0", features = ["std"] }

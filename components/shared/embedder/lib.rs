@@ -16,9 +16,10 @@ pub mod webdriver;
 
 use std::collections::HashMap;
 use std::ffi::c_void;
-use std::fmt::{Debug, Display, Error, Formatter};
+use std::fmt::{Debug, Display, Error, Formatter, Result as FmtResult};
 use std::hash::Hash;
 use std::ops::Range;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use accesskit::TreeUpdate;
@@ -35,7 +36,7 @@ use servo_base::Epoch;
 use servo_base::generic_channel::{
     GenericCallback, GenericSender, GenericSharedMemory, SendResult,
 };
-use servo_base::id::{PipelineId, WebViewId};
+use servo_base::id::{CursorId, PipelineId, WebViewId};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use servo_url::ServoUrl;
 use strum::{EnumMessage, IntoStaticStr};
@@ -189,10 +190,65 @@ pub enum ShutdownState {
     FinishedShuttingDown,
 }
 
+/// Metadata for custom cursor images
+/// <https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/cursor>
+#[derive(Clone, Debug, Deserialize, PartialEq, MallocSizeOf, Serialize)]
+pub struct CursorMetadata {
+    /// URL used to retrieve the image.
+    pub url: Url,
+    /// Optional x- and y-coordinates indicating the cursor hotspot;
+    /// the precise position within the cursor that is being pointed to.
+    /// The numbers are in units of image pixels.
+    /// They are relative to the top left corner of the image, which corresponds to (0,0)
+    pub hotspot: Option<DevicePoint>,
+}
+
+/// A cursor image fetched from a URL.
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
+pub struct CustomCursorImage {
+    image: Rc<Image>,
+    metadata: CursorMetadata,
+}
+
+impl CustomCursorImage {
+    pub fn new(image: Image, metadata: CursorMetadata) -> CustomCursorImage {
+        CustomCursorImage {
+            image: Rc::new(image),
+            metadata,
+        }
+    }
+
+    pub fn get_image(&self) -> &Image {
+        &self.image
+    }
+
+    pub fn get_url(&self) -> &Url {
+        &self.metadata.url
+    }
+
+    pub fn get_hotspot(&self) -> &Option<DevicePoint> {
+        &self.metadata.hotspot
+    }
+
+    pub fn set_hotspot(&mut self, hotspot: Option<DevicePoint>) {
+        self.metadata.hotspot = hotspot;
+    }
+}
+
+impl Debug for CustomCursorImage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        f.debug_struct("CustomCursorImage")
+            .field("width", &self.image.width)
+            .field("height", &self.image.height)
+            .field("format", &self.image.format)
+            .field("metadata", &self.metadata)
+            .finish()
+    }
+}
+
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub enum Cursor {
     None,
     #[default]
@@ -230,6 +286,49 @@ pub enum Cursor {
     AllScroll,
     ZoomIn,
     ZoomOut,
+    Url(CustomCursorImage),
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum CursorInternal {
+    None,
+    #[default]
+    Default,
+    Pointer,
+    ContextMenu,
+    Help,
+    Progress,
+    Wait,
+    Cell,
+    Crosshair,
+    Text,
+    VerticalText,
+    Alias,
+    Copy,
+    Move,
+    NoDrop,
+    NotAllowed,
+    Grab,
+    Grabbing,
+    EResize,
+    NResize,
+    NeResize,
+    NwResize,
+    SResize,
+    SeResize,
+    SwResize,
+    WResize,
+    EwResize,
+    NsResize,
+    NeswResize,
+    NwseResize,
+    ColResize,
+    RowResize,
+    AllScroll,
+    ZoomIn,
+    ZoomOut,
+    Url(CursorId),
 }
 
 /// A way for Servo to request that the embedder wake up the main event loop.
@@ -388,7 +487,7 @@ pub enum PixelFormat {
 }
 
 /// A raster image buffer.
-#[derive(Clone, Deserialize, Serialize, MallocSizeOf)]
+#[derive(Clone, Deserialize, PartialEq, Serialize, MallocSizeOf)]
 pub struct Image {
     pub width: u32,
     pub height: u32,
@@ -493,8 +592,12 @@ pub enum EmbedderMsg {
     GetClipboardText(WebViewId, GenericCallback<Result<String, String>>),
     /// Sets system clipboard contents
     SetClipboardText(WebViewId, String),
+    /// Register a new cursor image in the embedder
+    RegisterCursor(WebViewId, CursorId, Image, CursorMetadata),
     /// Changes the cursor.
-    SetCursor(WebViewId, Cursor),
+    SetCursor(WebViewId, CursorInternal),
+    /// Update the cursor image's metadata
+    UpdateCursorMetadata(WebViewId, CursorId, CursorMetadata),
     /// A favicon was detected
     NewFavicon(WebViewId, Image),
     /// Get the device independent window rectangle.

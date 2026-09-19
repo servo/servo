@@ -86,7 +86,7 @@ pub use profile_traits;
 // See <https://github.com/servo/servo/issues/40950>.
 pub use resources;
 pub use servo_base::generic_channel::GenericSender;
-pub use servo_base::id::WebViewId;
+pub use servo_base::id::{CursorId, WebViewId};
 pub use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption, Opts, OutputOptions};
 pub use servo_config::prefs::{PrefValue, Preferences, UserAgentPlatform};
 pub use servo_config::{opts, pref, prefs};

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
 
@@ -12,19 +13,20 @@ use accesskit::{
 };
 use dpi::PhysicalSize;
 use embedder_traits::{
-    ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
-    InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MediaSessionActionType, NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll,
-    Theme, TraversalId, UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
+    ContextMenuAction, ContextMenuItem, Cursor, CursorInternal, CursorMetadata, CustomCursorImage,
+    EmbedderControlId, EmbedderControlRequest, Image, InputEvent, InputEventAndId, InputEventId,
+    JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType, NewWebViewDetails,
+    ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId, UrlRequest,
+    ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
-use log::debug;
+use log::{debug, warn};
 use paint_api::WebViewTrait;
 use paint_api::rendering_context::RenderingContext;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
-use servo_base::id::WebViewId;
+use servo_base::id::{CursorId, WebViewId};
 use servo_config::pref;
 use servo_constellation_traits::{
     EmbedderToConstellationMessage, HistoryTraversalSource, SessionHistoryTraversalRequest,
@@ -133,7 +135,9 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
-
+    /// Registry of decoded cursor images received by the embedder.
+    /// Image data is stored in a Rc and can then be shared by the WebViewDelegate
+    cursor_registry: HashMap<CursorId, Cursor>,
     /// The back / forward list of this WebView.
     back_forward_list: Vec<Url>,
 
@@ -182,6 +186,7 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            cursor_registry: Default::default(),
             back_forward_list: Default::default(),
             back_forward_list_index: 0,
             user_content_manager: builder.user_content_manager.clone(),
@@ -406,15 +411,83 @@ impl WebView {
     /// can use [`WebViewDelegate::notify_cursor_changed`] to subscribe to changes in
     /// the  [`WebView`]'s cursor.
     pub fn cursor(&self) -> Cursor {
-        self.inner().cursor
+        self.inner().cursor.clone()
     }
 
-    pub(crate) fn set_cursor(self, new_value: Cursor) {
-        if self.inner().cursor == new_value {
+    /// Registers a new custom cursor in the cursor registry.
+    pub(crate) fn register_cursor(
+        self,
+        cursor_id: CursorId,
+        image: Image,
+        metadata: CursorMetadata,
+    ) {
+        self.inner_mut().cursor_registry.insert(
+            cursor_id,
+            Cursor::Url(CustomCursorImage::new(image, metadata)),
+        );
+    }
+
+    /// Updates the metadata (the hotspot coordinates) for an existing custom cursor in the cursor registry.
+    pub(crate) fn update_cursor_metadata(self, cursor_id: CursorId, metadata: CursorMetadata) {
+        let cursor_registry = &mut self.inner_mut().cursor_registry;
+        let Some(current_image) = cursor_registry.get_mut(&cursor_id) else {
+            warn!("No cursor image registered for cursor id {:?}", cursor_id);
+            return;
+        };
+        if let Cursor::Url(image) = current_image {
+            image.set_hotspot(metadata.hotspot);
+        }
+    }
+
+    pub(crate) fn set_cursor(self, internal_cursor: CursorInternal) {
+        let cursor = match internal_cursor {
+            CursorInternal::None => Cursor::None,
+            CursorInternal::Default => Cursor::Default,
+            CursorInternal::Pointer => Cursor::Pointer,
+            CursorInternal::ContextMenu => Cursor::ContextMenu,
+            CursorInternal::Help => Cursor::Help,
+            CursorInternal::Progress => Cursor::Progress,
+            CursorInternal::Wait => Cursor::Wait,
+            CursorInternal::Cell => Cursor::Cell,
+            CursorInternal::Crosshair => Cursor::Crosshair,
+            CursorInternal::Text => Cursor::Text,
+            CursorInternal::VerticalText => Cursor::VerticalText,
+            CursorInternal::Alias => Cursor::Alias,
+            CursorInternal::Copy => Cursor::Copy,
+            CursorInternal::Move => Cursor::Move,
+            CursorInternal::NoDrop => Cursor::NoDrop,
+            CursorInternal::NotAllowed => Cursor::NotAllowed,
+            CursorInternal::Grab => Cursor::Grab,
+            CursorInternal::Grabbing => Cursor::Grabbing,
+            CursorInternal::EResize => Cursor::EResize,
+            CursorInternal::NResize => Cursor::NResize,
+            CursorInternal::NeResize => Cursor::NeResize,
+            CursorInternal::NwResize => Cursor::NwResize,
+            CursorInternal::SResize => Cursor::SResize,
+            CursorInternal::SeResize => Cursor::SeResize,
+            CursorInternal::SwResize => Cursor::SwResize,
+            CursorInternal::WResize => Cursor::WResize,
+            CursorInternal::EwResize => Cursor::EwResize,
+            CursorInternal::NsResize => Cursor::NsResize,
+            CursorInternal::NeswResize => Cursor::NeswResize,
+            CursorInternal::NwseResize => Cursor::NwseResize,
+            CursorInternal::ColResize => Cursor::ColResize,
+            CursorInternal::RowResize => Cursor::RowResize,
+            CursorInternal::AllScroll => Cursor::AllScroll,
+            CursorInternal::ZoomIn => Cursor::ZoomIn,
+            CursorInternal::ZoomOut => Cursor::ZoomOut,
+            CursorInternal::Url(cursor_id) => self
+                .inner()
+                .cursor_registry
+                .get(&cursor_id)
+                .cloned()
+                .unwrap_or_default(),
+        };
+        if self.inner().cursor == cursor {
             return;
         }
-        self.inner_mut().cursor = new_value;
-        self.delegate().notify_cursor_changed(self, new_value);
+        self.inner_mut().cursor = cursor.clone();
+        self.delegate().notify_cursor_changed(self, cursor);
     }
 
     /// Notify Servo that this [`WebView`] has gained keyboard focus.
