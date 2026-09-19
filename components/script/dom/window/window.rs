@@ -2717,7 +2717,11 @@ impl Window {
 
         let mut rooted_nodes_for_accessibility_integrity_check = None;
         let mut accessibility_damage = None;
-        if reflow_goal == ReflowGoal::UpdateTheRendering && self.layout().accessibility_active() {
+        let should_update_accessibility_tree = matches!(
+            reflow_goal,
+            ReflowGoal::UpdateTheRendering | ReflowGoal::LayoutQuery(QueryMsg::AccessKitNodeQuery)
+        );
+        if should_update_accessibility_tree && self.layout().accessibility_active() {
             rooted_nodes_for_accessibility_integrity_check =
                 document.rooted_nodes_for_accessibility_integrity_check();
             let mut accessibility_data = document.accessibility_data_mut();
@@ -3138,6 +3142,14 @@ impl Window {
             animations,
             document.current_animation_timeline_value(),
         ))
+    }
+
+    pub(crate) fn accesskit_node_query(
+        &self,
+        element: TrustedNodeAddress,
+    ) -> Option<accesskit::Node> {
+        self.layout_reflow(QueryMsg::AccessKitNodeQuery);
+        self.layout.borrow().query_accesskit_node(element)
     }
 
     /// If the given |browsing_context_id| refers to an `<iframe>` that is an element
