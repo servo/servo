@@ -25,7 +25,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::gpuconvert::WebGPUConvert;
-use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPURootedPromiseTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUComputePipeline {
@@ -61,7 +61,7 @@ pub struct GPUComputePipeline<D: DomTypes> {
 impl<D> GPUComputePipeline<D>
 where
     D: Equivalence,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
 {
     fn new_inherited(
         compute_pipeline: WebGPUComputePipeline,

@@ -25,7 +25,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::gpudevice::GPUDevice;
-use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPURootedPromiseTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPURenderPipeline {
@@ -61,7 +61,7 @@ pub struct GPURenderPipeline<D: DomTypes> {
 impl<D> GPURenderPipeline<D>
 where
     D: Equivalence,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
 {
     fn new_inherited(
         render_pipeline: WebGPURenderPipeline,
