@@ -127,7 +127,6 @@ pub(crate) mod gpupipelinelayout {
 pub(crate) mod gpuqueryset {
     pub(crate) type GPUQuerySet = script_webgpu::gpuqueryset::GPUQuerySet<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuqueue_promise_listener;
 pub(crate) mod gpuqueue {
     pub(crate) type GPUQueue = script_webgpu::gpuqueue::GPUQueue<crate::DomTypeHolder>;
 }
