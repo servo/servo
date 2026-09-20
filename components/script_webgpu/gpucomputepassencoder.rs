@@ -13,7 +13,9 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
-use webgpu_traits::{WebGPU, WebGPUComputePass, WebGPURequest};
+use webgpu_traits::{
+    ComputePassEncoderCommand, DebugCommand, WebGPU, WebGPUComputePass, WebGPURequest,
+};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -54,6 +56,7 @@ pub struct GPUComputePassEncoder<D: DomTypes> {
 impl<D> GPUComputePassEncoder<D>
 where
     D: Equivalence,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     fn new_inherited(
         channel: WebGPU,
@@ -92,6 +95,21 @@ where
             GPUComputePassEncoderWrap::<D>,
         )
     }
+
+    fn send_command(&self, command: ComputePassEncoderCommand) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassCommand {
+                compute_pass_id: self.droppable.compute_pass.0,
+                compute_command: command,
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ComputePassCommand: {e:?}")
+        }
+    }
 }
 
 impl<D> GPUComputePassEncoderMethods<D> for GPUComputePassEncoder<D>
@@ -111,37 +129,19 @@ where
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-dispatchworkgroups>
     fn DispatchWorkgroups(&self, x: u32, y: u32, z: u32) {
-        if let Err(e) =
-            self.droppable
-                .channel
-                .0
-                .send(WebGPURequest::ComputePassDispatchWorkgroups {
-                    compute_pass_id: self.droppable.compute_pass.0,
-                    x,
-                    y,
-                    z,
-                    device_id: self.command_encoder.device_id().0,
-                })
-        {
-            warn!("Error sending WebGPURequest::ComputePassDispatchWorkgroups: {e:?}")
-        }
+        self.send_command(ComputePassEncoderCommand::DispatchWorkgroups {
+            workgroup_count_x: x,
+            workgroup_count_y: y,
+            workgroup_count_z: z,
+        });
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-dispatchworkgroupsindirect>
     fn DispatchWorkgroupsIndirect(&self, buffer: &GPUBuffer<D>, offset: u64) {
-        if let Err(e) =
-            self.droppable
-                .channel
-                .0
-                .send(WebGPURequest::ComputePassDispatchWorkgroupsIndirect {
-                    compute_pass_id: self.droppable.compute_pass.0,
-                    buffer_id: buffer.id().0,
-                    offset,
-                    device_id: self.command_encoder.device_id().0,
-                })
-        {
-            warn!("Error sending WebGPURequest::ComputePassDispatchWorkgroupsIndirect: {e:?}")
-        }
+        self.send_command(ComputePassEncoderCommand::DispatchWorkgroupsIndirect {
+            indirect_buffer: buffer.id().0,
+            indirect_offset: offset,
+        });
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass>
@@ -161,82 +161,38 @@ where
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
     fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup<D>, offsets: Vec<u32>) {
-        if let Err(e) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::ComputePassSetBindGroup {
-                compute_pass_id: self.droppable.compute_pass.0,
+        self.send_command(ComputePassEncoderCommand::BindingCommand(
+            webgpu_traits::BindingCommand::SetBindGroup {
                 index,
-                bind_group_id: bind_group.id().0,
-                offsets,
-                device_id: self.command_encoder.device_id().0,
-            })
-        {
-            warn!("Error sending WebGPURequest::ComputePassSetBindGroup: {e:?}")
-        }
+                bind_group: Some(bind_group.id().0),
+                dynamic_offsets: offsets,
+            },
+        ));
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-setpipeline>
     fn SetPipeline(&self, pipeline: &GPUComputePipeline<D>) {
-        if let Err(e) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::ComputePassSetPipeline {
-                compute_pass_id: self.droppable.compute_pass.0,
-                pipeline_id: pipeline.id().0,
-                device_id: self.command_encoder.device_id().0,
-            })
-        {
-            warn!("Error sending WebGPURequest::ComputePassSetPipeline: {e:?}")
-        }
+        self.send_command(ComputePassEncoderCommand::SetPipeline(pipeline.id().0));
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup>
     fn PushDebugGroup(&self, group_label: USVString) {
-        if let Err(e) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::ComputePassPushDebugGroup {
-                compute_pass_id: self.droppable.compute_pass.0,
-                label: group_label.to_string(),
-                device_id: self.command_encoder.device_id().0,
-            })
-        {
-            warn!("Error sending WebGPURequest::ComputePassPushDebugGroup: {e:?}")
-        }
+        self.send_command(ComputePassEncoderCommand::DebugCommand(
+            DebugCommand::PushDebugGroup(group_label.to_string()),
+        ));
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup>
     fn PopDebugGroup(&self) {
-        if let Err(e) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::ComputePassPopDebugGroup {
-                compute_pass_id: self.droppable.compute_pass.0,
-                device_id: self.command_encoder.device_id().0,
-            })
-        {
-            warn!("Error sending WebGPURequest::ComputePassPopDebugGroup: {e:?}")
-        }
+        self.send_command(ComputePassEncoderCommand::DebugCommand(
+            DebugCommand::PopDebugGroup,
+        ));
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker>
     fn InsertDebugMarker(&self, marker_label: USVString) {
-        if let Err(e) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::ComputePassInsertDebugMarker {
-                compute_pass_id: self.droppable.compute_pass.0,
-                label: marker_label.to_string(),
-                device_id: self.command_encoder.device_id().0,
-            })
-        {
-            warn!("Error sending WebGPURequest::ComputePassInsertDebugMarker: {e:?}")
-        }
+        self.send_command(ComputePassEncoderCommand::DebugCommand(
+            DebugCommand::InsertDebugMarker(marker_label.to_string()),
+        ));
     }
 }

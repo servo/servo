@@ -19,16 +19,17 @@ use webrender_api::units::DeviceIntSize;
 
 use crate::id::*;
 use crate::{
-    BindGroupDescriptor, BindGroupLayoutDescriptor, BufferAccessError, BufferAddress,
-    BufferDescriptor, CommandBufferDescriptor, CommandEncoderDescriptor, ComputePipelineDescriptor,
-    ContextConfiguration, DeviceDescriptor, Error, ErrorFilter, Extent3d, HostMap, Label, Mapping,
-    PRESENTATION_BUFFER_COUNT, PassTimestampWrites, PipelineLayoutDescriptor, QuerySetDescriptor,
-    RenderBundleCommand, RenderBundleDescriptor, RenderBundleEncoderDescriptor, RenderCommand,
-    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPipelineDescriptor,
-    RequestAdapterOptions, SamplerDescriptor, ShaderCompilationInfo, TexelCopyBufferInfo,
-    TexelCopyBufferLayout, TexelCopyTextureInfo, TextureDescriptor, TextureViewDescriptor,
-    WebGPUAdapter, WebGPUAdapterResponse, WebGPUComputePipelineResponse, WebGPUContextId,
-    WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
+    BindGroupDescriptor, BindGroupLayoutDescriptor, BufferAccessError, BufferDescriptor,
+    CommandBufferDescriptor, CommandEncoderCommand, CommandEncoderDescriptor,
+    ComputePassEncoderCommand, ComputePipelineDescriptor, ContextConfiguration, DeviceDescriptor,
+    Error, ErrorFilter, Extent3d, HostMap, Label, Mapping, PRESENTATION_BUFFER_COUNT,
+    PassTimestampWrites, PipelineLayoutDescriptor, QuerySetDescriptor, RenderBundleDescriptor,
+    RenderBundleEncoderCommand, RenderBundleEncoderDescriptor, RenderPassColorAttachment,
+    RenderPassDepthStencilAttachment, RenderPassEncoderCommand, RenderPipelineDescriptor,
+    RequestAdapterOptions, SamplerDescriptor, ShaderCompilationInfo, TexelCopyBufferLayout,
+    TexelCopyTextureInfo, TextureDescriptor, TextureViewDescriptor, WebGPUAdapter,
+    WebGPUAdapterResponse, WebGPUComputePipelineResponse, WebGPUContextId, WebGPUDeviceResponse,
+    WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -59,35 +60,10 @@ pub enum WebGPURequest {
         desc: CommandBufferDescriptor<Label<'static>>,
         command_buffer_id: CommandBufferId,
     },
-    CopyBufferToBuffer {
-        device_id: DeviceId,
+    CommandEncoderCommand {
         command_encoder_id: CommandEncoderId,
-        source_id: BufferId,
-        source_offset: BufferAddress,
-        destination_id: BufferId,
-        destination_offset: BufferAddress,
-        size: BufferAddress,
-    },
-    CopyBufferToTexture {
+        command: CommandEncoderCommand,
         device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        source: TexelCopyBufferInfo,
-        destination: TexelCopyTextureInfo,
-        copy_size: Extent3d,
-    },
-    CopyTextureToBuffer {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        source: TexelCopyTextureInfo,
-        destination: TexelCopyBufferInfo,
-        copy_size: Extent3d,
-    },
-    CopyTextureToTexture {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        source: TexelCopyTextureInfo,
-        destination: TexelCopyTextureInfo,
-        copy_size: Extent3d,
     },
     CopyExternalImageToTexture {
         device_id: DeviceId,
@@ -96,20 +72,6 @@ pub enum WebGPURequest {
         destination: TexelCopyTextureInfo,
         dest_tex_descriptor: TextureDescriptor<'static>,
         copy_size: Extent3d,
-    },
-    CommandEncoderPushDebugGroup {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        label: String,
-    },
-    CommandEncoderPopDebugGroup {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-    },
-    CommandEncoderInsertDebugMarker {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        label: String,
     },
     CreateBindGroup {
         device_id: DeviceId,
@@ -250,43 +212,9 @@ pub enum WebGPURequest {
         timestamp_writes: Option<PassTimestampWrites>,
         device_id: DeviceId,
     },
-    ComputePassSetPipeline {
+    ComputePassCommand {
         compute_pass_id: ComputePassEncoderId,
-        pipeline_id: ComputePipelineId,
-        device_id: DeviceId,
-    },
-    ComputePassSetBindGroup {
-        compute_pass_id: ComputePassEncoderId,
-        index: u32,
-        bind_group_id: BindGroupId,
-        offsets: Vec<u32>,
-        device_id: DeviceId,
-    },
-    ComputePassDispatchWorkgroups {
-        compute_pass_id: ComputePassEncoderId,
-        x: u32,
-        y: u32,
-        z: u32,
-        device_id: DeviceId,
-    },
-    ComputePassDispatchWorkgroupsIndirect {
-        compute_pass_id: ComputePassEncoderId,
-        buffer_id: BufferId,
-        offset: u64,
-        device_id: DeviceId,
-    },
-    ComputePassPushDebugGroup {
-        compute_pass_id: ComputePassEncoderId,
-        label: String,
-        device_id: DeviceId,
-    },
-    ComputePassPopDebugGroup {
-        compute_pass_id: ComputePassEncoderId,
-        device_id: DeviceId,
-    },
-    ComputePassInsertDebugMarker {
-        compute_pass_id: ComputePassEncoderId,
-        label: String,
+        compute_command: ComputePassEncoderCommand,
         device_id: DeviceId,
     },
     EndComputePass {
@@ -305,7 +233,7 @@ pub enum WebGPURequest {
     },
     RenderPassCommand {
         render_pass_id: RenderPassEncoderId,
-        render_command: RenderCommand,
+        render_command: RenderPassEncoderCommand,
         device_id: DeviceId,
     },
     EndRenderPass {
@@ -370,15 +298,6 @@ pub enum WebGPURequest {
         query_set_id: QuerySetId,
         descriptor: QuerySetDescriptor<'static>,
     },
-    ResolveQuerySet {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        query_set_id: QuerySetId,
-        start_query: u32,
-        query_count: u32,
-        destination: BufferId,
-        destination_offset: u64,
-    },
     /// Create planar texture and view to be imported as external texture
     CreatePlanarTexture {
         device_id: DeviceId,
@@ -413,7 +332,7 @@ pub enum WebGPURequest {
     },
     RenderBundleEncoderCommand {
         render_bundle_encoder_id: RenderBundleEncoderId,
-        render_command: RenderBundleCommand,
+        render_command: RenderBundleEncoderCommand,
         device_id: DeviceId,
     },
     DropRenderBundleEncoder(RenderBundleEncoderId),
