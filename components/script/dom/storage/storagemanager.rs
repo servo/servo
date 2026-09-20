@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericCallback;
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
 };
@@ -121,9 +120,9 @@ impl StorageManagerEstimateResponseHandler {
 
 impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
     /// <https://storage.spec.whatwg.org/#dom-storagemanager-persisted>
-    fn Persisted(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn Persisted(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
         // Step 2. Let global be this’s relevant global object.
         let global = self.global();
 
@@ -144,7 +143,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         // It will be false when there’s an internal error.
         // Step 5.2. Queue a storage task with global to resolve promise with persisted.
         let mut handler = StorageManagerBooleanResponseHandler::new(
-            TrustedPromise::new(promise.clone()),
+            TrustedPromise::from(&promise),
             global.task_manager().storage_task_source().to_sendable(),
         );
         let callback = GenericCallback::new(move |message| {
@@ -166,9 +165,9 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
     }
 
     /// <https://storage.spec.whatwg.org/#dom-storagemanager-persist>
-    fn Persist(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn Persist(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
         // Step 2. Let global be this’s relevant global object.
         let global = self.global();
 
@@ -196,7 +195,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         // Step 5.4.2. If there was no internal error, then set persisted to true.
         // Step 5.5. Queue a storage task with global to resolve promise with persisted.
         let mut handler = StorageManagerBooleanResponseHandler::new(
-            TrustedPromise::new(promise.clone()),
+            TrustedPromise::from(&promise),
             global.task_manager().storage_task_source().to_sendable(),
         );
         let callback = GenericCallback::new(move |message| {
@@ -222,9 +221,9 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
     }
 
     /// <https://storage.spec.whatwg.org/#dom-storagemanager-estimate>
-    fn Estimate(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn Estimate(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
         // Step 2. Let global be this’s relevant global object.
         let global = self.global();
 
@@ -248,7 +247,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         // task with global to reject promise with a TypeError.
         // Step 5.5. Otherwise, queue a storage task with global to resolve promise with dictionary.
         let mut handler = StorageManagerEstimateResponseHandler::new(
-            TrustedPromise::new(promise.clone()),
+            TrustedPromise::from(&promise),
             global.task_manager().storage_task_source().to_sendable(),
         );
         let callback = GenericCallback::new(move |message| {

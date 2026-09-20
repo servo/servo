@@ -19,6 +19,7 @@ use servo_base::id::{BlobId, BlobIndex};
 use servo_constellation_traits::{BlobData, BlobImpl};
 use uuid::Uuid;
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_slice};
 use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -335,13 +336,13 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     }
 
     /// <https://w3c.github.io/FileAPI/#text-method-algo>
-    fn Text(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn Text(&self, cx: &mut CurrentRealm) -> RootedPromise {
         let global = self.global();
-        let p = Promise::new_in_realm(cx);
+        let p = Promise::new_in_realm_rooted(cx);
         let id = self.get_blob_url_id();
         global.read_file_async(
             id,
-            p.clone(),
+            &p,
             Box::new(|cx, promise, bytes| match bytes {
                 Ok(b) => {
                     let (text, _) = UTF_8.decode_with_bom_removal(&b);
@@ -357,8 +358,8 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     }
 
     /// <https://w3c.github.io/FileAPI/#arraybuffer-method-algo>
-    fn ArrayBuffer(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn ArrayBuffer(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
 
         // 1. Let stream be the result of calling get stream on this.
         let stream = self.get_stream(cx);
@@ -396,8 +397,8 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     }
 
     /// <https://w3c.github.io/FileAPI/#dom-blob-bytes>
-    fn Bytes(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let p = Promise::new_in_realm(cx);
+    fn Bytes(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(cx);
 
         // 1. Let stream be the result of calling get stream on this.
         let stream = self.get_stream(cx);
