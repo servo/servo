@@ -66,13 +66,6 @@ impl StackRootPromiseHelpers<crate::DomTypeHolder> for RootedPromise {
     fn to_traced(&self) -> TracedPromise {
         RootedPromise::to_traced(self)
     }
-
-    fn reject_native<T>(&self, cx: &mut JSContext, val: &T)
-    where
-        T: ToJSValConvertible,
-    {
-        self.0.0.reject_native(cx, val)
-    }
 }
 
 impl Deref for RootedPromise {
@@ -873,5 +866,9 @@ impl PromiseHelpers<crate::DomTypeHolder> for Promise {
 
     fn resolve_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T) {
         self.resolve_native(cx, val);
+    }
+
+    fn reject_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T) {
+        self.reject_native(cx, val);
     }
 }
