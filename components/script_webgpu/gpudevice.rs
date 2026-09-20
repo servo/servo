@@ -91,13 +91,13 @@ macro_rules! event_handler(
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
     ($handler: ty, $event_type: ident, $getter: ident, $setter: ident, $setter_fn: ident) => (
-        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<::std::rc::Rc<$handler>> {
+        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<script_bindings::callback::RootedCallback<$handler>> {
             use crate::dom::bindings::inheritance::Castable;
             let eventtarget = self.upcast::<D::EventTarget>();
             D::EventTarget::get_event_handler_common(eventtarget, cx, stringify!($event_type))
         }
 
-        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<::std::rc::Rc<$handler>>) {
+        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<script_bindings::callback::RootedCallback<$handler>>) {
             use crate::dom::bindings::inheritance::Castable;
             let eventtarget = self.upcast::<D::EventTarget>();
             eventtarget.$setter_fn(cx, stringify!($event_type), listener)

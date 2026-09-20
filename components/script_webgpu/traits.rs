@@ -10,7 +10,7 @@ use euclid::default::Size2D;
 use js::context::NoGC;
 use pixels::Snapshot;
 use script_bindings::DomTypes;
-use script_bindings::callback::CallbackContainer;
+use script_bindings::callback::{CallbackContainer, RootedCallback};
 use script_bindings::conversions::DerivedFrom;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::inheritance::Castable;
@@ -188,12 +188,12 @@ pub trait EventTargetTrait<D: DomTypes> {
         &self,
         cx: &mut js::context::JSContext,
         ty: &str,
-    ) -> Option<Rc<T>>;
+    ) -> Option<RootedCallback<T>>;
     fn set_event_handler_common<T: CallbackContainer<D>>(
         &self,
         cx: &mut js::context::JSContext,
         ty: &str,
-        listener: Option<Rc<T>>,
+        listener: Option<RootedCallback<T>>,
     );
 }
 

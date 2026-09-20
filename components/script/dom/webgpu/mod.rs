@@ -10,7 +10,7 @@ use euclid::default::Size2D;
 use js::context::NoGC;
 use pixels::Snapshot;
 use script_bindings::DomTypes;
-use script_bindings::callback::CallbackContainer;
+use script_bindings::callback::{CallbackContainer, RootedCallback};
 use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, DomObject};
@@ -263,7 +263,7 @@ impl EventTargetTrait<crate::DomTypeHolder> for EventTarget {
         &self,
         cx: &mut js::context::JSContext,
         ty: &str,
-    ) -> Option<std::rc::Rc<T>> {
+    ) -> Option<RootedCallback<T>> {
         EventTarget::get_event_handler_common(self, cx, ty)
     }
 
@@ -271,7 +271,7 @@ impl EventTargetTrait<crate::DomTypeHolder> for EventTarget {
         &self,
         cx: &mut js::context::JSContext,
         ty: &str,
-        listener: Option<Rc<T>>,
+        listener: Option<RootedCallback<T>>,
     ) {
         EventTarget::set_event_handler_common(self, cx, ty, listener);
     }
