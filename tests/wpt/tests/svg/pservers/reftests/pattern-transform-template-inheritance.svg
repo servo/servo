@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml" width="400" height="100">
+  <title>SVG Paint Servers: only a specified patternTransform stops template inheritance.</title>
+  <metadata>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#PaintServerTemplates"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#PatternElementPatternTransformAttribute"/>
+    <html:link rel="match" href="reference/pattern-transform-template-inheritance-ref.svg"/>
+    <html:meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-2500"/>
+  </metadata>
+  <!-- A template pattern supplies patternTransform when the referencing pattern does
+       not specify it. patternTransform is a presentation attribute for the transform
+       property, so "specified" is decided on the property, not on whether the
+       attribute string exists: an empty or invalid value is an invalid value for a
+       CSS declaration, the declaration is ignored, and transform keeps its initial
+       value of none. Nothing is specified, so the template's value is used.
+
+       Squares one to three take rotate(45) from pattern-base: the empty attribute,
+       the invalid attribute and the absent attribute all leave transform at none.
+       The fourth square specifies a transform through the SVG DOM, which does resolve
+       to a transform, so it keeps its own translate(5 0) instead. -->
+  <defs>
+    <pattern id="pattern-base" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="10" height="10" fill="green"/>
+    </pattern>
+    <pattern id="pattern-empty" href="#pattern-base" patternTransform=""/>
+    <pattern id="pattern-invalid" href="#pattern-base" patternTransform="bogus"/>
+    <pattern id="pattern-absent" href="#pattern-base"/>
+    <pattern id="pattern-svgdom" href="#pattern-base"/>
+  </defs>
+
+  <rect x="10" y="10" width="80" height="80" fill="url(#pattern-empty)"/>
+  <rect x="110" y="10" width="80" height="80" fill="url(#pattern-invalid)"/>
+  <rect x="210" y="10" width="80" height="80" fill="url(#pattern-absent)"/>
+  <rect x="310" y="10" width="80" height="80" fill="url(#pattern-svgdom)"/>
+
+  <script><![CDATA[
+    var transform = document.documentElement.createSVGTransform();
+    transform.setTranslate(5, 0);
+    document.getElementById("pattern-svgdom").patternTransform.baseVal.appendItem(transform);
+  ]]></script>
+</svg>

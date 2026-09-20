@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XML parsing with Byte Order Mark (BOM)</title>
+<link rel="help" href="https://www.w3.org/TR/REC-xml/#sec-guessing">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#the-domparser-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+const testCases = [
+  {
+    title: 'application/xml with BOM before XML declaration',
+    xml: '\uFEFF<?xml version="1.0"?><foo/>',
+    type: 'application/xml',
+    expectedRoot: 'foo',
+  },
+  {
+    title: 'application/xml with BOM without XML declaration',
+    xml: '\uFEFF<foo/>',
+    type: 'application/xml',
+    expectedRoot: 'foo',
+  },
+  {
+    title: 'text/xml with BOM before XML declaration',
+    xml: '\uFEFF<?xml version="1.0"?><foo/>',
+    type: 'text/xml',
+    expectedRoot: 'foo',
+  },
+  {
+    title: 'text/xml with BOM without XML declaration',
+    xml: '\uFEFF<foo/>',
+    type: 'text/xml',
+    expectedRoot: 'foo',
+  },
+  {
+    title: 'image/svg+xml with BOM',
+    xml: '\uFEFF<svg xmlns="http://www.w3.org/2000/svg"/>',
+    type: 'image/svg+xml',
+    expectedRoot: 'svg',
+  },
+];
+
+for (const { title, xml, type, expectedRoot } of testCases) {
+  test(() => {
+    const doc = new DOMParser().parseFromString(xml, type);
+    const parsererror = doc.querySelector('parsererror');
+    assert_equals(parsererror, null, 'Should not contain parsererror: ' + (parsererror ? parsererror.textContent : ''));
+    assert_equals(doc.documentElement.localName, expectedRoot);
+    assert_equals(doc.contentType, type);
+  }, `DOMParser parses ${title}`);
+}
+</script>

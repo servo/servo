@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: in a fragmented multicol container spanning two
+  outer fragmentainer boundaries, a row gap suppressed at each boundary
+  still consumes a value from the row-rule pattern, so the pattern
+  position carries forward cumulatively instead of restarting per
+  fragment.
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#assigning">
+<link rel="match" href="multicol-gap-decorations-fragmentation-003-ref.html">
+<style>
+  body {
+    margin: 0px;
+  }
+  .outer {
+    columns: 3;
+    column-fill: auto;
+    column-gap: 40px;
+    width: 380px;
+    height: 160px;
+    background: lightgray;
+  }
+  .inner {
+    column-count: 1;
+    column-width: 100px;
+    column-height: 40px;
+    column-wrap: wrap;
+    row-gap: 20px;
+    row-rule-width: 10px;
+    row-rule-style: solid;
+    row-rule-color: red, green, blue, purple;
+  }
+  .inner > div {
+    height: 40px;
+    background: rgba(0, 0, 0, 0.15);
+  }
+</style>
+<div class="outer">
+  <div class="inner">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>

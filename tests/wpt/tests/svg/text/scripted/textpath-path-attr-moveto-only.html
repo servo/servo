@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>A lone moveto in `path` is a valid path segment, so `href` is not used</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute">
+<meta name="assert" content="SVG 2 falls back to href only when the path data 'results in no valid path segments'. A moveto is a valid path segment, so a value holding nothing else does not trigger the fallback, even though the resulting path has no length and nothing can be laid out along it. Only that decision is asserted here. What a zero-length path renders as is left open on purpose: measured 2026-09-08, Chrome 155 places the characters at the origin and Firefox 157 places them along a line from the origin to the moveto point, so any assertion about the picture would pin one engine's answer.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg width="400" height="200">
+  <defs>
+    <path id="fallback" d="M 20 80 L 380 80"/>
+  </defs>
+  <text><textPath id="moveto-only" href="#fallback" path="M 20 40">ABCDEF</textPath></text>
+  <text><textPath id="no-path" href="#fallback">ABCDEF</textPath></text>
+  <text><textPath id="empty-path" href="#fallback" path="">ABCDEF</textPath></text>
+</svg>
+
+<script>
+const HREF_Y = 80;
+const movetoOnly = document.getElementById('moveto-only');
+const noPath = document.getElementById('no-path');
+const emptyPath = document.getElementById('empty-path');
+
+test(() => {
+  assert_equals(noPath.getNumberOfChars(), 6, 'the string is laid out');
+  assert_approx_equals(noPath.getStartPositionOfChar(0).y, HREF_Y, 0.5);
+}, 'control: with no path attribute the text is on the href geometry');
+
+test(() => {
+  assert_equals(emptyPath.getNumberOfChars(), 6, 'the string is laid out');
+  assert_approx_equals(emptyPath.getStartPositionOfChar(0).y, HREF_Y, 0.5);
+}, 'control: an empty path value does fall back, so the fallback works here');
+
+test(() => {
+  // Engines disagree on what a zero-length path renders as, and one of the answers is
+  // to lay nothing out, so the count has to be read before the position.
+  if (!movetoOnly.getNumberOfChars())
+    return;
+  assert_not_equals(movetoOnly.getStartPositionOfChar(0).y, HREF_Y,
+                    'the text must not be on the href geometry');
+}, 'a lone moveto does not fall back to href');
+</script>

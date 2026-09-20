@@ -53,9 +53,9 @@ promise_test(async (t) => {
       initialTarget = e.target;
       e.target.remove();
       removedInitialTarget = true;
-      initialTarget.addEventListener("wheel", () => {
+      initialTarget.addEventListener("wheel", t.step_func(() => {
         assert_true(false, "wheel event should never be fired after the target is removed")
-      }, {passive: true});
+      }), {passive: true});
     }
   }
   window.addEventListener("wheel", removeInitialElement, {passive: true});

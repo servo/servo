@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test attaching/detaching EditContext from the focused element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<div tabindex="0"></div>
+<script>
+'use strict';
+const host = document.querySelector('div');
+promise_test(async () => {
+  host.focus();
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const editContext = host.editContext = new EditContext();
+  let firedTextUpdate = false;
+  editContext.addEventListener('textupdate', () => {
+    firedTextUpdate = true;
+  });
+  await test_driver.send_keys(host, 'a');
+  assert_true(firedTextUpdate, 'Should fire textupdate on key press after EditContext is attached.');
+  assert_equals(editContext.text, 'a', 'Should update EditContext.text on key press after EditContext is attached.');
+  firedTextUpdate = false;
+  host.editContext = null;
+  await test_driver.send_keys(host, 'b');
+  assert_false(firedTextUpdate, 'Should not fire textupdate on key press after EditContext is detached.');
+  assert_equals(editContext.text, 'a', 'Should not update EditContext.text on key press after EditContext is detached.');
+});
+
+</script>
+</body>

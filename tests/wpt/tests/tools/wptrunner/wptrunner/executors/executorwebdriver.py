@@ -617,6 +617,10 @@ class WebDriverWindowProtocolPart(WindowProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
 
+    def create(self, type_hint=None):
+        self.logger.debug(f"Creating new {type_hint}")
+        return self.webdriver.new_window(type_hint=type_hint)
+
     def minimize(self):
         self.logger.debug("Minimizing")
         return self.webdriver.window.minimize()

@@ -1,3 +1,7 @@
+# META: timeout=long
+
+# Longer timeout required due to creating and managing isolated user contexts.
+
 import pytest
 
 from . import OFFLINE_NETWORK_CONDITIONS
@@ -36,7 +40,7 @@ async def test_isolation(bidi_session, top_context,
                          ids=["same_origin", "cross_origin"])
 async def test_frame(bidi_session, url, get_navigator_online,
         new_tab, create_iframe, domain):
-    iframe_id = await create_iframe(new_tab, url('/', domain=domain));
+    iframe_id = await create_iframe(new_tab, url('/', domain=domain))
 
     assert await get_navigator_online(iframe_id)
 
@@ -121,61 +125,55 @@ async def test_restores_to_user_contexts_when_removed(bidi_session,
 
 
 async def test_overrides_global(bidi_session, get_navigator_online,
-        affected_user_context):
-    affected_context = await bidi_session.browsing_context.create(
-        type_hint="tab", user_context=affected_user_context)
-
-    assert await get_navigator_online(affected_context)
+        new_tab):
+    assert await get_navigator_online(new_tab)
 
     await bidi_session.emulation.set_network_conditions(
         network_conditions=OFFLINE_NETWORK_CONDITIONS,
-        contexts=[affected_context["context"]])
+        contexts=[new_tab["context"]])
 
-    assert not await get_navigator_online(affected_context)
+    assert not await get_navigator_online(new_tab)
 
     await bidi_session.emulation.set_network_conditions(
         network_conditions=None)
 
-    assert not await get_navigator_online(affected_context)
+    assert not await get_navigator_online(new_tab)
 
     await bidi_session.emulation.set_network_conditions(
         network_conditions=OFFLINE_NETWORK_CONDITIONS)
 
-    assert not await get_navigator_online(affected_context)
+    assert not await get_navigator_online(new_tab)
 
     await bidi_session.emulation.set_network_conditions(
         network_conditions=None,
-        contexts=[affected_context["context"]])
+        contexts=[new_tab["context"]])
 
-    assert not await get_navigator_online(affected_context)
+    assert not await get_navigator_online(new_tab)
 
     await bidi_session.emulation.set_network_conditions(
         network_conditions=None)
 
-    assert await get_navigator_online(affected_context)
+    assert await get_navigator_online(new_tab)
 
 
 async def test_restores_to_global_when_removed(bidi_session,
         get_navigator_online,
-        affected_user_context):
-    affected_context = await bidi_session.browsing_context.create(
-        type_hint="tab", user_context=affected_user_context)
-
-    assert await get_navigator_online(affected_context)
+        new_tab):
+    assert await get_navigator_online(new_tab)
 
     await bidi_session.emulation.set_network_conditions(
         network_conditions=OFFLINE_NETWORK_CONDITIONS,
-        contexts=[affected_context["context"]])
+        contexts=[new_tab["context"]])
 
     await bidi_session.emulation.set_network_conditions(
         network_conditions=OFFLINE_NETWORK_CONDITIONS)
 
     await bidi_session.emulation.set_network_conditions(
         network_conditions=None,
-        contexts=[affected_context["context"]])
+        contexts=[new_tab["context"]])
 
-    assert not await get_navigator_online(affected_context)
+    assert not await get_navigator_online(new_tab)
 
     await bidi_session.emulation.set_network_conditions(network_conditions=None)
 
-    assert await get_navigator_online(affected_context)
+    assert await get_navigator_online(new_tab)

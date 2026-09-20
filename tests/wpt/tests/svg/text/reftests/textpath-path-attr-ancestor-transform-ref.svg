@@ -1,0 +1,10 @@
+<svg width="400" height="250" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <path id="line" d="M 10 50 L 350 50"/>
+  </defs>
+  <g transform="translate(40,30) rotate(15)">
+    <text>
+      <textPath href="#line">Text along a straight line</textPath>
+    </text>
+  </g>
+</svg>

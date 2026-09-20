@@ -10,7 +10,7 @@
   background: green;
 }
 </style>
-<canvas id="canvas" width="200" height="200" layoutsubtree>
+<canvas id="canvas" width="200" height="200" content=drawable>
   <div id="child"></div>
 </canvas>
 
@@ -108,7 +108,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const nestedCanvas = document.createElement('canvas');
-  nestedCanvas.layoutSubtree = true;
+  nestedCanvas.content = 'drawable';
   nestedCanvas.width = 100;
   nestedCanvas.height = 100;
   const childDiv = document.createElement('div');
@@ -129,4 +129,117 @@ promise_test(async t => {
   assert_equals(elementImage.width, 100);
   assert_equals(elementImage.height, 100);
 }, 'captureElementImage on a nested canvas should succeed');
+
+promise_test(async t => {
+  const child = document.getElementById('child');
+  canvas.style.width = '200px';
+  canvas.style.height = '200px';
+  t.add_cleanup(async () => {
+    canvas.style.width = '';
+    canvas.style.height = '';
+    canvas.width = 200;
+    canvas.height = 200;
+    await waitForCanvasPaint(canvas);
+  });
+
+  const entry = await new Promise(resolve => {
+    const observer = new ResizeObserver(entries => {
+      observer.disconnect();
+      resolve(entries[0]);
+    });
+    observer.observe(canvas);
+  });
+
+  const dpWidth = entry.devicePixelContentBoxSize[0].inlineSize;
+  const dpHeight = entry.devicePixelContentBoxSize[0].blockSize;
+
+  // Set canvas grid dimensions different from devicePixelContentBoxSize
+  // (scale factor 2x horizontally, 0.5x vertically).
+  canvas.width = dpWidth * 2;
+  canvas.height = dpHeight * 0.5;
+
+  await waitForCanvasPaint(canvas);
+
+  let elementImage = canvas.captureElementImage(child);
+  // Child is 100px x 100px inside a 200px x 200px canvas (0.5x of canvas box).
+  // In canvas pixel grid coordinate space:
+  // width = (dpWidth * 2) * 0.5 = dpWidth
+  // height = (dpHeight * 0.5) * 0.5 = dpHeight * 0.25
+  assert_equals(elementImage.width, dpWidth);
+  assert_equals(elementImage.height, dpHeight * 0.25);
+
+  // Verify that drawing the ElementImage at 1:1 canvas grid scale matches
+  // its reported width and height in canvas pixel grid coordinates.
+  let context = canvas.getContext('2d', { willReadFrequently: true });
+  context.reset();
+  context.drawElementImage(elementImage, 0, 0);
+  const drawnWidth = Math.floor(elementImage.width);
+  const drawnHeight = Math.floor(elementImage.height);
+  assert_array_equals(
+    context.getImageData(drawnWidth - 1, drawnHeight - 1, 1, 1).data,
+    [0, 128, 0, 255],
+    'Pixel inside ElementImage bounds should be green');
+  assert_array_equals(
+    context.getImageData(drawnWidth + 1, drawnHeight - 1, 1, 1).data,
+    [0, 0, 0, 0],
+    'Pixel outside ElementImage width should be transparent');
+  assert_array_equals(
+    context.getImageData(drawnWidth - 1, drawnHeight + 1, 1, 1).data,
+    [0, 0, 0, 0],
+    'Pixel outside ElementImage height should be transparent');
+}, 'ElementImage width and height should be in canvas pixel grid coordinate space');
+
+promise_test(async t => {
+  const child = document.getElementById('child');
+  canvas.style.width = '200px';
+  canvas.style.height = '200px';
+  t.add_cleanup(async () => {
+    canvas.style.width = '';
+    canvas.style.height = '';
+    canvas.width = 200;
+    canvas.height = 200;
+    await waitForCanvasPaint(canvas);
+  });
+
+  const entry = await new Promise(resolve => {
+    const observer = new ResizeObserver(entries => {
+      observer.disconnect();
+      resolve(entries[0]);
+    });
+    observer.observe(canvas);
+  });
+
+  const dpWidth = entry.devicePixelContentBoxSize[0].inlineSize;
+  const dpHeight = entry.devicePixelContentBoxSize[0].blockSize;
+
+  canvas.width = dpWidth * 2;
+  canvas.height = dpHeight * 0.5;
+  await waitForCanvasPaint(canvas);
+
+  let elementImageA = canvas.captureElementImage(child);
+  assert_equals(elementImageA.width, dpWidth);
+  assert_equals(elementImageA.height, dpHeight * 0.25);
+
+  // Change canvas pixel grid size to a different non-standard scale factor.
+  canvas.width = dpWidth * 3;
+  canvas.height = dpHeight * 1.5;
+
+  // Before paint, captureElementImage should still return the last painted size.
+  let elementImageB = canvas.captureElementImage(child);
+  assert_equals(elementImageB.width, dpWidth);
+  assert_equals(elementImageB.height, dpHeight * 0.25);
+
+  await waitForCanvasPaint(canvas);
+
+  // After paint, captureElementImage should reflect the new canvas pixel grid size.
+  let elementImageC = canvas.captureElementImage(child);
+  assert_equals(elementImageC.width, dpWidth * 1.5);
+  assert_equals(elementImageC.height, dpHeight * 0.75);
+
+  // Previously captured ElementImages should retain their original canvas grid size.
+  assert_equals(elementImageA.width, dpWidth);
+  assert_equals(elementImageA.height, dpHeight * 0.25);
+  assert_equals(elementImageB.width, dpWidth);
+  assert_equals(elementImageB.height, dpHeight * 0.25);
+}, 'ElementImage width and height update when canvas pixel grid size changes');
 </script>

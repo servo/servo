@@ -1,0 +1,128 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SMIL: detaching an element releases its animated presentation attribute</title>
+<link rel="help" href="https://svgwg.org/specs/animations/#AnimateElement">
+<link rel="help" href="https://svgwg.org/svg2-draft/styling.html#PresentationAttributes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="stage" width="300" height="40" aria-hidden="true"></svg>
+
+<script>
+const SVG_NS = "http://www.w3.org/2000/svg";
+const BASE_FILL = "rgb(0, 0, 0)";
+const ANIM_FILL = "rgb(243, 243, 243)";
+
+const stage = document.getElementById("stage");
+
+function nextFrame() {
+    return new Promise(resolve => requestAnimationFrame(() => resolve()));
+}
+
+function computedFill(node) {
+    return getComputedStyle(node).fill;
+}
+
+async function waitForFill(node, expected, frames = 60) {
+    for (let i = 0; i < frames; i++) {
+        if (computedFill(node) === expected)
+            return expected;
+        await nextFrame();
+    }
+    return computedFill(node);
+}
+
+function makeGroup() {
+    const g = document.createElementNS(SVG_NS, "g");
+    stage.appendChild(g);
+    return g;
+}
+
+function makeNode(parent) {
+    const node = document.createElementNS(SVG_NS, "rect");
+    node.setAttribute("x", "4");
+    node.setAttribute("y", "4");
+    node.setAttribute("width", "32");
+    node.setAttribute("height", "32");
+    node.setAttribute("fill", "#000000");
+    parent.appendChild(node);
+    return node;
+}
+
+function animate(node) {
+    const anim = document.createElementNS(SVG_NS, "animate");
+    anim.setAttribute("attributeName", "fill");
+    anim.setAttribute("begin", "0s");
+    anim.setAttribute("dur", "10s");
+    anim.setAttribute("repeatCount", "indefinite");
+    anim.setAttribute("values", "#f3f3f3;#f3f3f3");
+    node.appendChild(anim);
+    return anim;
+}
+
+function teardown(node) {
+    node.querySelectorAll("animate").forEach(a => a.remove());
+    node.setAttribute("fill", "#000000");
+}
+
+function detachCase(name, body) {
+    promise_test(async t => {
+        const group = makeGroup();
+        t.add_cleanup(() => group.remove());
+
+        const node = await body(group);
+
+        assert_equals(node._fillDuring, ANIM_FILL,
+            "precondition: animation applied its value before teardown");
+
+        if (!node.isConnected)
+            stage.appendChild(node);
+
+        const after = await waitForFill(node, BASE_FILL);
+        assert_equals(after, BASE_FILL, "animated value released after teardown");
+        assert_equals(node.querySelector("animate"), null,
+            "no <animate> child remains");
+    }, name);
+}
+
+detachCase("teardown while connected releases the animated fill (control)",
+    async group => {
+        const node = makeNode(group);
+        animate(node);
+        node._fillDuring = await waitForFill(node, ANIM_FILL);
+        teardown(node);
+        return node;
+    });
+
+detachCase("detaching mid-animation then tearing down releases the animated fill",
+    async group => {
+        const node = makeNode(group);
+        animate(node);
+        node._fillDuring = await waitForFill(node, ANIM_FILL);
+        node.remove();
+        teardown(node);
+        return node;
+    });
+
+detachCase("moving an animating element to a new parent then tearing down releases the animated fill",
+    async group => {
+        const node = makeNode(group);
+        animate(node);
+        node._fillDuring = await waitForFill(node, ANIM_FILL);
+        makeGroup().appendChild(node);
+        teardown(node);
+        return node;
+    });
+
+detachCase("detaching and reattaching the parent group then tearing down releases the animated fill",
+    async group => {
+        const node = makeNode(group);
+        animate(node);
+        node._fillDuring = await waitForFill(node, ANIM_FILL);
+        group.remove();
+        stage.appendChild(group);
+        await waitForFill(node, ANIM_FILL);
+        teardown(node);
+        return node;
+    });
+</script>

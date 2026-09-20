@@ -1,7 +1,7 @@
 components:
   wpt-base:
     provisionerId: proj-wpt
-    workerType: ci
+    workerType: ci-gw
     schedulerId: taskcluster-github
     deadline: "24 hours"
     image: ghcr.io/web-platform-tests/wpt:3

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>textPath `path` attribute: right-to-left text is laid out as it is on an href path</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextBiDi">
+<link rel="match" href="textpath-path-attr-rtl-ref.html">
+<meta name="assert" content="SVG 2 defines no bidi behaviour specific to how the geometry was supplied, so a right-to-left string on inline path data must lay out exactly as it does on the same geometry reached through href. Written as an equivalence rather than against an absolute reference on purpose: reordering on a path is a separate question with its own test, and pinning it here would make this file fail for a reason that has nothing to do with the `path` attribute.">
+
+<body style="margin:20px">
+
+<!-- U+202E RIGHT-TO-LEFT OVERRIDE, the same device rtl-text-path.html uses. -->
+<svg width="600" height="100">
+  <text font-size="20px">
+    <textPath path="M 50 50 L 550 50">&#x202e;the quick brown fox runs backwards</textPath>
+  </text>
+</svg>
+
+<!-- Hebrew, so the case does not rest on an override character alone. -->
+<svg width="600" height="100">
+  <text font-size="20px">
+    <textPath path="M 50 50 L 550 50">&#x05e9;&#x05dc;&#x05d5;&#x05dd; &#x05e2;&#x05d5;&#x05dc;&#x05dd;</textPath>
+  </text>
+</svg>
+
+</body>
+</html>

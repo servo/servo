@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: 80px 80px;
+    gap: 40px;
+    background-color: #cdd5e0;
+    background-image: linear-gradient(blue, blue), linear-gradient(blue, blue);
+    background-repeat: no-repeat;
+    background-position: 98px 0, 98px 115px;
+    background-size: 4px 65px, 4px 65px;
+    width: 200px;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-column: 1; height: 40px; }
+  .b { grid-column: 2; height: 70px; }
+  .p { grid-column: 1; height: 20px; }
+  .c { grid-column: 1; height: 40px; }
+  .d { grid-column: 2; height: 70px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="p"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+</div>

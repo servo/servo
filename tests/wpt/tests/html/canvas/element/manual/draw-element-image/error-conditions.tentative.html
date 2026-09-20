@@ -17,12 +17,12 @@
 }
 </style>
 
-<canvas id=canvas width="200" height="200" layoutsubtree>
+<canvas id=canvas width="200" height="200" content=drawable>
   <div id=child>
     <div id=grandchild></div>
   </div>
 </canvas>
-<canvas id=canvaswithoutlayout layoutsubtree>
+<canvas id=canvaswithoutlayout content=drawable>
   <div id=child2></div>
 </div>
 
@@ -36,35 +36,35 @@ promise_test(async () => {
     () => canvas.getContext("2d").drawElementImage(grandchild, 20, 30),
     "Can't draw non-direct children.");
 
-  canvas.toggleAttribute("layoutsubtree"); // Remove attribute.
+  canvas.removeAttribute("content"); // Remove attribute.
   assert_throws_dom("InvalidStateError",
     () => canvas.getContext("2d").drawElementImage(child, 20, 30),
-    "Can't draw canvas children if layoutsubtree is not specified.");
+    "Can't draw canvas children if content=drawable is not specified.");
   assert_throws_dom("InvalidStateError",
     () => canvas.captureElementImage(child),
-    "Can't capture element image if layoutsubtree is not specified.");
+    "Can't capture element image if content=drawable is not specified.");
   assert_throws_dom("InvalidStateError",
     () => canvas.getElementTransform(child, new DOMMatrix()),
-    "Can't get element transform if layoutsubtree is not specified.");
+    "Can't get element transform if content=drawable is not specified.");
 
-  canvas.toggleAttribute("layoutsubtree"); // Add attribute.
+  canvas.setAttribute("content", "drawable"); // Add attribute.
   await waitForCanvasPaint(canvas);
   // Should not throw an exception.
   canvas.getContext("2d").drawElementImage(child, 20, 30);
   let img = canvas.captureElementImage(child);
   canvas.getElementTransform(child, new DOMMatrix());
 
-  canvaswithoutlayout.removeAttribute("layoutsubtree");
+  canvaswithoutlayout.removeAttribute("content");
   assert_throws_dom("InvalidStateError",
     () => canvaswithoutlayout.getContext("2d").drawElementImage(
       child2, 20, 30),
-    "Can't draw canvas children if layoutsubtree is not specified.");
+    "Can't draw canvas children if content=drawable is not specified.");
   assert_throws_dom("InvalidStateError",
     () => canvaswithoutlayout.captureElementImage(child2),
-    "Can't capture element image if layoutsubtree is not specified.");
+    "Can't capture element image if content=drawable is not specified.");
   assert_throws_dom("InvalidStateError",
     () => canvaswithoutlayout.getElementTransform(child2, new DOMMatrix()),
-    "Can't get element transform if layoutsubtree is not specified.");
+    "Can't get element transform if content=drawable is not specified.");
 
   // Also test wrong children exceptions
   assert_throws_dom("InvalidStateError",

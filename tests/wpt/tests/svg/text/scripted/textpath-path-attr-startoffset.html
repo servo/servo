@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>textPath startOffset resolves against the length of the inline path</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementStartOffsetAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg width="400" height="300">
+  <defs>
+    <path id="line" d="M 20 40 L 380 40"/>
+  </defs>
+  <text><textPath id="pct-inline" path="M 20 40 L 380 40" startOffset="25%">ABCDEF</textPath></text>
+  <text><textPath id="pct-href" href="#line" startOffset="25%">ABCDEF</textPath></text>
+  <text><textPath id="abs-inline" path="M 20 40 L 380 40" startOffset="90">ABCDEF</textPath></text>
+  <text><textPath id="zero-inline" path="M 20 40 L 380 40" startOffset="0">ABCDEF</textPath></text>
+</svg>
+
+<script>
+// The path runs from x=20 to x=380, so it is 360 units long and 25% of it is 90.
+const pctInline = document.getElementById('pct-inline');
+const pctHref = document.getElementById('pct-href');
+const absInline = document.getElementById('abs-inline');
+const zeroInline = document.getElementById('zero-inline');
+const EPSILON = 1e-4;
+const x = (el) => el.getStartPositionOfChar(0).x;
+
+test(() => {
+  assert_equals(zeroInline.getNumberOfChars(), 6, 'the string is laid out');
+  assert_approx_equals(x(zeroInline), 20, EPSILON, 'at 0% the text starts at the path start');
+  assert_not_equals(x(pctInline), x(zeroInline), '25% is not the same place as 0%');
+}, 'control: startOffset moves the text along the inline path');
+
+test(() => {
+  assert_approx_equals(x(pctInline), x(pctHref), EPSILON);
+}, 'a percentage startOffset resolves the same way on inline path data as on href');
+
+test(() => {
+  assert_approx_equals(x(pctInline), x(absInline), EPSILON);
+}, '25% of the inline path equals the 90 user units it measures');
+</script>

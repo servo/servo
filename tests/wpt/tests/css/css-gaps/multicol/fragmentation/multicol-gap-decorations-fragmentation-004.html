@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: in a fragmented multicol container, a column row that
+  continues into the next outer fragmentainer crosses no row gap, so it does
+  not consume a value from the row-rule pattern, and the first row gap after
+  the continuation still takes the first value.
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#assigning">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13754">
+<link rel="match" href="multicol-gap-decorations-fragmentation-004-ref.html">
+<style>
+  body {
+    margin: 0px;
+  }
+  .outer {
+    columns: 2;
+    column-fill: auto;
+    column-gap: 40px;
+    width: 240px;
+    height: 110px;
+    background: lightgray;
+  }
+  .spacer {
+    height: 40px;
+  }
+  .inner {
+    column-count: 1;
+    column-width: 100px;
+    column-height: 80px;
+    column-wrap: wrap;
+    row-gap: 20px;
+    row-rule-width: 10px;
+    row-rule-style: solid;
+    row-rule-color: red, green, blue, purple;
+  }
+  .inner > div {
+    height: 40px;
+    background: rgba(0, 0, 0, 0.15);
+  }
+</style>
+<div class="outer">
+  <div class="spacer"></div>
+  <div class="inner">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>

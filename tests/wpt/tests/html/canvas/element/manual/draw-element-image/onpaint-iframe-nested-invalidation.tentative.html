@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<title>Canvas onpaint invalidations with nested canvases and iframes</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<canvas id="a" width="300" height="300" content=drawable>
+  <canvas id="b" width="200" height="200" content=drawable>
+    <iframe id="iframe" srcdoc="<!doctype html>
+      <canvas id='c' width='100' height='100' content=drawable>
+        <canvas id='d1' width='50' height='50' content=drawable></canvas>
+        <canvas id='d2' width='50' height='50'></canvas>
+        <div id='d3'></div>
+      </canvas>
+    "></iframe>
+  </canvas>
+</canvas>
+
+<script>
+  'use strict';
+
+  async function waitForLoad() {
+    if (document.readyState === 'complete') return;
+    await new Promise(resolve => window.addEventListener('load', resolve));
+  }
+
+  function waitForOneFrame() {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 0);
+      });
+    });
+  }
+
+  let canvasa, canvasb, canvasc, d1, d2, d3;
+  let a_count = 0, b_count = 0, c_count = 0;
+
+  function clearOnpaintHandlers() {
+    canvasa.onpaint = null;
+    canvasb.onpaint = null;
+    canvasc.onpaint = null;
+    d1.onpaint = null;
+    d2.onpaint = null;
+  }
+
+  function setupOnpaintCounters() {
+    a_count = 0;
+    b_count = 0;
+    c_count = 0;
+    canvasa.onpaint = () => { a_count++; };
+    canvasb.onpaint = () => { b_count++; };
+    canvasc.onpaint = () => { c_count++; };
+  }
+
+  function assertPaintCounts(expected_a, expected_b, expected_c, description) {
+    assert_equals(a_count, expected_a, `canvas a: ${description}`);
+    assert_equals(b_count, expected_b, `canvas b: ${description}`);
+    assert_equals(c_count, expected_c, `canvas c: ${description}`);
+  }
+
+  promise_setup(async () => {
+    await waitForLoad();
+    canvasa = document.getElementById('a');
+    canvasb = document.getElementById('b');
+    const doc = document.getElementById('iframe').contentDocument;
+    canvasc = doc.getElementById('c');
+    d1 = doc.getElementById('d1');
+    d2 = doc.getElementById('d2');
+    d3 = doc.getElementById('d3');
+    await waitForOneFrame();
+  });
+
+  promise_test(async t => {
+    t.add_cleanup(clearOnpaintHandlers);
+    setupOnpaintCounters();
+
+    requestAnimationFrame(() => {
+      d1.requestPaint();
+    });
+
+    await waitForOneFrame();
+    assertPaintCounts(1, 1, 1, 'should fire onpaint');
+
+    await waitForOneFrame();
+    assertPaintCounts(1, 1, 1, 'should not fire onpaint again');
+  }, 'calling requestPaint on d1 outside of paint should cause canvas a, b, and c to fire paint');
+
+  promise_test(async t => {
+    t.add_cleanup(clearOnpaintHandlers);
+    setupOnpaintCounters();
+
+    requestAnimationFrame(() => {
+      d1.getContext('2d').fillRect(0, 0, 10, 10);
+    });
+
+    await waitForOneFrame();
+    assertPaintCounts(1, 1, 1, 'should fire onpaint');
+
+    await waitForOneFrame();
+    assertPaintCounts(1, 1, 1, 'should not fire onpaint again');
+  }, 'drawing into d1 outside of paint should cause canvas a, b, and c to fire paint');
+
+  promise_test(async t => {
+    t.add_cleanup(clearOnpaintHandlers);
+    setupOnpaintCounters();
+
+    requestAnimationFrame(() => {
+      d2.getContext('2d').fillRect(0, 0, 10, 10);
+    });
+
+    await waitForOneFrame();
+    assertPaintCounts(1, 1, 1, 'should fire onpaint');
+
+    await waitForOneFrame();
+    assertPaintCounts(1, 1, 1, 'should not fire onpaint again');
+  }, 'drawing into d2 outside of paint should cause canvas a, b, and c to fire paint');
+
+  promise_test(async t => {
+    t.add_cleanup(clearOnpaintHandlers);
+    setupOnpaintCounters();
+
+    requestAnimationFrame(() => {
+      d3.innerHTML += 'a';
+    });
+
+    await waitForOneFrame();
+    assertPaintCounts(1, 1, 1, 'should fire onpaint');
+
+    await waitForOneFrame();
+    assertPaintCounts(1, 1, 1, 'should not fire onpaint again');
+  }, 'modifying d3 outside of paint should cause canvas a, b, and c to fire paint');
+
+  promise_test(async t => {
+    t.add_cleanup(clearOnpaintHandlers);
+    setupOnpaintCounters();
+    canvasa.onpaint = () => {
+      a_count++;
+      if (a_count === 1) {
+        d1.getContext('2d').fillRect(0, 0, 10, 10);
+      }
+    };
+
+    canvasa.requestPaint();
+    await waitForOneFrame();
+    assertPaintCounts(1, 0, 0, 'should fire initial onpaint');
+
+    await waitForOneFrame();
+    assertPaintCounts(2, 1, 1, 'should fire onpaint the next frame');
+
+    await waitForOneFrame();
+    assertPaintCounts(2, 1, 1, 'should not fire onpaint again');
+  }, 'drawing into d1 from canvas a onpaint should cause canvas a, b, and c to fire paint the next frame');
+
+  promise_test(async t => {
+    t.add_cleanup(clearOnpaintHandlers);
+    setupOnpaintCounters();
+    canvasa.onpaint = () => {
+      a_count++;
+      if (a_count === 1) {
+        d2.getContext('2d').fillRect(0, 0, 10, 10);
+      }
+    };
+
+    canvasa.requestPaint();
+    await waitForOneFrame();
+    assertPaintCounts(1, 0, 0, 'should fire initial onpaint');
+
+    await waitForOneFrame();
+    assertPaintCounts(2, 1, 1, 'should fire onpaint the next frame');
+
+    await waitForOneFrame();
+    assertPaintCounts(2, 1, 1, 'should not fire onpaint again');
+  }, 'drawing into d2 from canvas a onpaint should cause canvas a, b, and c to fire paint the next frame');
+
+  promise_test(async t => {
+    t.add_cleanup(clearOnpaintHandlers);
+    setupOnpaintCounters();
+    canvasa.onpaint = () => {
+      a_count++;
+      if (a_count === 1) {
+        d3.innerHTML += 'a';
+      }
+    };
+
+    canvasa.requestPaint();
+    await waitForOneFrame();
+    assertPaintCounts(1, 0, 0, 'should fire initial onpaint');
+
+    await waitForOneFrame();
+    assertPaintCounts(2, 1, 1, 'should fire onpaint the next frame');
+
+    await waitForOneFrame();
+    assertPaintCounts(2, 1, 1, 'should not fire onpaint again');
+  }, 'modifying d3 from canvas a onpaint should cause canvas a, b, and c to fire paint the next frame');
+
+  promise_test(async t => {
+    t.add_cleanup(clearOnpaintHandlers);
+    setupOnpaintCounters();
+    let d1_count = 0;
+    d1.onpaint = () => {
+      d1_count++;
+      d1.getContext('2d').fillRect(0, 0, 10, 10);
+    };
+
+    d1.requestPaint();
+    await waitForOneFrame();
+    assert_equals(d1_count, 1, 'd1: should fire initial onpaint');
+    assertPaintCounts(1, 1, 1, 'should fire initial onpaint');
+
+    await waitForOneFrame();
+    assert_equals(d1_count, 1, 'd1: should not fire onpaint again');
+    assertPaintCounts(1, 1, 1, 'should not fire onpaint again');
+  }, 'drawing into d1 from its own onpaint should not cause canvas a, b, or c to fire paint the next frame');
+</script>

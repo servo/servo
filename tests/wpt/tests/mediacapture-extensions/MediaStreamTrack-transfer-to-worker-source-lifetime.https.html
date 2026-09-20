@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>MediaStreamTrack transferred to a dedicated worker stays tied to the source of the original context</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-extensions/#transferable-mediastreamtrack">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/mediacapture-streams/permission-helper.js></script>
+<script src=support/transfer-helper.js></script>
+<script>
+"use strict";
+
+promise_setup(() => setMediaPermission());
+
+promise_test(async t => {
+  const worker = await createWorker(t, TRACK_WORKER_SCRIPT);
+  const track = await getTrack(t, "video");
+  const clone = track.clone();
+  await callWorker(worker, {type: "receive", track: clone}, [clone]);
+  let size = await callWorker(worker, {type: "readFrame"});
+  assert_greater_than(size.width, 0, "frames flow before stopping");
+  assert_greater_than(size.height, 0, "frames flow before stopping");
+
+  track.stop();
+  size = await callWorker(worker, {type: "readFrame"});
+  assert_greater_than(size.width, 0, "frames flow after stopping");
+  assert_greater_than(size.height, 0, "frames flow after stopping");
+  const state = await callWorker(worker, {type: "state"});
+  assert_equals(state.readyState, "live");
+  assert_array_equals(await callWorker(worker, {type: "events"}), []);
+}, "Stopping the original track does not end a transferred clone");
+
+promise_test(async t => {
+  const worker = await createWorker(t, TRACK_WORKER_SCRIPT);
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  const received = new Promise(resolve => {
+    window.addEventListener("message", e => resolve(e.data), {once: true});
+  });
+  iframe.src = "support/iframe-getUserMedia-transfer.html";
+  document.body.appendChild(iframe);
+  const track = await received;
+  assert_true(track instanceof MediaStreamTrack,
+              `got a track from the iframe: ${JSON.stringify(track)}`);
+
+  await callWorker(worker, {type: "receive", track}, [track]);
+  const size = await callWorker(worker, {type: "readFrame"});
+  assert_greater_than(size.width, 0, "frames flow before removing the iframe");
+  assert_greater_than(size.height, 0, "frames flow before removing the iframe");
+
+  iframe.remove();
+  await callWorker(worker, {type: "waitForEvent", name: "ended"});
+  const state = await callWorker(worker, {type: "state"});
+  assert_equals(state.readyState, "ended");
+}, "Destroying the capturing context ends a transferred track");
+</script>

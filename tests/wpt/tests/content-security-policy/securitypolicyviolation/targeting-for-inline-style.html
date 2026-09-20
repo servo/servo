@@ -1,0 +1,21 @@
+<!doctype html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'; style-src 'self'">
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+
+<style id="target">
+  p { color: red !important; }
+</style>
+<script nonce="abc">
+  promise_test(async t => {
+    const timeout_promise = () => new Promise(resolve => t.step_timeout(resolve, 1000));
+
+    return new EventWatcher(t, document, ["securitypolicyviolation"], timeout_promise)
+               .wait_for("securitypolicyviolation").then(e => {
+                 test(() => assert_equals(e.blockedURI, "inline"));
+                 test(() => assert_equals(e.lineNumber, 6));
+                 test(() => assert_in_array(e.columnNumber, [1, 20]));
+                 test(() => assert_equals(e.target, document.getElementById("target")));
+               });
+  });
+</script>

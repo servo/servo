@@ -653,27 +653,12 @@ interface SVGAElement : SVGGraphicsElement {
   [Reflect] attribute USVString ping;
   [Reflect] attribute DOMString rel;
   [Reflect="rel", SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
-  [Reflect] attribute DOMString hreflang;
-  [Reflect] attribute DOMString type;
 
   attribute DOMString referrerPolicy;
 };
 
 SVGAElement includes SVGURIReference;
-
-// Inline HTMLHyperlinkElementUtils except href, which conflicts.
-partial interface SVGAElement {
-  readonly attribute USVString origin;
-  [CEReactions] attribute USVString protocol;
-  [CEReactions] attribute USVString username;
-  [CEReactions] attribute USVString password;
-  [CEReactions] attribute USVString host;
-  [CEReactions] attribute USVString hostname;
-  [CEReactions] attribute USVString port;
-  [CEReactions] attribute USVString pathname;
-  [CEReactions] attribute USVString search;
-  [CEReactions] attribute USVString hash;
-};
+SVGAElement includes HyperlinkElementUtils;
 
 [Exposed=Window]
 interface SVGViewElement : SVGElement {};

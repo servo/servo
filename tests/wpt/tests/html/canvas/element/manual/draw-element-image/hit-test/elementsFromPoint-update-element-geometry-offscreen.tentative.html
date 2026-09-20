@@ -17,7 +17,7 @@
   }
 </style>
 
-<canvas id="canvas" width="200" height="200" layoutsubtree>
+<canvas id="canvas" width="200" height="200" content=drawable>
   <div id="a"></div>
   <div id="b"></div>
   <div id="c"></div>
@@ -130,5 +130,33 @@
                         [c, a, b, canvas, document.body, document.documentElement],
                         'b preserves hit test order at overlapping coordinates');
   }, 'preserveHitTestOrder works when updating via ElementImage on OffscreenCanvas.');
+
+  promise_test(async function (t) {
+    const clearPromise1 = waitForElementGeometryUpdate(canvas);
+    offscreen.clearElementGeometry(a);
+    await clearPromise1;
+    const clearPromise2 = waitForElementGeometryUpdate(canvas);
+    offscreen.clearElementGeometry(c);
+    await clearPromise2;
+
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    offscreen.updateElementGeometry(b, {
+      clip: { x: 0, y: 0, width: 50, height: 50 }
+    });
+    await updatePromise;
+
+    t.add_cleanup(async () => {
+      const cleanupPromise = waitForElementGeometryUpdate(canvas);
+      offscreen.clearElementGeometry(b);
+      await cleanupPromise;
+    });
+
+    assert_array_equals(document.elementsFromPoint(25, 25),
+                        [b, canvas, document.body, document.documentElement],
+                        'b is hit within clip on OffscreenCanvas');
+    assert_array_equals(document.elementsFromPoint(75, 75),
+                        [canvas, document.body, document.documentElement],
+                        'b is not hit outside clip on OffscreenCanvas');
+  }, 'updateElementGeometry clip restricts hit testing on OffscreenCanvas.');
 </script>
 </html>

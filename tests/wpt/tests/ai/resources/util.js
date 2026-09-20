@@ -137,7 +137,7 @@ async function testCreateMonitorWithAbortAt(t, eventIndexToAbortAt, method,
   const createPromise =
       method({...options, monitor, signal: controller.signal});
 
-  await eventPromise;
+  await Promise.race([eventPromise, createPromise]);
 
   const err = new Error('test');
   controller.abort(err);

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: a short spanning item occupies every spanned row grid-lane for rule visibility</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-model">
+<link rel="match" href="row-gap-decorations-rule-visibility-items-between-001-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(4, 60px);
+    grid-lanes-direction: row;
+    gap: 20px;
+    width: max-content;
+    background: #cdd5e0;
+    row-rule: 4px solid gold;
+    row-rule-break: normal;
+    row-rule-visibility-items: between;
+  }
+  .lanes > div { width: 60px; }
+  .first {
+    grid-row: 1;
+    background: #5b8def;
+  }
+  .spanner {
+    grid-row: 2 / span 2;
+    align-self: start;
+    height: 60px;
+    background: #8a6df0;
+  }
+  .fourth {
+    grid-row: 4;
+    background: #5b8def;
+  }
+</style>
+<div class="lanes">
+  <div class="first"></div>
+  <div class="spanner"></div>
+  <div class="fourth"></div>
+</div>

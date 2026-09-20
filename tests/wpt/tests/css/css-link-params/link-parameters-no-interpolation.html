@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Linked Parameters: discrete animation</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params-1/#link-param-prop">
+<meta name="assert" content="link-parameters animations use discrete interpolation.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<body>
+<script>
+test_no_interpolation({
+  property: "link-parameters",
+  from: "param(--color, red)",
+  to: "param(--color, blue)"
+});
+</script>

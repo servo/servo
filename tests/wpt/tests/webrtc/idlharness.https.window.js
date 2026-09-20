@@ -28,6 +28,16 @@ function initTrackEvent() {
   });
 }
 
+// Helper function to create an RTCErrorEvent object
+function initRTCErrorEvent() {
+  // errorDetail is required
+  const errorInit = { errorDetail: 'data-channel-failure' };
+  const error = new RTCError(errorInit);
+  // error is required
+  const errorEventInit = { error };
+  return new RTCErrorEvent('whoops', errorEventInit);
+}
+
 // List of async test driver functions
 const asyncInitTasks = [
   asyncInitCertificate,
@@ -126,7 +136,7 @@ idl_test(
         `new RTCPeerConnectionIceErrorEvent('ice-error', { port: 0, errorCode: 701 });`
       ],
       RTCTrackEvent: [`initTrackEvent()`],
-      RTCErrorEvent: [`new RTCErrorEvent('error')`],
+      RTCErrorEvent: [`initRTCErrorEvent()`],
       RTCDataChannelEvent: [
         `new RTCDataChannelEvent('channel', {
           channel: new RTCPeerConnection().createDataChannel('')

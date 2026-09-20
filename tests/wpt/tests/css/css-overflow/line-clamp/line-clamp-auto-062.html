@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` should correctly handle min-height containers with descendants.</title>
+<link rel="author" title="Seva Alipov" href="mailto:salipov@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2066625">
+<link rel="match" href="reference/line-clamp-auto-058-ref.html">
+<style>
+div {
+  font: 16px / 32px serif;
+  background-color: yellow;
+}
+.clamp-auto {
+  line-clamp: auto;
+  max-height: 3lh;
+}
+.min-height {
+  min-height: 3lh;
+}
+</style>
+
+<div class="clamp-auto">
+  <div class="min-height">
+    <div>
+      Line 1<br>
+      <div>
+        Line 2<br>
+      </div>
+      Line 3<br>
+      Line 4<br>
+    </div>
+  </div>
+  Line 5<br>
+  Line 6<br>
+</div>

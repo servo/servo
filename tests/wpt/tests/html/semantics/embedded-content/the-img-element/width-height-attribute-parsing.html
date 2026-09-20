@@ -31,6 +31,10 @@ const attributeValues = [
   { value: "10px", expected: 10 },
   { value: "50%", expected: 50 },
   { value: "1.9", expected: 1 },
+  { value: "0.5", expected: 0 },
+  // A minus sign is only an error if the resulting integer is negative.
+  { value: "-0", expected: 0 },
+  { value: "-0.5", expected: 0 },
   { value: "2147483647", expected: 2147483647 },
   { value: "-10", expected: NATURAL },
   { value: "", expected: NATURAL },

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>text-box-trim on a scroll container with overflowing content trims its scrollable overflow area</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable-overflow-calculation">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.target {
+  font: 20px/40px Ahem;
+  text-box-trim: trim-both;
+  text-box-edge: text;
+  height: 60px;
+  width: 100px;
+  scrollbar-width: none;
+  margin-block: 1em;
+  outline: 2px solid;
+}
+</style>
+<div class="target" style="overflow: hidden">xxxxx<br>xxxxx<br>xxxxx</div>
+<div class="target" style="overflow: auto">xxxxx<br>xxxxx<br>xxxxx</div>
+<div class="target" style="overflow: scroll">xxxxx<br>xxxxx<br>xxxxx</div>
+<script>
+for (const target of document.querySelectorAll(".target")) {
+  promise_test(async () => {
+    await document.fonts.ready;
+    assert_equals(target.clientHeight, 60, "clientHeight");
+    assert_equals(target.scrollHeight, 100, "scrollHeight");
+    target.scrollTop = -1000;
+    assert_equals(target.scrollTop, 0, "scrollTop cannot go before the trimmed start edge");
+    target.scrollTop = 1000;
+    assert_equals(target.scrollTop, 100 - target.clientHeight, "scrollTop cannot go past the trimmed end edge");
+  }, `overflow: ${target.style.overflow}`);
+}
+</script>

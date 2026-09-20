@@ -143,11 +143,11 @@
   <!-- text -->
   <text id="text1" font-size="20px" font-family="monospace" fill="red"  x="0" y="50" clip-path="url('#rect01')">99</text>
   <text id="text2" font-size="20px" font-family="monospace" fill="blue" x="100" y="120" clip-path="url('#rect02')">99</text>
-  <text id="text3" font-size="20px" font-family="monospace" clip-path="url('#rect03')" x="0" y="120">
-    <tspan x="0" y="50" fill="red">99</tspan>
+  <text id="text3" font-size="20px" stroke="black" stroke-width="10px" font-family="monospace" clip-path="url('#rect03')" x="0" y="120">
+    <tspan id="tspan3" x="0" y="50" fill="red">99</tspan>
   </text>
-  <text id="text4" font-size="20px" font-family="monospace" clip-path="url('#rect04')" x="0" y="120">
-    <tspan x="100" y="120" fill="blue">99</tspan>
+  <text id="text4" font-size="20px" stroke="black" stroke-width="10px" font-family="monospace" clip-path="url('#rect04')" x="0" y="120">
+    <tspan id="tspan4" x="100" y="120" fill="blue">99</tspan>
   </text>
   <text id="text5" font-size="20px" font-family="monospace" fill="red"  x="0" y="80" clip-path="url('#rect05')">99</text>
   <text id="text6" font-size="20px" font-family="monospace" fill="blue" x="0" y="80" clip-path="url('#rect06')">99</text>
@@ -358,6 +358,18 @@ test(t => {
   compare_bbox_without_x("text2", "text4", opt);
   compare_bbox_without_x("text5", "text6", opt);
 }, "text with clipping");
+
+test(t => {
+  let opt = { fill: true, stroke: false, markers: false, clipped: false };
+  compare_bbox("tspan3", "text3", opt);
+  compare_bbox("tspan4", "text4", opt);
+}, "tspan with fill");
+
+test(t => {
+  let opt = { fill: true, stroke: true, markers: false, clipped: false };
+  compare_bbox("tspan3", "text3", opt);
+  compare_bbox("tspan4", "text4", opt);
+}, "tspan with stroke");
 
 test(t => {
   let opt = { fill: true, stroke: true, markers: true, clipped: true };

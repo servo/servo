@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG attribute changes invalidate selectors and attr() values</title>
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/SVG2/types.html#InterfaceSVGLength">
+<link rel="help" href="https://www.w3.org/TR/selectors-3/#attribute-selectors">
+<link rel="help" href="https://www.w3.org/TR/2019/WD-css-values-4-20190131/#attr-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #selector-target[x="30"] {
+    fill: green;
+  }
+  #attr-target {
+    stroke-width: attr(data-width px);
+  }
+</style>
+<svg>
+  <rect id="selector-target" x="10" width="20" height="20" fill="red"></rect>
+  <rect id="attr-target" data-width="10" width="20" height="20"
+        style="opacity: 0.5"></rect>
+</svg>
+<script>
+  test(() => {
+    const target = document.getElementById("selector-target");
+    target.getBoundingClientRect();
+    assert_equals(getComputedStyle(target).fill, "rgb(255, 0, 0)");
+
+    target.x.baseVal.value = 30;
+
+    assert_equals(getComputedStyle(target).fill, "rgb(0, 128, 0)");
+  }, "Changing an SVG length through baseVal updates attribute selector matching");
+
+  test(() => {
+    const target = document.getElementById("attr-target");
+    target.getBoundingClientRect();
+    assert_equals(getComputedStyle(target).strokeWidth, "10px");
+
+    // Keep both mutations pending until the next style read.
+    target.style.opacity = "0.75";
+    target.setAttribute("data-width", "30");
+
+    assert_equals(getComputedStyle(target).strokeWidth, "30px");
+    assert_equals(getComputedStyle(target).opacity, "0.75");
+  }, "An attribute change updates attr() after a pending inline style change");
+</script>
+

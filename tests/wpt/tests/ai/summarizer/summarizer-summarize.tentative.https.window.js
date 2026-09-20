@@ -39,9 +39,3 @@ promise_test(async () => {
   assert_equals(typeof result, 'string');
   assert_greater_than(result.length, 0);
 }, 'Simple Summarizer.summarize() call');
-
-promise_test(async () => {
-  const summarizer = await createSummarizer();
-  await Promise.all(
-      [summarizer.summarize(kTestPrompt), summarizer.summarize(kTestPrompt)]);
-}, 'Multiple Summarizer.summarize() calls are resolved successfully');

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: executeTool with declarative form navigation</title>
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<form toolautosubmit toolname="nav_search_tool" tooldescription="Search the web" action="/common/blank.html" target="target_iframe">
+  <input type="text" name="query">
+</form>
+<iframe name="target_iframe"></iframe>
+
+<script>
+promise_test(async t => {
+  const iframe = document.querySelector('iframe');
+  const navPromise = new Promise(resolve => iframe.addEventListener('load', resolve, { once: true }));
+
+  const tool = await waitForTool('nav_search_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  const result = await document.modelContext.executeTool(tool, { query: 'testing' });
+  assert_equals(result, null, 'executeTool should resolve with null when navigation is triggered');
+  assert_equals(document.querySelector('input').value, 'testing', 'Input value should be populated');
+
+  await navPromise;
+}, 'executeTool resolves with null and triggers standard form navigation');
+</script>

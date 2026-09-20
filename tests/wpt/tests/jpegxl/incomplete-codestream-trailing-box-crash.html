@@ -1,0 +1,12 @@
+<!doctype html>
+<html class="test-wait">
+<title>Truncated JPEG XL codestream followed by a partial box does not hang the decoder</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2071665">
+<img src="resources/incomplete-codestream-trailing-box.jxl">
+<script>
+// The image may decode or fail to decode; what is being tested is that the
+// decode terminates.
+document.querySelector("img").decode().finally(() => {
+  document.documentElement.className = "";
+});
+</script>

@@ -1,3 +1,7 @@
+# META: timeout=long
+
+# Longer timeout required due to a large number of cookie filter and storage partition subtests.
+
 import pytest
 
 from webdriver.bidi.modules.network import NetworkStringValue

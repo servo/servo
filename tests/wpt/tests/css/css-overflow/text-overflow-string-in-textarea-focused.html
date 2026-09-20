@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>text-overflow: &lt;string&gt; in a focused textarea</title>
+<link rel="author" title="Minseong Kim" href="jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#ellipsis-interaction">
+<link rel="match" href="text-overflow-string-in-textarea-focused-ref.html">
+<meta name="flags" content="may">
+<meta name="assert" content="The text-overflow string is not rendered while the textarea is focused, so that the full value can be edited.">
+<!-- The specification says the UA "may" treat text-overflow as clip while
+     editing, but Chromium and Gecko do so for <textarea>, and WebKit,
+     which does not support text-overflow on <textarea>, does so for
+     <input>. -->
+<style>
+textarea {
+  white-space: nowrap;
+  text-overflow: "[...]";
+  caret-color: transparent;
+}
+</style>
+<textarea>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</textarea>
+<script>
+document.querySelector('textarea').focus();
+requestAnimationFrame(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</html>

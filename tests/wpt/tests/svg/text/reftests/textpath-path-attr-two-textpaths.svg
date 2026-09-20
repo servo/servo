@@ -1,0 +1,14 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Two textPath children of one text element, both carrying inline path data</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextpathLayoutRules"/>
+    <html:link rel="match" href="textpath-path-attr-two-textpaths-ref.svg"/>
+    <html:meta name="assert" content="Each textPath starts its own anchored chunk on its own path. Two siblings supplying their geometry inline must land where the same two do when they reach it through href."/>
+  </metadata>
+  <text>
+    <textPath path="M 50 100 L 350 50">Some text.</textPath
+   ><textPath path="M 50 150 L 350 190">More text.</textPath>
+  </text>
+</svg>

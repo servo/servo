@@ -1,0 +1,10 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <path id="a" d="M 50 100 L 350 50"/>
+    <path id="b" d="M 50 150 L 350 190"/>
+  </defs>
+  <text>
+    <textPath href="#a">Some text.</textPath
+   ><textPath href="#b">More text.</textPath>
+  </text>
+</svg>

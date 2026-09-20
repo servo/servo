@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="scroll_support.js"></script>
+  <style>
+    .hiddenScroller {
+      width: 200px;
+      height: 200px;
+      overflow-y: scroll;
+      visibility: hidden;
+    }
+    #nestedVisibleScroller {
+      width: 150px;
+      height: 150px;
+      overflow-y: scroll;
+      visibility: visible;
+    }
+    #nestedVisibleChild {
+      width: 150px;
+      height: 300px;
+      visibility: visible;
+    }
+    .redBox {
+      width: 100px;
+      height: 200px;
+      background: red;
+    }
+    .greenBox {
+      width: 100px;
+      height: 100px;
+      background: green;
+    }
+    .extraContent {
+      width: 100px;
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div id="hiddenScrollerWithVisibleNested" class="hiddenScroller">
+    <div id="nestedVisibleScroller">
+      <div class="redBox"></div>
+      <div class="greenBox"></div>
+    </div>
+    <div class="extraContent"></div>
+  </div>
+  <div id="hiddenScrollerWithVisibleChild" class="hiddenScroller">
+    <div id="nestedVisibleChild">
+      <div class="redBox"></div>
+      <div class="greenBox"></div>
+    </div>
+    <div class="extraContent"></div>
+  </div>
+  <script>
+    promise_test(async t => {
+      await waitForCompositorCommit();
+      let nested_scrollend_promise = new Promise((resolve) => {
+        nestedVisibleScroller.addEventListener('scrollend', resolve);
+      });
+      await new test_driver.Actions().scroll(50, 50, 0, 150).send();
+      await nested_scrollend_promise;
+      let hidden_scrollend_promise = new Promise((resolve) => {
+        hiddenScrollerWithVisibleNested.addEventListener('scrollend', resolve);
+      });
+      await new test_driver.Actions().scroll(50, 50, 0, 50).send();
+      await hidden_scrollend_promise;
+      assert_equals(hiddenScrollerWithVisibleNested.scrollTop, 50,
+                    '#hiddenScrollerWithVisibleNested should be scrolled down.');
+    }, 'Scrolling should chain to a visibility: hidden element.');
+
+    promise_test(async t => {
+      await waitForCompositorCommit();
+      let hidden_scrollend_promise = new Promise((resolve) => {
+        hiddenScrollerWithVisibleChild.addEventListener('scrollend', resolve);
+      });
+      await new test_driver.Actions().scroll(50, 250, 0, 200).send();
+      await hidden_scrollend_promise;
+      assert_equals(hiddenScrollerWithVisibleChild.scrollTop, 200,
+                    '#hiddenScrollerWithVisibleChild should be scrolled down.');
+    }, 'Scrolling over a visibility: visible child should scroll a visibility: hidden scroller.');
+  </script>
+</body>
+</html>

@@ -5,8 +5,6 @@ import re
 import subprocess
 import sys
 
-from collections import OrderedDict
-
 try:
     from ..manifest import manifest
     from ..manifest.utils import git as get_git_cmd
@@ -73,7 +71,7 @@ def branch_point() -> Optional[Text]:
                                                 cmd,
                                                 commits_bytes)
 
-        commit_parents: Dict[Text, List[Text]] = OrderedDict()
+        commit_parents: Dict[Text, List[Text]] = {}
         commits = commits_bytes.decode("ascii")
         if commits:
             for line in commits.split("\n"):

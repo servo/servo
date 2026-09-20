@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: Declarative tools in sandboxed iframe without allow-scripts are not registered</title>
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const sandboxedIframe = document.createElement('iframe');
+  sandboxedIframe.sandbox = 'allow-same-origin';
+  document.body.append(sandboxedIframe);
+
+  const allowedIframe = document.createElement('iframe');
+  allowedIframe.sandbox = 'allow-same-origin allow-scripts';
+  document.body.append(allowedIframe);
+
+  sandboxedIframe.contentDocument.body.innerHTML = `
+    <form toolname="sandboxed_tool" tooldescription="description">
+      <input type="text" name="sandboxed_input">
+    </form>`;
+
+  allowedIframe.contentDocument.body.innerHTML = `
+    <form toolname="allowed_tool" tooldescription="description">
+      <input type="text" name="allowed_input">
+    </form>`;
+
+  await waitForFormToolSchemaToMatch({
+    type: 'object',
+    properties: {
+      allowed_input: {type: 'string'},
+    },
+    required: [],
+  });
+
+  const tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 1);
+  assert_equals(tools[0].name, 'allowed_tool');
+}, "Declarative tool in sandboxed iframe without allow-scripts is not registered");
+</script>
+</body>

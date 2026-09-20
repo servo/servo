@@ -15,20 +15,6 @@
 <script>
   setup(() => assertSpeculationRulesIsSupported());
 
-  // Reading the prefetch count resets it server-side, so return the last
-  // value read rather than reading it again after polling.
-  async function waitUntilPrefetched(t, url, deadline_ms) {
-    const start = performance.now();
-    let count = 0;
-    while (true) {
-      count = await isUrlPrefetched(url);
-      if (count > 0 || performance.now() - start >= deadline_ms) {
-        return count;
-      }
-      await new Promise(resolve => t.step_timeout(resolve, 100));
-    }
-  }
-
   promise_test(async t => {
     const url = getPrefetchUrl();
     const link = addLink(url);

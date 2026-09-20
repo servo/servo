@@ -113,25 +113,3 @@ dictionary AnimationPlaybackEventInit : EventInit {
     CSSNumberish? currentTime = null;
     CSSNumberish? timelineTime = null;
 };
-
-[Exposed=Window]
-interface AnimationTrigger {
-  constructor(optional AnimationTriggerOptions options = {});
-  attribute AnimationTimeline timeline;
-  attribute AnimationTriggerBehavior behavior;
-  attribute any rangeStart;
-  attribute any rangeEnd;
-  attribute any exitRangeStart;
-  attribute any exitRangeEnd;
-};
-
-dictionary AnimationTriggerOptions {
-  AnimationTimeline? timeline;
-  AnimationTriggerBehavior? behavior = "once";
-  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) rangeStart = "normal";
-  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) rangeEnd = "normal";
-  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) exitRangeStart = "auto";
-  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) exitRangeEnd = "auto";
-};
-
-enum AnimationTriggerBehavior { "once", "repeat", "alternate", "state" };

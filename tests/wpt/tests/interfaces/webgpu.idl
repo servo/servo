@@ -12,6 +12,7 @@ dictionary GPUObjectDescriptorBase {
 };
 
 enum GPUFeatureName {
+    "atomic-vec2u-min-max",
     "core-features-and-limits",
     "depth-clip-control",
     "depth32float-stencil8",

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: rule-visibility-items around uses whole-track occupancy in column grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-model">
+<link rel="match" href="column-gap-decorations-rule-visibility-items-around-001-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 60px);
+    gap: 20px;
+    width: max-content;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    column-rule-break: none;
+    column-rule-visibility-items: around;
+  }
+  .lanes > div {
+    width: 60px;
+    height: 40px;
+    background: #5b8def;
+  }
+  .track-one { grid-column: 1; }
+  .track-two { grid-column: 2; }
+</style>
+<div class="lanes">
+  <div class="track-one"></div>
+  <div class="track-one"></div>
+  <div class="track-one"></div>
+  <div class="track-one"></div>
+  <div class="track-one"></div>
+  <div class="track-two"></div>
+</div>
