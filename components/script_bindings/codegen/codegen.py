@@ -942,7 +942,10 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
                 boolean = "true" if defaultValue.value else "false"
                 default = f"{union_native_type(type)}::Boolean({boolean})"
             elif tag is IDLType.Tags.usvstring:
-                default = f'{union_native_type(type)}::USVString(USVString("{defaultValue.value}".to_owned()))'
+                if defaultValue.value == "":
+                    default = f'{union_native_type(type)}::USVString(USVString::new())'
+                else:
+                    default = f'{union_native_type(type)}::USVString(USVString("{defaultValue.value}".to_owned()))'
             elif tag is IDLType.Tags.domstring:
                 default = f'{union_native_type(type)}::String(DOMString::from_static("{defaultValue.value}"))'
             elif defaultValue.type.isEnum():
@@ -1150,7 +1153,10 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             default = "None"
         else:
             assert defaultValue.type.tag() in (IDLType.Tags.domstring, IDLType.Tags.usvstring)
-            default = f'USVString("{defaultValue.value}".to_owned())'
+            if defaultValue.value == "":
+                default = 'USVString::new()'
+            else:
+                default = f'USVString("{defaultValue.value}".to_owned())'
             if type.nullable():
                 default = f"Some({default})"
 

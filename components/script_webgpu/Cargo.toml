@@ -14,8 +14,8 @@ description.workspace = true
 name = "script_webgpu"
 path = "lib.rs"
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
+[lints]
+workspace = true
 
 [dependencies]
 stylo_atoms = { workspace = true }
