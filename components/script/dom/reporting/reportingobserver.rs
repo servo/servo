@@ -3,13 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::callback::OwnerWindow;
+use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
@@ -35,8 +34,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 pub(crate) struct ReportingObserver {
     reflector_: Reflector,
 
-    #[conditional_malloc_size_of]
-    callback: Rc<ReportingObserverCallback>,
+    callback: TracedCallback<ReportingObserverCallback>,
     buffered: Cell<bool>,
     types: DomRefCell<Vec<DOMString>>,
     report_queue: DomRefCell<Vec<Report>>,
@@ -44,12 +42,12 @@ pub(crate) struct ReportingObserver {
 
 impl ReportingObserver {
     fn new_inherited(
-        callback: Rc<ReportingObserverCallback>,
+        callback: RootedCallback<ReportingObserverCallback>,
         options: &ReportingObserverOptions,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            callback,
+            callback: callback.to_traced(),
             buffered: Cell::new(options.buffered),
             types: DomRefCell::new(options.types.clone().unwrap_or_default()),
             report_queue: Default::default(),
@@ -58,7 +56,7 @@ impl ReportingObserver {
 
     fn new_with_proto(
         cx: &mut JSContext,
-        callback: Rc<ReportingObserverCallback>,
+        callback: RootedCallback<ReportingObserverCallback>,
         options: &ReportingObserverOptions,
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -239,7 +237,7 @@ impl ReportingObserverMethods<crate::DomTypeHolder> for ReportingObserver {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        callback: Rc<ReportingObserverCallback>,
+        callback: RootedCallback<ReportingObserverCallback>,
         options: &ReportingObserverOptions,
     ) -> DomRoot<ReportingObserver> {
         // Step 1. Create a new ReportingObserver object observer.

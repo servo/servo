@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::LazyCell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
-use script_bindings::callback::OwnerWindow;
+use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
@@ -31,8 +30,7 @@ use crate::event_loop::script_thread::ScriptThread;
 #[dom_struct]
 pub(crate) struct MutationObserver {
     reflector_: Reflector,
-    #[conditional_malloc_size_of]
-    callback: Rc<MutationCallback>,
+    callback: TracedCallback<MutationCallback>,
     record_queue: DomRefCell<Vec<Dom<MutationRecord>>>,
     node_list: DomRefCell<Vec<Dom<Node>>>,
 }
@@ -77,16 +75,16 @@ impl MutationObserver {
         cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        callback: Rc<MutationCallback>,
+        callback: RootedCallback<MutationCallback>,
     ) -> DomRoot<MutationObserver> {
         let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
         reflect_dom_object_with_proto(cx, boxed_observer, global, proto)
     }
 
-    fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {
+    fn new_inherited(callback: RootedCallback<MutationCallback>) -> MutationObserver {
         MutationObserver {
             reflector_: Reflector::new(),
-            callback,
+            callback: callback.to_traced(),
             record_queue: DomRefCell::new(vec![]),
             node_list: DomRefCell::new(vec![]),
         }
@@ -96,7 +94,7 @@ impl MutationObserver {
         &self.record_queue
     }
 
-    pub(crate) fn callback(&self) -> &Rc<MutationCallback> {
+    pub(crate) fn callback(&self) -> &TracedCallback<MutationCallback> {
         &self.callback
     }
 
@@ -246,7 +244,7 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
         cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        callback: Rc<MutationCallback>,
+        callback: RootedCallback<MutationCallback>,
     ) -> Fallible<DomRoot<MutationObserver>> {
         global.set_exists_mut_observer();
         let observer = MutationObserver::new_with_proto(cx, global, proto, callback);
