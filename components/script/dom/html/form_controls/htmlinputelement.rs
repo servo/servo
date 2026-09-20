@@ -2527,7 +2527,7 @@ impl Activatable for HTMLInputElement {
         // neither in the Checkbox nor in the Radio state, then return.
         match *self.input_type() {
             InputType::Checkbox(_) | InputType::Radio(_) => true,
-            // https://html.spec.whatwg.org/multipage/input.html#hidden-state-(type=hidden)
+            // https://html.spec.whatwg.org/multipage/#hidden-state-(type=hidden)
             // > The input element represents a value that is not intended
             // > to be examined or manipulated by the user.
             InputType::Hidden(_) => false,
