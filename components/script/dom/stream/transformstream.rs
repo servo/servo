@@ -1020,7 +1020,6 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
         // result of invoking transformerDict["start"]
         // with argument list « this.[[controller]] » and callback this value transformer.
         if let Some(start) = &transformer_dict.start {
-            rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
             rooted!(&in(cx) let mut result: JSVal);
             rooted!(&in(cx) let this_object = transformer_obj.get());
             start.Call_(
@@ -1030,12 +1029,7 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
                 result.handle_mut(),
                 ExceptionHandling::Rethrow,
             )?;
-            let is_promise = Promise::is_promise_value(result.handle(), result_object.handle_mut());
-            let promise = if is_promise {
-                Promise::new_with_js_promise(cx, result_object.handle())
-            } else {
-                Promise::new_resolved(cx, global, result.get())
-            };
+            let promise = Promise::resolve_or_wrap_promise(cx, result.handle(), global);
             start_promise.resolve_native(cx, &promise);
         } else {
             // Otherwise, resolve startPromise with undefined.

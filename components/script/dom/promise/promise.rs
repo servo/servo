@@ -213,14 +213,25 @@ pub(crate) struct Promise {
 }
 
 impl Promise {
-    /// Check whether a value is a promise.
+    /// Wrap a promise object in a [RootedPromise], or resolve a promise with another value.
     #[expect(unsafe_code)]
-    pub(crate) fn is_promise_value(value: HandleValue, mut object: MutableHandleObject) -> bool {
-        if value.is_object() {
+    pub(crate) fn resolve_or_wrap_promise(
+        cx: &mut JSContext,
+        value: HandleValue,
+        global: &GlobalScope,
+    ) -> RootedPromise {
+        rooted!(&in(cx) let mut object = ptr::null_mut::<JSObject>());
+        let is_promise = if value.is_object() {
             object.set(value.to_object());
+            // SAFETY: The value is an object and is rooted by `object`.
             unsafe { IsPromiseObject(object.handle()) }
         } else {
             false
+        };
+        if is_promise {
+            Self::new_with_js_promise_rooted(cx, object.handle())
+        } else {
+            Self::new_resolved_rooted(cx, global, value.get())
         }
     }
 

@@ -526,7 +526,6 @@ impl WritableStreamDefaultController {
             } => {
                 let algo = start.borrow().clone();
                 let start_promise = if let Some(start) = algo {
-                    rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
                     rooted!(&in(cx) let mut result: JSVal);
                     rooted!(&in(cx) let this_object = self.underlying_sink_obj.get());
                     start.Call_(
@@ -536,13 +535,7 @@ impl WritableStreamDefaultController {
                         result.handle_mut(),
                         ExceptionHandling::Rethrow,
                     )?;
-                    let is_promise =
-                        Promise::is_promise_value(result.handle(), result_object.handle_mut());
-                    if is_promise {
-                        Promise::new_with_js_promise_rooted(cx, result_object.handle())
-                    } else {
-                        Promise::new_resolved_rooted(cx, global, result.get())
-                    }
+                    Promise::resolve_or_wrap_promise(cx, result.handle(), global)
                 } else {
                     // Let startAlgorithm be an algorithm that returns undefined.
                     Promise::new_resolved_rooted(cx, global, ())

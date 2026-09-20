@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
@@ -268,7 +266,6 @@ impl UnderlyingSourceContainer {
         match &self.underlying_source_type {
             UnderlyingSource::Js(source, this_obj) => {
                 if let Some(start) = &source.start {
-                    rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
                     rooted!(&in(cx) let mut result: JSVal);
                     if let Err(error) = start.Call_(
                         cx,
@@ -279,13 +276,8 @@ impl UnderlyingSourceContainer {
                     ) {
                         return Some(Err(error));
                     }
-                    let is_promise =
-                        Promise::is_promise_value(result.handle(), result_object.handle_mut());
-                    let promise = if is_promise {
-                        Promise::new_with_js_promise_rooted(cx, result_object.handle())
-                    } else {
-                        Promise::new_resolved_rooted(cx, &self.global(), result.get())
-                    };
+                    let promise =
+                        Promise::resolve_or_wrap_promise(cx, result.handle(), &self.global());
                     return Some(Ok(promise));
                 }
                 None
