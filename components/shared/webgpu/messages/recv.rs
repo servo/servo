@@ -298,15 +298,6 @@ pub enum WebGPURequest {
         query_set_id: QuerySetId,
         descriptor: QuerySetDescriptor<'static>,
     },
-    ResolveQuerySet {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        query_set_id: QuerySetId,
-        start_query: u32,
-        query_count: u32,
-        destination: BufferId,
-        destination_offset: u64,
-    },
     /// Create planar texture and view to be imported as external texture
     CreatePlanarTexture {
         device_id: DeviceId,

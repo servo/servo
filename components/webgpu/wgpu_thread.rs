@@ -1048,26 +1048,6 @@ impl WGPU {
                         );
                         self.maybe_dispatch_wgpu_error(device_id, error);
                     },
-                    WebGPURequest::ResolveQuerySet {
-                        device_id,
-                        command_encoder_id,
-                        query_set_id,
-                        start_query,
-                        query_count,
-                        destination,
-                        destination_offset,
-                    } => {
-                        let global = &self.global;
-                        let result = global.command_encoder_resolve_query_set(
-                            command_encoder_id,
-                            query_set_id,
-                            start_query,
-                            query_count,
-                            destination,
-                            destination_offset,
-                        );
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
                     WebGPURequest::CreatePlanarTexture {
                         device_id,
                         size,
