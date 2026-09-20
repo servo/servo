@@ -213,6 +213,17 @@ pub(crate) struct Promise {
 }
 
 impl Promise {
+    /// Check whether a value is a promise.
+    #[expect(unsafe_code)]
+    pub(crate) fn is_promise_value(value: HandleValue, mut object: MutableHandleObject) -> bool {
+        if value.is_object() {
+            object.set(value.to_object());
+            unsafe { IsPromiseObject(object.handle()) }
+        } else {
+            false
+        }
+    }
+
     /// Create a new [RootedPromise] associated with the provided global.
     pub(crate) fn new_rooted(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
         let mut realm = enter_auto_realm(cx, global);
