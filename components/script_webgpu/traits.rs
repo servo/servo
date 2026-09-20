@@ -129,7 +129,7 @@ pub trait Equivalence = DomTypes<
         // Other bounds
         HTMLVideoElement: WebGPUHTMLVideoTrait<Self>,
         // General Bounds
-        GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<Self>,
+        GlobalScope: WebGPUGlobalTrait<Self> + GlobalScopeHelpers<Self>,
         Promise: PromiseHelpers<Self> + WebGPUTracedPromiseTrait<Self> + PartialEq,
         Event: DomEventTrait<Self>,
         EventTarget: EventTargetTrait<Self>>;
@@ -164,9 +164,10 @@ pub trait WebGPUTracedPromiseTrait<D: DomTypes> {
     fn is_fulfilled(&self) -> bool;
 }
 
-pub trait WebGPUGlobalTrait: Sized + DomObject {
+pub trait WebGPUGlobalTrait<D: DomTypes>: Sized + DomObject {
     fn global_wgpu_id_hub(&self) -> Arc<IdentityHub>;
     fn queue_webgpu_task_source(&self, task: impl TaskOnce + 'static);
+    fn add_webgpu_device(&self, device: &GPUDevice<D>);
 }
 
 #[expect(clippy::type_complexity)]

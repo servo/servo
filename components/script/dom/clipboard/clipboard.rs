@@ -180,7 +180,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
     }
 }
 
-impl RoutedPromiseListener<Result<String, String>> for Clipboard {
+impl RoutedPromiseListener<crate::DomTypeHolder, Result<String, String>> for Clipboard {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,

@@ -119,6 +119,7 @@ pub trait PromiseHelpers<D: DomTypes> {
     fn is_rejected(&self) -> bool;
     fn is_pending(&self) -> bool;
     fn resolve_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T);
+    fn reject_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T);
 }
 
 pub trait DocumentHelpers {

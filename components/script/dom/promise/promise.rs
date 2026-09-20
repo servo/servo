@@ -867,4 +867,8 @@ impl PromiseHelpers<crate::DomTypeHolder> for Promise {
     fn resolve_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T) {
         self.resolve_native(cx, val);
     }
+
+    fn reject_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T) {
+        self.reject_native(cx, val);
+    }
 }

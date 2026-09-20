@@ -29,6 +29,7 @@ use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
+use script_bindings::routed_promise::RoutedPromiseListener;
 use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{COPY_BUFFER_ALIGNMENT, TextureFormat, WebGPU, WebGPUQueue, WebGPURequest};
 
@@ -422,5 +423,16 @@ where
             warn!("QueueOnSubmittedWorkDone failed with {e}")
         }
         promise
+    }
+}
+
+impl<D: Equivalence> RoutedPromiseListener<D, ()> for GPUQueue<D> {
+    fn handle_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        _response: (),
+        promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
+    ) {
+        promise.resolve_native(cx, &());
     }
 }

@@ -35,12 +35,10 @@ use crate::dom::{GlobalScope, Promise};
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::tasks::task::TaskOnce;
 
-pub(crate) mod gpu_promise_listener;
 pub(crate) mod gpu {
     #[expect(clippy::upper_case_acronyms)]
     pub(crate) type GPU = script_webgpu::gpu::GPU<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuadapter_promise_listener;
 pub(crate) mod gpuadapter {
     pub(crate) type GPUAdapter = script_webgpu::gpuadapter::GPUAdapter<crate::DomTypeHolder>;
 }
@@ -55,7 +53,6 @@ pub(crate) mod gpubindgrouplayout {
     pub(crate) type GPUBindGroupLayout =
         script_webgpu::gpubindgrouplayout::GPUBindGroupLayout<crate::DomTypeHolder>;
 }
-pub(crate) mod gpubuffer_promise_listener;
 pub(crate) mod gpubuffer {
     pub(crate) type GPUBuffer = script_webgpu::gpubuffer::GPUBuffer<crate::DomTypeHolder>;
 }
@@ -92,7 +89,6 @@ pub(crate) mod gpucomputepipeline {
     pub(crate) type GPUComputePipeline =
         script_webgpu::gpucomputepipeline::GPUComputePipeline<crate::DomTypeHolder>;
 }
-pub(crate) mod gpudevice_promise_listener;
 pub(crate) mod gpudevice {
     pub(crate) type GPUDevice = script_webgpu::gpudevice::GPUDevice<crate::DomTypeHolder>;
 }
@@ -131,7 +127,6 @@ pub(crate) mod gpupipelinelayout {
 pub(crate) mod gpuqueryset {
     pub(crate) type GPUQuerySet = script_webgpu::gpuqueryset::GPUQuerySet<crate::DomTypeHolder>;
 }
-pub(crate) mod gpuqueue_promise_listener;
 pub(crate) mod gpuqueue {
     pub(crate) type GPUQueue = script_webgpu::gpuqueue::GPUQueue<crate::DomTypeHolder>;
 }
@@ -154,7 +149,6 @@ pub(crate) mod gpurenderpipeline {
 pub(crate) mod gpusampler {
     pub(crate) type GPUSampler = script_webgpu::gpusampler::GPUSampler<crate::DomTypeHolder>;
 }
-pub(crate) mod gpushadermodule_promise_listener;
 pub(crate) mod gpushadermodule {
     pub(crate) type GPUShaderModule =
         script_webgpu::gpushadermodule::GPUShaderModule<crate::DomTypeHolder>;
@@ -200,7 +194,9 @@ pub(crate) mod wgsllanguagefeatures {
 
 impl<S, T> WebGPUPromiseCallbackTrait<crate::DomTypeHolder, S, T> for RootedPromise
 where
-    S: DomObject + DomGlobalGeneric<crate::DomTypeHolder> + RoutedPromiseListener<T>,
+    S: DomObject
+        + DomGlobalGeneric<crate::DomTypeHolder>
+        + RoutedPromiseListener<crate::DomTypeHolder, T>,
     T: Serialize + 'static + Send + DeserializeOwned,
 {
     fn callback_promise_dom_manipulation_task_source(&self, d: &S) -> GenericCallback<T> {
@@ -224,13 +220,20 @@ impl WebGPURootedPromiseTrait<crate::DomTypeHolder> for RootedPromise {
     }
 }
 
-impl WebGPUGlobalTrait for GlobalScope {
+impl WebGPUGlobalTrait<crate::DomTypeHolder> for GlobalScope {
     fn global_wgpu_id_hub(&self) -> Arc<script_webgpu::identityhub::IdentityHub> {
         self.wgpu_id_hub()
     }
 
     fn queue_webgpu_task_source(&self, task: impl TaskOnce + 'static) {
         self.task_manager().webgpu_task_source().queue(task);
+    }
+
+    fn add_webgpu_device(
+        &self,
+        device: &script_webgpu::gpudevice::GPUDevice<crate::DomTypeHolder>,
+    ) {
+        self.add_gpu_device(device)
     }
 }
 
