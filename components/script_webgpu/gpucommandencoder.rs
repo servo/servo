@@ -17,9 +17,10 @@ use script_bindings::codegen::GenericUnionTypes::RangeEnforcedUnsignedLongSequen
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
-    CommandBufferDescriptor, CommandEncoderDescriptor, PassChannel, RenderPassColorAttachment,
-    RenderPassDepthStencilAttachment, WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder,
-    WebGPUComputePass, WebGPUDevice, WebGPURenderPass, WebGPURequest,
+    CommandBufferDescriptor, CommandEncoderCommand, CommandEncoderDescriptor, DebugCommand,
+    PassChannel, RenderPassColorAttachment, RenderPassDepthStencilAttachment, WebGPU,
+    WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice, WebGPURenderPass,
+    WebGPURequest,
 };
 
 use crate::JSTraceable;
@@ -301,13 +302,15 @@ where
         self.droppable
             .channel
             .0
-            .send(WebGPURequest::CopyBufferToBuffer {
+            .send(WebGPURequest::CommandEncoderCommand {
                 command_encoder_id: self.droppable.encoder.0,
-                source_id: source.id().0,
-                source_offset,
-                destination_id: destination.id().0,
-                destination_offset,
-                size,
+                command: CommandEncoderCommand::CopyBufferToBuffer {
+                    source: source.id().0,
+                    source_offset,
+                    destination: destination.id().0,
+                    destination_offset,
+                    size: Some(size),
+                },
                 device_id: self.device.id().0,
             })
             .expect("Failed to send CopyBufferToBuffer");
@@ -323,11 +326,13 @@ where
         self.droppable
             .channel
             .0
-            .send(WebGPURequest::CopyBufferToTexture {
+            .send(WebGPURequest::CommandEncoderCommand {
                 command_encoder_id: self.droppable.encoder.0,
-                source: source.convert(),
-                destination: destination.try_convert()?,
-                copy_size: (&copy_size).try_convert()?,
+                command: CommandEncoderCommand::CopyBufferToTexture {
+                    source: source.convert(),
+                    destination: destination.try_convert()?,
+                    copy_size: (&copy_size).try_convert()?,
+                },
                 device_id: self.device.id().0,
             })
             .expect("Failed to send CopyBufferToTexture");
@@ -345,11 +350,13 @@ where
         self.droppable
             .channel
             .0
-            .send(WebGPURequest::CopyTextureToBuffer {
+            .send(WebGPURequest::CommandEncoderCommand {
                 command_encoder_id: self.droppable.encoder.0,
-                source: source.try_convert()?,
-                destination: destination.convert(),
-                copy_size: (&copy_size).try_convert()?,
+                command: CommandEncoderCommand::CopyTextureToBuffer {
+                    source: source.try_convert()?,
+                    destination: destination.convert(),
+                    copy_size: (&copy_size).try_convert()?,
+                },
                 device_id: self.device.id().0,
             })
             .expect("Failed to send CopyTextureToBuffer");
@@ -367,11 +374,13 @@ where
         self.droppable
             .channel
             .0
-            .send(WebGPURequest::CopyTextureToTexture {
+            .send(WebGPURequest::CommandEncoderCommand {
                 command_encoder_id: self.droppable.encoder.0,
-                source: source.try_convert()?,
-                destination: destination.try_convert()?,
-                copy_size: (&copy_size).try_convert()?,
+                command: CommandEncoderCommand::CopyTextureToTexture {
+                    source: source.try_convert()?,
+                    destination: destination.try_convert()?,
+                    copy_size: (&copy_size).try_convert()?,
+                },
                 device_id: self.device.id().0,
             })
             .expect("Failed to send CopyTextureToTexture");
@@ -418,9 +427,11 @@ where
             .droppable
             .channel
             .0
-            .send(WebGPURequest::CommandEncoderPushDebugGroup {
+            .send(WebGPURequest::CommandEncoderCommand {
                 command_encoder_id: self.droppable.encoder.0,
-                label: group_label.to_string(),
+                command: CommandEncoderCommand::DebugCommand(DebugCommand::PushDebugGroup(
+                    group_label.to_string(),
+                )),
                 device_id: self.device.id().0,
             })
         {
@@ -434,8 +445,9 @@ where
             .droppable
             .channel
             .0
-            .send(WebGPURequest::CommandEncoderPopDebugGroup {
+            .send(WebGPURequest::CommandEncoderCommand {
                 command_encoder_id: self.droppable.encoder.0,
+                command: CommandEncoderCommand::DebugCommand(DebugCommand::PopDebugGroup),
                 device_id: self.device.id().0,
             })
         {
@@ -445,15 +457,17 @@ where
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker>
     fn InsertDebugMarker(&self, marker_label: USVString) {
-        if let Err(e) =
-            self.droppable
-                .channel
-                .0
-                .send(WebGPURequest::CommandEncoderInsertDebugMarker {
-                    command_encoder_id: self.droppable.encoder.0,
-                    label: marker_label.to_string(),
-                    device_id: self.device.id().0,
-                })
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::CommandEncoderCommand {
+                command_encoder_id: self.droppable.encoder.0,
+                command: CommandEncoderCommand::DebugCommand(DebugCommand::InsertDebugMarker(
+                    marker_label.to_string(),
+                )),
+                device_id: self.device.id().0,
+            })
         {
             warn!("Error sending WebGPURequest::CommandEncoderInsertDebugMarker: {e:?}")
         }

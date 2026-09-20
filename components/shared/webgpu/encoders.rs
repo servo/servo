@@ -10,15 +10,7 @@ use crate::id;
 
 #[derive(Debug, Serialize, Deserialize)]
 /// Corresponds to [`GPUCommandEncoder`](https://www.w3.org/TR/webgpu/#gpucommandencoder).
-pub enum CommandEncoderCommand<'a> {
-    BeginRenderPass {
-        desc: crate::RenderPassDescriptor<'a>,
-        render_pass_encoder_id: id::RenderPassEncoderId,
-    },
-    BeginComputePass {
-        desc: crate::ComputePassDescriptor<'a>, // optional, defaults to {}
-        compute_pass_encoder_id: id::ComputePassEncoderId,
-    },
+pub enum CommandEncoderCommand {
     CopyBufferToBuffer {
         source: id::BufferId,
         source_offset: u64,

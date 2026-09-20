@@ -1,12 +1,14 @@
-use webgpu_traits::id::{ComputePassEncoderId, RenderBundleEncoderId, RenderPassEncoderId};
-use webgpu_traits::{
-    BindingCommand, ComputePassEncoderCommand, DebugCommand, RenderBundleEncoderCommand,
-    RenderCommand, RenderPassEncoderCommand,
+use webgpu_traits::id::{
+    CommandEncoderId, ComputePassEncoderId, RenderBundleEncoderId, RenderPassEncoderId,
 };
-use wgpu_core::command::PassStateError;
+use webgpu_traits::{
+    BindingCommand, CommandEncoderCommand, ComputePassEncoderCommand, DebugCommand,
+    RenderBundleEncoderCommand, RenderCommand, RenderPassEncoderCommand,
+};
+use wgpu_core::command::{EncoderStateError, PassStateError};
 use wgpu_core::global::Global;
 
-pub fn handle_render_pass_command(
+pub(crate) fn handle_render_pass_command(
     global: &Global,
     render_pass_id: RenderPassEncoderId,
     command: RenderPassEncoderCommand,
@@ -149,7 +151,7 @@ pub fn handle_render_pass_command(
     }
 }
 
-pub fn handle_render_bundle_command(
+pub(crate) fn handle_render_bundle_command(
     global: &Global,
     render_bundle_encoder_id: RenderBundleEncoderId,
     command: RenderBundleEncoderCommand,
@@ -259,7 +261,7 @@ pub fn handle_render_bundle_command(
     }
 }
 
-pub fn handle_compute_pass_command(
+pub(crate) fn handle_compute_pass_command(
     global: &Global,
     compute_pass_id: ComputePassEncoderId,
     command: ComputePassEncoderCommand,
@@ -310,6 +312,89 @@ pub fn handle_compute_pass_command(
             },
             DebugCommand::InsertDebugMarker(label) => {
                 global.compute_pass_insert_debug_marker_with_id(compute_pass_id, &label, 0)
+            },
+        },
+    }
+}
+
+pub(crate) fn handle_command_encoder_command(
+    global: &Global,
+    command_encoder_id: CommandEncoderId,
+    command: CommandEncoderCommand,
+) -> Result<(), EncoderStateError> {
+    match command {
+        CommandEncoderCommand::CopyBufferToBuffer {
+            source,
+            source_offset,
+            destination,
+            destination_offset,
+            size,
+        } => global.command_encoder_copy_buffer_to_buffer(
+            command_encoder_id,
+            source,
+            source_offset,
+            destination,
+            destination_offset,
+            size,
+        ),
+        CommandEncoderCommand::CopyBufferToTexture {
+            source,
+            destination,
+            copy_size,
+        } => global.command_encoder_copy_buffer_to_texture(
+            command_encoder_id,
+            &source,
+            &destination,
+            &copy_size,
+        ),
+        CommandEncoderCommand::CopyTextureToBuffer {
+            source,
+            destination,
+            copy_size,
+        } => global.command_encoder_copy_texture_to_buffer(
+            command_encoder_id,
+            &source,
+            &destination,
+            &copy_size,
+        ),
+        CommandEncoderCommand::CopyTextureToTexture {
+            source,
+            destination,
+            copy_size,
+        } => global.command_encoder_copy_texture_to_texture(
+            command_encoder_id,
+            &source,
+            &destination,
+            &copy_size,
+        ),
+        CommandEncoderCommand::ClearBuffer {
+            buffer,
+            offset,
+            size,
+        } => global.command_encoder_clear_buffer(command_encoder_id, buffer, offset, size),
+        CommandEncoderCommand::ResolveQuerySet {
+            query_set,
+            first_query,
+            query_count,
+            destination,
+            destination_offset,
+        } => global.command_encoder_resolve_query_set(
+            command_encoder_id,
+            query_set,
+            first_query,
+            query_count,
+            destination,
+            destination_offset,
+        ),
+        CommandEncoderCommand::DebugCommand(debug_command) => match debug_command {
+            DebugCommand::PushDebugGroup(label) => {
+                global.command_encoder_push_debug_group(command_encoder_id, &label)
+            },
+            DebugCommand::PopDebugGroup => {
+                global.command_encoder_pop_debug_group(command_encoder_id)
+            },
+            DebugCommand::InsertDebugMarker(label) => {
+                global.command_encoder_insert_debug_marker(command_encoder_id, &label)
             },
         },
     }

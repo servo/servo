@@ -33,7 +33,8 @@ use wgpu_types::{
 
 use crate::canvas_context::WebGpuExternalImageMap;
 use crate::encoders::{
-    handle_compute_pass_command, handle_render_bundle_command, handle_render_pass_command,
+    handle_command_encoder_command, handle_compute_pass_command, handle_render_bundle_command,
+    handle_render_pass_command,
 };
 use crate::poll_thread::Poller;
 
@@ -206,101 +207,14 @@ impl WGPU {
                         );
                         self.maybe_dispatch_wgpu_error(device_id, error.map(|(_, e)| e));
                     },
-                    WebGPURequest::CopyBufferToBuffer {
-                        device_id,
+                    WebGPURequest::CommandEncoderCommand {
                         command_encoder_id,
-                        source_id,
-                        source_offset,
-                        destination_id,
-                        destination_offset,
-                        size,
+                        command,
+                        device_id,
                     } => {
                         let global = &self.global;
-                        let result = global.command_encoder_copy_buffer_to_buffer(
-                            command_encoder_id,
-                            source_id,
-                            source_offset,
-                            destination_id,
-                            destination_offset,
-                            Some(size),
-                        );
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::CopyBufferToTexture {
-                        device_id,
-                        command_encoder_id,
-                        source,
-                        destination,
-                        copy_size,
-                    } => {
-                        let global = &self.global;
-                        let result = global.command_encoder_copy_buffer_to_texture(
-                            command_encoder_id,
-                            &source,
-                            &destination,
-                            &copy_size,
-                        );
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::CopyTextureToBuffer {
-                        device_id,
-                        command_encoder_id,
-                        source,
-                        destination,
-                        copy_size,
-                    } => {
-                        let global = &self.global;
-                        let result = global.command_encoder_copy_texture_to_buffer(
-                            command_encoder_id,
-                            &source,
-                            &destination,
-                            &copy_size,
-                        );
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::CopyTextureToTexture {
-                        device_id,
-                        command_encoder_id,
-                        source,
-                        destination,
-                        copy_size,
-                    } => {
-                        let global = &self.global;
-                        let result = global.command_encoder_copy_texture_to_texture(
-                            command_encoder_id,
-                            &source,
-                            &destination,
-                            &copy_size,
-                        );
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::CommandEncoderPushDebugGroup {
-                        device_id,
-                        command_encoder_id,
-                        label,
-                    } => {
-                        let result = self
-                            .global
-                            .command_encoder_push_debug_group(command_encoder_id, &label);
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::CommandEncoderPopDebugGroup {
-                        device_id,
-                        command_encoder_id,
-                    } => {
-                        let result = self
-                            .global
-                            .command_encoder_pop_debug_group(command_encoder_id);
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::CommandEncoderInsertDebugMarker {
-                        device_id,
-                        command_encoder_id,
-                        label,
-                    } => {
-                        let result = self
-                            .global
-                            .command_encoder_insert_debug_marker(command_encoder_id, &label);
+                        let result =
+                            handle_command_encoder_command(global, command_encoder_id, command);
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::CreateBindGroup {

@@ -19,17 +19,17 @@ use webrender_api::units::DeviceIntSize;
 
 use crate::id::*;
 use crate::{
-    BindGroupDescriptor, BindGroupLayoutDescriptor, BufferAccessError, BufferAddress,
-    BufferDescriptor, CommandBufferDescriptor, CommandEncoderDescriptor, ComputePassEncoderCommand,
-    ComputePipelineDescriptor, ContextConfiguration, DeviceDescriptor, Error, ErrorFilter,
-    Extent3d, HostMap, Label, Mapping, PRESENTATION_BUFFER_COUNT, PassTimestampWrites,
-    PipelineLayoutDescriptor, QuerySetDescriptor, RenderBundleDescriptor,
+    BindGroupDescriptor, BindGroupLayoutDescriptor, BufferAccessError, BufferDescriptor,
+    CommandBufferDescriptor, CommandEncoderCommand, CommandEncoderDescriptor,
+    ComputePassEncoderCommand, ComputePipelineDescriptor, ContextConfiguration, DeviceDescriptor,
+    Error, ErrorFilter, Extent3d, HostMap, Label, Mapping, PRESENTATION_BUFFER_COUNT,
+    PassTimestampWrites, PipelineLayoutDescriptor, QuerySetDescriptor, RenderBundleDescriptor,
     RenderBundleEncoderCommand, RenderBundleEncoderDescriptor, RenderPassColorAttachment,
     RenderPassDepthStencilAttachment, RenderPassEncoderCommand, RenderPipelineDescriptor,
-    RequestAdapterOptions, SamplerDescriptor, ShaderCompilationInfo, TexelCopyBufferInfo,
-    TexelCopyBufferLayout, TexelCopyTextureInfo, TextureDescriptor, TextureViewDescriptor,
-    WebGPUAdapter, WebGPUAdapterResponse, WebGPUComputePipelineResponse, WebGPUContextId,
-    WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
+    RequestAdapterOptions, SamplerDescriptor, ShaderCompilationInfo, TexelCopyBufferLayout,
+    TexelCopyTextureInfo, TextureDescriptor, TextureViewDescriptor, WebGPUAdapter,
+    WebGPUAdapterResponse, WebGPUComputePipelineResponse, WebGPUContextId, WebGPUDeviceResponse,
+    WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -60,35 +60,10 @@ pub enum WebGPURequest {
         desc: CommandBufferDescriptor<Label<'static>>,
         command_buffer_id: CommandBufferId,
     },
-    CopyBufferToBuffer {
-        device_id: DeviceId,
+    CommandEncoderCommand {
         command_encoder_id: CommandEncoderId,
-        source_id: BufferId,
-        source_offset: BufferAddress,
-        destination_id: BufferId,
-        destination_offset: BufferAddress,
-        size: BufferAddress,
-    },
-    CopyBufferToTexture {
+        command: CommandEncoderCommand,
         device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        source: TexelCopyBufferInfo,
-        destination: TexelCopyTextureInfo,
-        copy_size: Extent3d,
-    },
-    CopyTextureToBuffer {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        source: TexelCopyTextureInfo,
-        destination: TexelCopyBufferInfo,
-        copy_size: Extent3d,
-    },
-    CopyTextureToTexture {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        source: TexelCopyTextureInfo,
-        destination: TexelCopyTextureInfo,
-        copy_size: Extent3d,
     },
     CopyExternalImageToTexture {
         device_id: DeviceId,
@@ -97,20 +72,6 @@ pub enum WebGPURequest {
         destination: TexelCopyTextureInfo,
         dest_tex_descriptor: TextureDescriptor<'static>,
         copy_size: Extent3d,
-    },
-    CommandEncoderPushDebugGroup {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        label: String,
-    },
-    CommandEncoderPopDebugGroup {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-    },
-    CommandEncoderInsertDebugMarker {
-        device_id: DeviceId,
-        command_encoder_id: CommandEncoderId,
-        label: String,
     },
     CreateBindGroup {
         device_id: DeviceId,
