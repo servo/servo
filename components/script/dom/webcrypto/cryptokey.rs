@@ -11,7 +11,7 @@ use js::jsapi::{Heap, JSObject, Value};
 use js::rust::MutableHandleObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::id::{CryptoKeyId, CryptoKeyIndex};
 use servo_constellation_traits::{SerializableCryptoKey, SerializableCryptoKeyHandle};
 use strum::VariantArray;
@@ -141,7 +141,8 @@ impl CryptoKey {
         usages: Vec<KeyUsage>,
         handle: Handle,
     ) -> DomRoot<CryptoKey> {
-        let crypto_key = reflect_dom_object_with_cx(
+        let crypto_key = reflect_dom_object(
+            cx,
             Box::new(CryptoKey::new_inherited(
                 key_type,
                 extractable,
@@ -150,7 +151,6 @@ impl CryptoKey {
                 handle,
             )),
             global,
-            cx,
         );
 
         // Create and store a cached object of algorithm

@@ -9,7 +9,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
@@ -74,10 +74,10 @@ impl XRInputSource {
             true,
         );
 
-        let source = reflect_dom_object_with_cx(
+        let source = reflect_dom_object(
+            cx,
             Box::new(XRInputSource::new_inherited(session, info, &gamepad)),
             window,
-            cx,
         );
 
         let mut realm = enter_auto_realm(cx, window);
