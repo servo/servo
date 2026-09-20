@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
 use std::time::Duration;
 
 use app_units::Au;
@@ -12,6 +11,7 @@ use dom_struct::dom_struct;
 use euclid::{Rect, SideOffsets2D, Size2D, Vector2D};
 use js::context::{JSContext, NoGC};
 use js::rust::{HandleObject, MutableHandleValue};
+use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -104,8 +104,7 @@ pub(crate) struct IntersectionObserver {
     /// > with the intersection root, as per the processing model.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersection-observer-callback>
-    #[conditional_malloc_size_of]
-    callback: Rc<IntersectionObserverCallback>,
+    callback: TracedCallback<IntersectionObserverCallback>,
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-queuedentries-slot>
     queued_entries: DomRefCell<Vec<Dom<IntersectionObserverEntry>>>,
@@ -139,7 +138,7 @@ pub(crate) struct IntersectionObserver {
 impl IntersectionObserver {
     fn new_inherited(
         window: &Window,
-        callback: Rc<IntersectionObserverCallback>,
+        callback: RootedCallback<IntersectionObserverCallback>,
         root: &Option<ElementOrDocument>,
         root_margin: IntersectionObserverMargin,
         scroll_margin: IntersectionObserverMargin,
@@ -148,7 +147,7 @@ impl IntersectionObserver {
             reflector_: Reflector::new(),
             owner_doc: window.Document().as_traced(),
             root: root.as_ref().map(|root| root.into()),
-            callback,
+            callback: callback.to_traced(),
             queued_entries: Default::default(),
             observation_targets: Default::default(),
             root_margin: RefCell::new(root_margin),
@@ -165,7 +164,7 @@ impl IntersectionObserver {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        callback: Rc<IntersectionObserverCallback>,
+        callback: RootedCallback<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
     ) -> Fallible<DomRoot<Self>> {
         // Step 3.
@@ -838,7 +837,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        callback: Rc<IntersectionObserverCallback>,
+        callback: RootedCallback<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
     ) -> Fallible<DomRoot<IntersectionObserver>> {
         Self::new(cx, window, proto, callback, init)
