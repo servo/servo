@@ -27,7 +27,7 @@ class ServoView(
     private val initialUri: String?,
     navigator: ServoNavigator,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
-    private val glThread: GLThread
+    private val glThread = GLThread().apply { start() }
     private var servo: Servo? = null
 
     init {
@@ -35,7 +35,6 @@ class ServoView(
         isFocusableInTouchMode = true
         isClickable = true
         addTouchables(arrayListOf(this))
-        glThread = GLThread()
         val surfaceHolderCallback =
             SurfaceHolderCallback(
                 servoView = this,
@@ -45,7 +44,6 @@ class ServoView(
                 navigator = navigator,
             )
         holder.addCallback(surfaceHolderCallback)
-        glThread.start()
     }
 
     override fun inGLThread(r: Runnable) {
