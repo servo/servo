@@ -23,12 +23,13 @@ use crate::{
     BufferDescriptor, CommandBufferDescriptor, CommandEncoderDescriptor, ComputePipelineDescriptor,
     ContextConfiguration, DeviceDescriptor, Error, ErrorFilter, Extent3d, HostMap, Label, Mapping,
     PRESENTATION_BUFFER_COUNT, PassTimestampWrites, PipelineLayoutDescriptor, QuerySetDescriptor,
-    RenderBundleCommand, RenderBundleDescriptor, RenderBundleEncoderDescriptor, RenderCommand,
+    RenderBundleDescriptor, RenderBundleEncoderDescriptor, RenderCommand,
     RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPipelineDescriptor,
     RequestAdapterOptions, SamplerDescriptor, ShaderCompilationInfo, TexelCopyBufferInfo,
     TexelCopyBufferLayout, TexelCopyTextureInfo, TextureDescriptor, TextureViewDescriptor,
     WebGPUAdapter, WebGPUAdapterResponse, WebGPUComputePipelineResponse, WebGPUContextId,
     WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
+    ComputePassEncoderCommand, RenderPassEncoderCommand, RenderBundleEncoderCommand
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -250,43 +251,9 @@ pub enum WebGPURequest {
         timestamp_writes: Option<PassTimestampWrites>,
         device_id: DeviceId,
     },
-    ComputePassSetPipeline {
+    ComputePassCommand {
         compute_pass_id: ComputePassEncoderId,
-        pipeline_id: ComputePipelineId,
-        device_id: DeviceId,
-    },
-    ComputePassSetBindGroup {
-        compute_pass_id: ComputePassEncoderId,
-        index: u32,
-        bind_group_id: BindGroupId,
-        offsets: Vec<u32>,
-        device_id: DeviceId,
-    },
-    ComputePassDispatchWorkgroups {
-        compute_pass_id: ComputePassEncoderId,
-        x: u32,
-        y: u32,
-        z: u32,
-        device_id: DeviceId,
-    },
-    ComputePassDispatchWorkgroupsIndirect {
-        compute_pass_id: ComputePassEncoderId,
-        buffer_id: BufferId,
-        offset: u64,
-        device_id: DeviceId,
-    },
-    ComputePassPushDebugGroup {
-        compute_pass_id: ComputePassEncoderId,
-        label: String,
-        device_id: DeviceId,
-    },
-    ComputePassPopDebugGroup {
-        compute_pass_id: ComputePassEncoderId,
-        device_id: DeviceId,
-    },
-    ComputePassInsertDebugMarker {
-        compute_pass_id: ComputePassEncoderId,
-        label: String,
+        compute_command: ComputePassEncoderCommand,
         device_id: DeviceId,
     },
     EndComputePass {
@@ -305,7 +272,7 @@ pub enum WebGPURequest {
     },
     RenderPassCommand {
         render_pass_id: RenderPassEncoderId,
-        render_command: RenderCommand,
+        render_command: RenderPassEncoderCommand,
         device_id: DeviceId,
     },
     EndRenderPass {
@@ -413,7 +380,7 @@ pub enum WebGPURequest {
     },
     RenderBundleEncoderCommand {
         render_bundle_encoder_id: RenderBundleEncoderId,
-        render_command: RenderBundleCommand,
+        render_command: RenderBundleEncoderCommand,
         device_id: DeviceId,
     },
     DropRenderBundleEncoder(RenderBundleEncoderId),

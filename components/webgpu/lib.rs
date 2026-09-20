@@ -11,6 +11,7 @@ use wgpu_thread::WGPU;
 
 mod poll_thread;
 mod wgpu_thread;
+mod encoders;
 
 use std::borrow::Cow;
 

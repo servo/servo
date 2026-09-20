@@ -5,7 +5,7 @@
 pub mod error;
 pub mod ids;
 pub mod messages;
-pub mod render_commands;
+pub mod encoders;
 
 use std::ops::Range;
 
@@ -74,7 +74,7 @@ pub use wgpu_types::{
 pub use crate::error::*;
 pub use crate::ids::*;
 pub use crate::messages::*;
-pub use crate::render_commands::*;
+pub use crate::encoders::*;
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
