@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>pathLength of zero and startOffset on a textPath</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthAttribute">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementStartOffsetAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg width="400" height="300">
+  <defs>
+    <path id="zero" d="M 10 50 L 390 50" pathLength="0"/>
+    <path id="plain" d="M 10 50 L 390 50"/>
+    <path id="half" d="M 10 50 L 390 50" pathLength="190"/>
+  </defs>
+  <text><textPath id="zero-abs" href="#zero" startOffset="0">ABCDEF</textPath></text>
+  <text><textPath id="zero-pct" href="#zero" startOffset="50%">ABCDEF</textPath></text>
+  <text><textPath id="plain-abs" href="#plain" startOffset="0">ABCDEF</textPath></text>
+  <text><textPath id="plain-pct" href="#plain" startOffset="50%">ABCDEF</textPath></text>
+  <text><textPath id="half-abs" href="#half" startOffset="95">ABCDEF</textPath></text>
+</svg>
+
+<script>
+// The path runs from x=10 to x=390, so it measures 380 units: the start is x=10 and
+// halfway is x=200. #half declares 190 for that same path, so its scaling factor is 2.
+const el = (id) => document.getElementById(id);
+const EPSILON = 1e-4;
+const x = (id) => el(id).getStartPositionOfChar(0).x;
+
+test(() => {
+  assert_equals(el('plain-abs').getNumberOfChars(), 6, 'the string is laid out');
+  assert_approx_equals(x('plain-abs'), 10, EPSILON, 'startOffset 0 is the path start');
+  assert_approx_equals(x('plain-pct'), 200, EPSILON, '50% is halfway along');
+  assert_approx_equals(x('half-abs'), 200, EPSILON, '95 declared units is halfway along');
+}, 'control: startOffset and pathLength scaling both work on this path');
+
+// "A value of zero is valid and must be treated as a scaling factor of infinity. A value
+// of zero scaled infinitely must remain zero".
+test(() => {
+  assert_equals(el('zero-abs').getNumberOfChars(), 6, 'the string is laid out');
+  assert_approx_equals(x('zero-abs'), 10, EPSILON);
+}, 'a startOffset of 0 is unaffected by pathLength="0"');
+
+// "'pathLength' has no effect on percentage distance-along-a-path calculations", and the
+// scaling rule above applies to "any non-percentage value greater than zero", so a
+// percentage never becomes infinite and stays measured against the real length.
+test(() => {
+  assert_equals(el('zero-pct').getNumberOfChars(), 6, 'the string is laid out');
+  assert_approx_equals(x('zero-pct'), 200, EPSILON);
+}, 'a percentage startOffset is unaffected by pathLength="0"');
+
+test(() => {
+  assert_approx_equals(x('zero-pct'), x('plain-pct'), EPSILON);
+}, 'pathLength="0" places a percentage startOffset where no pathLength would');
+</script>

@@ -1,0 +1,8 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <path id="line" d="M 10 50 L 390 50"/>
+  </defs>
+  <text>
+    <textPath href="#line" startOffset="60">Offset along a straight line</textPath>
+  </text>
+</svg>

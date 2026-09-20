@@ -59,6 +59,16 @@
   </submenu>
 </menubar>
 
+<menubar id="invalid-outer-with-nested-menubar">
+  <button>Invalid</button>
+  <submenu>
+    <menuitem>Open Submenu</menuitem>
+    <menubar id="valid-inner-menubar">
+      <menuitem>Inner Item</menuitem>
+    </menubar>
+  </submenu>
+</menubar>
+
 <menulist id="invalid-submenu-content">
   <submenu>
     <menuitem>Submenu Item</menuitem>
@@ -309,8 +319,19 @@ promise_test(async () => {
   assert_equals(outerRole, 'dialog', 'Invalid outer menubar forces dialog');
 
   const innerRole = await test_driver.get_computed_role(validInner);
-  assert_equals(innerRole, 'dialog', 'Valid inner menulist should fallback to dialog role if outer is invalid');
-}, 'Invalid outer menubar forces dialog on itself and on valid inner menulist');
+  assert_equals(innerRole, 'list', 'Valid inner menulist should fallback to list role if outer is invalid');
+}, 'Invalid outer menubar forces dialog on itself and list on valid inner menulist');
+
+promise_test(async () => {
+  const invalidOuter = document.getElementById('invalid-outer-with-nested-menubar');
+  const validInner = document.getElementById('valid-inner-menubar');
+
+  const outerRole = await test_driver.get_computed_role(invalidOuter);
+  assert_equals(outerRole, 'dialog', 'Invalid outer menubar forces dialog');
+
+  const innerRole = await test_driver.get_computed_role(validInner);
+  assert_equals(innerRole, 'list', 'Valid inner menubar should fallback to list role if outer is invalid');
+}, 'Invalid outer menubar forces dialog on itself and list on valid inner menubar');
 
 promise_test(async () => {
   const dynamicList = document.createElement('menulist');
@@ -471,7 +492,7 @@ promise_test(async () => {
   innerList.showPopover();
 
   assert_equals(await test_driver.get_computed_role(outerList), 'dialog', 'Outer list initially in dialog mode');
-  assert_equals(await test_driver.get_computed_role(innerList), 'dialog', 'Inner list initially in dialog mode');
+  assert_equals(await test_driver.get_computed_role(innerList), 'list', 'Inner list initially in list mode');
 
   // Remove the subtree from the INNER list, then mutate it before the observer runs.
   // Because of transient observers, both inner and outer observers will get a record for innerButton's removal.
@@ -553,20 +574,20 @@ promise_test(async () => {
   assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Outer menu becomes dialog');
 
   sub1.showPopover();
-  assert_equals(await test_driver.get_computed_role(sub1), 'dialog', 'Lateral sibling sub1 becomes dialog');
+  assert_equals(await test_driver.get_computed_role(sub1), 'list', 'Lateral sibling sub1 becomes list');
   sub1.hidePopover();
 
   sub2.showPopover();
-  assert_equals(await test_driver.get_computed_role(sub2), 'dialog', 'Lateral sibling sub2 becomes dialog');
+  assert_equals(await test_driver.get_computed_role(sub2), 'list', 'Lateral sibling sub2 becomes list');
   sub4.showPopover();
-  assert_equals(await test_driver.get_computed_role(sub4), 'dialog', 'Descendant of lateral sibling sub4 becomes dialog');
+  assert_equals(await test_driver.get_computed_role(sub4), 'list', 'Descendant of lateral sibling sub4 becomes list');
   sub4.hidePopover();
   sub2.hidePopover();
 
   sub3.showPopover();
-  assert_equals(await test_driver.get_computed_role(sub3), 'dialog', 'Invalid sub3 becomes dialog');
+  assert_equals(await test_driver.get_computed_role(sub3), 'list', 'Invalid sub3 becomes list');
   sub5.showPopover();
-  assert_equals(await test_driver.get_computed_role(sub5), 'dialog', 'Descendant of invalid sub5 becomes dialog');
+  assert_equals(await test_driver.get_computed_role(sub5), 'list', 'Descendant of invalid sub5 becomes list');
   sub5.hidePopover();
   sub3.hidePopover();
 }, 'A single violation forces the entire menu tree (ancestors, siblings, descendants) into dialog mode');
@@ -577,11 +598,15 @@ promise_test(async () => {
 
   sub1.showPopover();
 
+  assert_equals(await test_driver.get_computed_role(outer), 'menubar', 'Tree starts as menu');
+  assert_equals(await test_driver.get_computed_role(sub1), 'menu', 'Sub1 starts as menu');
+
   const button = document.createElement('button');
   sub1.appendChild(button);
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Tree is dialog');
+  assert_equals(await test_driver.get_computed_role(sub1), 'list', 'Sub1 is list');
 
   button.remove();
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -696,7 +721,7 @@ promise_test(async () => {
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Outer correctly inherited dialog state after subsuming standalone menulist');
-  assert_equals(await test_driver.get_computed_role(inner), 'dialog', 'Inner remains dialog');
+  assert_equals(await test_driver.get_computed_role(inner), 'list', 'Inner becomes list after being subsumed');
 
   // Verify the top-level observer correctly processes new mutations in the subsumed tree.
   btn.remove();

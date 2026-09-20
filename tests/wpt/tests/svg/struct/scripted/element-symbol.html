@@ -2,6 +2,8 @@
 <title>SVGSymbolElement interface</title>
 <link rel="author" title="Timothy Gu" href="mailto:timothygu99@gmail.com">
 <link rel="help" href="https://svgwg.org/svg2-draft/struct.html#InterfaceSVGSymbolElement">
+<link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGElement__viewportElement">
+<link rel="help" href="https://svgwg.org/svg2-draft/coords.html#EstablishingANewSVGViewport">
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -55,10 +57,10 @@
     const circ = document.getElementById("myCircle");
 
     assert_equals(g.ownerSVGElement, svg);
-    assert_equals(g.viewportElement, sym);
+    assert_equals(g.viewportElement, svg);
     assert_equals(circ.ownerSVGElement, svg);
-    assert_equals(circ.viewportElement, sym);
-  }, "Viewport of children");
+    assert_equals(circ.viewportElement, svg);
+  }, "Viewport of children of an uninstantiated symbol");
 }
 
 test(() => {

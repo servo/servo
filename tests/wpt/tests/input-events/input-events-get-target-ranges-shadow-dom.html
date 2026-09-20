@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<title>InputEvent.getTargetRanges() with Shadow DOM</title>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/553390794">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div id="host">
+  <template shadowrootmode="open">
+    <div id="editor" contenteditable="true" style="min-height: 20px;">test</div>
+  </template>
+</div>
+
+<div id="nested_host">
+  <template shadowrootmode="open">
+    <div id="inner_host">
+      <template shadowrootmode="open">
+        <div id="editor" contenteditable="true" style="min-height: 20px;">test</div>
+      </template>
+    </div>
+  </template>
+</div>
+
+<div id="synthetic_host">
+  <template shadowrootmode="open">hello</template>
+</div>
+
+<script>
+promise_test(async test => {
+  const host = document.getElementById('host');
+  const editor = host.shadowRoot.getElementById('editor');
+
+  let innerBeforeInputRangesLength = -1;
+  let hostBeforeInputRangesLength = -1;
+  let docBeforeInputRangesLength = -1;
+  let innerInputRangesLength = -1;
+  let hostInputRangesLength = -1;
+  let docInputRangesLength = -1;
+
+  editor.addEventListener('beforeinput', (e) => {
+    innerBeforeInputRangesLength = e.getTargetRanges().length;
+  });
+  editor.addEventListener('input', (e) => {
+    innerInputRangesLength = e.getTargetRanges().length;
+  });
+
+  host.addEventListener('beforeinput', (e) => {
+    hostBeforeInputRangesLength = e.getTargetRanges().length;
+  });
+  host.addEventListener('input', (e) => {
+    hostInputRangesLength = e.getTargetRanges().length;
+  });
+
+  const docBeforeInputListener = (e) => {
+    docBeforeInputRangesLength = e.getTargetRanges().length;
+  };
+  const docInputListener = (e) => {
+    docInputRangesLength = e.getTargetRanges().length;
+  };
+  document.addEventListener('beforeinput', docBeforeInputListener);
+  document.addEventListener('input', docInputListener);
+  test.add_cleanup(() => {
+    document.removeEventListener('beforeinput', docBeforeInputListener);
+    document.removeEventListener('input', docInputListener);
+  });
+
+  editor.focus();
+  await test_driver.send_keys(host, 'a');
+
+  assert_equals(innerBeforeInputRangesLength, 1,
+      'beforeinput getTargetRanges() inside shadow root should return target ranges');
+  assert_equals(hostBeforeInputRangesLength, 0,
+      'beforeinput getTargetRanges() on shadow host should return empty array');
+  assert_equals(docBeforeInputRangesLength, 0,
+      'beforeinput getTargetRanges() on document should return empty array');
+
+  assert_equals(innerInputRangesLength, 0,
+      'input event getTargetRanges() inside shadow root should be empty');
+  assert_equals(hostInputRangesLength, 0,
+      'input event getTargetRanges() on shadow host should be empty');
+  assert_equals(docInputRangesLength, 0,
+      'input event getTargetRanges() on document should be empty');
+}, 'InputEvent.getTargetRanges() should not leak nodes from a shadow root during typing.');
+
+promise_test(async test => {
+  const outerHost = document.getElementById('nested_host');
+  const innerHost = outerHost.shadowRoot.getElementById('inner_host');
+  const editor = innerHost.shadowRoot.getElementById('editor');
+
+  let innerRangesLength = -1;
+  let outerShadowRangesLength = -1;
+  let docRangesLength = -1;
+
+  editor.addEventListener('beforeinput', (e) => {
+    innerRangesLength = e.getTargetRanges().length;
+  });
+
+  innerHost.addEventListener('beforeinput', (e) => {
+    outerShadowRangesLength = e.getTargetRanges().length;
+  });
+
+  const docListener = (e) => {
+    docRangesLength = e.getTargetRanges().length;
+  };
+  document.addEventListener('beforeinput', docListener);
+  test.add_cleanup(() => document.removeEventListener('beforeinput', docListener));
+
+  editor.focus();
+  await test_driver.send_keys(outerHost, 'a');
+
+  assert_equals(innerRangesLength, 1,
+      'getTargetRanges() inside inner shadow root should return target ranges');
+  assert_equals(outerShadowRangesLength, 0,
+      'getTargetRanges() inside intermediate shadow root should return empty array');
+  assert_equals(docRangesLength, 0,
+      'getTargetRanges() on document for nested shadow root should return empty array');
+}, 'InputEvent.getTargetRanges() should not leak nodes across nested shadow roots.');
+
+test(test => {
+  const host = document.getElementById('synthetic_host');
+  const shadow = host.shadowRoot;
+  const textNode = shadow.firstChild;
+
+  const staticRange = new StaticRange({
+    startContainer: textNode,
+    startOffset: 0,
+    endContainer: textNode,
+    endOffset: 4
+  });
+
+  let innerEventRangesLength = -1;
+  let hostEventRangesLength = -1;
+  let docEventRangesLength = -1;
+
+  shadow.addEventListener('input', (e) => {
+    innerEventRangesLength = e.getTargetRanges().length;
+  });
+
+  host.addEventListener('input', (e) => {
+    hostEventRangesLength = e.getTargetRanges().length;
+  });
+
+  const docListener = (e) => {
+    docEventRangesLength = e.getTargetRanges().length;
+  };
+  document.addEventListener('input', docListener);
+  test.add_cleanup(() => document.removeEventListener('input', docListener));
+
+  const syntheticEvent = new InputEvent('input', {
+    bubbles: true,
+    composed: true,
+    targetRanges: [staticRange]
+  });
+  textNode.dispatchEvent(syntheticEvent);
+
+  assert_equals(innerEventRangesLength, 1,
+      'Synthetic InputEvent getTargetRanges() inside shadow root should return target range');
+  assert_equals(hostEventRangesLength, 0,
+      'Synthetic InputEvent getTargetRanges() on shadow host should return empty array');
+  assert_equals(docEventRangesLength, 0,
+      'Synthetic InputEvent getTargetRanges() on document should return empty array');
+}, 'Synthetic InputEvent with targetRanges should not leak nodes from a shadow root.');
+</script>

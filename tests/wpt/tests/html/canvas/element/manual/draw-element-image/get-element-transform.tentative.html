@@ -5,7 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
-<canvas id="canvas" style="width: 100px; height: 100px;" width="100" height="100" layoutsubtree>
+<canvas id="canvas" style="width: 100px; height: 100px;" width="100" height="100" content=drawable>
   <div id="element" style="width: 10px; height: 10px;"></div>
 </canvas>
 <script>
@@ -153,12 +153,12 @@
 
   promise_test(async t => {
     t.add_cleanup(async() => {
-      canvas.setAttribute('layoutsubtree', 'true');
+      canvas.setAttribute('content', 'drawable');
     });
-    canvas.removeAttribute('layoutsubtree');
+    canvas.removeAttribute('content');
     await waitForCanvasPaint(canvas);
 
-    canvas.setAttribute('layoutsubtree', 'true');
+    canvas.setAttribute('content', 'drawable');
     let draw_transform = new DOMMatrix();
     assert_throws_dom(
       'InvalidStateError',

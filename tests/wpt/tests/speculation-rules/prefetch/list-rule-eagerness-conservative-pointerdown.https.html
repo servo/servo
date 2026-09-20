@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Speculation rules: conservative eagerness list rule prefetches on pointer down</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<body>
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  promise_test(async t => {
+    const url = getPrefetchUrl();
+    const link = addLink(url);
+    // Give the link a box so the pointer has something to press.
+    link.textContent = 'press me';
+
+    insertSpeculationRules({
+      prefetch: [{ source: 'list', urls: [url], eagerness: 'conservative' }]
+    });
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0,
+        'conservative candidate must not be prefetched before any interaction');
+
+    await new test_driver.Actions()
+        .addPointer('mouse')
+        .pointerMove(0, 0, { origin: link })
+        .send();
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0,
+        'conservative candidate must not be prefetched by hover alone');
+
+    // Release the pointer away from the link so that no click navigates.
+    await new test_driver.Actions()
+        .addPointer('mouse')
+        .pointerMove(0, 0, { origin: link })
+        .pointerDown()
+        .pointerMove(0, 0)
+        .pointerUp()
+        .send();
+
+    assert_equals(await waitUntilPrefetched(t, url, 2000), 1,
+        'conservative candidate must be prefetched after pointer down on the link');
+  }, 'conservative eagerness list rule prefetches after pointer down on the link');
+</script>
+</body>

@@ -21,7 +21,12 @@ const testingId = new URLSearchParams(document.location.search).get("id");
 const testElement = document.getElementById(testingId);
 const utils = new EditorTestUtils(testElement);
 
-promise_test(async () => {
+async function pasteAfterChangingClipboard(eventType) {
+  if (testElement.isContentEditable)
+    testElement.textContent = "";
+  else
+    testElement.value = "";
+
   // Copy the content to the clipboard.
   const range = document.createRange();
   const contentToCopy = document.getElementById("contentCopy");
@@ -36,14 +41,35 @@ promise_test(async () => {
     e.preventDefault();
     e.clipboardData.setData("text/plain", "New text");
   }, { once: true });
-  testElement.addEventListener("paste", (e) => {
+  let beforeInputFired = false;
+  testElement.addEventListener("beforeinput", () => {
+    beforeInputFired = true;
+  }, { once: true });
+  testElement.addEventListener(eventType, () => {
     // Overwrite the clipboard content.
     document.execCommand("copy");
   }, { once: true });
   await test_driver.click(testElement);
   await utils.sendPasteShortcutKey();
 
-  // Check content.
-  assert_equals(testElement.isContentEditable ? testElement.textContent : testElement.value, "New text");
+  return {
+    beforeInputFired,
+    pastedContent: testElement.isContentEditable ?
+        testElement.textContent : testElement.value,
+  };
+}
+
+promise_test(async () => {
+  const result = await pasteAfterChangingClipboard("paste");
+  assert_true(result.beforeInputFired);
+  assert_equals(result.pastedContent, "",
+      "clipboard content written during the paste handler must not be pasted");
 }, "clipboard change during paste event handler");
+
+promise_test(async () => {
+  const result = await pasteAfterChangingClipboard("beforeinput");
+  assert_true(result.beforeInputFired);
+  assert_equals(result.pastedContent, "",
+      "clipboard content written during beforeinput must not be pasted");
+}, "clipboard change during beforeinput event handler");
 </script>

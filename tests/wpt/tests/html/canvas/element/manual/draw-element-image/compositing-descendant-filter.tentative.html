@@ -1,12 +1,12 @@
 <!doctype html>
 <html class="reftest-wait">
-<title>HTML-in-Canvas: Composited descendants inside layoutsubtree canvas should not be visible if not drawn</title>
+<title>HTML-in-Canvas: Composited descendants inside content=drawable canvas should not be visible if not drawn</title>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <link rel="match" href="compositing-descendant-filter-ref.html" />
 
 <!-- Test passes if there is ONLY a 100x100 green square below. -->
 <div style="width: 100px; height: 100px; background: green;"></div>
-<canvas layoutsubtree width="200" height="200">
+<canvas content=drawable width="200" height="200">
   <div style="filter: drop-shadow(0px 0px 0px rgba(0,0,0,0))">
     <div style="height: 150px;">FAIL</div>
     <div style="filter: drop-shadow(0px 0px 0px rgba(0,0,0,0))">

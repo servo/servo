@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>The source of a MediaStreamTrack in transfer to a dedicated worker is kept alive</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-extensions/#transferable-mediastreamtrack">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/mediacapture-streams/permission-helper.js></script>
+<script src=support/transfer-helper.js></script>
+<script>
+"use strict";
+
+promise_setup(() => setMediaPermission());
+
+promise_test(async t => {
+  const worker = await createWorker(t, TRACK_WORKER_SCRIPT);
+  const track = await getTrack(t, "video");
+  const clone = track.clone();
+  const reply = callWorker(worker, {type: "receive", track}, [track]);
+  clone.stop();
+  const state = await reply;
+  assert_equals(state.readyState, "live");
+  const size = await callWorker(worker, {type: "readFrame"});
+  assert_greater_than(size.width, 0);
+}, "Stopping all remaining tracks of a source while a transfer is in flight does not end the transferred track");
+</script>

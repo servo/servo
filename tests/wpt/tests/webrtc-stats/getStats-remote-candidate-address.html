@@ -14,6 +14,8 @@ promise_test(async (test) => {
     test.add_cleanup(() => remotePc.close());
 
     const pairPromise = openChannelPair(localPc, remotePc, 'prflx_obfuscate');
+    // One-way trickle ensures localPc.addIceCandidate is never called, so all
+    // remote candidates will be obfuscated.
     localPc.addEventListener('icecandidate', event => {
         if (event.candidate)
             remotePc.addIceCandidate(event.candidate);
@@ -39,11 +41,10 @@ promise_test(async (test) => {
     test.add_cleanup(() => remotePc.close());
 
     const pairPromise = openChannelPair(localPc, remotePc, 'prflx_obfuscate');
-    localPc.addEventListener('icecandidate', event => {
-        if (event.candidate)
-            remotePc.addIceCandidate(event.candidate);
-    });
-    exchangeOfferAnswer(localPc, remotePc);
+    // Make sure trickle finishes before checking obfuscation
+    await Promise.all([
+      exchangeOfferAnswer(localPc, remotePc),
+      exchangeIceCandidates(localPc, remotePc).complete()]);
 
     const [localChannel, remoteChannel] = await pairPromise;
 

@@ -3,7 +3,6 @@
 import argparse
 import os
 import sys
-from collections import OrderedDict
 from shutil import which
 from datetime import timedelta
 from typing import Mapping, Optional
@@ -526,7 +525,7 @@ def get_test_paths(config: Mapping[str, config.ConfigDict],
                    metadata_path_override: Optional[str] = None,
                    manifest_path_override: Optional[str] = None) -> TestPaths:
     # Set up test_paths
-    test_paths = OrderedDict()
+    test_paths = {}
 
     for section in config.keys():
         if section.startswith("manifest:"):

@@ -206,6 +206,12 @@ promise_test(async t => {
     x_input.removeAttribute('id');
     assert_array_equals(Array.from(input['labels']), []);
 
+    x_input.setAttribute('id', label.htmlFor);
+    assert_array_equals(Array.from(input['labels']), [label]);
+
+    x_input.id = '';
+    assert_array_equals(Array.from(input['labels']), []);
+
     x_input.id = label.htmlFor;
     assert_array_equals(Array.from(input['labels']), [label]);
 }, ".labels property is updated when ID changes on input");

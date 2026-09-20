@@ -13,28 +13,28 @@
 
 <div id="container">
   <!-- Branch A: outer_a -> inner_a -->
-  <canvas id="outer_a" width="200" height="200" layoutsubtree>
+  <canvas id="outer_a" width="200" height="200" content=drawable>
     <div id="target_a" style="width: 150px; height: 150px;">
-      <canvas id="inner_a" width="100" height="100" layoutsubtree>
+      <canvas id="inner_a" width="100" height="100" content=drawable>
         <div id="target_a_child" style="width: 50px; height: 50px; background: blue;"></div>
       </canvas>
     </div>
   </canvas>
   <!-- Branch B: outer_b -> [inner_b_1, inner_b_2] -->
-  <canvas id="outer_b" width="200" height="200" layoutsubtree>
+  <canvas id="outer_b" width="200" height="200" content=drawable>
     <div id="target_b" style="width: 150px; height: 150px;">
-      <canvas id="inner_b_1" width="100" height="100" layoutsubtree>
+      <canvas id="inner_b_1" width="100" height="100" content=drawable>
         <div id="target_b_1_child" style="width: 50px; height: 50px; background: blue;"></div>
       </canvas>
-      <canvas id="inner_b_2" width="100" height="100" layoutsubtree>
+      <canvas id="inner_b_2" width="100" height="100" content=drawable>
         <div id="target_b_2_child" style="width: 50px; height: 50px; background: blue;"></div>
       </canvas>
     </div>
   </canvas>
   <!-- Branch C: outer_c -> inner_c -->
-  <canvas id="outer_c" width="200" height="200" layoutsubtree>
+  <canvas id="outer_c" width="200" height="200" content=drawable>
     <div id="target_c" style="width: 150px; height: 150px;">
-      <canvas id="inner_c" width="100" height="100" layoutsubtree>
+      <canvas id="inner_c" width="100" height="100" content=drawable>
         <div id="target_c_child" style="width: 50px; height: 50px; background: blue;"></div>
       </canvas>
     </div>

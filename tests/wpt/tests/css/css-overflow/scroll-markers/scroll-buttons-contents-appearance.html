@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::scroll-button() on a display:contents element is placed after that element's contents</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="match" href="scroll-buttons-contents-appearance-ref.html">
+
+<div class="container">
+  <div class="contents">
+    <div class="box green"></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="contents">
+    <div class="box green"></div>
+    <div class="box yellow"></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="contents with-start">
+    <div class="box green"></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="contents">
+    <div class="box green"></div>
+  </div>
+  <div class="contents cyan">
+    <div class="box yellow"></div>
+  </div>
+</div>
+
+<style>
+  .container {
+    display: flex;
+    width: 200px;
+    height: 50px;
+    margin-bottom: 10px;
+    border: 1px solid gray;
+  }
+  .contents {
+    display: contents;
+  }
+  .contents::scroll-button(inline-end),
+  .with-start::scroll-button(inline-start) {
+    content: "";
+    display: block;
+    width: 50px;
+    height: 50px;
+    background: blue;
+    border: none;
+    appearance: none;
+    padding: 0;
+  }
+  .with-start::scroll-button(inline-start) {
+    background: red;
+  }
+  .cyan::scroll-button(inline-end) {
+    background: cyan;
+  }
+  .box {
+    width: 50px;
+    height: 50px;
+  }
+  .green {
+    background: green;
+  }
+  .yellow {
+    background: yellow;
+  }
+</style>

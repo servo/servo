@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text-overflow: &lt;string&gt; in a textarea with field-sizing: content that stays below max-width</title>
+<link rel="author" title="Minseong Kim" href="jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#field-sizing">
+<link rel="match" href="text-overflow-string-in-textarea-field-sizing-content-fits-ref.html">
+<meta name="assert" content="A textarea sized by field-sizing: content whose intrinsic width is smaller than max-width does not overflow, so the text-overflow string is not painted.">
+<style>
+textarea {
+  field-sizing: content;
+  max-width: 300px;
+  white-space: nowrap;
+  text-overflow: "[...]";
+}
+</style>
+<textarea>aaaa</textarea>

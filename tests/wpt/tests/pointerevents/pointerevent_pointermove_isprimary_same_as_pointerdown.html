@@ -43,7 +43,9 @@
                 });
 
                 on_event(target0, "pointerdown", function (event) {
-                    assert_equals(event.isPrimary, !!(pointerdown_events.size == 0), "pointerdown.isPrimary should only be true for first pointer.");
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.isPrimary, !!(pointerdown_events.size == 0), "pointerdown.isPrimary should only be true for first pointer.");
+                    });
                     pointerdown_events.set(event.pointerId, event);
                     detected_pointertypes[event.pointerType] = true;
                 });

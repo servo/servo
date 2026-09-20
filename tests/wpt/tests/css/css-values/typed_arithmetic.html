@@ -68,6 +68,9 @@ test_math_used("calc(1px * 3deg / 1deg / 1px)", "3", {"prop": "line-height"});
 test_math_used("calc(1lh / 1px)", "20", {"prop": "line-height"});
 // 50% -> 50px; 1px * (50px / 1px)^1 -> 50px
 test_math_used("calc(1px * pow(50% / 1px, 1))", "50px", {"prop": "width"});
+// 100% -> 100px; round(100% / 25px) -> 4
+test_math_used("calc(0.25px * round(100% / 25px))", "1px", {prop: "width"});
+test_math_used("calc(4px / round(100% / 25px))", "1px", {prop: "width"});
 
 // https://github.com/w3c/csswg-drafts/issues/14300
 test_math_used("calc(10% / 20%)", "0.5", {"prop": "opacity"});

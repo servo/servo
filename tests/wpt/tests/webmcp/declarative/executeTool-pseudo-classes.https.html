@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: declarative tool execution pseudo-classes and toolactivated event</title>
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<style>
+  form:tool-form-active { background-color: rgb(0, 255, 0); }
+  button:tool-submit-active { color: rgb(255, 0, 0); }
+</style>
+
+<form id="pseudo_form" toolautosubmit toolname="pseudo_tool" tooldescription="Pseudo classes tool" action="about:blank" target="pseudo_iframe">
+  <input type="text" name="query">
+  <button type="submit">Submit</button>
+</form>
+<iframe name="pseudo_iframe" style="display:none"></iframe>
+
+<form id="populate_form" toolautosubmit toolname="populate_tool" tooldescription="Form populated at event tool" action="about:blank" target="populate_iframe">
+  <input type="text" name="query" value="initial">
+</form>
+<iframe name="populate_iframe" style="display:none"></iframe>
+
+<script>
+promise_test(async t => {
+  const form = document.querySelector('#pseudo_form');
+  const button = form.querySelector('button');
+  const input = form.querySelector('input');
+
+  let formActiveDuringSubmit = null;
+  let formSubmitActiveDuringSubmit = null;
+  let buttonActiveDuringSubmit = null;
+  let inputFormActiveDuringSubmit = null;
+  let inputSubmitActiveDuringSubmit = null;
+  let formBgDuringSubmit = null;
+  let buttonColorDuringSubmit = null;
+
+  form.addEventListener('submit', e => {
+    formActiveDuringSubmit = form.matches(':tool-form-active');
+    formSubmitActiveDuringSubmit = form.matches(':tool-submit-active');
+    buttonActiveDuringSubmit = button.matches(':tool-submit-active');
+    inputFormActiveDuringSubmit = input.matches(':tool-form-active');
+    inputSubmitActiveDuringSubmit = input.matches(':tool-submit-active');
+    formBgDuringSubmit = getComputedStyle(form).backgroundColor;
+    buttonColorDuringSubmit = getComputedStyle(button).color;
+    e.preventDefault();
+    e.respondWith(Promise.resolve('result'));
+  });
+
+  const tool = await waitForTool('pseudo_tool');
+  await document.modelContext.executeTool(tool, { query: 'testing' });
+
+  assert_true(formActiveDuringSubmit, 'Form should match :tool-form-active during submit');
+  assert_false(formSubmitActiveDuringSubmit, 'Form should not match :tool-submit-active');
+  assert_true(buttonActiveDuringSubmit, 'Button should match :tool-submit-active during submit');
+  assert_false(inputFormActiveDuringSubmit, 'Input should not match :tool-form-active');
+  assert_false(inputSubmitActiveDuringSubmit, 'Input should not match :tool-submit-active');
+  assert_equals(formBgDuringSubmit, 'rgb(0, 255, 0)', 'Form should be styled by :tool-form-active');
+  assert_equals(buttonColorDuringSubmit, 'rgb(255, 0, 0)', 'Button should be styled by :tool-submit-active');
+
+  assert_false(form.matches(':tool-form-active'), 'Form should not match :tool-form-active after completion');
+  assert_false(button.matches(':tool-submit-active'), 'Button should not match :tool-submit-active after completion');
+}, 'Pseudo-classes :tool-form-active and :tool-submit-active apply correctly during execution and are removed upon completion');
+
+promise_test(async t => {
+  const form = document.querySelector('#populate_form');
+  const input = form.querySelector('input');
+
+  let toolactivatedFired = false;
+  let inputValueAtToolactivated = '';
+
+  const handler = e => {
+    if (e.toolName === 'populate_tool') {
+      toolactivatedFired = true;
+      inputValueAtToolactivated = input.value;
+    }
+  };
+  window.addEventListener('toolactivated', handler);
+  t.add_cleanup(() => window.removeEventListener('toolactivated', handler));
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    e.respondWith(Promise.resolve('done'));
+  });
+
+  const tool = await waitForTool('populate_tool');
+  await document.modelContext.executeTool(tool, { query: 'testing' });
+
+  assert_true(toolactivatedFired, 'toolactivated event should have fired');
+  assert_equals(inputValueAtToolactivated, 'testing', 'Form controls should be populated when toolactivated fires');
+}, 'Form controls are populated with arguments when toolactivated event fires');
+</script>

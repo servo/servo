@@ -24,8 +24,8 @@
 const input_source = 'wheel';
 for (const dominant_axis of ['X', 'Y']) {
   promise_test(async t => {
-    await check_scroll_axis_lock(t, {scroller, input_source, dominant_axis, delta_dominant_axis_sign: 1, delta_minor_axis_sign: 1});
-    await check_scroll_axis_lock(t, {scroller, input_source, dominant_axis, delta_dominant_axis_sign: -1, delta_minor_axis_sign: -1});
+    await check_scroll_axis_lock(t, {scroller, input_source, expects_scroll_axis_lock: false, dominant_axis, delta_dominant_axis_sign: 1, delta_minor_axis_sign: 1});
+    await check_scroll_axis_lock(t, {scroller, input_source, expects_scroll_axis_lock: false, dominant_axis, delta_dominant_axis_sign: -1, delta_minor_axis_sign: -1});
   }, `scroll-axis-lock: none allows free diagonal ${input_source} scroll even with steep angle (no railing to ${dominant_axis})`);
 }
 </script>

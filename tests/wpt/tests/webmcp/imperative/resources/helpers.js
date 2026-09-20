@@ -38,6 +38,10 @@ function toolsAreEqual(actual, expected) {
   if (actual.annotations?.consequentialHint !== expected.annotations?.consequentialHint) {
     return `consequentialHints are unequal: ${actual.annotations?.consequentialHint} !== ${expected.annotations?.consequentialHint}`;
   }
+  if (actual.annotations?.debugging !== expected.annotations?.debugging) {
+    return `debuggings are unequal: ${actual.annotations?.debugging} !== ${
+        expected.annotations?.debugging}`;
+  }
 
   return true;
 }

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webmcp/resources/helpers.js"></script>
+
+<script>
+promise_test(async t => {
+  const events = [];
+  window.addEventListener('toolactivated', e => events.push('activated:' + e.toolName));
+  window.addEventListener('toolcancel', e => events.push('cancel:' + e.toolName));
+
+  const activatedPromise = new Promise(resolve => {
+    window.addEventListener('toolactivated', resolve, { once: true });
+  });
+  const cancelPromise = new Promise(resolve => {
+    window.addEventListener('toolcancel', resolve, { once: true });
+  });
+
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  await document.modelContext.registerTool({
+    name: 'slow',
+    description: 'slow tool',
+    execute: () => new Promise(() => {}),
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+
+  const controller = new AbortController();
+  const execPromise = document.modelContext.executeTool(tool, {}, { signal: controller.signal });
+
+  await activatedPromise;
+  assert_array_equals(events, ['activated:slow']);
+
+  const rejectPromise = promise_rejects_dom(t, 'AbortError', execPromise);
+  controller.abort();
+  await cancelPromise;
+  await rejectPromise;
+
+  assert_array_equals(events, ['activated:slow', 'cancel:slow']);
+}, 'toolactivated and toolcancel events are dispatched on window during tool execution and cancellation');
+</script>

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Canvas.drawElementImage: layoutsubtree tests</title>
+<title>Canvas.drawElementImage: content=drawable tests</title>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
 
@@ -17,7 +17,7 @@
     background: grey;
   }
 </style>
-<canvas id=parent layoutsubtree>
+<canvas id=parent content=drawable>
   <div id=child></div>
 </canvas>
 
@@ -28,7 +28,7 @@ promise_test(async () => {
   assert_equals(child.clientWidth, 100);
 
   let parent = document.getElementById('parent');
-  parent.layoutSubtree = false;
+  parent.content = 'fallback';
   assert_equals(child.clientWidth, 0);
 }, 'canvas children have layout');
 </script>

@@ -13,10 +13,12 @@ promise_test(async t => {
   assert_implements_optional(await Summarizer.availability() == 'downloadable');
   assert_false(navigator.userActivation.isActive);
   await promise_rejects_dom(t, 'NotAllowedError', Summarizer.create());
-  await test_driver.bless('Summarizer.create', Summarizer.create);
+  await test_driver.bless();
+  const createPromise = Summarizer.create();
   // User activation is not consumed by the create call.
   assert_true(navigator.userActivation.isActive);
   consumeTransientUserActivation();
+  await createPromise;
 
   // Create does not require transient user activation.
   assert_equals(await Summarizer.availability(), 'available');

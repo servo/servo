@@ -9,17 +9,17 @@
   <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 </head>
 <body style="margin: 0;" onload="runTest()">
-  <canvas id="canvas" style="position: absolute; left: 10px; top: 20px; width: 400px; height: 400px;" layoutsubtree>
+  <canvas id="canvas" style="position: absolute; left: 10px; top: 20px; width: 400px; height: 400px;" content=drawable>
     <div id="target" style="position: absolute; left: 0; top: 0; width: 100px; height: 50px;">
       <span id="nested-inline" drawable style="font: 25px/1 Ahem;">X</span>
       <div id="nested-block" drawable style="width: 20px; height: 30px;"></div>
       <div id="nested-non-drawable" style="width: 15px; height: 25px;"></div>
     </div>
   </canvas>
-  <canvas id="canvas-no-layoutsubtree" width="100" height="100">
-    <div id="child-no-layoutsubtree"></div>
+  <canvas id="canvas-not-drawable" width="100" height="100">
+    <div id="child-not-drawable"></div>
   </canvas>
-  <canvas id="other-canvas" width="100" height="100" layoutsubtree>
+  <canvas id="other-canvas" width="100" height="100" content=drawable>
     <div id="other-child"></div>
   </canvas>
   <div id="outside" style="position: absolute; left: 10px; top: 10px; width: 100px; height: 50px;"></div>
@@ -36,15 +36,15 @@
 
       test(() => {
         const canvas = document.getElementById('canvas');
-        const noLayoutSubtreeCanvas = document.getElementById('canvas-no-layoutsubtree');
-        const child = document.getElementById('child-no-layoutsubtree');
+        const notDrawableCanvas = document.getElementById('canvas-not-drawable');
+        const child = document.getElementById('child-not-drawable');
         const outside = document.getElementById('outside');
         const otherChild = document.getElementById('other-child');
         const nestedNonDrawable = document.getElementById('nested-non-drawable');
 
         assert_throws_dom('InvalidStateError', () => {
-          noLayoutSubtreeCanvas.updateElementGeometry(child);
-        }, 'Calling updateElementGeometry on canvas without layoutsubtree must throw');
+          notDrawableCanvas.updateElementGeometry(child);
+        }, 'Calling updateElementGeometry on canvas without content=drawable must throw');
 
         assert_throws_dom('InvalidStateError', () => {
           canvas.updateElementGeometry(outside);
@@ -150,6 +150,37 @@
         assert_equals(rect.left, 10);
         assert_equals(rect.top, 20);
       }, 'updateElementGeometry and clearElementGeometry accept ElementImage');
+
+      test(() => {
+        const canvas = document.getElementById('canvas');
+        const target = document.getElementById('target');
+
+        // Apply a canvas clip to target.
+        canvas.updateElementGeometry(target, {
+          clip: { x: 10, y: 10, width: 20, height: 20 }
+        });
+        let rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 10);
+        assert_equals(rect.top, 20);
+        assert_equals(rect.width, 100);
+        assert_equals(rect.height, 50);
+
+        // Omitting clip preserves the clip, but still does not affect getBoundingClientRect.
+        canvas.updateElementGeometry(target, { preserveHitTestOrder: true });
+        rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 10);
+        assert_equals(rect.top, 20);
+        assert_equals(rect.width, 100);
+        assert_equals(rect.height, 50);
+
+        // Calling clearElementGeometry clears clip and does not affect getBoundingClientRect.
+        canvas.clearElementGeometry(target);
+        rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 10);
+        assert_equals(rect.top, 20);
+        assert_equals(rect.width, 100);
+        assert_equals(rect.height, 50);
+      }, 'updateElementGeometry() with clip does not affect getBoundingClientRect()');
     }
   </script>
 </body>

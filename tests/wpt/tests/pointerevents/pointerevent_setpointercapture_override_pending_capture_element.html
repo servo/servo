@@ -39,11 +39,15 @@
                 });
 
                 on_event(target0, "gotpointercapture", function (event) {
-                    assert_true(false, "target0 shouldn't receive gotpointercapture");
+                    test_setPointerCapture.step(function () {
+                        assert_true(false, "target0 shouldn't receive gotpointercapture");
+                    });
                 });
 
                 on_event(target1, "gotpointercapture", function (event) {
-                    assert_true(true, "target1 should receive gotpointercapture");
+                    test_setPointerCapture.step(function () {
+                        assert_true(true, "target1 should receive gotpointercapture");
+                    });
                 });
 
                 on_event(target1, "pointerup", function (event) {

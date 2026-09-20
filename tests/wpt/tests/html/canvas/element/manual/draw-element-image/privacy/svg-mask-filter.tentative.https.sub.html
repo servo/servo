@@ -28,17 +28,19 @@
           <feFuncB type="linear" slope="0" intercept="1"/>
         </feComponentTransfer>
       </filter>
-      <mask id="mask-same" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
-        <text x="0" y="50" filter="url(#filter-same)">x</text>
-      </mask>
       <mask id="mask-cross" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
         <text x="0" y="50" filter="url(#filter-cross)">x</text>
       </mask>
     </defs>
   </svg>
 
-  <canvas id="canvas" width="100" height="200" layoutsubtree>
+  <canvas id="canvas" width="100" height="200" content=drawable>
     <svg id="child" width="100" height="200">
+      <defs>
+        <mask id="mask-same" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+          <text x="0" y="50" filter="url(#filter-same)">x</text>
+        </mask>
+      </defs>
       <svg x="0" y="0" width="100" height="100">
         <rect width="100" height="100" fill="rgb(30, 130, 230)" mask="url(#mask-same)"/>
       </svg>
@@ -61,7 +63,7 @@
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
         let pixel = _getPixelFromImageData(imgData, 50, 50);
-        assert_array_equals(pixel, [30, 130, 230, 255], "Same origin filter image in external mask should be drawn");
+        assert_array_equals(pixel, [30, 130, 230, 255], "Same origin filter image in internal mask should be drawn");
 
         pixel = _getPixelFromImageData(imgData, 50, 150);
         assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin filter image in external mask should not be drawn");

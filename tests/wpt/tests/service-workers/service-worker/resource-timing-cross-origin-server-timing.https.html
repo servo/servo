@@ -23,8 +23,8 @@ promise_test(async t => {
   const frame = await with_iframe(scope);
   t.add_cleanup(() => frame.remove());
 
-  async function test_fetch({ target, mode, expect_timing_allow, description }) {
-    const fetch_url = `blank.html?subresource=1&mode=${mode}&target=${encodeURIComponent(target)}`;
+  async function test_fetch({ target, mode, use_cache, expect_timing_allow, description }) {
+    const fetch_url = `blank.html?subresource=1&mode=${mode}&use_cache=${use_cache ? '1' : '0'}&target=${encodeURIComponent(target)}`;
     const absolute_url = new URL(fetch_url, frame.contentWindow.location.href).href;
 
     const entry_promise = new Promise(resolve => {
@@ -106,6 +106,36 @@ promise_test(async t => {
     mode: 'cors',
     expect_timing_allow: true,
     description: 'Same-origin response fetched by ServiceWorker'
+  });
+
+  // 7. Redirect where initial hop lacks TAO but final hop has TAO: timing allow check fails.
+  const hop2_tao = `${host_info.HTTPS_REMOTE_ORIGIN}${base_path()}resources/server-timing.py?cors=1&tao=1`;
+  const redirect_no_tao_to_tao = `${host_info.HTTPS_REMOTE_ORIGIN}${base_path()}resources/server-timing.py?cors=1&redirect=${encodeURIComponent(hop2_tao)}`;
+  await test_fetch({
+    target: redirect_no_tao_to_tao,
+    mode: 'cors',
+    use_cache: false,
+    expect_timing_allow: false,
+    description: 'Redirect where initial hop lacks TAO'
+  });
+
+  // 8. Same redirect as 7, stored and retrieved via Cache Storage: timing allow check still fails.
+  await test_fetch({
+    target: redirect_no_tao_to_tao,
+    mode: 'cors',
+    use_cache: true,
+    expect_timing_allow: false,
+    description: 'Redirect where initial hop lacks TAO via Cache Storage'
+  });
+
+  // 9. Redirect where all hops have TAO, stored and retrieved via Cache Storage: timing allow check passes.
+  const redirect_tao_to_tao = `${host_info.HTTPS_REMOTE_ORIGIN}${base_path()}resources/server-timing.py?cors=1&tao=1&redirect=${encodeURIComponent(hop2_tao)}`;
+  await test_fetch({
+    target: redirect_tao_to_tao,
+    mode: 'cors',
+    use_cache: true,
+    expect_timing_allow: true,
+    description: 'Redirect where all hops have TAO via Cache Storage'
   });
 
 }, 'Timing allow check for subresource responses handled by Service Worker');

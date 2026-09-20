@@ -12,9 +12,9 @@
   'use strict';
 
   promise_test(async t => {
-    // Add `layoutsubtree` and assert that `drawElementImage` throws when used
+    // Add `content=drawable` and assert that `drawElementImage` throws when used
     // prior to `onpaint` firing.
-    canvas.setAttribute('layoutsubtree', 'true');
+    canvas.setAttribute('content', 'drawable');
     let ctx = canvas.getContext('2d');
     assert_throws_dom(
       'InvalidStateError',

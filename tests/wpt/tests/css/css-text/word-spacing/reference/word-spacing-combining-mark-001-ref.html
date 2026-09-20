@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>CSS Text reference: word-spacing does not separate a combining mark from its base</title>
+<link rel="author" title="Brent Fulgham" href="mailto:bfulgham@apple.com">
+
+<style>
+/* Same font and size as the test, but drawing the middle bar with 'D', an
+   ordinary spacing glyph, instead of a combining mark on a space -- so no GPOS
+   mark positioning and no word-separator character are involved. This reference
+   contains no space, so its word-spacing value is immaterial; it is set to the
+   same value only to keep the two files textually parallel. */
+@font-face {
+    font-family: "mark-anchor-test";
+    src: url("/fonts/mark-anchor-test.ttf") format("truetype");
+}
+div {
+    font-family: "mark-anchor-test";
+    font-size: 100px;
+    line-height: 150px;
+    word-spacing: 100px;
+    white-space: nowrap;
+}
+</style>
+
+<p>Test passes if the lower black bar below is 100px wide starting at the left
+edge, and the upper bar is 100px wide immediately to its right, with no gap
+between them horizontally and no bar further right.</p>
+
+<div>&#x41;&#x44;</div>
+</html>

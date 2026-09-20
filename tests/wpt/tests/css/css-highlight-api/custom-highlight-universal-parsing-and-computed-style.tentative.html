@@ -33,10 +33,4 @@ test(() => {
   assert_equals(style.color, "rgb(255, 0, 0)");
   assert_equals(style.backgroundColor, "rgb(255, 255, 0)");
 }, "named highlight without its own rule falls back to the universal style");
-
-test(() => {
-  const style = getComputedStyle(outer, "::highlight(*)");
-  assert_equals(style.color, "rgb(255, 0, 0)");
-  assert_equals(style.backgroundColor, "rgb(255, 255, 0)");
-}, "::highlight(*) computed style is exposed");
 </script>

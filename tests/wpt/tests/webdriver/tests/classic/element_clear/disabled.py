@@ -1,3 +1,7 @@
+# META: timeout=long
+
+# Longer timeout required due to a large number of input action and event dispatch subtests.
+
 import pytest
 
 from tests.support.classic.asserts import assert_error, assert_success

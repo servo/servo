@@ -542,6 +542,10 @@
         return create_context_action("get_named_cookie", context, {name});
     };
 
+    window.test_driver_internal.create_window = function(type=null, context=null) {
+        return create_context_action("create_window", context, {type});
+    };
+
     window.test_driver_internal.minimize_window = function(context=null) {
         return create_context_action("minimize_window", context, {});
     };

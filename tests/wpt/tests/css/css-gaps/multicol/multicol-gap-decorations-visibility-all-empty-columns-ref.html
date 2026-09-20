@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<style>
+  .multicol {
+    position: relative;
+    width: 320px;
+    height: 100px;
+    columns: 3;
+    column-fill: auto;
+    column-gap: 20px;
+    border: 2px solid black;
+  }
+
+  .item {
+    height: 80px;
+    background: lightcyan;
+  }
+
+  .rule {
+    position: absolute;
+    top: 0;
+    width: 6px;
+    height: 100px;
+    background: blue;
+  }
+
+  .rule-first {
+    left: calc((100% - 40px) / 3 + 7px);
+  }
+
+  .rule-second {
+    left: calc((100% - 40px) * 2 / 3 + 27px);
+  }
+</style>
+<div class="multicol">
+  <div class="rule rule-first"></div>
+  <div class="rule rule-second"></div>
+  <div class="item">Only the first column has content</div>
+</div>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference for SVG opacity changes preserving text decorations</title>
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  text {
+    display: inline-block;
+    font: 40px Ahem;
+  }
+</style>
+<svg width="400" height="160">
+  <g text-decoration="underline">
+    <text x="20" y="60" opacity="0.75">XX XX XX</text>
+    <text x="20" y="140" style="opacity: 0.75">XX XX XX</text>
+  </g>
+</svg>
+

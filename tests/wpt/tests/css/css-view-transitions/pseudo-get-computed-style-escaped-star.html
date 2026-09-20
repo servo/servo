@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: getComputedStyle() distinguishes ::view-transition-group(*) from the escaped name \*</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+}
+
+::view-transition-group(*) {
+  outline-color: green;
+}
+
+/* "\*" is an escaped <custom-ident> that spells the character "*", an ordinary name. It
+   must not be confused with the universal "*" selector above when queried through
+   getComputedStyle(), in either direction. */
+::view-transition-group(\*) {
+  outline-color: red;
+}
+</style>
+
+<div id=target></div>
+
+<script>
+promise_test(async () => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  let transition = document.startViewTransition();
+  await transition.ready;
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").outlineColor, "rgb(0, 128, 0)", "a group with an ordinary name should still see the universal rule");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(\\*)").outlineColor, "rgb(255, 0, 0)", "::view-transition-group(\\*) should reflect the escaped literal name's rule");
+
+  await transition.finished;
+}, "getComputedStyle() for ::view-transition-group(*) is not confused with the escaped name \\*");
+</script>

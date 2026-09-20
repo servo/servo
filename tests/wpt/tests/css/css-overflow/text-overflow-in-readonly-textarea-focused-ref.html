@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Reference: a focused read-only textarea with text-overflow: clip</title>
+<style>
+textarea {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  caret-color: transparent;
+}
+</style>
+<textarea readonly>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</textarea>
+<script>
+const textarea = document.querySelector('textarea');
+textarea.focus();
+textarea.setSelectionRange(0, 0);
+textarea.scrollLeft = 0;
+requestAnimationFrame(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</html>

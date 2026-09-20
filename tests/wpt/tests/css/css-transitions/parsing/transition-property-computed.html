@@ -12,8 +12,16 @@
 <body>
 <div id="target"></div>
 <script>
+test_computed_value("transition-property", 'none');
+test_computed_value("transition-property", 'all');
+test_computed_value("transition-property", 'one');
+test_computed_value("transition-property", 'one-two-three');
+test_computed_value("transition-property", 'one, two, three');
+test_computed_value("transition-property", 'width, all');
+test_computed_value("transition-property", 'width, top, width');
+test_computed_value("transition-property", 'all, top, all');
+test_computed_value("transition-property", 'ALL, INVALID, SYNTAX, SRC', 'all, INVALID, SYNTAX, SRC');
 test_computed_value("transition-property", "left, top, right, bottom");
-test_computed_value("transition-property", "one, two, three");
 </script>
 </body>
 </html>

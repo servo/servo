@@ -68,3 +68,43 @@
     assert_equals(eventSource, host, "interestee is host");
   }, "cross shadow InterestEvent retargets interestee to host element");
 </script>
+
+<div id=own-host-interestee>
+  <template shadowrootmode=open>
+    <style>
+      button {
+        interest-delay: 0s;
+      }
+    </style>
+    <button id=own-host-button>Button</button>
+  </template>
+</div>
+
+<script>
+  promise_test(async (t) => {
+    const host = document.getElementById("own-host-interestee");
+    const button = host.shadowRoot.getElementById("own-host-button");
+    button.interestForElement = host;
+
+    let hostEvent = null;
+    let documentEvent = null;
+    host.addEventListener("interest", event => {
+      hostEvent = event;
+    }, {signal: t.get_signal()});
+    document.addEventListener("interest", event => {
+      if (event.target === host) {
+        documentEvent = event;
+      }
+    }, {capture: true, signal: t.get_signal()});
+
+    await hoverOver(button);
+
+    assert_true(hostEvent instanceof InterestEvent,
+        "The host should receive an interest event");
+    assert_equals(hostEvent.target, host, "The interest event target");
+    assert_equals(hostEvent.source, host,
+        "The shadow button should be retargeted to its host");
+    assert_equals(documentEvent, hostEvent,
+        "The interest event should reach the document during capture");
+  }, "InterestEvent can target the source's own shadow host");
+</script>

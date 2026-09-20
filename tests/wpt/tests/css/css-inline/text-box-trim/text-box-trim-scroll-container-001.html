@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>text-box-trim on an overflow: hidden scroll container</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+.target {
+  font: 20px/40px Ahem;
+  text-box-trim: trim-both;
+  text-box-edge: text;
+  overflow: hidden;
+  scrollbar-width: none;
+  color: green;
+  background: red;
+}
+.filler {
+  position: absolute;
+  left: 0;
+  width: 100px;
+  height: 20px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="wrapper">
+  <div class="target">xxxxx<br>xxxxx<br>xxxxx</div>
+  <div class="filler" style="top: 20px"></div>
+  <div class="filler" style="top: 60px"></div>
+</div>

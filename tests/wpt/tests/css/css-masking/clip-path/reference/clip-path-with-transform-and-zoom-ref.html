@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Masking: objectBoundingBox &lt;clipPath> with a transform honors zoom</title>
+<style>
+  body { margin: 0; }
+  /* The right half of both 200x200 targets, stacked: one 100x400 green band
+     starting 100px from the left edge. */
+  #expected {
+    position: absolute;
+    left: 100px;
+    top: 0;
+    width: 100px;
+    height: 400px;
+    background: green;
+  }
+</style>
+<div id="expected"></div>

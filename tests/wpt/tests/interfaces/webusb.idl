@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: WebUSB API (https://wicg.github.io/webusb/)
+// Source: WebUSB API (https://usb.spec.whatwg.org/)
 
 dictionary USBDeviceFilter {
   unsigned short vendorId;

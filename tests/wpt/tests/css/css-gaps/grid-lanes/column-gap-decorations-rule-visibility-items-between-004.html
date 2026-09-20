@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: rule-visibility-items between applies to grid-axis column rules only in grid lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-model">
+<link rel="match" href="column-gap-decorations-rule-visibility-items-between-004-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 60px);
+    gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+    rule-break: none;
+    rule-visibility-items: between;
+  }
+  .lanes > div {
+    grid-column: 1;
+    background: #5b8def;
+  }
+  .first { height: 60px; }
+  .second { height: 40px; }
+</style>
+<div class="lanes">
+  <div class="first"></div>
+  <div class="second"></div>
+</div>

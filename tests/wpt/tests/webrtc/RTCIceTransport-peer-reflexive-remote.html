@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Peer-reflexive remote candidates do not expose their address</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// A side that is never told the other side's candidates can only connect
+// through a peer-reflexive remote candidate, whose address it learned from the
+// network rather than from the application. webrtc-pc and webrtc-stats both
+// say that address must not be exposed. Holding the offerer's candidates back
+// puts the answerer in exactly that position.
+async function connectAnswererThroughPrflx(t) {
+  const [pc1, pc2] = createPeerConnectionPairWithCleanup(t, ['audio']);
+  exchangeIceCandidates(pc1, pc2).from(pc1).hold();
+  await exchangeOfferAnswer(pc1, pc2);
+  await Promise.all([listenToIceConnected(pc1), listenToIceConnected(pc2)]);
+  return pc2;
+}
+
+promise_test(async t => {
+  const pc2 = await connectAnswererThroughPrflx(t);
+  const pair = pc2.getSenders()[0].transport.iceTransport.getSelectedCandidatePair();
+  assert_not_equals(pair, null, 'answerer has a selected candidate pair');
+  const {remote} = pair;
+  assert_equals(remote.type, 'prflx',
+    'answerer only knows the offerer through its connectivity checks');
+  assert_equals(remote.candidate, '',
+    'candidate is the empty string for a peer-reflexive remote candidate');
+  assert_equals(remote.address, null,
+    'address is null for a peer-reflexive remote candidate');
+}, 'getSelectedCandidatePair() hides the address of a peer-reflexive remote ' +
+   'candidate');
+
+promise_test(async t => {
+  const pc2 = await connectAnswererThroughPrflx(t);
+  const report = await pc2.getStats();
+  const remotes = [...report.values()].filter(s => s.type == 'remote-candidate');
+  assert_greater_than(remotes.length, 0, 'answerer has remote-candidate stats');
+  for (const s of remotes) {
+    assert_equals(s.candidateType, 'prflx', `${s.id} is peer-reflexive`);
+    assert_equals(s.address ?? null, null,
+      `${s.id} address is not exposed (got "${s.address}")`);
+  }
+}, 'remote-candidate stats do not expose the address of a peer-reflexive ' +
+   'candidate');
+</script>

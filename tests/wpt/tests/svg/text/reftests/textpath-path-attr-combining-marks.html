@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>textPath `path` attribute: combining marks on inline path data are one typographic character</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutIntroduction">
+<meta name="assert" content="A base letter followed by a combining mark is one typographic character and gets one position along the path. Text on inline path data must compose it the same way text on a referenced path does, so the reference is the precomposed string on a referenced path. An implementation that gives the lone mark its own position along the path renders a base glyph plus a dotted circle and fails.">
+<link rel="match" href="textpath-path-attr-combining-marks-ref.html">
+
+<body style="margin:20px">
+
+<!-- e + U+0301 COMBINING ACUTE ACCENT on a straight horizontal line, so the composed
+     result lines up with the precomposed reference exactly. -->
+<svg width="600" height="100">
+  <text font-size="40px">
+    <textPath path="M 50 50 L 550 50">cafe&#x0301; expose&#x0301;</textPath>
+  </text>
+</svg>
+
+</body>
+</html>

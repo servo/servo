@@ -123,17 +123,6 @@ testUploadFailure("Fetch with POST with ReadableStream containing Blob", url,
   });
 
 promise_test(async (test) => {
-  const resp = await fetch(
-    "/fetch/connection-pool/resources/network-partition-key.py?"
-    + `status=421&uuid=${token()}&partition_id=${get_host_info().ORIGIN}`
-    + `&dispatch=check_partition&addcounter=true`,
-    {method: "POST", body: "foobar"});
-  assert_equals(resp.status, 421);
-  const text = await resp.text();
-  assert_equals(text, "ok. Request was sent 2 times. 2 connections were created.");
-}, "Fetch with POST with text body on 421 response should be retried once on new connection.");
-
-promise_test(async (test) => {
   const body = new ReadableStream({start: c => c.close()});
   await promise_rejects_js(test, TypeError, fetch('/', {method: 'POST', body}));
 }, "Streaming upload shouldn't work on Http/1.1.");
