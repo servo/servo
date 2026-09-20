@@ -20,16 +20,16 @@ use webrender_api::units::DeviceIntSize;
 use crate::id::*;
 use crate::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, BufferAccessError, BufferAddress,
-    BufferDescriptor, CommandBufferDescriptor, CommandEncoderDescriptor, ComputePipelineDescriptor,
-    ContextConfiguration, DeviceDescriptor, Error, ErrorFilter, Extent3d, HostMap, Label, Mapping,
-    PRESENTATION_BUFFER_COUNT, PassTimestampWrites, PipelineLayoutDescriptor, QuerySetDescriptor,
-    RenderBundleDescriptor, RenderBundleEncoderDescriptor, RenderCommand,
-    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPipelineDescriptor,
+    BufferDescriptor, CommandBufferDescriptor, CommandEncoderDescriptor, ComputePassEncoderCommand,
+    ComputePipelineDescriptor, ContextConfiguration, DeviceDescriptor, Error, ErrorFilter,
+    Extent3d, HostMap, Label, Mapping, PRESENTATION_BUFFER_COUNT, PassTimestampWrites,
+    PipelineLayoutDescriptor, QuerySetDescriptor, RenderBundleDescriptor,
+    RenderBundleEncoderCommand, RenderBundleEncoderDescriptor, RenderPassColorAttachment,
+    RenderPassDepthStencilAttachment, RenderPassEncoderCommand, RenderPipelineDescriptor,
     RequestAdapterOptions, SamplerDescriptor, ShaderCompilationInfo, TexelCopyBufferInfo,
     TexelCopyBufferLayout, TexelCopyTextureInfo, TextureDescriptor, TextureViewDescriptor,
     WebGPUAdapter, WebGPUAdapterResponse, WebGPUComputePipelineResponse, WebGPUContextId,
     WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
-    ComputePassEncoderCommand, RenderPassEncoderCommand, RenderBundleEncoderCommand
 };
 
 #[derive(Debug, Deserialize, Serialize)]

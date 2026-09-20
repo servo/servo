@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+pub mod encoders;
 pub mod error;
 pub mod ids;
 pub mod messages;
-pub mod encoders;
 
 use std::ops::Range;
 
@@ -71,10 +71,10 @@ pub use wgpu_types::{
     VertexStepMode,
 };
 
+pub use crate::encoders::*;
 pub use crate::error::*;
 pub use crate::ids::*;
 pub use crate::messages::*;
-pub use crate::encoders::*;
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 

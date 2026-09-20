@@ -17,9 +17,9 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
-    BufferSize, RenderBundleCommand, RenderBundleDepthStencil, RenderBundleDescriptor,
-    RenderBundleEncoderDescriptor, WebGPU, WebGPURenderBundle, WebGPURenderBundleEncoder,
-    WebGPURequest,
+    BindingCommand, BufferSize, DebugCommand, RenderBundleDepthStencil, RenderBundleDescriptor,
+    RenderBundleEncoderCommand, RenderBundleEncoderDescriptor, RenderCommand, WebGPU,
+    WebGPURenderBundle, WebGPURenderBundleEncoder, WebGPURequest,
 };
 
 use crate::JSTraceable;
@@ -204,11 +204,13 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::SetBindGroup {
-                        index,
-                        bind_group_id: bind_group.id().0,
-                        offsets: dynamic_offsets,
-                    },
+                    render_command: RenderBundleEncoderCommand::BindingCommand(
+                        BindingCommand::SetBindGroup {
+                            index,
+                            bind_group: Some(bind_group.id().0),
+                            dynamic_offsets,
+                        },
+                    ),
                     device_id: self.device.id().0,
                 })
         {
@@ -227,7 +229,9 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::SetPipeline(pipeline.id().0),
+                    render_command: RenderBundleEncoderCommand::RenderCommand(
+                        RenderCommand::SetPipeline(pipeline.id().0),
+                    ),
                     device_id: self.device.id().0,
                 })
         {
@@ -252,12 +256,14 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::SetIndexBuffer {
-                        buffer_id: buffer.id().0,
-                        index_format: index_format.convert(),
-                        offset,
-                        size: BufferSize::new(size),
-                    },
+                    render_command: RenderBundleEncoderCommand::RenderCommand(
+                        RenderCommand::SetIndexBuffer {
+                            buffer: buffer.id().0,
+                            index_format: index_format.convert(),
+                            offset,
+                            size: BufferSize::new(size),
+                        },
+                    ),
                     device_id: self.device.id().0,
                 })
         {
@@ -276,12 +282,14 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::SetVertexBuffer {
-                        slot,
-                        buffer_id: buffer.map(|b| b.id().0),
-                        offset,
-                        size: BufferSize::new(size),
-                    },
+                    render_command: RenderBundleEncoderCommand::RenderCommand(
+                        RenderCommand::SetVertexBuffer {
+                            slot,
+                            buffer: buffer.map(|b| b.id().0),
+                            offset,
+                            size: BufferSize::new(size),
+                        },
+                    ),
                     device_id: self.device.id().0,
                 })
         {
@@ -300,12 +308,14 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::Draw {
-                        vertex_count,
-                        instance_count,
-                        first_vertex,
-                        first_instance,
-                    },
+                    render_command: RenderBundleEncoderCommand::RenderCommand(
+                        RenderCommand::Draw {
+                            vertex_count,
+                            instance_count,
+                            first_vertex,
+                            first_instance,
+                        },
+                    ),
                     device_id: self.device.id().0,
                 })
         {
@@ -331,13 +341,15 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::DrawIndexed {
-                        index_count,
-                        instance_count,
-                        first_index,
-                        base_vertex,
-                        first_instance,
-                    },
+                    render_command: RenderBundleEncoderCommand::RenderCommand(
+                        RenderCommand::DrawIndexed {
+                            index_count,
+                            instance_count,
+                            first_index,
+                            base_vertex,
+                            first_instance,
+                        },
+                    ),
                     device_id: self.device.id().0,
                 })
         {
@@ -356,10 +368,12 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::DrawIndirect {
-                        buffer_id: indirect_buffer.id().0,
-                        offset: indirect_offset,
-                    },
+                    render_command: RenderBundleEncoderCommand::RenderCommand(
+                        RenderCommand::DrawIndirect {
+                            indirect_buffer: indirect_buffer.id().0,
+                            indirect_offset,
+                        },
+                    ),
                     device_id: self.device.id().0,
                 })
         {
@@ -378,10 +392,12 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::DrawIndexedIndirect {
-                        buffer_id: indirect_buffer.id().0,
-                        offset: indirect_offset,
-                    },
+                    render_command: RenderBundleEncoderCommand::RenderCommand(
+                        RenderCommand::DrawIndexedIndirect {
+                            indirect_buffer: indirect_buffer.id().0,
+                            indirect_offset,
+                        },
+                    ),
                     device_id: self.device.id().0,
                 })
         {
@@ -400,7 +416,9 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::PushDebugGroup(group_label.to_string()),
+                    render_command: RenderBundleEncoderCommand::DebugCommand(
+                        DebugCommand::PushDebugGroup(group_label.to_string()),
+                    ),
                     device_id: self.device.id().0,
                 })
         {
@@ -419,7 +437,9 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::PopDebugGroup,
+                    render_command: RenderBundleEncoderCommand::DebugCommand(
+                        DebugCommand::PopDebugGroup,
+                    ),
                     device_id: self.device.id().0,
                 })
         {
@@ -438,8 +458,8 @@ where
                 .0
                 .send(WebGPURequest::RenderBundleEncoderCommand {
                     render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
-                    render_command: RenderBundleCommand::InsertDebugMarker(
-                        marker_label.to_string(),
+                    render_command: RenderBundleEncoderCommand::DebugCommand(
+                        DebugCommand::InsertDebugMarker(marker_label.to_string()),
                     ),
                     device_id: self.device.id().0,
                 })

@@ -9,9 +9,9 @@ use servo_base::generic_channel::{self, GenericReceiver};
 use webgpu_traits::{WebGPU, WebGPUMsg};
 use wgpu_thread::WGPU;
 
+mod encoders;
 mod poll_thread;
 mod wgpu_thread;
-mod encoders;
 
 use std::borrow::Cow;
 

@@ -21,7 +21,7 @@ use webgpu_traits::{
     RenderPassDescriptor, ShaderCompilationInfo, ShaderModuleDescriptor, TexelCopyBufferLayout,
     TexelCopyTextureInfo, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
     TextureUsages, TextureViewDescriptor, WebGPU, WebGPUAdapter, WebGPUContextId, WebGPUDevice,
-    WebGPUMsg, WebGPUQueue, WebGPURequest, apply_render_bundle_command, apply_render_command, id,
+    WebGPUMsg, WebGPUQueue, WebGPURequest, id,
 };
 use webrender_api::ExternalImageId;
 use wgpu_core::resource::{BufferAccessResult, BufferMapOperation};
@@ -32,6 +32,9 @@ use wgpu_types::{
 };
 
 use crate::canvas_context::WebGpuExternalImageMap;
+use crate::encoders::{
+    handle_compute_pass_command, handle_render_bundle_command, handle_render_pass_command,
+};
 use crate::poll_thread::Poller;
 
 #[derive(Eq, Hash, PartialEq)]
@@ -726,91 +729,15 @@ impl WGPU {
                         );
                         self.maybe_dispatch_wgpu_error(device_id, error);
                     },
-                    WebGPURequest::ComputePassSetPipeline {
+                    WebGPURequest::ComputePassCommand {
                         compute_pass_id,
-                        pipeline_id,
+                        compute_command,
                         device_id,
                     } => {
-                        let result = self
-                            .global
-                            .compute_pass_set_pipeline_with_id(compute_pass_id, pipeline_id);
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::ComputePassSetBindGroup {
-                        compute_pass_id,
-                        index,
-                        bind_group_id,
-                        offsets,
-                        device_id,
-                    } => {
-                        let result = self.global.compute_pass_set_bind_group_with_id(
+                        let result = handle_compute_pass_command(
+                            &self.global,
                             compute_pass_id,
-                            index,
-                            Some(bind_group_id),
-                            &offsets,
-                        );
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::ComputePassDispatchWorkgroups {
-                        compute_pass_id,
-                        x,
-                        y,
-                        z,
-                        device_id,
-                    } => {
-                        let result = self.global.compute_pass_dispatch_workgroups_with_id(
-                            compute_pass_id,
-                            x,
-                            y,
-                            z,
-                        );
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::ComputePassDispatchWorkgroupsIndirect {
-                        compute_pass_id,
-                        buffer_id,
-                        offset,
-                        device_id,
-                    } => {
-                        let result = self
-                            .global
-                            .compute_pass_dispatch_workgroups_indirect_with_id(
-                                compute_pass_id,
-                                buffer_id,
-                                offset,
-                            );
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::ComputePassPushDebugGroup {
-                        compute_pass_id,
-                        label,
-                        device_id,
-                    } => {
-                        let result = self.global.compute_pass_push_debug_group_with_id(
-                            compute_pass_id,
-                            &label,
-                            0,
-                        );
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::ComputePassPopDebugGroup {
-                        compute_pass_id,
-                        device_id,
-                    } => {
-                        let result = self
-                            .global
-                            .compute_pass_pop_debug_group_with_id(compute_pass_id);
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
-                    },
-                    WebGPURequest::ComputePassInsertDebugMarker {
-                        compute_pass_id,
-                        label,
-                        device_id,
-                    } => {
-                        let result = self.global.compute_pass_insert_debug_marker_with_id(
-                            compute_pass_id,
-                            &label,
-                            0,
+                            compute_command,
                         );
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
@@ -852,8 +779,11 @@ impl WGPU {
                         render_command,
                         device_id,
                     } => {
-                        let result =
-                            apply_render_command(&self.global, render_pass_id, render_command);
+                        let result = handle_render_pass_command(
+                            &self.global,
+                            render_pass_id,
+                            render_command,
+                        );
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::EndRenderPass {
@@ -1423,7 +1353,7 @@ impl WGPU {
                         render_command,
                         device_id,
                     } => {
-                        let result = apply_render_bundle_command(
+                        let result = handle_render_bundle_command(
                             &self.global,
                             render_bundle_encoder_id,
                             render_command,

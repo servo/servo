@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::id;
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 /// Corresponds to [`GPUCommandEncoder`](https://www.w3.org/TR/webgpu/#gpucommandencoder).
 pub enum CommandEncoderCommand<'a> {
     BeginRenderPass {
@@ -116,7 +116,7 @@ pub enum DebugCommand {
     InsertDebugMarker(String),
 }
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 /// Corresponds to [`GPUBindingCommandsMixin`](https://www.w3.org/TR/webgpu/#gpubindingcommandsmixin).
 pub enum BindingCommand {
     SetBindGroup {

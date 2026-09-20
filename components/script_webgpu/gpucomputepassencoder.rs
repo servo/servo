@@ -13,7 +13,9 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
-use webgpu_traits::{WebGPU, WebGPUComputePass, WebGPURequest};
+use webgpu_traits::{
+    ComputePassEncoderCommand, DebugCommand, WebGPU, WebGPUComputePass, WebGPURequest,
+};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -111,17 +113,19 @@ where
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-dispatchworkgroups>
     fn DispatchWorkgroups(&self, x: u32, y: u32, z: u32) {
-        if let Err(e) =
-            self.droppable
-                .channel
-                .0
-                .send(WebGPURequest::ComputePassDispatchWorkgroups {
-                    compute_pass_id: self.droppable.compute_pass.0,
-                    x,
-                    y,
-                    z,
-                    device_id: self.command_encoder.device_id().0,
-                })
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassCommand {
+                compute_pass_id: self.droppable.compute_pass.0,
+                compute_command: ComputePassEncoderCommand::DispatchWorkgroups {
+                    workgroup_count_x: x,
+                    workgroup_count_y: y,
+                    workgroup_count_z: z,
+                },
+                device_id: self.command_encoder.device_id().0,
+            })
         {
             warn!("Error sending WebGPURequest::ComputePassDispatchWorkgroups: {e:?}")
         }
@@ -129,16 +133,18 @@ where
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-dispatchworkgroupsindirect>
     fn DispatchWorkgroupsIndirect(&self, buffer: &GPUBuffer<D>, offset: u64) {
-        if let Err(e) =
-            self.droppable
-                .channel
-                .0
-                .send(WebGPURequest::ComputePassDispatchWorkgroupsIndirect {
-                    compute_pass_id: self.droppable.compute_pass.0,
-                    buffer_id: buffer.id().0,
-                    offset,
-                    device_id: self.command_encoder.device_id().0,
-                })
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassCommand {
+                compute_command: ComputePassEncoderCommand::DispatchWorkgroupsIndirect {
+                    indirect_buffer: buffer.id().0,
+                    indirect_offset: offset,
+                },
+                compute_pass_id: self.droppable.compute_pass.0,
+                device_id: self.command_encoder.device_id().0,
+            })
         {
             warn!("Error sending WebGPURequest::ComputePassDispatchWorkgroupsIndirect: {e:?}")
         }
@@ -165,11 +171,15 @@ where
             .droppable
             .channel
             .0
-            .send(WebGPURequest::ComputePassSetBindGroup {
+            .send(WebGPURequest::ComputePassCommand {
                 compute_pass_id: self.droppable.compute_pass.0,
-                index,
-                bind_group_id: bind_group.id().0,
-                offsets,
+                compute_command: ComputePassEncoderCommand::BindingCommand(
+                    webgpu_traits::BindingCommand::SetBindGroup {
+                        index,
+                        bind_group: Some(bind_group.id().0),
+                        dynamic_offsets: offsets,
+                    },
+                ),
                 device_id: self.command_encoder.device_id().0,
             })
         {
@@ -183,9 +193,9 @@ where
             .droppable
             .channel
             .0
-            .send(WebGPURequest::ComputePassSetPipeline {
+            .send(WebGPURequest::ComputePassCommand {
                 compute_pass_id: self.droppable.compute_pass.0,
-                pipeline_id: pipeline.id().0,
+                compute_command: ComputePassEncoderCommand::SetPipeline(pipeline.id().0),
                 device_id: self.command_encoder.device_id().0,
             })
         {
@@ -199,9 +209,11 @@ where
             .droppable
             .channel
             .0
-            .send(WebGPURequest::ComputePassPushDebugGroup {
+            .send(WebGPURequest::ComputePassCommand {
                 compute_pass_id: self.droppable.compute_pass.0,
-                label: group_label.to_string(),
+                compute_command: ComputePassEncoderCommand::DebugCommand(
+                    DebugCommand::PushDebugGroup(group_label.to_string()),
+                ),
                 device_id: self.command_encoder.device_id().0,
             })
         {
@@ -215,8 +227,11 @@ where
             .droppable
             .channel
             .0
-            .send(WebGPURequest::ComputePassPopDebugGroup {
+            .send(WebGPURequest::ComputePassCommand {
                 compute_pass_id: self.droppable.compute_pass.0,
+                compute_command: ComputePassEncoderCommand::DebugCommand(
+                    DebugCommand::PopDebugGroup,
+                ),
                 device_id: self.command_encoder.device_id().0,
             })
         {
@@ -230,9 +245,11 @@ where
             .droppable
             .channel
             .0
-            .send(WebGPURequest::ComputePassInsertDebugMarker {
+            .send(WebGPURequest::ComputePassCommand {
                 compute_pass_id: self.droppable.compute_pass.0,
-                label: marker_label.to_string(),
+                compute_command: ComputePassEncoderCommand::DebugCommand(
+                    DebugCommand::InsertDebugMarker(marker_label.to_string()),
+                ),
                 device_id: self.command_encoder.device_id().0,
             })
         {
