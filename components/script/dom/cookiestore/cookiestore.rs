@@ -15,7 +15,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::{CookieAsyncResponse, CookieData, CoreResourceMsg};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::CookieStoreBinding::CookieSameSite;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::{GenericCallback, GenericSend, GenericSender};
 use servo_base::id::CookieStoreId;
 use servo_url::ServoUrl;
@@ -124,12 +124,12 @@ impl CookieStore {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<CookieStore> {
-        let store = reflect_dom_object_with_cx(
+        let store = reflect_dom_object(
+            cx,
             Box::new(CookieStore::new_inherited(
                 global.resource_threads().core_thread.clone(),
             )),
             global,
-            cx,
         );
         store.setup_route();
         store
