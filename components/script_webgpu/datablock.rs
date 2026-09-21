@@ -8,10 +8,11 @@ use std::sync::Arc;
 
 use js::context::JSContext;
 use js::rooted;
-use js::rust::wrappers2::{DetachArrayBuffer, NewExternalArrayBuffer};
-use js::typedarray::HeapArrayBuffer;
+use js::rust::wrappers2::NewExternalArrayBuffer;
+use js::typedarray::{ArrayBufferU8, HeapArrayBuffer};
 use jstraceable_derive::JSTraceable;
 use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::buffer_source::HeapBufferSource;
 use script_bindings::trace::RootedTraceableBox;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -60,8 +61,8 @@ impl DataBlock {
     pub(crate) fn clear_views(&mut self, cx: &mut JSContext) {
         // we need to pop one by one so we can root one by one for detach
         while let Some(DataView { buffer, .. }) = self.data_views.pop() {
-            rooted!(&in(cx) let b = unsafe { buffer.underlying_object().get() });
-            assert!(unsafe { DetachArrayBuffer(cx, b.handle()) })
+            let buffer = RootedTraceableBox::new(buffer);
+            assert!(buffer.detach_buffer(cx))
         }
     }
 
@@ -111,7 +112,7 @@ impl DataBlock {
         });
         self.data_views.push(DataView {
             range,
-            buffer: HeapArrayBuffer::from(*object).unwrap(),
+            buffer: HeapBufferSource::new(object.handle()),
         });
         Ok(self.data_views.last().unwrap())
     }
@@ -124,14 +125,12 @@ impl DataBlock {
 pub(crate) struct DataView {
     #[no_trace]
     range: Range<usize>,
-    #[ignore_malloc_size_of = "defined in mozjs"]
-    buffer: HeapArrayBuffer,
+    #[ignore_malloc_size_of = "HeapBufferSource"]
+    buffer: HeapBufferSource<ArrayBufferU8>,
 }
 
 impl DataView {
     pub(crate) fn array_buffer(&self) -> RootedTraceableBox<HeapArrayBuffer> {
-        RootedTraceableBox::new(unsafe {
-            HeapArrayBuffer::from(self.buffer.underlying_object().get()).unwrap()
-        })
+        self.buffer.get_typed_array().unwrap()
     }
 }
