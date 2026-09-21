@@ -1,0 +1,107 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Canceled animation rules must leave the cascade</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Servo's deterministic animation clock; see the neighboring animation tests.
+function fixture(t, pseudo = false) {
+  const style = document.createElement('style');
+  const target = document.createElement('div');
+  target.id = 'target';
+  target.className = 'running';
+  const selector = pseudo ? '#target::before' : '#target';
+  style.textContent = `
+    ${selector} { content: ''; display: block; width: 20px; height: 20px; }
+    #target.running${pseudo ? '::before' : ''} { animation: moving 1s linear infinite; }
+    @keyframes moving { from { width: 20px; } to { width: 220px; } }
+  `;
+  document.head.append(style);
+  document.body.append(target);
+  t.add_cleanup(() => { target.remove(); style.remove(); });
+  const width = () => parseFloat(getComputedStyle(target, pseudo ? '::before' : null).width);
+  assert_equals(width(), 20, 'Initial animation value');
+  ServoTestUtils.advanceClock(250);
+  assert_approx_equals(width(), 70, 0.1, 'Animation produces an intermediate value');
+  return {style, target, width};
+}
+
+test(t => {
+  const {target, width} = fixture(t);
+  target.className = '';
+  assert_equals(width(), 20, 'Cancel removes the animation rule synchronously');
+  target.style.transition = 'width 1s linear';
+  target.style.width = '220px';
+  assert_equals(width(), 20, 'Reused element starts from the underlying style');
+  ServoTestUtils.advanceClock(500);
+  assert_approx_equals(width(), 120, 0.1, 'Reused element transitions through the middle');
+  ServoTestUtils.advanceClock(500);
+  assert_equals(width(), 220, 'Reused element reaches its target');
+}, 'Canceling keyframes invalidates the animation cascade before reuse');
+
+test(t => {
+  const {target, width} = fixture(t, true);
+  target.className = '';
+  assert_equals(width(), 20, 'No animation declaration may remain on the pseudo-element');
+}, 'Canceling the final animation also clears the pseudo-element animation rule');
+
+test(t => {
+  const {style, width} = fixture(t);
+  style.sheet.deleteRule(2);
+  assert_equals(width(), 20, 'Losing the matching keyframes cancels its effect');
+  ServoTestUtils.advanceClock(250);
+  assert_equals(width(), 20, 'The canceled effect cannot keep progressing');
+}, 'Removing the last matching keyframes removes the animation from the cascade');
+
+test(t => {
+  const {style, width} = fixture(t);
+  style.sheet.insertRule('@keyframes moving { from { width: 30px; } to { width: 230px; } }', 3);
+  assert_approx_equals(width(), 80, 0.1, 'A later matching rule wins');
+  style.sheet.deleteRule(3);
+  assert_approx_equals(width(), 70, 0.1, 'An earlier matching rule remains applicable');
+  ServoTestUtils.advanceClock(250);
+  assert_approx_equals(width(), 120, 0.1, 'Remaining keyframes continue at the original progress');
+}, 'Removing one of multiple matching keyframes does not cancel a surviving animation');
+</script>
+
+<script>
+test(t => {
+  const {target, width} = fixture(t);
+  target.style.display = 'none';
+  assert_equals(width(), 20, 'Display none cancels the old effect');
+  target.className = '';
+  target.style.display = 'block';
+  assert_equals(width(), 20, 'Restoring a canceled element cannot restore a stale rule');
+}, 'Display none cancels animation effects before computed style is observed');
+
+test(t => {
+  const {target, width} = fixture(t);
+  target.remove();
+  target.className = '';
+  document.body.append(target);
+  assert_equals(width(), 20, 'Reattaching the same canceled node uses its underlying style');
+}, 'Detachment and reattachment do not retain the canceled animation rule');
+
+test(t => {
+  const {target, width} = fixture(t);
+  target.style.animationDuration = '0s';
+  assert_equals(width(), 20, 'A zero-duration effect without fill contributes no width');
+}, 'Changing duration to zero without fill removes the old rule');
+
+test(t => {
+  const target = document.createElement('div');
+  target.style.cssText = 'width:20px;height:20px;transition:width 1s linear';
+  document.body.append(target);
+  t.add_cleanup(() => target.remove());
+  const width = () => parseFloat(getComputedStyle(target).width);
+  assert_equals(width(), 20);
+  target.style.width = '220px';
+  width();
+  ServoTestUtils.advanceClock(500);
+  assert_approx_equals(width(), 120, 0.1, 'Transition produces an intermediate value');
+  target.style.transitionProperty = 'none';
+  assert_equals(width(), 220, 'Removing the transition property reveals the target value');
+}, 'Canceling a transition removes its transition cascade rule');
+</script>
