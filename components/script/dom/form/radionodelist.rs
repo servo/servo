@@ -80,8 +80,8 @@ impl RadioNodeList {
 impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     // https://dom.spec.whatwg.org/#dom-nodelist-length
     /// <https://github.com/servo/servo/issues/5875>
-    fn Length(&self, _cx: &JSContext) -> u32 {
-        self.node_list.Length()
+    fn Length(&self, cx: &JSContext) -> u32 {
+        self.node_list.Length(cx.no_gc())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-radionodelist-value>
@@ -112,7 +112,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
         let node_list = self.upcast::<NodeList>();
         // Inlining `node_list.iter()` so `cx` doesn’t stay borrowed
-        for index in 0..node_list.Length() {
+        for index in 0..node_list.Length(cx.no_gc()) {
             let Some(node) = node_list.Item(cx, index) else {
                 continue;
             };

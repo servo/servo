@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use itertools::Itertools;
 use js::context::JSContext;
 use script_bindings::cell::{DomRefCell, Ref};
+use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use stylo_dom::ElementState;
 
@@ -166,8 +167,9 @@ impl ValidityState {
         if let Some(fieldset) = self
             .element
             .upcast::<Node>()
-            .ancestors()
-            .find_map(DomRoot::downcast::<HTMLFieldSetElement>)
+            .ancestors_unrooted(cx.no_gc())
+            .find_map(UnrootedDom::downcast::<HTMLFieldSetElement>)
+            .map(|node| node.as_rooted())
         {
             fieldset.update_validity(cx);
         }

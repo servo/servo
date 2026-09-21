@@ -997,7 +997,7 @@ impl HTMLElement {
         root_node
             .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
             .filter_map(UnrootedDom::downcast::<HTMLLabelElement>)
-            .filter(|elem| match elem.GetControl() {
+            .filter(|elem| match elem.GetControl(no_gc) {
                 Some(control) => &*control == self,
                 _ => false,
             })
@@ -1007,15 +1007,15 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     // This counts the labels of the element, to support NodeList::Length
-    pub(crate) fn labels_count(&self) -> u32 {
+    pub(crate) fn labels_count(&self, no_gc: &NoGC) -> u32 {
         // see label_at comments about performance
         let element = self.as_element();
         let root_element = element.root_element();
         let root_node = root_element.upcast::<Node>();
         root_node
-            .traverse_preorder(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<HTMLLabelElement>)
-            .filter(|elem| match elem.GetControl() {
+            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
+            .filter_map(UnrootedDom::downcast::<HTMLLabelElement>)
+            .filter(|elem| match elem.GetControl(no_gc) {
                 Some(control) => &*control == self,
                 _ => false,
             })
