@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref};
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -27,7 +26,7 @@ use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::types::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 
 #[dom_struct]
 pub(crate) struct ImageBitmap {
@@ -285,8 +284,8 @@ impl ImageBitmap {
         sh: Option<i32>,
         options: &ImageBitmapOptions,
         realm: &mut CurrentRealm,
-    ) -> Rc<Promise> {
-        let p = Promise::new_in_realm(realm);
+    ) -> RootedPromise {
+        let p = Promise::new_in_realm_rooted(realm);
 
         // Step 1. If either sw or sh is given and is 0, then return a promise rejected with a RangeError.
         if sw.is_some_and(|w| w == 0) {
@@ -319,8 +318,8 @@ impl ImageBitmap {
 
         // The promise with image bitmap should be fulfilled on the bitmap task source.
         let fullfill_promise_on_bitmap_task_source =
-            |promise: &Rc<Promise>, image_bitmap: &ImageBitmap| {
-                let trusted_promise = TrustedPromise::new(promise.clone());
+            |promise: &RootedPromise, image_bitmap: &ImageBitmap| {
+                let trusted_promise = TrustedPromise::from(promise);
                 let trusted_image_bitmap = Trusted::new(image_bitmap);
 
                 global_scope.task_manager().bitmap_task_source().queue(
@@ -335,8 +334,8 @@ impl ImageBitmap {
 
         // The promise with "InvalidStateError" DOMException should be rejected
         // on the bitmap task source.
-        let reject_promise_on_bitmap_task_source = |promise: &Rc<Promise>| {
-            let trusted_promise = TrustedPromise::new(promise.clone());
+        let reject_promise_on_bitmap_task_source = |promise: &RootedPromise| {
+            let trusted_promise = TrustedPromise::from(promise);
 
             global_scope.task_manager().bitmap_task_source().queue(
                 task!(reject_promise: move |cx| {
