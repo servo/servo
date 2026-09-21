@@ -14,7 +14,6 @@ use script_bindings::callback::{CallbackContainer, RootedCallback};
 use script_bindings::conversions::DerivedFrom;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::inheritance::Castable;
-use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, DomObject};
 use script_bindings::tasks::TaskOnce;
 use script_bindings::traits::DomEventTrait;
@@ -129,8 +128,7 @@ pub trait Equivalence = DomTypes<
         // Other bounds
         HTMLVideoElement: WebGPUHTMLVideoTrait<Self>,
         // General Bounds
-        GlobalScope: WebGPUGlobalTrait<Self> + GlobalScopeHelpers<Self>,
-        Promise: PromiseHelpers<Self> + WebGPUTracedPromiseTrait<Self> + PartialEq,
+        GlobalScope: WebGPUGlobalTrait<Self>,
         Event: DomEventTrait<Self>,
         EventTarget: EventTargetTrait<Self>>;
 
@@ -143,25 +141,12 @@ pub trait Equivalence = DomTypes<
         + WebGPUPromiseCallbackTrait<D, GPUDevice<D>, WebGPURenderPipelineResponse>
         + WebGPUPromiseCallbackTrait<D, GPUQueue<D>, ()>
         + WebGPUPromiseCallbackTrait<D, GPUShaderModule<D>, Option<ShaderCompilationInfo>>
-        + WebGPURootedPromiseTrait<D>;
-}
-
-/// Trait for Rooted Promise
-pub trait WebGPURootedPromiseTrait<D: DomTypes> {
-    fn new_rooted(
-        cx: &mut js::context::JSContext,
-        global: &D::GlobalScope,
-    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot;
+;
 }
 
 /// Trait for sending Promise callbacks
 pub trait WebGPUPromiseCallbackTrait<D: DomTypes, S, T: Serialize + 'static + Send> {
     fn callback_promise_dom_manipulation_task_source(&self, d: &S) -> GenericCallback<T>;
-}
-
-/// Trait that needs to be implemented for TracedPromise
-pub trait WebGPUTracedPromiseTrait<D: DomTypes> {
-    fn is_fulfilled(&self) -> bool;
 }
 
 pub trait WebGPUGlobalTrait<D: DomTypes>: Sized + DomObject {

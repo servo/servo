@@ -12,26 +12,24 @@ use pixels::Snapshot;
 use script_bindings::DomTypes;
 use script_bindings::callback::{CallbackContainer, RootedCallback};
 use script_bindings::error::{Error, Fallible};
-use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, DomObject};
 use script_webgpu::traits::{
     EventTargetTrait, HtmlCanvasElementTrait, HtmlImageElementTrait, ImageBitmapTrait,
     ImageDataTrait, OffscreenCanvasTrait, OriginIsCleanTrait, WebGPUGlobalTrait,
-    WebGPUHTMLVideoTrait, WebGPUPromiseCallbackTrait, WebGPURootedPromiseTrait,
-    WebGPUTracedPromiseTrait,
+    WebGPUHTMLVideoTrait, WebGPUPromiseCallbackTrait,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use servo_base::generic_channel::GenericCallback;
 use servo_url::MutableOrigin;
 
+use crate::dom::GlobalScope;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::promise::RootedPromise;
 use crate::dom::types::{
     EventTarget, HTMLCanvasElement, HTMLImageElement, HTMLVideoElement, ImageBitmap, ImageData,
     OffscreenCanvas,
 };
-use crate::dom::{GlobalScope, Promise};
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::tasks::task::TaskOnce;
 
@@ -202,21 +200,6 @@ where
     fn callback_promise_dom_manipulation_task_source(&self, d: &S) -> GenericCallback<T> {
         let task_manager = <S as DomGlobal>::global(d).task_manager();
         callback_promise(self, d, task_manager.dom_manipulation_task_source())
-    }
-}
-
-impl WebGPUTracedPromiseTrait<crate::DomTypeHolder> for Promise {
-    fn is_fulfilled(&self) -> bool {
-        Promise::is_fulfilled(self)
-    }
-}
-
-impl WebGPURootedPromiseTrait<crate::DomTypeHolder> for RootedPromise {
-    fn new_rooted(
-        cx: &mut js::context::JSContext,
-        global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
-    ) -> <<crate::DomTypeHolder as DomTypes>::Promise as PromiseHelpers<crate::DomTypeHolder>>::StackRoot{
-        Promise::new_rooted(cx, global)
     }
 }
 

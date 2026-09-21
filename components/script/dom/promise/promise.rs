@@ -893,4 +893,12 @@ impl PromiseHelpers<crate::DomTypeHolder> for Promise {
     fn reject_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T) {
         self.reject_native(cx, val);
     }
+
+    fn is_fulfilled(&self) -> bool {
+        self.is_fulfilled()
+    }
+
+    fn new_rooted(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
+        Promise::new_rooted(cx, global)
+    }
 }
