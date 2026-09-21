@@ -461,6 +461,11 @@ codegen-units = 1
 # webrender = { path = "../webrender/webrender" }
 # webrender_api = { path = "../webrender/webrender_api" }
 # wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
+
+[patch."https://github.com/servo/webrender"]
+webrender = { git = "https://github.com/RichardTjokroutomo/webrender" , branch = "font-decimal-point"}
+webrender_api = { git = "https://github.com/RichardTjokroutomo/webrender" , branch = "font-decimal-point"}
+wr_malloc_size_of = { git = "https://github.com/RichardTjokroutomo/webrender" , branch = "font-decimal-point"}
 #
 # Or for mozjs:
 #
