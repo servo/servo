@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object;
 
+use crate::dom::bindings::callback::RootedCallback;
 use crate::dom::bindings::codegen::Bindings::FileSystemDirectoryEntryBinding::{
     FileSystemDirectoryEntryMethods, FileSystemFlags,
 };
@@ -78,8 +77,8 @@ impl FileSystemDirectoryEntryMethods<crate::DomTypeHolder> for FileSystemDirecto
         &self,
         _path: Option<Option<USVString>>,
         _options: &FileSystemFlags,
-        _success_callback: Option<Rc<FileSystemEntryCallback>>,
-        _error_callback: Option<Rc<ErrorCallback>>,
+        _success_callback: Option<RootedCallback<FileSystemEntryCallback>>,
+        _error_callback: Option<RootedCallback<ErrorCallback>>,
     ) {
         // TODO: Implement per spec 7.2. Need to hook embedder.
     }
@@ -89,8 +88,8 @@ impl FileSystemDirectoryEntryMethods<crate::DomTypeHolder> for FileSystemDirecto
         &self,
         _path: Option<Option<USVString>>,
         _options: &FileSystemFlags,
-        _success_callback: Option<Rc<FileSystemEntryCallback>>,
-        _error_callback: Option<Rc<ErrorCallback>>,
+        _success_callback: Option<RootedCallback<FileSystemEntryCallback>>,
+        _error_callback: Option<RootedCallback<ErrorCallback>>,
     ) {
         // TODO: Implement per spec 7.2. Need to hook embedder.
     }

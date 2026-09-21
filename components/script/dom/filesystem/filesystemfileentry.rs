@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object;
 
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::FileSystemEntryBinding::ErrorCallback;
 use crate::dom::bindings::codegen::Bindings::FileSystemFileEntryBinding::{
     FileCallback, FileSystemFileEntryMethods,
@@ -33,10 +32,10 @@ pub(crate) struct FileSystemFileEntry {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PendingFileCallback {
     id: usize,
-    #[conditional_malloc_size_of]
-    callback: Rc<FileCallback>,
+    callback: TracedCallback<FileCallback>,
 }
 
 impl FileSystemFileEntry {
@@ -70,7 +69,11 @@ impl FileSystemFileEntry {
 
 impl FileSystemFileEntryMethods<crate::DomTypeHolder> for FileSystemFileEntry {
     /// <https://wicg.github.io/entries-api/#dom-filesystemfileentry-file>
-    fn File(&self, success_callback: Rc<FileCallback>, _error_callback: Option<Rc<ErrorCallback>>) {
+    fn File(
+        &self,
+        success_callback: RootedCallback<FileCallback>,
+        _error_callback: Option<RootedCallback<ErrorCallback>>,
+    ) {
         // Per spec 7.4: in parallel,
         // 1. (TODO) Evaluate path
         // 2-3. (TODO) errorCallback
@@ -83,11 +86,12 @@ impl FileSystemFileEntryMethods<crate::DomTypeHolder> for FileSystemFileEntry {
         // with a new `File` object representing item and "report".
 
         let id = self.next_callback.get();
-        let pending_callback = PendingFileCallback {
-            id,
-            callback: success_callback,
-        };
-        self.pending_callbacks.borrow_mut().push(pending_callback);
+        self.pending_callbacks
+            .borrow_mut()
+            .push(PendingFileCallback {
+                id,
+                callback: success_callback.to_traced(),
+            });
         self.next_callback.set(id + 1);
 
         let this = Trusted::new(self);
@@ -102,11 +106,11 @@ impl FileSystemFileEntryMethods<crate::DomTypeHolder> for FileSystemFileEntry {
                     .iter()
                     .position(|val| val.id == id);
                 if let Some(index) = maybe_index {
-                    let callback = this
+                    rooted!(&in(cx) let callback = this
                         .pending_callbacks
                         .safe_borrow_mut(cx.no_gc())
                         .swap_remove(index)
-                        .callback;
+                        .callback);
                     let file = DomRoot::from_ref(&*this.file);
                     let _ = callback.Call__(cx, &file, ExceptionHandling::Report);
                 }
