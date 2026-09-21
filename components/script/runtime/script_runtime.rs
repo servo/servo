@@ -1129,14 +1129,17 @@ pub(crate) fn get_reports(
 
     DOM_OBJECT_SIZES.with(|sizes| {
         let mut sizes = sizes.borrow_mut();
+        let mut known_globals = HashMap::new();
         for global_size_data in sizes.0.values() {
             let url = global_size_data.url.as_str();
+            let index = known_globals.entry(url).or_insert(0);
+            *index += 1;
             for (interface, interface_data) in &global_size_data.interface_sizes {
                 report(
                     path![
                         "dom",
                         "out-of-tree",
-                        format!("url({url})"),
+                        format!("url({url})-{}", *index),
                         format!("{interface} [{}]", interface_data.count)
                     ],
                     ReportKind::ExplicitJemallocHeapSize,
