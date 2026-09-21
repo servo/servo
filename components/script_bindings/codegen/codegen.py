@@ -6733,8 +6733,8 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
             indexed += dedent(
                 """
                 if !is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::cross_origin_has_own(
-                        cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), id, bp
+                    return proxyhandler::cross_origin_has_own::<D>(
+                        cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), id, &mut *bp
                     );
                 }
 
