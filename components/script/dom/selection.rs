@@ -35,13 +35,15 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::comparator::compare_dom_positions;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::iterators::{PrePostIteration, UnrootedFollowingFlatTreeNodesTraversal};
+use crate::dom::iterators::{
+    PrePostIteration, ShadowIncluding, UnrootedFollowingFlatTreeNodesTraversal,
+};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
 use crate::dom::selection_range::{RootedSelectionBoundary, SelectionBoundary, SelectionRange};
 use crate::dom::staticrange::StaticRange;
 use crate::dom::traversal::FlatTreeForSelectionNoGcTraversal;
-use crate::dom::types::ShadowRoot;
+use crate::dom::types::{HTMLInputElement, HTMLTextAreaElement, ShadowRoot};
 use crate::dom::{CharacterData, FlatTreeParent, NodeDamage, NodeFlags, StartOrEnd};
 
 /// Used value of [`user-select`](https://drafts.csswg.org/css-ui-4/#propdef-user-select):
@@ -77,6 +79,9 @@ pub(crate) struct Selection {
     /// * Boundaries are in flat tree order.
     #[custom_trace]
     visible_range: AtomicRefCell<Option<SelectionRange>>,
+    /// Whether or not a blinking caret needs to be rendered for this selection when it
+    /// is 0-length.
+    paints_caret: Cell<bool>,
     /// The [`Direction`] of this [`Selection`] which determines which endpoint of
     /// [`Self::range`] is the anchor and which is the focus.
     direction: Cell<Direction>,
@@ -95,6 +100,7 @@ impl Selection {
             range: Default::default(),
             live_range: MutNullableDom::new(None),
             visible_range: Default::default(),
+            paints_caret: Cell::new(false),
             direction: Cell::new(Direction::Directionless),
             has_scheduled_selectionchange_event: Cell::new(false),
             visible_selection_dirty: Cell::new(false),
@@ -338,6 +344,15 @@ impl Selection {
             return;
         }
 
+        if let Some(range) = self.range.borrow().as_ref() {
+            let new_paints_caret = self.should_paints_caret(range, no_gc);
+            if new_paints_caret != self.paints_caret.get() {
+                self.paints_caret.set(new_paints_caret);
+            }
+        } else {
+            self.paints_caret.set(false);
+        }
+
         let previously_flagged_nodes = self
             .iter_nodes_with_overlaps_document_selection_flag(no_gc)
             .collect();
@@ -347,8 +362,27 @@ impl Selection {
             previously_flagged_nodes,
             flat_tree_selection.as_ref(),
             &self.document,
+            self.paints_caret.get(),
         );
         self.set_visible_range(no_gc, flat_tree_selection);
+    }
+
+    fn should_paints_caret(&self, range: &SelectionRange, no_gc: &NoGC) -> bool {
+        if let Some(shadow_root) = range.end.container.containing_shadow_root() {
+            let host = shadow_root.host_unrooted(no_gc);
+            if host.is::<HTMLInputElement>() || host.is::<HTMLTextAreaElement>() {
+                // This is the cases where, if `selection_for_text_node` returns a selection
+                // it is a `TextInput` selection
+                return true;
+            }
+        }
+        // This is the cases where, if `selection_for_text_node` returns a selection,
+        // it is a document selection.
+        range
+            .end
+            .container
+            .common_ancestor(&range.start.container, ShadowIncluding::No)
+            .is_some_and(|ancestor| ancestor.editing_host_of().is_some())
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
@@ -1447,6 +1481,10 @@ impl<'dom> LayoutDom<'dom, Selection> {
     pub(crate) fn range_for_layout(&self) -> Option<AtomicRef<'dom, SelectionRange>> {
         AtomicRef::filter_map(self.unsafe_get().visible_range.borrow(), Option::as_ref)
     }
+
+    pub(crate) fn paints_caret_for_layout(&self) -> bool {
+        self.unsafe_get().paints_caret.get()
+    }
 }
 
 enum FlatTreeNodePosition {
@@ -1751,6 +1789,8 @@ struct VisibleSelectionFlagUpdate<'no_gc> {
     used_user_select_cache: FxHashMap<UnrootedDom<'no_gc, Node>, UsedUserSelect>,
     /// Whether or not this update requires a display list update.
     needs_new_display_list: bool,
+    /// Whether or not the caret needs to be painted for the visible selection.
+    paints_caret: bool,
 }
 
 impl<'no_gc> VisibleSelectionFlagUpdate<'no_gc> {
@@ -1759,12 +1799,14 @@ impl<'no_gc> VisibleSelectionFlagUpdate<'no_gc> {
         previously_flagged_nodes: FxHashSet<UnrootedDom<'no_gc, Node>>,
         flat_tree_selection: Option<&FlatTreeSelection<'_>>,
         document: &Document,
+        paints_caret: bool,
     ) {
         let mut update = Self {
             no_gc,
             previously_flagged_nodes,
             used_user_select_cache: Default::default(),
             needs_new_display_list: false,
+            paints_caret,
         };
 
         if let Some(flat_tree_selection) = flat_tree_selection {
@@ -1814,7 +1856,7 @@ impl<'no_gc> VisibleSelectionFlagUpdate<'no_gc> {
         character_data: &CharacterData,
         range: Option<RangeAny<Utf32CodeUnits>>,
     ) {
-        if character_data.set_text_run_selection(range) {
+        if character_data.set_text_run_selection(range, self.paints_caret) {
             self.needs_new_display_list = true;
         } else {
             // Note: This isn't just necessary when the `CharacterData` doesn't have a

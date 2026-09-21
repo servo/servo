@@ -91,7 +91,11 @@ pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait + Send + Sync + 'stati
     fn as_any(&self) -> &dyn Any;
 
     /// Returns whether `new_range` was successfully set on an existing text run
-    fn set_text_run_selection(&self, new_range: Option<RangeAny<Utf32CodeUnits>>) -> bool;
+    fn set_text_run_selection(
+        &self,
+        new_range: Option<RangeAny<Utf32CodeUnits>>,
+        new_paints_caret: bool,
+    ) -> bool;
 
     /// Set whether or not this node is selected when it is an element. Returns `true`
     /// if anything changed that requires a new display list.
