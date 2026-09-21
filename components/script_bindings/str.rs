@@ -16,7 +16,9 @@ use js::conversions::latin1_to_string;
 use js::gc::{HandleObject, HandleValue};
 use js::jsapi::{JS_DeprecatedStringHasLatin1Chars, JSString};
 use js::rust::wrappers2::{JS_GetTwoByteStringCharsAndLength, ToJSON};
-use js::rust::{HandleValue as SafeHandleValue, ToString};
+use js::rust::{
+    HandleValue as SafeHandleValue, MutableHandleString as SafeMutableHandleString, ToString,
+};
 
 pub use crate::domstring::DOMString;
 use crate::error::Error;
@@ -216,6 +218,20 @@ fn has_latin1_chars(jsstr: *mut JSString) -> bool {
     unsafe { JS_DeprecatedStringHasLatin1Chars(jsstr) }
 }
 
+/// Safe wrapper around <https://tc39.es/ecma262/multipage/abstract-operations.html#sec-tostring>
+pub fn to_js_string(
+    cx: &mut JSContext,
+    source: SafeHandleValue,
+    target: &mut SafeMutableHandleString,
+) -> Result<(), Error> {
+    rooted!(&in(cx) let jsstr = unsafe { ToString(cx, source) });
+    if jsstr.is_null() {
+        return Err(Error::JSFailed);
+    }
+    target.set(*jsstr);
+    Ok(())
+}
+
 /// <https://infra.spec.whatwg.org/#code-unit>
 pub struct CodeUnits<'a>(pub &'a [u16]);
 
@@ -231,7 +247,8 @@ pub enum ConversionResult<'a> {
 /// because current DOMString implementation does not preserve the exact sequence of code units.
 pub fn js_string_to_code_units<'a>(
     cx: &mut JSContext,
-    data: SafeHandleValue<'a>,
+    data: SafeHandleValue,
+    mut target: SafeMutableHandleString,
 ) -> Result<ConversionResult<'a>, Error> {
     // Step 1: If V is null
     // and the conversion is to an IDL type associated with the [LegacyNullToEmptyString] extended attribute,
@@ -241,22 +258,19 @@ pub fn js_string_to_code_units<'a>(
     // which seems to require the js error returned below.
 
     // Step 2: Let x be ? ToString(V).
-    rooted!(&in(cx) let jsstr = unsafe { ToString(cx, data) });
-    if jsstr.is_null() {
-        return Err(Error::JSFailed);
-    }
+    to_js_string(cx, data, &mut target)?;
 
     // Step 3: Return the IDL DOMString value that represents
     // the same sequence of code units as the one the JavaScript String value x represents.
     // Note: not using DOMString because it does not preserve the same sequence of code units.
-    if has_latin1_chars(*jsstr) {
+    if has_latin1_chars(*target) {
         let string =
-            unsafe { latin1_to_string(cx, NonNull::new(*jsstr).expect("jsstr cannot be null")) };
+            unsafe { latin1_to_string(cx, NonNull::new(*target).expect("jsstr cannot be null")) };
         Ok(ConversionResult::String(string))
     } else {
         let maybe_ill_formed_code_units = unsafe {
             let mut len = 0;
-            let data = JS_GetTwoByteStringCharsAndLength(cx, *jsstr, &mut len);
+            let data = JS_GetTwoByteStringCharsAndLength(cx, *target, &mut len);
             // Note: rooting the jsstring only for the scope of this function call,
             // but the returned slice is tied to the handle to the data underlying the string,
             // so the "The memory referenced by the returned slice must not be mutated" invariant

@@ -9,7 +9,7 @@ use std::ptr;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::JSObject;
+use js::jsapi::{JSObject, JSString};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::Uint8;
@@ -152,7 +152,8 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     // Step 1. Let input be the result of converting chunk to a DOMString.
     // Note: using not a DOMString but ConversionResult,
     // because a DOMString assumes utf-8.
-    let input = js_string_to_code_units(cx, chunk)?;
+    rooted!(&in(cx) let mut target = ptr::null_mut::<JSString>());
+    let input = js_string_to_code_units(cx, chunk, target.handle_mut())?;
 
     // Step 2. Convert input to an I/O queue of code units.
     // Note: passing input as a slice.
