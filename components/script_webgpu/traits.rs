@@ -11,9 +11,7 @@ use js::context::NoGC;
 use pixels::Snapshot;
 use script_bindings::DomTypes;
 use script_bindings::callback::{CallbackContainer, RootedCallback};
-use script_bindings::conversions::DerivedFrom;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{DomGlobalGeneric, DomObject};
 use script_bindings::tasks::TaskOnce;
 use script_bindings::traits::DomEventTrait;
@@ -119,12 +117,8 @@ pub trait Equivalence = DomTypes<
         GPUDevice: DomGlobalGeneric<Self>,
         GPURenderBundleEncoder: DomGlobalGeneric<Self>,
         GPURenderPipeline: DomGlobalGeneric<Self>,
-        GPUError: Castable,
         GPUQueue: DomGlobalGeneric<Self>,
         GPUTexture: DomGlobalGeneric<Self>,
-        GPUValidationError: DerivedFrom<GPUError<Self>>,
-        GPUOutOfMemoryError: DerivedFrom<GPUError<Self>>,
-        GPUInternalError: DerivedFrom<GPUError<Self>>,
         // Other bounds
         HTMLVideoElement: WebGPUHTMLVideoTrait<Self>,
         // General Bounds
