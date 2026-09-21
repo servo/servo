@@ -1,14 +1,20 @@
-use std::cell::Ref;
+use std::cell::{Cell, Ref};
 
+use euclid::Point2D;
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::MouseEventBinding::MouseEventMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::Dom;
+use script_bindings::traits::DomEventTrait;
+use style_traits::CSSPixel;
 use xml5ever::{QualName, local_name, ns};
 
+use crate::dom::input_type::InputType;
+use crate::dom::types::MouseEvent;
 use crate::dom::{CustomElementCreationMode, Element, ElementCreator, Node};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -23,6 +29,9 @@ use crate::dom::node::NodeTraits;
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ImageInputType {
     shadow_tree: DomRefCell<Option<ImageInputShadowTree>>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-type-image-coordinate>
+    #[no_trace]
+    selected_coordinate: Cell<Point2D<i32, CSSPixel>>,
 }
 
 #[derive(Clone, Copy)]
@@ -39,6 +48,21 @@ impl SpecificInputType for ImageInputType {
 }
 
 impl ImageInputType {
+
+    pub(crate) fn set_selected_coordinate(&self, input: &HTMLInputElement, event: &Event) {
+        if !event.IsTrusted() {
+            return;
+        }
+        let Some(mouse_event) = event.downcast::<MouseEvent>() else {
+            return;
+        };
+        let rect = input.upcast::<Node>().client_rect();
+        self.selected_coordinate.set(Point2D::new(
+            mouse_event.ClientX() - rect.origin.x,
+            mouse_event.ClientY() - rect.origin.y,
+        ));
+    }
+
     fn get_or_create_shadow_tree(
         &self,
         cx: &mut JSContext,
@@ -60,6 +84,10 @@ impl ImageInputType {
         *self.shadow_tree.borrow_mut() = Some(ImageInputShadowTree::new(cx, shadow_root));
         self.get_or_create_shadow_tree(cx, input)
     }
+
+    pub(crate) fn selected_coordinate(&self) -> Point2D<i32, CSSPixel> {
+        self.selected_coordinate.get()
+    }
 }
 
 impl SpecificInputActivationType for ImageInputActivation {
@@ -68,7 +96,7 @@ impl SpecificInputActivationType for ImageInputActivation {
         &self,
         cx: &mut JSContext,
         input: &HTMLInputElement,
-        _event: &Event,
+        event: &Event,
         _target: &EventTarget,
     ) {
         // Step 1: If the element does not have a form owner, then return.
@@ -80,8 +108,11 @@ impl SpecificInputActivationType for ImageInputActivation {
                 return;
             }
 
-            // TODO Step 3. If the user activated the control while explicitly selecting a coordinate,
+            // Step 3: If the user activated the control while explicitly selecting a coordinate,
             // then set the element's selected coordinate to that coordinate.
+            if let InputType::Image(ref image_input_type) = *input.input_type() {
+                image_input_type.set_selected_coordinate(input, event);
+            }
 
             // Step 4: Submit the element's form owner from the element with userInvolvement
             // set to event's user navigation involvement.
