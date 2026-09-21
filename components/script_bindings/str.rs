@@ -227,6 +227,8 @@ pub enum ConversionResult<'a> {
 }
 
 /// <https://webidl.spec.whatwg.org/#js-DOMString>
+/// Implements the js to DOMstring conversion, but using an ad-hoc data structure,
+/// because current DOMString implementation does not preserve the exact sequence of code units.
 pub fn js_string_to_code_units<'a>(
     cx: &mut JSContext,
     data: SafeHandleValue<'a>,
