@@ -65,6 +65,8 @@ pub(crate) enum Handle {
     MlKem512PublicKey(ml_kem::EncapsulationKey<ml_kem::MlKem512>),
     MlKem768PublicKey(ml_kem::EncapsulationKey<ml_kem::MlKem768>),
     MlKem1024PublicKey(ml_kem::EncapsulationKey<ml_kem::MlKem1024>),
+    MlKem768X25519PrivateKey(x_wing::DecapsulationKey),
+    MlKem768X25519PublicKey(x_wing::EncapsulationKey),
     MlDsa44PrivateKey(ml_dsa::SigningKey<ml_dsa::MlDsa44>),
     MlDsa65PrivateKey(ml_dsa::SigningKey<ml_dsa::MlDsa65>),
     MlDsa87PrivateKey(ml_dsa::SigningKey<ml_dsa::MlDsa87>),
@@ -318,6 +320,8 @@ impl MallocSizeOf for Handle {
             Handle::MlKem512PublicKey(public_key) => public_key.size_of(ops),
             Handle::MlKem768PublicKey(public_key) => public_key.size_of(ops),
             Handle::MlKem1024PublicKey(public_key) => public_key.size_of(ops),
+            Handle::MlKem768X25519PrivateKey(private_key) => private_key.size_of(ops),
+            Handle::MlKem768X25519PublicKey(public_key) => public_key.size_of(ops),
             Handle::MlDsa44PrivateKey(private_key) => private_key.size_of(ops),
             Handle::MlDsa65PrivateKey(private_key) => private_key.size_of(ops),
             Handle::MlDsa87PrivateKey(private_key) => private_key.size_of(ops),
@@ -436,6 +440,16 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
             SerializableCryptoKeyHandle::MlKem1024PublicKey(public_key) => {
                 Ok(Handle::MlKem1024PublicKey(
                     ml_kem::TryKeyInit::new_from_slice(public_key).map_err(|_| ())?,
+                ))
+            },
+            SerializableCryptoKeyHandle::MlKem768X25519PrivateKey(private_key) => {
+                Ok(Handle::MlKem768X25519PrivateKey(
+                    x_wing::KeyInit::new_from_slice(private_key).map_err(|_| ())?,
+                ))
+            },
+            SerializableCryptoKeyHandle::MlKem768X25519PublicKey(public_key) => {
+                Ok(Handle::MlKem768X25519PublicKey(
+                    x_wing::TryKeyInit::new_from_slice(public_key).map_err(|_| ())?,
                 ))
             },
             SerializableCryptoKeyHandle::MlDsa44PrivateKey(private_key) => {
@@ -590,6 +604,16 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
             Handle::MlKem1024PublicKey(public_key) => {
                 Ok(SerializableCryptoKeyHandle::MlKem1024PublicKey(
                     ml_kem::KeyExport::to_bytes(public_key).as_slice().to_vec(),
+                ))
+            },
+            Handle::MlKem768X25519PrivateKey(private_key) => {
+                Ok(SerializableCryptoKeyHandle::MlKem768X25519PrivateKey(
+                    private_key.as_bytes().to_vec(),
+                ))
+            },
+            Handle::MlKem768X25519PublicKey(public_key) => {
+                Ok(SerializableCryptoKeyHandle::MlKem768X25519PublicKey(
+                    x_wing::KeyExport::to_bytes(public_key).to_vec(),
                 ))
             },
             Handle::MlDsa44PrivateKey(private_key) => {

@@ -289,6 +289,7 @@ winit = "0.30.13"
 winresource = "0.1"
 wio = "0.2"
 wr_malloc_size_of = "0.2.2"
+x-wing = { version = "0.1.0", features = ["zeroize"] }
 x25519-dalek = { version = "3.0", features = ["getrandom", "static_secrets", "zeroize"] }
 x448 = { version = "=0.14.0-pre.12", features = ["static_secrets"] }
 xcomponent-sys = "0.4.0"

@@ -20,6 +20,7 @@ mod ed25519_operation;
 mod ed448_operation;
 mod hkdf_operation;
 mod hmac_operation;
+mod hybrid_kem_operation;
 mod kangarootwelve_operation;
 mod kmac_operation;
 mod ml_dsa_operation;
@@ -139,6 +140,8 @@ enum CryptoAlgorithm {
     MlKem768,
     #[strum(serialize = "ML-KEM-1024")]
     MlKem1024,
+    #[strum(serialize = "MLKEM768-X25519")]
+    MlKem768X25519,
     #[strum(serialize = "ML-DSA-44")]
     MlDsa44,
     #[strum(serialize = "ML-DSA-65")]
@@ -5905,6 +5908,7 @@ enum ImportKeyAlgorithm {
     Hkdf(Algorithm),
     Pbkdf2(Algorithm),
     MlKem(Algorithm),
+    HybridKem(Algorithm),
     MlDsa(Algorithm),
     AesOcb(Algorithm),
     ChaCha20Poly1305(Algorithm),
@@ -5972,6 +5976,9 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
                     object.try_into_with_cx_and_name(cx, algorithm_name)?,
                 ))
             },
+            CryptoAlgorithm::MlKem768X25519 => Ok(ImportKeyAlgorithm::HybridKem(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => Ok(
                 ImportKeyAlgorithm::MlDsa(object.try_into_with_cx_and_name(cx, algorithm_name)?),
             ),
@@ -6013,6 +6020,7 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
             ImportKeyAlgorithm::Hkdf(algorithm) => algorithm.name,
             ImportKeyAlgorithm::Pbkdf2(algorithm) => algorithm.name,
             ImportKeyAlgorithm::MlKem(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::HybridKem(algorithm) => algorithm.name,
             ImportKeyAlgorithm::MlDsa(algorithm) => algorithm.name,
             ImportKeyAlgorithm::AesOcb(algorithm) => algorithm.name,
             ImportKeyAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
@@ -6044,6 +6052,7 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
             ImportKeyAlgorithm::Hkdf(_) |
             ImportKeyAlgorithm::Pbkdf2(_) |
             ImportKeyAlgorithm::MlKem(_) |
+            ImportKeyAlgorithm::HybridKem(_) |
             ImportKeyAlgorithm::MlDsa(_) |
             ImportKeyAlgorithm::AesOcb(_) |
             ImportKeyAlgorithm::ChaCha20Poly1305(_) |
@@ -6159,6 +6168,15 @@ impl ImportKeyAlgorithm {
                 extractable,
                 usages,
             ),
+            ImportKeyAlgorithm::HybridKem(algorithm) => hybrid_kem_operation::import_key(
+                cx,
+                global,
+                algorithm,
+                format,
+                key_data,
+                extractable,
+                usages,
+            ),
             ImportKeyAlgorithm::MlDsa(algorithm) => ml_dsa_operation::import_key(
                 cx,
                 global,
@@ -6227,7 +6245,9 @@ impl ImportKeyAlgorithm {
                     })
             },
             ImportKeyAlgorithm::Hkdf(_) | ImportKeyAlgorithm::Pbkdf2(_) => false,
-            ImportKeyAlgorithm::MlKem(_) | ImportKeyAlgorithm::MlDsa(_) => true,
+            ImportKeyAlgorithm::MlKem(_) |
+            ImportKeyAlgorithm::HybridKem(_) |
+            ImportKeyAlgorithm::MlDsa(_) => true,
             ImportKeyAlgorithm::AesOcb(_) => !matches!(key_data_length, 128 | 192 | 256),
             ImportKeyAlgorithm::ChaCha20Poly1305(_) => key_data_length != 256,
             ImportKeyAlgorithm::Kmac(algorithm) => algorithm
@@ -6263,6 +6283,7 @@ enum ExportKeyAlgorithm {
     AesKw(Algorithm),
     Hmac(Algorithm),
     MlKem(Algorithm),
+    HybridKem(Algorithm),
     MlDsa(Algorithm),
     AesOcb(Algorithm),
     ChaCha20Poly1305(Algorithm),
@@ -6323,6 +6344,9 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
                     object.try_into_with_cx_and_name(cx, algorithm_name)?,
                 ))
             },
+            CryptoAlgorithm::MlKem768X25519 => Ok(ExportKeyAlgorithm::HybridKem(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => Ok(
                 ExportKeyAlgorithm::MlDsa(object.try_into_with_cx_and_name(cx, algorithm_name)?),
             ),
@@ -6359,6 +6383,7 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
             ExportKeyAlgorithm::AesKw(algorithm) => algorithm.name,
             ExportKeyAlgorithm::Hmac(algorithm) => algorithm.name,
             ExportKeyAlgorithm::MlKem(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::HybridKem(algorithm) => algorithm.name,
             ExportKeyAlgorithm::MlDsa(algorithm) => algorithm.name,
             ExportKeyAlgorithm::AesOcb(algorithm) => algorithm.name,
             ExportKeyAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
@@ -6383,6 +6408,7 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
             ExportKeyAlgorithm::AesKw(_) |
             ExportKeyAlgorithm::Hmac(_) |
             ExportKeyAlgorithm::MlKem(_) |
+            ExportKeyAlgorithm::HybridKem(_) |
             ExportKeyAlgorithm::MlDsa(_) |
             ExportKeyAlgorithm::AesOcb(_) |
             ExportKeyAlgorithm::ChaCha20Poly1305(_) |
@@ -6411,6 +6437,9 @@ impl ExportKeyAlgorithm {
             ExportKeyAlgorithm::AesKw(_algorithm) => aes_kw_operation::export_key(format, key),
             ExportKeyAlgorithm::Hmac(_algorithm) => hmac_operation::export_key(format, key),
             ExportKeyAlgorithm::MlKem(_algorithm) => ml_kem_operation::export_key(format, key),
+            ExportKeyAlgorithm::HybridKem(_algorithm) => {
+                hybrid_kem_operation::export_key(format, key)
+            },
             ExportKeyAlgorithm::MlDsa(_algorithm) => ml_dsa_operation::export_key(format, key),
             ExportKeyAlgorithm::AesOcb(_algorithm) => aes_ocb_operation::export_key(format, key),
             ExportKeyAlgorithm::ChaCha20Poly1305(_algorithm) => {
