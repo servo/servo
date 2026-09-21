@@ -162,7 +162,7 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         )
     elif any(word in s for word in ["lint", "tidy"]):
         return JobConfig("Lint", Workflow.LINT)
-    elif any(word in s for word in ["perf-analysis", "perfanalysis", "perf"]):
+    elif any(word in s for word in ["perf-analysis", "perfanalysis"]):
         # The release profile is used for stable timings (no debug assertions).
         return JobConfig("Perf analysis", Workflow.PERF_ANALYSIS, profile="release")
     else:
@@ -536,7 +536,7 @@ class TestParser(unittest.TestCase):
         self.assertFalse(matrix_result["unit_tests"])
         self.assertFalse(matrix_result["wpt"])
 
-    def test_perf_analysis(self):
+    def test_perf_analysis(self) -> None:
         matrix_result = json.loads(Config("perf-analysis").to_json())["matrix"][0]
 
         self.assertEqual(matrix_result["name"], "Perf analysis (Release)")
