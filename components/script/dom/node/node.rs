@@ -21,7 +21,7 @@ use embedder_traits::{MouseButton, UntrustedNodeAddress};
 use euclid::default::Size2D;
 use euclid::{Point2D, Rect};
 use html5ever::serialize::HtmlSerializer;
-use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
+use html5ever::{LocalName, Namespace, Prefix, QualName, ns, serialize as html_serialize};
 use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -189,10 +189,10 @@ impl fmt::Debug for Node {
 
 /// Flags for node items
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-pub(crate) struct NodeFlags(u16);
+pub(crate) struct NodeFlags(u32);
 
 bitflags! {
-    impl NodeFlags: u16 {
+    impl NodeFlags: u32 {
         /// Specifies whether this node is in a document.
         ///
         /// <https://dom.spec.whatwg.org/#in-a-document-tree>
@@ -250,6 +250,10 @@ bitflags! {
         /// For nodes with the `OVERLAPS_DOCUMENT_SELECTION`, whether the used value of
         /// [`user-select`](https://drafts.csswg.org/css-ui-4/#propdef-user-select) is `none`.
         const SELECTION_INHIBITED = 1 << 15;
+
+        // Indicate the node is in a hierachy that needs to be considered for ContainerTiming events.
+        // Without this flag, traversal would be expensive.
+        const HAS_CONTAINER_TIMING = 1 << 16;
     }
 }
 
@@ -354,6 +358,7 @@ impl Node {
         let parent_in_shadow_tree = self.is_in_a_shadow_tree();
         let parent_is_connected = self.is_connected();
         let parent_is_in_ua_widget = self.is_in_ua_widget();
+        let parent_has_container_timing = self.has_container_timing();
 
         let context = BindContext::new(self, IsShadowTree::No);
 
@@ -371,6 +376,17 @@ impl Node {
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
             node.set_flag(NodeFlags::IS_IN_UA_WIDGET, parent_is_in_ua_widget);
+            // HAS_CONTAINER_TIMING can be set by the element's own `containertiming` attribute,
+            // not just by ancestor inheritance. Because traverse_preorder visits parents before
+            // children, re-deriving from the actual parent (already processed in this loop) gives
+            // the correct inherited value for each node.
+            let self_has_ct = node
+                .downcast::<Element>()
+                .is_some_and(|e| e.has_attribute(&LocalName::from("containertiming")));
+            node.set_flag(
+                NodeFlags::HAS_CONTAINER_TIMING,
+                parent_has_container_timing || self_has_ct,
+            );
 
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
@@ -824,6 +840,14 @@ impl Node {
 
     pub(crate) fn is_in_ua_widget(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_UA_WIDGET)
+    }
+
+    pub(crate) fn set_has_container_timing(&self, has_container_timing: bool) {
+        self.set_flag(NodeFlags::HAS_CONTAINER_TIMING, has_container_timing)
+    }
+
+    pub(crate) fn has_container_timing(&self) -> bool {
+        self.flags.get().contains(NodeFlags::HAS_CONTAINER_TIMING)
     }
 
     /// Returns the type ID of this node.
