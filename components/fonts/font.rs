@@ -843,13 +843,7 @@ impl FontGroup {
                 },
                 _ => {},
             }
-            let glyph_exists_in_font = font.has_glyph_for(options.character);
-
-            if glyph_exists_in_font {
-                font.metrics();
-            }
-
-            glyph_exists_in_font
+            font.has_glyph_for(options.character)
         };
 
         let char_in_template =
@@ -1023,7 +1017,6 @@ impl FontGroupFamilyTemplate {
         if !template_predicate(self.template.clone()) {
             return None;
         }
-
         self.font(font_context, font_descriptor)
             .filter(font_predicate)
     }
