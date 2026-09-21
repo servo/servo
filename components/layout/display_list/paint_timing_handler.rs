@@ -6,16 +6,18 @@ use std::collections::{HashMap, HashSet};
 
 use app_units::Au;
 use euclid::Rect;
-use layout_api::LCPCandidate;
+use layout_api::{ContainerTimingRecord, LCPCandidate};
 use paint_api::display_list::PaintTimingReport;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
-use servo_base::id::LCPCandidateID;
+use servo_base::id::{ContainerTimingID, LCPCandidateID};
 use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use webrender_api::units::{LayoutRect, LayoutSize};
 
+use super::painted_region::PaintedRegion;
 use crate::fragment_tree::Tag;
 use crate::query::transform_f32_rectangle;
 
@@ -60,6 +62,22 @@ enum LCPCandidateType<'a> {
     Text,
 }
 
+/// The Container Timing state accumulated for one container root, i.e. one element
+/// carrying a `containertiming` attribute.
+///
+/// <https://wicg.github.io/container-timing/>
+struct ContainerRecord {
+    /// The value of the container's `containertiming` attribute.
+    identifier: String,
+    /// Everything painted inside this container so far, de-overlapped. This persists
+    /// across display list builds, so a container's reported area only ever reflects
+    /// genuinely new paint, not the same fragments revisited on an unrelated repaint.
+    painted_region: PaintedRegion,
+    /// The descendant whose paint most recently grew `painted_region`, for
+    /// `PerformanceContainerTiming::lastPaintedElement`.
+    last_painted_element: Option<OpaqueNode>,
+}
+
 pub(crate) struct PaintTimingHandler {
     /// The rect of viewport.
     viewport_rect: LayoutRect,
@@ -82,6 +100,15 @@ pub(crate) struct PaintTimingHandler {
     elements_with_rendered_text: HashSet<OpaqueNode>,
     /// The set of pending text nodes that will fight for LCP candidate.
     elements_with_pending_rendered_text: HashMap<OpaqueNode, TextRecord>,
+    /// Counter for generating unique container timing UUIDs.
+    container_timing_next_uuid: u64,
+    /// Accumulated Container Timing state, keyed by container root node. Persists
+    /// across display list builds, like the LCP candidate does.
+    container_timing_records: FxHashMap<OpaqueNode, ContainerRecord>,
+    /// Container roots whose painted area grew during the display list build currently
+    /// in progress. Drained by [`Self::take_container_timing_records`] once the build
+    /// finishes and the records are handed to script.
+    dirty_containers: FxHashSet<OpaqueNode>,
 }
 
 impl PaintTimingHandler {
@@ -97,6 +124,9 @@ impl PaintTimingHandler {
             images_pending_rendering: Vec::new(),
             elements_with_rendered_text: HashSet::new(),
             elements_with_pending_rendered_text: HashMap::new(),
+            container_timing_next_uuid: 0,
+            container_timing_records: FxHashMap::default(),
+            dirty_containers: FxHashSet::default(),
         }
     }
 
@@ -431,6 +461,115 @@ impl PaintTimingHandler {
         // entry with newCandidate, paintTimingInfo, and document.
         // Step 7. Queue the PerformanceEntry entry.
         // Note: Step 6-7 are handled in script.
+    }
+
+    /// Accumulate a painted text or image fragment into the Container Timing state of
+    /// its nearest ancestor carrying a `containertiming` attribute, if any.
+    ///
+    /// Called during display list building, unlike the LCP collection which only
+    /// accumulates here and computes in [`Self::mark_paint_timing`]. Container Timing has
+    /// no per-frame winner to pick: each fragment either adds new painted area to its
+    /// container or it does not, so the work can be done as fragments are visited.
+    ///
+    /// <https://wicg.github.io/container-timing/>
+    #[servo_tracing::instrument(name = "Update Container Timing", skip_all)]
+    pub(crate) fn update_container_timing(
+        &mut self,
+        node: OpaqueNode,
+        bounds: LayoutRect,
+        clip_rect: LayoutRect,
+        transform: FastLayoutTransform,
+        natural_width: Option<Au>,
+        natural_height: Option<Au>,
+    ) {
+        let Some(container_root) = script::layout_dom::container_timing_root_for_node(node) else {
+            return;
+        };
+
+        let intersection_rect = transform_f32_rectangle(clip_rect.to_rect(), transform)
+            .unwrap_or_default()
+            .intersection(&self.viewport_rect.to_rect())
+            .map(|rect| rect.to_box2d())
+            .unwrap_or_default();
+
+        // Gate on the same "is this fragment eligible to be reported at all" check LCP
+        // uses (fully off-viewport, covering the whole viewport, zero natural area).
+        // Unlike LCP, Container Timing discards the resulting effective visual size: per
+        // the reference implementation its `size` is the area of the union of raw
+        // intersection rects, with no image-scale adjustment.
+        let candidate_type = PendingImageRecord {
+            tag: None,
+            bounds,
+            clip_rect,
+            transform,
+            url: None,
+            natural_width,
+            natural_height,
+        };
+        let candidate_type = match (natural_width, natural_height) {
+            (Some(_), Some(_)) => LCPCandidateType::Image(&candidate_type),
+            _ => LCPCandidateType::Text,
+        };
+        if self
+            .effective_visual_size(intersection_rect, candidate_type)
+            .is_none()
+        {
+            return;
+        }
+
+        let record = self
+            .container_timing_records
+            .entry(container_root)
+            .or_insert_with(|| ContainerRecord {
+                identifier: script::layout_dom::container_timing_identifier_for_root(
+                    container_root,
+                )
+                .map(|identifier| identifier.to_string())
+                .unwrap_or_default(),
+                painted_region: PaintedRegion::default(),
+                last_painted_element: None,
+            });
+
+        // This area has already been counted for this container, so there is nothing new
+        // to report. Without this, a container that never changes would still grow every
+        // time something unrelated on the page forced a repaint and the traversal
+        // revisited its fragments.
+        if record.painted_region.contains(intersection_rect) {
+            return;
+        }
+
+        record.painted_region.union(intersection_rect);
+        record.last_painted_element = Some(node);
+        self.dirty_containers.insert(container_root);
+    }
+
+    /// Take the [`ContainerTimingRecord`]s for every container whose painted area grew
+    /// during the display list build that just finished, minting a fresh
+    /// [`ContainerTimingID`] for each.
+    ///
+    /// A new ID per update (rather than per container) is what lets each update become
+    /// its own `PerformanceContainerTiming` entry with its own paint time; script
+    /// correlates them back to one container through
+    /// [`ContainerTimingRecord::container_id`].
+    pub(crate) fn take_container_timing_records(&mut self) -> Vec<ContainerTimingRecord> {
+        let mut records = Vec::with_capacity(self.dirty_containers.len());
+        for container_root in std::mem::take(&mut self.dirty_containers) {
+            let Some(record) = self.container_timing_records.get(&container_root) else {
+                continue;
+            };
+            let id = ContainerTimingID(self.container_timing_next_uuid);
+            self.container_timing_next_uuid += 1;
+            records.push(ContainerTimingRecord {
+                id,
+                container_id: container_root.id(),
+                identifier: record.identifier.clone(),
+                size: record.painted_region.area(),
+                intersection_rect: record.painted_region.bounds(),
+                root_element: container_root,
+                last_painted_element: record.last_painted_element,
+            });
+        }
+        records
     }
 
     /// <https://www.w3.org/TR/paint-timing/#first-paint>
