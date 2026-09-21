@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::FileSystemDirectoryReaderBinding::{
     FileSystemDirectoryReaderMethods, FileSystemEntriesCallback,
 };
@@ -33,10 +32,10 @@ pub(crate) struct FileSystemDirectoryReader {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PendingEntriesCallback {
     id: usize,
-    #[conditional_malloc_size_of]
-    callback: Rc<FileSystemEntriesCallback>,
+    callback: TracedCallback<FileSystemEntriesCallback>,
 }
 
 impl FileSystemDirectoryReader {
@@ -69,19 +68,20 @@ impl FileSystemDirectoryReaderMethods<crate::DomTypeHolder> for FileSystemDirect
     /// <https://wicg.github.io/entries-api/#dom-filesystemdirectoryreader-readentries>
     fn ReadEntries(
         &self,
-        success_callback: Rc<FileSystemEntriesCallback>,
-        _error_callback: Option<Rc<ErrorCallback>>,
+        success_callback: RootedCallback<FileSystemEntriesCallback>,
+        _error_callback: Option<RootedCallback<ErrorCallback>>,
     ) {
         // Per spec §7.3: queue a task to invoke successCallback with the
         // directory's children that have not yet been produced. The first
         // call returns all children; subsequent calls return an empty list
         // (done flag set).
         let id = self.next_callback.get();
-        let pending_callback = PendingEntriesCallback {
-            id,
-            callback: success_callback,
-        };
-        self.pending_callbacks.borrow_mut().push(pending_callback);
+        self.pending_callbacks
+            .borrow_mut()
+            .push(PendingEntriesCallback {
+                id,
+                callback: success_callback.to_traced(),
+            });
         self.next_callback.set(id + 1);
 
         let this = Trusted::new(self);
@@ -96,11 +96,11 @@ impl FileSystemDirectoryReaderMethods<crate::DomTypeHolder> for FileSystemDirect
                     .iter()
                     .position(|val| val.id == id);
                 if let Some(index) = maybe_index {
-                    let callback = this
+                    rooted!(&in(cx) let callback = this
                         .pending_callbacks
                         .borrow_mut()
                         .swap_remove(index)
-                        .callback;
+                        .callback);
                     let entries = if this.done_flag.get() {
                         Vec::new()
                     } else {

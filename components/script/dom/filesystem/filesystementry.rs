@@ -3,13 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::Reflector;
 
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::FileSystemBinding::FileSystemMethods;
 use crate::dom::bindings::codegen::Bindings::FileSystemEntryBinding::{
     ErrorCallback, FileSystemEntryCallback, FileSystemEntryMethods,
@@ -32,10 +31,10 @@ pub(crate) struct FileSystemEntry {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PendingEntryCallback {
     id: usize,
-    #[conditional_malloc_size_of]
-    callback: Rc<FileSystemEntryCallback>,
+    callback: TracedCallback<FileSystemEntryCallback>,
 }
 
 impl FileSystemEntry {
@@ -91,8 +90,8 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
     /// <https://wicg.github.io/entries-api/#dom-filesystementry-getparent>
     fn GetParent(
         &self,
-        success_callback: Option<Rc<FileSystemEntryCallback>>,
-        _error_callback: Option<Rc<ErrorCallback>>,
+        success_callback: Option<RootedCallback<FileSystemEntryCallback>>,
+        _error_callback: Option<RootedCallback<ErrorCallback>>,
     ) {
         let Some(callback) = success_callback else {
             return;
@@ -109,8 +108,12 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
         // single level DnD.
 
         let id = self.next_callback.get();
-        let pending_callback = PendingEntryCallback { id, callback };
-        self.pending_callbacks.borrow_mut().push(pending_callback);
+        self.pending_callbacks
+            .borrow_mut()
+            .push(PendingEntryCallback {
+                id,
+                callback: callback.to_traced(),
+            });
         self.next_callback.set(id + 1);
 
         let this = Trusted::new(self);
@@ -125,11 +128,11 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
                     .iter()
                     .position(|val| val.id == id);
                 if let Some(index) = maybe_index {
-                    let callback = this
+                    rooted!(&in(cx) let callback = this
                         .pending_callbacks
                         .safe_borrow_mut(cx.no_gc())
                         .swap_remove(index)
-                        .callback;
+                        .callback);
                     let entry = DomRoot::upcast::<FileSystemEntry>(this.Filesystem().Root());
                     let _ = callback.Call__(cx, &entry, ExceptionHandling::Report);
                 }
