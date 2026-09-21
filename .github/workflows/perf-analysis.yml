@@ -20,6 +20,13 @@ on:
         required: false
         default: false
         type: boolean
+      # Name of an artifact containing a prebuilt `tracing-perfetto` servoshell.
+      # When set (e.g. via bencher workflow), the binary is downloaded directly.
+      # When empty (`./mach try perf-analysis`), It is built by this workflow.
+      servo-binary-artifact:
+        required: false
+        default: ""
+        type: string
 
 env:
   RUST_BACKTRACE: 1
@@ -43,9 +50,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: ubuntu-22.04
           self-hosted-image-name: servo-ubuntu2204-bench
-          # You can disable self-hosted runners globally by creating a repository variable named
-          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
-          # <https://github.com/servo/servo/settings/variables/actions>
           NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
           force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
 
@@ -57,19 +61,30 @@ jobs:
     timeout-minutes: 240
     steps:
       - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
+      - name: Download prebuilt servoshell
+        if: ${{ inputs.servo-binary-artifact != '' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.servo-binary-artifact }}
+          path: prebuilt-servoshell
+      - name: Extract prebuilt servoshell
+        if: ${{ inputs.servo-binary-artifact != '' }}
+        run: tar -xzf prebuilt-servoshell/servo-tech-demo.tar.gz -C prebuilt-servoshell
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
-        if: ${{ runner.environment != 'self-hosted' }}
+        if: ${{ inputs.servo-binary-artifact == '' && runner.environment != 'self-hosted' }}
         with:
           tool-cache: false
           large-packages: false
           swap-storage: false
       - name: Install LLVM and Clang
+        if: ${{ inputs.servo-binary-artifact == '' }}
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "20.1"
           directory: ${{ runner.temp }}/llvm
       - name: Set LIBCLANG_PATH env
+        if: ${{ inputs.servo-binary-artifact == '' }}
         run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
       - name: Setup Python
         if: ${{ runner.environment != 'self-hosted' }}
@@ -85,6 +100,7 @@ jobs:
           sudo apt install -qy --no-install-recommends xvfb zsh jq
           ./mach bootstrap --yes --skip-lints --skip-nextest
       - name: Build Servo (with perfetto tracing)
+        if: ${{ inputs.servo-binary-artifact == '' }}
         # `tracing-perfetto` is required by perf-analysis-tools to produce
         # `servo*.pftrace` traces alongside the HTML profiler traces.
         run: |
@@ -121,7 +137,11 @@ jobs:
         run: cargo build --release --locked
       - name: Prepare study
         run: |
-          SERVO_BINARY="$GITHUB_WORKSPACE/target/${{ inputs.profile }}/servoshell"
+          if [ "${{ inputs.servo-binary-artifact }}" != "" ]; then
+            SERVO_BINARY="$GITHUB_WORKSPACE/prebuilt-servoshell/servo/servoshell"
+          else
+            SERVO_BINARY="$GITHUB_WORKSPACE/target/${{ inputs.profile }}/servoshell"
+          fi
           mkdir -p perf-analysis-tools/studies/ci
           cp etc/ci/perf-analysis/study.toml perf-analysis-tools/studies/ci/study.toml
           sed -i "s|@SERVO_BINARY@|$SERVO_BINARY|" perf-analysis-tools/studies/ci/study.toml

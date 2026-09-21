@@ -69,6 +69,10 @@ on:
         required: false
         default: false
         type: boolean
+      perf-analysis:
+        required: false
+        default: false
+        type: boolean
 
 env:
   RUST_BACKTRACE: 1
@@ -217,6 +221,24 @@ jobs:
         id: upload-tarball
         with:
           name: ${{ inputs.uploaded-artifact-name }}
+          path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
+          if-no-files-found: error
+      # Rebuild with `tracing-perfetto` for perf-analysis. This reuses the cargo
+      # cache from the build above, so only the crates affected by the feature are
+      # recompiled. It is kept separate from the packaged artifact so that the
+      # speedometer/dromaeo benchmarks do not run with tracing compiled in.
+      - name: Build with Perfetto tracing
+        if: ${{ inputs.perf-analysis }}
+        run: |
+          ./mach build --use-crown --locked --profile ${{ inputs.profile }} --features tracing-perfetto
+      - name: Package with Perfetto tracing
+        if: ${{ inputs.perf-analysis }}
+        run: ./mach package --profile ${{ inputs.profile }}
+      - name: Upload Perfetto package for perf-analysis
+        if: ${{ inputs.perf-analysis }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.profile }}-binary-linux-tracing
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
           if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
