@@ -23,13 +23,14 @@ use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethod
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
-use style::attr::AttrValue;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::str::split_commas;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 use time::OffsetDateTime;
 use unicode_bidi::{BidiClass, bidi_class};
 use webdriver::error::ErrorStatus;
+use xml5ever::ns;
 
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -941,6 +942,31 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         #[expect(unsafe_code)]
         let text_input = unsafe { element.text_input.borrow_for_layout() };
         text_input.selection_for_layout
+    }
+
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
+        self.image_button_dimension(&local_name!("width"))
+    }
+
+    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
+        self.image_button_dimension(&local_name!("height"))
+    }
+
+    fn image_button_dimension(self, name: &LocalName) -> LengthOrPercentageOrAuto {
+        let element = self.upcast::<Element>();
+        let is_image_button = element
+            .get_attr_val_for_layout(&ns!(), &local_name!("type"))
+            .is_some_and(|value| value.eq_ignore_ascii_case("image"));
+
+        if !is_image_button {
+            return LengthOrPercentageOrAuto::Auto;
+        }
+
+        element
+            .get_attr_for_layout(&ns!(), name)
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
 
@@ -2262,6 +2288,8 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+
+
         match *name {
             local_name!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
             local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
@@ -2271,6 +2299,9 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("minlength") => {
                 AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH)
+            },
+            local_name!("width") | local_name!("height") => {
+                AttrValue::from_dimension(value.into())
             },
             _ => self
                 .super_type()
@@ -2424,6 +2455,16 @@ impl VirtualMethods for HTMLInputElement {
             .borrow_mut()
             .set_content(self.text_input.borrow().get_content());
         self.value_changed(cx);
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
+        match attr.local_name() {
+            &local_name!("width") | &local_name!("height") => true,
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
+        }
     }
 }
 

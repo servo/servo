@@ -5,7 +5,6 @@ use std::cell::Ref;
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::Dom;
 use xml5ever::{QualName, local_name, ns};
@@ -14,7 +13,6 @@ use crate::dom::{CustomElementCreationMode, Element, ElementCreator, Node};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
-use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFrom};
 use crate::dom::input_type::text_input_widget::TextInputWidget;
@@ -24,7 +22,6 @@ use crate::dom::node::NodeTraits;
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ImageInputType {
-    text_value_widget: DomRefCell<TextValueWidget>,
     shadow_tree: DomRefCell<Option<ImageInputShadowTree>>,
 }
 
@@ -114,8 +111,7 @@ impl ImageInputShadowTree {
             CustomElementCreationMode::Asynchronous,
             None,
         );
-        
-        let _ = shadow_root.AppendChild(cx, img.upcast());
+        Node::replace_all(cx, Some(img.upcast()), shadow_root);
         Self {
             image_element: img.as_traced()
         }
