@@ -54,7 +54,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::permissions::{PermissionAlgorithm, Permissions, descriptor_permission_state};
 use crate::dom::permissionstatus::PermissionStatus;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
@@ -402,16 +402,16 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         cx: &mut JSContext,
         global: &GlobalScope,
         permission_callback: Option<Rc<NotificationPermissionCallback>>,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // Step 2: Let promise be a new promise in this’s relevant Realm.
-        let promise = Promise::new(cx, global);
+        let promise = Promise::new_rooted(cx, global);
 
         // TODO: Step 3: Run these steps in parallel:
         // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
         let notification_permission = request_notification_permission(cx, global);
 
         // Step 3.2: Queue a global task on the DOM manipulation task source given global to run these steps:
-        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_promise = TrustedPromise::from(&promise);
         let uuid = Uuid::new_v4().simple().to_string();
         let uuid_ = uuid.clone();
 
