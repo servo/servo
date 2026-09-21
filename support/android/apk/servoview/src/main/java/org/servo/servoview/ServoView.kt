@@ -49,7 +49,6 @@ class ServoView(
         holder.addCallback(surfaceHolderCallback)
     }
 
-
     override fun inGLThread(r: Runnable) {
         glThread.glLooperHandler!!.post(r)
     }
