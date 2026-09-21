@@ -43,7 +43,7 @@ use crate::gpudevice::GPUDevice;
 use crate::traits::{
     Equivalence, HtmlCanvasElementTrait, HtmlImageElementTrait, ImageBitmapTrait, ImageDataTrait,
     OffscreenCanvasTrait, OriginIsCleanTrait, WebGPUHTMLVideoTrait, WebGPUPromise,
-    WebGPUPromiseCallbackTrait, WebGPURootedPromiseTrait,
+    WebGPUPromiseCallbackTrait,
 };
 
 #[dom_struct]
@@ -409,7 +409,7 @@ where
         cx: &mut JSContext,
     ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
         let global = self.global_from_reflector();
-        let promise = <D::Promise as PromiseHelpers<D>>::StackRoot::new_rooted(cx, &global);
+        let promise = D::Promise::new_rooted(cx, &global);
         let callback = promise.callback_promise_dom_manipulation_task_source(self);
 
         if let Err(e) = self

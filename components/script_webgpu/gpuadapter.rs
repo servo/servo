@@ -30,10 +30,7 @@ use crate::gpuadapterinfo::GPUAdapterInfo;
 use crate::gpudevice::GPUDevice;
 use crate::gpusupportedfeatures::{GPUSupportedFeatures, gpu_to_wgt_feature};
 use crate::gpusupportedlimits::{GPUSupportedLimits, set_limit};
-use crate::traits::{
-    Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait,
-    WebGPURootedPromiseTrait,
-};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUAdapter {
@@ -301,7 +298,6 @@ where
 impl<D: Equivalence> RoutedPromiseListener<D, WebGPUDeviceResponse> for GPUAdapter<D>
 where
     Self: DomGlobalGeneric<D>,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
     EventHandlerNonNull<D>: CallbackContainer<D>,
 {
     /// <https://www.w3.org/TR/webgpu/#dom-gpuadapter-requestdevice>

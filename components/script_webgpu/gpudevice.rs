@@ -79,7 +79,6 @@ use crate::gputexture::GPUTexture;
 use crate::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::traits::{
     Equivalence, EventTargetTrait, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait,
-    WebGPURootedPromiseTrait, WebGPUTracedPromiseTrait,
 };
 
 macro_rules! event_handler(
@@ -151,7 +150,6 @@ pub struct GPUDevice<D: DomTypes> {
 impl<D> GPUDevice<D>
 where
     D: Equivalence,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
     EventHandlerNonNull<D>: CallbackContainer<D>,
 {
     #[allow(clippy::too_many_arguments)]
@@ -198,7 +196,7 @@ where
         let limits = GPUSupportedLimits::new(cx, global, limits);
         let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
         let adapter_info = GPUAdapterInfo::clone_from(cx, global, &adapter.info());
-        let lost_promise = <D::Promise as PromiseHelpers<D>>::StackRoot::new_rooted(cx, global);
+        let lost_promise = D::Promise::new_rooted(cx, global);
         let device = reflect_weak_referenceable_dom_object_with_cx_and_wrap::<D, _, _>(
             cx,
             Rc::new(GPUDevice::new_inherited(
@@ -713,7 +711,6 @@ where
 impl<D: Equivalence> RoutedPromiseListener<D, WebGPUPoppedErrorScopeResponse> for GPUDevice<D>
 where
     Self: DomGlobalGeneric<D>,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
     D::GPUError: Castable,
     D::GPUValidationError: DerivedFrom<GPUError<D>>,
     D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
@@ -745,7 +742,6 @@ where
 impl<D: Equivalence> RoutedPromiseListener<D, WebGPUComputePipelineResponse> for GPUDevice<D>
 where
     Self: DomGlobalGeneric<D>,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
     D::GPUError: Castable,
     D::GPUValidationError: DerivedFrom<GPUError<D>>,
     D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
@@ -794,7 +790,6 @@ where
 impl<D: Equivalence> RoutedPromiseListener<D, WebGPURenderPipelineResponse> for GPUDevice<D>
 where
     Self: DomGlobalGeneric<D>,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
     D::GPUError: Castable,
     D::GPUValidationError: DerivedFrom<GPUError<D>>,
     D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,

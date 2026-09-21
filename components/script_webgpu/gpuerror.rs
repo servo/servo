@@ -70,19 +70,19 @@ where
 
     pub fn from_error(cx: &mut JSContext, global: &D::GlobalScope, error: Error) -> DomRoot<Self> {
         match error {
-            Error::Validation(msg) => DomRoot::upcast(GPUValidationError::new_with_proto(
+            Error::Validation(msg) => DomRoot::upcast(GPUValidationError::<D>::new_with_proto(
                 cx,
                 global,
                 None,
                 msg.into(),
             )),
-            Error::OutOfMemory(msg) => DomRoot::upcast(GPUOutOfMemoryError::new_with_proto(
+            Error::OutOfMemory(msg) => DomRoot::upcast(GPUOutOfMemoryError::<D>::new_with_proto(
                 cx,
                 global,
                 None,
                 msg.into(),
             )),
-            Error::Internal(msg) => DomRoot::upcast(GPUInternalError::new_with_proto(
+            Error::Internal(msg) => DomRoot::upcast(GPUInternalError::<D>::new_with_proto(
                 cx,
                 global,
                 None,

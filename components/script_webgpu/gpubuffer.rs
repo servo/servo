@@ -32,10 +32,7 @@ use crate::datablock::DataBlock;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::gpuconvert::WebGPUConvert;
-use crate::traits::{
-    Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait,
-    WebGPURootedPromiseTrait,
-};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -455,7 +452,6 @@ where
 impl<D> GPUBuffer<D>
 where
     D: Equivalence,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
 {
     pub fn map_failure(
         &self,
@@ -524,10 +520,7 @@ where
     }
 }
 
-impl<D: Equivalence> RoutedPromiseListener<D, Result<Mapping, BufferAccessError>> for GPUBuffer<D>
-where
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPURootedPromiseTrait<D>,
-{
+impl<D: Equivalence> RoutedPromiseListener<D, Result<Mapping, BufferAccessError>> for GPUBuffer<D> {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,
