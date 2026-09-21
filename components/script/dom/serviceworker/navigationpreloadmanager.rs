@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
@@ -18,7 +16,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::ByteString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 
 #[dom_struct]
@@ -48,8 +46,8 @@ impl NavigationPreloadManager {
 
 impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreloadManager {
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable>
-    fn Enable(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn Enable(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
 
         // 2.
         if self.serviceworker_registration.is_active() {
@@ -68,8 +66,8 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-disable>
-    fn Disable(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn Disable(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
 
         // 2.
         if self.serviceworker_registration.is_active() {
@@ -88,8 +86,8 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-setheadervalue>
-    fn SetHeaderValue(&self, cx: &mut CurrentRealm, value: ByteString) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn SetHeaderValue(&self, cx: &mut CurrentRealm, value: ByteString) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
 
         // 2.
         if self.serviceworker_registration.is_active() {
@@ -108,8 +106,8 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-getstate>
-    fn GetState(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn GetState(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
         // 2.
         let mut state = NavigationPreloadState::empty();
 
