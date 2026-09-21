@@ -1900,9 +1900,9 @@ impl Node {
 
         let num_children = if is_shadow_host {
             // Shadow roots count as children
-            self.ChildNodes(cx).Length() as usize + 1
+            self.ChildNodes(cx).Length(cx.no_gc()) as usize + 1
         } else {
-            self.ChildNodes(cx).Length() as usize
+            self.ChildNodes(cx).Length(cx.no_gc()) as usize
         };
 
         let window = self.owner_window();

@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::NoGC;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 
@@ -80,7 +81,7 @@ impl Activatable for HTMLLabelElement {
         _event: &Event,
         _target: &EventTarget,
     ) {
-        if let Some(e) = self.GetControl() {
+        if let Some(e) = self.GetControl(cx.no_gc()) {
             e.Click(cx);
         }
     }
@@ -88,14 +89,14 @@ impl Activatable for HTMLLabelElement {
 
 impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-label-form>
-    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
+    fn GetForm(&self, no_gc: &NoGC) -> Option<DomRoot<HTMLFormElement>> {
         // > The form IDL attribute must run the following steps:
         // > 1. If the label element has no labeled control, then return null.
         // > 2. If the label element's labeled control is not a form-associated element, then
         // >    return null.
         // > 3. Return the label element's labeled control's form owner (which can still be
         // >    null).
-        self.GetControl()
+        self.GetControl(no_gc)
             .map(DomRoot::upcast::<Element>)
             .and_then(|element| {
                 element
@@ -111,7 +112,7 @@ impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
     make_atomic_setter!(SetHtmlFor, "for");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-label-control>
-    fn GetControl(&self) -> Option<DomRoot<HTMLElement>> {
+    fn GetControl(&self, no_gc: &NoGC) -> Option<DomRoot<HTMLElement>> {
         let Some(for_value) = self
             .upcast::<Element>()
             .get_attribute_string_value(&local_name!("for"))
@@ -131,7 +132,7 @@ impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
         let maybe_found = self
             .upcast::<Node>()
             .GetRootNode(&GetRootNodeOptions::empty())
-            .traverse_preorder(ShadowIncluding::No)
+            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
             .find_map(|e| {
                 if let Some(htmle) = e.downcast::<HTMLElement>() {
                     if htmle.upcast::<Element>().Id() == for_value {

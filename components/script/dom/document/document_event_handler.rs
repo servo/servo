@@ -843,7 +843,7 @@ impl DocumentEventHandler {
         self.set_cursor(Some(hit_test_result.cursor));
     }
 
-    fn set_active_element(&self, original_target: &Element) {
+    fn set_active_element(&self, no_gc: &NoGC, original_target: &Element) {
         let find_element_for_activation = |element: &Element| {
             let node: &Node = element.upcast();
             if node.is_in_ua_widget() &&
@@ -859,7 +859,7 @@ impl DocumentEventHandler {
                 ))
             {
                 let label = element.downcast::<HTMLLabelElement>().unwrap();
-                if let Some(control) = label.GetControl() {
+                if let Some(control) = label.GetControl(no_gc) {
                     return DomRoot::from_ref(control.upcast::<Element>());
                 }
             }
@@ -950,7 +950,7 @@ impl DocumentEventHandler {
         // early return below.
         if mouse_button_event.button == MouseButton::Primary {
             if mouse_button_event.action == MouseButtonAction::Down {
-                self.set_active_element(&element);
+                self.set_active_element(cx.no_gc(), &element);
             }
             if mouse_button_event.action == MouseButtonAction::Up {
                 self.unset_active_element();
@@ -1468,7 +1468,7 @@ impl DocumentEventHandler {
                 self.active_touch_points
                     .safe_borrow_mut(cx.no_gc())
                     .push(Dom::from_ref(&*pointer_touch));
-                self.set_active_element(&element);
+                self.set_active_element(cx.no_gc(), &element);
                 (current_target, pointer_touch)
             },
             _ => {
