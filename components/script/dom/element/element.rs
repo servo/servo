@@ -1444,7 +1444,7 @@ impl<'dom> LayoutDom<'dom, Element> {
             this.get_height()
         } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
             this.get_height()
-        }  else if let Some(this) = self.downcast::<HTMLInputElement>() {
+        } else if let Some(this) = self.downcast::<HTMLInputElement>() {
             this.get_height()
         } else {
             LengthOrPercentageOrAuto::Auto

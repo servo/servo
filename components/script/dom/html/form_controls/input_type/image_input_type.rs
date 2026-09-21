@@ -1,9 +1,10 @@
-use std::cell::{Cell, Ref};
-
-use euclid::Point2D;
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::cell::{Cell, Ref};
+
+use euclid::Point2D;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::MouseEventBinding::MouseEventMethods;
@@ -13,17 +14,16 @@ use script_bindings::traits::DomEventTrait;
 use style_traits::CSSPixel;
 use xml5ever::{QualName, local_name, ns};
 
-use crate::dom::input_type::InputType;
-use crate::dom::types::MouseEvent;
-use crate::dom::{CustomElementCreationMode, Element, ElementCreator, Node};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFrom};
+use crate::dom::input_type::InputType;
 use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::NodeTraits;
-
+use crate::dom::types::MouseEvent;
+use crate::dom::{CustomElementCreationMode, Element, ElementCreator, Node};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -48,7 +48,6 @@ impl SpecificInputType for ImageInputType {
 }
 
 impl ImageInputType {
-
     pub(crate) fn set_selected_coordinate(&self, input: &HTMLInputElement, event: &Event) {
         if !event.IsTrusted() {
             return;
@@ -127,12 +126,12 @@ impl SpecificInputActivationType for ImageInputActivation {
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct ImageInputShadowTree{
-    image_element: Dom<Element>
+pub(crate) struct ImageInputShadowTree {
+    image_element: Dom<Element>,
 }
 
 impl ImageInputShadowTree {
-    pub(crate) fn new(cx: &mut JSContext, shadow_root: &Node,) -> Self {
+    pub(crate) fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
         let img = Element::create(
             cx,
             QualName::new(None, ns!(html), local_name!("img")),
@@ -144,7 +143,7 @@ impl ImageInputShadowTree {
         );
         Node::replace_all(cx, Some(img.upcast()), shadow_root);
         Self {
-            image_element: img.as_traced()
+            image_element: img.as_traced(),
         }
     }
 
@@ -156,13 +155,11 @@ impl ImageInputShadowTree {
                 continue;
             }
             match new {
-                Some(value) => self
-                    .image_element
-                    .set_attribute(cx, name, value.into()),
+                Some(value) => self.image_element.set_attribute(cx, name, value.into()),
                 None => {
                     self.image_element.remove_attribute(cx, &ns!(), name);
                 },
             }
-        } 
+        }
     }
 }

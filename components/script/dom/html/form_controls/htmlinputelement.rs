@@ -1651,9 +1651,9 @@ impl HTMLInputElement {
             InputType::Image(_) => {
                 // Step 5.2.1 If the field element is not submitter, then continue.
                 if !is_submitter {
-                    return (vec![], true) 
+                    return (vec![], true);
                 }
-            }
+            },
             // Step 5.4: If either the field element does not have a name attribute specified, or its name attribute's value is the empty string, then continue.
             _ => {
                 if name.is_empty() {
@@ -1683,20 +1683,20 @@ impl HTMLInputElement {
                 // y-component. Create an entry with namex and the x-component, and an entry with namey
                 // and the y-component, and append them to entry list.
                 let coordinate = image_input_type.selected_coordinate();
-                
+
                 vec![
                     FormDatum {
                         name: name_x,
-                        ty: ty.clone(), 
-                        value: FormDatumValue::String(coordinate.x.to_string().into()) 
+                        ty: ty.clone(),
+                        value: FormDatumValue::String(coordinate.x.to_string().into()),
                     },
                     FormDatum {
-                        name: name_y, 
-                        ty, 
-                        value: FormDatumValue::String(coordinate.y.to_string().into()) 
-                    }
+                        name: name_y,
+                        ty,
+                        value: FormDatumValue::String(coordinate.y.to_string().into()),
+                    },
                 ]
-            }
+            },
             // Step 5.7: Otherwise, if the field element is an input element whose type attribute is in the Checkbox state or the Radio Button state:
             InputType::Checkbox(_) | InputType::Radio(_) => {
                 // Step 5.7.1: If the field element has a value attribute specified, then let value be the value of that attribute; otherwise, let value be the string "on".
@@ -2325,8 +2325,6 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-
-
         match *name {
             local_name!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
             local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
@@ -2337,9 +2335,7 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("minlength") => {
                 AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH)
             },
-            local_name!("width") | local_name!("height") => {
-                AttrValue::from_dimension(value.into())
-            },
+            local_name!("width") | local_name!("height") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
