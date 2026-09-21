@@ -59,6 +59,7 @@ webcrypto = [
     "dep:sha2",
     "dep:sha3",
     "dep:sponge-cursor",
+    "dep:x-wing",
     "dep:x25519-dalek",
     "dep:x448",
     "dep:zeroize",
@@ -218,6 +219,7 @@ webdriver = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, optional = true }
+x-wing = { workspace = true, optional = true }
 x25519-dalek = { workspace = true, optional = true }
 x448 = { workspace = true, optional = true }
 xml5ever = { workspace = true }
