@@ -7,12 +7,16 @@ use std::borrow::ToOwned;
 use std::default::Default;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
+use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{fmt, ops, slice, str};
 
 use js::context::JSContext;
+use js::conversions::latin1_to_string;
 use js::gc::{HandleObject, HandleValue};
-use js::rust::wrappers2::ToJSON;
+use js::jsapi::{JS_DeprecatedStringHasLatin1Chars, JSString};
+use js::rust::wrappers2::{JS_GetTwoByteStringCharsAndLength, ToJSON};
+use js::rust::{HandleValue as SafeHandleValue, ToString};
 
 pub use crate::domstring::DOMString;
 use crate::error::Error;
@@ -206,4 +210,59 @@ pub fn serialize_jsval_to_json_utf8(
         .string
         .map(Into::into)
         .ok_or_else(|| Error::Type(c"unable to serialize JSON".to_owned()))
+}
+
+fn has_latin1_chars(jsstr: *mut JSString) -> bool {
+    unsafe { JS_DeprecatedStringHasLatin1Chars(jsstr) }
+}
+
+/// <https://infra.spec.whatwg.org/#code-unit>
+pub struct CodeUnits<'a>(pub &'a [u16]);
+
+/// A ad-hoc replacement for <https://webidl.spec.whatwg.org/#idl-DOMString>,
+/// used by `component/script/dom/encoding`.
+pub enum ConversionResult<'a> {
+    CodeUnits(CodeUnits<'a>),
+    String(String),
+}
+
+/// <https://webidl.spec.whatwg.org/#js-DOMString>
+pub fn js_string_to_code_units<'a>(
+    cx: &mut JSContext,
+    data: SafeHandleValue<'a>,
+) -> Result<ConversionResult<'a>, Error> {
+    // Step 1: If V is null
+    // and the conversion is to an IDL type associated with the [LegacyNullToEmptyString] extended attribute,
+    // then return the DOMString value that represents the empty string.
+    // Note: skipping this step to keep a PASS on
+    // /encoding/streams/encode-bad-chunks.any.html,
+    // which seems to require the js error returned below.
+
+    // Step 2: Let x be ? ToString(V).
+    rooted!(&in(cx) let jsstr = unsafe { ToString(cx, data) });
+    if jsstr.is_null() {
+        return Err(Error::JSFailed);
+    }
+
+    // Step 3: Return the IDL DOMString value that represents
+    // the same sequence of code units as the one the JavaScript String value x represents.
+    // Note: not using DOMString because it does not preserve the same sequence of code units.
+    if has_latin1_chars(*jsstr) {
+        let string =
+            unsafe { latin1_to_string(cx, NonNull::new(*jsstr).expect("jsstr cannot be null")) };
+        Ok(ConversionResult::String(string))
+    } else {
+        let maybe_ill_formed_code_units = unsafe {
+            let mut len = 0;
+            let data = JS_GetTwoByteStringCharsAndLength(cx, *jsstr, &mut len);
+            // Note: rooting the jsstring only for the scope of this function call,
+            // but the returned slice is tied to the handle to the data underlying the string,
+            // so the "The memory referenced by the returned slice must not be mutated" invariant
+            // of `from_raw_parts` should be maintained.
+            std::slice::from_raw_parts(data, len)
+        };
+        Ok(ConversionResult::CodeUnits(CodeUnits(
+            maybe_ill_formed_code_units,
+        )))
+    }
 }

@@ -286,6 +286,8 @@ impl std::fmt::Debug for DOMStringType {
 /// unify the `DOMString` and `USVString` types, both in the WebIDL standard
 /// and in Servo.)
 ///
+/// Note: the above appears refuted by the needs of `dom/encoding`.
+///
 /// This string class will keep either the Reference to the mozjs object alive
 /// or will have an internal rust string.
 /// We currently default to doing most of the string operation on the rust side.
@@ -329,8 +331,7 @@ impl DOMString {
         // Step 2: Let x be ? ToString(V).
         // Step 3: Return the IDL DOMString value that represents the same sequence of
         // code units as the one the JavaScript String value x represents.
-        // Note: unclear whether `jsstr_to_string` preserve the sequence of code units
-        // as meant by the spec (it uses `String::from_utf16_lossy`).
+        // Note: this implementation does not preserve the same sequence of code units.
         rooted!(&in(cx) let string_ptr = unsafe { js::rust::ToString(cx, value) });
         if string_ptr.is_null() {
             debug!("ToString failed");

@@ -14,12 +14,13 @@ use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::Uint8;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::str::js_string_to_code_units;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::TextEncoderStreamBinding::TextEncoderStreamMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{ConversionResult, DOMString};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::stream::writablestream::WritableStream;
@@ -33,6 +34,24 @@ pub(crate) struct Encoder {
 }
 
 impl Encoder {
+    fn encode(&self, maybe_ill_formed: ConversionResult<'_>) -> String {
+        match maybe_ill_formed {
+            ConversionResult::String(s) => {
+                // Rust String is already UTF-8 encoded and cannot contain
+                // surrogate
+                if !s.is_empty() && self.leading_surrogate.take().is_some() {
+                    let mut output = String::with_capacity(1 + s.len());
+                    output.push('\u{FFFD}');
+                    output.push_str(&s);
+                    return output;
+                }
+
+                s
+            },
+            ConversionResult::CodeUnits(code_units) => self.encode_from_code_units(code_units.0),
+        }
+    }
+
     /// Encode an input slice of code unit into unicode scalar values
     fn encode_from_code_units(&self, input: &[u16]) -> String {
         // <https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk>
@@ -131,13 +150,12 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     controller: &TransformStreamDefaultController,
 ) -> Fallible<()> {
     // Step 1. Let input be the result of converting chunk to a DOMString.
-    let Ok(input) = DOMString::from_js_string(cx, chunk) else {
-        return Err(Error::JSFailed);
-    };
+    // Note: using not a DOMString but ConversionResult,
+    // because a DOMString assumes utf-8.
+    let input = js_string_to_code_units(cx, chunk)?;
 
     // Step 2. Convert input to an I/O queue of code units.
-    // TODO: use `std::str::EncodeUtf16` as the I/O queue.
-    let code_units = input.str().to_string().encode_utf16().collect::<Vec<u16>>();
+    // Note: passing input as a slice.
 
     // Step 3. Let output be the I/O queue of bytes « end-of-queue ».
     // Step 4. While true:
@@ -146,7 +164,7 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     //      to scalar value algorithm with encoder, item and input.
     // Step 4.4 If result is not continue, then process an item with result,
     //      encoder’s encoder, input, output, and "fatal".
-    let output = encoder.encode_from_code_units(&code_units);
+    let output = encoder.encode(input);
 
     // Step 4.2 If item is end-of-queue:
     // Step 4.2.1 Convert output into a byte sequence.
