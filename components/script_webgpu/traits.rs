@@ -14,7 +14,6 @@ use script_bindings::callback::{CallbackContainer, RootedCallback};
 use script_bindings::error::{Error, Fallible};
 use script_bindings::reflector::{DomGlobalGeneric, DomObject};
 use script_bindings::tasks::TaskOnce;
-use script_bindings::traits::DomEventTrait;
 use serde_core::Serialize;
 use servo_base::generic_channel::GenericCallback;
 use servo_url::MutableOrigin;
@@ -123,7 +122,6 @@ pub trait Equivalence = DomTypes<
         HTMLVideoElement: WebGPUHTMLVideoTrait<Self>,
         // General Bounds
         GlobalScope: WebGPUGlobalTrait<Self>,
-        Event: DomEventTrait<Self>,
         EventTarget: EventTargetTrait<Self>>;
 
     pub trait WebGPUPromise<D: DomTypes> =
