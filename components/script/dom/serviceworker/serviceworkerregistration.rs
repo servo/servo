@@ -47,8 +47,10 @@ pub(crate) struct ServiceWorkerRegistration {
     cookie_manager: MutNullableDom<CookieStoreManager>,
     #[no_trace]
     scope: ServoUrl,
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-navigation-preload-enabled>
     navigation_preload_enabled: Cell<bool>,
-    navigation_preload_header_value: DomRefCell<Option<ByteString>>,
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-navigation-preload-header-value>
+    navigation_preload_header_value: DomRefCell<ByteString>,
     update_via_cache: ServiceWorkerUpdateViaCache,
     uninstalling: Cell<bool>,
     #[no_trace]
@@ -68,8 +70,14 @@ impl ServiceWorkerRegistration {
             navigation_preload: MutNullableDom::new(None),
             cookie_manager: MutNullableDom::new(None),
             scope,
+            // https://w3c.github.io/ServiceWorker/#service-worker-registration-navigation-preload-enabled
+            // A service worker registration has an associated navigation preload enabled,
+            // which is a boolean. It is initially set to false.
             navigation_preload_enabled: Cell::new(false),
-            navigation_preload_header_value: DomRefCell::new(None),
+            // https://w3c.github.io/ServiceWorker/#service-worker-registration-navigation-preload-header-value
+            // A service worker registration has an associated navigation preload header value,
+            // which is a byte sequence. It is initially set to `true`.
+            navigation_preload_header_value: DomRefCell::new(ByteString::new(b"true".to_vec())),
             update_via_cache: ServiceWorkerUpdateViaCache::Imports,
             uninstalling: Cell::new(false),
             registration_id,
@@ -107,13 +115,13 @@ impl ServiceWorkerRegistration {
         *self.installing.borrow_mut() = Some(Dom::from_ref(worker));
     }
 
-    pub(crate) fn get_navigation_preload_header_value(&self) -> Option<ByteString> {
+    pub(crate) fn get_navigation_preload_header_value(&self) -> ByteString {
         self.navigation_preload_header_value.borrow().clone()
     }
 
     pub(crate) fn set_navigation_preload_header_value(&self, value: ByteString) {
         let mut header_value = self.navigation_preload_header_value.borrow_mut();
-        *header_value = Some(value);
+        *header_value = value;
     }
 
     pub(crate) fn get_navigation_preload_enabled(&self) -> bool {
