@@ -192,7 +192,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     }
 }
 
-impl RoutedPromiseListener<MemoryReportResult> for ServoInternals {
+impl RoutedPromiseListener<crate::DomTypeHolder, MemoryReportResult> for ServoInternals {
     fn handle_response(
         &self,
         cx: &mut JSContext,

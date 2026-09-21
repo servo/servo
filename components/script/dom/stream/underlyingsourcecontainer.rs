@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::{Heap, IsPromiseObject, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use js::rust::{HandleObject, HandleValue as SafeHandleValue};
 use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::root::rooted_heap_handle;
 
 use super::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -146,7 +145,6 @@ impl UnderlyingSourceContainer {
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-cancel>
-    #[expect(unsafe_code)]
     pub(crate) fn call_cancel_algorithm(
         &self,
         cx: &mut JSContext,
@@ -156,14 +154,12 @@ impl UnderlyingSourceContainer {
         match &self.underlying_source_type {
             UnderlyingSource::Js(source, this_obj) => {
                 if let Some(algo) = &source.cancel {
-                    let result = unsafe {
-                        algo.Call_(
-                            cx,
-                            &SafeHandle::from_raw(this_obj.handle()),
-                            Some(reason),
-                            ExceptionHandling::Rethrow,
-                        )
-                    };
+                    let result = algo.Call_(
+                        cx,
+                        &rooted_heap_handle(self, |_| this_obj),
+                        Some(reason),
+                        ExceptionHandling::Rethrow,
+                    );
                     return Some(result);
                 }
                 None
@@ -207,7 +203,6 @@ impl UnderlyingSourceContainer {
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
-    #[expect(unsafe_code)]
     pub(crate) fn call_pull_algorithm(
         &self,
         cx: &mut JSContext,
@@ -216,14 +211,12 @@ impl UnderlyingSourceContainer {
         match &self.underlying_source_type {
             UnderlyingSource::Js(source, this_obj) => {
                 if let Some(algo) = &source.pull {
-                    let result = unsafe {
-                        algo.Call_(
-                            cx,
-                            &SafeHandle::from_raw(this_obj.handle()),
-                            controller,
-                            ExceptionHandling::Rethrow,
-                        )
-                    };
+                    let result = algo.Call_(
+                        cx,
+                        &rooted_heap_handle(self, |_| this_obj),
+                        controller,
+                        ExceptionHandling::Rethrow,
+                    );
                     return Some(result);
                 }
                 None
@@ -265,7 +258,6 @@ impl UnderlyingSourceContainer {
     /// and it is also how to spec deals with the situation.
     /// see "Let startPromise be a promise resolved with startResult."
     /// at <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
-    #[expect(unsafe_code)]
     pub(crate) fn call_start_algorithm(
         &self,
         cx: &mut JSContext,
@@ -274,32 +266,18 @@ impl UnderlyingSourceContainer {
         match &self.underlying_source_type {
             UnderlyingSource::Js(source, this_obj) => {
                 if let Some(start) = &source.start {
-                    rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
                     rooted!(&in(cx) let mut result: JSVal);
-                    unsafe {
-                        if let Err(error) = start.Call_(
-                            cx,
-                            &SafeHandle::from_raw(this_obj.handle()),
-                            controller,
-                            result.handle_mut(),
-                            ExceptionHandling::Rethrow,
-                        ) {
-                            return Some(Err(error));
-                        }
+                    if let Err(error) = start.Call_(
+                        cx,
+                        &rooted_heap_handle(self, |_| this_obj),
+                        controller,
+                        result.handle_mut(),
+                        ExceptionHandling::Rethrow,
+                    ) {
+                        return Some(Err(error));
                     }
-                    let is_promise = unsafe {
-                        if result.is_object() {
-                            result_object.set(result.to_object());
-                            IsPromiseObject(result_object.handle().into_handle())
-                        } else {
-                            false
-                        }
-                    };
-                    let promise = if is_promise {
-                        Promise::new_with_js_promise_rooted(cx, result_object.handle())
-                    } else {
-                        Promise::new_resolved_rooted(cx, &self.global(), result.get())
-                    };
+                    let promise =
+                        Promise::resolve_or_wrap_promise(cx, result.handle(), &self.global());
                     return Some(Ok(promise));
                 }
                 None

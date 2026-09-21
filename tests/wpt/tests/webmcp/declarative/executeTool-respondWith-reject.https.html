@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webmcp/resources/helpers.js"></script>
+
+<form id="reject_form" toolautosubmit toolname="reject_tool" tooldescription="Reject tool" action="about:blank">
+  <input type="text" name="query">
+  <button type="submit">Submit</button>
+</form>
+
+<script>
+setup({ allow_uncaught_exception: true });
+
+promise_test(async t => {
+  const form = document.querySelector('#reject_form');
+  let submitFired = false;
+
+  form.addEventListener('submit', e => {
+    submitFired = true;
+    e.preventDefault();
+    e.respondWith(Promise.reject('rejection'));
+  });
+
+  const tool = await waitForTool('reject_tool');
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    document.modelContext.executeTool(tool, { query: 'testing' }),
+    'executeTool should reject when respondWith promise is rejected'
+  );
+
+  assert_true(submitFired, 'submit event should have fired');
+}, 'executeTool rejects when respondWith() promise is rejected');
+</script>

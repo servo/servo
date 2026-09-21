@@ -1,0 +1,37 @@
+<!doctype html>
+<title>CSS Container Queries Test: style range query with var() inside a function changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-range">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#evaluate-a-style-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container { --number: 1; }
+  #target { color: blue; }
+  @container style(mod(var(--number), 2) = 0) {
+    #target { color: green; }
+  }
+</style>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  setup(() => assert_implements_style_container_queries());
+
+  const green = "rgb(0, 128, 0)";
+  const blue = "rgb(0, 0, 255)";
+
+  test(() => {
+    assert_equals(getComputedStyle(target).color, blue);
+  }, "Initially the query does not match");
+
+  test(() => {
+    container.style.setProperty("--number", "2");
+    assert_equals(getComputedStyle(target).color, green);
+  }, "Query matches after changing the custom property to an even number");
+
+  test(() => {
+    container.style.setProperty("--number", "3");
+    assert_equals(getComputedStyle(target).color, blue);
+  }, "Query stops matching after changing the custom property to an odd number");
+</script>

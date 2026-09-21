@@ -1299,7 +1299,7 @@ fn invoke(
     event.current_target.set(Some(&segment.invocation_target));
 
     // Step 6. Let listeners be a clone of event’s currentTarget attribute value’s event listener list.
-    let listeners = segment.invocation_target.get_listeners_for(&event.type_());
+    rooted!(&in(cx) let listeners = segment.invocation_target.get_listeners_for(&event.type_()));
 
     // Step 7. Let invocationTargetInShadowTree be struct’s invocation-target-in-shadow-tree.
     let invocation_target_in_shadow_tree = segment.invocation_target_in_shadow_tree;
@@ -1391,11 +1391,11 @@ fn inner_invoke(
             event_target.remove_listener(&event.type_(), listener);
         }
 
-        let Some(compiled_listener) =
-            listener
-                .borrow()
-                .get_compiled_listener(cx, &event_target, &event.type_())
-        else {
+        rooted!(&in(cx) let compiled_listener = listener
+            .borrow()
+            .get_compiled_listener(cx, &event_target, &event.type_())
+        );
+        let Some(compiled_listener) = &*compiled_listener else {
             continue;
         };
 

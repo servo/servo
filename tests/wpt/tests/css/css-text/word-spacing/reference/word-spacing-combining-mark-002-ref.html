@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>CSS Text reference: word-spacing does not separate a combining mark from its base in RTL</title>
+<link rel="author" title="Brent Fulgham" href="mailto:bfulgham@apple.com">
+
+<style>
+/* Same font, size and direction as the test, but drawing the middle bar with
+   DALET, an ordinary spacing glyph, instead of a combining mark on a space, so
+   neither GPOS mark positioning nor a word-separator character is involved. This
+   reference contains no space, so its word-spacing is immaterial and is set only
+   to keep the two files parallel. */
+@font-face {
+    font-family: "mark-anchor-test";
+    src: url("/fonts/mark-anchor-test.ttf") format("truetype");
+}
+div {
+    font-family: "mark-anchor-test";
+    font-size: 100px;
+    line-height: 150px;
+    word-spacing: 100px;
+    direction: rtl;
+    white-space: nowrap;
+}
+</style>
+
+<p>Test passes if the lower black bar below is 100px wide ending at the right
+edge, and the upper bar is 100px wide immediately to its left, with no gap
+between them horizontally and no bar further left.</p>
+
+<div>&#x5D0;&#x5D3;</div>
+</html>

@@ -8,10 +8,10 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::{Heap, IsPromiseObject, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::callback::ExceptionHandling;
 use script_bindings::cell::DomRefCell;
@@ -942,7 +942,6 @@ impl TransformStream {
 
 impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
     /// <https://streams.spec.whatwg.org/#ts-constructor>
-    #[expect(unsafe_code)]
     fn Constructor(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -1021,7 +1020,6 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
         // result of invoking transformerDict["start"]
         // with argument list « this.[[controller]] » and callback this value transformer.
         if let Some(start) = &transformer_dict.start {
-            rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
             rooted!(&in(cx) let mut result: JSVal);
             rooted!(&in(cx) let this_object = transformer_obj.get());
             start.Call_(
@@ -1031,19 +1029,7 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
                 result.handle_mut(),
                 ExceptionHandling::Rethrow,
             )?;
-            let is_promise = unsafe {
-                if result.is_object() {
-                    result_object.set(result.to_object());
-                    IsPromiseObject(result_object.handle().into_handle())
-                } else {
-                    false
-                }
-            };
-            let promise = if is_promise {
-                Promise::new_with_js_promise(cx, result_object.handle())
-            } else {
-                Promise::new_resolved(cx, global, result.get())
-            };
+            let promise = Promise::resolve_or_wrap_promise(cx, result.handle(), global);
             start_promise.resolve_native(cx, &promise);
         } else {
             // Otherwise, resolve startPromise with undefined.

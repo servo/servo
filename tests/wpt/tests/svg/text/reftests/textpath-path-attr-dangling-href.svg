@@ -1,0 +1,15 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>A dangling `href` does not suppress a valid `path`</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementHrefAttribute"/>
+    <html:meta name="assert" content="The href prose says the element is in error and its entire contents are not rendered when the reference is invalid and the attribute is used, but the same paragraph opens by saying href names the path only if no path attribute is provided. So a present-but-unused href is not used, its invalidity is not an error, and the text renders along the inline data. Measured 2026-09-08: Chrome 155 and Firefox 157 both render along the inline path."/>
+    <html:link rel="match" href="textpath-path-attr-ref.svg"/>
+  </metadata>
+  <text>
+    <textPath href="#no-such-element" path="M 10 50 Q 100 10 200 50 T 390 50">
+      Text along a quadratic curve
+    </textPath>
+  </text>
+</svg>

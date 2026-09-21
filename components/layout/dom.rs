@@ -35,7 +35,7 @@ use crate::style_ext::{
     ComputedValuesExt, Display, DisplayGeneratingBox, DisplayLayoutInternal, DisplayOutside,
 };
 use crate::table::{TableLevelBox, WeakTableLevelBox};
-use crate::taffy::TaffyItemBox;
+use crate::taffy::{TaffyItemBox, TaffyItemBoxInner};
 
 #[derive(MallocSizeOf)]
 pub struct PseudoLayoutData {
@@ -300,6 +300,48 @@ impl GenericLayoutDataTrait for DOMLayoutData {
             true
         } else {
             false
+        }
+    }
+
+    fn set_element_selection(&self, selected: bool) -> bool {
+        let inner = self.0.borrow();
+        let inner_box = inner.self_box.borrow();
+        let Some(inner_box) = &*inner_box else {
+            return false;
+        };
+
+        match inner_box {
+            LayoutBox::DisplayContents(..) => false,
+            LayoutBox::BlockLevel(block_level_box) => match &*block_level_box.borrow() {
+                BlockLevelBox::Independent(independent_formatting_context) => {
+                    independent_formatting_context.set_selection(selected)
+                },
+                _ => false,
+            },
+            LayoutBox::InlineLevel(inline_item) => match inline_item {
+                InlineItem::Atomic(atomic_item, ..) => atomic_item.borrow().set_selection(selected),
+                _ => false,
+            },
+            LayoutBox::FlexLevel(flex_level_box) => match &*flex_level_box.borrow() {
+                FlexLevelBox::FlexItem(flex_item) => flex_item
+                    .independent_formatting_context
+                    .set_selection(selected),
+                _ => false,
+            },
+            LayoutBox::TableLevelBox(table_level_box) => match table_level_box {
+                TableLevelBox::Caption(caption) => caption.borrow().context.set_selection(selected),
+                TableLevelBox::Cell(cell) => cell.borrow().context.set_selection(selected),
+                _ => false,
+            },
+            LayoutBox::TaffyItemBox(taffy_item_box) => {
+                match &taffy_item_box.borrow().taffy_level_box {
+                    TaffyItemBoxInner::InFlowBox(independent_formatting_context) => {
+                        independent_formatting_context.set_selection(selected)
+                    },
+                    _ => false,
+                }
+            },
+            LayoutBox::Text(..) => false,
         }
     }
 }

@@ -297,6 +297,12 @@ impl<'dom> LayoutDom<'dom, Node> {
         false
     }
 
+    pub(crate) fn replaced_is_selected(&self) -> bool {
+        let unsafe_self = self.unsafe_get();
+        unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) &&
+            !unsafe_self.get_flag(NodeFlags::SELECTION_INHIBITED)
+    }
+
     pub(crate) fn image_url(self) -> Option<ServoUrl> {
         self.downcast::<HTMLImageElement>()
             .expect("not an image!")

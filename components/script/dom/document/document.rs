@@ -199,7 +199,6 @@ use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::performance::performanceentry::PerformanceEntry;
 use crate::dom::performance::performancepainttiming::PerformancePaintTiming;
 use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
 use crate::dom::sanitizer::Sanitizer;
@@ -219,7 +218,7 @@ use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::dom::xpathexpression::XPathExpression;
-use crate::dom::{FlatTreeParent, WeakRangeVec};
+use crate::dom::{FlatTreeParent, RootedPromise, WeakRangeVec};
 use crate::event_loop::document_loader::{DocumentLoader, LoadType};
 use crate::event_loop::script_thread::{ScriptThread, SharedRwLocks};
 use crate::event_loop::timers::{OneshotTimerCallback, OneshotTimers};
@@ -6804,13 +6803,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .upcast::<Node>()
             .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes)
         {
-            node.upcast::<EventTarget>().remove_all_listeners();
+            node.upcast::<EventTarget>().remove_all_listeners(cx);
         }
 
         // Step 10. If document is the associated Document of document's relevant global object,
         // then erase all event listeners and handlers given document's relevant global object.
         if self.window.Document() == DomRoot::from_ref(self) {
-            self.window.upcast::<EventTarget>().remove_all_listeners();
+            self.window.upcast::<EventTarget>().remove_all_listeners(cx);
         }
 
         // Step 11. Replace all with null within document.
@@ -7010,7 +7009,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen>
-    fn ExitFullscreen(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn ExitFullscreen(&self, cx: &mut CurrentRealm) -> RootedPromise {
         self.exit_fullscreen(cx)
     }
 

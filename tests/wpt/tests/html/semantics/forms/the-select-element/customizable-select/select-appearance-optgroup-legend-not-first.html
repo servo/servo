@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta name=fuzzy content="maxDifference=0-3;totalPixels=0-1">
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-optgroup-label">
+<link rel=match href="select-appearance-optgroup-legend-not-first-ref.html">
+<meta name=assert content="An optgroup whose legend is not its first element child, and which has no label attribute, has an empty label; the misplaced legend renders as ordinary content.">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+/* :focus-visible behavior is UA-defined, do not exercise in the test */
+select:focus-visible {
+  outline: none;
+}
+</style>
+
+<select>
+  <option>one</option>
+  <optgroup>
+    <option>two</option>
+    <legend>legend</legend>
+    <option>three</option>
+  </optgroup>
+</select>
+
+<script>
+(async () => {
+  await test_driver.click(document.querySelector('select'));
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

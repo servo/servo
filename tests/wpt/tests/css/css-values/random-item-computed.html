@@ -193,15 +193,15 @@ test(() => {
     assert_equals(b, a, 'element-scoped selects the same item for the same list');
 }, 'A bare element-scoped key selects the same item across random-item() instances');
 
-// random() and random-item() share a base value for the same bare element-scoped key. With
-// width == R * 500px and items 0..400 by 100, random-item() selects index floor(R * 5), whose value
-// is floor(width / 100) * 100. Equality proves both functions resolve the same element-scoped key.
+// random() and random-item() share a base value for the same bare element-scoped key. With width
+// being 500px to 900px by 100px and items 500..900 by 100, random() and random-item() will generate
+// the same random integer. Equality proves both functions resolve the same element-scoped key.
 test(() => {
     const target = document.getElementById('target');
-    target.style.cssText = 'width: random(element-scoped, 0px, 500px); margin-left: random-item(element-scoped, 0px, 100px, 200px, 300px, 400px);';
+    target.style.cssText = 'width: random(element-scoped, 500px, 900px, 100px); margin-left: random-item(element-scoped, 500px, 600px, 700px, 800px, 900px);';
     const w = parseFloat(getComputedStyle(target).width);
     const m = parseFloat(getComputedStyle(target).marginLeft);
-    assert_equals(m, Math.min(400, Math.floor(w / 100) * 100), 'random() and random-item() share the element-scoped base value');
+    assert_equals(m, w, 'random() and random-item() share the element-scoped base value');
 }, 'random() and random-item() share the base value for a bare element-scoped key');
 
 // A derived property scope records which function produced it, so an auto random() and an auto

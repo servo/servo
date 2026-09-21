@@ -25,9 +25,7 @@ use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
-use crate::dom::bindings::conversions::{
-    get_property_jsval, root_from_handlevalue, root_from_object,
-};
+use crate::dom::bindings::conversions::{get_property_jsval, root_from_handlevalue};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::{define_dictionary_property, has_own_property};
@@ -386,21 +384,15 @@ pub fn convert_value_to_key(
 }
 
 /// <https://www.w3.org/TR/IndexedDB-3/#convert-a-value-to-a-key-range>
-#[expect(unsafe_code)]
 pub fn convert_value_to_key_range(
     cx: &mut JSContext,
     input: HandleValue,
     null_disallowed: Option<bool>,
 ) -> Result<IndexedDBKeyRange, Error> {
     // Step 1. If value is a key range, return value.
-    if input.is_object() {
-        rooted!(&in(cx) let object = input.to_object());
-        unsafe {
-            if let Ok(obj) = root_from_object::<IDBKeyRange>(cx, object.get()) {
-                let obj = obj.inner().clone();
-                return Ok(obj);
-            }
-        }
+    if let Ok(obj) = root_from_handlevalue::<IDBKeyRange>(cx, input) {
+        let obj = obj.inner().clone();
+        return Ok(obj);
     }
 
     // Step 2. If value is undefined or is null, then throw a "DataError" DOMException if null

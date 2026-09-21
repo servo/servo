@@ -153,7 +153,7 @@ dictionary VideoDecoderConfig {
   [EnforceRange] unsigned long displayAspectHeight;
   VideoColorSpaceInit colorSpace;
   HardwareAcceleration hardwareAcceleration = "no-preference";
-  boolean optimizeForLatency;
+  boolean optimizeForLatency = false;
   double rotation = 0;
   boolean flip = false;
 };

@@ -123,7 +123,7 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceentry::EntryType;
-use crate::dom::promise::{Promise, RootedPromise};
+use crate::dom::promise::RootedPromise;
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::script_execution::ScriptOptions;
 use crate::dom::serviceworker::ServiceWorker;
@@ -2248,10 +2248,10 @@ impl GlobalScope {
     pub(crate) fn read_file_async(
         &self,
         id: Uuid,
-        promise: Rc<Promise>,
+        promise: &RootedPromise,
         callback: FileListenerCallback,
     ) {
-        let trusted_promise = TrustedPromise::new(promise);
+        let trusted_promise = TrustedPromise::from(promise);
         let mut file_listener = FileListener {
             state: Some(FileListenerState::Empty(FileListenerTarget::Promise(
                 trusted_promise,

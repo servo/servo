@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>textPath `path` attribute: setting, changing and removing it after layout</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementHrefAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg width="400" height="300">
+  <defs>
+    <path id="fallback" d="M 20 40 L 380 40"/>
+  </defs>
+  <text><textPath id="tp" href="#fallback">ABCDEF</textPath></text>
+</svg>
+
+<script>
+const tp = document.getElementById('tp');
+const HREF_Y = 40;
+const y = () => tp.getStartPositionOfChar(0).y;
+
+// These run in source order and share one element, because the point is the sequence:
+// each step starts from the state the previous one left behind.
+test(() => {
+  assert_equals(tp.getNumberOfChars(), 6, 'the string is laid out');
+  assert_equals(y(), HREF_Y);
+}, 'with no path attribute the geometry comes from href');
+
+test(() => {
+  tp.setAttribute('path', 'M 20 100 L 380 100');
+  assert_equals(y(), 100);
+}, 'setting path moves the text off the href geometry');
+
+test(() => {
+  tp.setAttribute('path', 'M 20 160 L 380 160');
+  assert_equals(y(), 160);
+}, 'changing path moves the text again');
+
+test(() => {
+  tp.setAttribute('path', '');
+  assert_equals(y(), HREF_Y);
+}, 'an empty path value returns to href');
+
+test(() => {
+  tp.setAttribute('path', 'not path data');
+  assert_equals(y(), HREF_Y);
+}, 'a path value with no valid segments returns to href');
+
+test(() => {
+  tp.setAttribute('path', 'M 20 220 L 380 220 L 100');
+  assert_equals(y(), 220);
+}, 'a path value that breaks after a valid segment keeps the valid part');
+
+test(() => {
+  tp.removeAttribute('path');
+  assert_equals(y(), HREF_Y);
+}, 'removing path returns to href');
+</script>

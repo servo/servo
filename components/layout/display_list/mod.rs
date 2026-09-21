@@ -4,6 +4,7 @@
 
 use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 use app_units::{AU_PER_PX, Au};
 use clip::Clip;
@@ -883,6 +884,23 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 
         if fragment.showing_broken_image_icon {
             Fragment::build_display_list_for_broken_image_border(self, &containing_block, &common);
+        }
+
+        if fragment.selected.load(Ordering::Relaxed) {
+            let selected_style = fragment.selected_style.borrow();
+            let mut background_color =
+                selected_style.resolve_color(&selected_style.get_background().background_color);
+
+            // Selected style resolution falls back to the style of the element itself,
+            // and in that case we don't want to paint any overlay.
+            if !ServoArc::ptr_eq(&*selected_style, &*style) && !background_color.is_transparent() {
+                background_color.alpha *= 0.5;
+                self.wr().push_rect(
+                    &common,
+                    containing_block.to_webrender(),
+                    rgba(background_color),
+                );
+            }
         }
     }
 

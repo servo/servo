@@ -4,12 +4,12 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<canvas id="outer" width="300" height="300" layoutsubtree>
+<canvas id="outer" width="300" height="300" content=drawable>
   <div drawable style="width: 300px; height: 300px;">
-    <canvas id="inner" width="200" height="200" layoutsubtree>
+    <canvas id="inner" width="200" height="200" content=drawable>
       <div drawable style="width: 200px; height: 200px;">
         <iframe id="innerFrame" style="width: 100px; height: 100px;" srcdoc="<!doctype html>
-          <canvas id='iframeCanvas' width='50' height='50' layoutsubtree>
+          <canvas id='iframeCanvas' width='50' height='50' content=drawable>
             <div id='target' drawable style='width: 50px; height: 50px;'></div>
           </canvas>"></iframe>
       </div>

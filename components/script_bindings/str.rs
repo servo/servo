@@ -80,6 +80,13 @@ impl ops::Deref for ByteString {
 #[derive(Clone, Debug, Default, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct USVString(pub String);
 
+impl USVString {
+    /// Creates a new `USVString`.
+    pub fn new() -> USVString {
+        USVString(String::new())
+    }
+}
+
 impl Deref for USVString {
     type Target = str;
 

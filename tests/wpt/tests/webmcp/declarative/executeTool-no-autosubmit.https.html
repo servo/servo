@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: declarative form tool execution without toolautosubmit</title>
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<form id="no_auto_submit_form" toolname="no_auto_tool" tooldescription="No auto submit tool" action="about:blank" target="no_auto_iframe">
+  <input type="text" name="query">
+  <button type="submit">Submit</button>
+</form>
+<iframe name="no_auto_iframe" style="display:none"></iframe>
+
+<form id="reset_form" toolname="reset_tool" tooldescription="Reset tool" action="about:blank" target="reset_iframe">
+  <input type="text" name="query">
+  <button type="submit">Submit</button>
+</form>
+<iframe name="reset_iframe" style="display:none"></iframe>
+
+<form id="unrelated_form" toolname="unrelated_tool" tooldescription="Unrelated submit tool" action="about:blank" target="unrelated_iframe">
+  <input type="text" name="query">
+  <button type="submit">Submit</button>
+</form>
+<iframe name="unrelated_iframe" style="display:none"></iframe>
+
+<script>
+promise_test(async t => {
+  const form = document.querySelector('#no_auto_submit_form');
+  const button = form.querySelector('button');
+  let submitEventFired = false;
+
+  form.addEventListener('submit', e => {
+    submitEventFired = true;
+    e.preventDefault();
+    e.respondWith(Promise.resolve('result value'));
+  });
+
+  const tool = await waitForTool('no_auto_tool');
+  const executePromise = document.modelContext.executeTool(tool, { query: 'testing' });
+
+  // Wait until tool populates the form and focuses the button.
+  while (document.activeElement !== button) {
+    await new Promise(r => t.step_timeout(r, 10));
+  }
+
+  assert_equals(document.activeElement, button, 'Submit button should be focused');
+  assert_true(form.matches(':tool-form-active'), 'Form should match :tool-form-active while awaiting user submit');
+  assert_false(submitEventFired, 'Submit event should not have fired yet without toolautosubmit');
+
+  // Manually click to submit.
+  button.click();
+
+  const result = await executePromise;
+  assert_true(submitEventFired, 'Submit event should fire after manual button click');
+  assert_equals(result, 'result value', 'executeTool should resolve with result value');
+  assert_false(form.matches(':tool-form-active'), 'Form should not match :tool-form-active after submission completes');
+}, 'executeTool without toolautosubmit focuses submit button and waits for manual submit');
+
+promise_test(async t => {
+  const form = document.querySelector('#reset_form');
+  const button = form.querySelector('button');
+
+  const tool = await waitForTool('reset_tool');
+  const executePromise = document.modelContext.executeTool(tool, { query: 'testing' });
+
+  // Wait until button is focused.
+  while (document.activeElement !== button) {
+    await new Promise(r => t.step_timeout(r, 10));
+  }
+
+  assert_true(form.matches(':tool-form-active'), 'Form should match :tool-form-active');
+
+  // Reset the form.
+  form.reset();
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    executePromise,
+    'executeTool should reject when form is reset while execution is pending'
+  );
+
+  assert_false(form.matches(':tool-form-active'), 'Form should not match :tool-form-active after reset');
+}, 'form.reset() cancels pending executeTool execution and clears :tool-form-active');
+
+promise_test(async t => {
+  const form = document.querySelector('#unrelated_form');
+  const button = form.querySelector('button');
+
+  const tool = await waitForTool('unrelated_tool');
+  const executePromise = document.modelContext.executeTool(tool, { query: 'testing' });
+
+  // Wait until button is focused.
+  while (document.activeElement !== button) {
+    await new Promise(r => t.step_timeout(r, 10));
+  }
+
+  assert_true(form.matches(':tool-form-active'), 'Form should match :tool-form-active');
+
+  // Trigger unrelated submit and remove form.
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    e.respondWith(Promise.resolve('dummy'));
+  });
+  form.requestSubmit();
+  form.remove();
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    executePromise,
+    'executeTool should reject when unrelated submit and remove occurs'
+  );
+}, 'Unrelated form submission and removal cancels pending tool execution');
+</script>

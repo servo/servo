@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#default-object-size">
+<meta name="assert"
+  content="An svg with no width, no height and no viewBox has no aspect ratio, so a fixed height cannot be converted into an intrinsic width. The intrinsic width keywords resolve to the 300px default object size width, whether or not a height is set.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<style>
+.block {
+  display: block;
+  width: 400px;
+  border: 2px solid black;
+}
+svg {
+  background: teal;
+}
+</style>
+
+<body onload="checkLayout('svg')">
+  width: max-content, height: 45px:
+  <div class="block">
+    <svg style="width: max-content; height: 45px"
+         data-expected-client-width="300" data-expected-client-height="45"></svg>
+  </div>
+
+  width: min-content, height: 45px:
+  <div class="block">
+    <svg style="width: min-content; height: 45px"
+         data-expected-client-width="300" data-expected-client-height="45"></svg>
+  </div>
+
+  width: fit-content, height: 45px:
+  <div class="block">
+    <svg style="width: fit-content; height: 45px"
+         data-expected-client-width="300" data-expected-client-height="45"></svg>
+  </div>
+
+  width: max-content, height auto:
+  <div class="block">
+    <svg style="width: max-content"
+         data-expected-client-width="300" data-expected-client-height="150"></svg>
+  </div>
+</body>

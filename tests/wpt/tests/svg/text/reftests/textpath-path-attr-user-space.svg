@@ -1,0 +1,13 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Inline textPath path data is in the user space of the text element</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElement"/>
+    <html:link rel="match" href="textpath-path-attr-user-space-ref.svg"/>
+    <html:meta name="assert" content="SVG 2 states this equivalence with a worked example: a path element under a transformed ancestor and carrying its own transform, referenced by href, renders the same as inline path data written out in the text element's own coordinate system. The reference is the href half of that example, transcribed."/>
+  </metadata>
+  <text transform="rotate(45)">
+    <textPath path="M0,20 L80,40 160,20">Text on a path</textPath>
+  </text>
+</svg>

@@ -1,4 +1,3 @@
-import collections
 import json
 import sys
 import traceback
@@ -14,8 +13,7 @@ def main():
     for filename in sys.argv[1:]:
         print(filename)
         try:
-            spec = json.load(
-                open(filename, u'r'), object_pairs_hook=collections.OrderedDict)
+            spec = json.load(open(filename, u'r'))
             with open(filename, u'w') as f:
                 f.write(json.dumps(spec, indent=2, separators=(u',', u': ')))
                 f.write(u'\n')

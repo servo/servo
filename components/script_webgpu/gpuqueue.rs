@@ -29,6 +29,7 @@ use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
+use script_bindings::routed_promise::RoutedPromiseListener;
 use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{COPY_BUFFER_ALIGNMENT, TextureFormat, WebGPU, WebGPUQueue, WebGPURequest};
 
@@ -42,7 +43,7 @@ use crate::gpudevice::GPUDevice;
 use crate::traits::{
     Equivalence, HtmlCanvasElementTrait, HtmlImageElementTrait, ImageBitmapTrait, ImageDataTrait,
     OffscreenCanvasTrait, OriginIsCleanTrait, WebGPUHTMLVideoTrait, WebGPUPromise,
-    WebGPUPromiseCallbackTrait, WebGPURootedPromiseTrait,
+    WebGPUPromiseCallbackTrait,
 };
 
 #[dom_struct]
@@ -408,7 +409,7 @@ where
         cx: &mut JSContext,
     ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
         let global = self.global_from_reflector();
-        let promise = <D::Promise as PromiseHelpers<D>>::StackRoot::new_rooted(cx, &global);
+        let promise = D::Promise::new_rooted(cx, &global);
         let callback = promise.callback_promise_dom_manipulation_task_source(self);
 
         if let Err(e) = self
@@ -422,5 +423,16 @@ where
             warn!("QueueOnSubmittedWorkDone failed with {e}")
         }
         promise
+    }
+}
+
+impl<D: Equivalence> RoutedPromiseListener<D, ()> for GPUQueue<D> {
+    fn handle_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        _response: (),
+        promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
+    ) {
+        promise.resolve_native(cx, &());
     }
 }

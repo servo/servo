@@ -30,7 +30,7 @@ onload = async () => {
         background:green;
       }
     </style>
-    <canvas id=canvas width="200" height="200" layoutsubtree>
+    <canvas id=canvas width="200" height="200" content=drawable>
       <slot id="slot" name="slot1"></slot>
     </canvas>`
   const canvas = shadowHost.shadowRoot.getElementById('canvas');

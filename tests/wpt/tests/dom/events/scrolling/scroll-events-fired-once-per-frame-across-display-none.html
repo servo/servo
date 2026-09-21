@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Only one scroll / scrollend event is fired per frame, even if the scroller is hidden and shown again in between scrolls</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2015089">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="scroll_support.js"></script>
+<style>
+#scroller {
+  overflow: auto;
+  width: 100px;
+  height: 100px;
+}
+#scroller::before {
+  display: block;
+  content: "";
+  height: 300px;
+}
+</style>
+<div id="scroller"></div>
+<script>
+for (const eventName of ["scroll", "scrollend"]) {
+  promise_test(async t => {
+    const scroller = document.getElementById("scroller");
+    scroller.scrollTop = 0;
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    let count = 0;
+    const listener = () => count++;
+    scroller.addEventListener(eventName, listener);
+    t.add_cleanup(() => scroller.removeEventListener(eventName, listener));
+
+    scroller.scrollTop = 10;
+    // Hide the scroller and force layout, so that its layout box gets
+    // destroyed and re-created before the second scroll.
+    scroller.style.display = "none";
+    scroller.getBoundingClientRect();
+    scroller.style.display = "";
+    scroller.scrollTop = 20;
+    assert_equals(scroller.scrollTop, 20);
+
+    await waitForNextFrame();
+    await waitForNextFrame();
+    assert_equals(count, 1, `Should get exactly one ${eventName} event`);
+  }, `Only one ${eventName} event fires when scrolling, toggling display: none, and scrolling again in the same frame`);
+}
+</script>

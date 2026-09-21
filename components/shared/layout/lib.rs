@@ -84,6 +84,10 @@ pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait + Send + Sync + 'stati
 
     /// Returns whether `new_range` was successfully set on an existing text run
     fn set_text_run_selection(&self, new_range: Option<RangeAny<Utf32CodeUnits>>) -> bool;
+
+    /// Set whether or not this node is selected when it is an element. Returns `true`
+    /// if anything changed that requires a new display list.
+    fn set_element_selection(&self, selected: bool) -> bool;
 }
 
 pub trait LayoutDataTrait: GenericLayoutDataTrait + Default {}

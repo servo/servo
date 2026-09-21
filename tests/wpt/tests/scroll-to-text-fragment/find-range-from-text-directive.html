@@ -341,7 +341,12 @@ let test_cases = [
     fragment: '#:~:text=z',
     expect_to_scroll: false,
     description: 'Inline node boundary is not a word boundary'
-  }
+  },
+  {
+    fragment: '#:~:text=what%20had',
+    expect_to_scroll: true,
+    description: 'Match across broken image'
+  },
 ];
 
 for (const test_case of test_cases) {

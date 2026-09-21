@@ -10,14 +10,10 @@ use euclid::default::Size2D;
 use js::context::NoGC;
 use pixels::Snapshot;
 use script_bindings::DomTypes;
-use script_bindings::callback::CallbackContainer;
-use script_bindings::conversions::DerivedFrom;
+use script_bindings::callback::{CallbackContainer, RootedCallback};
 use script_bindings::error::{Error, Fallible};
-use script_bindings::inheritance::Castable;
-use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, DomObject};
 use script_bindings::tasks::TaskOnce;
-use script_bindings::traits::DomEventTrait;
 use serde_core::Serialize;
 use servo_base::generic_channel::GenericCallback;
 use servo_url::MutableOrigin;
@@ -120,18 +116,12 @@ pub trait Equivalence = DomTypes<
         GPUDevice: DomGlobalGeneric<Self>,
         GPURenderBundleEncoder: DomGlobalGeneric<Self>,
         GPURenderPipeline: DomGlobalGeneric<Self>,
-        GPUError: Castable,
         GPUQueue: DomGlobalGeneric<Self>,
         GPUTexture: DomGlobalGeneric<Self>,
-        GPUValidationError: DerivedFrom<GPUError<Self>>,
-        GPUOutOfMemoryError: DerivedFrom<GPUError<Self>>,
-        GPUInternalError: DerivedFrom<GPUError<Self>>,
         // Other bounds
         HTMLVideoElement: WebGPUHTMLVideoTrait<Self>,
         // General Bounds
-        GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<Self>,
-        Promise: PromiseHelpers<Self> + WebGPUTracedPromiseTrait<Self> + PartialEq,
-        Event: DomEventTrait<Self>,
+        GlobalScope: WebGPUGlobalTrait<Self>,
         EventTarget: EventTargetTrait<Self>>;
 
     pub trait WebGPUPromise<D: DomTypes> =
@@ -143,15 +133,7 @@ pub trait Equivalence = DomTypes<
         + WebGPUPromiseCallbackTrait<D, GPUDevice<D>, WebGPURenderPipelineResponse>
         + WebGPUPromiseCallbackTrait<D, GPUQueue<D>, ()>
         + WebGPUPromiseCallbackTrait<D, GPUShaderModule<D>, Option<ShaderCompilationInfo>>
-        + WebGPURootedPromiseTrait<D>;
-}
-
-/// Trait for Rooted Promise
-pub trait WebGPURootedPromiseTrait<D: DomTypes> {
-    fn new_rooted(
-        cx: &mut js::context::JSContext,
-        global: &D::GlobalScope,
-    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot;
+;
 }
 
 /// Trait for sending Promise callbacks
@@ -159,14 +141,10 @@ pub trait WebGPUPromiseCallbackTrait<D: DomTypes, S, T: Serialize + 'static + Se
     fn callback_promise_dom_manipulation_task_source(&self, d: &S) -> GenericCallback<T>;
 }
 
-/// Trait that needs to be implemented for TracedPromise
-pub trait WebGPUTracedPromiseTrait<D: DomTypes> {
-    fn is_fulfilled(&self) -> bool;
-}
-
-pub trait WebGPUGlobalTrait: Sized + DomObject {
+pub trait WebGPUGlobalTrait<D: DomTypes>: Sized + DomObject {
     fn global_wgpu_id_hub(&self) -> Arc<IdentityHub>;
     fn queue_webgpu_task_source(&self, task: impl TaskOnce + 'static);
+    fn add_webgpu_device(&self, device: &GPUDevice<D>);
 }
 
 #[expect(clippy::type_complexity)]
@@ -188,12 +166,12 @@ pub trait EventTargetTrait<D: DomTypes> {
         &self,
         cx: &mut js::context::JSContext,
         ty: &str,
-    ) -> Option<Rc<T>>;
+    ) -> Option<RootedCallback<T>>;
     fn set_event_handler_common<T: CallbackContainer<D>>(
         &self,
         cx: &mut js::context::JSContext,
         ty: &str,
-        listener: Option<Rc<T>>,
+        listener: Option<RootedCallback<T>>,
     );
 }
 

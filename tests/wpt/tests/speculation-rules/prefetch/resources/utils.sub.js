@@ -148,6 +148,22 @@ async function isUrlPrefetched(url) {
   return response.json();
 }
 
+// Polls isUrlPrefetched(url) until it reports a prefetch or |deadline_ms| has
+// passed, and returns the last count read. Reading the count resets it
+// server-side, so callers should assert on the returned value rather than
+// calling isUrlPrefetched again.
+async function waitUntilPrefetched(t, url, deadline_ms) {
+  const start = performance.now();
+  let count = 0;
+  while (true) {
+    count = await isUrlPrefetched(url);
+    if (count > 0 || performance.now() - start >= deadline_ms) {
+      return count;
+    }
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+  }
+}
+
 // Must also include /common/utils.js and /common/dispatcher/dispatcher.js to use this.
 async function spawnWindowWithReference(t, options = {}, uuid = token()) {
   let agent = new PrefetchAgent(uuid, t);

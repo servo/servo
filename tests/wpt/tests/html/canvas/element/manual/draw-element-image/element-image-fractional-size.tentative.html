@@ -10,7 +10,7 @@
   background: green;
 }
 </style>
-<canvas id="canvas" width="300" height="300" layoutsubtree>
+<canvas id="canvas" width="300" height="300" content=drawable>
   <div id="child"></div>
 </canvas>
 
@@ -25,4 +25,55 @@ promise_test(async t => {
   assert_approx_equals(elementImage.width, 100.5, 0.001);
   assert_approx_equals(elementImage.height, 200.75, 0.001);
 }, 'ElementImage width and height should support fractional values');
+
+promise_test(async t => {
+  const child = document.getElementById('child');
+  canvas.style.width = '300px';
+  canvas.style.height = '300px';
+  t.add_cleanup(async () => {
+    canvas.style.width = '';
+    canvas.style.height = '';
+    canvas.width = 300;
+    canvas.height = 300;
+    child.style.width = '100.5px';
+    child.style.height = '200.75px';
+    await waitForCanvasPaint(canvas);
+  });
+
+  const entry = await new Promise(resolve => {
+    const observer = new ResizeObserver(entries => {
+      observer.disconnect();
+      resolve(entries[0]);
+    });
+    observer.observe(canvas);
+  });
+
+  const dpWidth = entry.devicePixelContentBoxSize[0].inlineSize;
+  const dpHeight = entry.devicePixelContentBoxSize[0].blockSize;
+
+  // Set canvas width/height different from devicePixelContentBoxSize so that
+  // the scale factor from CSS box size to canvas pixel grid is non-standard.
+  canvas.width = dpWidth * 1.5;
+  canvas.height = dpHeight * 0.5;
+
+  await waitForCanvasPaint(canvas);
+
+  let elementImage = canvas.captureElementImage(child);
+  assert_approx_equals(elementImage.width, 100.5 * 1.5 * (dpWidth / 300), 0.001);
+  assert_approx_equals(elementImage.height, 200.75 * 0.5 * (dpHeight / 300), 0.001);
+
+  // Integer CSS box dimensions that map to fractional coordinates in the
+  // canvas pixel grid due to non-standard canvas grid scaling.
+  child.style.width = '100px';
+  child.style.height = '200px';
+  canvas.width = dpWidth * 0.5;
+  canvas.height = dpHeight * 0.25;
+
+  await waitForCanvasPaint(canvas);
+
+  let elementImageScaled = canvas.captureElementImage(child);
+  // Child is 1/3 width and 2/3 height of canvas CSS box.
+  assert_approx_equals(elementImageScaled.width, (dpWidth * 0.5) / 3, 0.001);
+  assert_approx_equals(elementImageScaled.height, (dpHeight * 0.25) * 2 / 3, 0.001);
+}, 'ElementImage width and height should support fractional values in canvas pixel grid coordinate space');
 </script>

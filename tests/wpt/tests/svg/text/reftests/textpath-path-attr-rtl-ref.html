@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>textPath `path` attribute: right-to-left text (reference)</title>
+
+<body style="margin:20px">
+
+<svg width="600" height="100">
+  <defs>
+    <path id="hline1" d="M 50 50 L 550 50"/>
+  </defs>
+  <text font-size="20px">
+    <textPath href="#hline1">&#x202e;the quick brown fox runs backwards</textPath>
+  </text>
+</svg>
+
+<svg width="600" height="100">
+  <defs>
+    <path id="hline2" d="M 50 50 L 550 50"/>
+  </defs>
+  <text font-size="20px">
+    <textPath href="#hline2">&#x05e9;&#x05dc;&#x05d5;&#x05dd; &#x05e2;&#x05d5;&#x05dc;&#x05dd;</textPath>
+  </text>
+</svg>
+
+</body>
+</html>

@@ -26,7 +26,7 @@
 </style>
 
 <div id="container">
-  <canvas id="canvas" width="200" height="200" layoutsubtree>
+  <canvas id="canvas" width="200" height="200" content=drawable>
     <div id="child">
       <div id="grandchild"></div>
     </div>
@@ -310,16 +310,16 @@
     // Wait a frame.
     await waitForOneFrame();
 
-    // Ensure layoutsubtree is present initially (it is in HTML).
-    assert_true(canvas.hasAttribute('layoutsubtree'));
+    // Ensure content=drawable is present initially (it is in HTML).
+    assert_equals(canvas.getAttribute('content'), 'drawable');
 
     let onPaintCount = 0;
     canvas.onpaint = () => {
       onPaintCount++;
     };
 
-    // 1. Remove layoutsubtree.
-    canvas.removeAttribute('layoutsubtree');
+    // 1. Remove content=drawable.
+    canvas.removeAttribute('content');
 
     // 2. Make a change that would normally cause a repaint.
     child.classList.toggle('color-change');
@@ -327,10 +327,10 @@
     // 3. Wait a frame.
     await waitForOneFrame();
     assert_equals(onPaintCount, 0,
-      'onpaint should not fire when layoutsubtree is missing.');
+      'onpaint should not fire when content=drawable is missing.');
 
-    // 4. Add layoutsubtree back.
-    canvas.setAttribute('layoutsubtree', '');
+    // 4. Add content=drawable back.
+    canvas.setAttribute('content', 'drawable');
 
     // 5. Make a change.
     child.classList.toggle('color-change');
@@ -338,8 +338,8 @@
     // 6. Wait a frame.
     await waitForOneFrame();
     assert_equals(onPaintCount, 1,
-      'onpaint should fire when layoutsubtree is present.');
-  }, 'onpaint should respect layoutsubtree attribute mutation');
+      'onpaint should fire when content=drawable is present.');
+  }, 'onpaint should respect content=drawable attribute mutation');
 
   promise_test(async t => {
     // Wait a frame.

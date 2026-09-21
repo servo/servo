@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use app_units::Au;
 use dom_struct::dom_struct;
@@ -13,6 +12,7 @@ use html5ever::ns;
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use layout_api::BoxAreaType;
+use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use style_traits::CSSPixel;
@@ -49,8 +49,7 @@ pub(crate) struct ResizeObserver {
     reflector_: Reflector,
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-callback-slot>
-    #[conditional_malloc_size_of]
-    callback: Rc<ResizeObserverCallback>,
+    callback: TracedCallback<ResizeObserverCallback>,
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observationtargets-slot>
     ///
@@ -62,10 +61,12 @@ pub(crate) struct ResizeObserver {
 }
 
 impl ResizeObserver {
-    pub(crate) fn new_inherited(callback: Rc<ResizeObserverCallback>) -> ResizeObserver {
+    pub(crate) fn new_inherited(
+        callback: RootedCallback<ResizeObserverCallback>,
+    ) -> ResizeObserver {
         ResizeObserver {
             reflector_: Reflector::new(),
-            callback,
+            callback: callback.to_traced(),
             observation_targets: Default::default(),
         }
     }
@@ -74,7 +75,7 @@ impl ResizeObserver {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        callback: Rc<ResizeObserverCallback>,
+        callback: RootedCallback<ResizeObserverCallback>,
     ) -> DomRoot<ResizeObserver> {
         let observer = Box::new(ResizeObserver::new_inherited(callback));
         reflect_dom_object_with_proto(cx, observer, window, proto)
@@ -267,7 +268,7 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        callback: Rc<ResizeObserverCallback>,
+        callback: RootedCallback<ResizeObserverCallback>,
     ) -> DomRoot<ResizeObserver> {
         let rooted_observer = ResizeObserver::new(cx, window, proto, callback);
         let document = window.Document();

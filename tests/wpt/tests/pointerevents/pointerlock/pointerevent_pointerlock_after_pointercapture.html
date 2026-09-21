@@ -43,7 +43,9 @@
                     lost_capture = true;
                 });
                 on_event(document,"pointerlockerror", function() {
-                    assert_unreached("Pointer lock error");
+                    test_pointerEvent.step(function(){
+                        assert_unreached("Pointer lock error");
+                    });
                 })
 
                 injectInput().then(function(){

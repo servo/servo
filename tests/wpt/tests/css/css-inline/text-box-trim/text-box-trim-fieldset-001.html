@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>text-box-trim on a fieldset</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+.target {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+  text-box-trim: trim-both;
+  text-box-edge: text;
+  font: 20px/40px Ahem;
+  color: green;
+  background: red;
+}
+.filler {
+  position: absolute;
+  left: 0;
+  width: 100px;
+  height: 20px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="wrapper">
+  <fieldset class="target">xxxxx<br>xxxxx<br>xxxxx</fieldset>
+  <div class="filler" style="top: 20px"></div>
+  <div class="filler" style="top: 60px"></div>
+</div>

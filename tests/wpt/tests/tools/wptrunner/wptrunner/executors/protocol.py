@@ -750,6 +750,15 @@ class WindowProtocolPart(ProtocolPart):
     name = "window"
 
     @abstractmethod
+    def create(self, type_hint=None):
+        """Create a new top-level browsing context without switching to it.
+
+        :param type_hint: Optional hint, either "tab" or "window", for the
+                          type of top-level browsing context to create.
+        :returns: A handle string identifying the new top-level browsing context."""
+        pass
+
+    @abstractmethod
     def set_rect(self, rect):
         """Restores the window to the given rect."""
         pass

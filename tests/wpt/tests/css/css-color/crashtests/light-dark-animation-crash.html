@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color Test: light-dark() in animation keyframes does not crash</title>
+<link rel="help" href="https://crbug.com/561828148">
+<style>
+  body { color-scheme: light dark; }
+
+  .crash {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ccc;
+    animation: test 0.66s ease-out infinite;
+  }
+
+  @keyframes test {
+    0%   { background-color: light-dark(#ffffff22, #19191922); }
+    50%  { background-color: light-dark(#cccccc, #535353); }
+    100% { background-color: light-dark(#ffffff22, #19191922); }
+  }
+</style>
+<div class="crash"></div>

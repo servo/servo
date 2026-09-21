@@ -38,9 +38,6 @@
       const target0 = document.getElementById("target0");
       const btnComplete = document.getElementById("btnComplete");
 
-      assert_equals(getComputedStyle(target0).touchAction,'none',
-                    'Expect touch-action:none');
-
       let pointerup_received = false;
       let pointercancel_received = false;
       let scroll_received = false;
@@ -53,6 +50,9 @@
                                () => scroll_received = true);
 
       promise_test(async () => {
+        assert_equals(getComputedStyle(target0).touchAction,'none',
+                      'Expect touch-action:none');
+
         const button_complete_click = getEvent("click", btnComplete);
 
         await touchScrollInTarget(scrollTarget, 'down');

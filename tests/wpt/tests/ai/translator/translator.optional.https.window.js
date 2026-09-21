@@ -1,30 +1,16 @@
 // META: title=Optional Translator tests
 // META: global=window
 // META: timeout=long
+// META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
 // META: script=../resources/util.js
 // META: script=/common/gc.js
-// META: script=/resources/testdriver.js
 // META: script=resources/util.js
 //
 // Setting `timeout=long` as this test may require downloading the translation
 // library and the language models.
 
 'use strict';
-
-// TODO(crbug.com/390246212): Support model state controls for WPTs.
-promise_test(async t => {
-  // Create requires user activation when availability is 'downloadable'.
-  const languagePair = {sourceLanguage: 'en', targetLanguage: 'ja'};
-  assert_implements_optional(await Translator.availability(languagePair) == 'downloadable');
-  assert_false(navigator.userActivation.isActive);
-  await promise_rejects_dom(t, 'NotAllowedError', Translator.create(languagePair));
-  await test_driver.bless('Translator.create', async () => { await Translator.create(languagePair); });
-
-  // Create does not require user activation when availability is 'available'.
-  assert_equals(await Translator.availability(languagePair), 'available');
-  assert_false(navigator.userActivation.isActive);
-  await Translator.create(languagePair);
-}, 'Create requires user activation when availability is "downloadable"');
 
 promise_test(async t => {
   const translator =

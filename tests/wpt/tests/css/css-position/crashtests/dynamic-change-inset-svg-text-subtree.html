@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2072038">
+<meta name="assert" content="Changing an inset on a relatively positioned frame in an SVG text subtree, where 'position' does not apply, should not crash.">
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <text y="20">a<tspan id="t" style="position: relative; left: 0">b</tspan>c</text>
+</svg>
+
+<script>
+  const t = document.getElementById("t");
+  document.documentElement.offsetHeight;
+  t.style.left = "10px";
+  document.documentElement.offsetHeight;
+  t.textContent = "bb";
+  document.documentElement.offsetHeight;
+</script>

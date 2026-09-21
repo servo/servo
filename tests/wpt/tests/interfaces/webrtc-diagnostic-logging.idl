@@ -1,0 +1,16 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebRTC Diagnostic Logging API (https://wicg.github.io/webrtc-diagnostic-logging/)
+
+[
+  Exposed=Window
+] partial interface RTCPeerConnection {
+  static Promise<DOMString> startDiagnosticLogging(optional RTCDiagnosticLoggingOptions options = {});
+  static Promise<undefined> finishDiagnosticLogging(optional RTCDiagnosticLoggingOptions options = {});
+  static Promise<undefined> discardDiagnosticLogging();
+};
+
+dictionary RTCDiagnosticLoggingOptions {
+  record<DOMString, DOMString> metadata;
+};

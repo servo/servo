@@ -4,6 +4,7 @@
 
 use js::context::JSContext;
 use script_bindings::reflector::DomObject;
+pub(crate) use script_bindings::routed_promise::RoutedPromiseListener;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use servo_base::generic_channel::GenericCallback;
@@ -12,21 +13,19 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::promise::RootedPromise;
 use crate::tasks::task_source::TaskSource;
 
-pub(crate) trait RoutedPromiseListener<R: Serialize + DeserializeOwned + Send> {
-    fn handle_response(&self, cx: &mut JSContext, response: R, promise: &RootedPromise);
-}
-
 pub(crate) struct RoutedPromiseContext<
     R: Serialize + DeserializeOwned + Send,
-    T: RoutedPromiseListener<R> + DomObject,
+    T: RoutedPromiseListener<crate::DomTypeHolder, R> + DomObject,
 > {
     trusted: TrustedPromise,
     receiver: Trusted<T>,
     _phantom: std::marker::PhantomData<R>,
 }
 
-impl<R: Serialize + DeserializeOwned + Send, T: RoutedPromiseListener<R> + DomObject>
-    RoutedPromiseContext<R, T>
+impl<
+    R: Serialize + DeserializeOwned + Send,
+    T: RoutedPromiseListener<crate::DomTypeHolder, R> + DomObject,
+> RoutedPromiseContext<R, T>
 {
     fn response(self, cx: &mut JSContext, response: R) {
         let promise = self.trusted.root(cx);
@@ -36,7 +35,7 @@ impl<R: Serialize + DeserializeOwned + Send, T: RoutedPromiseListener<R> + DomOb
 
 pub(crate) fn callback_promise<
     R: Serialize + DeserializeOwned + Send + 'static,
-    T: RoutedPromiseListener<R> + DomObject + 'static,
+    T: RoutedPromiseListener<crate::DomTypeHolder, R> + DomObject + 'static,
 >(
     promise: &RootedPromise,
     receiver: &T,

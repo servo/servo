@@ -26,6 +26,6 @@ promise_test(async () => {
   inner.showPopover();
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-  assert_equals(await test_driver.get_computed_role(inner), 'dialog', 'Inner should inherit dialog state from outer');
-}, 'Attaching a valid submenu to an invalid root correctly propagates dialog state');
+  assert_equals(await test_driver.get_computed_role(inner), 'list', 'Inner should inherit list state from outer');
+}, 'Attaching a valid submenu to an invalid root correctly propagates list state');
 </script>

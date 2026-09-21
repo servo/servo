@@ -938,7 +938,7 @@ pub fn get_the_text_steps(node: ServoLayoutNode<'_>) -> String {
                 if !s.is_empty() {
                     if max_req_line_break_count > 0 {
                         // Step 5.
-                        output.push_str(&"\u{000A}".repeat(max_req_line_break_count));
+                        output.extend(std::iter::repeat_n('\u{000A}', max_req_line_break_count));
                         max_req_line_break_count = 0;
                     }
                     output.push_str(&s);

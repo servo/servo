@@ -49,3 +49,9 @@ idl_test(
     return Promise.race([awaitVoice, timeout]);
   }
 );
+
+test(() => {
+  const list = new SpeechGrammarList();
+  assert_equals(typeof list.addFromUri, 'function');
+  assert_equals(list.addFromURI, undefined);
+}, 'SpeechGrammarList exposes addFromUri');

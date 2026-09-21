@@ -8,10 +8,10 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::{Heap, IsPromiseObject, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -516,7 +516,6 @@ impl WritableStreamDefaultController {
         self.advance_queue_if_needed(cx, global);
     }
 
-    #[expect(unsafe_code)]
     fn start_algorithm(&self, cx: &mut JSContext, global: &GlobalScope) -> Fallible<RootedPromise> {
         match &self.underlying_sink_type {
             UnderlyingSinkType::Js {
@@ -527,7 +526,6 @@ impl WritableStreamDefaultController {
             } => {
                 let algo = start.borrow().clone();
                 let start_promise = if let Some(start) = algo {
-                    rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
                     rooted!(&in(cx) let mut result: JSVal);
                     rooted!(&in(cx) let this_object = self.underlying_sink_obj.get());
                     start.Call_(
@@ -537,19 +535,7 @@ impl WritableStreamDefaultController {
                         result.handle_mut(),
                         ExceptionHandling::Rethrow,
                     )?;
-                    let is_promise = unsafe {
-                        if result.is_object() {
-                            result_object.set(result.to_object());
-                            IsPromiseObject(result_object.handle().into_handle())
-                        } else {
-                            false
-                        }
-                    };
-                    if is_promise {
-                        Promise::new_with_js_promise_rooted(cx, result_object.handle())
-                    } else {
-                        Promise::new_resolved_rooted(cx, global, result.get())
-                    }
+                    Promise::resolve_or_wrap_promise(cx, result.handle(), global)
                 } else {
                     // Let startAlgorithm be an algorithm that returns undefined.
                     Promise::new_resolved_rooted(cx, global, ())

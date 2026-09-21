@@ -6,7 +6,6 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
@@ -98,7 +97,6 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
-use crate::dom::referrer_policy_for_element;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttracklist::TextTrackList;
@@ -107,6 +105,7 @@ use crate::dom::trackevent::TrackEvent;
 use crate::dom::url::URL;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::videotracklist::VideoTrackList;
+use crate::dom::{RootedPromise, TracedPromise, referrer_policy_for_element};
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
 use crate::fetch::fetch::{
@@ -516,6 +515,8 @@ enum LoopCondition {
     Ignored,
 }
 
+type BoxedSliceOfPromises = Box<[TracedPromise]>;
+
 #[dom_struct]
 pub(crate) struct HTMLMediaElement {
     htmlelement: HTMLElement,
@@ -546,12 +547,9 @@ pub(crate) struct HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
     delaying_the_load_event_flag: DomRefCell<Option<LoadBlocker>>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-pending-play-promises>
-    #[conditional_malloc_size_of]
-    pending_play_promises: DomRefCell<Vec<Rc<Promise>>>,
+    pending_play_promises: DomRefCell<Vec<TracedPromise>>,
     /// Play promises which are soon to be fulfilled by a queued task.
-    #[expect(clippy::type_complexity)]
-    #[conditional_malloc_size_of]
-    in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
+    in_flight_play_promises_queue: DomRefCell<VecDeque<(BoxedSliceOfPromises, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     player: DomRefCell<Option<Arc<Mutex<dyn Player>>>>,
@@ -2119,10 +2117,10 @@ impl HTMLMediaElement {
     }
 
     /// Appends a promise to the list of pending play promises.
-    fn push_pending_play_promise(&self, promise: &Rc<Promise>) {
+    fn push_pending_play_promise(&self, promise: &RootedPromise) {
         self.pending_play_promises
             .borrow_mut()
-            .push(promise.clone());
+            .push(promise.to_traced());
     }
 
     /// Takes the pending play promises.
@@ -2136,10 +2134,10 @@ impl HTMLMediaElement {
     /// `fulfill_in_flight_play_promises`, to actually fulfill the promises
     /// which were taken and moved to the in-flight queue.
     fn take_pending_play_promises(&self, result: ErrorResult) {
-        let pending_play_promises = std::mem::take(&mut *self.pending_play_promises.borrow_mut());
-        self.in_flight_play_promises_queue
-            .borrow_mut()
-            .push_back((pending_play_promises.into(), result));
+        self.in_flight_play_promises_queue.borrow_mut().push_back((
+            std::mem::take(&mut *self.pending_play_promises.borrow_mut()).into(),
+            result,
+        ));
     }
 
     /// Fulfills the next in-flight play promises queue after running a closure.
@@ -2158,9 +2156,14 @@ impl HTMLMediaElement {
             .in_flight_play_promises_queue
             .borrow_mut()
             .pop_front()
+            .map(|(promises, result)| {
+                let promises: Vec<RootedPromise> =
+                    promises.iter().map(|promise| promise.root(cx)).collect();
+                (promises, result)
+            })
             .expect("there should be at least one list of in flight play promises");
         f(cx);
-        for promise in &*promises {
+        for promise in &promises {
             match result {
                 Ok(ref value) => promise.resolve_native(cx, value),
                 Err(ref error) => promise.reject_error(cx, error.clone()),
@@ -3559,8 +3562,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-play>
-    fn Play(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    fn Play(&self, cx: &mut CurrentRealm) -> RootedPromise {
+        let promise = Promise::new_in_realm_rooted(cx);
 
         // TODO Step 1. If the media element is not allowed to play, then return a promise rejected
         // with a "NotAllowedError" DOMException.

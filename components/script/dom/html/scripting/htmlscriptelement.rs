@@ -707,15 +707,15 @@ impl HTMLScriptElement {
             let for_attribute = element.get_attribute_string_value(&local_name!("for"));
             let event_attribute = element.get_attribute_string_value(&local_name!("event"));
             if let (Some(for_attribute), Some(event_attribute)) = (for_attribute, event_attribute) {
-                let for_value = for_attribute.to_ascii_lowercase();
-                let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
-                if for_value != "window" {
+                let for_value = for_attribute.trim_matches(HTML_SPACE_CHARACTERS);
+                if !for_value.eq_ignore_ascii_case("window") {
                     return;
                 }
 
-                let event_value = event_attribute.to_ascii_lowercase();
-                let event_value = event_value.trim_matches(HTML_SPACE_CHARACTERS);
-                if event_value != "onload" && event_value != "onload()" {
+                let event_value = event_attribute.trim_matches(HTML_SPACE_CHARACTERS);
+                if !event_value.eq_ignore_ascii_case("onload") &&
+                    !event_value.eq_ignore_ascii_case("onload()")
+                {
                     return;
                 }
             }

@@ -20,9 +20,8 @@ name = "servoshell"
 path = "main.rs"
 bench = false
 
-[lints.rust]
-# These are not official flags but still used for testing and pgo.
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)', 'cfg(llvm_pgo)'] }
+[lints]
+workspace = true
 
 # Some of these dependencies are only needed for a specific target OS, but
 # since build-scripts can't detect the Cargo target OS at build-time, we
@@ -101,6 +100,10 @@ webdriver_server = { workspace = true }
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = { workspace = true }
 jni = { workspace = true }
+# https://github.com/servo/servo/issues/32175
+# By default Android enforce the tagged pointers feature, which does not work well with mozjs.
+# Like Gecko, replace the system allocator with jemalloc.
+servo-allocator = { workspace = true, features = ["use-jemalloc"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
@@ -141,7 +144,7 @@ headers = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo-allocator/use-jemalloc and servo-allocator/allocation-tracking
 servo-allocator = { workspace = true }
-surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
+surfman = { workspace = true, features = ["sm-x11"] }
 winit = { workspace = true }
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]

@@ -61,7 +61,6 @@ pub struct GPURenderPipeline<D: DomTypes> {
 impl<D> GPURenderPipeline<D>
 where
     D: Equivalence,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     fn new_inherited(
         render_pipeline: WebGPURenderPipeline,

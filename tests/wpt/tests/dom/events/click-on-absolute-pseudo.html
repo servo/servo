@@ -32,14 +32,17 @@
   <script>
     promise_test(async () => {
       let clickCount = 0;
-      const target = document.getElementById('target');
-      let mousedownTarget = null;
+      let clickPseudoTarget = null;
+      let clickTarget = null;
       let mousedownPseudoTarget = null;
+      let mousedownTarget = null;
+
+      const target = document.getElementById('target');
 
       target.addEventListener('click', (e) => {
         clickCount++;
-        assert_equals(e.target, target, "Event target should be the element");
-        assert_equals(e.pseudoTarget, null, "pseudoTarget should be null since the pseudo-element was removed before click dispatch");
+        clickTarget = e.target;
+        clickPseudoTarget = e.pseudoTarget;
       });
 
       target.addEventListener('mousedown', (e) => {
@@ -55,6 +58,8 @@
         .send();
 
       assert_equals(clickCount, 1, "Click event should fire even if pseudo-element disappears on mousedown");
+      assert_equals(clickTarget, target, "Event target should be the element");
+      assert_equals(clickPseudoTarget, null, "pseudoTarget should be null since the pseudo-element was removed before click dispatch");
       assert_equals(mousedownTarget, target, "mousedown target should be the element");
       assert_equals(mousedownPseudoTarget, target.pseudo("::after"), "mousedown pseudoTarget should be the ::after pseudo-element");
     }, "Click on pseudo-element that disappears on mousedown");

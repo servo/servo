@@ -1096,3 +1096,20 @@ fn test_webview_clear_history() {
     assert!(!webview.can_go_forward());
     assert_eq!(&*entries.borrow(), &vec![second_url]);
 }
+
+#[test]
+fn test_hide_animating_webview() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<script>(function frame() { requestAnimationFrame(frame) })();</script>").unwrap())
+        .build();
+
+    // Show the WebView and wait for it to start animating.
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    servo_test.spin(|| !webview.animating());
+
+    webview.hide();
+    servo_test.spin(|| webview.animating());
+}

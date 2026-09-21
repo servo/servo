@@ -6,8 +6,10 @@ use std::marker::PhantomData;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::jsapi::HandleObject;
 use js::realm::CurrentRealm;
 use jstraceable_derive::JSTraceable;
+use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
@@ -17,8 +19,10 @@ use script_bindings::dom::MutNullableDom;
 use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
+use script_bindings::routed_promise::RoutedPromiseListener;
+use script_bindings::str::DOMString;
 use servo_constellation_traits::ScriptToConstellationMessage;
-use webgpu_traits::{PowerPreference, RequestAdapterOptions};
+use webgpu_traits::{PowerPreference, RequestAdapterOptions, WebGPUAdapterResponse};
 
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::error::Error;
@@ -140,5 +144,45 @@ where
     ) -> DomRoot<WGSLLanguageFeatures<D>> {
         self.wgsl_language_features
             .or_init(|| WGSLLanguageFeatures::new(cx, &*self.global_from_reflector(), None))
+    }
+}
+
+impl<D: Equivalence> RoutedPromiseListener<D, WebGPUAdapterResponse> for GPU<D>
+where
+    Self: DomGlobalGeneric<D>,
+{
+    fn handle_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        response: WebGPUAdapterResponse,
+        promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
+    ) {
+        match response {
+            Some(Ok(adapter)) => {
+                let adapter = GPUAdapter::<D>::new(
+                    cx,
+                    &self.global_from_reflector(),
+                    adapter.channel,
+                    DOMString::from(format!(
+                        "{} ({:?})",
+                        adapter.adapter_info.name, adapter.adapter_id.0
+                    )),
+                    HandleObject::null(),
+                    adapter.features,
+                    adapter.limits,
+                    adapter.adapter_info,
+                    adapter.adapter_id,
+                );
+                promise.resolve_native(cx, &adapter);
+            },
+            Some(Err(e)) => {
+                warn!("Could not get GPUAdapter ({:?})", e);
+                promise.resolve_native(cx, &None::<GPUAdapter<D>>);
+            },
+            None => {
+                warn!("Couldn't get a response, because WebGPU is disabled");
+                promise.resolve_native(cx, &None::<GPUAdapter<D>>);
+            },
+        }
     }
 }

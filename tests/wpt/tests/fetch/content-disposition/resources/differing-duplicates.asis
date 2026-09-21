@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Disposition: inline; filename="a.txt"
+Content-Disposition: attachment; filename="b.txt"
+Content-Length: 6
+
+Test.

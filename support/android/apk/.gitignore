@@ -1,4 +1,5 @@
 .gradle/
+.kotlin
 /assets/
 /bin/
 /gen/

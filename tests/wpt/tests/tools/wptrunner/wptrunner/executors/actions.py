@@ -153,6 +153,17 @@ class GetWindowRectAction:
     def __call__(self, payload):
         return self.protocol.window.get_rect()
 
+class CreateWindowAction:
+    name = "create_window"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        type = payload.get("type")
+        return self.protocol.window.create(type)
+
 class ActionSequenceAction:
     name = "action_sequence"
 
@@ -652,6 +663,7 @@ actions = [ClickAction,
            MinimizeWindowAction,
            SetWindowRectAction,
            GetWindowRectAction,
+           CreateWindowAction,
            ActionSequenceAction,
            GenerateTestReportAction,
            SetPermissionAction,

@@ -1,0 +1,163 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>MediaStream in a dedicated worker</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-extensions/#mediastream-in-dedicated-workers">
+<link rel="help" href="https://w3c.github.io/mediacapture-main/#mediastream">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/mediacapture-streams/permission-helper.js></script>
+<script src=support/transfer-helper.js></script>
+<script>
+"use strict";
+
+promise_setup(() => setMediaPermission());
+
+const workerScript = `
+  function describeStream(stream) {
+    return {
+      id: stream.id,
+      active: stream.active,
+      audio: stream.getAudioTracks().map(t => t.id),
+      video: stream.getVideoTracks().map(t => t.id),
+      all: stream.getTracks().map(t => t.id),
+    };
+  }
+  handlers.exposed = () => ({
+    MediaStream: typeof MediaStream,
+    MediaStreamTrack: typeof MediaStreamTrack,
+    MediaStreamTrackEvent: typeof MediaStreamTrackEvent,
+  });
+  handlers.emptyStream = () => describeStream(new MediaStream());
+  handlers.construct = ({audio, video}) => {
+    self.audio = audio;
+    self.video = video;
+    self.stream = new MediaStream([audio, video]);
+    logEvents(self.stream, ["addtrack", "removetrack"]);
+    return describeStream(self.stream);
+  };
+  handlers.constructFromStream = () =>
+    describeStream(new MediaStream(self.stream));
+  handlers.getTrackById = ({id}) => {
+    const track = self.stream.getTrackById(id);
+    return track && track.id;
+  };
+  handlers.removeVideo = () => {
+    self.stream.removeTrack(self.video);
+    return describeStream(self.stream);
+  };
+  handlers.addVideo = () => {
+    self.stream.addTrack(self.video);
+    return describeStream(self.stream);
+  };
+  handlers.streamEvents = () => takeEvents(self.stream);
+  handlers.clone = () => {
+    const clone = self.stream.clone();
+    return {
+      stream: describeStream(clone),
+      tracks: clone.getTracks().map(describeTrack),
+    };
+  };
+  handlers.trackEvent = () => {
+    const event = new MediaStreamTrackEvent("addtrack", {track: self.video});
+    return {type: event.type, trackId: event.track.id,
+            isMediaStreamTrack: event.track instanceof MediaStreamTrack};
+  };
+  handlers.stopAll = () => {
+    self.stream.getTracks().forEach(t => t.stop());
+    return describeStream(self.stream);
+  };
+`;
+
+async function setupStreamInWorker(t) {
+  const worker = await createWorker(t, workerScript);
+  const audio = await getTrack(t, "audio");
+  const video = await getTrack(t, "video");
+  const ids = {audio: audio.id, video: video.id};
+  const stream = await callWorker(worker, {type: "construct", audio, video},
+                                  [audio, video]);
+  return {worker, ids, stream};
+}
+
+promise_test(async t => {
+  const worker = await createWorker(t, workerScript);
+  const exposed = await callWorker(worker, {type: "exposed"});
+  assert_equals(exposed.MediaStream, "function");
+  assert_equals(exposed.MediaStreamTrack, "function");
+  assert_equals(exposed.MediaStreamTrackEvent, "function");
+}, "MediaStream, MediaStreamTrack and MediaStreamTrackEvent are exposed in a dedicated worker");
+
+promise_test(async t => {
+  const worker = await createWorker(t, workerScript);
+  const empty = await callWorker(worker, {type: "emptyStream"});
+  assert_equals(typeof empty.id, "string");
+  assert_greater_than(empty.id.length, 0);
+  assert_false(empty.active);
+  assert_array_equals(empty.all, []);
+}, "An empty MediaStream can be constructed in a dedicated worker");
+
+promise_test(async t => {
+  const {ids, stream} = await setupStreamInWorker(t);
+  assert_true(stream.active);
+  assert_array_equals(stream.audio, [ids.audio]);
+  assert_array_equals(stream.video, [ids.video]);
+  assert_array_equals(stream.all, [ids.audio, ids.video]);
+}, "A MediaStream can be constructed from transferred tracks in a dedicated worker");
+
+promise_test(async t => {
+  const {worker, stream} = await setupStreamInWorker(t);
+  const copy = await callWorker(worker, {type: "constructFromStream"});
+  assert_not_equals(copy.id, stream.id);
+  assert_array_equals(copy.all, stream.all);
+}, "A MediaStream can be constructed from another MediaStream in a dedicated worker");
+
+promise_test(async t => {
+  const {worker, ids} = await setupStreamInWorker(t);
+  assert_equals(await callWorker(worker, {type: "getTrackById", id: ids.video}),
+                ids.video);
+  assert_equals(await callWorker(worker, {type: "getTrackById", id: "none"}),
+                null);
+}, "MediaStream.getTrackById() works in a dedicated worker");
+
+promise_test(async t => {
+  const {worker, ids} = await setupStreamInWorker(t);
+  let s = await callWorker(worker, {type: "removeVideo"});
+  assert_array_equals(s.all, [ids.audio]);
+  s = await callWorker(worker, {type: "removeVideo"});
+  assert_array_equals(s.all, [ids.audio], "removing an absent track is a no-op");
+  s = await callWorker(worker, {type: "addVideo"});
+  assert_array_equals(s.all, [ids.audio, ids.video]);
+  s = await callWorker(worker, {type: "addVideo"});
+  assert_array_equals(s.all, [ids.audio, ids.video],
+                      "adding a present track is a no-op");
+  assert_array_equals(await callWorker(worker, {type: "streamEvents"}), [],
+                      "addTrack/removeTrack do not fire events");
+}, "MediaStream.addTrack() and removeTrack() work in a dedicated worker");
+
+promise_test(async t => {
+  const {worker, stream} = await setupStreamInWorker(t);
+  const clone = await callWorker(worker, {type: "clone"});
+  assert_not_equals(clone.stream.id, stream.id);
+  assert_equals(clone.tracks.length, 2);
+  for (const track of clone.tracks) {
+    assert_false(stream.all.includes(track.id),
+                 "cloned track has a new id");
+    assert_equals(track.readyState, "live");
+  }
+}, "MediaStream.clone() works in a dedicated worker");
+
+promise_test(async t => {
+  const {worker, ids} = await setupStreamInWorker(t);
+  const event = await callWorker(worker, {type: "trackEvent"});
+  assert_equals(event.type, "addtrack");
+  assert_equals(event.trackId, ids.video);
+  assert_true(event.isMediaStreamTrack);
+}, "MediaStreamTrackEvent can be constructed in a dedicated worker");
+
+promise_test(async t => {
+  const {worker} = await setupStreamInWorker(t);
+  const s = await callWorker(worker, {type: "stopAll"});
+  assert_false(s.active);
+}, "A MediaStream in a dedicated worker becomes inactive when its tracks are stopped");
+</script>

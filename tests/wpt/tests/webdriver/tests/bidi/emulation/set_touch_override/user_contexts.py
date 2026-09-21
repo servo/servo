@@ -1,3 +1,7 @@
+# META: timeout=long
+
+# Longer timeout required due to creating and managing multiple isolated user contexts.
+
 import pytest
 from . import MAX_TOUCHES_PER_USER_CONTEXT, MAX_TOUCHES_GLOBAL
 

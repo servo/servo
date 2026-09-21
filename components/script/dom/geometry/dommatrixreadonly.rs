@@ -10,10 +10,9 @@ use dom_struct::dom_struct;
 use euclid::Angle;
 use euclid::default::{Transform2D, Transform3D};
 use js::context::NoGC;
-use js::conversions::jsstr_to_string;
 use js::jsapi::JSObject;
 use js::jsval;
-use js::rust::{CustomAutoRooterGuard, HandleObject, ToString};
+use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array, HeapFloat32Array, HeapFloat64Array};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref};
@@ -872,7 +871,6 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry/#dommatrixreadonly-stringification-behavior
-    #[expect(unsafe_code)]
     fn Stringifier(&self, cx: &mut js::context::JSContext) -> Fallible<DOMString> {
         // Step 1. If one or more of m11 element through m44 element are a non-finite value,
         // then throw an "InvalidStateError" DOMException.
@@ -899,10 +897,8 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
 
         let mut to_string = |f: f64| {
             rooted!(&in(cx) let rooted_value = jsval::DoubleValue(f));
-            let serialization =
-                std::ptr::NonNull::new(unsafe { ToString(cx, rooted_value.handle()) })
-                    .expect("Pointer cannot be null");
-            unsafe { jsstr_to_string(cx, serialization) }
+            DOMString::from_js_string(cx, rooted_value.handle())
+                .unwrap_or_else(|_| panic!("Pointer cannot be null"))
         };
 
         // Step 2. Let string be the empty string.

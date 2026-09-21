@@ -208,13 +208,13 @@ rand = "0.10"
 raw-window-handle = "0.6"
 rayon = "1"
 read-fonts = "0.43.3"
+realfft = "3.5.0"
 regex = "1.12"
 resvg = "0.48.1"
 rsa = "=0.10.0-rc.18"
 rusqlite = { version = "0.38", features = ["bundled"] }
 rustc-demangle = "0.1"
 rustc-hash = "2.1.2"
-realfft = "3.5.0"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
@@ -226,6 +226,7 @@ serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
 serde_test = "1.0"
+serde_with = "3.13"
 servo_arc = { git = "https://github.com/servo/stylo", rev = "bb8a1c140b5023087e7a8ab51deab7618c184d53" }
 sha1 = "0.11"
 sha2 = "0.11"
@@ -235,7 +236,7 @@ skrifa = "0.46.2"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 speexdsp-resampler = "0.1.0"
 sponge-cursor = "0.1"
-string_cache = { version = "0.11" }
+string_cache = "0.11"
 strum = { version = "0.28", features = ["derive"] }
 stylo = { git = "https://github.com/servo/stylo", rev = "bb8a1c140b5023087e7a8ab51deab7618c184d53" }
 stylo_atoms = { git = "https://github.com/servo/stylo", rev = "bb8a1c140b5023087e7a8ab51deab7618c184d53" }
@@ -243,13 +244,12 @@ stylo_dom = { git = "https://github.com/servo/stylo", rev = "bb8a1c140b5023087e7
 stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "bb8a1c140b5023087e7a8ab51deab7618c184d53" }
 stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "bb8a1c140b5023087e7a8ab51deab7618c184d53" }
 stylo_traits = { git = "https://github.com/servo/stylo", rev = "bb8a1c140b5023087e7a8ab51deab7618c184d53" }
-surfman = { version = "0.13.0", features = ["chains"] }
+surfman = "0.14.0"
 swapper = "0.1"
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 sys-locale = "0.3"
 taffy = { version = "0.14.0", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
-trait-set = "0.5"
 tempfile = "3"
 tendril = { version = "0.5", features = ["encoding_rs"] }
 tikv-jemalloc-sys = "0.6.1"
@@ -263,6 +263,7 @@ tower = { version = "0.5", default-features = false, features = ["util"] }
 tracing = "0.1.44"
 tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.23"
+trait-set = "0.5"
 tungstenite = "0.30"
 unicode-bidi = "0.3.18"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
@@ -276,7 +277,7 @@ vello = "0.10"
 vello_cpu = { version = "0.2.0", features = ["multithreading"] }
 warp = "0.4.2"
 web_atoms = "0.3.0"
-webdriver = { version = "0.54.0" }
+webdriver = "0.54.0"
 webpki-roots = "1.0"
 webrender = { version = "0.70", features = ["serde"] }
 webrender_api = "0.70"
@@ -326,8 +327,8 @@ profile = { package = "servo-profile", version = "=0.6.0", path = "components/pr
 profile_traits = { package = "servo-profile-traits", version = "=0.6.0", path = "components/shared/profile" }
 script = { package = "servo-script", version = "=0.6.0", path = "components/script" }
 script_bindings = { package = "servo-script-bindings", version = "=0.6.0", path = "components/script_bindings" }
-script_webgpu = { package = "servo-script-webgpu", version = "=0.6.0", path = "components/script_webgpu" }
 script_traits = { package = "servo-script-traits", version = "=0.6.0", path = "components/shared/script" }
+script_webgpu = { package = "servo-script-webgpu", version = "=0.6.0", path = "components/script_webgpu" }
 servo = { version = "=0.6.0", path = "components/servo", default-features = false }
 servo-allocator = { version = "=0.6.0", path = "components/allocator" }
 servo-background-hang-monitor = { version = "=0.6.0", path = "components/background_hang_monitor" }
@@ -377,7 +378,7 @@ xpath = { package = "servo-xpath", version = "=0.6.0", path = "components/xpath"
 manual_string_new = "warn"
 
 [workspace.lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)', 'cfg(coverage)', 'cfg(llvm_pgo)', 'cfg(ohos_mock)'] }
 
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might

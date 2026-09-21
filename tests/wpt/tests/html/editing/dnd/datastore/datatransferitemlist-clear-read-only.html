@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DataTransferItemList.clear() does nothing outside the read/write mode</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransferitemlist-clear">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#the-drag-data-store">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #source { width: 80px; height: 80px; background: cornflowerblue; }
+  #target { width: 120px; height: 120px; background: lightgreen; }
+</style>
+
+<div id="source" draggable="true">Drag me</div>
+<div id="target">Drop here</div>
+
+<script>
+const PAYLOAD = 'drag-payload';
+
+function centerOf(elem) {
+    const r = elem.getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2),
+             y: Math.round(r.top + r.height / 2) };
+}
+
+promise_test(async t => {
+    const source = document.getElementById('source');
+    const target = document.getElementById('target');
+
+    const protectedMode = { calls: 0 };
+    const readOnlyMode = { calls: 0 };
+
+    source.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', PAYLOAD);
+    });
+
+    target.addEventListener('dragenter', e => e.preventDefault());
+
+    target.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (protectedMode.calls++)
+            return;
+        const items = e.dataTransfer.items;
+        protectedMode.lengthBefore = items.length;
+        try {
+            items.clear();
+        } catch (exception) {
+            protectedMode.exception = exception;
+        }
+        protectedMode.lengthAfter = items.length;
+    });
+
+    target.addEventListener('drop', e => {
+        e.preventDefault();
+        readOnlyMode.calls++;
+        const items = e.dataTransfer.items;
+        readOnlyMode.dataBefore = e.dataTransfer.getData('text/plain');
+        readOnlyMode.lengthBefore = items.length;
+        try {
+            items.clear();
+        } catch (exception) {
+            readOnlyMode.exception = exception;
+        }
+        readOnlyMode.lengthAfter = items.length;
+        readOnlyMode.dataAfter = e.dataTransfer.getData('text/plain');
+        readOnlyMode.typesAfter = Array.from(e.dataTransfer.types);
+    });
+
+    const from = centerOf(source);
+    const to = centerOf(target);
+
+    await new test_driver.Actions()
+        .addPointer('mouse', 'mouse')
+        .pointerMove(from.x, from.y)
+        .pointerDown()
+        .pause(200)
+        .pointerMove(to.x, to.y)
+        .pause(50)
+        .pointerMove(to.x, to.y + 1)
+        .pause(50)
+        .pointerUp()
+        .send();
+
+    assert_greater_than(protectedMode.calls, 0, 'dragover fired on the drop target');
+    assert_equals(readOnlyMode.calls, 1, 'drop fired on the drop target');
+
+    assert_equals(protectedMode.exception, undefined,
+        'clear() during dragover should not throw');
+    assert_equals(protectedMode.lengthAfter, protectedMode.lengthBefore,
+        'clear() during dragover (protected mode) should not remove any item');
+
+    assert_equals(readOnlyMode.dataBefore, PAYLOAD,
+        'clear() during dragover (protected mode) should not discard the drag data');
+
+    assert_equals(readOnlyMode.exception, undefined,
+        'clear() during drop should not throw');
+    assert_greater_than(readOnlyMode.lengthBefore, 0,
+        'the drop event exposes the dragged item');
+    assert_equals(readOnlyMode.lengthAfter, readOnlyMode.lengthBefore,
+        'clear() during drop (read-only mode) should not remove any item');
+    assert_equals(readOnlyMode.dataAfter, PAYLOAD,
+        'clear() during drop (read-only mode) should not discard the drag data');
+    assert_true(readOnlyMode.typesAfter.includes('text/plain'),
+        'clear() during drop (read-only mode) should not discard the types');
+}, 'DataTransferItemList.clear() is a no-op in the protected and read-only modes');
+</script>

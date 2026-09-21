@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="100">
+  <defs>
+    <linearGradient id="linear-rotated" gradientTransform="rotate(90 0.5 0.5)">
+      <stop offset="0" stop-color="green"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+    <linearGradient id="linear-translated" gradientTransform="translate(0.5 0)">
+      <stop offset="0" stop-color="green"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+    <radialGradient id="radial-scaled" gradientTransform="scale(2)">
+      <stop offset="0" stop-color="yellow"/>
+      <stop offset="1" stop-color="red"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="10" y="10" width="80" height="80" fill="url(#linear-rotated)"/>
+  <rect x="110" y="10" width="80" height="80" fill="url(#linear-rotated)"/>
+  <rect x="210" y="10" width="80" height="80" fill="url(#linear-rotated)"/>
+  <rect x="310" y="10" width="80" height="80" fill="url(#radial-scaled)"/>
+  <rect x="410" y="10" width="80" height="80" fill="url(#linear-translated)"/>
+</svg>

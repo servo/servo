@@ -8,7 +8,7 @@
 </head>
 <body>
   <div id="outside-canvas" style="width: 100px; height: 100px;"></div>
-  <canvas id="canvas" width="100" height="100" layoutsubtree>
+  <canvas id="canvas" width="100" height="100" content=drawable>
     <div id="inside-canvas" style="width: 10px; height: 10px;"></div>
     <div id="nested-parent">
       <div id="nested-drawable" drawable style="width: 5px; height: 5px;"></div>
@@ -19,11 +19,11 @@
       <rect id="svg-rect-non-drawable" width="50" height="50"></rect>
     </svg>
   </canvas>
-  <canvas id="other-canvas" width="100" height="100" layoutsubtree>
+  <canvas id="other-canvas" width="100" height="100" content=drawable>
     <div id="other-inside" style="width: 10px; height: 10px;"></div>
   </canvas>
-  <canvas id="canvas-no-layoutsubtree" width="100" height="100">
-    <div id="inside-no-layoutsubtree" style="width: 10px; height: 10px;"></div>
+  <canvas id="canvas-not-drawable" width="100" height="100">
+    <div id="inside-not-drawable" style="width: 10px; height: 10px;"></div>
   </canvas>
   <svg id="svg-root" width="100" height="100">
     <rect id="svg-rect-outside" width="50" height="50"></rect>
@@ -133,15 +133,15 @@
     }, 'getElementTransform() and updateElementGeometry() on elements inside different <canvas> throw InvalidStateError');
 
     test(() => {
-      const canvasNoLayoutSubtree = document.getElementById('canvas-no-layoutsubtree');
-      const insideNoLayoutSubtree = document.getElementById('inside-no-layoutsubtree');
+      const canvasNotDrawable = document.getElementById('canvas-not-drawable');
+      const insideNotDrawable = document.getElementById('inside-not-drawable');
       assert_throws_dom('InvalidStateError', () => {
-        canvasNoLayoutSubtree.getElementTransform(insideNoLayoutSubtree);
+        canvasNotDrawable.getElementTransform(insideNotDrawable);
       });
       assert_throws_dom('InvalidStateError', () => {
-        canvasNoLayoutSubtree.updateElementGeometry(insideNoLayoutSubtree, {canvasTransform: new DOMMatrix().translate(0, 15)});
+        canvasNotDrawable.updateElementGeometry(insideNotDrawable, {canvasTransform: new DOMMatrix().translate(0, 15)});
       });
-    }, 'getElementTransform() and updateElementGeometry() on canvas without layoutsubtree throw InvalidStateError');
+    }, 'getElementTransform() and updateElementGeometry() on canvas without content=drawable throw InvalidStateError');
 
     test(() => {
       const canvas = document.getElementById('canvas');

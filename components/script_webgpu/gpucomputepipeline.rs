@@ -61,7 +61,6 @@ pub struct GPUComputePipeline<D: DomTypes> {
 impl<D> GPUComputePipeline<D>
 where
     D: Equivalence,
-    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
     fn new_inherited(
         compute_pipeline: WebGPUComputePipeline,

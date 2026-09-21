@@ -9,7 +9,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use webxr_api::{Viewer, ViewerPose, Views};
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
@@ -175,10 +175,10 @@ impl XRViewerPose {
         let transform: RigidTransform3D<f32, Viewer, BaseSpace> =
             viewer_pose.transform.then(&to_base);
         let transform = XRRigidTransform::new(cx, window, cast_transform(transform));
-        let pose = reflect_dom_object_with_cx(
+        let pose = reflect_dom_object(
+            cx,
             Box::new(XRViewerPose::new_inherited(&transform)),
             window,
-            cx,
         );
 
         rooted!(&in(cx) let mut jsval = UndefinedValue());

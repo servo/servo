@@ -10,12 +10,15 @@
         transform="translate(0, -100)">X<tspan fill="blue">X</tspan></text>
 </svg>
 <script>
-  async_test(t => {
-    onload = t.step_func_done(() => {
+  setup({ explicit_done: true });
+
+  document.fonts.ready.then(() => {
+    test(() => {
       let tspan = document.querySelector('tspan');
       let bbox = tspan.getBBox();
-      for (let property of ['x', 'y', 'width', 'height'])
-        assert_equals(bbox[property], 100, property);
-    });
+      for (let [property, epsilon] of Object.entries({x: 2, y: 0, width: 4, height: 0}))
+        assert_approx_equals(bbox[property], 100, epsilon, property);
+    }, 'tspan bbox');
+    done();
   });
 </script>
