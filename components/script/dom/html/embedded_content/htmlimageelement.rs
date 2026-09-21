@@ -459,7 +459,6 @@ impl HTMLImageElement {
                 // available.
                 self.current_request.safe_borrow_mut(cx.no_gc()).state = State::PartiallyAvailable;
                 self.current_request.safe_borrow_mut(cx.no_gc()).metadata = Some(meta);
-                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                 (false, false)
             },
             (ImageResponse::MetadataLoaded(_), ImageRequestPhase::Pending) => {
