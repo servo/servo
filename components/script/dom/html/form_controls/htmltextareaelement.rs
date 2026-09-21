@@ -12,11 +12,11 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
+use script_bindings::traits::DomEventTrait;
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -41,7 +41,6 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::inputevent::HitTestResult;
-use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
@@ -333,6 +332,21 @@ impl TextControlElement for HTMLTextAreaElement {
             .update_placeholder_contents(cx, self);
         self.maybe_update_shared_selection();
     }
+
+    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction) {
+        match action {
+            KeyReaction::TriggerDefaultAction => (),
+            KeyReaction::DispatchInput(text, is_composing, input_type) => {
+                self.queue_input_event(text, is_composing, input_type);
+                self.value_dirty.set(true);
+                self.handle_text_content_changed(cx);
+            },
+            KeyReaction::RedrawSelection => {
+                self.maybe_update_shared_selection();
+            },
+            KeyReaction::Nothing => (),
+        }
+    }
 }
 
 impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
@@ -582,25 +596,6 @@ impl HTMLTextAreaElement {
             .set_content(self.DefaultValue());
         self.handle_text_content_changed(cx);
     }
-
-    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction, event: &Event) {
-        match action {
-            KeyReaction::TriggerDefaultAction => (),
-            KeyReaction::DispatchInput(text, is_composing, input_type) => {
-                if event.IsTrusted() {
-                    self.queue_input_event(text, is_composing, input_type);
-                }
-                self.value_dirty.set(true);
-                self.handle_text_content_changed(cx);
-                event.mark_as_handled();
-            },
-            KeyReaction::RedrawSelection => {
-                self.maybe_update_shared_selection();
-                event.mark_as_handled();
-            },
-            KeyReaction::Nothing => (),
-        }
-    }
 }
 
 impl VirtualMethods for HTMLTextAreaElement {
@@ -782,16 +777,10 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     // copied and modified from htmlinputelement.rs
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
-        if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
-            if let Some(keyboard_event) = event.downcast::<KeyboardEvent>() {
-                // This can't be inlined, as holding on to text_input.borrow_mut()
-                // during self.implicit_submission will cause a panic.
-                let action = self.text_input.borrow_mut().handle_keydown(keyboard_event);
-                self.handle_key_reaction(cx, action, event);
-            }
-        } else if event.type_() == atom!("compositionstart") ||
+        if (event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
-            event.type_() == atom!("compositionend")
+            event.type_() == atom!("compositionend")) &&
+            event.IsTrusted()
         {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
@@ -799,14 +788,14 @@ impl VirtualMethods for HTMLTextAreaElement {
                         .text_input
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(cx, action, event);
+                    self.handle_key_reaction(cx, action);
                     self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
                         .text_input
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(cx, action, event);
+                    self.handle_key_reaction(cx, action);
                     self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                 }
                 self.maybe_update_shared_selection();

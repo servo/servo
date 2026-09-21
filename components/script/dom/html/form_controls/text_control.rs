@@ -9,6 +9,7 @@
 
 use std::cell::{Ref, RefMut};
 
+use embedder_traits::EditingAction;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use script_bindings::refcounted::Trusted;
@@ -22,7 +23,7 @@ use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::text_input::{SelectionDirection, SelectionState, TextInput};
 use crate::dom::node::NodeTraits;
-use crate::dom::text_input::{EmbedderClipboardProvider, InputEventType, IsComposing};
+use crate::dom::text_input::{EmbedderClipboardProvider, InputEventType, IsComposing, KeyReaction};
 use crate::dom::types::InputEvent;
 use crate::dom::{Element, Event};
 
@@ -43,6 +44,7 @@ pub(crate) trait TextControlElement {
     fn value_text(&self) -> DOMString;
     fn read_only_or_disabled(&self) -> bool;
     fn handle_text_content_changed(&self, cx: &mut JSContext);
+    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction);
 
     fn insert_content(&self, cx: &mut JSContext, text_content: &str) {
         self.text_input_mut().insert(text_content);
@@ -52,6 +54,16 @@ pub(crate) trait TextControlElement {
     fn remove_the_contents_of_the_selection(&self, cx: &mut JSContext) {
         self.text_input_mut().delete_selection();
         self.handle_text_content_changed(cx);
+    }
+
+    fn perform_editing_action(&self, cx: &mut JSContext, action: EditingAction) -> bool {
+        let key_reaction = self.text_input_mut().perform_editing_action(action);
+        if key_reaction == KeyReaction::Nothing {
+            return false;
+        }
+
+        self.handle_key_reaction(cx, key_reaction);
+        true // TODO: Return true if the action can have any effect.
     }
 
     /// <https://w3c.github.io/uievents/#event-type-input>

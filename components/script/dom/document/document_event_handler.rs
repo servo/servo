@@ -6,7 +6,6 @@ use std::array::from_ref;
 use std::cell::Cell;
 use std::f64::consts::PI;
 use std::mem;
-use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use embedder_traits::{
@@ -21,7 +20,9 @@ use embedder_traits::{
 };
 use euclid::{Point2D, Vector2D};
 use js::context::{JSContext, NoGC};
-use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
+use keyboard_types::{
+    Code, Key, KeyState, KeyboardEvent as KeyboardTypesEvent, Modifiers, NamedKey,
+};
 use layout_api::{HitTestFlags, ScrollContainerQueryFlags, node_id_from_scroll_id};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
@@ -30,7 +31,6 @@ use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosi
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
-use script_bindings::codegen::GenericBindings::KeyboardEventBinding::KeyboardEventMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
@@ -52,6 +52,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::document::FireMouseEventType;
+use crate::dom::document::editing::editing_action_from_keyboard_event;
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::document::interactive_element_command::InteractiveElementCommand;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
@@ -65,7 +66,6 @@ use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
-use crate::dom::text_input::CMD_OR_CONTROL;
 use crate::dom::types::{
     CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLElement,
     HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
@@ -380,13 +380,14 @@ impl DocumentEventHandler {
                     self.handle_gamepad_event(gamepad_event);
                     InputEventResult::default()
                 },
-                InputEvent::EditingAction(editing_action_event) => {
+                InputEvent::EditingAction(clipboard_action) => {
                     let document = self.window.Document();
                     let focused_node = document
                         .focus_handler()
                         .focused_area()
                         .dom_anchor(&document);
-                    document.handle_editing_action(cx, &focused_node, editing_action_event)
+                    let editing_context = document.editing_context(cx.no_gc(), &focused_node);
+                    document.handle_clipboard_action(cx, &editing_context, clipboard_action)
                 },
             };
 
@@ -1242,7 +1243,7 @@ impl DocumentEventHandler {
     /// <https://www.w3.org/TR/pointerevents4/#maybe-show-context-menu>
     fn maybe_show_context_menu(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         target: &EventTarget,
         hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
@@ -1617,30 +1618,23 @@ impl DocumentEventHandler {
         );
 
         let event = keyevent.upcast::<Event>();
-
         event.set_composed(true);
-
         event.fire(cx, target);
 
+        // From https://w3c.github.io/uievents/#keys-cancelable-keys:
+        // > Canceling the default action of a keydown event MUST NOT affect its
+        // > respective keyup event, but it MUST prevent the respective beforeinput and
+        // > input (and keypress if supported) events from being generated.
         let mut flags = event.flags();
-        if flags.contains(EventFlags::Canceled) {
+        if keyboard_event.event.state != KeyState::Down || flags.contains(EventFlags::Canceled) {
             return flags.into();
         }
 
-        // https://w3c.github.io/uievents/#keys-cancelable-keys
-        // it MUST prevent the respective beforeinput and input
-        // (and keypress if supported) events from being generated
-        // TODO: keypress should be deprecated and superceded by beforeinput
-
-        let is_character_value_key = matches!(
-            keyboard_event.event.key,
-            Key::Character(_) | Key::Named(NamedKey::Enter)
-        );
-        if keyboard_event.event.state == KeyState::Down &&
-            is_character_value_key &&
-            !keyboard_event.event.is_composing
-        {
-            // https://w3c.github.io/uievents/#keypress-event-order
+        // From <https://w3c.github.io/uievents/#keypress-event-order>:
+        // > The keypress event type MUST be dispatched after the keydown event and before
+        // > the keyup event associated with the same key.
+        let fires_keypress_event = keyboard_event_fires_keypress_event(&keyboard_event);
+        if fires_keypress_event {
             let keypress_event = KeyboardEvent::new_with_platform_keyboard_event(
                 cx,
                 &self.window,
@@ -1650,10 +1644,16 @@ impl DocumentEventHandler {
             keypress_event.upcast::<Event>().set_composed(true);
             let event = keypress_event.upcast::<Event>();
             event.fire(cx, target);
-            flags = event.flags();
+            flags |= event.flags();
         }
 
-        flags.into()
+        // If the event was canceled or consumed during event propagation do not run the
+        // default keydown event handler.
+        if flags.intersects(EventFlags::Handled | EventFlags::Canceled) {
+            return flags.into();
+        }
+
+        self.run_default_keydown_handler(cx, target, &keyboard_event, flags.into())
     }
 
     fn handle_ime_event(&self, cx: &mut JSContext, event: ImeEvent) -> InputEventResult {
@@ -2023,10 +2023,10 @@ impl DocumentEventHandler {
         cx: &mut JSContext,
         node: &Node,
         event: &KeyboardEvent,
-    ) -> bool {
+    ) {
         if event.key() != Key::Named(NamedKey::Enter) && event.original_code() != Some(Code::Space)
         {
-            return false;
+            return;
         }
 
         // Check whether this node is a state-changing element. Note that the specification doesn't
@@ -2037,38 +2037,39 @@ impl DocumentEventHandler {
             .and_then(Element::as_maybe_activatable)
             .is_none()
         {
-            return false;
+            return;
         }
 
         node.fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
-        true
+        event.upcast::<Event>().mark_as_handled();
     }
 
-    pub(crate) fn run_default_keyboard_event_handler(
+    pub(crate) fn run_default_keydown_handler(
         &self,
-        cx: &mut js::context::JSContext,
-        node: &Node,
-        event: &KeyboardEvent,
-    ) {
-        if event.upcast::<Event>().type_() != atom!("keydown") {
-            return;
-        }
-
+        cx: &mut JSContext,
+        event_target: &EventTarget,
+        event: &EmbedderKeyboardEvent,
+        input_event_result: InputEventResult,
+    ) -> InputEventResult {
         let document = self.window.Document();
-        if document.maybe_perform_editing_command(cx, event) {
-            return;
-        }
+        let node = event_target
+            .downcast::<Node>()
+            .unwrap_or_else(|| document.upcast());
 
-        if self.maybe_dispatch_simulated_click(cx, node, event) {
-            return;
+        let event = &event.event;
+        if let Some(editing_action) = editing_action_from_keyboard_event(event) {
+            let editing_host = document.editing_context(cx.no_gc(), node);
+            if editing_host.perform_editing_action(cx, editing_action) {
+                return input_event_result | InputEventResult::Consumed;
+            }
         }
 
         if self.maybe_handle_accesskey(cx, event) {
-            return;
+            return input_event_result | InputEventResult::Consumed;
         }
 
         let mut is_space = false;
-        let scroll = match event.key() {
+        let scroll = match &event.key {
             Key::Named(NamedKey::ArrowDown) => KeyboardScroll::Down,
             Key::Named(NamedKey::ArrowLeft) => KeyboardScroll::Left,
             Key::Named(NamedKey::ArrowRight) => KeyboardScroll::Right,
@@ -2077,14 +2078,9 @@ impl DocumentEventHandler {
             Key::Named(NamedKey::Home) => KeyboardScroll::Home,
             Key::Named(NamedKey::PageDown) => KeyboardScroll::PageDown,
             Key::Named(NamedKey::PageUp) => KeyboardScroll::PageUp,
-            Key::Character(string) if &string == "a" && event.modifiers() == CMD_OR_CONTROL => {
-                document.editing_context(cx.no_gc(), node).select_all(cx);
-                event.upcast::<Event>().mark_as_handled();
-                return;
-            },
-            Key::Character(string) if &string == " " => {
+            Key::Character(string) if string == " " => {
                 is_space = true;
-                if event.modifiers().contains(Modifiers::SHIFT) {
+                if event.modifiers.contains(Modifiers::SHIFT) {
                     KeyboardScroll::PageUp
                 } else {
                     KeyboardScroll::PageDown
@@ -2096,19 +2092,21 @@ impl DocumentEventHandler {
                 // > If the key is the Tab key, the default action MUST be to shift the document focus
                 // > from the currently focused element (if any) to the new focused element, as
                 // > described in Focus Event Types
-                document
+                self.window
+                    .Document()
                     .focus_handler()
                     .sequential_focus_navigation_via_keyboard_event(cx, event);
-                return;
+                return input_event_result | InputEventResult::Consumed;
             },
-            _ => return,
+            _ => return input_event_result,
         };
 
-        if !event.modifiers().is_empty() && !is_space {
-            return;
+        if !event.modifiers.is_empty() && !is_space {
+            return input_event_result;
         }
 
         self.do_keyboard_scroll(cx, scroll);
+        input_event_result | InputEventResult::Consumed
     }
 
     pub(crate) fn do_keyboard_scroll(&self, cx: &mut JSContext, scroll: KeyboardScroll) {
@@ -2249,7 +2247,7 @@ impl DocumentEventHandler {
     #[allow(clippy::too_many_arguments)]
     fn fire_pointer_event_for_touch(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         target_element: &Element,
         touch: &Touch,
         pointer_id: i32,
@@ -2307,28 +2305,20 @@ impl DocumentEventHandler {
             .or_insert(Dom::from_ref(element));
     }
 
-    fn maybe_handle_accesskey(
-        &self,
-        cx: &mut js::context::JSContext,
-        event: &KeyboardEvent,
-    ) -> bool {
+    fn maybe_handle_accesskey(&self, cx: &mut JSContext, event: &KeyboardTypesEvent) -> bool {
         #[cfg(target_os = "macos")]
         let access_key_modifiers = Modifiers::CONTROL | Modifiers::ALT;
         #[cfg(not(target_os = "macos"))]
         let access_key_modifiers = Modifiers::SHIFT | Modifiers::ALT;
 
-        if event.modifiers() != access_key_modifiers {
+        if event.modifiers != access_key_modifiers {
             return false;
         }
-
-        let Ok(code) = Code::from_str(&event.Code().str()) else {
-            return false;
-        };
 
         let Some(html_element) = self
             .access_key_handlers
             .borrow()
-            .get(&code.into())
+            .get(&event.code.into())
             .map(|html_element| html_element.as_rooted())
         else {
             return false;
@@ -2860,6 +2850,23 @@ impl DocumentEventHandler {
     pub(crate) fn install_drag_gesture(&self, drag_gesture: DragGesture) {
         *self.drag_gesture.borrow_mut() = Some(drag_gesture);
     }
+}
+
+/// Whether a given [`EmbedderKeyboardEvent`] should trigger a `keypress` event.
+///
+/// From <https://w3c.github.io/uievents/#keypress>:
+/// > If supported by a user agent, this event MUST be dispatched when a key is pressed
+/// > down, if and only if that key normally produces a character value. The keypress event
+/// > type is device dependent and relies on the capabilities of the input devices and how
+/// > they are mapped in the operating system.
+fn keyboard_event_fires_keypress_event(keyboard_event: &EmbedderKeyboardEvent) -> bool {
+    let is_character_value_key = matches!(
+        keyboard_event.event.key,
+        Key::Character(_) | Key::Named(NamedKey::Enter)
+    );
+    keyboard_event.event.state == KeyState::Down &&
+        is_character_value_key &&
+        !keyboard_event.event.is_composing
 }
 
 pub(crate) fn character_to_code(character: char) -> Option<Code> {

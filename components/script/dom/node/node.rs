@@ -4601,10 +4601,12 @@ impl VirtualMethods for Node {
             return;
         }
 
-        if let Some(event) = event.downcast::<KeyboardEvent>() {
+        if event.type_() == atom!("keydown") &&
+            let Some(event) = event.downcast::<KeyboardEvent>()
+        {
             self.owner_document()
                 .event_handler()
-                .run_default_keyboard_event_handler(cx, self, event);
+                .maybe_dispatch_simulated_click(cx, self, event);
         }
     }
 

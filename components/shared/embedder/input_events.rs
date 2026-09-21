@@ -51,7 +51,7 @@ pub struct InputEventOutcome {
 /// An input event that is sent from the embedder to Servo.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum InputEvent {
-    EditingAction(EditingActionEvent),
+    EditingAction(ClipboardAction),
     #[cfg(feature = "gamepad")]
     Gamepad(GamepadEvent),
     Ime(ImeEvent),
@@ -78,12 +78,53 @@ impl From<InputEvent> for InputEventAndId {
     }
 }
 
-/// An editing action that should be performed on a `WebView`.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum EditingActionEvent {
+/// A direction for an [`EditingAction`].
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum EditingDirection {
+    Forward,
+    Backward,
+}
+
+/// Describes a unit of movement for an [`EditingAction`].
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum EditingMotion {
+    Character,
+    Grapheme,
+    Word,
+    Line,
+    LineStartOrEnd,
+    Page,
+    DocumentStartOrEnd,
+}
+
+/// Whether the selection should follow cursor motion when doing an editing action.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum ModifySelection {
+    Yes,
+    No,
+}
+
+/// Which type of clipboard operation should be performed for an [`EditingAction::Clipboard`].
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum ClipboardAction {
     Copy,
     Cut,
     Paste,
+}
+
+/// An action to perform in an [`EditingContext`].
+///
+/// This is public because it is used in external unit tests.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum EditingAction {
+    Backspace(EditingMotion),
+    Clipboard(ClipboardAction),
+    Delete,
+    InsertNewline,
+    InsertParagraph,
+    InsertText(String),
+    MoveCursor(EditingDirection, EditingMotion, ModifySelection),
+    SelectAll,
 }
 
 impl InputEvent {

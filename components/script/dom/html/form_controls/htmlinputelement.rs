@@ -66,7 +66,6 @@ use crate::dom::html::htmlformelement::{
 };
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
-use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
@@ -839,29 +838,6 @@ impl HTMLInputElement {
         matches!(*self.input_type(), InputType::Color(_)) && !el.disabled_state()
     }
 
-    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction, event: &Event) {
-        match action {
-            KeyReaction::TriggerDefaultAction => {
-                self.implicit_submission(cx);
-                event.mark_as_handled();
-            },
-            KeyReaction::DispatchInput(text, is_composing, input_type) => {
-                if event.IsTrusted() {
-                    self.queue_input_event(text, is_composing, input_type);
-                }
-                self.value_dirty.set(true);
-                self.update_placeholder_shown_state();
-                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
-                event.mark_as_handled();
-            },
-            KeyReaction::RedrawSelection => {
-                self.maybe_update_shared_selection();
-                event.mark_as_handled();
-            },
-            KeyReaction::Nothing => (),
-        }
-    }
-
     /// Return a string that represents the contents of the element in its displayed shadow DOM.
     pub(crate) fn value_for_shadow_dom(&self) -> DOMString {
         let input_type = &*self.input_type();
@@ -1051,6 +1027,24 @@ impl TextControlElement for HTMLInputElement {
         self.update_placeholder_shown_state();
         self.upcast::<Node>()
             .dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
+    }
+
+    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction) {
+        match action {
+            KeyReaction::TriggerDefaultAction => {
+                self.implicit_submission(cx);
+            },
+            KeyReaction::DispatchInput(text, is_composing, input_type) => {
+                self.queue_input_event(text, is_composing, input_type);
+                self.value_dirty.set(true);
+                self.update_placeholder_shown_state();
+                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+            },
+            KeyReaction::RedrawSelection => {
+                self.maybe_update_shared_selection();
+            },
+            KeyReaction::Nothing => (),
+        }
     }
 }
 
@@ -2327,20 +2321,11 @@ impl VirtualMethods for HTMLInputElement {
     // https://w3c.github.io/uievents/#default-action
     /// <https://dom.spec.whatwg.org/#action-versus-occurance>
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
-        if event.type_() == atom!("keydown") &&
-            !event.DefaultPrevented() &&
-            self.input_type().is_textual_or_password()
-        {
-            if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
-                // This can't be inlined, as holding on to text_input.borrow_mut()
-                // during self.implicit_submission will cause a panic.
-                let action = self.text_input.borrow_mut().handle_keydown(keyevent);
-                self.handle_key_reaction(cx, action, event);
-            }
-        } else if (event.type_() == atom!("compositionstart") ||
+        if (event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
             event.type_() == atom!("compositionend")) &&
-            self.input_type().is_textual_or_password()
+            self.input_type().is_textual_or_password() &&
+            event.IsTrusted()
         {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
@@ -2348,7 +2333,7 @@ impl VirtualMethods for HTMLInputElement {
                         .text_input
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(cx, action, event);
+                    self.handle_key_reaction(cx, action);
                     self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionupdate") {
@@ -2356,7 +2341,7 @@ impl VirtualMethods for HTMLInputElement {
                         .text_input
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(cx, action, event);
+                    self.handle_key_reaction(cx, action);
                     self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionstart") {

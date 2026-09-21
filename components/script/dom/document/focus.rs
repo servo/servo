@@ -9,7 +9,7 @@ use bitflags::bitflags;
 use embedder_traits::FocusSequenceNumber;
 use js::context::{JSContext, NoGC};
 use js::gc::RootedGuard;
-use keyboard_types::Modifiers;
+use keyboard_types::{KeyboardEvent as KeyboardTypesEvent, Modifiers};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
@@ -24,9 +24,7 @@ use servo_constellation_traits::{
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::node::focus::{FocusNavigationScopeOwner, FocusTrigger};
-use crate::dom::types::{
-    Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, KeyboardEvent, Window,
-};
+use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
 use crate::realms::enter_auto_realm;
 
@@ -571,9 +569,9 @@ impl DocumentFocusHandler {
     pub(crate) fn sequential_focus_navigation_via_keyboard_event(
         &self,
         cx: &mut JSContext,
-        event: &KeyboardEvent,
+        event: &KeyboardTypesEvent,
     ) {
-        let direction = if event.modifiers().contains(Modifiers::SHIFT) {
+        let direction = if event.modifiers.contains(Modifiers::SHIFT) {
             SequentialFocusDirection::Backward
         } else {
             SequentialFocusDirection::Forward
