@@ -545,16 +545,10 @@ impl HoistedAbsolutelyPositionedBox {
                 layout_context,
                 &fully_adjusted_static_position_rect,
                 &containing_block,
+                containing_block_origin,
                 self.resolved_alignment,
                 self.original_parent_writing_mode,
             );
-
-        // Translate the output to be relative to the padding box rather than the
-        // containing block origin. In most cases this is noop, but for grid containers
-        // this applies the grid area to the box's position.
-        box_fragment
-            .base
-            .translate_rect(containing_block_origin.to_size());
 
         // An absolutely-positioned box can be a layout root if it does not hoist any
         // fixed positioned boxes out of it. This condition ensures isolation from parent
@@ -619,6 +613,7 @@ impl IndependentFormattingContext {
         layout_context: &LayoutContext,
         static_position_rect: &LogicalRect<Au>,
         containing_block: &DefiniteContainingBlock,
+        containing_block_origin: PhysicalVec<Au>,
         resolved_alignment: LogicalVec2<AlignFlags>,
         original_parent_writing_mode: WritingMode,
     ) -> (Arc<BoxFragment>, PositioningContext) {
@@ -804,7 +799,8 @@ impl IndependentFormattingContext {
             },
             size: content_size,
         }
-        .as_physical(Some(containing_block));
+        .as_physical(Some(containing_block))
+        .translate(containing_block_origin);
 
         if is_cached &&
             let Some(old_fragment) = self.base.fragments().first() &&
@@ -1171,16 +1167,10 @@ impl LayoutRootLayoutInputs {
             layout_context,
             &self.fully_adjusted_static_position_rect,
             &containing_block,
+            self.containing_block_origin,
             self.resolved_alignment,
             self.original_parent_writing_mode,
         );
-
-        // Translate the output to be relative to the padding box rather than the
-        // containing block origin. In most cases this is noop, but for grid containers
-        // this applies the grid area to the box's position.
-        box_fragment
-            .base
-            .translate_rect(self.containing_block_origin.to_size());
 
         if !positioning_context.is_empty() {
             return Err(());
