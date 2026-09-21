@@ -134,6 +134,7 @@ jobs:
       bencher: ${{ inputs.bencher }}
       coverage: ${{ inputs.coverage }}
       capi: ${{ inputs.capi }}
+      perf-analysis: ${{ inputs.bencher && inputs.profile == 'release' }}
 
   wpt-2020:
     if: ${{ inputs.wpt }}

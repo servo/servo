@@ -163,7 +163,6 @@ def handle_preset(s: str) -> Optional[JobConfig]:
     elif any(word in s for word in ["lint", "tidy"]):
         return JobConfig("Lint", Workflow.LINT)
     elif any(word in s for word in ["perf-analysis", "perfanalysis"]):
-        # The release profile is used for stable timings (no debug assertions).
         return JobConfig("Perf analysis", Workflow.PERF_ANALYSIS, profile="release")
     else:
         return None

@@ -171,9 +171,12 @@ jobs:
             $RUN_BENCHER_OPTIONS
 
   # Runs the page-load benchmark using servo/perf-analysis-tools.
-  # It can also be run as standalone workflow via `./mach try perf-analysis`.
   perf-analysis:
     if: ${{ inputs.perf-analysis }}
     name: Perf analysis
     uses: ./.github/workflows/perf-analysis.yml
     secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      # Reuse the servoshell built with `tracing-perfetto` instead of building again.
+      servo-binary-artifact: ${{ inputs.profile }}-binary-linux-tracing
