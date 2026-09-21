@@ -112,6 +112,12 @@ class MachCommands(CommandBase):
         else:
             opts += ["--profile", build_type.profile]
 
+        # The `profiling` profile is intended for profiling, so enable Perfetto tracing
+        # automatically. It can still be enabled for other profiles explicitly with
+        # `--features tracing tracing-perfetto`.
+        if build_type.profile == "profiling" and "tracing-perfetto" not in self.features:
+            self.features.append("tracing-perfetto")
+
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
