@@ -18,6 +18,8 @@ use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::Uint8;
+#[cfg(feature = "brotli-compression-stream")]
+use malloc_size_of::MallocShallowSizeOf;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
@@ -219,11 +221,10 @@ enum Encoder {
 }
 
 impl MallocSizeOf for Encoder {
-    #[cfg_attr(feature = "brotli-compression-stream", expect(unsafe_code))]
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match self {
             #[cfg(feature = "brotli-compression-stream")]
-            Encoder::Brotli(encoder) => unsafe { ops.malloc_size_of(&**encoder) },
+            Encoder::Brotli(encoder) => encoder.shallow_size_of(ops),
             Encoder::Deflate(encoder) => encoder.size_of(ops),
             Encoder::DeflateRaw(encoder) => encoder.size_of(ops),
             Encoder::Gzip(encoder) => encoder.size_of(ops),
