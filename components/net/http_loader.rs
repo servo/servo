@@ -2829,8 +2829,8 @@ fn append_a_request_origin_header(request: &mut Request) {
 
 /// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-append-the-fetch-metadata-headers-for-a-request>
 fn append_the_fetch_metadata_headers(r: &mut Request) {
-    // Step 1. If r’s url is not an potentially trustworthy URL, return.
-    if !r.url().is_potentially_trustworthy() {
+    // Step 1. If r’s current url is not an potentially trustworthy URL, return.
+    if !r.current_url().is_potentially_trustworthy() {
         return;
     }
 
@@ -2895,8 +2895,8 @@ fn append_cache_data_to_headers(http_request: &mut Request) {
 
 /// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-dest>
 fn set_the_sec_fetch_dest_header(r: &mut Request) {
-    // Step 1. Assert: r’s url is a potentially trustworthy URL.
-    debug_assert!(r.url().is_potentially_trustworthy());
+    // Step 1. Assert: r’s current url is a potentially trustworthy URL.
+    debug_assert!(r.current_url().is_potentially_trustworthy());
 
     // Step 2. Let header be a Structured Header whose value is a token.
     // Step 3. If r’s destination is the empty string, set header’s value to the string "empty".
@@ -2909,8 +2909,8 @@ fn set_the_sec_fetch_dest_header(r: &mut Request) {
 
 /// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-mode>
 fn set_the_sec_fetch_mode_header(r: &mut Request) {
-    // Step 1. Assert: r’s url is a potentially trustworthy URL.
-    debug_assert!(r.url().is_potentially_trustworthy());
+    // Step 1. Assert: r’s current url is a potentially trustworthy URL.
+    debug_assert!(r.current_url().is_potentially_trustworthy());
 
     // Step 2. Let header be a Structured Header whose value is a token.
     // Step 3. Set header’s value to r’s mode.
@@ -2928,8 +2928,8 @@ fn set_the_sec_fetch_site_header(r: &mut Request) {
         panic!("request origin cannot be \"client\" at this point")
     };
 
-    // Step 1. Assert: r’s url is a potentially trustworthy URL.
-    debug_assert!(r.url().is_potentially_trustworthy());
+    // Step 1. Assert: r’s current url is a potentially trustworthy URL.
+    debug_assert!(r.current_url().is_potentially_trustworthy());
 
     // Step 2. Let header be a Structured Header whose value is a token.
     // Step 3. Set header’s value to same-origin.
@@ -2965,8 +2965,8 @@ fn set_the_sec_fetch_site_header(r: &mut Request) {
 
 /// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-user>
 fn set_the_sec_fetch_user_header(r: &mut Request) {
-    // Step 1. Assert: r’s url is a potentially trustworthy URL.
-    debug_assert!(r.url().is_potentially_trustworthy());
+    // Step 1. Assert: r’s current url is a potentially trustworthy URL.
+    debug_assert!(r.current_url().is_potentially_trustworthy());
 
     // Step 2. If r is not a navigation request, or if r’s user-activation is false, return.
     // TODO user activation
