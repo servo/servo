@@ -395,6 +395,7 @@ impl PlatformFontMethods for PlatformFont {
         // color characters, but not passing this flag simply *prevents* WebRender from
         // loading bitmaps. There's no harm to always passing it.
         let mut flags = FontInstanceFlags::EMBEDDED_BITMAPS;
+        flags |= FontInstanceFlags::SUBPIXEL_POSITION;
 
         // TODO: Add support for synthetic italics.
         // <https://github.com/servo/servo/issues/39637>
