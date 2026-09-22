@@ -16,6 +16,7 @@ pub use font_descriptor::*;
 pub use font_identifier::*;
 pub use font_template::*;
 use malloc_size_of_derive::MallocSizeOf;
+pub use memmap2::Mmap;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSharedMemory;
@@ -32,30 +33,111 @@ pub enum WebFontLoadEvent {
 pub type StylesheetWebFontLoadFinishedCallback =
     Arc<dyn Fn(WebFontLoadEvent) + Send + Sync + 'static>;
 
+#[derive(MallocSizeOf)]
+pub enum FontDataInner {
+    MemoryMapped(Mmap),
+    SharedMemory(GenericSharedMemory),
+}
+
+#[derive(Serialize, Deserialize)]
+struct FontDataSerializable {
+    inner: GenericSharedMemory,
+}
+
+/// Transforms the FontDataInner into a FontDataSerializable which is easily serialized.
+mod font_data_inner {
+    use std::sync::Arc;
+
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use servo_base::generic_channel::GenericSharedMemory;
+
+    use crate::{FontDataInner, FontDataSerializable};
+
+    pub fn serialize<S>(data: &Arc<FontDataInner>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let data = match &**data {
+            FontDataInner::MemoryMapped(mmap) => GenericSharedMemory::from_bytes(mmap),
+            FontDataInner::SharedMemory(generic_shared_memory) => generic_shared_memory.clone(),
+        };
+
+        let font_data = FontDataSerializable { inner: data };
+
+        font_data.serialize(serializer)
+    }
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Arc<FontDataInner>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = FontDataSerializable::deserialize(deserializer)?;
+        Ok(Arc::new(FontDataInner::SharedMemory(s.inner)))
+    }
+}
+
 /// A data structure to store data for fonts. Data is stored internally in an
 /// [`GenericSharedMemory`] handle, so that it can be sent without serialization
 /// across IPC channels.
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct FontData(#[conditional_malloc_size_of] pub(crate) Arc<GenericSharedMemory>);
+#[derive(Clone, Deserialize, Serialize, MallocSizeOf)]
+pub struct FontData {
+    #[conditional_malloc_size_of]
+    #[serde(with = "font_data_inner")]
+    inner: Arc<FontDataInner>,
+}
 
 impl FontData {
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        Self(Arc::new(GenericSharedMemory::from_bytes(bytes)))
+        Self {
+            inner: Arc::new(FontDataInner::SharedMemory(
+                GenericSharedMemory::from_bytes(bytes),
+            )),
+        }
+    }
+
+    pub fn from_mmap(mmap: Mmap) -> Self {
+        Self {
+            inner: Arc::new(FontDataInner::MemoryMapped(mmap)),
+        }
+    }
+
+    pub fn as_ipc_shared_memory(self) -> Arc<GenericSharedMemory> {
+        match &*self.inner {
+            FontDataInner::MemoryMapped(mmap) => Arc::new(GenericSharedMemory::from_bytes(mmap)),
+            FontDataInner::SharedMemory(generic_shared_memory) => {
+                Arc::new(generic_shared_memory.clone())
+            },
+        }
     }
 
     /// This is in single process mode more efficient because we do not have to copy the vector.
     pub fn from_vec(bytes: Vec<u8>) -> Self {
-        Self(Arc::new(GenericSharedMemory::from_vec(bytes)))
+        Self {
+            inner: Arc::new(FontDataInner::SharedMemory(GenericSharedMemory::from_vec(
+                bytes,
+            ))),
+        }
     }
 
-    pub fn as_ipc_shared_memory(&self) -> Arc<GenericSharedMemory> {
-        self.0.clone()
+    pub fn inner_arc(self) -> Arc<FontDataInner> {
+        self.inner
+    }
+}
+
+impl AsRef<[u8]> for FontDataInner {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            FontDataInner::MemoryMapped(mmap) => mmap,
+            FontDataInner::SharedMemory(generic_shared_memory) => generic_shared_memory,
+        }
     }
 }
 
 impl AsRef<[u8]> for FontData {
     fn as_ref(&self) -> &[u8] {
-        &self.0
+        match &*self.inner {
+            FontDataInner::MemoryMapped(mmap) => mmap,
+            FontDataInner::SharedMemory(generic_shared_memory) => generic_shared_memory,
+        }
     }
 }
 

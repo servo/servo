@@ -75,7 +75,7 @@ impl SvgFontResolver {
                 continue;
             };
             let ids = Arc::make_mut(database).load_font_source(fontdb::Source::Binary(
-                data_and_index.data.as_ipc_shared_memory(),
+                data_and_index.data.clone().inner_arc(),
             ));
 
             if let Some(id) = ids.get(data_and_index.index as usize).copied() {
@@ -213,7 +213,7 @@ impl FontResolver for SvgFontResolver {
                 };
 
                 let ids = Arc::make_mut(database).load_font_source(fontdb::Source::Binary(
-                    data_and_index.data.as_ipc_shared_memory(),
+                    data_and_index.data.clone().inner_arc(),
                 ));
 
                 let Some(id) = ids.get(data_and_index.index as usize) else {

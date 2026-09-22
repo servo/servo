@@ -70,10 +70,9 @@ mod platform {
         pub fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
             let file = File::open(Path::new(&*self.path)).ok()?;
             let mmap = unsafe { Mmap::map(&file).ok()? };
-            let data = FontData::from_bytes(&mmap);
 
             Some(FontDataAndIndex {
-                data,
+                data: FontData::from_mmap(mmap),
                 index: self.face_index as u32,
             })
         }

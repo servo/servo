@@ -8794,6 +8794,7 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "markup5ever",
+ "memmap2",
  "mime",
  "once_cell",
  "parking_lot",
