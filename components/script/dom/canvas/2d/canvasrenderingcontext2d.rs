@@ -22,6 +22,7 @@ use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::codegen::UnionTypes::{
     HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas,
     StringOrCanvasGradientOrCanvasPattern,
+    UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
@@ -505,6 +506,19 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-rect>
     fn Rect(&self, x: f64, y: f64, width: f64, height: f64) {
         self.canvas_state.rect(x, y, width, height)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-roundrect>
+    fn RoundRect(
+        &self,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+        radii: UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
+    ) -> ErrorResult {
+        let radii = super::canvas_state::round_rect_radii(&radii);
+        self.canvas_state.round_rect(x, y, width, height, &radii)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-quadraticcurveto>
