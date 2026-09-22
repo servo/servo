@@ -50,7 +50,6 @@
 ./components/script/dom/form/formdata.rs 2
 ./components/script/dom/gamepad/gamepadhapticactuator.rs 3
 ./components/script/dom/geometry/dommatrixreadonly.rs 3
-./components/script/dom/globalscope/globalscope.rs 1
 ./components/script/dom/globalscope/messageport.rs 2
 ./components/script/dom/globalscope/script_execution.rs 1
 ./components/script/dom/indexeddb/idbcursor.rs 1
