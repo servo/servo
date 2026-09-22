@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
@@ -27,6 +26,7 @@ use servo_constellation_traits::{BlobImpl, TransferableOffscreenCanvas};
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
 #[cfg(feature = "webgl")]
 use crate::conversions::Convert;
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DSettings;
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     ImageEncodeOptions, OffscreenCanvasMethods,
@@ -538,10 +538,10 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         &self,
         cx: &mut js::context::JSContext,
         options: &ImageEncodeOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // Step 5. Let result be a new promise object.
         let mut realm = CurrentRealm::assert(cx);
-        let promise = Promise::new_in_realm(&mut realm);
+        let promise = Promise::new_in_realm_rooted(&mut realm);
 
         // Step 1. If the value of this's [[Detached]] internal slot is true,
         // then return a promise rejected with an "InvalidStateError"
@@ -579,7 +579,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         // Step 7.2. Queue a global task on the canvas blob serialization task
         // source given global to run these steps:
         let trusted_this = Trusted::new(self);
-        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_promise = TrustedPromise::from(&promise);
 
         let image_type = EncodedImageType::from(&options.type_.str() as &str);
         let quality = options.quality;
