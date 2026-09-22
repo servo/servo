@@ -46,8 +46,9 @@ const ASCII_SPACE: u8 = 0x20;
 ///
 /// # Safety
 ///
-/// The  `*mut JSString` in `rooted_traceable_box` must be non-null. The resulting slice only lives as
-/// long as no other GC operation happens. Afterwards the slice can point to arbitrary memory.
+/// The `*mut JSString` in `rooted_traceable_box` must be non-null. The resulting slice is
+/// guaranteed to live as long as no GC operation happens. Afterwards this pointer can
+/// point to arbitrary memory. Callers should enforce this using `NoGC`.
 // For later code it is important that this function cannot GC which is enforced by the spidermonkey API.
 unsafe fn get_latin1_string_bytes(
     rooted_traceable_box: &RootedTraceableBox<Heap<*mut JSString>>,
@@ -438,7 +439,7 @@ impl DOMString {
     /// character may require multiple UTF-8 code units.
     pub fn len_utf8(&self) -> Utf8CodeUnits {
         // TODO: add a check that DOMString values never exceed 2 GiB?
-        // This is safe as the bytes do not leave this function and no gc can happen.
+        // This is safe as the bytes do not leave this function and no GC can happen.
         let no_gc = unsafe { NoGC::new() };
         Utf8CodeUnits(match self.encoded_bytes(&no_gc) {
             EncodedBytes::Utf8(bytes) => bytes.1.len() as u32,
@@ -454,7 +455,7 @@ impl DOMString {
 
     /// Returns a length for “is small” heuristics, whose precise definition does not matter
     pub fn len_utf8_or_latin1(&self) -> usize {
-        // This is safe as the bytes do not leave this function and no gc can happen.
+        // This is safe as the bytes do not leave this function and no GC can happen.
         let no_gc = unsafe { NoGC::new() };
         match self.encoded_bytes(&no_gc) {
             EncodedBytes::Utf8(bytes) => bytes.1.len(),
@@ -467,7 +468,7 @@ impl DOMString {
     /// Note: This is different than the number of Unicode characters (or code points). A
     /// character may require multiple UTF-16 code units.
     pub fn len_utf16(&self) -> Utf16CodeUnits {
-        // This is safe as the bytes do not leave this function and no gc can happen.
+        // This is safe as the bytes do not leave this function and no GC can happen.
         let no_gc = unsafe { NoGC::new() };
         match self.encoded_bytes(&no_gc) {
             // All Latin-1 characters encode to a single UTF-16 code unit.
@@ -588,7 +589,7 @@ impl DOMString {
         } else {
             // As this is an ASCII character, it is guaranteed to be a single byte, no matter if the
             // underlying encoding is UTF-8 or Latin1.
-            // This is safe as the bytes do not leave this function and no gc can happen.
+            // This is safe as the bytes do not leave this function and no GC can happen.
             let no_gc = unsafe { NoGC::new() };
             self.encoded_bytes(&no_gc).bytes().starts_with(&[c as u8])
         }
@@ -612,7 +613,7 @@ impl DOMString {
     /// <https://infra.spec.whatwg.org/#ascii-case-insensitive>
     pub fn eq_ignore_ascii_case(&self, other: &str) -> bool {
         if other.is_ascii() {
-            // This is safe as the bytes do not leave this function and no gc can happen.
+            // This is safe as the bytes do not leave this function and no GC can happen.
             let no_gc = unsafe { NoGC::new() };
             self.encoded_bytes(&no_gc)
                 .bytes()
@@ -623,7 +624,7 @@ impl DOMString {
     }
 
     pub fn to_ascii_lowercase(&self) -> String {
-        // This is safe as the bytes do not leave this function and no gc can happen. The bytes actually get copiied.
+        // This is safe as the bytes do not leave this function and no GC can happen. The bytes actually get copiied.
         let no_gc = unsafe { NoGC::new() };
         let conversion = match self.encoded_bytes(&no_gc) {
             EncodedBytes::Latin1(bytes) => {
@@ -666,7 +667,7 @@ impl DOMString {
         latin1_characters: &'static [u8],
         utf8_characters: &'static [char],
     ) -> bool {
-        // This is safe as the bytes do not leave this function and no gc can happen.
+        // This is safe as the bytes do not leave this function and no GC can happen.
         let no_gc = unsafe { NoGC::new() };
         match self.encoded_bytes(&no_gc) {
             EncodedBytes::Latin1(items) => {
@@ -721,24 +722,24 @@ impl DOMString {
 
     /// Tests if there are only ascii lowercase characters. Does not include special characters.
     pub fn is_ascii_lowercase(&self) -> bool {
-        // This is safe as the bytes do not leave this function and no gc can happen.
+        // This is safe as the bytes do not leave this function and no GC can happen.
         let no_gc = unsafe { NoGC::new() };
         match self.encoded_bytes(&no_gc) {
             EncodedBytes::Latin1(items) => items
                 .1
                 .iter()
                 .all(|c| (ASCII_LOWERCASE_A..=ASCII_LOWERCASE_Z).contains(c)),
-            EncodedBytes::Utf8(s) => {
-                s.1.iter()
-                    .map(|c| c.to_u8().unwrap_or(ASCII_LOWERCASE_A - 1))
-                    .all(|c| (ASCII_LOWERCASE_A..=ASCII_LOWERCASE_Z).contains(&c))
-            },
+            EncodedBytes::Utf8(bytes) => bytes
+                .1
+                .iter()
+                .map(|c| c.to_u8().unwrap_or(ASCII_LOWERCASE_A - 1))
+                .all(|c| (ASCII_LOWERCASE_A..=ASCII_LOWERCASE_Z).contains(&c)),
         }
     }
 
     /// Is the string only ascii characters
     pub fn is_ascii(&self) -> bool {
-        // This is safe as the bytes do not leave this function and no gc can happen.
+        // This is safe as the bytes do not leave this function and no GC can happen.
         let no_gc = unsafe { NoGC::new() };
         self.encoded_bytes(&no_gc).bytes().is_ascii()
     }
@@ -747,7 +748,7 @@ impl DOMString {
     /// <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-15.html#section-5.6-6>
     /// Not using ServoCookie::is_valid_name_or_value to prevent dependency on the net crate.
     pub fn is_valid_for_cookie(&self) -> bool {
-        // This is safe as the bytes do not leave this function and no gc can happen.
+        // This is safe as the bytes do not leave this function and no GC can happen.
         let no_gc = unsafe { NoGC::new() };
         match self.encoded_bytes(&no_gc) {
             EncodedBytes::Latin1(items) | EncodedBytes::Utf8(items) => !items
@@ -760,7 +761,7 @@ impl DOMString {
     /// Call the callback with a `&str` reference of the string stored in this [`DOMString`]. Note
     /// that if the [`DOMString`] cannot be interpreted as a Rust string a conversion will be done.
     fn with_str_reference<Result>(&self, callback: fn(&str) -> Result) -> Result {
-        // This is safe as the bytes do not leave this function and no gc can happen. The result always has a
+        // This is safe as the bytes do not leave this function and no GC can happen. The result always has a
         // different lifetime which is enforced by creating the no_gc in this scope.
         let no_gc = unsafe { NoGC::new() };
         match self.encoded_bytes(&no_gc) {
@@ -904,7 +905,7 @@ impl std::fmt::Display for DOMString {
 impl std::cmp::PartialEq<str> for DOMString {
     fn eq(&self, other: &str) -> bool {
         if other.is_ascii() {
-            // This is safe as the bytes do not leave this function and no gc can happen.
+            // This is safe as the bytes do not leave this function and no GC can happen.
             let no_gc = unsafe { NoGC::new() };
             *other.as_bytes() == *self.encoded_bytes(&no_gc).bytes()
         } else {
@@ -1069,7 +1070,7 @@ macro_rules! match_domstring_ascii_inner {
 
 /// Use this to match &str against lazydomstring efficiently.
 /// You are only allowed to match ascii strings otherwise this macro will
-/// lead to wrong results. Additionally, you are only allowed to have no nested match_domstring_ascii statements.
+/// lead to wrong results. Additionally, mach_domstring_ascii cannot be nested.
 /// ```ignore
 /// let s = DOMString::from("test");
 /// let value = match_domstring!(s,
