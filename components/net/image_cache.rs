@@ -18,8 +18,8 @@ use mime::Mime;
 use net_traits::image_cache::{
     EncodedImage, FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback,
     ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
-    ImageResponse, PendingImageId, RasterDecodeDemandStatus, RasterizationCompleteResponse,
-    VectorImage,
+    ImageResponse, PendingImageId, RasterDecodeDemandStatus, RasterDecodeRequestCounter,
+    RasterizationCompleteResponse, VectorImage,
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
@@ -424,7 +424,7 @@ struct RasterizationTask {
 enum PendingKey {
     RasterImage((LoadKey, RasterImage)),
     Svg((LoadKey, RasterImage, DeviceIntSize)),
-    DemandDecodedRaster((LoadKey, u64, RasterImage)),
+    DemandDecodedRaster((LoadKey, RasterDecodeRequestCounter, RasterImage)),
 }
 
 /// The state of the `WebRenderImageKey`` cache
@@ -508,9 +508,9 @@ struct DemandDrivenRasterEntry {
     encoded_image_source: Arc<EncodedImage>,
     current_decoded_scaled_image: Option<RasterImage>,
     target_image_metadata: Option<ImageMetadata>,
-    generation: u64,
-    completed_generation: Option<u64>,
-    pending_generation: Option<u64>,
+    current_counter: RasterDecodeRequestCounter,
+    completed: Option<RasterDecodeRequestCounter>,
+    pending: Option<RasterDecodeRequestCounter>,
     decoding: bool,
     failed_target: Option<ImageMetadata>,
 }
@@ -609,7 +609,8 @@ impl ImageCacheStore {
             .retain(|pending| match pending {
                 PendingKey::DemandDecodedRaster((id, generation, _)) => {
                     entries.get(id).is_some_and(|entry| {
-                        entry.generation == *generation && entry.target_image_metadata.is_some()
+                        entry.current_counter == *generation &&
+                            entry.target_image_metadata.is_some()
                     })
                 },
                 _ => true,
@@ -623,7 +624,7 @@ impl ImageCacheStore {
                 let Some(entry) = self.encoded_raster_images.get_mut(&id) else {
                     return;
                 };
-                if entry.generation != generation || entry.target_image_metadata.is_none() {
+                if entry.current_counter != generation || entry.target_image_metadata.is_none() {
                     return;
                 }
                 if let Some(key) = entry
@@ -644,8 +645,8 @@ impl ImageCacheStore {
                     set_webrender_image_key(&self.paint_api, &mut image, image_key);
                 }
                 entry.current_decoded_scaled_image = Some(image);
-                entry.pending_generation = None;
-                entry.completed_generation = Some(generation);
+                entry.pending = None;
+                entry.completed = Some(generation);
                 if let Some(callback) = &self.raster_decode_callback {
                     callback(ImageCacheResponseMessage::RasterDecodeReady(
                         self.pipeline_id,
@@ -802,9 +803,9 @@ impl ImageCacheStore {
                         encoded_image_source: source.clone(),
                         current_decoded_scaled_image: None,
                         target_image_metadata: None,
-                        generation: 0,
-                        completed_generation: None,
-                        pending_generation: None,
+                        current_counter: RasterDecodeRequestCounter::default(),
+                        completed: None,
+                        pending: None,
                         decoding: false,
                         failed_target: None,
                     },
@@ -1242,8 +1243,8 @@ impl ImageCache for ImageCacheImpl {
             });
             if decode_state.target_image_metadata != target {
                 decode_state.target_image_metadata = target;
-                decode_state.generation += 1;
-                decode_state.pending_generation = None;
+                decode_state.current_counter.increment();
+                decode_state.pending = None;
                 if target.is_none() {
                     if let Some(key) = decode_state
                         .current_decoded_scaled_image
@@ -1260,12 +1261,12 @@ impl ImageCache for ImageCacheImpl {
                     .as_ref()
                     .is_some_and(|image| image.decoded_resolution == target)
                 {
-                    decode_state.completed_generation = Some(decode_state.generation);
+                    decode_state.completed = Some(decode_state.current_counter);
                 }
                 statuses.push(RasterDecodeDemandStatus {
                     id,
-                    generation: decode_state.generation,
-                    pending: decode_state.completed_generation != Some(decode_state.generation) &&
+                    counter: decode_state.current_counter,
+                    pending: decode_state.completed != Some(decode_state.current_counter) &&
                         decode_state.failed_target != Some(target),
                 });
             }
@@ -1754,8 +1755,8 @@ fn start_demand_decode(
             return;
         };
         if decode_state.decoding ||
-            decode_state.pending_generation == Some(decode_state.generation) ||
-            decode_state.completed_generation == Some(decode_state.generation) ||
+            decode_state.pending == Some(decode_state.current_counter) ||
+            decode_state.completed == Some(decode_state.current_counter) ||
             decode_state.failed_target == Some(target)
         {
             return;
@@ -1766,14 +1767,14 @@ fn start_demand_decode(
             .as_ref()
             .is_some_and(|image| image.decoded_resolution == target)
         {
-            decode_state.completed_generation = Some(decode_state.generation);
+            decode_state.completed = Some(decode_state.current_counter);
             return;
         }
         decode_state.decoding = true;
         (
             decode_state.encoded_image_source.clone(),
             target,
-            decode_state.generation,
+            decode_state.current_counter,
         )
     };
     let next_pool = pool.clone();
@@ -1803,9 +1804,9 @@ fn start_demand_decode(
                 return;
             };
             entry.decoding = false;
-            if entry.generation == generation {
+            if entry.current_counter == generation {
                 if let Some(image) = decoded {
-                    entry.pending_generation = Some(generation);
+                    entry.pending = Some(generation);
                     // Updates reuse the existing key and do not consume a new key.
                     if let Some(key) = entry
                         .current_decoded_scaled_image

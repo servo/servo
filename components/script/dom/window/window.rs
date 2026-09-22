@@ -58,7 +58,8 @@ use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResponseCallback, ImageCacheResponseMessage, ImageLoadListener,
-    ImageResponse, PendingImageId, PendingImageResponse, RasterizationCompleteResponse,
+    ImageResponse, PendingImageId, PendingImageResponse, RasterDecodeRequestCounter,
+    RasterizationCompleteResponse,
 };
 use net_traits::request::{Origin, Referrer, RequestClient};
 use net_traits::{ResourceFetchTiming, ResourceThreads};
@@ -413,9 +414,11 @@ pub(crate) struct Window {
         HashMapTracedValues<PendingImageId, Vec<PendingLayoutImageAncillaryData>, FxBuildHasher>,
     >,
 
-    /// Display decodes whose completion callbacks have not yet been handled.
+    /// Active decodes. A completion notification would remove the entry
+    /// and request new display list. Must complete before screenshot ready.
     #[no_trace]
-    pending_encoded_raster_images: DomRefCell<FxHashMap<PendingImageId, u64>>,
+    pending_encoded_raster_images:
+        DomRefCell<FxHashMap<PendingImageId, RasterDecodeRequestCounter>>,
 
     /// Vector images for which layout has intiated rasterization at a specific size
     /// and whose results are not yet available. They are stored in the [`ScriptThread`]
@@ -786,9 +789,13 @@ impl Window {
         }
     }
 
-    pub(crate) fn handle_encoded_raster_image_ready(&self, id: PendingImageId, generation: u64) {
+    pub(crate) fn handle_encoded_raster_image_ready(
+        &self,
+        id: PendingImageId,
+        current_counter: RasterDecodeRequestCounter,
+    ) {
         let mut pending = self.pending_encoded_raster_images.borrow_mut();
-        if pending.get(&id) == Some(&generation) {
+        if pending.get(&id) == Some(&current_counter) {
             pending.remove(&id);
         }
         self.layout().set_needs_new_display_list();
@@ -2785,11 +2792,11 @@ impl Window {
             pending.retain(|id, generation| {
                 statuses
                     .get(id)
-                    .is_some_and(|status| status.generation == *generation)
+                    .is_some_and(|status| status.counter == *generation)
             });
             for status in statuses.into_values() {
                 if status.pending {
-                    pending.insert(status.id, status.generation);
+                    pending.insert(status.id, status.counter);
                 }
             }
         }

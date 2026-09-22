@@ -893,7 +893,7 @@ impl HTMLLinkElement {
         match image {
             Image::Raster(raster_image) => send_rasterized_favicon_to_embedder(&raster_image),
             Image::Encoded(source) => {
-                if let Some(image) = source.decode() {
+                if let Some(image) = source.decode_to_original_size() {
                     send_rasterized_favicon_to_embedder(&image);
                 }
             },
