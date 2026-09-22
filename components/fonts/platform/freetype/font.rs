@@ -315,7 +315,7 @@ impl PlatformFontMethods for PlatformFont {
             average_advance = self
                 .glyph_index('0')
                 .and_then(|idx| self.glyph_h_advance(idx))
-                .map_or(max_advance, |advance| advance * y_scale);
+                .unwrap_or(max_advance);
         }
 
         let zero_horizontal_advance = self
