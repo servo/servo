@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
-use x_wing::{DecapsulationKey, Decapsulator, EncapsulationKey, KeyExport, KeyInit, TryKeyInit};
+use x_wing::{
+    DecapsulationKey, Decapsulator, EncapsulationKey, Generate, KeyExport, KeyInit, TryKeyInit,
+};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, KeyType, KeyUsage,
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
@@ -18,6 +20,104 @@ use crate::dom::subtlecrypto::{
     Algorithm, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
     KeyAlgorithmAndDerivatives,
 };
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-generate-key>
+pub(crate) fn generate_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    normalized_algorithm: &Algorithm,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+) -> Result<CryptoKeyPair, Error> {
+    // Step 1. If usages contains an entry which is not one of "encapsulateKey", "encapsulateBits",
+    // "decapsulateKey" or "decapsulateBits", then throw a SyntaxError.
+    if usages.iter().any(|usage| {
+        !matches!(
+            usage,
+            KeyUsage::EncapsulateKey |
+                KeyUsage::EncapsulateBits |
+                KeyUsage::DecapsulateKey |
+                KeyUsage::DecapsulateBits
+        )
+    }) {
+        return Err(Error::Syntax(Some(
+            "Usages contains any entry which is not one of \"encapsulateKey\", \
+            \"encapsulateBits\", \"decapsulateKey\" or \"decapsulateBits\""
+                .into(),
+        )));
+    }
+
+    // Step 2. Generate an ML-KEM key pair, as described in Section 7.1 of [FIPS-203], with the
+    // parameter set indicated by the name member of normalizedAlgorithm.
+    // Step 3. If the key generation step fails, then throw an OperationError.
+    let (private_key_handle, public_key_handle) = match normalized_algorithm.name {
+        CryptoAlgorithm::MlKem768X25519 => {
+            let decapsulation_key = DecapsulationKey::generate();
+            let encapsulation_key = decapsulation_key.encapsulation_key().clone();
+            (
+                Handle::MlKem768X25519PrivateKey(decapsulation_key),
+                Handle::MlKem768X25519PublicKey(encapsulation_key),
+            )
+        },
+        name => {
+            return Err(Error::NotSupported(Some(format!(
+                "{} is not a hybrid KEM algorithm",
+                name.as_str()
+            ))));
+        },
+    };
+
+    // Step 4. Let algorithm be a new KeyAlgorithm object.
+    // Step 5. Set the name attribute of algorithm to the name attribute of normalizedAlgorithm.
+    let algorithm = KeyAlgorithm {
+        name: normalized_algorithm.name,
+    };
+
+    // Step 6. Let publicKey be a new CryptoKey representing the encapsulation key of the generated
+    // key pair.
+    // Step 7. Set the [[type]] internal slot of publicKey to "public".
+    // Step 8. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 9. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 10. Set the [[usages]] internal slot of publicKey to be the usage intersection of usages
+    // and [ "encapsulateKey", "encapsulateBits" ].
+    let public_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Public,
+        true,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
+        usages.usage_intersection(&[KeyUsage::EncapsulateKey, KeyUsage::EncapsulateBits]),
+        public_key_handle,
+    );
+
+    // Step 11. Let privateKey be a new CryptoKey representing the decapsulation key of the
+    // generated key pair.
+    // Step 12. Set the [[type]] internal slot of privateKey to "private".
+    // Step 13. Set the [[algorithm]] internal slot of privateKey to algorithm.
+    // Step 14. Set the [[extractable]] internal slot of privateKey to extractable.
+    // Step 15. Set the [[usages]] internal slot of privateKey to be the usage intersection of
+    // usages and [ "decapsulateKey", "decapsulateBits" ].
+    let private_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Private,
+        extractable,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+        usages.usage_intersection(&[KeyUsage::DecapsulateKey, KeyUsage::DecapsulateBits]),
+        private_key_handle,
+    );
+
+    // Step 16. Let result be a new CryptoKeyPair dictionary.
+    // Step 17. Set the publicKey attribute of result to be publicKey.
+    // Step 18. Set the privateKey attribute of result to be privateKey.
+    let result = CryptoKeyPair {
+        publicKey: Some(public_key),
+        privateKey: Some(private_key),
+    };
+
+    // Step 19. Return result.
+    Ok(result)
+}
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#hybrid-kems-operations-import-key>
 pub(crate) fn import_key(
