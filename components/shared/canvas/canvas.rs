@@ -327,24 +327,13 @@ impl Path {
             },
         };
 
-        let arc = kurbo::Arc::new(
+        self.append_ellipse_arc(
             (x, y),
             (radius_x, radius_y),
             start.radians,
             sweep.radians,
             rotation_angle,
         );
-
-        let mut iter = arc.path_elements(0.01);
-        let kurbo::PathEl::MoveTo(start_point) = iter.next().unwrap() else {
-            unreachable!()
-        };
-
-        self.line_to(start_point.x, start_point.y);
-
-        if sweep.radians.abs() > 1e-3 {
-            self.0.extend(iter);
-        }
 
         Ok(())
     }
@@ -463,14 +452,13 @@ impl Path {
         }
 
         // Step 12. Create a new subpath.
-        let mut subpath = BezPath::new();
+        let mut subpath = Path::new();
         // Step 12.1. Move to the point (x + upperLeft["x"], y).
-        subpath.move_to((x + upper_left.x, y));
+        subpath.0.move_to((x + upper_left.x, y));
         // Step 12.2. Draw a straight line to the point (x + w − upperRight["x"], y).
-        subpath.line_to((x + w - upper_right.x, y));
+        subpath.0.line_to((x + w - upper_right.x, y));
         // Step 12.3. Draw an arc to the point (x + w, y + upperRight["y"]).
-        Self::round_rect_arc(
-            &mut subpath,
+        subpath.round_rect_arc(
             x + w - upper_right.x,
             y + upper_right.y,
             upper_right.x,
@@ -478,10 +466,9 @@ impl Path {
             -FRAC_PI_2,
         );
         // Step 12.4. Draw a straight line to the point (x + w, y + h − lowerRight["y"]).
-        subpath.line_to((x + w, y + h - lower_right.y));
+        subpath.0.line_to((x + w, y + h - lower_right.y));
         // Step 12.5. Draw an arc to the point (x + w − lowerRight["x"], y + h).
-        Self::round_rect_arc(
-            &mut subpath,
+        subpath.round_rect_arc(
             x + w - lower_right.x,
             y + h - lower_right.y,
             lower_right.x,
@@ -489,10 +476,9 @@ impl Path {
             0.0,
         );
         // Step 12.6. Draw a straight line to the point (x + lowerLeft["x"], y + h).
-        subpath.line_to((x + lower_left.x, y + h));
+        subpath.0.line_to((x + lower_left.x, y + h));
         // Step 12.7. Draw an arc to the point (x, y + h − lowerLeft["y"]).
-        Self::round_rect_arc(
-            &mut subpath,
+        subpath.round_rect_arc(
             x + lower_left.x,
             y + h - lower_left.y,
             lower_left.x,
@@ -500,10 +486,9 @@ impl Path {
             FRAC_PI_2,
         );
         // Step 12.8. Draw a straight line to the point (x, y + upperLeft["y"]).
-        subpath.line_to((x, y + upper_left.y));
+        subpath.0.line_to((x, y + upper_left.y));
         // Step 12.9. Draw an arc to the point (x + upperLeft["x"], y).
-        Self::round_rect_arc(
-            &mut subpath,
+        subpath.round_rect_arc(
             x + upper_left.x,
             y + upper_left.y,
             upper_left.x,
@@ -512,12 +497,12 @@ impl Path {
         );
 
         // Step 13. Mark the subpath as closed.
-        subpath.close_path();
+        subpath.0.close_path();
 
         if counterclockwise {
-            subpath = subpath.reverse_subpaths();
+            subpath.0 = subpath.0.reverse_subpaths();
         }
-        self.0.extend(subpath.elements().iter().cloned());
+        self.0.extend(subpath.0.elements().iter().cloned());
 
         // Step 14. Create a new subpath with the original point (x, y) as the only point in the
         // subpath.
@@ -526,16 +511,30 @@ impl Path {
         Ok(())
     }
 
-    /// Appends a quarter arc, sweeping clockwise by [`FRAC_PI_2`], for a `roundRect` corner.
-    fn round_rect_arc(path: &mut BezPath, cx: f64, cy: f64, rx: f64, ry: f64, start_angle: f64) {
-        let arc = kurbo::Arc::new((cx, cy), (rx, ry), start_angle, FRAC_PI_2, 0.0);
+    fn append_ellipse_arc(
+        &mut self,
+        center: (f64, f64),
+        radii: (f64, f64),
+        start_angle: f64,
+        sweep: f64,
+        rotation: f64,
+    ) {
+        let arc = kurbo::Arc::new(center, radii, start_angle, sweep, rotation);
         let mut iter = arc.path_elements(0.01);
 
         let Some(PathEl::MoveTo(start_point)) = iter.next() else {
             unreachable!()
         };
-        path.line_to((start_point.x, start_point.y));
-        path.extend(iter);
+        self.line_to(start_point.x, start_point.y);
+        if sweep.abs() > 1e-3 {
+            self.0.extend(iter);
+        }
+    }
+
+    /// Appends a quarter arc, sweeping clockwise by [`FRAC_PI_2`], for a `roundRect` corner.
+    #[inline]
+    fn round_rect_arc(&mut self, cx: f64, cy: f64, rx: f64, ry: f64, start_angle: f64) {
+        self.append_ellipse_arc((cx, cy), (rx, ry), start_angle, FRAC_PI_2, 0.0);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath>
