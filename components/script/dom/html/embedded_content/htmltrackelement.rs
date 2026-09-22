@@ -564,7 +564,7 @@ impl WebVttParserSink<JSContext> for TextTrackCueSink {
         let text_track = &element.track;
 
         let cue = VTTCue::create_from_vtt(cx, cue, global.as_window(), Some(text_track));
-        text_track.get_text_track_cue_list(cx).add(cx, cue.upcast());
+        text_track.text_track_cue_list(cx).add(cx, cue.upcast());
     }
 }
 

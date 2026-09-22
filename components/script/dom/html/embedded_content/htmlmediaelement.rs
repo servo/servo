@@ -6,6 +6,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
+use std::ops::Deref;
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
@@ -786,6 +787,37 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
+    #[expect(clippy::type_complexity)]
+    fn current_and_other_cues<'no_gc>(
+        &self,
+        no_gc: &'no_gc NoGC,
+    ) -> Option<(
+        Vec<UnrootedDom<'no_gc, TextTrackCue>>,
+        Vec<UnrootedDom<'no_gc, TextTrackCue>>,
+    )> {
+        // Step 1. Let current cues be a list of cues,
+        // initialized to contain all the cues of all the hidden or
+        // showing text tracks of the media element (not the disabled ones)
+        // whose start times are less than or equal to the current playback position
+        // and whose end times are greater than the current playback position.
+        // Step 2. Let other cues be a list of cues, initialized to contain
+        // all the cues of hidden and showing text tracks of the media element
+        // that are not present in current cues.
+        let current_playback_position = self.current_playback_position.get();
+        let text_tracks_list = self.text_tracks_list.get()?;
+        Some(
+            text_tracks_list
+                .iter(no_gc)
+                .filter(|text_track| text_track.Mode() != TextTrackMode::Disabled)
+                .flat_map(|text_track| text_track.cues(no_gc))
+                .partition(|cue| {
+                    cue.start_time() <= current_playback_position &&
+                        cue.end_time() > current_playback_position
+                }),
+        )
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
     fn time_marches_on(&self, cx: &mut JSContext, playback_was_moved: PlaybackPositionWasMoved) {
         let playback_was_moved_monotonic_increase =
             playback_was_moved == PlaybackPositionWasMoved::NormalPlayback;
@@ -797,22 +829,13 @@ impl HTMLMediaElement {
         // Step 2. Let other cues be a list of cues, initialized to contain
         // all the cues of hidden and showing text tracks of the media element
         // that are not present in current cues.
-        let current_playback_position = self.current_playback_position.get();
-        let Some(text_tracks_list) = self.text_tracks_list.get() else {
+        let Some((current_cues, other_cues)) = self.current_and_other_cues(cx.no_gc()) else {
             return;
         };
-        type CueVec = Vec<DomRoot<TextTrackCue>>;
-        let (current_cues, other_cues): (CueVec, CueVec) = text_tracks_list
-            .iter(cx.no_gc())
-            .filter(|text_track| text_track.Mode() != TextTrackMode::Disabled)
-            .flat_map(|text_track| text_track.get_cues())
-            .partition(|cue| {
-                cue.start_time() <= current_playback_position &&
-                    cue.end_time() > current_playback_position
-            });
         // Step 3. Let last time be the current playback position at the time
         // this algorithm was last run for this media element,
         // if this is not the first time it has run.
+        let current_playback_position = self.current_playback_position.get();
         let last_time = self.position_when_time_marches_on_ran.get();
         self.position_when_time_marches_on_ran
             .set(Some(current_playback_position));
@@ -841,9 +864,9 @@ impl HTMLMediaElement {
                             cue.end_time() <= current_playback_position &&
                             !newly_introduced_cues
                                 .iter()
-                                .any(|newly_cue| **newly_cue == ***cue)
+                                .any(|newly_cue| **newly_cue == ****cue)
                     })
-                    .cloned()
+                    .map(|cue| cue.as_rooted())
                     .collect()
             } else {
                 self.newly_introduced_cues
@@ -874,6 +897,11 @@ impl HTMLMediaElement {
         {
             return;
         }
+
+        let current_cues: Vec<DomRoot<TextTrackCue>> =
+            current_cues.iter().map(|cue| cue.as_rooted()).collect();
+        let other_cues: Vec<DomRoot<TextTrackCue>> =
+            other_cues.iter().map(|cue| cue.as_rooted()).collect();
 
         // Step 8. If the time was reached through the usual monotonic increase of the
         // current playback position during normal playback,
@@ -3331,13 +3359,15 @@ impl HTMLMediaElement {
         // > Whenever a text track is added to the list of text tracks for a media element,
         // all of the cues in that text track's list of cues must be added to
         // the media element's list of newly introduced cues.
-        let cues = track.get_cues();
-        let has_new_cues = !cues.is_empty();
-        for cue in cues {
-            self.newly_introduced_cues
-                .borrow_mut()
-                .push(cue.as_traced());
-        }
+        let has_new_cues = {
+            let cues = track.cues(cx.no_gc());
+            for cue in &cues {
+                self.newly_introduced_cues
+                    .borrow_mut()
+                    .push(cue.deref().clone());
+            }
+            !cues.is_empty()
+        };
         // > When a media element's list of newly introduced cues has new cues added
         // > while the media element's show poster flag is not set,
         // > then the user agent must run the time marches on steps.
