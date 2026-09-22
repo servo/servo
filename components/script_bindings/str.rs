@@ -271,6 +271,10 @@ pub fn js_string_to_code_units(
         let maybe_ill_formed_code_units = unsafe {
             let mut len = 0;
             let data = JS_GetTwoByteStringCharsAndLength(cx, *target, &mut len);
+
+            // Note: defensive copy to avoid having the js string data move underneath us.
+            // For an optimal pattern,
+            // see <https://searchfox.org/firefox-main/rev/a4d4f7ecfae304e10b0f6724595f9c931d7c919b/js/src/vm/StringType.cpp#1738>
             std::slice::from_raw_parts(data, len).to_vec()
         };
         Ok(ConversionResult::CodeUnits(CodeUnits(
