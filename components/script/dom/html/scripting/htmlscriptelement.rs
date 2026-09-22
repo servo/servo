@@ -116,7 +116,7 @@ pub(crate) struct HTMLScriptElement {
     marked_as_render_blocking: Cell<bool>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-script-result>
-    result: DomRefCell<Option<ScriptResult>>,
+    result: DomRefCell<Option<Box<ScriptResult>>>,
 }
 
 impl HTMLScriptElement {
@@ -244,19 +244,19 @@ fn finish_fetching_a_script(
     match script_kind {
         ExternalScriptKind::Asap => {
             let document = elem.preparation_time_document.get().unwrap();
-            document.asap_script_loaded(cx, elem, load)
+            document.asap_script_loaded(cx, elem, *load)
         },
         ExternalScriptKind::AsapInOrder => {
             let document = elem.preparation_time_document.get().unwrap();
-            document.asap_in_order_script_loaded(cx, elem, load)
+            document.asap_in_order_script_loaded(cx, elem, *load)
         },
         ExternalScriptKind::Deferred => {
             let document = elem.parser_document.as_rooted();
-            document.deferred_script_loaded(cx, elem, load);
+            document.deferred_script_loaded(cx, elem, *load);
         },
         ExternalScriptKind::ParsingBlocking => {
             let document = elem.parser_document.as_rooted();
-            document.pending_parsing_blocking_script_loaded(elem, load, cx);
+            document.pending_parsing_blocking_script_loaded(elem, *load, cx);
         },
     }
 
@@ -369,7 +369,7 @@ impl FetchResponseListener for ClassicContext {
                     error, self.url
                 );
                 // Step 6, response is an error.
-                *elem.result.borrow_mut() = Some(Err(()));
+                *elem.result.borrow_mut() = Some(Box::new(Err(())));
                 finish_fetching_a_script(&elem, self.kind, cx);
                 return;
             },
@@ -446,7 +446,7 @@ impl FetchResponseListener for ClassicContext {
                 .is_null());
             }
         } else {*/
-        *elem.result.borrow_mut() = Some(Ok(Script::Classic(script)));
+        *elem.result.borrow_mut() = Some(Box::new(Ok(Script::Classic(script))));
         finish_fetching_a_script(&elem, self.kind, cx);
         // }
     }
@@ -860,7 +860,7 @@ impl HTMLScriptElement {
                         script_fetch_options,
                         move |cx, module_tree| {
                             let load = module_tree.map(Script::Module).ok_or(());
-                            *script.result.borrow_mut() = Some(load);
+                            *script.result.borrow_mut() = Some(Box::new(load));
 
                             finish_fetching_a_script(&script, kind, cx);
                         },
@@ -931,7 +931,7 @@ impl HTMLScriptElement {
                         introduction_type,
                         move |_, module_tree| {
                             let load = module_tree.map(Script::Module).ok_or(());
-                            *script.result.borrow_mut() = Some(load);
+                            *script.result.borrow_mut() = Some(Box::new(load));
 
                             let trusted = Trusted::new(&*script);
 
