@@ -38,8 +38,8 @@ use crate::dom::bindings::error::throw_dom_exception;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promise::promisenativehandler::{Callback, PromiseNativeHandler};
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::window::Window;
 use crate::modules::script_module::{
     ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
@@ -366,7 +366,9 @@ fn continue_dynamic_import(realm: &mut CurrentRealm, promise: RootedPromise, mod
             realm,
             &global,
             Some(link_and_evaluate),
-            Some(Box::new(OnRejectedHandler { promise: promise.to_traced() })),
+            Some(Box::new(OnRejectedHandler {
+                promise: promise.to_traced(),
+            })),
         );
         load_promise.append_native_handler(realm, &handler);
     });
