@@ -275,7 +275,7 @@ enum DecodedImage {
 
 /// Message that the decoder worker threads send to the image cache.
 struct DecoderMsg {
-    // The value used by handle_decoder to check when it was scheduled, a snapshot
+    // The value used by handle_decoder to check if cache got cleared while decode was working
     cache_clear_count: u64,
     key: LoadKey,
     image: Option<DecodedImage>,
@@ -560,7 +560,8 @@ struct ImageCacheStore {
 
     encoded_raster_images: FxHashMap<PendingImageId, DemandDrivenRasterEntry>,
 
-    /// Incremented whenever the cache is cleared, to prevent races.
+    /// We need this in case we invoke initial decode work and then do `clear()`.
+    /// Could happen if the page was navigated out of, but there was an initial decode right before
     cache_clear_count: u64,
     #[ignore_malloc_size_of = "Callbacks cannot be measured"]
     raster_decode_callback: Option<ImageCacheResponseCallback>,
