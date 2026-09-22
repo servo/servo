@@ -1735,7 +1735,6 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             options,
             realm,
         )
-        .duplicate(realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -1759,7 +1758,6 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             options,
             realm,
         )
-        .duplicate(realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window>
