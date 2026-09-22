@@ -9,10 +9,10 @@ test(function(){
     var video = document.createElement('video');
     var t1 = video.addTextTrack('subtitles');
     document.body.appendChild(video);
-    var c1 = new VTTCue(0, 1, '<c></c><c.a.b></c><i></i><b></b><u></u><ruby><rt></rt></ruby><v></v><v a b></v><v Foo&amp;Bar>text</v><1:00:00.500>x\0');
+    var c1 = new VTTCue(0, 1, '<c></c><c.a.b></c><i></i><b></b><u></u><ruby><rt></rt></ruby><v></v><v a b></v><v Foo&amp;Bar>text</v><1:00:13.500><00:09.500>x\0');
     t1.addCue(c1);
     window.frag = c1.getCueAsHTML();
-    assert_equals(frag.childNodes.length, 11, 'childNodes.length');
+    assert_equals(frag.childNodes.length, 12, 'childNodes.length');
     assert_true(frag instanceof DocumentFragment, 'getCueAsHTML() should return DocumentFragment');
 }, document.title+', creating the cue');
 test(function(){
@@ -92,11 +92,16 @@ test(function(){
 }, document.title+', <v Foo&amp;Bar>');
 test(function(){
     assert_equals(frag.childNodes[9].target, 'timestamp', 'target');
-    assert_equals(frag.childNodes[9].data, '01:00:00.500', 'data');
+    assert_equals(frag.childNodes[9].data, '01:00:13.500', 'data');
     assert_true(frag.childNodes[9] instanceof ProcessingInstruction, 'instanceof');
-}, document.title+', <1:00:00.500>');
+}, document.title+', <1:00:13.500>');
 test(function(){
-    assert_equals(frag.childNodes[10].data, 'x\0', 'data');
-    assert_true(frag.childNodes[10] instanceof Text, 'instanceof');
+    assert_equals(frag.childNodes[10].target, 'timestamp', 'target');
+    assert_equals(frag.childNodes[10].data, '00:00:09.500', 'data');
+    assert_true(frag.childNodes[10] instanceof ProcessingInstruction, 'instanceof');
+}, document.title+', <00:09.500>');
+test(function(){
+    assert_equals(frag.childNodes[11].data, 'x\0', 'data');
+    assert_true(frag.childNodes[11] instanceof Text, 'instanceof');
 }, document.title+', x\\0');
 </script>
