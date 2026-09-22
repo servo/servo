@@ -3190,6 +3190,7 @@ impl ScriptThread {
             .pipeline_exited(webview_id, pipeline_id, PipelineExitSource::Script);
 
         self.devtools_state.notify_pipeline_exited(pipeline_id);
+        self.pipeline_to_node_ids.borrow_mut().remove(&pipeline_id);
 
         debug!("{pipeline_id}: Finished pipeline exit");
     }
