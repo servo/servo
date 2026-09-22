@@ -254,6 +254,8 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
 
     /// <https://dom.spec.whatwg.org/#dom-mutationobserver-observe>
     fn Observe(&self, target: &Node, options: &MutationObserverInit) -> Fallible<()> {
+        ScriptThread::mutation_observers().ensure(&self);
+
         let attribute_filter = options.attributeFilter.clone().unwrap_or_default();
         let attribute_old_value = options.attributeOldValue.unwrap_or(false);
         let mut attributes = options.attributes.unwrap_or(false);
@@ -372,6 +374,9 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
         for node in nodes {
             node.remove_mutation_observer(self);
         }
+
+        // In `Observe` we add this observer again, if it is needed.
+        ScriptThread::mutation_observers().remove(self);
 
         // Step 2
         self.record_queue.borrow_mut().clear();

@@ -119,4 +119,30 @@ impl ScriptMutationObservers {
             .map(|mo| mo.as_rooted())
             .collect()
     }
+
+    /// Remove the mutation observer.
+    pub(crate) fn remove(&self, observer: &MutationObserver) {
+        if let Some(index) = self
+            .mutation_observers
+            .borrow()
+            .iter()
+            .position(|current_observer| *current_observer == observer)
+        {
+            self.mutation_observers.borrow_mut().swap_remove(index);
+        } else {
+            error!("Mutation Observer already removed.");
+        };
+    }
+
+    /// Ensures that the mutation observer actually exists in the struct.
+    pub(crate) fn ensure(&self, observer: &MutationObserver) {
+        if !self
+            .mutation_observers
+            .borrow()
+            .iter()
+            .any(|current_observer| *current_observer == observer)
+        {
+            self.add_mutation_observer(observer);
+        }
+    }
 }
