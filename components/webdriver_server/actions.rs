@@ -1096,35 +1096,36 @@ impl Handler {
                         0.0,
                     )));
                 // <https://w3c.github.io/webdriver/#dfn-process-a-pointer-action>
-                for action in &pointer_actions {
-                    let is_invalid = match action {
-                        PointerActionItem::General(GeneralAction::Pause(action)) => {
-                            action.duration.is_some_and(exceeds_maximum_safe_integer)
-                        },
-                        PointerActionItem::Pointer(PointerAction::Down(action)) => {
-                            exceeds_maximum_safe_integer(action.button) ||
-                                action.width.is_some_and(exceeds_maximum_safe_integer) ||
-                                action.height.is_some_and(exceeds_maximum_safe_integer)
-                        },
-                        PointerActionItem::Pointer(PointerAction::Up(action)) => {
-                            exceeds_maximum_safe_integer(action.button) ||
-                                action.width.is_some_and(exceeds_maximum_safe_integer) ||
-                                action.height.is_some_and(exceeds_maximum_safe_integer)
-                        },
-                        PointerActionItem::Pointer(PointerAction::Move(action)) => {
-                            action.width.is_some_and(exceeds_maximum_safe_integer) ||
-                                action.height.is_some_and(exceeds_maximum_safe_integer)
-                        },
-                        PointerActionItem::Pointer(PointerAction::Cancel) => false,
-                    };
-                    if is_invalid {
-                        return Err(ErrorStatus::InvalidArgument);
-                    }
-                }
-                Ok(pointer_actions
+                pointer_actions
                     .into_iter()
-                    .map(ActionItem::Pointer)
-                    .collect())
+                    .map(|action_item| {
+                        let is_invalid = match &action_item {
+                            PointerActionItem::General(GeneralAction::Pause(action)) => {
+                                action.duration.is_some_and(exceeds_maximum_safe_integer)
+                            },
+                            PointerActionItem::Pointer(PointerAction::Down(action)) => {
+                                exceeds_maximum_safe_integer(action.button) ||
+                                    action.width.is_some_and(exceeds_maximum_safe_integer) ||
+                                    action.height.is_some_and(exceeds_maximum_safe_integer)
+                            },
+                            PointerActionItem::Pointer(PointerAction::Up(action)) => {
+                                exceeds_maximum_safe_integer(action.button) ||
+                                    action.width.is_some_and(exceeds_maximum_safe_integer) ||
+                                    action.height.is_some_and(exceeds_maximum_safe_integer)
+                            },
+                            PointerActionItem::Pointer(PointerAction::Move(action)) => {
+                                action.width.is_some_and(exceeds_maximum_safe_integer) ||
+                                    action.height.is_some_and(exceeds_maximum_safe_integer)
+                            },
+                            PointerActionItem::Pointer(PointerAction::Cancel) => false,
+                        };
+                        if is_invalid {
+                            Err(ErrorStatus::InvalidArgument)
+                        } else {
+                            Ok(ActionItem::Pointer(action_item))
+                        }
+                    })
+                    .collect()
             },
             ActionsType::Wheel {
                 actions: wheel_actions,
@@ -1133,23 +1134,27 @@ impl Handler {
                     .entry(id)
                     .or_insert(InputSourceState::Wheel);
                 // <https://w3c.github.io/webdriver/#dfn-process-a-wheel-action>
-                for action in &wheel_actions {
-                    let is_invalid = match action {
-                        WheelActionItem::General(GeneralAction::Pause(action)) => {
-                            action.duration.is_some_and(exceeds_maximum_safe_integer)
-                        },
-                        WheelActionItem::Wheel(WheelAction::Scroll(action)) => {
-                            action.x.is_some_and(outside_safe_integer_range) ||
-                                action.y.is_some_and(outside_safe_integer_range) ||
-                                action.deltaX.is_some_and(outside_safe_integer_range) ||
-                                action.deltaY.is_some_and(outside_safe_integer_range)
-                        },
-                    };
-                    if is_invalid {
-                        return Err(ErrorStatus::InvalidArgument);
-                    }
-                }
-                Ok(wheel_actions.into_iter().map(ActionItem::Wheel).collect())
+                wheel_actions
+                    .into_iter()
+                    .map(|action_item| {
+                        let is_invalid = match &action_item {
+                            WheelActionItem::General(GeneralAction::Pause(action)) => {
+                                action.duration.is_some_and(exceeds_maximum_safe_integer)
+                            },
+                            WheelActionItem::Wheel(WheelAction::Scroll(action)) => {
+                                action.x.is_some_and(outside_safe_integer_range) ||
+                                    action.y.is_some_and(outside_safe_integer_range) ||
+                                    action.deltaX.is_some_and(outside_safe_integer_range) ||
+                                    action.deltaY.is_some_and(outside_safe_integer_range)
+                            },
+                        };
+                        if is_invalid {
+                            Err(ErrorStatus::InvalidArgument)
+                        } else {
+                            Ok(ActionItem::Wheel(action_item))
+                        }
+                    })
+                    .collect()
             },
         }
     }
