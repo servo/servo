@@ -50,7 +50,7 @@ use profile_traits::{
     generic_callback as profile_generic_callback, generic_channel as profile_generic_channel,
     mem as profile_mem, time as profile_time,
 };
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::FxBuildHasher;
 use script_bindings::callback::OwnerWindow;
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::interfaces::GlobalScopeHelpers;
@@ -65,7 +65,7 @@ use servo_base::id::{
 use servo_config::pref;
 use servo_constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, ConstellationInterest, FileBlob, MessagePortImpl,
-    MessagePortMsg, PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
+    PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
     ScriptToConstellationSender,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -93,12 +93,11 @@ use crate::dom::bindings::conversions::{root_from_object, root_from_object_stati
 #[cfg(feature = "js_backtrace")]
 use crate::dom::bindings::error::LAST_EXCEPTION_BACKTRACE;
 use crate::dom::bindings::error::{
-    Error, ErrorInfo, Fallible, report_pending_exception, take_and_report_pending_exception_for_api,
+    ErrorInfo, Fallible, report_pending_exception, take_and_report_pending_exception_for_api,
 };
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global};
 use crate::dom::bindings::str::DOMString;
@@ -115,7 +114,13 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
+use crate::dom::globalscope::autocloseworker::AutoCloseWorker;
 use crate::dom::globalscope::broadcastchannel::BroadcastChannel;
+use crate::dom::globalscope::listeners::{
+    BlobInfo, BlobResult, BlobTracker, BroadcastChannelState, BroadcastListener, FileListener,
+    FileListenerCallback, FileListenerState, FileListenerTarget, ManagedMessagePort,
+    MessageListener, MessagePortState,
+};
 use crate::dom::globalscope::script_execution::{
     fill_compile_options, maybe_associate_with_script,
 };
@@ -160,57 +165,6 @@ use crate::runtime::script_runtime::ThreadSafeJSContext;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::SendableTaskSource;
 use crate::unminify::unminified_path;
-
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct AutoCloseWorker {
-    /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-closing>
-    #[conditional_malloc_size_of]
-    closing: Arc<AtomicBool>,
-    #[conditional_malloc_size_of]
-    animation_frame_provider_supported: Arc<AtomicBool>,
-    /// A handle to join on the worker thread.
-    #[ignore_malloc_size_of = "JoinHandle"]
-    join_handle: Option<JoinHandle<()>>,
-    /// A sender of control messages.
-    #[no_trace]
-    control_sender: Sender<DedicatedWorkerControlMsg>,
-    /// The context to request an interrupt on the worker thread.
-    #[ignore_malloc_size_of = "mozjs"]
-    #[no_trace]
-    context: ThreadSafeJSContext,
-}
-
-impl Drop for AutoCloseWorker {
-    /// <https://html.spec.whatwg.org/multipage/#terminate-a-worker>
-    fn drop(&mut self) {
-        // Step 1. Set the worker's `WorkerGlobalScope` object's closing flag to true.
-        self.closing.store(true, Ordering::SeqCst);
-
-        if self
-            .control_sender
-            .send(DedicatedWorkerControlMsg::Exit)
-            .is_err()
-        {
-            warn!("Couldn't send an exit message to a dedicated worker.");
-        }
-
-        self.context.request_interrupt_callback();
-
-        // Step 2. If there are any tasks queued in the `WorkerGlobalScope` object's relevant agent's event loop's task queues, discard them without processing them.
-        // Step 3. Abort the script currently running in the worker.
-        // Step 4. If the worker's WorkerGlobalScope object is actually a DedicatedWorkerGlobalScope object (i.e. the worker is a dedicated worker), then empty the port message queue of the port that the worker's implicit port is entangled with.
-        // TODO Steps 2-4.
-        if self
-            .join_handle
-            .take()
-            .expect("No handle to join on worker.")
-            .join()
-            .is_err()
-        {
-            warn!("Failed to join on dedicated worker thread.");
-        }
-    }
-}
 
 #[dom_struct]
 pub(crate) struct GlobalScope {
@@ -389,335 +343,6 @@ pub(crate) struct GlobalScope {
     fetch_group: RefCell<FetchGroup>,
 }
 
-/// A wrapper for glue-code between the ipc router and the event-loop.
-struct MessageListener {
-    task_source: SendableTaskSource,
-    context: Trusted<GlobalScope>,
-}
-
-/// A wrapper for broadcasts coming in over IPC, and the event-loop.
-struct BroadcastListener {
-    task_source: SendableTaskSource,
-    context: Trusted<GlobalScope>,
-}
-
-type FileListenerCallback =
-    Box<dyn Fn(&mut js::context::JSContext, &RootedPromise, Fallible<Vec<u8>>) + Send>;
-
-/// A wrapper for the handling of file data received by the ipc router
-struct FileListener {
-    /// State should progress as either of:
-    /// - Some(Empty) => Some(Receiving) => None
-    /// - Some(Empty) => None
-    state: Option<FileListenerState>,
-    task_source: SendableTaskSource,
-}
-
-enum FileListenerTarget {
-    Promise(TrustedPromise, FileListenerCallback),
-    Stream(Trusted<ReadableStream>),
-}
-
-enum FileListenerState {
-    Empty(FileListenerTarget),
-    Receiving(Vec<u8>, FileListenerTarget),
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-/// A holder of a weak reference for a DOM blob or file.
-pub(crate) enum BlobTracker {
-    /// A weak ref to a DOM file.
-    File(WeakRef<File>),
-    /// A weak ref to a DOM blob.
-    Blob(WeakRef<Blob>),
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-/// The info pertaining to a blob managed by this global.
-pub(crate) struct BlobInfo {
-    /// The weak ref to the corresponding DOM object.
-    tracker: BlobTracker,
-    /// The data and logic backing the DOM object.
-    #[no_trace]
-    blob_impl: BlobImpl,
-    /// Whether this blob has an outstanding URL,
-    /// <https://w3c.github.io/FileAPI/#url>.
-    has_url: bool,
-}
-
-/// The result of looking-up the data for a Blob,
-/// containing either the in-memory bytes,
-/// or the file-id.
-enum BlobResult {
-    Bytes(Vec<u8>),
-    File(Uuid, usize),
-}
-
-/// Data representing a message-port managed by this global.
-#[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct ManagedMessagePort {
-    /// The DOM port.
-    dom_port: Dom<MessagePort>,
-    /// The logic and data backing the DOM port.
-    /// The option is needed to take out the port-impl
-    /// as part of its transferring steps,
-    /// without having to worry about rooting the dom-port.
-    #[no_trace]
-    port_impl: Option<MessagePortImpl>,
-    /// We keep ports pending when they are first transfer-received,
-    /// and only add them, and ask the constellation to complete the transfer,
-    /// in a subsequent task if the port hasn't been re-transfered.
-    pending: bool,
-    /// Whether the port has been closed by script in this global,
-    /// so it can be removed.
-    explicitly_closed: bool,
-    /// The handler for `message` or `messageerror` used in the cross realm transform,
-    /// if any was setup with this port.
-    cross_realm_transform: Option<CrossRealmTransform>,
-}
-
-/// State representing whether this global is currently managing broadcast channels.
-#[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) enum BroadcastChannelState {
-    /// The broadcast-channel router id for this global, and a queue of managed channels.
-    /// Step 9, "sort destinations"
-    /// of <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage>
-    /// requires keeping track of creation order, hence the queue.
-    Managed(
-        #[no_trace] BroadcastChannelRouterId,
-        /// The map of channel-name to queue of channels, in order of creation.
-        HashMap<DOMString, VecDeque<Dom<BroadcastChannel>>>,
-    ),
-    /// This global is not managing any broadcast channels at this time.
-    UnManaged,
-}
-
-/// State representing whether this global is currently managing messageports.
-#[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) enum MessagePortState {
-    /// The message-port router id for this global, and a map of managed ports.
-    Managed(
-        #[no_trace] MessagePortRouterId,
-        HashMapTracedValues<MessagePortId, ManagedMessagePort, FxBuildHasher>,
-    ),
-    /// This global is not managing any ports at this time.
-    UnManaged,
-}
-
-impl BroadcastListener {
-    /// Handle a broadcast coming in over IPC,
-    /// by queueing the appropriate task on the relevant event-loop.
-    fn handle(&self, event: BroadcastChannelMsg) {
-        let context = self.context.clone();
-
-        // Note: strictly speaking we should just queue the message event tasks,
-        // not queue a task that then queues more tasks.
-        // This however seems to be hard to avoid in the light of the IPC.
-        // One can imagine queueing tasks directly,
-        // for channels that would be in the same script-thread.
-        self.task_source
-            .queue(task!(broadcast_message_event: move || {
-                let global = context.root();
-                // Step 10 of https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage,
-                // For each BroadcastChannel object destination in destinations, queue a task.
-                global.broadcast_message_event(event, None);
-            }));
-    }
-}
-
-impl MessageListener {
-    /// A new message came in, handle it via a task enqueued on the event-loop.
-    /// A task is required, since we are using a trusted globalscope,
-    /// and we can only access the root from the event-loop.
-    fn notify(&self, msg: MessagePortMsg) {
-        match msg {
-            MessagePortMsg::CompleteTransfer(ports) => {
-                let context = self.context.clone();
-                self.task_source.queue(
-                    task!(process_complete_transfer: move |cx| {
-                        let global = context.root();
-
-                        let router_id = match global.port_router_id() {
-                            Some(router_id) => router_id,
-                            None => {
-                                // If not managing any ports, no transfer can succeed,
-                                // so just send back everything.
-                                let _ = global.script_to_constellation_chan().send(
-                                    ScriptToConstellationMessage::MessagePortTransferResult(None, vec![], ports),
-                                );
-                                return;
-                            }
-                        };
-
-                        let mut succeeded = vec![];
-                        let mut failed = FxHashMap::default();
-
-                        for (id, info) in ports.into_iter() {
-                            if global.is_managing_port(&id) {
-                                succeeded.push(id);
-                                global.complete_port_transfer(
-                                    cx,
-                                    id,
-                                    info.port_message_queue,
-                                    info.disentangled,
-                                );
-                            } else {
-                                failed.insert(id, info);
-                            }
-                        }
-                        let _ = global.script_to_constellation_chan().send(
-                            ScriptToConstellationMessage::MessagePortTransferResult(Some(router_id), succeeded, failed),
-                        );
-                    })
-                );
-            },
-            MessagePortMsg::CompletePendingTransfer(port_id, info) => {
-                let context = self.context.clone();
-                self.task_source.queue(task!(complete_pending: move |cx| {
-                    let global = context.root();
-                    global.complete_port_transfer(cx, port_id, info.port_message_queue, info.disentangled);
-                }));
-            },
-            MessagePortMsg::CompleteDisentanglement(port_id) => {
-                let context = self.context.clone();
-                self.task_source
-                    .queue(task!(try_complete_disentanglement: move |cx| {
-                        let global = context.root();
-                        global.try_complete_disentanglement(cx, port_id);
-                    }));
-            },
-            MessagePortMsg::NewTask(port_id, task) => {
-                let context = self.context.clone();
-                self.task_source.queue(task!(process_new_task: move |cx| {
-                    let global = context.root();
-                    global.route_task_to_port(cx, port_id, task);
-                }));
-            },
-        }
-    }
-}
-
-/// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(
-    cx: &mut js::context::JSContext,
-    stream: &ReadableStream,
-    bytes: Fallible<Vec<u8>>,
-) {
-    match bytes {
-        Ok(b) => {
-            stream.enqueue_native(cx, b);
-        },
-        Err(e) => {
-            stream.error_native(cx, e);
-        },
-    }
-}
-
-/// Callback used to close streams as part of FileListener.
-fn stream_handle_eof(cx: &mut js::context::JSContext, stream: &ReadableStream) {
-    stream.controller_close_native(cx);
-}
-
-impl FileListener {
-    fn handle(&mut self, msg: FileManagerResult<ReadFileProgress>) {
-        match msg {
-            Ok(ReadFileProgress::Meta(blob_buf)) => match self.state.take() {
-                Some(FileListenerState::Empty(target)) => {
-                    let bytes = if let FileListenerTarget::Stream(ref trusted_stream) = target {
-                        let trusted = trusted_stream.clone();
-
-                        let task = task!(enqueue_stream_chunk: move |cx| {
-                            let stream = trusted.root();
-                            stream_handle_incoming(cx, &stream, Ok(blob_buf.bytes));
-                        });
-                        self.task_source.queue(task);
-
-                        Vec::with_capacity(0)
-                    } else {
-                        blob_buf.bytes
-                    };
-
-                    self.state = Some(FileListenerState::Receiving(bytes, target));
-                },
-                _ => panic!(
-                    "Unexpected FileListenerState when receiving ReadFileProgress::Meta msg."
-                ),
-            },
-            Ok(ReadFileProgress::Partial(mut bytes_in)) => match self.state.take() {
-                Some(FileListenerState::Receiving(mut bytes, target)) => {
-                    if let FileListenerTarget::Stream(ref trusted_stream) = target {
-                        let trusted = trusted_stream.clone();
-
-                        let task = task!(enqueue_stream_chunk: move |cx| {
-                            let stream = trusted.root();
-                            stream_handle_incoming(cx, &stream, Ok(bytes_in));
-                        });
-
-                        self.task_source.queue(task);
-                    } else {
-                        bytes.append(&mut bytes_in);
-                    };
-
-                    self.state = Some(FileListenerState::Receiving(bytes, target));
-                },
-                _ => panic!(
-                    "Unexpected FileListenerState when receiving ReadFileProgress::Partial msg."
-                ),
-            },
-            Ok(ReadFileProgress::EOF) => match self.state.take() {
-                Some(FileListenerState::Receiving(bytes, target)) => match target {
-                    FileListenerTarget::Promise(trusted_promise, callback) => {
-                        let task = task!(resolve_promise: move |cx| {
-                            let promise = trusted_promise.root(cx);
-                            let mut realm = enter_auto_realm(cx, &*promise.global());
-                            callback(&mut realm, &promise, Ok(bytes));
-                        });
-
-                        self.task_source.queue(task);
-                    },
-                    FileListenerTarget::Stream(trusted_stream) => {
-                        let task = task!(enqueue_stream_chunk: move |cx| {
-                            let stream = trusted_stream.root();
-                            stream_handle_eof(cx, &stream);
-                        });
-
-                        self.task_source.queue(task);
-                    },
-                },
-                _ => {
-                    panic!("Unexpected FileListenerState when receiving ReadFileProgress::EOF msg.")
-                },
-            },
-            Err(_) => match self.state.take() {
-                Some(FileListenerState::Receiving(_, target)) |
-                Some(FileListenerState::Empty(target)) => {
-                    let error = Err(Error::Network(None));
-
-                    match target {
-                        FileListenerTarget::Promise(trusted_promise, callback) => {
-                            self.task_source.queue(task!(reject_promise: move |cx| {
-                                let promise = trusted_promise.root(cx);
-                                let mut realm = enter_auto_realm(cx, &*promise.global());
-                                callback(&mut realm, &promise, error);
-                            }));
-                        },
-                        FileListenerTarget::Stream(trusted_stream) => {
-                            self.task_source.queue(task!(error_stream: move |cx| {
-                                let stream = trusted_stream.root();
-                                stream_handle_incoming(cx, &stream, error);
-                            }));
-                        },
-                    }
-                },
-                _ => panic!("Unexpected FileListenerState when receiving Err msg."),
-            },
-        }
-    }
-}
-
 impl GlobalScope {
     /// <https://storage.spec.whatwg.org/#obtain-a-storage-key-for-non-storage-purposes>
     pub(crate) fn obtain_storage_key_for_non_storage_purposes(&self) -> ImmutableOrigin {
@@ -821,7 +446,7 @@ impl GlobalScope {
     }
 
     /// The message-port router Id of the global, if any
-    fn port_router_id(&self) -> Option<MessagePortRouterId> {
+    pub(super) fn port_router_id(&self) -> Option<MessagePortRouterId> {
         if let MessagePortState::Managed(id, _message_ports) = &*self.message_port_state.borrow() {
             Some(*id)
         } else {
@@ -830,7 +455,7 @@ impl GlobalScope {
     }
 
     /// Is this global managing a given port?
-    fn is_managing_port(&self, port_id: &MessagePortId) -> bool {
+    pub(super) fn is_managing_port(&self, port_id: &MessagePortId) -> bool {
         if let MessagePortState::Managed(_router_id, message_ports) =
             &*self.message_port_state.borrow()
         {
@@ -936,7 +561,7 @@ impl GlobalScope {
     }
 
     /// Complete the transfer of a message-port.
-    fn complete_port_transfer(
+    pub(super) fn complete_port_transfer(
         &self,
         cx: &mut js::context::JSContext,
         port_id: MessagePortId,
@@ -976,7 +601,7 @@ impl GlobalScope {
 
     /// The closing of `otherPort`, if it is in a different global.
     /// <https://html.spec.whatwg.org/multipage/#disentangle>
-    fn try_complete_disentanglement(
+    pub(super) fn try_complete_disentanglement(
         &self,
         cx: &mut js::context::JSContext,
         port_id: MessagePortId,
@@ -1462,7 +1087,7 @@ impl GlobalScope {
 
     /// Custom routing logic, followed by the task steps of
     /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
-    fn route_task_to_port(
+    pub(super) fn route_task_to_port(
         &self,
         cx: &mut js::context::JSContext,
         port_id: MessagePortId,
