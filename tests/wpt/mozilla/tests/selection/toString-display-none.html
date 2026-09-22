@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selection.toString() works respecting `display:none`</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container"><span>A</span><span style="display: none;">B</span><span>C</span></div>
+
+<script>
+test(() => {
+    const selection = document.getSelection();
+    selection.selectAllChildren(container);
+    assert_equals(selection.toString(), "AC");
+}, 'Selection.toString() returns results respecting `display:none`');
+</script>

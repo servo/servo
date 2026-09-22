@@ -161,7 +161,8 @@ pub(crate) struct InlineFormattingContext {
     inline_boxes: InlineBoxes,
 
     /// The text content of this inline formatting context.
-    text_content: String,
+    #[conditional_malloc_size_of]
+    text_content: Arc<OnceLock<String>>,
 
     /// The [`SharedInlineStyles`] for the root of this [`InlineFormattingContext`] that are used to
     /// share styles with all [`TextRun`] children.
@@ -2017,8 +2018,13 @@ impl InlineFormattingContext {
         );
 
         let has_right_to_left_content = bidi_levels.info.as_ref().is_some_and(BidiInfo::has_rtl);
+        builder
+            .text_content_slot
+            .set(text_content)
+            .expect("Text content should not yet be set.");
+
         InlineFormattingContext {
-            text_content,
+            text_content: builder.text_content_slot,
             inline_items: builder.inline_items,
             inline_boxes: builder.inline_boxes,
             shared_inline_styles,
@@ -2029,6 +2035,10 @@ impl InlineFormattingContext {
             has_right_to_left_content,
             tab_size_multiplier: Default::default(),
         }
+    }
+
+    pub(crate) fn text_content(&self) -> &str {
+        self.text_content.get().map_or("", String::as_str)
     }
 
     pub(crate) fn repair_style(
@@ -2189,14 +2199,18 @@ impl InlineFormattingContext {
     }
 
     fn next_character_prevents_soft_wrap_opportunity(&self, index: Utf8CodeUnits) -> bool {
-        let Some(second_character) = self.text_content[usize::from(index)..].chars().nth(1) else {
+        let Some(second_character) = self.text_content()[usize::from(index)..].chars().nth(1)
+        else {
             return false;
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(second_character)
     }
 
     fn previous_character_prevents_soft_wrap_opportunity(&self, index: Utf8CodeUnits) -> bool {
-        let Some(character) = self.text_content[..usize::from(index)].chars().next_back() else {
+        let Some(character) = self.text_content()[..usize::from(index)]
+            .chars()
+            .next_back()
+        else {
             return false;
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)

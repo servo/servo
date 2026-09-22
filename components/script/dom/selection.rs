@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use layout_api::QueryMsg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
@@ -1396,13 +1397,34 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // >
         // > If the selection is within a textarea or input element, it must return the
         // > selected substring in its value.
-        //
-        // TODO: This implementation should be examined in depth. Does rendered text take
-        // into account `display: none`. The case for textarea and input elements is
-        // completely unhandled here.
-        self.GetRangeAt(cx, 0)
-            .map(|range| range.Stringifier(cx.no_gc()))
-            .unwrap_or_default()
+        let Some(visible_selection) =
+            FlatTreeSelection::from_selection_if_renderable(cx.no_gc(), self)
+        else {
+            return DOMString::new();
+        };
+
+        // Flush all layout before stringifying so that rendered text is up-to-date.
+        self.document.window().layout_reflow(QueryMsg::StyleQuery);
+
+        let mut user_select_cache = Default::default();
+        let mut string = DOMString::new();
+        for node in visible_selection.traversal() {
+            let Some(character_data) = node.downcast::<CharacterData>() else {
+                continue;
+            };
+
+            if node.used_user_select(cx.no_gc(), &mut user_select_cache) == UsedUserSelect::None {
+                continue;
+            }
+
+            let range = visible_selection.range_for_character_data(character_data);
+            let Some(text) = character_data.rendered_text(range) else {
+                continue;
+            };
+            string.push_str(&text);
+        }
+
+        string
     }
 }
 

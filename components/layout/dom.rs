@@ -12,7 +12,7 @@ use layout_api::{
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::{RangeAny, Utf32CodeUnits};
+use servo_base::text::{AssumeUnder4GB, RangeAny, Utf32CodeUnits};
 use smallvec::SmallVec;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
@@ -343,6 +343,26 @@ impl GenericLayoutDataTrait for DOMLayoutData {
             },
             LayoutBox::Text(..) => false,
         }
+    }
+
+    fn rendered_text(&self, range: RangeAny<Utf32CodeUnits>) -> Option<String> {
+        let inner = self.0.borrow();
+        let self_box = inner.self_box.borrow();
+
+        let Some(LayoutBox::Text(text_run)) = self_box.as_ref() else {
+            return None;
+        };
+
+        let text_run = text_run.borrow();
+        let range_in_text_run = text_run.run_data.map_dom_range_to_transformed_range(range);
+        let start_in_ifc = text_run.run_data.character_range_in_ifc_text.start;
+
+        let string = text_run.run_data.text_content.get()?;
+        let start =
+            (range_in_text_run.start + start_in_ifc).to_utf8_code_units_in(AssumeUnder4GB, string);
+        let end =
+            (range_in_text_run.end + start_in_ifc).to_utf8_code_units_in(AssumeUnder4GB, string);
+        Some(string[start.0 as usize..end.0 as usize].to_owned())
     }
 }
 

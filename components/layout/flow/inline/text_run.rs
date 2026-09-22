@@ -4,7 +4,7 @@
 
 use std::mem;
 use std::ops::Range;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
@@ -326,6 +326,9 @@ pub(crate) enum TextRunItem {
 /// This ensures that the data is not duplicated between fragments.
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct SharedTextRunData {
+    /// The text content of the [`InlineFormattingContext`] that contains this `TextRun`.
+    #[conditional_malloc_size_of]
+    pub text_content: Arc<OnceLock<String>>,
     /// The [`crate::SharedStyle`] from this `TextRun`'s parent element. This is
     /// shared so that incremental layout can simply update the parent element and
     /// this [`TextRun`] will be updated automatically.
