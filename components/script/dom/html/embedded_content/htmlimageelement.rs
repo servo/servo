@@ -115,8 +115,8 @@ struct ImageRequest {
 #[dom_struct]
 pub(crate) struct HTMLImageElement {
     htmlelement: HTMLElement,
-    current_request: DomRefCell<ImageRequest>,
-    pending_request: DomRefCell<Option<ImageRequest>>,
+    current_request: DomRefCell<Box<ImageRequest>>,
+    pending_request: DomRefCell<Option<Box<ImageRequest>>>,
     form_owner: MutNullableDom<HTMLFormElement>,
     source_set: DomRefCell<SourceSet>,
     /// <https://html.spec.whatwg.org/multipage/#concept-img-dimension-attribute-source>
@@ -600,7 +600,7 @@ impl HTMLImageElement {
 
     fn init_image_request(
         &self,
-        request: &DomRefCell<ImageRequest>,
+        request: &DomRefCell<Box<ImageRequest>>,
         url: &ServoUrl,
         src: &USVString,
         cx: &mut js::context::JSContext,
@@ -620,7 +620,7 @@ impl HTMLImageElement {
 
     fn init_pending_image_request(
         &self,
-        request: &DomRefCell<Option<ImageRequest>>,
+        request: &DomRefCell<Option<Box<ImageRequest>>>,
         url: &ServoUrl,
         src: &USVString,
         cx: &mut js::context::JSContext,
@@ -1270,7 +1270,7 @@ impl HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             image_request: Cell::new(ImageRequestPhase::Current),
-            current_request: DomRefCell::new(ImageRequest {
+            current_request: DomRefCell::new(Box::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
                 source_url: None,
@@ -1280,7 +1280,7 @@ impl HTMLImageElement {
                 final_url: None,
                 load_time: None,
                 current_pixel_density: None,
-            }),
+            })),
             pending_request: DomRefCell::new(None),
             form_owner: Default::default(),
             generation: Default::default(),
