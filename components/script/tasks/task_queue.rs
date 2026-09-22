@@ -68,6 +68,13 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         }
     }
 
+    /// Remove any tasks for an exiting pipeline. This only clears tasks that
+    /// were stored from a previously inactive pipeline, as others will be drained
+    /// the next time the queue is processed.
+    pub(crate) fn remove_tasks_for_exiting_pipeline(&self, pipeline_id: &PipelineId) {
+        self.inactive.borrow_mut().remove(pipeline_id);
+    }
+
     /// Release previously held-back tasks for documents that are now fully-active.
     /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active>
     fn release_tasks_for_fully_active_documents(

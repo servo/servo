@@ -3175,6 +3175,8 @@ impl ScriptThread {
 
         // Prevent any further work for this Pipeline.
         self.closed_pipelines.borrow_mut().insert(pipeline_id);
+        self.task_queue
+            .remove_tasks_for_exiting_pipeline(&pipeline_id);
 
         debug!("{pipeline_id}: Sending PipelineExited message to constellation");
         self.senders
