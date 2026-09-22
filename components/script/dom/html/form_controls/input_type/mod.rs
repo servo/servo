@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use bitflags::bitflags;
 use embedder_traits::InputMethodType;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
@@ -361,6 +362,20 @@ impl TryFrom<&InputType> for InputMethodType {
     }
 }
 
+/// The events that a specific InputType asks its HTMLInputElement to fire after a
+/// user interaction changed the element's value.
+#[derive(Clone, Copy, PartialEq)]
+pub(crate) struct ValueChangeEvents(u8);
+
+bitflags! {
+    impl ValueChangeEvents: u8 {
+        /// <https://html.spec.whatwg.org/multipage/#event-input-input>
+        const Input = 1 << 0;
+        /// <https://html.spec.whatwg.org/multipage/#event-input-change>
+        const Change = 1 << 1;
+    }
+}
+
 pub(crate) trait SpecificInputType {
     fn sanitize_value(&self, _input: &HTMLInputElement, _value: &mut DOMString) {}
 
@@ -438,6 +453,17 @@ pub(crate) trait SpecificInputType {
     fn set_files(&self, _filelist: &FileList) {}
 
     fn update_shadow_tree(&self, _cx: &mut JSContext, _input: &HTMLInputElement) {}
+
+    /// Called on the input element that `event` was dispatched at, once the dispatch is
+    /// over and only if the event's default action was not prevented.
+    fn handle_event(
+        &self,
+        _cx: &mut JSContext,
+        _input: &HTMLInputElement,
+        _event: &Event,
+    ) -> ValueChangeEvents {
+        ValueChangeEvents::empty()
+    }
 
     fn update_placeholder_contents(&self, _cx: &mut JSContext, _input: &HTMLInputElement) {}
 
