@@ -18,3 +18,22 @@ ohos-device = { max-threads = 4 }
 [[profile.default.overrides]]
 platform = 'cfg(target_env = "ohos")'
 test-group = 'ohos-device'
+# Exclude tests which fail due to relying on files being present at a specific path.
+# This should be shrunk over-time, by fixing the tests, e.g. by prefering include_bytes.
+default-filter = '''
+not (
+    (package(servo-fonts) & (
+        binary(=font) |
+        binary(=font_context) |
+        binary(=font_template)
+    )) |
+    (package(servo-net-traits) & binary(=mime_classifier)
+    ) |
+    (package(servo-net) & (
+        test(=fetch::test_file) |
+        test(=file_loader::load_htm) |
+        test(=filemanager_thread::test_filemanager)
+    )) |
+    (package(servo-url) & test(=test_file_urls_are_potentially_trustworthy))
+)
+'''
