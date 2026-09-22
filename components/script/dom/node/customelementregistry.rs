@@ -19,7 +19,7 @@ use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
-use rustc_hash::FxBuildHasher;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
@@ -88,7 +88,7 @@ pub(crate) struct CustomElementRegistry {
     is_scoped: Cell<bool>,
 
     /// <https://html.spec.whatwg.org/multipage/#scoped-document-set>
-    scoped_document_set: DomRefCell<Vec<Dom<Document>>>,
+    scoped_document_set: DomRefCell<FxHashSet<Dom<Document>>>,
 
     #[conditional_malloc_size_of]
     /// <https://html.spec.whatwg.org/multipage/#custom-element-definition-set>
@@ -104,7 +104,7 @@ impl CustomElementRegistry {
             when_defined: DomRefCell::new(HashMapTracedValues::new_fx()),
             element_definition_is_running: Cell::new(false),
             is_scoped: Cell::new(false),
-            scoped_document_set: DomRefCell::new(Vec::new()),
+            scoped_document_set: Default::default(),
             definitions: DomRefCell::new(HashMapTracedValues::new_fx()),
         }
     }
@@ -332,7 +332,7 @@ impl CustomElementRegistry {
     pub(crate) fn add_scoped_document(&self, document: &Document) {
         self.scoped_document_set
             .borrow_mut()
-            .push(Dom::from_ref(document));
+            .insert(Dom::from_ref(document));
     }
 }
 
@@ -782,7 +782,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                     let document = element.upcast::<Node>().owner_doc();
                     self.scoped_document_set
                         .borrow_mut()
-                        .push(Dom::from_ref(&document));
+                        .insert(Dom::from_ref(&document));
                 }
             // Step 4.3. If inclusiveDescendant's custom element registry is not this, then continue.
             } else if element
