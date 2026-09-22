@@ -1,0 +1,143 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Clearing canceled CSS animations and transitions from the cascade</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animations">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#keyframes">
+<link rel="help" href="https://drafts.csswg.org/css-transitions-1/#starting">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+function createFixture(t, pseudoElement = '') {
+  const style = document.createElement('style');
+  style.textContent = `
+    #target${pseudoElement} {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 20px;
+    }
+    #target.running${pseudoElement} {
+      animation: moving 1s linear infinite paused;
+    }
+    @keyframes moving {
+      from { width: 20px; }
+      to { width: 220px; }
+    }
+  `;
+  document.head.appendChild(style);
+  t.add_cleanup(() => style.remove());
+  const target = addDiv(t, { id: 'target', class: 'running' });
+  const width = () =>
+    parseFloat(getComputedStyle(target, pseudoElement).width);
+
+  assert_equals(width(), 20, 'Initial animation value');
+  // Update the rule so the delay also applies to pseudo-elements.
+  style.sheet.cssRules[1].style.animationDelay = '-0.25s';
+  assert_approx_equals(width(), 70, 0.1,
+    'Animation produces an intermediate value');
+  return { style, target, width };
+}
+
+test(t => {
+  // Transition timing changes do not seek an existing transition. Repeat the
+  // reuse scenario with each delay to sample the start, middle and end.
+  // Steps keep the sampled values stable without waiting for elapsed time.
+  for (const [delay, expected] of [[0, 20], [-50, 120], [-100, 220]]) {
+    const { style, target, width } = createFixture(t);
+    target.className = '';
+    assert_equals(width(), 20,
+      'Canceling the animation clears its effect synchronously');
+
+    target.style.transition = `width 100s steps(2, end) ${delay}s`;
+    target.style.width = '220px';
+    assert_equals(width(), expected,
+      `The reused element has the expected width with a ${delay}s delay`);
+
+    target.remove();
+    style.remove();
+  }
+}, 'Canceling a CSS animation clears its effect before transition reuse');
+
+test(t => {
+  const { target, width } = createFixture(t, '::before');
+  target.className = '';
+  assert_equals(width(), 20,
+    'The pseudo-element uses its underlying width after cancellation');
+}, 'Canceling the final animation clears its effect on a pseudo-element');
+
+promise_test(async t => {
+  const { style, target, width } = createFixture(t);
+  style.sheet.deleteRule(2);
+  assert_equals(width(), 20,
+    'Losing the matching keyframes cancels the animation effect');
+
+  // Resume and advance rendering to check that no stale effect can progress.
+  target.style.animationPlayState = 'running';
+  await waitForFrame();
+  await waitForFrame();
+
+  assert_equals(width(), 20, 'The canceled effect cannot keep progressing');
+  target.style.animationDelay = '-0.5s';
+  assert_equals(width(), 20,
+    'No CSS animation contributes without matching keyframes');
+}, 'Removing the last matching keyframes removes the animation from the cascade');
+
+test(t => {
+  const { style, target, width } = createFixture(t);
+
+  style.sheet.insertRule(
+    '@keyframes moving { from { width: 30px; } to { width: 230px; } }', 3
+  );
+  assert_approx_equals(width(), 80, 0.1, 'A later matching rule wins');
+  style.sheet.deleteRule(3);
+  assert_approx_equals(width(), 70, 0.1,
+    'An earlier matching rule remains applicable');
+  target.style.animationDelay = '-0.5s';
+  assert_approx_equals(width(), 120, 0.1,
+    'Remaining keyframes continue at the original progress');
+}, 'Removing one of multiple matching keyframes preserves the surviving animation');
+
+test(t => {
+  const { target, width } = createFixture(t);
+  target.style.display = 'none';
+  assert_equals(width(), 20, 'display:none cancels the old effect');
+  target.className = '';
+  target.style.display = 'block';
+  assert_equals(width(), 20,
+    'Restoring a canceled element does not restore a stale effect');
+}, 'display:none cancels animation effects before computed style is observed');
+
+test(t => {
+  const { target, width } = createFixture(t);
+  target.remove();
+  target.className = '';
+  document.body.appendChild(target);
+  assert_equals(width(), 20,
+    'Reattaching the same canceled node uses its underlying style');
+}, 'Detachment and reattachment do not retain the canceled animation effect');
+
+test(t => {
+  const { target, width } = createFixture(t);
+  target.style.animationDuration = '0s';
+  assert_equals(width(), 20,
+    'A zero-duration effect without fill does not affect width');
+}, 'Changing duration to zero without fill removes the old animation effect');
+
+test(t => {
+  const target = addDiv(t, {
+    style: 'width: 20px; height: 20px; ' +
+           'transition: width 100s steps(2, end) -50s',
+  });
+  const width = () => parseFloat(getComputedStyle(target).width);
+  assert_equals(width(), 20, 'Initial underlying width');
+  target.style.width = '220px';
+  assert_equals(width(), 120, 'Transition produces an intermediate value');
+  target.style.transitionProperty = 'none';
+  assert_equals(width(), 220,
+    'Removing transition-property reveals the target value');
+}, 'Canceling a CSS transition removes its effect from the cascade');
+</script>
