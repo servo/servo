@@ -359,9 +359,9 @@ impl MouseEvent {
             EventCancelable::from(self.upcast::<Event>().Cancelable()),
             self.uievent.GetView().as_deref(),
             self.uievent.Detail(),
-            Point2D::new(self.ScreenX(), self.ScreenY()),
-            Point2D::new(self.ClientX(), self.ClientY()),
-            Point2D::new(self.PageX(), self.PageY()),
+            self.screen_point.get(),
+            self.client_point.get(),
+            self.page_point.get(),
             self.modifiers.get(),
             button,
             self.buttons.get(),
@@ -418,9 +418,9 @@ impl MouseEvent {
             cancelable,
             self.uievent.GetView().as_deref(),
             self.uievent.Detail(),
-            Point2D::new(self.ScreenX(), self.ScreenY()),
-            Point2D::new(self.ClientX(), self.ClientY()),
-            Point2D::new(self.PageX(), self.PageY()),
+            self.screen_point.get(),
+            self.client_point.get(),
+            self.page_point.get(),
             self.modifiers.get(),
             MouseButton::None,
             self.buttons.get(),
@@ -458,6 +458,10 @@ impl MouseEvent {
 
     pub(crate) fn button(&self) -> MouseButton {
         self.button.get()
+    }
+
+    pub(crate) fn client_point(&self) -> Point2D<i32, CSSPixel> {
+        self.client_point.get()
     }
 
     pub(crate) fn buttons(&self) -> MouseButtons {

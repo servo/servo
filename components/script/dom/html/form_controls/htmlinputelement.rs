@@ -55,7 +55,9 @@ use crate::dom::filelist::FileList;
 use crate::dom::html::form_controls::input_type::radio_input_type::{
     broadcast_radio_checked, perform_radio_group_validation,
 };
-use crate::dom::html::form_controls::input_type::{InputActivationType, InputType};
+use crate::dom::html::form_controls::input_type::{
+    InputActivationType, InputType, ValueChangeEvents,
+};
 use crate::dom::html::form_controls::text_control::TextControlElement;
 use crate::dom::html::form_controls::text_input::{KeyReaction, Lines, TextInput};
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
@@ -1946,6 +1948,32 @@ impl HTMLInputElement {
         self.input_type().as_specific().update_shadow_tree(cx, self);
     }
 
+    /// Fire the events a value change asks for, in spec order.
+    ///
+    /// Shared function for the "fire `input`, then fire `change`" pair that several input
+    /// types need after a user interaction changed this element's value.
+    pub(crate) fn fire_value_change_events(&self, cx: &mut JSContext, events: ValueChangeEvents) {
+        let target = self.upcast::<EventTarget>();
+
+        // Fire an event named input at the element with the bubbles and composed attributes
+        // initialized to true.
+        if events.contains(ValueChangeEvents::Input) {
+            target.fire_event_with_params(
+                cx,
+                atom!("input"),
+                EventBubbles::Bubbles,
+                EventCancelable::NotCancelable,
+                EventComposed::Composed,
+            );
+        }
+
+        // Fire an event named change at the element with the bubbles attribute initialized
+        // to true.
+        if events.contains(ValueChangeEvents::Change) {
+            target.fire_bubbling_event(cx, atom!("change"));
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
     pub(crate) fn show_the_picker_if_applicable(&self) {
         // FIXME: Implement most of this algorithm
@@ -2369,7 +2397,14 @@ impl VirtualMethods for HTMLInputElement {
             self.handle_focus_event(cx, event)
         }
 
+        let value_change_events = self
+            .input_type()
+            .as_specific()
+            .handle_event(cx, self, event);
+
         self.value_changed(cx);
+
+        self.fire_value_change_events(cx, value_change_events);
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);

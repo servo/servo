@@ -7,11 +7,13 @@ use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInpu
 use script_bindings::domstring::DOMString;
 use script_bindings::inheritance::Castable;
 
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::{HTMLInputElement, InputActivationState};
 use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
-use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
+use crate::dom::html::form_controls::input_type::{
+    SpecificInputActivationType, SpecificInputType, ValueChangeEvents,
+};
 use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::Node;
 
@@ -85,20 +87,10 @@ impl SpecificInputActivationType for CheckboxInputActivation {
             return;
         }
 
-        let target = input.upcast::<EventTarget>();
-
         // Step 2: Fire an event named input at the element with the bubbles and composed
         // attributes initialized to true.
-        target.fire_event_with_params(
-            cx,
-            atom!("input"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            EventComposed::Composed,
-        );
-
         // Step 3: Fire an event named change at the element with the bubbles attribute
         // initialized to true.
-        target.fire_bubbling_event(cx, atom!("change"));
+        input.fire_value_change_events(cx, ValueChangeEvents::Input | ValueChangeEvents::Change);
     }
 }
