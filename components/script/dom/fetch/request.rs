@@ -482,16 +482,18 @@ impl Request {
                     .Has(ByteString::new(content_type_header_name.to_vec()))
                     .unwrap()
                 {
-                    let content_type_header_value = contents.as_bytes();
+                    let content_type_header_value = contents.as_bytes(cx.no_gc()).to_vec();
                     request.Headers(cx).Append(
                         ByteString::new(content_type_header_name.to_vec()),
-                        ByteString::new(content_type_header_value.to_vec()),
+                        ByteString::new(content_type_header_value),
                     )?;
 
                     // In Servo request.Headers's header list isn't a pointer to the same
                     // actual list as request.request's, and so we need to append to both lists
                     // to keep them in sync.
-                    if let Ok(header_value) = HeaderValue::from_bytes(&content_type_header_value) {
+                    if let Ok(header_value) =
+                        HeaderValue::from_bytes(&contents.as_bytes(cx.no_gc()))
+                    {
                         request
                             .request
                             .borrow_mut()

@@ -3775,7 +3775,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         if !self.node.has_weird_parser_insertion_mode() &&
             value.len_utf8_or_latin1() < 100 &&
             !value
-                .as_bytes()
+                .as_bytes(cx.no_gc())
                 .iter()
                 .any(|c| matches!(*c, b'&' | b'\0' | b'<' | b'\r'))
         {
