@@ -24,8 +24,8 @@ interface IDBIndex {
   // [NewObject] IDBRequest getAllRecords(optional IDBGetAllOptions options = {});
   // [NewObject] IDBRequest count(optional any query);
 
-  // [NewObject] IDBRequest openCursor(optional any query,
-  //                                   optional IDBCursorDirection direction = "next");
-  // [NewObject] IDBRequest openKeyCursor(optional any query,
-  //                                      optional IDBCursorDirection direction = "next");
+  [NewObject, Throws] IDBRequest openCursor(optional any query,
+                                    optional IDBCursorDirection direction = "next");
+  [NewObject, Throws] IDBRequest openKeyCursor(optional any query,
+                                       optional IDBCursorDirection direction = "next");
 };
