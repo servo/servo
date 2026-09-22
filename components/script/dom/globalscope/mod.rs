@@ -4,7 +4,7 @@
 
 pub(crate) mod broadcastchannel;
 pub(crate) use self::globalscope::*;
-mod autocloseworker;
+mod auto_close_worker;
 #[expect(clippy::module_inception, reason = "The interface name is GlobalScope")]
 pub(crate) mod globalscope;
 mod listeners;

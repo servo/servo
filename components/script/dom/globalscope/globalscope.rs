@@ -114,7 +114,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::globalscope::autocloseworker::AutoCloseWorker;
+use crate::dom::globalscope::auto_close_worker::AutoCloseWorker;
 use crate::dom::globalscope::broadcastchannel::BroadcastChannel;
 use crate::dom::globalscope::listeners::{
     BlobInfo, BlobResult, BlobTracker, BroadcastChannelState, BroadcastListener, FileListener,
