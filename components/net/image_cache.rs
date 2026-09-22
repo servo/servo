@@ -1245,14 +1245,13 @@ impl ImageCache for ImageCacheImpl {
                 decode_state.target_image_metadata = target;
                 decode_state.current_counter.increment();
                 decode_state.pending = None;
-                if target.is_none() {
-                    if let Some(key) = decode_state
+                if target.is_none() &&
+                    let Some(key) = decode_state
                         .current_decoded_scaled_image
                         .take()
                         .and_then(|image| image.id)
-                    {
-                        paint_api.delete_image(key);
-                    }
+                {
+                    paint_api.delete_image(key);
                 }
             }
             if let Some(target) = target {
