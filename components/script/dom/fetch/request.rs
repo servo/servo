@@ -477,23 +477,21 @@ impl Request {
                 // Step 37.4. If type is non-null and this’s headers’s header list
                 // does not contain `Content-Type`, then append (`Content-Type`, type) to this’s headers.
                 let content_type_header_name = b"Content-Type";
-                if !request
-                    .Headers(cx)
+                let headers = request.Headers(cx);
+                if !headers
                     .Has(ByteString::new(content_type_header_name.to_vec()))
                     .unwrap()
                 {
-                    let content_type_header_value = contents.as_bytes(cx.no_gc()).to_vec();
-                    request.Headers(cx).Append(
+                    let content_type_header_value = contents.as_bytes(cx.no_gc());
+                    headers.Append(
                         ByteString::new(content_type_header_name.to_vec()),
-                        ByteString::new(content_type_header_value),
+                        ByteString::new(content_type_header_value.to_vec()),
                     )?;
 
                     // In Servo request.Headers's header list isn't a pointer to the same
                     // actual list as request.request's, and so we need to append to both lists
                     // to keep them in sync.
-                    if let Ok(header_value) =
-                        HeaderValue::from_bytes(&contents.as_bytes(cx.no_gc()))
-                    {
+                    if let Ok(header_value) = HeaderValue::from_bytes(&content_type_header_value) {
                         request
                             .request
                             .borrow_mut()
