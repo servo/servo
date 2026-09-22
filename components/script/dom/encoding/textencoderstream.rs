@@ -34,7 +34,7 @@ pub(crate) struct Encoder {
 }
 
 impl Encoder {
-    fn encode(&self, maybe_ill_formed: ConversionResult<'_>) -> String {
+    fn encode(&self, maybe_ill_formed: ConversionResult) -> String {
         match maybe_ill_formed {
             ConversionResult::String(s) => {
                 // Rust String is already UTF-8 encoded and cannot contain
@@ -48,7 +48,7 @@ impl Encoder {
 
                 s
             },
-            ConversionResult::CodeUnits(code_units) => self.encode_from_code_units(code_units.0),
+            ConversionResult::CodeUnits(code_units) => self.encode_from_code_units(&code_units.0),
         }
     }
 

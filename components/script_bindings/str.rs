@@ -233,23 +233,23 @@ pub fn to_js_string(
 }
 
 /// <https://infra.spec.whatwg.org/#code-unit>
-pub struct CodeUnits<'a>(pub &'a [u16]);
+pub struct CodeUnits(pub Vec<u16>);
 
 /// A ad-hoc replacement for <https://webidl.spec.whatwg.org/#idl-DOMString>,
 /// used by `component/script/dom/encoding`.
-pub enum ConversionResult<'a> {
-    CodeUnits(CodeUnits<'a>),
+pub enum ConversionResult {
+    CodeUnits(CodeUnits),
     String(String),
 }
 
 /// <https://webidl.spec.whatwg.org/#js-DOMString>
 /// Implements the js to DOMstring conversion, but using an ad-hoc data structure,
 /// because current DOMString implementation does not preserve the exact sequence of code units.
-pub fn js_string_to_code_units<'a>(
+pub fn js_string_to_code_units(
     cx: &mut JSContext,
     data: SafeHandleValue,
     mut target: SafeMutableHandleString,
-) -> Result<ConversionResult<'a>, Error> {
+) -> Result<ConversionResult, Error> {
     // Step 1: If V is null
     // and the conversion is to an IDL type associated with the [LegacyNullToEmptyString] extended attribute,
     // then return the DOMString value that represents the empty string.
@@ -271,11 +271,7 @@ pub fn js_string_to_code_units<'a>(
         let maybe_ill_formed_code_units = unsafe {
             let mut len = 0;
             let data = JS_GetTwoByteStringCharsAndLength(cx, *target, &mut len);
-            // Note: rooting the jsstring only for the scope of this function call,
-            // but the returned slice is tied to the handle to the data underlying the string,
-            // so the "The memory referenced by the returned slice must not be mutated" invariant
-            // of `from_raw_parts` should be maintained.
-            std::slice::from_raw_parts(data, len)
+            std::slice::from_raw_parts(data, len).to_vec()
         };
         Ok(ConversionResult::CodeUnits(CodeUnits(
             maybe_ill_formed_code_units,
