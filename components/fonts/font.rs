@@ -272,7 +272,7 @@ impl malloc_size_of::MallocSizeOf for CachedShapeData {
 pub struct Font {
     pub(crate) handle: PlatformFont,
     pub(crate) template: FontTemplateRef,
-    pub metrics: Arc<FontMetrics>,
+    pub metrics: OnceLock<Arc<FontMetrics>>,
     pub descriptor: FontDescriptor,
 
     /// The data for this font. And the index of the font within the data (in case it's a TTC)
@@ -328,7 +328,8 @@ impl malloc_size_of::MallocSizeOf for Font {
         // TODO: Collect memory usage for platform fonts and for shapers.
         // This skips the template, because they are already stored in the template cache.
 
-        self.metrics.size_of(ops) +
+        let metrics_size = self.metrics.get().map_or(0, |metrics| metrics.size_of(ops));
+        metrics_size +
             self.descriptor.size_of(ops) +
             self.cached_shape_data.read().size_of(ops) +
             self.font_instance_key
@@ -371,12 +372,10 @@ impl Font {
             handle
         };
 
-        let metrics = Arc::new(handle.metrics());
-
         Ok(Font {
             handle,
             template,
-            metrics,
+            metrics: OnceLock::new(),
             descriptor,
             data_and_index: data
                 .map(|data| OnceLock::from(FontDataAndIndex { data, index: 0 }))
@@ -394,6 +393,10 @@ impl Font {
     /// A unique identifier for the font, allowing comparison.
     pub fn identifier(&self) -> AtomicRef<'_, FontIdentifier> {
         self.template.identifier()
+    }
+
+    pub fn metrics(&self) -> &Arc<FontMetrics> {
+        self.metrics.get_or_init(|| Arc::new(self.handle.metrics()))
     }
 
     pub(crate) fn webrender_font_instance_flags(&self) -> FontInstanceFlags {

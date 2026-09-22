@@ -676,7 +676,7 @@ impl LineItemLayout<'_, '_> {
         // The block start of the TextRun is often zero (meaning it has the same font metrics as the
         // inline box's strut), but for children of the inline formatting context root or for
         // fallback fonts that use baseline relative alignment, it might be different.
-        let font_metrics = &text_item.info.font_info.font.metrics;
+        let font_metrics = text_item.info.font_info.font.metrics();
         let start_corner = LogicalVec2 {
             inline: self.current_state.inline_advance,
             block: self.current_state.baseline_offset -
