@@ -744,6 +744,10 @@ pub(crate) struct Document {
     #[no_trace]
     theme: Cell<Option<Theme>>,
 
+    /// A theme override provided by devtools.
+    #[no_trace]
+    theme_override: Cell<Option<Theme>>,
+
     /// Language specific for this document, set by a meta element
     default_language: DomRefCell<Option<String>>,
 
@@ -4163,6 +4167,7 @@ impl Document {
             image_cache,
             history: Default::default(),
             theme: Default::default(),
+            theme_override: Default::default(),
             default_language: Default::default(),
             window_detached: Default::default(),
             live_ranges: Default::default(),
@@ -5311,6 +5316,15 @@ impl Document {
 
     pub(crate) fn set_theme(&self, new_theme: Option<Theme>) {
         self.theme.set(new_theme);
+        self.window.refresh_theme();
+    }
+
+    pub(crate) fn theme_override(&self) -> Option<Theme> {
+        self.theme_override.get()
+    }
+
+    pub(crate) fn set_theme_override(&self, new_theme: Option<Theme>) {
+        self.theme_override.set(new_theme);
         self.window.refresh_theme();
     }
 

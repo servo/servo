@@ -1015,12 +1015,12 @@ where
         }
 
         debug!("Creating new pipeline ({new_pipeline_id:?}) in {browsing_context_id}");
-        let (webview_hidden, theme) = {
+        let (webview_hidden, webview_state) = {
             let Some(webview) = self.webviews.get(&webview_id) else {
-                warn!("Tried to create Pipeline for uknown WebViewId: {webview_id:?}");
+                warn!("Tried to create Pipeline for unknown WebViewId: {webview_id:?}");
                 return;
             };
-            (webview.hidden(), webview.theme())
+            (webview.hidden(), webview.state())
         };
 
         let event_loop = match self.get_or_create_event_loop_for_new_pipeline(
@@ -1040,15 +1040,14 @@ where
             .and_then(|webview| webview.user_content_manager_id);
 
         let new_pipeline_info = NewPipelineInfo {
+            webview_state,
             parent_info: parent_pipeline_id,
             new_pipeline_id,
             browsing_context_id,
-            webview_id,
             opener,
             load_data,
             viewport_details: initial_viewport_details,
             user_content_manager_id,
-            embedder_theme: theme,
             target_snapshot_params,
             frame_name: name,
         };
@@ -3729,6 +3728,15 @@ where
             new_browsing_context_id,
             user_content_manager_id,
         );
+
+        // Inherit the opener's theme, which is also what script does. This
+        // ensures that the two states are in sync.
+        let opener_theme = self
+            .webviews
+            .get(&opener_webview_id)
+            .map_or(Theme::Light, |webview| webview.theme());
+        new_webview.set_theme(opener_theme);
+
         new_webview.add_pending_change(SessionHistoryChange {
             webview_id: new_webview_id,
             browsing_context_id: new_browsing_context_id,
@@ -5857,24 +5865,18 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_theme_change(&mut self, webview_id: WebViewId, theme: Theme) {
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
-            warn!("Received theme change request for uknown WebViewId: {webview_id:?}");
+            warn!("Received theme change request for unknown WebViewId: {webview_id:?}");
             return;
         };
         if !webview.set_theme(theme) {
             return;
         }
-
-        for pipeline in self.pipelines.values() {
-            if pipeline.webview_id != webview_id {
-                continue;
-            }
-            if let Err(error) = pipeline
-                .event_loop
-                .send(ScriptThreadMessage::ThemeChange(pipeline.id, theme))
+        for event_loop in self.event_loops() {
+            if let Err(error) = event_loop.send(ScriptThreadMessage::ThemeChange(webview_id, theme))
             {
                 warn!(
-                    "{}: Failed to send theme change event to pipeline ({error:?}).",
-                    pipeline.id,
+                    "Sending to closed event loop ({:?}): {error}",
+                    event_loop.id()
                 );
             }
         }

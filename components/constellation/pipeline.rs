@@ -105,7 +105,7 @@ impl Pipeline {
         Ok(Self::new_already_spawned(
             new_pipeline_info.new_pipeline_id,
             new_pipeline_info.browsing_context_id,
-            new_pipeline_info.webview_id,
+            new_pipeline_info.webview_state.id,
             new_pipeline_info.opener,
             event_loop,
             constellation.paint_proxy.clone(),

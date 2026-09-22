@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 
 use embedder_traits::user_contents::UserContentManagerId;
@@ -10,7 +11,7 @@ use euclid::{Point2D, Size2D};
 use log::{debug, warn};
 use paint_api::{PaintMessage, PaintProxy};
 use rustc_hash::{FxHashMap, FxHashSet};
-use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
+use script_traits::{ConstellationInputEvent, ScriptThreadMessage, WebViewState};
 use servo_base::Epoch;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::{ScreenshotReadinessResponse, SessionHistoryTraversalRequest};
@@ -137,6 +138,15 @@ impl ConstellationWebView {
     /// Whether or not the [`ConstellationWebView`] is hidden.
     pub(crate) fn hidden(&self) -> bool {
         self.hidden
+    }
+
+    /// Create a [`WebViewState`] for this [`ConstellationWebView`] to pass during pipeline
+    /// creation.
+    pub(crate) fn state(&self) -> WebViewState {
+        WebViewState {
+            id: self.webview_id,
+            theme: Cell::new(self.theme),
+        }
     }
 
     /// Set whether or not this [`ConstellationWebView`] is hidden, returning true if the value changed.
