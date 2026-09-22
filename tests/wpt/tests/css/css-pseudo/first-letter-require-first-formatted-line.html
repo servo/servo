@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::first-letter must be on the first formatted line</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.comt">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#first-letter-application">
+<meta name="assert" content="The first-letter text must be on the first formatted line
+  of the originating element of ::first-line. Therefore, text preceded by a block-level
+  can't be affected by ::first-line.">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+#target {
+  font: 200px/1 Ahem;
+  color: green;
+}
+#target::first-letter {
+  color: red;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="target">
+  <div>
+    <!-- This block-level prevents the X below from being in the first formatted line of #target -->
+  </div>
+  X
+</div>

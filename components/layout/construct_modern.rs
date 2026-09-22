@@ -56,8 +56,11 @@ impl<'dom> ModernContainerJob<'dom> {
     fn finish(self, builder: &ModernContainerBuilder) -> Option<ModernItem<'dom>> {
         match self {
             ModernContainerJob::TextRuns(runs, box_slot) => {
-                let mut inline_formatting_context_builder =
-                    InlineFormattingContextBuilder::new(builder.info, builder.context);
+                let mut inline_formatting_context_builder = InlineFormattingContextBuilder::new(
+                    builder.info,
+                    builder.context,
+                    false, /* should_process_first_letter */
+                );
                 let mut last_style_from_display_contents: Option<SharedInlineStyles> = None;
                 for flex_text_run in runs.into_iter() {
                     match (
