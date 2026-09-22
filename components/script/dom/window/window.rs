@@ -470,7 +470,6 @@ pub(crate) struct Window {
     report_list: DomRefCell<Vec<Report>>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-endpoints>
-    #[no_trace]
     endpoints_list: DomRefCell<Vec<ReportingEndpoint>>,
 
     /// The window proxies the script thread knows.

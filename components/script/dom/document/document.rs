@@ -705,8 +705,7 @@ pub(crate) struct Document {
     state_override: DomRefCell<FxHashMap<CommandName, bool>>,
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
-    #[no_trace]
-    value_override: DomRefCell<FxHashMap<CommandName, DOMString>>,
+    value_override: DomRefCell<HashMapTracedValues<CommandName, DOMString, FxBuildHasher>>,
 
     /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
     #[no_trace]

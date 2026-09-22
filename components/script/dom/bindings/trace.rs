@@ -139,6 +139,10 @@ impl<K, V, S> HashMapTracedValues<K, V, S> {
     pub(crate) fn values(&self) -> std::collections::hash_map::Values<'_, K, V> {
         self.0.values()
     }
+
+    pub(crate) fn clear(&mut self) {
+        self.0.clear();
+    }
 }
 
 impl<K, V, S> HashMapTracedValues<K, V, S>

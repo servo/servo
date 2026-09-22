@@ -356,7 +356,6 @@ pub(crate) struct WorkerGlobalScope {
     report_list: DomRefCell<Vec<Report>>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-endpoints>
-    #[no_trace]
     endpoints_list: DomRefCell<Vec<ReportingEndpoint>>,
 
     /// The debugger global object associated with this worker global.

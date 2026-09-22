@@ -33,13 +33,15 @@ use crate::fetch::network_listener::{
 };
 
 /// <https://w3c.github.io/reporting/#endpoint>
-#[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) struct ReportingEndpoint {
     /// <https://w3c.github.io/reporting/#dom-endpoint-name>
     name: DOMString,
     /// <https://w3c.github.io/reporting/#dom-endpoint-url>
+    #[no_trace]
     url: ServoUrl,
     /// <https://w3c.github.io/reporting/#dom-endpoint-failures>
+    #[no_trace = "Does not need to be traced"]
     failures: u32,
 }
 
