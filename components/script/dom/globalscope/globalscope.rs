@@ -180,7 +180,7 @@ pub(crate) struct GlobalScope {
     /// When the count transitions from 0 to 1, a RegisterInterest message is sent.
     /// When it transitions from 1 to 0, an UnregisterInterest message is sent.
     #[no_trace]
-    constellation_interest_counts: RefCell<HashMap<ConstellationInterest, usize>>,
+    constellation_interest_counts: RefCell<FxHashMap<ConstellationInterest, usize>>,
 
     /// The blobs managed by this global, if any.
     blob_state: DomRefCell<HashMapTracedValues<BlobId, BlobInfo, FxBuildHasher>>,
@@ -404,7 +404,7 @@ impl GlobalScope {
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
-            constellation_interest_counts: RefCell::new(HashMap::new()),
+            constellation_interest_counts: RefCell::new(FxHashMap::default()),
             blob_state: Default::default(),
             eventtarget: EventTarget::new_inherited(),
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
