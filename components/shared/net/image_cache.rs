@@ -76,7 +76,7 @@ impl std::fmt::Debug for EncodedImage {
 
 impl EncodedImage {
     /// Obtain original pixels for consumers such as canvas. Do not use for layout.
-    pub fn decode(&self) -> Option<Arc<RasterImage>> {
+    pub fn decode_to_original_size(&self) -> Option<Arc<RasterImage>> {
         pixels::load_from_memory(&self.bytes, self.cors_status).map(|mut image| {
             image.load_time = self.load_time;
             Arc::new(image)
@@ -115,7 +115,7 @@ impl Image {
     pub fn as_raster_image(&self) -> Option<Arc<RasterImage>> {
         match self {
             Image::Raster(image) => Some(image.clone()),
-            Image::Encoded(image) => image.decode(),
+            Image::Encoded(image) => image.decode_to_original_size(),
             Image::Vector(..) => None,
         }
     }
@@ -204,11 +204,19 @@ pub struct RasterizationCompleteResponse {
     pub requested_size: DeviceIntSize,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, MallocSizeOf, PartialEq)] // Todo: do we need all of them?
+pub struct RasterDecodeRequestCounter(u64);
+impl RasterDecodeRequestCounter {
+    pub fn increment(&mut self) {
+        self.0 += 1;
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum ImageCacheResponseMessage {
     NotifyPendingImageLoadStatus(PendingImageResponse),
     VectorImageRasterizationComplete(RasterizationCompleteResponse),
-    RasterDecodeReady(PipelineId, PendingImageId, u64),
+    RasterDecodeReady(PipelineId, PendingImageId, RasterDecodeRequestCounter),
 }
 
 // ======================================================================
@@ -226,7 +234,7 @@ pub enum ImageCacheResult {
 /// already queued for an obsolete resize from the current request.
 pub struct RasterDecodeDemandStatus {
     pub id: PendingImageId,
-    pub generation: u64,
+    pub counter: RasterDecodeRequestCounter,
     pub pending: bool,
 }
 
