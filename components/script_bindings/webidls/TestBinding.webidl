@@ -610,6 +610,20 @@ interface TestBinding {
 
   TestDictionaryWithParent getDictionaryWithParent(DOMString parent, DOMString child);
   undefined getDictionaryWithTypedArray(optional TestDictionaryWithTypedArray dict = {});
+
+  undefined acceptUnionWithUnionSequence(optional (unrestricted double or DOMPointInit or sequence<(unrestricted double or DOMPointInit)>) something = 0);
+  undefined defaultByte(optional byte value = 0);
+  undefined defaultOctect(optional octet value = 0);
+  undefined defaultShort(optional short value = 0);
+  undefined defaultUnsignedShort(optional unsigned short value = 0);
+  undefined defaultLong(optional long value = 0);
+  undefined defaultUnsignedLong(optional unsigned long value = 0);
+  undefined defaultLongLong(optional long long value = 0);
+  undefined defaultUnsignedLongLong(optional unsigned long long value = 0);
+  undefined defaultFloat(optional float value = 0.0);
+  undefined defaultUnrestrictedFloat(optional unrestricted float value = 0.0);
+  undefined defaultDouble(optional double value = 0.0);
+  undefined defaultUnrestrictedDouble(optional unrestricted double value = 0.0);
 };
 
 [Exposed=(Window)]

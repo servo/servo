@@ -941,6 +941,8 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             if tag is IDLType.Tags.bool:
                 boolean = "true" if defaultValue.value else "false"
                 default = f"{union_native_type(type)}::Boolean({boolean})"
+            elif tag in numericTags:
+                default = f"{union_native_type(type)}::{defaultValue.type.name}({defaultValue.value})"
             elif tag is IDLType.Tags.usvstring:
                 if defaultValue.value == "":
                     default = f'{union_native_type(type)}::USVString(USVString::new())'
@@ -2573,7 +2575,7 @@ class CGImports(CGWrapper):
                 extras += [f'{getModuleFromObject(t)}::{getIdentifier(t).name}']
 
         statements = []
-        statements.extend(f'use {i};' for i in sorted(set(imports + extras)))
+        statements.extend(f'pub(crate) use {i};' for i in sorted(set(imports + extras)))
 
         joinedStatements = '\n'.join(statements)
         CGWrapper.__init__(self, child,
@@ -2903,30 +2905,29 @@ def getAllTypes(
     containing type, descriptor, dictionary is yielded.  The
     descriptor can be None if the type does not come from a descriptor.
     """
+    def handleContainedTypes(t: IDLType, descriptor: Optional[Descriptor]) -> Generator:
+        t = t.unroll()
+        if t.isRecord():
+            # pyrefly: ignore  # missing-attribute
+            assert isinstance(t, IDLRecordType)
+            yield (t.inner, descriptor)
+        elif t.isUnion():
+            assert isinstance(t, IDLUnionType)
+            if t.flatMemberTypes:
+                for contained in t.flatMemberTypes:
+                    yield from handleContainedTypes(contained, None)
+        yield (t, descriptor)
     for d in descriptors:
         for t in getTypesFromDescriptor(d):
-            if t.isRecord():
-                # pyrefly: ignore  # missing-attribute
-                yield (t.inner, d)
-            yield (t, d)
+            yield from handleContainedTypes(t, d)
     for dictionary in dictionaries:
         for t in getTypesFromDictionary(dictionary):
-            # pyrefly: ignore  # missing-attribute
-            if t.isRecord():
-                # pyrefly: ignore  # missing-attribute
-                yield (t.inner, None)
-            yield (t, None)
+            yield from handleContainedTypes(t, None)
     for callback in callbacks:
         for t in getTypesFromCallback(callback):
-            if t.isRecord():
-                # pyrefly: ignore  # missing-attribute
-                yield (t.inner, None)
-            yield (t, None)
+            yield from handleContainedTypes(t, None)
     for typedef in typedefs:
-        if typedef.innerType.isRecord():
-            assert isinstance(typedef.innerType, IDLRecordType)
-            yield (typedef.innerType.inner, None)
-        yield (typedef.innerType, None)
+        yield from handleContainedTypes(typedef.innerType, None)
 
 
 def UnionTypes(
@@ -5542,6 +5543,9 @@ def getUnionTypeTemplateVars(type: IDLType, descriptorProvider: DescriptorProvid
         name = type.name
         inner = getUnionTypeTemplateVars(innerContainerType(type), descriptorProvider)
         typeName = wrapInNativeContainerType(type, CGGeneric(inner["typeName"])).define()
+    elif type.isUnion():
+        name = type.name
+        typeName = union_native_type(type)
     elif type.isByteString():
         name = type.name
         typeName = "ByteString"
