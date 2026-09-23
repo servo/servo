@@ -1897,7 +1897,7 @@ impl CanvasState {
         ImageData::new(cx, global, imagedata.Width(), imagedata.Height(), None)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata>
     #[expect(clippy::too_many_arguments)]
     pub(super) fn get_image_data(
         &self,
