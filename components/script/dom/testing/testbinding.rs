@@ -44,9 +44,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     HTMLElementOrLong, HTMLElementOrUnsignedLongOrStringOrBoolean, LongOrBoolean,
     LongOrLongSequenceSequence, LongSequenceOrBoolean, ObjectOrBoolean, ObjectOrLong,
     ObjectOrString, StringOrBoolean, StringOrLong, StringOrLongSequence, StringOrStringSequence,
-    StringOrUnsignedLong, StringSequenceOrUnsignedLong,
-    UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
-    UnsignedLongOrBoolean,
+    StringOrUnsignedLong, StringSequenceOrUnsignedLong, UnsignedLongOrBoolean,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
@@ -1188,12 +1186,6 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn FuncControlledStaticMethodDisabled(_: &GlobalScope) {}
     fn FuncControlledStaticMethodEnabled(_: &GlobalScope) {}
-
-    fn AcceptUnionWithUnionSequence(
-        &self,
-        _: UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
-    ) {
-    }
 
     fn DefaultByte(&self, _: i8) {}
     fn DefaultOctect(&self, _: u8) {}
