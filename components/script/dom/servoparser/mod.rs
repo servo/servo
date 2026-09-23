@@ -477,7 +477,7 @@ impl ServoParser {
         self.parse_sync(cx);
     }
 
-    // https://html.spec.whatwg.org/multipage/#abort-a-parser
+    /// <https://html.spec.whatwg.org/multipage/#abort-a-parser>
     pub(crate) fn abort(&self, cx: &mut JSContext) {
         assert!(!self.aborted.get());
         self.aborted.set(true);

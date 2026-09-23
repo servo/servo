@@ -527,7 +527,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
+    /// <https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names>
     fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
         // Step 1
         #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -1681,7 +1681,7 @@ impl FormSubmitterElement<'_> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-submit-button
+    /// <https://html.spec.whatwg.org/multipage/#concept-submit-button>
     pub(crate) fn is_submit_button(&self) -> bool {
         match *self {
             // https://html.spec.whatwg.org/multipage/#image-button-state-(type=image)
@@ -1693,7 +1693,7 @@ impl FormSubmitterElement<'_> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#form-owner
+    /// <https://html.spec.whatwg.org/multipage/#form-owner>
     pub(crate) fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         match *self {
             FormSubmitterElement::Button(button_el) => button_el.form_owner(),

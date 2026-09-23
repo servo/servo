@@ -1102,7 +1102,7 @@ impl ResourceTimingListener for FontFetchListener {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#atob
+/// <https://html.spec.whatwg.org/multipage/#atob>
 pub(crate) fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
@@ -1129,7 +1129,7 @@ pub(crate) fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#atob
+/// <https://html.spec.whatwg.org/multipage/#atob>
 pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
     fn is_html_space(c: char) -> bool {
@@ -2422,7 +2422,7 @@ impl Window {
     }
 
     // https://heycam.github.io/webidl/#named-properties-object
-    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    /// <https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object>
     pub(crate) fn create_named_properties_object(
         cx: &mut JSContext,
         proto: HandleObject,
@@ -3537,7 +3537,7 @@ impl Window {
         self.current_state.get() == WindowState::Alive
     }
 
-    // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
+    /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
     pub(crate) fn is_top_level(&self) -> bool {
         self.parent_info.is_none()
     }

@@ -221,7 +221,7 @@ impl CompiledEventListener {
         unsafe { GlobalScope::from_object(obj) }
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
+    /// <https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm>
     pub(crate) fn call_or_handle_event(
         &self,
         cx: &mut JSContext,

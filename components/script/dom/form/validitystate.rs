@@ -100,12 +100,12 @@ impl ValidityState {
         reflect_dom_object_with_cx(Box::new(ValidityState::new_inherited(element)), window, cx)
     }
 
-    // https://html.spec.whatwg.org/multipage/#custom-validity-error-message
+    /// <https://html.spec.whatwg.org/multipage/#custom-validity-error-message>
     pub(crate) fn custom_error_message(&self) -> Ref<'_, DOMString> {
         self.custom_error_message.borrow()
     }
 
-    // https://html.spec.whatwg.org/multipage/#custom-validity-error-message
+    /// <https://html.spec.whatwg.org/multipage/#custom-validity-error-message>
     pub(crate) fn set_custom_error_message(&self, cx: &mut JSContext, error: DOMString) {
         *self.custom_error_message.borrow_mut() = error;
         self.perform_validation_and_update(cx, ValidationFlags::CUSTOM_ERROR);

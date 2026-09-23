@@ -567,7 +567,7 @@ impl ScriptThread {
         self.timer_scheduler.borrow_mut().cancel_timer(timer_id)
     }
 
-    // https://html.spec.whatwg.org/multipage/#await-a-stable-state
+    /// <https://html.spec.whatwg.org/multipage/#await-a-stable-state>
     pub(crate) fn await_stable_state(cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
         crate::runtime::job_queue::enqueue(cx, task);
     }

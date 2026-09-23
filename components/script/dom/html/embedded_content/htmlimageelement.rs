@@ -132,7 +132,7 @@ pub(crate) struct HTMLImageElement {
 }
 
 impl HTMLImageElement {
-    // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
+    /// <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
     pub(crate) fn is_usable(&self) -> Fallible<bool> {
         // If image has an intrinsic width or intrinsic height (or both) equal to zero, then return bad.
         if let Some(image) = &self.current_request.borrow().image {

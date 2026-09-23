@@ -445,7 +445,7 @@ impl WindowProxy {
         self.delaying_load_events_mode.set(false);
     }
 
-    // https://html.spec.whatwg.org/multipage/#disowned-its-opener
+    /// <https://html.spec.whatwg.org/multipage/#disowned-its-opener>
     pub(crate) fn disown(&self) {
         self.disowned.set(true);
     }
@@ -461,7 +461,7 @@ impl WindowProxy {
         self.is_closing.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-opener
+    /// <https://html.spec.whatwg.org/multipage/#dom-opener>
     pub(crate) fn opener(&self, cx: &mut CurrentRealm, mut retval: MutableHandleValue) {
         if self.disowned.get() {
             return retval.set(NullValue());
@@ -504,7 +504,7 @@ impl WindowProxy {
         opener_proxy.to_jsval(cx, retval);
     }
 
-    // https://html.spec.whatwg.org/multipage/#window-open-steps
+    /// <https://html.spec.whatwg.org/multipage/#window-open-steps>
     pub(crate) fn open(
         &self,
         cx: &mut JSContext,

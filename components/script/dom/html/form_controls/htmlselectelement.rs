@@ -221,7 +221,7 @@ impl HTMLSelectElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control
+    /// <https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control>
     pub(crate) fn reset(&self, no_gc: &NoGC) {
         for opt in self.list_of_options(no_gc) {
             opt.set_selectedness(no_gc, opt.DefaultSelected());
@@ -230,7 +230,7 @@ impl HTMLSelectElement {
         self.ask_for_reset(no_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#ask-for-a-reset
+    /// <https://html.spec.whatwg.org/multipage/#ask-for-a-reset>
     pub(crate) fn ask_for_reset(&self, no_gc: &NoGC) {
         if self.Multiple() {
             return;
@@ -275,7 +275,7 @@ impl HTMLSelectElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-select-pick
+    /// <https://html.spec.whatwg.org/multipage/#concept-select-pick>
     pub(crate) fn pick_option(&self, no_gc: &NoGC, picked: &HTMLOptionElement) {
         if !self.Multiple() {
             let picked = picked.upcast();
