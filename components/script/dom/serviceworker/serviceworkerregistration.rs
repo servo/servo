@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use net_traits::request::Referrer;
