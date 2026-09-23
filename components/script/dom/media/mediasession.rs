@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use embedder_traits::{
     MediaMetadata as EmbedderMediaMetadata, MediaPositionState as EmbedderMediaPositionState,
@@ -16,7 +14,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::conversions::Convert;
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::{
     MediaMetadataInit, MediaMetadataMethods,
@@ -44,9 +42,12 @@ pub(crate) struct MediaSession {
     /// <https://w3c.github.io/mediasession/#dom-mediasession-playbackstate>
     playback_state: DomRefCell<MediaSessionPlaybackState>,
     /// <https://w3c.github.io/mediasession/#supported-media-session-actions>
-    #[conditional_malloc_size_of]
     action_handlers: DomRefCell<
-        HashMapTracedValues<MediaSessionActionType, Rc<MediaSessionActionHandler>, FxBuildHasher>,
+        HashMapTracedValues<
+            MediaSessionActionType,
+            TracedCallback<MediaSessionActionHandler>,
+            FxBuildHasher,
+        >,
     >,
     /// The media instance controlled by this media session.
     /// For now only HTMLMediaElements are controlled by media sessions.
@@ -194,13 +195,13 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
     fn SetActionHandler(
         &self,
         action: MediaSessionAction,
-        handler: Option<Rc<MediaSessionActionHandler>>,
+        handler: Option<RootedCallback<MediaSessionActionHandler>>,
     ) {
         match handler {
             Some(handler) => self
                 .action_handlers
                 .borrow_mut()
-                .insert(action.convert(), handler),
+                .insert(action.convert(), handler.to_traced()),
             None => self.action_handlers.borrow_mut().remove(&action.convert()),
         };
     }

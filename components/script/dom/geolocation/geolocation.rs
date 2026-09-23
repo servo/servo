@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::gc::HandleValue;
 use js::jsapi::IsCallable;
 use rustc_hash::FxHashSet;
-use script_bindings::callback::{ExceptionHandling, OwnerWindow};
+use script_bindings::callback::{ExceptionHandling, OwnerWindow, RootedCallback};
 use script_bindings::codegen::GenericBindings::GeolocationBinding::Geolocation_Binding::GeolocationMethods;
 use script_bindings::codegen::GenericBindings::GeolocationBinding::{
     PositionCallback, PositionErrorCallback, PositionOptions,
@@ -29,13 +28,16 @@ use crate::dom::globalscope::GlobalScope;
 fn cast_error_callback(
     cx: &mut JSContext,
     error_callback: HandleValue,
-) -> Fallible<Option<Rc<PositionErrorCallback<DomTypeHolder>>>> {
+) -> Fallible<Option<RootedCallback<PositionErrorCallback<DomTypeHolder>>>> {
     if error_callback.get().is_object() {
         let error_callback = error_callback.to_object();
         #[expect(unsafe_code)]
         unsafe {
             if IsCallable(error_callback) {
-                Ok(Some(PositionErrorCallback::new(cx, error_callback)))
+                Ok(Some(RootedCallback::from(PositionErrorCallback::new(
+                    cx,
+                    error_callback,
+                ))))
             } else {
                 Err(Error::Type(c"Value is not callable.".to_owned()))
             }
@@ -72,8 +74,8 @@ impl Geolocation {
     fn request_position(
         &self,
         cx: &mut JSContext,
-        _success_callback: Rc<PositionCallback<DomTypeHolder>>,
-        error_callback: Option<Rc<PositionErrorCallback<DomTypeHolder>>>,
+        _success_callback: RootedCallback<PositionCallback<DomTypeHolder>>,
+        error_callback: Option<RootedCallback<PositionErrorCallback<DomTypeHolder>>>,
         _options: &PositionOptions,
         watch_id: Option<u32>,
     ) -> Fallible<()> {
@@ -128,7 +130,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
     fn GetCurrentPosition(
         &self,
         cx: &mut JSContext,
-        success_callback: Rc<PositionCallback<DomTypeHolder>>,
+        success_callback: RootedCallback<PositionCallback<DomTypeHolder>>,
         error_callback: HandleValue,
         options: &PositionOptions,
     ) -> Fallible<()> {
@@ -155,7 +157,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
     fn WatchPosition(
         &self,
         cx: &mut JSContext,
-        success_callback: Rc<PositionCallback<DomTypeHolder>>,
+        success_callback: RootedCallback<PositionCallback<DomTypeHolder>>,
         error_callback: HandleValue,
         options: &PositionOptions,
     ) -> Fallible<i32> {
