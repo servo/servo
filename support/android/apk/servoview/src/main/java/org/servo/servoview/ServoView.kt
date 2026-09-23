@@ -12,6 +12,7 @@ import android.os.Looper
 import android.util.Log
 import android.util.Size
 import android.view.Choreographer
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -27,7 +28,7 @@ class ServoView(
     navigator: ServoNavigator,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     private val glThread = GLThread().apply { start() }
-    internal val servo =
+    private val servo =
         Servo(
             servoArgs,
             initialUri,
@@ -42,6 +43,7 @@ class ServoView(
     init {
         isFocusable = true
         isFocusableInTouchMode = true
+        isClickable = true
         addTouchables(arrayListOf(this))
         val surfaceHolderCallback = SurfaceHolderCallback(servoView = this)
         holder.addCallback(surfaceHolderCallback)
@@ -53,6 +55,22 @@ class ServoView(
 
     override fun inUIThread(r: Runnable) {
         post(r)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (event.keyCode != KeyEvent.KEYCODE_BACK) {
+            servo.onKeyDown(keyCode, event)
+            return true
+        }
+        return false
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (event.keyCode != KeyEvent.KEYCODE_BACK) {
+            servo.onKeyUp(keyCode, event)
+            return true
+        }
+        return false
     }
 
     override fun onTouchEvent(motionEvent: MotionEvent): Boolean {
