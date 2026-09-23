@@ -5,7 +5,6 @@
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::ptr;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -19,7 +18,7 @@ use js::typedarray::Uint8;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
@@ -314,7 +313,7 @@ pub(crate) struct ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-strategysizealgorithm>
     #[ignore_malloc_size_of = "mozjs"]
-    strategy_size: RefCell<Option<Rc<QueuingStrategySize>>>,
+    strategy_size: RefCell<Option<TracedCallback<QueuingStrategySize>>>,
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-closerequested>
     close_requested: Cell<bool>,
@@ -332,7 +331,7 @@ pub(crate) struct ReadableStreamDefaultController {
 impl ReadableStreamDefaultController {
     fn new_inherited(
         strategy_hwm: f64,
-        strategy_size: Rc<QueuingStrategySize>,
+        strategy_size: RootedCallback<QueuingStrategySize>,
         underlying_source: &UnderlyingSourceContainer,
     ) -> ReadableStreamDefaultController {
         ReadableStreamDefaultController {
@@ -341,7 +340,7 @@ impl ReadableStreamDefaultController {
             stream: MutNullableDom::new(None),
             underlying_source: MutNullableDom::new(Some(underlying_source)),
             strategy_hwm,
-            strategy_size: RefCell::new(Some(strategy_size)),
+            strategy_size: RefCell::new(Some(strategy_size.to_traced())),
             close_requested: Default::default(),
             started: Default::default(),
             pulling: Default::default(),
@@ -354,7 +353,7 @@ impl ReadableStreamDefaultController {
         global: &GlobalScope,
         underlying_source: UnderlyingSourceType,
         strategy_hwm: f64,
-        strategy_size: Rc<QueuingStrategySize>,
+        strategy_size: RootedCallback<QueuingStrategySize>,
     ) -> DomRoot<ReadableStreamDefaultController> {
         let underlying_source = UnderlyingSourceContainer::new(cx, global, underlying_source);
         reflect_dom_object(
@@ -638,11 +637,11 @@ impl ReadableStreamDefaultController {
             // Let result be the result of performing controller.[[strategySizeAlgorithm]],
             // passing in chunk, and interpreting the result as a completion record.
             // Note: the clone is necessary to prevent potential re-borrow panics.
-            let strategy_size = {
+            rooted!(&in(cx) let rooted_strategy_size = {
                 let reference = self.strategy_size.borrow();
                 reference.clone()
-            };
-            let size = if let Some(strategy_size) = strategy_size {
+            });
+            let size = if let Some(ref strategy_size) = *rooted_strategy_size {
                 // Note: the Rethrow exception handling is necessary,
                 // otherwise returning JSFailed will panic because no exception is pending.
                 let result = strategy_size.Call__(cx, chunk, ExceptionHandling::Rethrow);

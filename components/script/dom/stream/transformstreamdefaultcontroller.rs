@@ -16,7 +16,7 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::TransformStreamDefaultControllerBinding::TransformStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::TransformerBinding::{
     Transformer, TransformerCancelCallback, TransformerFlushCallback, TransformerTransformCallback,
@@ -69,16 +69,13 @@ pub(crate) enum TransformerType {
     /// Algorithms provided by Js callbacks
     Js {
         /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-cancelalgorithm>
-        #[conditional_malloc_size_of]
-        cancel: RefCell<Option<Rc<TransformerCancelCallback>>>,
+        cancel: RefCell<Option<TracedCallback<TransformerCancelCallback>>>,
 
         /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-flushalgorithm>
-        #[conditional_malloc_size_of]
-        flush: RefCell<Option<Rc<TransformerFlushCallback>>>,
+        flush: RefCell<Option<TracedCallback<TransformerFlushCallback>>>,
 
         /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-transformalgorithm>
-        #[conditional_malloc_size_of]
-        transform: RefCell<Option<Rc<TransformerTransformCallback>>>,
+        transform: RefCell<Option<TracedCallback<TransformerTransformCallback>>>,
 
         /// The JS object used as `this` when invoking sink algorithms.
         #[ignore_malloc_size_of = "mozjs"]
@@ -105,9 +102,24 @@ pub(crate) enum TransformerType {
 impl TransformerType {
     pub(crate) fn new_from_js_transformer(transformer: &Transformer) -> TransformerType {
         TransformerType::Js {
-            cancel: RefCell::new(transformer.cancel.clone()),
-            flush: RefCell::new(transformer.flush.clone()),
-            transform: RefCell::new(transformer.transform.clone()),
+            cancel: RefCell::new(
+                transformer
+                    .cancel
+                    .as_ref()
+                    .map(|callback| callback.to_traced()),
+            ),
+            flush: RefCell::new(
+                transformer
+                    .flush
+                    .as_ref()
+                    .map(|callback| callback.to_traced()),
+            ),
+            transform: RefCell::new(
+                transformer
+                    .transform
+                    .as_ref()
+                    .map(|callback| callback.to_traced()),
+            ),
             transform_obj: Default::default(),
         }
     }
@@ -227,8 +239,8 @@ impl TransformStreamDefaultController {
                 // chunk and returns the result of invoking
                 // transformerDict["transform"] with argument list « chunk,
                 // controller » and callback this value transformer.
-                let algo = transform.borrow().clone();
-                if let Some(transform) = algo {
+                rooted!(&in(cx) let algo = transform.borrow().clone());
+                if let Some(ref transform) = *algo {
                     rooted!(&in(cx) let this_object = transform_obj.get());
                     transform
                         .Call_(
@@ -375,8 +387,8 @@ impl TransformStreamDefaultController {
                 // reason and returns the result of invoking
                 // transformerDict["cancel"] with argument list « reason » and
                 // callback this value transformer.
-                let algo = cancel.borrow().clone();
-                if let Some(cancel) = algo {
+                rooted!(&in(cx) let algo = cancel.borrow().clone());
+                if let Some(ref cancel) = *algo {
                     rooted!(&in(cx) let this_object = transform_obj.get());
                     cancel
                         .Call_(cx, &this_object.handle(), chunk, ExceptionHandling::Rethrow)
@@ -455,8 +467,8 @@ impl TransformStreamDefaultController {
                 // algorithm which returns the result of invoking
                 // transformerDict["flush"] with argument list « controller »
                 // and callback this value transformer.
-                let algo = flush.borrow().clone();
-                if let Some(flush) = algo {
+                rooted!(&in(cx) let algo = flush.borrow().clone());
+                if let Some(ref flush) = *algo {
                     rooted!(&in(cx) let this_object = transform_obj.get());
                     flush
                         .Call_(cx, &this_object.handle(), self, ExceptionHandling::Rethrow)

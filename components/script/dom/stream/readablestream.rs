@@ -35,6 +35,7 @@ use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use script_bindings::codegen::GenericBindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
 use script_bindings::conversions::{is_array_like, StringificationBehavior};
+use crate::dom::bindings::callback::RootedCallback;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
@@ -845,7 +846,7 @@ pub(crate) fn create_readable_stream(
     cx: &mut JSContext,
     global: &GlobalScope,
     underlying_source_type: UnderlyingSourceType,
-    queuing_strategy: Option<Rc<QueuingStrategySize>>,
+    queuing_strategy: Option<RootedCallback<QueuingStrategySize>>,
     high_water_mark: Option<f64>,
 ) -> DomRoot<ReadableStream> {
     // If highWaterMark was not passed, set it to 1.

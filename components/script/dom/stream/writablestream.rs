@@ -25,6 +25,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
 
+use crate::dom::bindings::callback::RootedCallback;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
     QueuingStrategy, QueuingStrategySize,
 };
@@ -906,7 +907,7 @@ impl WritableStream {
         underlying_sink_obj: SafeHandleObject,
         underlying_sink: &UnderlyingSink,
         strategy_hwm: f64,
-        strategy_size: Rc<QueuingStrategySize>,
+        strategy_size: RootedCallback<QueuingStrategySize>,
     ) -> Result<(), Error> {
         // Let controller be a new WritableStreamDefaultController.
 
@@ -961,7 +962,7 @@ pub(crate) fn create_writable_stream(
     cx: &mut JSContext,
     global: &GlobalScope,
     writable_high_water_mark: f64,
-    writable_size_algorithm: Rc<QueuingStrategySize>,
+    writable_size_algorithm: RootedCallback<QueuingStrategySize>,
     underlying_sink_type: UnderlyingSinkType,
 ) -> Fallible<DomRoot<WritableStream>> {
     // Assert: ! IsNonNegativeNumber(highWaterMark) is true.

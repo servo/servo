@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 use std::ptr::{self};
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -21,6 +20,7 @@ use servo_constellation_traits::TransformStreamData;
 
 use super::readablestream::CrossRealmTransformReadable;
 use super::writablestream::CrossRealmTransformWritable;
+use crate::dom::bindings::callback::RootedCallback;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
     QueuingStrategy, QueuingStrategySize,
 };
@@ -505,9 +505,9 @@ impl TransformStream {
         global: &GlobalScope,
         start_promise: &RootedPromise,
         writable_high_water_mark: f64,
-        writable_size_algorithm: Rc<QueuingStrategySize>,
+        writable_size_algorithm: RootedCallback<QueuingStrategySize>,
         readable_high_water_mark: f64,
-        readable_size_algorithm: Rc<QueuingStrategySize>,
+        readable_size_algorithm: RootedCallback<QueuingStrategySize>,
     ) -> Fallible<()> {
         // Let startAlgorithm be an algorithm that returns startPromise.
         // Let writeAlgorithm be the following steps, taking a chunk argument:
