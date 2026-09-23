@@ -122,12 +122,12 @@ impl ScriptMutationObservers {
 
     /// Remove the mutation observer.
     pub(crate) fn remove(&self, observer: &MutationObserver) {
-        if let Some(index) = self
+        let index = self
             .mutation_observers
             .borrow()
             .iter()
-            .position(|current_observer| *current_observer == observer)
-        {
+            .position(|current_observer| *current_observer == observer);
+        if let Some(index) = index {
             self.mutation_observers.borrow_mut().swap_remove(index);
         } else {
             error!("Mutation Observer already removed.");
