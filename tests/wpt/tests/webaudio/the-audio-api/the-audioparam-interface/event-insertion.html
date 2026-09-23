@@ -152,7 +152,7 @@
 
       audit.define(
           {
-            label: 'Linear + SetTarget',
+            label: 'Linear + SetValue + SetTarget',
             description: 'Different events at same time',
           },
           (task, should) => {
@@ -164,12 +164,12 @@
               {event: 'setTargetAtTime', value: 0, extraArgs: 0.1},
             ];
             let eventFrame = 2 * RENDER_QUANTUM_FRAMES;
-            let prefix = 'Linear+SetTarget: ';
+            let prefix = 'Linear+SetValue+SetTarget: ';
 
             testEventInsertion(prefix, should, eventFrame, testCase)
                 .then(audioBuffer => {
                   let audio = audioBuffer.getChannelData(0);
-                  let prefix = 'Linear+SetTarget: ';
+                  let prefix = 'Linear+SetValue+SetTarget: ';
                   let eventTime = eventFrame / sampleRate;
                   let expectedValue = methodMap[testCase[0].event](
                       (eventFrame - 1) / sampleRate, 1, 0, testCase[0].value,
@@ -199,6 +199,59 @@
                     expected[k] = audioParamSetTarget(
                         t, testCase[1].value, eventTime, testCase[2].value,
                         testCase[2].extraArgs);
+                  }
+                  should(
+                      actual,
+                      prefix +
+                          `At time ${eventTime} (frame ${
+                                                         eventFrame
+                                                       }) and later`)
+                      .beCloseToArray(expected, {relativeThreshold: 2.6694e-7});
+                })
+                .then(() => task.done());
+          });
+
+      audit.define(
+          {
+            label: 'Linear + SetTarget',
+            description: 'Test edge case where SetTarget takes over from LinearRamp',
+          },
+          (task, should) => {
+            // Should be a linear ramp up to the event time, and then a
+            // decaying value.
+            let testCase = [
+              {event: 'linearRampToValueAtTime', value: 3, relError: 0},
+              {event: 'setTargetAtTime', value: 0, extraArgs: 0.1},
+            ];
+            let eventFrame = 2 * RENDER_QUANTUM_FRAMES;
+            let prefix = 'Linear+SetTarget: ';
+
+            testEventInsertion(prefix, should, eventFrame, testCase)
+                .then(audioBuffer => {
+                  let audio = audioBuffer.getChannelData(0);
+                  let prefix = 'Linear+SetTarget: ';
+                  let eventTime = eventFrame / sampleRate;
+                  let expectedValue = methodMap[testCase[0].event](
+                      (eventFrame - 1) / sampleRate, 1, 0, testCase[0].value,
+                      eventTime);
+                  should(
+                      audio[eventFrame - 1],
+                      prefix +
+                          `At time ${
+                                     (eventFrame - 1) / sampleRate
+                                   } (frame ${eventFrame - 1}) output`)
+                      .beCloseTo(
+                          expectedValue,
+                          {threshold: testCase[0].relError || 0});
+
+                  // The final event is setTarget.  Compute the expected output.
+                  let actual = audio.slice(eventFrame);
+                  let expected = new Float32Array(actual.length);
+                  for (let k = 0; k < expected.length; ++k) {
+                    let t = (eventFrame + k) / sampleRate;
+                    expected[k] = audioParamSetTarget(
+                        t, testCase[0].value, eventTime, testCase[1].value,
+                        testCase[1].extraArgs);
                   }
                   should(
                       actual,
