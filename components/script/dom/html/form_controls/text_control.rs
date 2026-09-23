@@ -107,7 +107,7 @@ pub(crate) trait TextControlElement {
         );
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn dom_start(&self) -> Option<Utf16CodeUnits> {
         // Step 1
         if !self.selection_api_applies() {
@@ -118,7 +118,7 @@ pub(crate) trait TextControlElement {
         Some(self.start())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn set_dom_start(&self, start: Option<Utf16CodeUnits>) -> ErrorResult {
         // Step 1: If this element is an input element, and selectionStart does not apply
         // to this element, throw an "InvalidStateError" DOMException.
@@ -143,7 +143,7 @@ pub(crate) trait TextControlElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn dom_end(&self) -> Option<Utf16CodeUnits> {
         // Step 1: If this element is an input element, and selectionEnd does not apply to
         // this element, return null.
@@ -158,7 +158,7 @@ pub(crate) trait TextControlElement {
         Some(self.end())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn set_dom_end(&self, end: Option<Utf16CodeUnits>) -> ErrorResult {
         // Step 1: If this element is an input element, and selectionEnd does not apply to
         // this element, throw an "InvalidStateError" DOMException.
@@ -175,7 +175,7 @@ pub(crate) trait TextControlElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn dom_direction(&self) -> Option<DOMString> {
         // Step 1
         if !self.selection_api_applies() {
@@ -185,7 +185,7 @@ pub(crate) trait TextControlElement {
         Some(DOMString::from(self.direction()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn set_dom_direction(&self, direction: Option<DOMString>) -> ErrorResult {
         // Step 1
         if !self.selection_api_applies() {
@@ -204,7 +204,7 @@ pub(crate) trait TextControlElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn set_dom_range(
         &self,
         start: Utf16CodeUnits,
@@ -228,7 +228,7 @@ pub(crate) trait TextControlElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn set_dom_range_text(
         &self,
         replacement: DOMString,

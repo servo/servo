@@ -1064,7 +1064,7 @@ impl HTMLElement {
         None
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-summary-element:activation-behaviour
+    /// <https://html.spec.whatwg.org/multipage/#the-summary-element:activation-behaviour>
     pub(crate) fn summary_activation_behavior(&self, cx: &mut js::context::JSContext) {
         debug_assert!(self.as_element().local_name() == &local_name!("summary"));
 

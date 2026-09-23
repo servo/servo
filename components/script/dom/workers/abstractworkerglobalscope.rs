@@ -42,7 +42,7 @@ pub(crate) trait WorkerEventLoopMethods {
     fn control_receiver(&self) -> &Receiver<Self::ControlMsg>;
 }
 
-// https://html.spec.whatwg.org/multipage/#worker-event-loop
+/// <https://html.spec.whatwg.org/multipage/#worker-event-loop>
 pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     worker_scope: &T,
     worker: Option<&TrustedWorkerAddress>,

@@ -158,7 +158,7 @@ impl HTMLTextAreaElement {
         HTMLInputElement::directionality_from_value(&value)
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
+    /// <https://html.spec.whatwg.org/multipage/#concept-fe-mutable>
     pub(crate) fn is_mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Aconcept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable

@@ -353,7 +353,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             .update_image(image_key, descriptor, data, canvas_epoch);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
     pub(crate) fn put_image_data(&mut self, snapshot: Snapshot, rect: Rect<u32>) {
         assert_eq!(rect.size, snapshot.size());
         let source_surface = self
