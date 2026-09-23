@@ -529,4 +529,12 @@ mod tests {
             Some(compute_result_in_seconds(60., 20., 35., 0.))
         );
     }
+
+    #[test]
+    fn test_parses_handles_exact_hour_correctly() {
+        assert_eq!(
+            parse_timestamp("01:00:00.000"),
+            Some(compute_result_in_seconds(1., 0., 0., 0.))
+        );
+    }
 }
