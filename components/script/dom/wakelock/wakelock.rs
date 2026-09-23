@@ -49,7 +49,7 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
     /// <https://w3c.github.io/screen-wake-lock/#the-request-method>
     fn Request(&self, cx: &mut CurrentRealm, type_: WakeLockType) -> RootedPromise {
         let global = GlobalScope::from_current_realm(cx);
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 1. Let document be this's relevant global object's associated Document.
         let document = global.as_window().Document();

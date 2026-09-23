@@ -296,7 +296,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                 let target = Trusted::new(global.upcast::<EventTarget>());
                 let promise =
                     Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise) });
-                let trusted_promise = TrustedPromise::new(promise);
+                let trusted_promise = TrustedPromise::from(&promise);
 
                 // Step 5-4.
                 global.task_manager().dom_manipulation_task_source().queue(
@@ -458,7 +458,7 @@ pub(crate) fn notify_about_rejected_promises(cx: &mut JSContext, global: &Global
                 let promise =
                     Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise.handle()) });
 
-                TrustedPromise::new(promise)
+                TrustedPromise::from(&promise)
             })
             .collect()
     };

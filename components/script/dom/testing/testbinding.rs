@@ -1031,11 +1031,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn ReturnResolvedPromise(&self, cx: &mut JSContext, v: HandleValue) -> RootedPromise {
-        Promise::new_resolved_rooted(cx, &self.global(), v)
+        Promise::new_resolved(cx, &self.global(), v)
     }
 
     fn ReturnRejectedPromise(&self, cx: &mut JSContext, v: HandleValue) -> RootedPromise {
-        Promise::new_rejected_rooted(cx, &self.global(), v)
+        Promise::new_rejected(cx, &self.global(), v)
     }
 
     fn PromiseResolveNative(&self, cx: &mut JSContext, p: &Promise, v: HandleValue) {
@@ -1076,7 +1076,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             reject.map(SimpleHandler::new_boxed),
         );
 
-        let p = Promise::new_in_realm_rooted(realm);
+        let p = Promise::new_in_realm(realm);
         p.append_native_handler(realm, &handler);
         return p;
 
@@ -1101,7 +1101,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn PromiseAttribute(&self, cx: &mut CurrentRealm) -> RootedPromise {
-        Promise::new_in_realm_rooted(cx)
+        Promise::new_in_realm(cx)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}

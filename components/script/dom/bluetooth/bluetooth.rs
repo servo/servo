@@ -303,7 +303,7 @@ where
     T: AsyncBluetoothListener + DomObject + 'static,
     F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID>,
 {
-    let p = Promise::new_in_realm_rooted(cx);
+    let p = Promise::new_in_realm(cx);
 
     let result_uuid = if let Some(u) = uuid {
         // Step 1.
@@ -540,7 +540,7 @@ impl Convert<Error> for BluetoothError {
 impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice>
     fn RequestDevice(&self, cx: &mut CurrentRealm, option: &RequestDeviceOptions) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
@@ -558,7 +558,7 @@ impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability>
     fn GetAvailability(&self, cx: &mut CurrentRealm) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
         // Step 1. We did not override the method
         // Step 2 - 3. in handle_response
         let sender = response_async(&p, self);

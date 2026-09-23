@@ -58,11 +58,11 @@ impl CredentialMethods<DomTypeHolder> for Credential {
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credential-isconditionalmediationavailable>
     fn IsConditionalMediationAvailable(cx: &mut CurrentRealm, _global: &Window) -> RootedPromise {
-        Promise::new_in_realm_rooted(cx)
+        Promise::new_in_realm(cx)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credential-willrequestconditionalcreation>
     fn WillRequestConditionalCreation(cx: &mut CurrentRealm, _global: &Window) -> RootedPromise {
-        Promise::new_in_realm_rooted(cx)
+        Promise::new_in_realm(cx)
     }
 }

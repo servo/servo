@@ -55,6 +55,6 @@ impl RTCRtpSenderMethods<crate::DomTypeHolder> for RTCRtpSender {
         cx: &mut JSContext,
         _parameters: &RTCRtpSendParameters,
     ) -> RootedPromise {
-        Promise::new_resolved_rooted(cx, &self.global(), ())
+        Promise::new_resolved(cx, &self.global(), ())
     }
 }

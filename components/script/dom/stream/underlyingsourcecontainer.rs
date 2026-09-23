@@ -182,7 +182,7 @@ impl UnderlyingSourceContainer {
                 // Disentangle port.
                 self.global().disentangle_port(cx, port);
 
-                let promise = Promise::new_rooted(cx, &self.global());
+                let promise = Promise::new(cx, &self.global());
 
                 // If result is an abrupt completion,
                 if let Err(error) = result {
@@ -235,7 +235,7 @@ impl UnderlyingSourceContainer {
                     .expect("Sending pull should not fail.");
 
                 // Return a promise resolved with undefined.
-                let promise = Promise::new_resolved_rooted(cx, &self.global(), ());
+                let promise = Promise::new_resolved(cx, &self.global(), ());
                 Some(Ok(promise))
             },
             UnderlyingSource::TeeByte(tee_underlyin_source) => {

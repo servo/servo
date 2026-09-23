@@ -209,7 +209,7 @@ where
         descriptor: &GPUDeviceDescriptor,
     ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
         // Step 2
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
 
         let callback = promise.callback_promise_dom_manipulation_task_source(self);
         let mut required_features = Features::empty();

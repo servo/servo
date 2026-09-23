@@ -398,7 +398,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm::<EncryptOperation>(cx, &algorithm) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                let promise = Promise::new_in_realm_rooted(cx);
+                let promise = Promise::new_in_realm(cx);
                 promise.reject_error(cx, error);
                 return promise;
             },
@@ -410,7 +410,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -482,7 +482,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm::<DecryptOperation>(cx, &algorithm) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                let promise = Promise::new_in_realm_rooted(cx);
+                let promise = Promise::new_in_realm(cx);
                 promise.reject_error(cx, error);
                 return promise;
             },
@@ -494,7 +494,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -566,7 +566,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm::<SignOperation>(cx, &algorithm) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                let promise = Promise::new_in_realm_rooted(cx);
+                let promise = Promise::new_in_realm(cx);
                 promise.reject_error(cx, error);
                 return promise;
             },
@@ -578,7 +578,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -650,7 +650,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm::<VerifyOperation>(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(error) => {
-                let promise = Promise::new_in_realm_rooted(cx);
+                let promise = Promise::new_in_realm(cx);
                 promise.reject_error(cx, error);
                 return promise;
             },
@@ -666,7 +666,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 6. Let realm be the relevant realm of this.
         // Step 7. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 8. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -734,7 +734,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm::<DigestOperation>(cx, &algorithm) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                let promise = Promise::new_in_realm_rooted(cx);
+                let promise = Promise::new_in_realm(cx);
                 promise.reject_error(cx, error);
                 return promise;
             },
@@ -746,7 +746,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -796,7 +796,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
         // to algorithm and op set to "generateKey".
         // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         let normalized_algorithm = match normalize_algorithm::<GenerateKeyOperation>(cx, &algorithm)
         {
             Ok(normalized_algorithm) => normalized_algorithm,
@@ -903,7 +903,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
         // to algorithm and op set to "deriveBits".
         // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         let normalized_algorithm = match normalize_algorithm::<DeriveBitsOperation>(cx, &algorithm)
         {
             Ok(normalized_algorithm) => normalized_algorithm,
@@ -1050,7 +1050,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
         // to algorithm and op set to "deriveBits".
         // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         let normalized_algorithm = match normalize_algorithm::<DeriveBitsOperation>(cx, &algorithm)
         {
             Ok(normalized_algorithm) => normalized_algorithm,
@@ -1134,7 +1134,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm::<ImportKeyOperation>(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(error) => {
-                let promise = Promise::new_in_realm_rooted(cx);
+                let promise = Promise::new_in_realm(cx);
                 promise.reject_error(cx, error);
                 return promise;
             },
@@ -1149,7 +1149,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBuffer(_) => {
                         // Step 4.1. If the keyData parameter passed to the importKey() method is
                         // not a JsonWebKey dictionary, throw a TypeError.
-                        let promise = Promise::new_in_realm_rooted(cx);
+                        let promise = Promise::new_in_realm(cx);
                         promise.reject_error(
                             cx,
                             Error::Type(c"The keyData type does not match the format".to_owned()),
@@ -1168,7 +1168,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         match jwk.stringify(cx) {
                             Ok(stringified) => Zeroizing::new(stringified.as_bytes().to_vec()),
                             Err(error) => {
-                                let promise = Promise::new_in_realm_rooted(cx);
+                                let promise = Promise::new_in_realm(cx);
                                 promise.reject_error(cx, error);
                                 return promise;
                             },
@@ -1182,7 +1182,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     // Step 4.1. If the keyData parameter passed to the importKey() method is a
                     // JsonWebKey dictionary, throw a TypeError.
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(_) => {
-                        let promise = Promise::new_in_realm_rooted(cx);
+                        let promise = Promise::new_in_realm(cx);
                         promise.reject_error(
                             cx,
                             Error::Type(c"The keyData type does not match the format".to_owned()),
@@ -1204,7 +1204,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -1274,7 +1274,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 2. Let realm be the relevant realm of this.
         // Step 3. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 4. Return promise and perform the remaining steps in parallel.
         let trusted_subtle = Trusted::new(self);
@@ -1380,7 +1380,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<EncryptOperation>(cx, &algorithm) {
                 Ok(algorithm) => WrapKeyAlgorithmOrEncryptAlgorithm::EncryptAlgorithm(algorithm),
                 Err(error) => {
-                    let promise = Promise::new_in_realm_rooted(cx);
+                    let promise = Promise::new_in_realm(cx);
                     promise.reject_error(cx, error);
                     return promise;
                 },
@@ -1389,7 +1389,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let trusted_subtle = Trusted::new(self);
@@ -1558,7 +1558,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<DecryptOperation>(cx, &algorithm) {
                 Ok(algorithm) => UnwrapKeyAlgorithmOrDecryptAlgorithm::DecryptAlgorithm(algorithm),
                 Err(error) => {
-                    let promise = Promise::new_in_realm_rooted(cx);
+                    let promise = Promise::new_in_realm(cx);
                     promise.reject_error(cx, error);
                     return promise;
                 },
@@ -1572,7 +1572,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<ImportKeyOperation>(cx, &unwrapped_key_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
-                    let promise = Promise::new_in_realm_rooted(cx);
+                    let promise = Promise::new_in_realm(cx);
                     promise.reject_error(cx, error);
                     return promise;
                 },
@@ -1584,7 +1584,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 8. Let realm be the relevant realm of this.
         // Step 9. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 10. Return promise and perform the remaining steps in parallel.
         let trusted_subtle = Trusted::new(self);
@@ -1727,7 +1727,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // with alg set to encapsulationAlgorithm and op set to "encapsulate".
         // Step 3. If an error occurred, return a Promise rejected with
         // normalizedEncapsulationAlgorithm.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         let normalized_encapsulation_algorithm =
             match normalize_algorithm::<EncapsulateOperation>(cx, &encapsulation_algorithm) {
                 Ok(algorithm) => algorithm,
@@ -1869,7 +1869,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // with alg set to encapsulationAlgorithm and op set to "encapsulate".
         // Step 3. If an error occurred, return a Promise rejected with
         // normalizedEncapsulationAlgorithm.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         let normalized_encapsulation_algorithm =
             match normalize_algorithm::<EncapsulateOperation>(cx, &encapsulation_algorithm) {
                 Ok(algorithm) => algorithm,
@@ -1967,7 +1967,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<DecapsulateOperation>(cx, &decapsulation_algorithm) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
-                    let promise = Promise::new_in_realm_rooted(cx);
+                    let promise = Promise::new_in_realm(cx);
                     promise.reject_error(cx, error);
                     return promise;
                 },
@@ -1981,7 +1981,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<ImportKeyOperation>(cx, &shared_key_algorithm) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
-                    let promise = Promise::new_in_realm_rooted(cx);
+                    let promise = Promise::new_in_realm(cx);
                     promise.reject_error(cx, error);
                     return promise;
                 },
@@ -1993,7 +1993,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 7. Let realm be the relevant realm of this.
         // Step 8. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 9. Return promise and perform the remaining steps in parallel.
         let trusted_subtle = Trusted::new(self);
@@ -2101,7 +2101,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<DecapsulateOperation>(cx, &decapsulation_algorithm) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
-                    let promise = Promise::new_in_realm_rooted(cx);
+                    let promise = Promise::new_in_realm(cx);
                     promise.reject_error(cx, error);
                     return promise;
                 },
@@ -2113,7 +2113,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let trusted_subtle = Trusted::new(self);
@@ -2202,7 +2202,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         ) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                let promise = Promise::new_in_realm_rooted(cx);
+                let promise = Promise::new_in_realm(cx);
                 promise.reject_error(cx, error);
                 return promise;
             },
@@ -2210,7 +2210,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 4. Let realm be the relevant realm of this.
         // Step 5. Let promise be a new Promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 6. Return promise and perform the remaining steps in parallel.
         let trusted_subtle = Trusted::new(self);

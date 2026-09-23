@@ -286,7 +286,7 @@ where
         offset: GPUSize64,
         size: Option<GPUSize64>,
     ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         // Step 2
         if self.pending_map.borrow().is_some() {
             promise.reject_error(

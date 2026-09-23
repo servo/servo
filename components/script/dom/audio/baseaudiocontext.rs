@@ -299,7 +299,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume>
     fn Resume(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 2.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
@@ -500,7 +500,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         // Step 1. If this's relevant global object's associated Document is NOT fully active,
         // return a promise rejected with "InvalidStateError".
         if !self.global().as_window().Document().is_fully_active() {
-            let promise = Promise::new_in_realm_rooted(cx);
+            let promise = Promise::new_in_realm(cx);
             promise.reject_error(
                 cx,
                 Error::InvalidState(Some("Audio context's document is not fully active.".into())),
@@ -509,7 +509,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         }
 
         // Step 2. Let promise be a new promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // flatten the optionally nullable callbacks
         let decode_success_callback = decode_success_callback.flatten();

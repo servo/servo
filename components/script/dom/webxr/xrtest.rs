@@ -75,7 +75,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         cx: &mut CurrentRealm,
         init: &FakeXRDeviceInit,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
 
         let origin = if let Some(ref o) = init.viewerOrigin {
             match get_origin(o) {
@@ -190,7 +190,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn DisconnectAllDevices(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // XXXManishearth implement device disconnection and session ending
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
 
         // restrict borrow scope prior to p.resolve_native(), which can GC
         let is_empty = self.devices_connected.borrow().is_empty();

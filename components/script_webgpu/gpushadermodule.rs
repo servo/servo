@@ -116,7 +116,7 @@ where
             .global_from_reflector()
             .global_wgpu_id_hub()
             .create_shader_module_id();
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         let shader_module = GPUShaderModule::new(
             cx,
             &*device.global_from_reflector(),

@@ -102,7 +102,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
         let global = self.global();
 
         // Step 2 Let p be a new promise in realm.
-        let p = Promise::new_in_realm_rooted(realm);
+        let p = Promise::new_in_realm(realm);
 
         // Step 3 Run the following steps in parallel:
 
@@ -129,7 +129,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
         // Step 1 Let realm be this's relevant realm.
         let global = self.global();
         // Step 2 Let p be a new promise in realm.
-        let p = Promise::new_in_realm_rooted(realm);
+        let p = Promise::new_in_realm(realm);
 
         // Step 3 Run the following steps in parallel:
 
@@ -206,7 +206,7 @@ impl RoutedPromiseListener<crate::DomTypeHolder, Result<String, String>> for Cli
         rooted!(&in(cx) let representation = Representation {
             mime_type,
             is_custom: false,
-            data: Promise::new_resolved_rooted(cx, &global, DOMString::from(text)).to_traced(),
+            data: Promise::new_resolved(cx, &global, DOMString::from(text)).to_traced(),
         });
 
         // Step 3.4.1.1.4 If representation’s MIME type essence is "text/plain", then:

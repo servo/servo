@@ -304,7 +304,7 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
     /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-disconnect>
     fn Disconnect(&self, cx: &mut CurrentRealm) -> RootedPromise {
         let global = self.global();
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
         let mut trusted = Some(TrustedPromise::from(&p));
         let task_source = global
             .task_manager()

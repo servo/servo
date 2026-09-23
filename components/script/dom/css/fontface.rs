@@ -238,7 +238,7 @@ impl FontFace {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        let font_status_promise = Promise::new_rooted(cx, global);
+        let font_status_promise = Promise::new(cx, global);
         // If any of them fail to parse correctly, reject font face’s [[FontStatusPromise]] with a
         // DOMException named "SyntaxError"
         font_status_promise
@@ -366,7 +366,7 @@ impl FontFace {
         // > descriptors in the @font-face rule.
         let descriptors = serialize_parsed_descriptors(&font_face_rule.descriptors);
 
-        let font_status_promise = Promise::new_rooted(cx, global);
+        let font_status_promise = Promise::new(cx, global);
         Some(reflect_dom_object_with_proto(
             cx,
             Box::new(Self::new_inherited_for_web_font(
@@ -782,7 +782,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         };
 
         // Set its internal [[FontStatusPromise]] slot to a fresh pending Promise object.
-        let font_status_promise = Promise::new_rooted(cx, global);
+        let font_status_promise = Promise::new(cx, global);
 
         let sources = parsed_font_face_rule.descriptors.src.clone();
         // Let font face be a fresh FontFace object.
