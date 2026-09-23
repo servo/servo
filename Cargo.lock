@@ -13286,3 +13286,18 @@ dependencies = [
  "syn 3.0.4",
  "winnow 1.0.4",
 ]
+
+[[patch.unused]]
+name = "webrender"
+version = "0.62.0"
+source = "git+https://github.com/RichardTjokroutomo/webrender?branch=font-decimal-point#ffd8e26248cfcc55ecff0b6ed8d9d1bcc371eef3"
+
+[[patch.unused]]
+name = "webrender_api"
+version = "0.62.0"
+source = "git+https://github.com/RichardTjokroutomo/webrender?branch=font-decimal-point#ffd8e26248cfcc55ecff0b6ed8d9d1bcc371eef3"
+
+[[patch.unused]]
+name = "wr_malloc_size_of"
+version = "0.0.2"
+source = "git+https://github.com/RichardTjokroutomo/webrender?branch=font-decimal-point#ffd8e26248cfcc55ecff0b6ed8d9d1bcc371eef3"
