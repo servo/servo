@@ -83,7 +83,26 @@ where
     T: DomObject,
 {
     fn stable_trace_object(&self) -> *const dyn JSTraceable {
-        unsafe { self.ptr.as_ref().reflector() }
+        // The trace hook for MaybeUnreflectedDom can be called before the
+        // reflector has been initialized in the contained object. Since we still
+        // want to treat the fields of the object as reachable, we explicitly trace
+        // the object's fields in that case. Otherwise, we only need to trace the
+        // reflector so the object's trace hook will be invoked automatically.
+        #[repr(transparent)]
+        struct MaybeUnreflectedStackRoot<T>(T);
+        unsafe impl<T> JSTraceable for MaybeUnreflectedStackRoot<T>
+        where
+            T: DomObject,
+        {
+            unsafe fn trace(&self, tracer: *mut JSTracer) {
+                if self.0.reflector().get_jsobject().is_null() {
+                    unsafe { self.0.trace(tracer) };
+                } else {
+                    unsafe { self.0.reflector().trace(tracer) }
+                }
+            }
+        }
+        unsafe { &*(self.ptr.as_ptr() as *const T as *const MaybeUnreflectedStackRoot<T>) }
     }
 }
 
