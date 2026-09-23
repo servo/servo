@@ -76,7 +76,7 @@ use script_bindings::like::Setlike;
 use script_bindings::principals::ServoJSPrincipals;
 use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
-use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
+use script_traits::{ConstellationInputEvent, ScriptThreadMessage, WebViewState};
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -282,19 +282,17 @@ struct PendingLayoutImageAncillaryData {
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
-
     /// A `Weak` reference to this [`ScriptThread`] used to give to child [`Window`]s so
     /// they can more easily call methods on the [`ScriptThread`] without constantly having
     /// to pass it everywhere.
     #[ignore_malloc_size_of = "Weak does not need to be accounted"]
     #[no_trace]
     weak_script_thread: Weak<ScriptThread>,
-
-    /// The webview that contains this [`Window`].
-    ///
-    /// This may not be the top-level [`Window`], in the case of frames.
+    /// The [`WebViewState`] for this [`Window`], shared with all other
+    /// [`Window`]s in the same `EventLoop`.
     #[no_trace]
-    webview_id: WebViewId,
+    #[conditional_malloc_size_of]
+    webview_state: Rc<WebViewState>,
     script_chan: Sender<MainThreadScriptMsg>,
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
@@ -341,10 +339,6 @@ pub(crate) struct Window {
     /// This allows us to detect ABA changes, and suppress firing the event in that case.
     #[no_trace]
     viewport_details_at_last_resize_steps: Cell<ViewportDetails>,
-
-    /// Platform theme.
-    #[no_trace]
-    embedder_theme: Cell<Theme>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -516,7 +510,11 @@ impl Window {
     }
 
     pub(crate) fn webview_id(&self) -> WebViewId {
-        self.webview_id
+        self.webview_state.id
+    }
+
+    pub(crate) fn webview_state(&self) -> Rc<WebViewState> {
+        self.webview_state.clone()
     }
 
     pub(crate) fn as_global_scope(&self) -> &GlobalScope {
@@ -3398,21 +3396,20 @@ impl Window {
         }
     }
 
-    /// Get the embedder theme of this [`Window`].
-    pub(crate) fn embedder_theme(&self) -> Theme {
-        self.embedder_theme.get()
-    }
-
-    /// Handle a theme change request, triggering a reflow is any actual change occurred.
-    pub(crate) fn set_embedder_theme(&self, new_theme: Theme) {
-        self.embedder_theme.set(new_theme);
-        self.refresh_theme();
+    pub(crate) fn webview_theme(&self) -> Theme {
+        self.webview_state.theme.get()
     }
 
     pub(crate) fn refresh_theme(&self) {
+        // The theme is chosen in this order of precedence:
+        //  1. The devtools theme override
+        //  2. The Document theme
+        //  3. The theme set on the WebView
         let document = self.Document();
-        // The theme of a document takes precedence over the theme of the embedder
-        let new_theme = document.theme().unwrap_or(self.embedder_theme.get());
+        let new_theme = document
+            .theme_override()
+            .or(document.theme())
+            .unwrap_or(self.webview_theme());
         if !self.layout_mut().set_theme(new_theme) {
             return;
         }
@@ -3885,7 +3882,7 @@ impl Window {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
-        webview_id: WebViewId,
+        webview_state: Rc<WebViewState>,
         runtime: Rc<Runtime>,
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
@@ -3916,7 +3913,6 @@ impl Window {
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
-        embedder_theme: Theme,
         weak_script_thread: Weak<ScriptThread>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
@@ -3925,7 +3921,7 @@ impl Window {
         };
 
         let win = Box::new(Self {
-            webview_id,
+            webview_state,
             globalscope: GlobalScope::new_inherited(
                 devtools_chan,
                 mem_profiler_chan,
@@ -4000,7 +3996,6 @@ impl Window {
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
-            embedder_theme: Cell::new(embedder_theme),
             trusted_types: Default::default(),
             reporting_observer_list: Default::default(),
             report_list: Default::default(),

@@ -57,7 +57,7 @@ use script_bindings::proxyhandler::{
     set_property_descriptor,
 };
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
-use script_traits::NewPipelineInfo;
+use script_traits::{NewPipelineInfo, WebViewState};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel;
 use servo_base::generic_channel::GenericSend;
@@ -387,17 +387,19 @@ impl WindowProxy {
         let response = response_receiver.recv().unwrap()?;
         let new_browsing_context_id = BrowsingContextId::from(response.new_webview_id);
         let new_pipeline_info = NewPipelineInfo {
+            webview_state: WebViewState {
+                id: response.new_webview_id,
+                // Use the current `WebView`'s theme initially, but the embedder may change
+                // this later.
+                theme: Cell::new(window.webview_theme()),
+            },
             parent_info: None,
             new_pipeline_id: response.new_pipeline_id,
             browsing_context_id: new_browsing_context_id,
-            webview_id: response.new_webview_id,
             opener: Some(self.browsing_context_id),
             load_data,
             viewport_details: window.viewport_details(),
             user_content_manager_id: response.user_content_manager_id,
-            // Use the current `WebView`'s theme initially, but the embedder may
-            // change this later.
-            embedder_theme: window.embedder_theme(),
             target_snapshot_params: TargetSnapshotParams {
                 sandboxing_flags: sandboxing_flag_set,
                 iframe_element_referrer_policy: ReferrerPolicy::EmptyString,

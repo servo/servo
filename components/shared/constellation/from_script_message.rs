@@ -11,8 +11,7 @@ use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, Worke
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{
     AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
-    WakeLockType,
+    JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, ViewportDetails, WakeLockType,
 };
 use encoding_rs::Encoding;
 use euclid::default::Size2D as UntypedSize2D;
@@ -504,8 +503,6 @@ pub struct IFrameLoadInfoWithData {
     pub old_pipeline_id: Option<PipelineId>,
     /// The initial viewport size for this iframe.
     pub viewport_details: ViewportDetails,
-    /// The [`Theme`] to use within this iframe.
-    pub embedder_theme: Theme,
 }
 
 /// Resources required by workerglobalscopes
