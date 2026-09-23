@@ -18,7 +18,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::conversions::{ConversionResult, FromJSValConvertibleRc, ToJSValConvertible};
+use js::conversions::{ConversionResult, ToJSValConvertible};
 use js::gc::MutableHandleValue;
 use js::jsapi::{
     CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JSContext as RawJSContext,
@@ -554,23 +554,6 @@ fn create_native_handler_function(
         SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER, &ObjectValue(*holder));
         SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER_TASK, &Int32Value(task as i32));
         obj.get()
-    }
-}
-
-impl FromJSValConvertibleRc for Promise {
-    fn from_jsval(
-        cx: &mut JSContext,
-        value: HandleValue,
-    ) -> Result<ConversionResult<Rc<Promise>>, ()> {
-        if value.get().is_null() {
-            return Ok(ConversionResult::Failure(c"null not allowed".into()));
-        }
-
-        let mut realm = CurrentRealm::assert(cx);
-        let global_scope = GlobalScope::from_current_realm(&mut realm);
-
-        let promise = Promise::new_resolved(cx, &global_scope, value);
-        Ok(ConversionResult::Success(promise))
     }
 }
 
