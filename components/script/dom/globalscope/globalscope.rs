@@ -404,7 +404,7 @@ impl GlobalScope {
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
-            constellation_interest_counts: RefCell::new(FxHashMap::default()),
+            constellation_interest_counts: Default::default(),
             blob_state: Default::default(),
             eventtarget: EventTarget::new_inherited(),
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
