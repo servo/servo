@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::WindowClientBinding::WindowClientMethods;
@@ -11,7 +9,7 @@ use script_bindings::str::USVString;
 
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::client::Client;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 
 #[dom_struct]
 pub(crate) struct WindowClient {
@@ -20,14 +18,14 @@ pub(crate) struct WindowClient {
 
 impl WindowClientMethods<crate::DomTypeHolder> for WindowClient {
     /// <https://w3c.github.io/ServiceWorker/#dom-windowclient-focus>
-    fn Focus(&self, cx: &mut JSContext) -> Rc<Promise> {
+    fn Focus(&self, cx: &mut JSContext) -> RootedPromise {
         // TODO: Implement
-        Promise::new(cx, &self.global())
+        Promise::new_rooted(cx, &self.global())
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-windowclient-navigate>
-    fn Navigate(&self, cx: &mut JSContext, _url: USVString) -> Rc<Promise> {
+    fn Navigate(&self, cx: &mut JSContext, _url: USVString) -> RootedPromise {
         // TODO: Implement
-        Promise::new(cx, &self.global())
+        Promise::new_rooted(cx, &self.global())
     }
 }
