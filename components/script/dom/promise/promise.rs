@@ -236,33 +236,14 @@ impl Promise {
     }
 
     /// Create a new [RootedPromise] associated with the provided global.
-    pub(crate) fn new_rooted(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         Promise::new_in_realm_rooted(cx)
     }
 
-    /// Create a new [Promise] associated with the provided global.
-    ///
-    /// **Deprecated:** Use [Promise::new_rooted] instead.
-    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
-        let mut realm = enter_auto_realm(cx, global);
-        let cx = &mut realm.current_realm();
-        Promise::new_in_realm(cx)
-    }
-
-    /// Create a new [Promise] associated with the provided realm.
-    pub(crate) fn new_in_realm(current_realm: &mut CurrentRealm) -> Rc<Promise> {
-        let cx = current_realm.deref_mut();
-        rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
-        Promise::create_js_promise(cx, obj.handle_mut());
-        Promise::new_with_js_promise(cx, obj.handle())
-    }
-
     /// Create a new [RootedPromise] associated with the provided realm.
-    ///
-    /// **Deprecated:** Use [Promise::new_in_realm_rooted] instead.
-    pub(crate) fn new_in_realm_rooted(current_realm: &mut CurrentRealm) -> RootedPromise {
+    pub(crate) fn new_in_realm(current_realm: &mut CurrentRealm) -> RootedPromise {
         let cx = current_realm.deref_mut();
         rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
         Promise::create_js_promise(cx, obj.handle_mut());
@@ -288,33 +269,11 @@ impl Promise {
         promise
     }
 
-    /// Create a new [Promise] wrapping the provided JS object.
-    /// Panics if the provided object is not a JS promise.
-    ///
-    /// **Deprecated:** Use [Promise::new_with_js_promise_rooted] instead.
-    #[expect(unsafe_code)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_with_js_promise(cx: &JSContext, obj: HandleObject) -> Rc<Promise> {
-        unsafe {
-            assert!(IsPromiseObject(obj));
-        }
-        let promise = Promise {
-            reflector: Reflector::new(),
-            permanent_js_root: Some(PermanentRoot::default()),
-        };
-        let promise = Rc::new(promise);
-        unsafe {
-            promise.init_reflector_without_associated_memory(obj.get());
-            promise.permanent_js_root.as_ref().unwrap().init(cx, obj);
-        }
-        promise
-    }
-
     /// Create a new [RootedPromise] wrapping the provided JS object.
     /// Panics if the provided object is not a JS promise.
     #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_with_js_promise_rooted(cx: &JSContext, obj: HandleObject) -> RootedPromise {
+    pub(crate) fn new_with_js_promise(cx: &JSContext, obj: HandleObject) -> RootedPromise {
         unsafe {
             assert!(IsPromiseObject(obj));
         }
@@ -366,64 +325,41 @@ impl Promise {
     where
         F: for<'a, 'b> Fn(&'a JSContext, HandleObject<'b>) -> T,
     {
+        constructor(cx, p.handle())
+    }
+
+    #[expect(unsafe_code)]
+    /// Create a new [RootedPromise] associated with the provided global,
+    /// resolved with the provided value.
+    pub(crate) fn new_resolved(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        value: impl ToJSValConvertible,
+    ) -> RootedPromise {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut rval = UndefinedValue());
         value.to_jsval(cx, rval.handle_mut());
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseResolve(cx, rval.handle()) });
         assert!(!p.handle().is_null());
-        constructor(cx, p.handle())
+        Promise::new_with_js_promise(cx, p.handle())
     }
 
-    /// Create a new [Promise] associated with the provided global,
-    /// resolved with the provided value.
-    ///
-    /// **Deprecated:** Use [Promise::new_resolved_rooted] instead.
-    pub(crate) fn new_resolved(
-        cx: &mut JSContext,
-        global: &GlobalScope,
-        value: impl ToJSValConvertible,
-    ) -> Rc<Promise> {
-        Self::new_resolved_shared(cx, global, value, Promise::new_with_js_promise)
-    }
-
+    #[expect(unsafe_code)]
     /// Create a new [RootedPromise] associated with the provided global,
-    /// resolved with the provided value.
-    pub(crate) fn new_resolved_rooted(
+    /// rejected with the provided value.
+    pub(crate) fn new_rejected(
         cx: &mut JSContext,
         global: &GlobalScope,
         value: impl ToJSValConvertible,
     ) -> RootedPromise {
-        Self::new_resolved_shared(cx, global, value, Promise::new_with_js_promise_rooted)
-    }
-
-    #[expect(unsafe_code)]
-    fn new_rejected_shared<F, T>(
-        cx: &mut JSContext,
-        global: &GlobalScope,
-        value: impl ToJSValConvertible,
-        constructor: F,
-    ) -> T
-    where
-        F: for<'a, 'b> Fn(&'a JSContext, HandleObject<'b>) -> T,
-    {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut rval = UndefinedValue());
         value.to_jsval(cx, rval.handle_mut());
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseReject(cx, rval.handle()) });
         assert!(!p.handle().is_null());
-        constructor(cx, p.handle())
-    }
-
-    /// Create a new [RootedPromise] associated with the provided global,
-    /// rejected with the provided value.
-    pub(crate) fn new_rejected_rooted(
-        cx: &mut JSContext,
-        global: &GlobalScope,
-        value: impl ToJSValConvertible,
-    ) -> RootedPromise {
-        Self::new_rejected_shared(cx, global, value, Promise::new_with_js_promise_rooted)
+        Promise::new_with_js_promise(cx, p.handle())
     }
 
     pub(crate) fn resolve_native<T>(&self, cx: &mut JSContext, val: &T)
@@ -870,8 +806,8 @@ impl PromiseHelpers<crate::DomTypeHolder> for Promise {
         Promise::new_in_realm(cx)
     }
 
-    fn new_in_realm_rooted(cx: &mut CurrentRealm) -> RootedPromise {
-        Promise::new_in_realm_rooted(cx)
+    fn new_in_realm(cx: &mut CurrentRealm) -> RootedPromise {
+        Promise::new_in_realm(cx)
     }
 
     fn reject_error(&self, cx: &mut js::context::JSContext, error: script_bindings::error::Error) {
@@ -898,7 +834,7 @@ impl PromiseHelpers<crate::DomTypeHolder> for Promise {
         self.is_fulfilled()
     }
 
-    fn new_rooted(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
-        Promise::new_rooted(cx, global)
+    fn new(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
+        Promise::new(cx, global)
     }
 }
