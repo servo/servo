@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref};
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
@@ -32,7 +31,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::GenericBindings::CSSRuleListBinding::CSSRuleList_Binding::CSSRuleListMethods;
 use crate::dom::bindings::codegen::UnionTypes::MediaListOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -41,9 +40,9 @@ use crate::dom::element::Element;
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
+use crate::dom::promise::RootedPromise;
 use crate::dom::types::Promise;
 use crate::dom::window::Window;
-use crate::test::TrustedPromise;
 
 #[dom_struct]
 pub(crate) struct CSSStyleSheet {
@@ -500,9 +499,9 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-replace>
-    fn Replace(&self, cx: &mut CurrentRealm, text: USVString) -> Fallible<Rc<Promise>> {
+    fn Replace(&self, cx: &mut CurrentRealm, text: USVString) -> Fallible<RootedPromise> {
         // Step 1. Let promise be a promise.
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm_rooted(cx);
 
         // Step 2. If the constructed flag is not set, or the disallow modification flag is set,
         // reject promise with a NotAllowedError DOMException and return promise.
@@ -522,7 +521,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
 
         // Step 4. In parallel, do these steps:
         let trusted_sheet = Trusted::new(self);
-        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_promise = TrustedPromise::from(&promise);
 
         self.global()
             .task_manager()
