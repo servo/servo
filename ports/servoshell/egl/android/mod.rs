@@ -90,14 +90,19 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     context: JObject<'local>,
     args: JString<'local>,
     url: JString<'local>,
+    size: JObject<'local>,
+    density: jfloat,
     logStr: JString<'local>,
     experimental_mode: jboolean,
     callbacks_obj: JObject<'local>,
+    surface: JObject<'local>,
 ) {
     env.with_env(|env| -> jni::errors::Result<_> {
         let args = JString::cast_local(env, args)?.try_to_string(env).ok();
         let url = JString::cast_local(env, url)?.try_to_string(env).ok();
         let log_str = JString::cast_local(env, logStr)?.try_to_string(env).ok();
+
+        let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &size)?;
 
         let mut args: Vec<String> = args
             .and_then(|args| {
@@ -114,6 +119,8 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
         if experimental_mode {
             args.push("--enable-experimental-web-platform-features".to_owned());
         }
+
+        let (display_handle, window_handle) = display_and_window_handle(env, &surface);
 
         // Note: Android debug logs are stripped from a release build.
         // debug!() will only show in a debug build. Use info!() if logs
@@ -201,6 +208,18 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
 
         crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
+        let (display_handle, window_handle) = unsafe {
+            (
+                DisplayHandle::borrow_raw(display_handle),
+                WindowHandle::borrow_raw(window_handle),
+            )
+        };
+        let hidpi_scale_factor = Scale::new(
+            servoshell_preferences
+                .device_pixel_ratio_override
+                .unwrap_or(density),
+        );
+
         APP.with(|app| {
             let new_app = App::new(AppInitOptions {
                 host,
@@ -212,46 +231,14 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
                 #[cfg(feature = "webxr")]
                 xr_discovery: None,
             });
-            *app.borrow_mut() = Some(new_app);
-        });
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_addPlatformWindow<'local>(
-    mut env: EnvUnowned<'local>,
-    _: JClass<'local>,
-    size: JObject<'local>,
-    density: jfloat,
-    surface: JObject<'local>,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &size)?;
-
-        let (display_handle, window_handle) = display_and_window_handle(env, &surface);
-
-        let (display_handle, window_handle) = unsafe {
-            (
-                DisplayHandle::borrow_raw(display_handle),
-                WindowHandle::borrow_raw(window_handle),
-            )
-        };
-
-        call(env, |app| {
-            let hidpi_scale_factor = Scale::new(
-                app.servoshell_preferences()
-                    .device_pixel_ratio_override
-                    .unwrap_or(density),
-            );
-            app.add_platform_window(
+            new_app.add_platform_window(
                 display_handle,
                 window_handle,
                 viewport_rect,
                 hidpi_scale_factor,
                 None,
-            )
+            );
+            *app.borrow_mut() = Some(new_app);
         });
         Ok(())
     })

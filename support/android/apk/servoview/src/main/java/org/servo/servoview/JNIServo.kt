@@ -22,14 +22,11 @@ internal class JNIServo {
         context: Context,
         args: String?,
         url: String?,
+        size: Size,
+        density: Float,
         logStr: String?,
         experimentalMode: Boolean,
         callbacks: Callbacks,
-    )
-
-    external fun addPlatformWindow(
-        size: Size,
-        density: Float,
         surface: Surface,
     )
 
