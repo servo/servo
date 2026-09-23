@@ -317,7 +317,7 @@ fn test_encoded_image_decodes_from_cached_response_body() {
         panic!("Expected the HTTP cache body to be retained");
     };
     assert!(servo_arc::Arc::ptr_eq(source, &body));
-    assert!(image.decode().is_some());
+    assert!(image.decode_to_original_size().is_some());
 }
 
 #[test]
