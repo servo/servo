@@ -191,8 +191,6 @@ pub struct CallbackObject<D: DomTypes> {
 }
 
 impl<D: DomTypes> CallbackObject<D> {
-    // These are used by the bindings and do not need `default()` functions.
-    #[allow(clippy::new_without_default)]
     fn new_with_interior_root() -> Self {
         Self {
             callback: Heap::default(),

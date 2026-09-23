@@ -1012,8 +1012,6 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             pre = "Rc" if descriptor.useRcCallback else "RootedCallback"
             declType = CGWrapper(CGGeneric(f"{name}<D>"), pre=f"{pre}<", post=">")
             template = f"{name}::new(cx, ${{val}}.get().to_object())"
-            if not descriptor.useRcCallback:
-                template = f"RootedCallback::from({template})"
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
                 template = wrapObjectTemplate(f"Some({template})", "None",
