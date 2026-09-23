@@ -4,7 +4,8 @@
 
 use js::context::JSContext;
 use x_wing::{
-    DecapsulationKey, Decapsulator, EncapsulationKey, Generate, KeyExport, KeyInit, TryKeyInit,
+    Decapsulate, DecapsulationKey, Decapsulator, Encapsulate, EncapsulationKey, Generate,
+    KeyExport, KeyInit, TryKeyInit,
 };
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -17,9 +18,112 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    Algorithm, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
-    KeyAlgorithmAndDerivatives,
+    Algorithm, CryptoAlgorithm, EncapsulatedBits, ExportedKey, JsonWebKeyExt, JwkStringField,
+    KeyAlgorithm, KeyAlgorithmAndDerivatives,
 };
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#hybrid-kems-operations-encapsulate>
+pub(crate) fn encapsulate(
+    normalized_algorithm: &Algorithm,
+    key: &CryptoKey,
+) -> Result<EncapsulatedBits, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "public", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Public {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"public\"".into(),
+        )));
+    }
+
+    // Step 2. Let sharedKey and ciphertext be the outputs that result from performing the Encaps
+    // function for the hybrid KEM instance indicated by the name member of algorithm in Section 4
+    // of [draft-irtf-cfrg-concrete-hybrid-kems-04], using the key represented by the [[handle]]
+    // internal slot of key as the ek input parameter.
+    // Step 3. If the Encaps function returned an error, return an OperationError.
+    let (shared_key, ciphertext) = match normalized_algorithm.name {
+        CryptoAlgorithm::MlKem768X25519 => {
+            let Handle::MlKem768X25519PublicKey(public_key) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing a MLKEM768-X25519 public key".into(),
+                )));
+            };
+            let (ciphertext, shared_key) = public_key.encapsulate();
+            (shared_key.to_vec(), ciphertext.to_vec())
+        },
+        name => {
+            return Err(Error::NotSupported(Some(format!(
+                "{} is not a hybrid KEM algorithm",
+                name.as_str()
+            ))));
+        },
+    };
+
+    // Step 4. Let result be a new EncapsulatedBits dictionary.
+    // Step 5. Set the sharedKey attribute of result to the result of creating an ArrayBuffer
+    // containing sharedKey.
+    // Step 6. Set the ciphertext attribute of result to the result of creating an ArrayBuffer
+    // containing ciphertext.
+    let result = EncapsulatedBits {
+        shared_key: Some(shared_key.into()),
+        ciphertext: Some(ciphertext),
+    };
+
+    // Step 7. Return result.
+    Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#hybrid-kems-operations-decapsulate>
+pub(crate) fn decapsulate(
+    normalized_algorithm: &Algorithm,
+    key: &CryptoKey,
+    ciphertext: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Private {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"private\"".into(),
+        )));
+    }
+
+    // Step 2. Let sharedKey be the output that results from performing the Decaps function for the
+    // hybrid KEM instance indicated by the name member of algorithm in Section 4 of
+    // [draft-irtf-cfrg-concrete-hybrid-kems-04], using the key represented by the [[handle]]
+    // internal slot of key as the dk input parameter, and ciphertext as the ct input parameter.
+    // Step 3. If the Decaps function returned an error, return an OperationError.
+    let shared_key = match normalized_algorithm.name {
+        CryptoAlgorithm::MlKem768X25519 => {
+            let Handle::MlKem768X25519PrivateKey(private_key) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an MLKEM768-X25519 private key".into(),
+                )));
+            };
+            private_key
+                .decapsulate_slice(ciphertext)
+                .map_err(|_| {
+                    Error::Operation(Some(
+                        "Failed to perform MLKEM768-X25519 decapsulation".into(),
+                    ))
+                })?
+                .to_vec()
+        },
+        name => {
+            return Err(Error::NotSupported(Some(format!(
+                "{} is not a hybrid KEM algorithm",
+                name.as_str()
+            ))));
+        },
+    };
+
+    // Step 4. Return sharedKey.
+    Ok(shared_key)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#hybrid-kems-operations-get-shared-key-length>
+pub(crate) fn get_shared_key_length() -> u32 {
+    // Step 1. Return 256.
+    256
+}
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-generate-key>
 pub(crate) fn generate_key(
