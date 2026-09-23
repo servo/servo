@@ -579,8 +579,7 @@ impl TransformStream {
         }
 
         // Set stream.[[backpressureChangePromise]] to a new promise.;
-        *self.backpressure_change_promise.borrow_mut() =
-            Some(Promise::new(cx, global).to_traced());
+        *self.backpressure_change_promise.borrow_mut() = Some(Promise::new(cx, global).to_traced());
 
         // Set stream.[[backpressure]] to backpressure.
         self.backpressure.set(backpressure);

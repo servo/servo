@@ -236,6 +236,7 @@ impl Promise {
     }
 
     /// Create a new [RootedPromise] associated with the provided global.
+    #[expect(clippy::new_ret_no_self)]
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
