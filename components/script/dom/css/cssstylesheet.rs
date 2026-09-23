@@ -40,8 +40,8 @@ use crate::dom::element::Element;
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
-use crate::dom::types::Promise;
 use crate::dom::promise::RootedPromise;
+use crate::dom::types::Promise;
 use crate::dom::window::Window;
 
 #[dom_struct]
