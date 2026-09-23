@@ -11,6 +11,7 @@ use js::jsval::{Int32Value, JSVal};
 use js::rust::HandleObject;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
+use crate::dom::bindings::callback::RootedCallback;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
     CountQueuingStrategyMethods, QueuingStrategy, QueuingStrategyInit, QueuingStrategySize,
@@ -120,12 +121,12 @@ pub(crate) fn extract_high_water_mark(
 pub(crate) fn extract_size_algorithm(
     cx: &mut JSContext,
     strategy: &QueuingStrategy,
-) -> Rc<QueuingStrategySize> {
+) -> RootedCallback<QueuingStrategySize> {
     if strategy.size.is_none() {
         let fun_obj = native_raw_obj_fn!(cx, count_queuing_strategy_size, c"size", 0, 0);
         #[expect(unsafe_code)]
         unsafe {
-            return QueuingStrategySize::new(cx, fun_obj);
+            return RootedCallback::from(QueuingStrategySize::new(cx, fun_obj));
         };
     }
     strategy.size.as_ref().unwrap().clone()
