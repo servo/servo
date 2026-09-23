@@ -4353,6 +4353,19 @@
       {}
      ]
     ],
+    "linear-gradients-small-stop-gaps.html": [
+     "38542d78b9077de41cee1a41676611ca1dc3df16",
+     [
+      "css/linear-gradients-small-stop-gaps.html",
+      [
+       [
+        "/_mozilla/css/linear-gradients-small-stop-gaps-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "linear-gradients-smoke.html": [
      "4c6a5693903d9092a3fbca5d2d346ec35e88e53d",
      [
@@ -9832,6 +9845,10 @@
     ],
     "linear-gradients-reverse-ref.html": [
      "eb34e7eb3496651f18b8f710bfed0d65a480a667",
+     []
+    ],
+    "linear-gradients-small-stop-gaps-ref.html": [
+     "1e90a41357ca328b02cc726ef350ea9593e8f506",
      []
     ],
     "linear-gradients-smoke-ref.html": [
