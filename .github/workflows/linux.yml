@@ -165,8 +165,8 @@ jobs:
       binary-path: servo/servoshell
       file-size: true
       # We only evaluate speedometer and dromaeo score in release
-      speedometer: ${{ inputs.profile == 'release' }}
-      dromaeo: ${{ inputs.profile == 'release' }}
+      speedometer: ${{ inputs.profile == 'checked-release' }}
+      dromaeo: ${{ inputs.profile == 'checked-release' }}
     secrets: inherit
 
   # Runs the underlying job (“workload”) on a self-hosted runner if available.
