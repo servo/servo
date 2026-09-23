@@ -46,8 +46,9 @@
                 are licensed by one or more of the enumerated free software licenses.
             </p>
         </div>
-    
+
         <ul class="licenses-overview">
+            <li>FTL</li>
             {{#each overview}}
             <li><a href="#{{id}}">{{name}}</a></li>
             {{/each}}
@@ -55,6 +56,11 @@
 
         <h2>All license text:</h2>
         <ul class="licenses-list">
+            <li class+'license">'
+            <h3 id="FTL">FTL</h3>
+            Portions of this software are copyright © 2026 The FreeType
+            Project (https://freetype.org).  All rights reserved.
+            </li>
             {{#each licenses}}
             <li class="license">
                 <h3 id="{{id}}">{{name}}</h3>
