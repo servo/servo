@@ -8,7 +8,6 @@
 
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::rc::Rc;
 
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
@@ -19,7 +18,7 @@ pub(crate) use script_bindings::refcounted::Trusted;
 use script_bindings::reflector::DomObject;
 use script_bindings::trace::trace_reflector;
 
-use crate::dom::promise::{Promise, RootedPromise};
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::tasks::task::TaskOnce;
 
 thread_local!(pub(super) static LIVE_PROMISE_REFERENCES: LivePromiseReferences =
@@ -30,9 +29,10 @@ thread_local!(pub(super) static LIVE_PROMISE_REFERENCES: LivePromiseReferences =
 
 /// The set of live, pinned DOM objects that are currently prevented
 /// from being garbage collected due to outstanding references.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct LivePromiseReferences {
     // keyed on pointer to Rust DOM object
-    promise_table: RefCell<FxHashMap<*const Promise, Vec<Rc<Promise>>>>,
+    promise_table: RefCell<FxHashMap<*const Promise, Vec<TracedPromise>>>,
 }
 
 impl LivePromiseReferences {
@@ -42,9 +42,9 @@ impl LivePromiseReferences {
         });
     }
 
-    fn addref_promise(&self, promise: Rc<Promise>) {
+    fn addref_promise(&self, promise: &RootedPromise) {
         let mut table = self.promise_table.borrow_mut();
-        table.entry(&*promise).or_default().push(promise)
+        table.entry(&**promise).or_default().push(promise.to_traced())
     }
 }
 
@@ -63,9 +63,9 @@ impl TrustedPromise {
     /// Create a new `TrustedPromise` instance from an existing DOM object. The object will
     /// be prevented from being GCed for the duration of the resulting `TrustedPromise` object's
     /// lifetime.
-    pub(crate) fn new(promise: Rc<Promise>) -> TrustedPromise {
+    pub(crate) fn new(promise: &RootedPromise) -> TrustedPromise {
         LIVE_PROMISE_REFERENCES.with(|live_references| {
-            let ptr = &raw const *promise;
+            let ptr = &raw const **promise;
             live_references.addref_promise(promise);
             TrustedPromise {
                 dom_object: ptr,
