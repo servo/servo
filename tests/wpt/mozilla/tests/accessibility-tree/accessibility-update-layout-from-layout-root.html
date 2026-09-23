@@ -55,13 +55,13 @@
 
       let update = ServoTestUtils.forceAccessibilityUpdate();
 
-      // Children of #a walked
-      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+      // #a and element descendants (i.e. #b) walked
+      assert_equals(update.nodesUpdatedFromDom, 2, "nodesUpdatedFromDom");
 
       assert_equals(update.nodesUpdatedFromTree, 0, "nodesUpdatedFromTree");
 
-      // Bounds are updated for #b, and checked for #a
-      assert_equals(update.nodesUpdatedBounds, 2, "nodesUpdatedBounds");
+      // Bounds are updated for #b, and checked for #a, and #b's two text node children
+      assert_equals(update.nodesUpdatedBounds, 4, "nodesUpdatedBounds");
 
       // Changed nodes: #b (bounds changed)
       assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");

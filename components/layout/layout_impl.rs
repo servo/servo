@@ -1249,7 +1249,6 @@ impl LayoutThread {
             parallelism_job_count_minimum: pref!(layout_parallelism_job_count_minimum) as usize,
             parallelism_job_size_minimum: pref!(layout_parallelism_job_size_minimum) as usize,
             device_size: reflow_request.viewport_details.device_size.cast_unit(),
-            will_update_accessibility_tree: accessibility_damage.is_some(),
         };
 
         let restyle = reflow_request
@@ -1346,7 +1345,7 @@ impl LayoutThread {
             if let Some(damage_map) = accessibility_damage.as_mut() {
                 damage_map.extend(layout_roots.iter().map(|layout_root| {
                     let node = layout_root.node();
-                    (node.opaque(), (node, AccessibilityDamage::empty()))
+                    (node.opaque(), (node, AccessibilityDamage::Layout))
                 }));
             }
 
@@ -1371,10 +1370,7 @@ impl LayoutThread {
         }
 
         if let Some(map) = accessibility_damage.as_mut() {
-            map.insert(
-                root_node.opaque(),
-                (root_node, AccessibilityDamage::empty()),
-            );
+            map.insert(root_node.opaque(), (root_node, AccessibilityDamage::Layout));
         }
 
         let box_tree = &*box_tree;

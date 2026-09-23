@@ -1080,12 +1080,11 @@ fn test_accessibility_bounds_changed_by_sibling() {
     let main_bounds = main.bounds().expect("main should have bounds after update");
     assert_rect_eq(main_bounds, Rect::new(0.0, 0.0, 100.0, 200.0));
 
-    // Fails - footer's bounds are not updated :(
-    // let footer = find_node_matching(&update, |&id, _node| id == footer_id);
-    // let footer_bounds = footer
-    //     .bounds()
-    //     .expect("footer should have bounds after update");
-    // assert_rect_eq(footer_bounds, Rect::new(0.0, 200.0, 100.0, 300.0));
+    let footer = find_node_matching(&update, |&id, _node| id == footer_id);
+    let footer_bounds = footer
+        .bounds()
+        .expect("footer should have bounds after update");
+    assert_rect_eq(footer_bounds, Rect::new(0.0, 200.0, 100.0, 300.0));
 }
 
 // ************************************************************************************************

@@ -51,13 +51,14 @@
 
       let update = ServoTestUtils.forceAccessibilityUpdate();
 
-      // Children walked: #a
-      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+      // We need to walk all the elements from the document root, since we couldn't successfully
+      // layout from the layout root, to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 10, "nodesUpdatedFromDom");
 
       assert_equals(update.nodesUpdatedFromTree, 0, "nodesUpdatedFromTree");
 
-      // Bounds are updated for #a and #b
-      assert_equals(update.nodesUpdatedBounds, 2, "nodesUpdatedBounds");
+      // All nodes have their bounds checked.
+      assert_equals(update.nodesUpdatedBounds, 20, "nodesUpdatedBounds");
 
       // Changed nodes: #a and #b (bounds changed)
       assert_equals(update.nodesInTreeUpdate, 2, "nodesInTreeUpdate");
