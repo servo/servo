@@ -135,10 +135,11 @@ pub enum WebDriverCommandMsg {
     ),
     /// Close the webview associated with the provided id.
     CloseWebView(WebViewId, GenericOneshotSender<()>),
-    /// Focus the webview associated with the provided id.
-    FocusWebView(WebViewId),
-    /// Get focused webview. For now, this is only used when start new session.
-    GetFocusedWebView(GenericOneshotSender<Option<WebViewId>>),
+    /// Make the given WebView the WebView to use for input event interaction.
+    SelectWebViewForInteraction(WebViewId),
+    /// Get the WebView selected for user interaction. For now, this is only used when
+    /// starting new sessions.
+    GetWebViewSelectedForInteraction(GenericOneshotSender<Option<WebViewId>>),
     /// Get webviews state
     GetAllWebViews(GenericOneshotSender<Vec<WebViewId>>),
     /// Check whether top-level browsing context is open.

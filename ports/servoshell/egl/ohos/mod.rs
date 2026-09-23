@@ -504,9 +504,8 @@ impl ServoAction {
                     .get(*arkts_index as usize)
                     .and_then(|value| windows.get(&ServoShellWindowId::from(*value as u64)))
                 {
-                    servo.state.focus_window(window.clone());
+                    servo.state.set_window_has_focus(window.clone(), true);
                     if let Some(webview) = window.active_webview() {
-                        webview.focus();
                         if let Some(url) = webview.url() {
                             SET_URL_BAR_CB.get().map(|f| {
                                 f.call(url.to_string(), ThreadsafeFunctionCallMode::Blocking)
@@ -555,10 +554,9 @@ impl ServoAction {
                     if let Some(window_to_focus) =
                         servo.state.windows().get(&ServoShellWindowId::from(0))
                     {
-                        servo.state.focus_window(window_to_focus.clone());
-                        if let Some(webview) = window_to_focus.active_webview() {
-                            webview.focus();
-                        }
+                        servo
+                            .state
+                            .set_window_has_focus(window_to_focus.clone(), true);
                         window_to_remove.schedule_close();
                     } else {
                         error!("Window is already closed.");

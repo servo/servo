@@ -392,6 +392,8 @@ impl WindowProxy {
                 // Use the current `WebView`'s theme initially, but the embedder may change
                 // this later.
                 theme: Cell::new(window.webview_theme()),
+                // WebViews start focused by default for now.
+                has_system_focus: Cell::new(true),
             },
             parent_info: None,
             new_pipeline_id: response.new_pipeline_id,

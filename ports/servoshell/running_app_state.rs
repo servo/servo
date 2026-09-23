@@ -72,6 +72,9 @@ pub struct WebViewCollection {
     /// The [`WebView`] that is currently active. This is the [`WebView`] that is shown and has
     /// input focus.
     active_webview_id: Option<WebViewId>,
+
+    /// Whether or not the active WebView in this collection has system focus.
+    has_system_focus: bool,
 }
 
 impl WebViewCollection {
@@ -138,22 +141,33 @@ impl WebViewCollection {
         self.active_webview_id = Some(id_to_activate);
         for (webview_id, webview) in self.all_in_creation_order() {
             if id_to_activate == webview_id {
+                if self.has_system_focus {
+                    webview.set_focused(true);
+                }
                 webview.show();
-                webview.focus();
             } else {
+                if self.has_system_focus {
+                    webview.set_focused(false);
+                }
                 webview.hide();
-                webview.blur();
             }
         }
     }
 
     pub(crate) fn activate_webview_by_index(&mut self, index: usize) {
         let Some(webview_id) = self.creation_order.get(index) else {
-            // Just ignore requests to activate uknown WebViews. This can happen by pressing
+            // Just ignore requests to activate unknown WebViews. This can happen by pressing
             // keyboard shortcuts in the interface.
             return;
         };
         self.activate_webview(*webview_id);
+    }
+
+    pub(crate) fn set_focused(&mut self, focused: bool) {
+        self.has_system_focus = focused;
+        if let Some(active) = self.active() {
+            active.set_focused(focused);
+        }
     }
 }
 
@@ -297,7 +311,7 @@ impl RunningAppState {
 
         // If the window already has platform focus, mark it as focused in our application state.
         if platform_window.has_platform_focus() {
-            self.focus_window(window.clone());
+            self.set_window_has_focus(window.clone(), true);
         }
 
         window
@@ -313,9 +327,34 @@ impl RunningAppState {
         self.focused_window.borrow().clone()
     }
 
-    pub(crate) fn focus_window(&self, window: Rc<ServoShellWindow>) {
-        window.focus();
-        *self.focused_window.borrow_mut() = Some(window);
+    pub(crate) fn set_window_has_focus(&self, window: Rc<ServoShellWindow>, has_focus: bool) {
+        let mut focused_window = self.focused_window.borrow_mut();
+
+        // If another window had focus before and this new window is gaining it, then
+        // ensure that the old window is explicitly unfocused.
+        if let Some(previously_focused_window) = &*focused_window &&
+            !Rc::ptr_eq(previously_focused_window, &window) &&
+            has_focus
+        {
+            previously_focused_window
+                .webview_collection
+                .borrow_mut()
+                .set_focused(false);
+        }
+
+        window
+            .webview_collection
+            .borrow_mut()
+            .set_focused(has_focus);
+
+        if let Some(previously_focused_window) = &*focused_window &&
+            Rc::ptr_eq(previously_focused_window, &window) &&
+            !has_focus
+        {
+            *focused_window = None;
+        } else if has_focus {
+            *focused_window = Some(window);
+        }
     }
 
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
@@ -395,6 +434,7 @@ impl RunningAppState {
 
     /// Close any [`ServoShellWindow`] that doesn't have an open [`WebView`].
     fn close_empty_windows(&self) {
+        let mut move_focus = false;
         self.windows.borrow_mut().retain(|_, window| {
             if !self.exit_scheduled.get() && !window.should_close() {
                 return true;
@@ -404,9 +444,20 @@ impl RunningAppState {
                 Rc::ptr_eq(window, &focused_window)
             {
                 *self.focused_window.borrow_mut() = None;
+                move_focus = !focused_window.platform_window().platform_manages_focus();
             }
             false
         });
+
+        if move_focus &&
+            let Some(newly_focused_window) = self
+                .windows()
+                .values()
+                .find(|window| !window.platform_window().platform_manages_focus())
+                .cloned()
+        {
+            self.set_window_has_focus(newly_focused_window, true);
+        }
     }
 
     /// Spins the internal application event loop.
@@ -650,11 +701,6 @@ impl RunningAppState {
         gamepad_delegate.handle_gamepad_events(event, gamepad_name, gamepad_index, active_webview);
     }
 
-    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
-    pub(crate) fn handle_focused(&self, window: Rc<ServoShellWindow>) {
-        *self.focused_window.borrow_mut() = Some(window);
-    }
-
     /// Interrupt any ongoing WebDriver-based script evaluation.
     ///
     /// From <https://w3c.github.io/webdriver/#dfn-execute-a-function-body>:
@@ -763,7 +809,6 @@ impl WebViewDelegate for RunningAppState {
             .delegate(parent_webview.delegate())
             .build();
 
-        webview.notify_theme_change(platform_window.theme());
         window.add_webview(webview.clone());
         window.activate_webview(webview.id());
     }

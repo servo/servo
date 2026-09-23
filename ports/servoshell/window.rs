@@ -131,7 +131,6 @@ impl ServoShellWindow {
         }
 
         let webview = webview_builder.build();
-        webview.notify_theme_change(self.platform_window.theme());
         self.add_webview(webview.clone());
 
         // If `self` is not in `state.windows`, our notify_accessibility_tree_update() will panic.
@@ -143,7 +142,7 @@ impl ServoShellWindow {
         webview
     }
 
-    /// Repaint the focused [`WebView`].
+    /// Repaint the active [`WebView`].
     pub(crate) fn repaint_webviews(&self) {
         let Some(webview) = self.active_webview() else {
             return;
@@ -183,11 +182,8 @@ impl ServoShellWindow {
         self.platform_window.clone()
     }
 
-    pub(crate) fn focus(&self) {
-        self.platform_window.focus()
-    }
-
     pub(crate) fn add_webview(&self, webview: WebView) {
+        webview.notify_theme_change(self.platform_window.theme());
         self.webview_collection.borrow_mut().add(webview);
         self.set_needs_update();
         self.set_needs_repaint();
@@ -399,6 +395,12 @@ impl ServoShellWindow {
 /// be used in a servoshell execution. This currently includes headed (winit) and headless
 /// windows.
 pub(crate) trait PlatformWindow {
+    /// Whether or not the platform manages focus. This is used to decide whether
+    /// servoshell should focus another window when one closes.
+    fn platform_manages_focus(&self) -> bool {
+        false
+    }
+
     fn id(&self) -> ServoShellWindowId;
     fn screen_geometry(&self) -> ScreenGeometry;
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
@@ -438,7 +440,6 @@ pub(crate) trait PlatformWindow {
     }
     fn window_rect(&self) -> DeviceIndependentIntRect;
     fn maximize(&self, _: &WebView) {}
-    fn focus(&self) {}
     fn has_platform_focus(&self) -> bool {
         true
     }

@@ -194,13 +194,12 @@ impl RunningAppState {
                         warn!("Failed to send response of CloseWebView: {error}");
                     }
                 },
-                WebDriverCommandMsg::FocusWebView(webview_id) => {
+                WebDriverCommandMsg::SelectWebViewForInteraction(webview_id) => {
                     let Some(webview) = self.webview_by_id(webview_id) else {
                         continue;
                     };
                     let window = self.window_for_webview(&webview);
                     window.activate_webview(webview_id);
-                    self.focus_window(window);
                 },
                 WebDriverCommandMsg::FocusBrowsingContext(..) => {
                     self.servo().execute_webdriver_command(msg);
@@ -268,13 +267,15 @@ impl RunningAppState {
                     }
                 },
                 // This is only received when start new session.
-                WebDriverCommandMsg::GetFocusedWebView(sender) => {
-                    let focused_webview = self
+                WebDriverCommandMsg::GetWebViewSelectedForInteraction(sender) => {
+                    let selected_webview = self
                         .focused_window()
                         .and_then(|window| window.active_webview())
                         .map(|webview| webview.id());
-                    if let Err(error) = sender.send(focused_webview) {
-                        warn!("Failed to send response of GetFocusedWebView: {error}");
+                    if let Err(error) = sender.send(selected_webview) {
+                        warn!(
+                            "Failed to send response of GetWebViewSelectedForInteraction: {error}"
+                        );
                     };
                 },
                 WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {

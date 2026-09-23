@@ -71,11 +71,10 @@ pub enum EmbedderToConstellationMessage {
     NewWebView(ServoUrl, NewWebViewDetails),
     /// Close a top level browsing context.
     CloseWebView(WebViewId),
-    /// Make a webview focused. [EmbedderMsg::WebViewFocused] will be sent with
-    /// the result of this operation.
-    FocusWebView(WebViewId),
-    /// Make none of the webviews focused.
-    BlurWebView,
+    /// Set whether a WebView has system focus. This corresponds to the [HTML
+    /// specification's] concept of "system focus" and is distinct from the browsing
+    /// context or element that has focus within the WebView.
+    SetWebViewHasSystemFocus(WebViewId, bool),
     /// Forward an input event to an appropriate ScriptTask.
     ForwardInputEvent(WebViewId, InputEventAndId, Option<PaintHitTestResult>),
     /// Request that the given pipeline refresh the cursor by doing a hit test at the most

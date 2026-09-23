@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{OnceCell, RefCell};
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, LazyLock};
 
 use app_units::{AU_PER_PX, Au};
 use clip::Clip;
@@ -86,6 +86,13 @@ pub(crate) use stacking_context::*;
 
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
 
+/// A color to use for the selection rectangle when the document isn't focused (does not
+/// have system focus or its frame itself does not have focus).
+///
+/// TODO: This should eventually come from the system theme.
+static UNFOCUSED_SELECTION_COLOR: LazyLock<AbsoluteColor> =
+    LazyLock::new(|| AbsoluteColor::srgb_legacy(200, 200, 200, 1.0));
+
 pub(crate) struct DisplayListBuilder<'a> {
     /// The [`FragmentTree`] that we are building a display list for.
     fragment_tree: &'a FragmentTree,
@@ -134,6 +141,10 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// The background color used for the shell.
     shell_background_color: AbsoluteColor,
+
+    /// Whether or not the `WebView` this display list is being rendered for has system focus
+    /// and is the focused frame in the frame tree.
+    frame_focused: bool,
 }
 
 struct InspectorHighlight {
@@ -185,6 +196,7 @@ impl DisplayListBuilder<'_> {
         debug: &DiagnosticsLogging,
         paint_timing_handler: &mut PaintTimingHandler,
         reflow_statistics: &mut ReflowStatistics,
+        frame_focused: bool,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
@@ -228,6 +240,7 @@ impl DisplayListBuilder<'_> {
             reflow_statistics,
             largest_contentful_paint_enabled: pref!(largest_contentful_paint_enabled),
             shell_background_color,
+            frame_focused,
         };
 
         // Clear any caret color from previous display list constructions.
@@ -887,13 +900,17 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         }
 
         if fragment.selected.load(Ordering::Relaxed) {
+            // If there is no selected style, just fall back to using the unfocused selection color,
+            // which is strictly better than not drawing a selection highlight.
             let selected_style = fragment.selected_style.borrow();
             let mut background_color =
-                selected_style.resolve_color(&selected_style.get_background().background_color);
+                if self.frame_focused && !ServoArc::ptr_eq(&*selected_style, &*style) {
+                    selected_style.resolve_color(&selected_style.get_background().background_color)
+                } else {
+                    *UNFOCUSED_SELECTION_COLOR
+                };
 
-            // Selected style resolution falls back to the style of the element itself,
-            // and in that case we don't want to paint any overlay.
-            if !ServoArc::ptr_eq(&*selected_style, &*style) && !background_color.is_transparent() {
+            if !background_color.is_transparent() {
                 background_color.alpha *= 0.5;
                 self.wr().push_rect(
                     &common,
@@ -1408,21 +1425,29 @@ impl Fragment {
             )
             .to_webrender();
 
-            if let Some(selection_color) = fragment
-                .selected_style()
-                .clone_background_color()
-                .as_absolute()
-            {
-                let selection_common =
-                    builder.common_properties(state, selection_rect, &parent_style);
-                builder
-                    .wr()
-                    .push_rect(&selection_common, selection_rect, rgba(*selection_color));
-            }
+            let unfocused_color = *UNFOCUSED_SELECTION_COLOR;
+            let style_color = fragment.selected_style().clone_background_color();
+            let selection_color = if builder.frame_focused {
+                style_color.as_absolute().unwrap_or(&unfocused_color)
+            } else {
+                &unfocused_color
+            };
+
+            let selection_common = builder.common_properties(state, selection_rect, &parent_style);
+            builder
+                .wr()
+                .push_rect(&selection_common, selection_rect, rgba(*selection_color));
+
             return;
         }
 
         if !fragment.run_data.paint_caret {
+            return;
+        }
+
+        // Never paint a caret when the WebView does not have system focus. This matches
+        // the behavior of other browsers.
+        if !builder.frame_focused {
             return;
         }
 

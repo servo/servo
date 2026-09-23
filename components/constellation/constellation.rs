@@ -1344,12 +1344,11 @@ where
             EmbedderToConstellationMessage::CloseWebView(webview_id) => {
                 self.handle_close_top_level_browsing_context(webview_id);
             },
-            EmbedderToConstellationMessage::FocusWebView(webview_id) => {
-                self.handle_focus_web_view(webview_id);
-            },
-            EmbedderToConstellationMessage::BlurWebView => {
-                self.constellation_to_embedder_proxy
-                    .send(ConstellationToEmbedderMsg::WebViewBlurred);
+            EmbedderToConstellationMessage::SetWebViewHasSystemFocus(
+                webview_id,
+                has_system_focus,
+            ) => {
+                self.handle_set_has_system_focus(webview_id, has_system_focus);
             },
             // Handle a forward or back request
             EmbedderToConstellationMessage::TraverseHistory(request) => {
@@ -3122,9 +3121,25 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_focus_web_view(&mut self, webview_id: WebViewId) {
-        self.constellation_to_embedder_proxy
-            .send(ConstellationToEmbedderMsg::WebViewFocused(webview_id, true));
+    fn handle_set_has_system_focus(&mut self, webview_id: WebViewId, has_system_focus: bool) {
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            return warn!("Tried to focus a nonexistent WebView: {webview_id:?}");
+        };
+        if !webview.set_has_system_focus(has_system_focus) {
+            return;
+        }
+
+        let state = webview.state();
+        for event_loop in self.event_loops() {
+            if let Err(error) =
+                event_loop.send(ScriptThreadMessage::UpdateWebViewState(state.clone()))
+            {
+                warn!(
+                    "Sending to closed event loop ({:?}): {error}",
+                    event_loop.id()
+                );
+            }
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -4967,10 +4982,10 @@ where
         focused_child_browsing_context_id: Option<BrowsingContextId>,
         sequence: FocusSequenceNumber,
     ) {
-        let (browsing_context_id, webview_id) = match self.pipelines.get_mut(&pipeline_id) {
+        let browsing_context_id = match self.pipelines.get_mut(&pipeline_id) {
             Some(pipeline) => {
                 pipeline.focus_sequence = sequence;
-                (pipeline.browsing_context_id, pipeline.webview_id)
+                pipeline.browsing_context_id
             },
             None => return warn!("{}: Focus parent after closure", pipeline_id),
         };
@@ -4984,10 +4999,6 @@ where
             );
             return;
         }
-
-        // Focus the top-level browsing context.
-        self.constellation_to_embedder_proxy
-            .send(ConstellationToEmbedderMsg::WebViewFocused(webview_id, true));
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused
@@ -5263,7 +5274,7 @@ where
             },
             WebDriverCommandMsg::CloseWebView(..) |
             WebDriverCommandMsg::NewWindow(..) |
-            WebDriverCommandMsg::FocusWebView(..) |
+            WebDriverCommandMsg::SelectWebViewForInteraction(..) |
             WebDriverCommandMsg::IsWebViewOpen(..) |
             WebDriverCommandMsg::GetWindowRect(..) |
             WebDriverCommandMsg::GetViewportSize(..) |
@@ -5871,8 +5882,10 @@ where
         if !webview.set_theme(theme) {
             return;
         }
+        let state = webview.state();
         for event_loop in self.event_loops() {
-            if let Err(error) = event_loop.send(ScriptThreadMessage::ThemeChange(webview_id, theme))
+            if let Err(error) =
+                event_loop.send(ScriptThreadMessage::UpdateWebViewState(state.clone()))
             {
                 warn!(
                     "Sending to closed event loop ({:?}): {error}",

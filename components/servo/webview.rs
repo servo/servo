@@ -179,7 +179,7 @@ impl WebView {
             status_text: None,
             page_title: None,
             favicon: None,
-            focused: false,
+            focused: true,
             animating: false,
             cursor: Cursor::Pointer,
             back_forward_list: Default::default(),
@@ -388,20 +388,9 @@ impl WebView {
         self.delegate().notify_favicon_changed(self);
     }
 
-    /// Whether or not this [`WebView`] currently has the keyboard focus.
-    ///
-    /// The embedder can use [`WebViewDelegate::notify_focus_changed`] to subscribe
-    /// to changes in the  [`WebView`]'s focus state.
+    /// Whether or not this [`WebView`] currently has system focus.
     pub fn focused(&self) -> bool {
         self.inner().focused
-    }
-
-    pub(crate) fn set_focused(self, new_value: bool) {
-        if self.inner().focused == new_value {
-            return;
-        }
-        self.inner_mut().focused = new_value;
-        self.delegate().notify_focus_changed(self, new_value);
     }
 
     /// Get the current [`Cursor`] for this [`WebView`].
@@ -421,18 +410,18 @@ impl WebView {
         self.delegate().notify_cursor_changed(self, new_value);
     }
 
-    /// Notify Servo that this [`WebView`] has gained keyboard focus.
-    pub fn focus(&self) {
-        self.servo()
-            .constellation_proxy()
-            .send(EmbedderToConstellationMessage::FocusWebView(self.id()));
-    }
-
-    /// Notify Servo that this [`WebView`] has lost keyboard focus.
-    pub fn blur(&self) {
-        self.servo()
-            .constellation_proxy()
-            .send(EmbedderToConstellationMessage::BlurWebView);
+    /// Notify Servo that this [`WebView`] has gained or lost system focus.
+    ///
+    /// All [`WebView`]s start with system focus activated, so embedders are
+    /// expected to explicitly set this to false when the containing view loses
+    /// focus.
+    pub fn set_focused(&self, focused: bool) {
+        let old_focused = std::mem::replace(&mut self.inner_mut().focused, focused);
+        if old_focused != focused {
+            self.servo().constellation_proxy().send(
+                EmbedderToConstellationMessage::SetWebViewHasSystemFocus(self.id(), focused),
+            );
+        }
     }
 
     /// Whether or not this [`WebView`] has animating content, such as a CSS animation or
