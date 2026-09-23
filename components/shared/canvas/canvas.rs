@@ -412,7 +412,7 @@ impl Path {
         };
 
         // Not explicitly stated in steps. See non-normative part of `roundRect` in
-        // <https://html.spec.whatwg.org/multipage/canvas.html#building-paths>
+        // <https://html.spec.whatwg.org/multipage/#building-paths>
 
         // Negative widths and heights flip the rounded rectangle horizontally/vertically: the
         // radii that normally apply to the left/right (respectively top/bottom) corners are

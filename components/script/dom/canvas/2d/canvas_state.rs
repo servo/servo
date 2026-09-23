@@ -2331,7 +2331,7 @@ impl CanvasState {
             .rect(x, y, width, height);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-context-2d-roundrect
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-roundrect>
     pub(super) fn round_rect(
         &self,
         x: f64,
