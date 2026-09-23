@@ -65,6 +65,7 @@ use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
+use crate::dom::text_input::CMD_OR_CONTROL;
 use crate::dom::types::{
     CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLElement,
     HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
@@ -419,6 +420,15 @@ impl DocumentEventHandler {
     /// When an event should be fired on the element that has focus, this returns the target. If
     /// there is no associated element with the focused area (such as when the viewport is focused),
     /// then the body is returned. If no body is returned then the `Window` is returned.
+    ///
+    /// From <https://w3c.github.io/uievents/#events-keyboard-event-order>:
+    /// > The event target of a key event is the currently focused element which is
+    /// > processing the keyboard activity. This is often an HTML input element or a textual
+    /// > element which is editable, but MAY be an element defined by the host language to
+    /// > accept keyboard input for non-text purposes, such as the activation of an
+    /// > accelerator key or trigger of some other behavior. If no suitable element is in
+    /// > focus, the event target will be the HTML body element if available, otherwise the
+    /// > root element.
     pub(crate) fn target_for_events_following_focus(&self) -> DomRoot<EventTarget> {
         let document = self.window.Document();
         match &*document.focus_handler().focused_area() {
@@ -429,6 +439,7 @@ impl DocumentEventHandler {
             FocusableArea::Viewport => document
                 .GetBody()
                 .map(DomRoot::upcast)
+                .or_else(|| document.GetDocumentElement().map(DomRoot::upcast))
                 .unwrap_or_else(|| DomRoot::from_ref(self.window.upcast())),
         }
     }
@@ -2066,6 +2077,11 @@ impl DocumentEventHandler {
             Key::Named(NamedKey::Home) => KeyboardScroll::Home,
             Key::Named(NamedKey::PageDown) => KeyboardScroll::PageDown,
             Key::Named(NamedKey::PageUp) => KeyboardScroll::PageUp,
+            Key::Character(string) if &string == "a" && event.modifiers() == CMD_OR_CONTROL => {
+                document.editing_context(cx.no_gc(), node).select_all(cx);
+                event.upcast::<Event>().mark_as_handled();
+                return;
+            },
             Key::Character(string) if &string == " " => {
                 is_space = true;
                 if event.modifiers().contains(Modifiers::SHIFT) {

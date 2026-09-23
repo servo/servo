@@ -13496,6 +13496,24 @@
       }
      ]
     ],
+    "keyboard-select-all-no-body.html": [
+     "bfdadd7294b68e0ac786c2c9b4d2eb8556ab2c37",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "keyboard-select-all.html": [
+     "3f45a8ea49c2b408a8d427d9851c26b62732b500",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "mouse-button-events-detail-increases-indefinitely.html": [
      "6bf57fe3accad4d3cbfb454e10f31b0a8540b5a5",
      [
