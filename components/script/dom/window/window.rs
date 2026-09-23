@@ -110,6 +110,7 @@ use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
 use crate::dom::StatelessWorkletThreadPool;
+use crate::dom::bindings::callback::RootedCallback;
 use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
@@ -1843,10 +1844,15 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
-    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> Fallible<u32> {
+    fn RequestAnimationFrame(
+        &self,
+        callback: RootedCallback<FrameRequestCallback>,
+    ) -> Fallible<u32> {
         Ok(self
             .Document()
-            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback { callback }))
+            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback {
+                callback: callback.to_traced(),
+            }))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe>
