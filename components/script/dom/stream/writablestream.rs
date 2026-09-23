@@ -627,7 +627,7 @@ impl WritableStream {
         assert!(self.is_writable());
 
         // Let promise be a new promise.
-        let promise = Promise::new_rooted(cx, global);
+        let promise = Promise::new(cx, global);
 
         // Append promise to stream.[[writeRequests]].
         self.write_requests
@@ -653,7 +653,7 @@ impl WritableStream {
         // If stream.[[state]] is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
             // return a promise resolved with undefined.
-            return Promise::new_resolved_rooted(cx, global, ());
+            return Promise::new_resolved(cx, global, ());
         }
 
         // Signal abort on stream.[[controller]].[[abortController]] with reason.
@@ -669,7 +669,7 @@ impl WritableStream {
             state,
             WritableStreamState::Closed | WritableStreamState::Errored
         ) {
-            return Promise::new_resolved_rooted(cx, global, ());
+            return Promise::new_resolved(cx, global, ());
         }
 
         // If stream.[[pendingAbortRequest]] is not undefined,
@@ -704,7 +704,7 @@ impl WritableStream {
         };
 
         // Let promise be a new promise.
-        let promise = Promise::new_rooted(cx, global);
+        let promise = Promise::new(cx, global);
 
         // Set stream.[[pendingAbortRequest]] to a new pending abort request
         // whose promise is promise,
@@ -732,7 +732,7 @@ impl WritableStream {
         // If state is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new_rooted(cx, global);
+            let promise = Promise::new(cx, global);
             promise.reject_error(cx, Error::Type(c"Stream is closed or errored.".to_owned()));
             return promise;
         }
@@ -744,7 +744,7 @@ impl WritableStream {
         assert!(!self.close_queued_or_in_flight());
 
         // Let promise be a new promise.
-        let promise = Promise::new_rooted(cx, global);
+        let promise = Promise::new(cx, global);
 
         // Set stream.[[closeRequest]] to promise.
         *self.close_request.borrow_mut() = Some(promise.to_traced());
@@ -831,7 +831,7 @@ impl WritableStream {
                 // and backpressure is not stream.[[backpressure]],
                 if backpressure {
                     // If backpressure is true, set writer.[[readyPromise]] to a new promise.
-                    let promise = Promise::new_rooted(cx, global);
+                    let promise = Promise::new(cx, global);
                     writer.set_ready_promise(&promise);
                 } else {
                     // Otherwise,
@@ -866,7 +866,7 @@ impl WritableStream {
         // Note: other algorithms defined in the controller at call site.
 
         // Let backpressurePromise be a new promise.
-        let backpressure_promise = Promise::new_rooted(cx, &global);
+        let backpressure_promise = Promise::new(cx, &global);
         rooted!(&in(cx) let backpressure_promise = RcHolder(Rc::new(RefCell::new(Some(backpressure_promise.to_traced())))));
 
         // Let controller be a new WritableStreamDefaultController.
@@ -1060,7 +1060,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // If ! IsWritableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new_rooted(cx, &global);
+            let promise = Promise::new(cx, &global);
             promise.reject_error(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
@@ -1076,7 +1076,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // If ! IsWritableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new_rooted(cx, &global);
+            let promise = Promise::new(cx, &global);
             promise.reject_error(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
@@ -1084,7 +1084,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // If ! WritableStreamCloseQueuedOrInFlight(this) is true
         if self.close_queued_or_in_flight() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new_rooted(cx, &global);
+            let promise = Promise::new(cx, &global);
             promise.reject_error(
                 cx,
                 Error::Type(c"Stream has closed queued or in-flight".to_owned()),

@@ -285,7 +285,7 @@ impl ImageBitmap {
         options: &ImageBitmapOptions,
         realm: &mut CurrentRealm,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(realm);
+        let p = Promise::new_in_realm(realm);
 
         // Step 1. If either sw or sh is given and is 0, then return a promise rejected with a RangeError.
         if sw.is_some_and(|w| w == 0) {

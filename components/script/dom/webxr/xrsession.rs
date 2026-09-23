@@ -836,7 +836,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         cx: &mut CurrentRealm,
         ty: XRReferenceSpaceType,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
 
@@ -896,7 +896,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 
     /// <https://immersive-web.github.io/webxr/#dom-xrsession-end>
     fn End(&self, cx: &mut CurrentRealm) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
         if self.ended.get() && self.end_promises.borrow().is_empty() {
             // If the session has completely ended and all end promises have been resolved,
             // don't queue up more end promises
@@ -935,7 +935,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         cx: &mut CurrentRealm,
         options: &XRHitTestOptionsInit,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
 
         if !self
             .session
@@ -1041,7 +1041,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-updatetargetframerate>
     fn UpdateTargetFrameRate(&self, cx: &mut CurrentRealm, rate: Finite<f32>) -> RootedPromise {
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         {
             let session = self.session.borrow();
             let supported_frame_rates = session.supported_frame_rates();

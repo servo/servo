@@ -161,7 +161,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         module_url: USVString,
         options: &WorkletOptions,
     ) -> RootedPromise {
-        let promise = Promise::new_in_realm_rooted(realm);
+        let promise = Promise::new_in_realm(realm);
 
         // Step 1. Let outsideSettings be the relevant settings object of this.
         // Step 2. Let moduleURLRecord be the result of encoding-parsing a URL given moduleURL, relative to outsideSettings.

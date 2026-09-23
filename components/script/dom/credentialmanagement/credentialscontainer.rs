@@ -47,7 +47,7 @@ impl CredentialsContainer {
         // Step 3. Let document be settings’s relevant global object's associated Document.
         let document = global.as_window().Document();
 
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         // Step 4. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !document.is_fully_active() {
             promise.reject_error(cx, Error::InvalidState(None));
@@ -73,7 +73,7 @@ impl CredentialsContainer {
         // Step 2. Assert: settings is a secure context.
         assert!(global.is_secure_context());
 
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         // Step 3. If settings’s relevant global object's associated Document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !global.as_window().Document().is_fully_active() {
             promise.reject_error(cx, Error::InvalidState(None));
@@ -97,7 +97,7 @@ impl CredentialsContainer {
         // Step 4. Let document be the relevant global object’s associated Document.
         let document = global.as_window().Document();
 
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         // Step 5. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !document.is_fully_active() {
             promise.reject_error(cx, Error::InvalidState(None));
@@ -134,7 +134,7 @@ impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess>
     fn PreventSilentAccess(&self, cx: &mut CurrentRealm) -> Fallible<RootedPromise> {
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         promise.reject_error(cx, Error::NotSupported(None));
         Ok(promise)
     }

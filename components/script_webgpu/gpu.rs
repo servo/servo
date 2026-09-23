@@ -71,7 +71,7 @@ where
     ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
         let global = self.global_from_reflector();
         // 1. Let promise be a new promise.
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         let callback = promise.callback_promise_dom_manipulation_task_source(self);
 
         let power_preference = match options.powerPreference {

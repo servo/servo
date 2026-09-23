@@ -196,7 +196,7 @@ where
         let limits = GPUSupportedLimits::new(cx, global, limits);
         let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
         let adapter_info = GPUAdapterInfo::clone_from(cx, global, &adapter.info());
-        let lost_promise = D::Promise::new_rooted(cx, global);
+        let lost_promise = D::Promise::new(cx, global);
         let device = reflect_weak_referenceable_dom_object_with_cx_and_wrap::<D, _, _>(
             cx,
             Rc::new(GPUDevice::new_inherited(
@@ -558,7 +558,7 @@ where
         cx: &mut CurrentRealm<'_>,
         descriptor: &GPUComputePipelineDescriptor<D>,
     ) -> <<D as script_bindings::DomTypes>::Promise as script_bindings::interfaces::PromiseHelpers<D>>::StackRoot{
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         let callback =
             <D::Promise as PromiseHelpers<D>>::StackRoot::callback_promise_dom_manipulation_task_source(&promise, self);
         GPUComputePipeline::create(self, descriptor, Some(callback));
@@ -616,7 +616,7 @@ where
         descriptor: &GPURenderPipelineDescriptor<D>,
     ) -> Fallible<<<D as script_bindings::DomTypes>::Promise as script_bindings::interfaces::PromiseHelpers<D>>::StackRoot>{
         let desc = self.parse_render_pipeline(descriptor)?;
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         let callback = <D::Promise as PromiseHelpers<D>>::StackRoot::callback_promise_dom_manipulation_task_source(
             &promise, self,
         );
@@ -669,7 +669,7 @@ where
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
     fn PopErrorScope(&self, cx: &mut CurrentRealm<'_>) -> <<D as script_bindings::DomTypes>::Promise as script_bindings::interfaces::PromiseHelpers<D>>::StackRoot{
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         let callback = <D::Promise as PromiseHelpers<D>>::StackRoot::callback_promise_dom_manipulation_task_source(
             &promise, self,
         );

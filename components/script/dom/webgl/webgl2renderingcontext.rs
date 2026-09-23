@@ -5030,7 +5030,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     #[cfg(feature = "webxr")]
     fn MakeXRCompatible(&self, cx: &mut js::context::JSContext) -> RootedPromise {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
-        Promise::new_resolved_rooted(cx, &self.global(), ())
+        Promise::new_resolved(cx, &self.global(), ())
     }
 }
 

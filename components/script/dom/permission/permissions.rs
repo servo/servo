@@ -97,7 +97,7 @@ impl Permissions {
         // (Query, Request) Step 3.
         let p = match promise {
             Some(promise) => promise,
-            None => Promise::new_in_realm_rooted(cx),
+            None => Promise::new_in_realm(cx),
         };
 
         // (Query, Request, Revoke) Step 1.

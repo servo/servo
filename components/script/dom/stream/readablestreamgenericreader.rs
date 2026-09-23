@@ -42,11 +42,11 @@ pub(crate) trait ReadableStreamGenericReader {
         if stream.is_readable() {
             // If stream.[[state]] is "readable
             // Set reader.[[closedPromise]] to a new promise.
-            self.set_closed_promise(&Promise::new_rooted(cx, global));
+            self.set_closed_promise(&Promise::new(cx, global));
         } else if stream.is_closed() {
             // Otherwise, if stream.[[state]] is "closed",
             // Set reader.[[closedPromise]] to a promise resolved with undefined.
-            self.set_closed_promise(&Promise::new_resolved_rooted(cx, global, ()));
+            self.set_closed_promise(&Promise::new_resolved(cx, global, ()));
         } else {
             // Assert: stream.[[state]] is "errored"
             assert!(stream.is_errored());
@@ -54,7 +54,7 @@ pub(crate) trait ReadableStreamGenericReader {
             // Set reader.[[closedPromise]] to a promise rejected with stream.[[storedError]].
             rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
-            self.set_closed_promise(&Promise::new_rejected_rooted(cx, global, error.handle()));
+            self.set_closed_promise(&Promise::new_rejected(cx, global, error.handle()));
 
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true
             self.get_closed_promise(cx).set_promise_is_handled(cx);
@@ -107,7 +107,7 @@ pub(crate) trait ReadableStreamGenericReader {
                     error.handle_mut(),
                 );
 
-                self.set_closed_promise(&Promise::new_rejected_rooted(
+                self.set_closed_promise(&Promise::new_rejected(
                     cx,
                     &stream.global(),
                     error.handle(),
@@ -144,7 +144,7 @@ pub(crate) trait ReadableStreamGenericReader {
         if self.get_stream().is_none() {
             // If this.[[stream]] is undefined,
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new_rooted(cx, global);
+            let promise = Promise::new(cx, global);
             promise.reject_error(cx, Error::Type(c"stream is undefined".to_owned()));
             promise
         } else {

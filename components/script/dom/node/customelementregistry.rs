@@ -668,7 +668,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
-            let promise = Promise::new_in_realm_rooted(realm);
+            let promise = Promise::new_in_realm(realm);
             let error = DOMException::new(
                 realm,
                 self.window.as_global_scope(),
@@ -684,7 +684,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             definition
                 .constructor
                 .to_jsval(realm, constructor.handle_mut());
-            let promise = Promise::new_in_realm_rooted(realm);
+            let promise = Promise::new_in_realm(realm);
             promise.resolve_native(realm, &constructor.get());
             return promise;
         }
@@ -696,7 +696,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             .get(&name)
             .map(|promise| promise.root(realm));
         existing_promise.unwrap_or_else(|| {
-            let promise = Promise::new_in_realm_rooted(realm);
+            let promise = Promise::new_in_realm(realm);
             self.when_defined
                 .borrow_mut()
                 .insert(name, promise.to_traced());

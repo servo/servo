@@ -400,7 +400,7 @@ impl ReadableStreamDefaultController {
                     Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
                 )
                 .unwrap_or_else(|| {
-                    let promise = Promise::new_resolved_rooted(cx, global, ());
+                    let promise = Promise::new_resolved(cx, global, ());
                     Ok(promise)
                 });
 
@@ -521,14 +521,14 @@ impl ReadableStreamDefaultController {
         let result = underlying_source
             .call_pull_algorithm(cx, controller)
             .unwrap_or_else(|| {
-                let promise = Promise::new_resolved_rooted(cx, &global, ());
+                let promise = Promise::new_resolved(cx, &global, ());
                 Ok(promise)
             });
         let promise = result.unwrap_or_else(|error| {
             rooted!(&in(cx) let mut rval = UndefinedValue());
             // TODO: check if `self.global()` is the right globalscope.
             error.to_jsval(cx, &global, rval.handle_mut());
-            Promise::new_rejected_rooted(cx, &global, rval.handle())
+            Promise::new_rejected(cx, &global, rval.handle())
         });
         promise.append_native_handler(cx, &handler);
     }
@@ -551,7 +551,7 @@ impl ReadableStreamDefaultController {
         let result = underlying_source
             .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
-                let promise = Promise::new_rooted(cx, global);
+                let promise = Promise::new(cx, global);
                 promise.resolve_native(cx, &());
                 Ok(promise)
             });
@@ -559,7 +559,7 @@ impl ReadableStreamDefaultController {
             rooted!(&in(cx) let mut rval = UndefinedValue());
 
             error.to_jsval(cx, global, rval.handle_mut());
-            let promise = Promise::new_rooted(cx, global);
+            let promise = Promise::new(cx, global);
             promise.reject_native(cx, &rval.handle());
             promise
         });

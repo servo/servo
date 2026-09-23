@@ -541,7 +541,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
     ) -> RootedPromise {
         // Step 5. Let result be a new promise object.
         let mut realm = CurrentRealm::assert(cx);
-        let promise = Promise::new_in_realm_rooted(&mut realm);
+        let promise = Promise::new_in_realm(&mut realm);
 
         // Step 1. If the value of this's [[Detached]] internal slot is true,
         // then return a promise rejected with an "InvalidStateError"

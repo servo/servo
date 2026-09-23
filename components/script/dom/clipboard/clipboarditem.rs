@@ -275,7 +275,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         let item_type_list = self.representations.borrow();
 
         // Step 7 Let p be a new promise in realm.
-        let p = Promise::new_in_realm_rooted(realm);
+        let p = Promise::new_in_realm(realm);
 
         // Step 8 For each representation in itemTypeList
         for representation in item_type_list.iter() {

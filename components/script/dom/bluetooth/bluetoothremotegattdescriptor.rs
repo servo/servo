@@ -98,7 +98,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue>
     fn ReadValue(&self, cx: &mut CurrentRealm) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Reads) {
@@ -134,7 +134,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
         cx: &mut CurrentRealm,
         value: ArrayBufferViewOrArrayBuffer,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Writes) {

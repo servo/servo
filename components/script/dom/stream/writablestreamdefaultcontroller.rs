@@ -166,7 +166,7 @@ impl Callback for TransferBackPressurePromiseReaction {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         let global = self.result_promise.global();
         // Set backpressurePromise to a new promise.
-        let promise = Promise::new_rooted(cx, &global);
+        let promise = Promise::new(cx, &global);
         *self.backpressure_promise.borrow_mut() = Some(promise.to_traced());
 
         // Let result be PackAndPostMessageHandlingError(port, "chunk", chunk).
@@ -538,14 +538,14 @@ impl WritableStreamDefaultController {
                     Promise::resolve_or_wrap_promise(cx, result.handle(), global)
                 } else {
                     // Let startAlgorithm be an algorithm that returns undefined.
-                    Promise::new_resolved_rooted(cx, global, ())
+                    Promise::new_resolved(cx, global, ())
                 };
 
                 Ok(start_promise)
             },
             UnderlyingSinkType::Transfer { .. } => {
                 // Let startAlgorithm be an algorithm that returns undefined.
-                Ok(Promise::new_resolved_rooted(cx, global, ()))
+                Ok(Promise::new_resolved(cx, global, ()))
             },
             UnderlyingSinkType::Transform(_, start_promise) => {
                 // Let startAlgorithm be an algorithm that returns startPromise.
@@ -579,10 +579,10 @@ impl WritableStreamDefaultController {
                         ExceptionHandling::Rethrow,
                     )
                 } else {
-                    Ok(Promise::new_resolved_rooted(cx, global, ()))
+                    Ok(Promise::new_resolved(cx, global, ()))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new_rooted(cx, global);
+                    let promise = Promise::new(cx, global);
                     promise.reject_error(cx, e);
                     promise
                 })
@@ -597,7 +597,7 @@ impl WritableStreamDefaultController {
                 // Disentangle port.
                 global.disentangle_port(cx, port);
 
-                let promise = Promise::new_rooted(cx, global);
+                let promise = Promise::new(cx, global);
 
                 // If result is an abrupt completion, return a promise rejected with result.[[Value]]
                 if let Err(error) = result {
@@ -647,10 +647,10 @@ impl WritableStreamDefaultController {
                         ExceptionHandling::Rethrow,
                     )
                 } else {
-                    Ok(Promise::new_resolved_rooted(cx, global, ()))
+                    Ok(Promise::new_resolved(cx, global, ()))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new_rooted(cx, global);
+                    let promise = Promise::new(cx, global);
                     promise.reject_error(cx, e);
                     promise
                 })
@@ -665,12 +665,12 @@ impl WritableStreamDefaultController {
                 // If backpressurePromise is undefined,
                 // set backpressurePromise to a promise resolved with undefined.
                 if backpressure_promise.borrow().is_none() {
-                    let promise = Promise::new_resolved_rooted(cx, global, ());
+                    let promise = Promise::new_resolved(cx, global, ());
                     *backpressure_promise.borrow_mut() = Some(promise.to_traced());
                 }
 
                 // Return the result of reacting to backpressurePromise with the following fulfillment steps:
-                let result_promise = Promise::new_rooted(cx, global);
+                let result_promise = Promise::new(cx, global);
                 rooted!(&in(cx) let mut fulfillment_handler = Some(TransferBackPressurePromiseReaction {
                     port: port.clone(),
                     backpressure_promise: backpressure_promise.clone(),
@@ -716,10 +716,10 @@ impl WritableStreamDefaultController {
                 let result = if let Some(ref algo) = *algo {
                     algo.Call_(cx, &this_object.handle(), ExceptionHandling::Rethrow)
                 } else {
-                    Ok(Promise::new_resolved_rooted(cx, global, ()))
+                    Ok(Promise::new_resolved(cx, global, ()))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new_rooted(cx, global);
+                    let promise = Promise::new(cx, global);
                     promise.reject_error(cx, e);
                     promise
                 })
@@ -737,7 +737,7 @@ impl WritableStreamDefaultController {
                 global.disentangle_port(cx, port);
 
                 // Return a promise resolved with undefined.
-                Promise::new_resolved_rooted(cx, global, ())
+                Promise::new_resolved(cx, global, ())
             },
             UnderlyingSinkType::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSinkCloseAlgorithm(stream).

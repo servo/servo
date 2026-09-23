@@ -68,7 +68,7 @@ impl FontFaceSet {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        let promise = Promise::new_rooted(cx, global);
+        let promise = Promise::new(cx, global);
         reflect_dom_object_with_proto(
             cx,
             Box::new(FontFaceSet::new_inherited(&promise)),
@@ -141,7 +141,7 @@ impl FontFaceSet {
         // Step 3. If font face set’s [[ReadyPromise]] slot currently holds a fulfilled
         // promise, replace it with a fresh pending promise.
         if self.promise.borrow().is_fulfilled() {
-            let promise = Promise::new_rooted(cx, &self.global());
+            let promise = Promise::new(cx, &self.global());
             *self.promise.borrow_mut() = promise.to_traced()
         }
 
@@ -344,7 +344,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     fn Load(&self, cx: &mut JSContext, font: DOMString, text: DOMString) -> RootedPromise {
         // Step 1. Let font face set be the FontFaceSet object this method was called on. Let
         // promise be a newly-created promise object.
-        let load_promise = Promise::new_rooted(cx, &self.global());
+        let load_promise = Promise::new(cx, &self.global());
 
         // Step 2. Return promise. Complete the rest of these steps asynchronously.
         #[derive(MallocSizeOf, JSTraceable)]

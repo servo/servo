@@ -103,7 +103,7 @@ impl js::conversions::FromJSValConvertible for RootedPromise {
         let mut realm = CurrentRealm::assert(cx);
         let global_scope = GlobalScope::from_current_realm(&mut realm);
 
-        let promise = Promise::new_resolved_rooted(cx, &global_scope, value);
+        let promise = Promise::new_resolved(cx, &global_scope, value);
         Ok(ConversionResult::Success(promise))
     }
 }
@@ -229,9 +229,9 @@ impl Promise {
             false
         };
         if is_promise {
-            Self::new_with_js_promise_rooted(cx, object.handle())
+            Self::new_with_js_promise(cx, object.handle())
         } else {
-            Self::new_resolved_rooted(cx, global, value.get())
+            Self::new_resolved(cx, global, value.get())
         }
     }
 
@@ -239,7 +239,7 @@ impl Promise {
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
-        Promise::new_in_realm_rooted(cx)
+        Promise::new_in_realm(cx)
     }
 
     /// Create a new [RootedPromise] associated with the provided realm.
@@ -247,12 +247,12 @@ impl Promise {
         let cx = current_realm.deref_mut();
         rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
         Promise::create_js_promise(cx, obj.handle_mut());
-        Promise::new_with_js_promise_rooted(cx, obj.handle())
+        Promise::new_with_js_promise(cx, obj.handle())
     }
 
     /// Create a new [RootedPromise] wrapping the same underlying [Promise].
     pub(crate) fn duplicate(&self, cx: &JSContext) -> RootedPromise {
-        Promise::new_with_js_promise_rooted(cx, self.reflector().get_jsobject())
+        Promise::new_with_js_promise(cx, self.reflector().get_jsobject())
     }
 
     #[expect(unsafe_code)]
@@ -313,19 +313,6 @@ impl Promise {
             };
             SetPromiseUserInputEventHandlingState(obj.handle(), is_user_interacting);
         }
-    }
-
-    #[expect(unsafe_code)]
-    fn new_resolved_shared<F, T>(
-        cx: &mut JSContext,
-        global: &GlobalScope,
-        value: impl ToJSValConvertible,
-        constructor: F,
-    ) -> T
-    where
-        F: for<'a, 'b> Fn(&'a JSContext, HandleObject<'b>) -> T,
-    {
-        constructor(cx, p.handle())
     }
 
     #[expect(unsafe_code)]
@@ -756,7 +743,7 @@ pub(crate) fn wait_for_all_promise(
     promises: Vec<RootedPromise>,
 ) -> RootedPromise {
     // Let promise be a new promise of type Promise<sequence<T>> in realm.
-    let promise = Promise::new_rooted(cx, global);
+    let promise = Promise::new(cx, global);
     let success_promise = promise.clone();
     let failure_promise = promise.clone();
 
@@ -782,12 +769,6 @@ pub(crate) fn wait_for_all_promise(
 impl PromiseHelpers<crate::DomTypeHolder> for Promise {
     type StackRoot = RootedPromise;
     type HeapTraced = TracedPromise;
-
-    fn new_in_realm(
-        cx: &mut CurrentRealm,
-    ) -> Rc<<crate::DomTypeHolder as script_bindings::DomTypes>::Promise> {
-        Promise::new_in_realm(cx)
-    }
 
     fn new_in_realm(cx: &mut CurrentRealm) -> RootedPromise {
         Promise::new_in_realm(cx)

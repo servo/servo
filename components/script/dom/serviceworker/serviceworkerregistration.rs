@@ -219,7 +219,7 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
         // Note: `self` is the registration.
 
         // Step 2: Let promise be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
 
         let Some(worker) = self.get_newest_worker() else {
             promise.resolve_native(cx, &true);

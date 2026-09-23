@@ -371,7 +371,7 @@ pub(crate) fn Fetch(
     cx: &mut CurrentRealm,
 ) -> RootedPromise {
     // Step 1. Let p be a new promise.
-    let promise = Promise::new_in_realm_rooted(cx);
+    let promise = Promise::new_in_realm(cx);
 
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier so we can use it to track errors.

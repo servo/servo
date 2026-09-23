@@ -251,7 +251,7 @@ fn finish_loading_imported_module(
         unsafe {
             FinishLoadingDynamicImportedModule(cx, referrer, module_request, payload, module_record)
         };
-        let promise = Promise::new_with_js_promise_rooted(cx, object.handle());
+        let promise = Promise::new_with_js_promise(cx, object.handle());
         return continue_dynamic_import(cx, promise, ModuleObject::new(module_record));
     }
 
@@ -284,7 +284,7 @@ fn continue_dynamic_import(realm: &mut CurrentRealm, promise: RootedPromise, mod
         )
     };
 
-    let load_promise = Promise::new_with_js_promise_rooted(realm, promise_obj.handle());
+    let load_promise = Promise::new_with_js_promise(realm, promise_obj.handle());
 
     // Step 4. Let rejectedClosure be a new Abstract Closure with parameters (reason)
     // that captures promiseCapability and performs the following steps when called:

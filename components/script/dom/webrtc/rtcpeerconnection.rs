@@ -556,7 +556,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         current_realm: &mut CurrentRealm,
         candidate: &RTCIceCandidateInit,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(current_realm);
+        let p = Promise::new_in_realm(current_realm);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
             p.reject_error(
                 current_realm,
@@ -597,7 +597,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         current_realm: &mut CurrentRealm,
         _options: &RTCOfferOptions,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(current_realm);
+        let p = Promise::new_in_realm(current_realm);
         if self.closed.get() {
             p.reject_error(current_realm, Error::InvalidState(None));
             return p;
@@ -613,7 +613,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         current_realm: &mut CurrentRealm,
         _options: &RTCAnswerOptions,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(current_realm);
+        let p = Promise::new_in_realm(current_realm);
         if self.closed.get() {
             p.reject_error(current_realm, Error::InvalidState(None));
             return p;
@@ -640,7 +640,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         desc: &RTCSessionDescriptionInit,
     ) -> RootedPromise {
         // XXXManishearth validate the current state
-        let p = Promise::new_in_realm_rooted(current_realm);
+        let p = Promise::new_in_realm(current_realm);
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.convert();
         let trusted_promise = TrustedPromise::from(&p);
@@ -683,7 +683,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         desc: &RTCSessionDescriptionInit,
     ) -> RootedPromise {
         // XXXManishearth validate the current state
-        let p = Promise::new_in_realm_rooted(current_realm);
+        let p = Promise::new_in_realm(current_realm);
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.convert();
         let trusted_promise = TrustedPromise::from(&p);

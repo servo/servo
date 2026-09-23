@@ -108,7 +108,7 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
         // Step 1. Let settings be this's relevant settings object.
         // Step 2. Let registration be this's registration.
         // Step 3. Let p be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
         // Step 4.1. Let subscription list be registration's associated cookie
         // change subscription list.
 
@@ -144,7 +144,7 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
     fn GetSubscriptions(&self, cx: &mut JSContext) -> RootedPromise {
         // Step 1. Let registration be this's registration.
         // Step 2. Let p be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
         // Step 3.1. Let subscriptions be registration's associated cookie
         // change subscription list.
         let subscriptions = self.subscriptions.borrow();
@@ -165,7 +165,7 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
         // Step 1. Let settings be this's relevant settings object.
         // Step 2. Let registration be this's registration.
         // Step 3. Let p be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
         // Step 4.1. Let subscription list be registration's associated cookie
         // change subscription list.
 

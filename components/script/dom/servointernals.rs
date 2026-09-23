@@ -65,7 +65,7 @@ impl ServoInternals {
 impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     /// <https://servo.org/internal-no-spec>
     fn ReportMemory(&self, cx: &mut CurrentRealm) -> RootedPromise {
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         let global = self.global();
         let task_manager = global.task_manager();
         let task_source = task_manager.dom_manipulation_task_source();
