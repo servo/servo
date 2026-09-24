@@ -12,8 +12,8 @@ use std::time::SystemTime;
 use cookie::Cookie;
 use log::{Level, debug, log_enabled};
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
+use net_traits::{CookieSource, ends_with_ignore_ascii_case};
 use nom::branch::alt;
 use nom::bytes::complete::{tag, tag_no_case, take, take_while_m_n};
 use nom::combinator::{opt, recognize};
@@ -327,11 +327,8 @@ impl ServoCookie {
 
     /// <http://tools.ietf.org/html/rfc6265#section-5.1.3>
     pub fn domain_match(string: &str, domain_string: &str) -> bool {
-        let string = &string.to_lowercase();
-        let domain_string = &domain_string.to_lowercase();
-
-        string == domain_string ||
-            (string.ends_with(domain_string) &&
+        string.eq_ignore_ascii_case(domain_string) ||
+            (ends_with_ignore_ascii_case(string, domain_string) &&
                 string.as_bytes()[string.len() - domain_string.len() - 1] == b'.' &&
                 string.parse::<Ipv4Addr>().is_err() &&
                 string.parse::<Ipv6Addr>().is_err())
