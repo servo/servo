@@ -47,7 +47,6 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::fetchlaterresult::FetchLaterResult;
 use crate::dom::globalscope::GlobalScope;
@@ -367,7 +366,7 @@ fn abort_fetch_call(
 pub(crate) fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
-    init: RootedTraceableBox<RequestInit>,
+    init: &RequestInit,
     cx: &mut CurrentRealm,
 ) -> RootedPromise {
     // Step 1. Let p be a new promise.
@@ -514,7 +513,7 @@ pub(crate) fn FetchLater(
     cx: &mut JSContext,
     window: &Window,
     input: RequestInfo,
-    init: RootedTraceableBox<DeferredRequestInit>,
+    init: &DeferredRequestInit,
 ) -> Fallible<DomRoot<FetchLaterResult>> {
     let global_scope = window.upcast();
     let document = window.Document();

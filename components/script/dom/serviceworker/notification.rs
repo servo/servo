@@ -46,7 +46,6 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::eventtarget::EventTarget;
@@ -125,7 +124,7 @@ impl Notification {
         cx: &mut JSContext,
         global: &GlobalScope,
         title: DOMString,
-        options: RootedTraceableBox<NotificationOptions>,
+        options: &NotificationOptions,
         origin: ImmutableOrigin,
         base_url: ServoUrl,
         fallback_timestamp: u64,
@@ -136,7 +135,7 @@ impl Notification {
             Box::new(Notification::new_inherited(
                 global,
                 title,
-                &options,
+                options,
                 origin,
                 base_url,
                 fallback_timestamp,
@@ -154,7 +153,7 @@ impl Notification {
     fn new_inherited(
         global: &GlobalScope,
         title: DOMString,
-        options: &RootedTraceableBox<NotificationOptions>,
+        options: &NotificationOptions,
         origin: ImmutableOrigin,
         base_url: ServoUrl,
         fallback_timestamp: u64,
@@ -352,7 +351,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         title: DOMString,
-        options: RootedTraceableBox<NotificationOptions>,
+        options: &NotificationOptions,
     ) -> Fallible<DomRoot<Notification>> {
         // step 1: Check global is a ServiceWorkerGlobalScope
         if global.is::<ServiceWorkerGlobalScope>() {
@@ -590,7 +589,7 @@ fn create_notification_with_settings_object(
     cx: &mut JSContext,
     global: &GlobalScope,
     title: DOMString,
-    options: RootedTraceableBox<NotificationOptions>,
+    options: &NotificationOptions,
     proto: Option<HandleObject>,
 ) -> Fallible<DomRoot<Notification>> {
     // step 1: Let origin be settings’s origin.
@@ -623,7 +622,7 @@ fn create_notification(
     cx: &mut JSContext,
     global: &GlobalScope,
     title: DOMString,
-    options: RootedTraceableBox<NotificationOptions>,
+    options: &NotificationOptions,
     origin: ImmutableOrigin,
     base_url: ServoUrl,
     fallback_timestamp: u64,

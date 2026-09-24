@@ -55,7 +55,6 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::gpuadapter::GPUAdapter;
 use crate::gpuadapterinfo::GPUAdapterInfo;
 use crate::gpubindgroup::GPUBindGroup;
@@ -531,7 +530,7 @@ where
     fn CreateShaderModule(
         &self,
         cx: &mut CurrentRealm<'_>,
-        descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
+        descriptor: &GPUShaderModuleDescriptor,
     ) -> DomRoot<GPUShaderModule<D>> {
         GPUShaderModule::create(cx, self, descriptor)
     }

@@ -1879,7 +1879,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<WindowPostMessageOptions>,
+        options: &WindowPostMessageOptions,
     ) -> ErrorResult {
         auto_root!(&in(cx) let transfer =
             options
@@ -2237,7 +2237,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         realm: &mut CurrentRealm,
         input: RequestOrUSVString,
-        init: RootedTraceableBox<RequestInit>,
+        init: &RequestInit,
     ) -> RootedPromise {
         fetch::Fetch(self.upcast(), input, init, realm)
     }
@@ -2247,7 +2247,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         input: RequestInfo,
-        init: RootedTraceableBox<DeferredRequestInit>,
+        init: &DeferredRequestInit,
     ) -> Fallible<DomRoot<FetchLaterResult>> {
         fetch::FetchLater(cx, self, input, init)
     }
@@ -2400,7 +2400,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         value: HandleValue,
-        options: RootedTraceableBox<StructuredSerializeOptions>,
+        options: &StructuredSerializeOptions,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
         self.as_global_scope()

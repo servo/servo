@@ -1333,7 +1333,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         declType = CGGeneric(typeName)
         empty = f"{typeName.replace('<D>', '')}::empty()"
 
-        if type_needs_tracing(type):
+        if type_needs_tracing(type) and not isArgument:
             declType = CGTemplatedType("RootedTraceableBox", declType)
 
         template = fromJSValTemplate("()", failOrPropagate, exceptionCode)
@@ -4290,7 +4290,7 @@ class CGCallGenerator(CGThing):
         args = CGList([CGGeneric(arg) for arg in argsPre], ", ")
         for (a, name) in arguments:
             # XXXjdm Perhaps we should pass all nontrivial types by borrowed pointer
-            if a.type.isDictionary() and not type_needs_tracing(a.type):
+            if a.type.isDictionary():
                 name = f"&{name}"
             args.append(CGGeneric(name))
 
@@ -8444,7 +8444,7 @@ def argument_type(descriptorProvider: DescriptorProvider,
     elif optional and not defaultValue:
         declType = CGWrapper(declType, pre="Option<", post=">")
 
-    if ty.isDictionary() and not type_needs_tracing(ty):
+    if ty.isDictionary():
         declType = CGWrapper(declType, pre="&")
 
     if type_needs_auto_root(ty):
