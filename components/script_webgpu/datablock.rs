@@ -14,12 +14,13 @@ use jstraceable_derive::JSTraceable;
 use malloc_size_of_derive::MallocSizeOf;
 use script_bindings::buffer_source::HeapBufferSource;
 use script_bindings::trace::RootedTraceableBox;
+use servo_base::generic_channel::GenericSharedMemory;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DataBlock {
     #[conditional_malloc_size_of]
-    data: Arc<Box<[u8]>>,
+    data: Arc<GenericSharedMemory>,
     /// Data views (mutable subslices of data)
     data_views: Vec<DataView>,
 }
@@ -32,23 +33,17 @@ fn range_overlap<T: std::cmp::PartialOrd>(range1: &Range<T>, range2: &Range<T>) 
 
 impl DataBlock {
     pub(crate) fn new_zeroed(size: usize) -> Self {
-        let data = vec![0; size];
         Self {
-            data: Arc::new(data.into_boxed_slice()),
+            data: Arc::new(GenericSharedMemory::from_byte(0, size)),
             data_views: Vec::new(),
         }
     }
 
-    /// Panics if there is any active view or src data is not same length
-    pub(crate) fn load(&mut self, src: &[u8]) {
-        // `Arc::get_mut` ensures there are no views
-        Arc::get_mut(&mut self.data).unwrap().clone_from_slice(src)
-    }
-
-    /// Panics if there is any active view
-    pub(crate) fn data(&mut self) -> &mut [u8] {
-        // `Arc::get_mut` ensures there are no views
-        Arc::get_mut(&mut self.data).unwrap()
+    pub(crate) fn new_from_shared_memory(data: GenericSharedMemory) -> Self {
+        Self {
+            data: Arc::new(data),
+            data_views: Vec::new(),
+        }
     }
 
     #[cfg_attr(
@@ -83,22 +78,22 @@ impl DataBlock {
             .end
             .checked_sub(range.start)
             .expect("range end must be >= range start");
-        assert!(range.end <= self.data.len());
+        assert!(range.end <= self.data.as_ref().len());
 
         /// `freeFunc()` must be threadsafe, should be safely callable from any thread
         /// without causing conflicts, unexpected behavior.
         unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
-            let raw: *const Box<[u8]> = free_user_data.cast();
+            let raw: *const GenericSharedMemory = free_user_data.cast();
             // SAFETY: `free_func` is called by SM and returns ownership of the Arc we
             // leaked below with `into_raw`. Hence it is safe to reconstruct the Arc,
             // and destroy it to release the reference count.
             drop(unsafe { Arc::from_raw(raw) });
         }
-        let raw: *const Box<[u8]> = Arc::into_raw(Arc::clone(&self.data));
+        let raw: *const GenericSharedMemory = Arc::into_raw(Arc::clone(&self.data));
         // SAFETY: We leaked the Arc, so the underlying slice will stay alive
         // until `free_func` is called. `range.start..range.end` is inside
         // the valid range of the slice.
-        let data_ptr = unsafe { (**raw).as_ptr().add(range.start) };
+        let data_ptr = unsafe { (*raw).as_ptr().add(range.start) };
         rooted!(&in(cx) let object = unsafe {
             NewExternalArrayBuffer(
                 cx,
@@ -115,6 +110,17 @@ impl DataBlock {
             buffer: HeapBufferSource::new(object.handle()),
         });
         Ok(self.data_views.last().unwrap())
+    }
+
+    #[cfg_attr(
+        crown,
+        expect(
+            crown::unrooted_must_root,
+            reason = "No GC can happen when this is called"
+        )
+    )]
+    pub(crate) fn consume(self) -> GenericSharedMemory {
+        Arc::into_inner(self.data).expect("No view should be alive")
     }
 }
 

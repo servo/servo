@@ -5,6 +5,7 @@
 //! Data and main loop of WebGPU thread.
 
 use std::borrow::Cow;
+use std::ptr::NonNull;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
@@ -16,12 +17,13 @@ use servo_base::id::PipelineId;
 use servo_config::pref;
 use webgpu_traits::id::DeviceId;
 use webgpu_traits::{
-    Adapter, BufferAddress, ComputePassDescriptor, DeviceDescriptor, DeviceLostReason, Error,
-    ErrorScope, ExperimentalFeatures, Extent3d, Mapping, MemoryHints, Origin3d, Pipeline, PopError,
-    RenderPassDescriptor, ShaderCompilationInfo, ShaderModuleDescriptor, TexelCopyBufferLayout,
-    TexelCopyTextureInfo, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
-    TextureUsages, TextureViewDescriptor, WebGPU, WebGPUAdapter, WebGPUContextId, WebGPUDevice,
-    WebGPUMsg, WebGPUQueue, WebGPURequest, id,
+    Adapter, BufferAddress, BufferUpdate, ComputePassDescriptor, DeviceDescriptor,
+    DeviceLostReason, Error, ErrorScope, ExperimentalFeatures, Extent3d, HostMap, Mapping,
+    MemoryHints, Origin3d, Pipeline, PopError, RenderPassDescriptor, ShaderCompilationInfo,
+    ShaderModuleDescriptor, TexelCopyBufferLayout, TexelCopyTextureInfo, TextureAspect,
+    TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor,
+    WebGPU, WebGPUAdapter, WebGPUContextId, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest,
+    id,
 };
 use webrender_api::ExternalImageId;
 use wgpu_core::resource::{BufferAccessResult, BufferMapOperation};
@@ -70,6 +72,7 @@ pub(crate) struct WGPU {
     pub(crate) script_sender: GenericSender<WebGPUMsg>,
     pub(crate) global: Arc<wgpu_core::global::Global>,
     devices: Arc<Mutex<FxHashMap<DeviceId, DeviceScope>>>,
+    buffers: Arc<Mutex<FxHashMap<id::BufferId, GenericSharedMemory>>>,
     pub(crate) paint_api: CrossProcessPaintApi,
     pub(crate) webrender_external_image_id_manager: WebRenderExternalImageIdManager,
     pub(crate) wgpu_image_map: WebGpuExternalImageMap,
@@ -132,6 +135,7 @@ impl WGPU {
             script_sender,
             global,
             devices: Arc::new(Mutex::new(FxHashMap::default())),
+            buffers: Arc::new(Mutex::new(FxHashMap::default())),
             paint_api,
             webrender_external_image_id_manager,
             wgpu_image_map,
@@ -154,27 +158,38 @@ impl WGPU {
                         host_map,
                         offset,
                         size,
+                        buffer_size,
                     } => {
                         let glob = Arc::clone(&self.global);
+                        let buffers = Arc::clone(&self.buffers);
                         let resp_sender = sender.clone();
                         let token = self.poller.token();
                         let callback = Box::from(move |result: BufferAccessResult| {
                             drop(token);
                             let response = result.and_then(|_| {
                                 let global = &glob;
-                                let (slice_pointer, range_size) =
-                                    global.buffer_get_mapped_range(buffer_id, offset, size)?;
-                                // SAFETY: guarantee to be safe from wgpu
-                                let data = unsafe {
-                                    slice::from_raw_parts(
-                                        slice_pointer.as_ptr(),
-                                        range_size as usize,
-                                    )
-                                };
+                                let mut data =
+                                    buffers.lock().unwrap().remove(&buffer_id).unwrap_or_else(
+                                        || GenericSharedMemory::from_byte(0, buffer_size as usize),
+                                    );
+                                if host_map == HostMap::Read {
+                                    let (slice_pointer, range_size) =
+                                        global.buffer_get_mapped_range(buffer_id, offset, size)?;
+                                    // SAFETY: guarantee to be safe from wgpu
+                                    let slice = unsafe {
+                                        slice::from_raw_parts(
+                                            slice_pointer.as_ptr(),
+                                            range_size as usize,
+                                        )
+                                    };
+                                    let data = unsafe { data.deref_mut() };
+                                    data[offset as usize..(offset + range_size) as usize]
+                                        .copy_from_slice(slice);
+                                }
 
                                 Ok(Mapping {
-                                    data: GenericSharedMemory::from_bytes(data),
-                                    range: offset..offset + range_size,
+                                    data,
+                                    range: offset..size.map(|s| offset + s).unwrap_or(buffer_size),
                                     mode: host_map,
                                 })
                             });
@@ -720,23 +735,34 @@ impl WGPU {
                         };
                         self.maybe_dispatch_wgpu_error(device_id, result.err().map(|(_, x)| x));
                     },
-                    WebGPURequest::UnmapBuffer { buffer_id, mapping } => {
+                    WebGPURequest::UnmapBuffer {
+                        buffer_id,
+                        buffer_update,
+                    } => {
                         let global = &self.global;
-                        if let Some(mapping) = mapping &&
+                        if let BufferUpdate::Write(data, range) = &buffer_update &&
                             let Ok((slice_pointer, range_size)) = global.buffer_get_mapped_range(
                                 buffer_id,
-                                mapping.range.start,
-                                Some(mapping.range.end - mapping.range.start),
+                                range.start,
+                                Some(range.end - range.start),
                             )
                         {
-                            unsafe {
-                                slice::from_raw_parts_mut(
-                                    slice_pointer.as_ptr(),
+                            let mut write_slice = unsafe {
+                                wgpu_types::WriteOnly::new(NonNull::slice_from_raw_parts(
+                                    slice_pointer,
                                     range_size as usize,
-                                )
-                            }
-                            .copy_from_slice(&mapping.data);
+                                ))
+                            };
+                            write_slice.copy_from_slice(
+                                &data.as_ref()[range.start as usize..range.end as usize],
+                            );
                         }
+                        let data = match buffer_update {
+                            BufferUpdate::Read(generic_shared_memory) => generic_shared_memory,
+                            BufferUpdate::Write(generic_shared_memory, _) => generic_shared_memory,
+                        };
+                        self.buffers.lock().unwrap().insert(buffer_id, data);
+
                         // Ignore result because this operation always succeed from user perspective
                         let _result = global.buffer_unmap(buffer_id);
                     },
@@ -867,6 +893,7 @@ impl WGPU {
                     WebGPURequest::DropBuffer(id) => {
                         let global = &self.global;
                         global.buffer_drop(id);
+                        self.buffers.lock().unwrap().remove(&id);
                         self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(id)) {
                             warn!("Unable to send FreeBuffer({:?}) ({:?})", id, e);

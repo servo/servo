@@ -131,6 +131,26 @@ impl GenericSharedMemory {
         }
         shared_memory
     }
+
+    #[expect(unsafe_code)]
+    /// Returns a mutable reference to the deref of this IpcSharedMemory.
+    ///
+    /// # Safety
+    ///
+    /// This is safe if there is only one reader/writer on the data. In single process mode breaking invariant cases panics.
+    pub unsafe fn deref_mut(&mut self) -> &mut [u8] {
+        match &mut self.0 {
+            GenericSharedMemoryVariant::Ipc(ipc_shared_memory) => {
+                #[expect(unsafe_code)]
+                unsafe {
+                    ipc_shared_memory.deref_mut()
+                }
+            },
+            GenericSharedMemoryVariant::InProcess(arc) => Arc::get_mut(arc)
+                .expect("Arc just created from bytes")
+                .as_mut_slice(),
+        }
+    }
 }
 
 impl fmt::Debug for GenericSharedMemory {
