@@ -188,7 +188,7 @@ fn create_html_element(
             // Step 4.2. Set result to the result of creating an element internal given document,
             // interface, localName, the HTML namespace, prefix, "undefined", is, and registry.
             let element = create_native_html_element(cx, name, prefix, document, creator, proto);
-            element.set_is(definition.name.clone());
+            element.set_is(definition.name.clone(), cx.no_gc());
             element.set_custom_element_state(CustomElementState::Undefined, cx.no_gc());
             element.set_custom_element_registry(registry.as_deref(), cx.no_gc());
 
@@ -280,7 +280,7 @@ fn create_html_element(
     // is is non-null, then set result’s custom element state to "undefined".
     match is {
         Some(is) => {
-            result.set_is(is);
+            result.set_is(is, cx.no_gc());
             result.set_custom_element_state(CustomElementState::Undefined, cx.no_gc());
             result.set_custom_element_registry(registry.as_deref(), cx.no_gc());
         },
