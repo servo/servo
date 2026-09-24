@@ -1351,6 +1351,12 @@ pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
     slice
 }
 
+/// Returns true if a given string has a given suffix with case-insensitive match.
+pub fn ends_with_ignore_ascii_case(string: &str, suffix: &str) -> bool {
+    string.len() >= suffix.len() &&
+        string.as_bytes()[string.len() - suffix.len()..].eq_ignore_ascii_case(suffix.as_bytes())
+}
+
 /// Returns the cached current system locale, or en-US by default.
 pub fn get_current_locale() -> &'static (String, HeaderValue) {
     static CURRENT_LOCALE: OnceLock<(String, HeaderValue)> = OnceLock::new();

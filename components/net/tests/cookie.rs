@@ -21,6 +21,15 @@ fn test_domain_match() {
     assert!(!ServoCookie::domain_match("foo.com", "bar.com"));
 
     assert!(!ServoCookie::domain_match("bar.com", "bbar.com"));
+
+    assert!(ServoCookie::domain_match("FOO.com", "foo.com"));
+    assert!(ServoCookie::domain_match("foo.com", "FOO.COM"));
+    assert!(ServoCookie::domain_match("BAR.foo.com", "foo.com"));
+    assert!(ServoCookie::domain_match("bar.FOO.com", "FOO.COM"));
+    assert!(!ServoCookie::domain_match("bar.foo.com", "BAR.COM"));
+    assert!(!ServoCookie::domain_match("foo.com", "BAR.COM"));
+    assert!(!ServoCookie::domain_match("bar.com", "BBAR.COM"));
+
     assert!(ServoCookie::domain_match("235.132.2.3", "235.132.2.3"));
     assert!(!ServoCookie::domain_match("235.132.2.3", "1.1.1.1"));
     assert!(!ServoCookie::domain_match("235.132.2.3", ".2.3"));
