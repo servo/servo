@@ -32,6 +32,7 @@ use net_traits::request::{
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
+use script_bindings::callback::RootedCallback;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::conversions::root_from_handlevalue;
 use script_bindings::reflector::DomObject;
@@ -1010,11 +1011,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
-    fn QueueMicrotask(&self, cx: &mut JSContext, callback: Rc<VoidFunction>) {
+    fn QueueMicrotask(&self, cx: &mut JSContext, callback: RootedCallback<VoidFunction>) {
         self.enqueue_microtask(
             cx,
             Box::new(UserMicrotask {
-                callback,
+                callback: callback.to_traced(),
                 global: Dom::from_ref(&self.globalscope),
             }),
         );
