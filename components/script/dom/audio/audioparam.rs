@@ -40,7 +40,7 @@ pub(crate) struct AudioParam {
 }
 
 impl AudioParam {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(
         context: &BaseAudioContext,
         node: Option<NodeId>,
@@ -64,7 +64,7 @@ impl AudioParam {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         cx: &mut JSContext,

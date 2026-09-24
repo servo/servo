@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+#![cfg_attr(crown, expect(crown::jscontext_first_arg))]
 
 use std::io::{Read, Seek, Write};
 use std::sync::atomic::{AtomicUsize, Ordering};

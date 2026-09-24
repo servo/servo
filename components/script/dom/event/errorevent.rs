@@ -55,7 +55,7 @@ impl ErrorEvent {
         reflect_dom_object_with_proto(cx, Box::new(ErrorEvent::new_inherited()), global, proto)
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -73,7 +73,7 @@ impl ErrorEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         cx: &mut JSContext,
         global: &GlobalScope,

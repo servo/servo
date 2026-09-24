@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-#![allow(clippy::too_many_arguments)]
+#![expect(clippy::too_many_arguments)]
 
 mod backend;
 pub mod canvas_data;

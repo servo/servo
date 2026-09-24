@@ -2246,7 +2246,7 @@ impl DocumentEventHandler {
     /// Fire pointerenter events hierarchically from topmost ancestor to target element.
     /// Fire pointerleave events hierarchically from target element to topmost ancestor.
     /// Used for touch devices that don't support hover.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn fire_pointer_event_for_touch(
         &self,
         cx: &mut js::context::JSContext,

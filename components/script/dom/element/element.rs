@@ -659,7 +659,7 @@ impl Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn attach_shadow(
         &self,
         cx: &mut JSContext,
@@ -2047,7 +2047,7 @@ impl Element {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn push_new_attribute(
         &self,
         cx: &mut JSContext,
@@ -2303,7 +2303,7 @@ impl Element {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-set-value>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn set_first_matching_attribute<F>(
         &self,
         cx: &mut JSContext,

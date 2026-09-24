@@ -56,7 +56,7 @@ impl WheelEvent {
         reflect_dom_object_with_proto(cx, Box::new(WheelEvent::new_inherited()), window, proto)
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
@@ -102,7 +102,7 @@ impl WheelEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         cx: &mut JSContext,
         window: &Window,
@@ -149,7 +149,7 @@ impl WheelEvent {
         ev
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn intitialize_wheel_event(
         &self,
         event_type: Atom,

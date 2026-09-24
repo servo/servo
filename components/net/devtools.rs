@@ -22,7 +22,7 @@ use servo_url::ServoUrl;
 
 use crate::fetch::methods::FetchContext;
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn prepare_devtools_request(
     request_id: String,
     url: ServoUrl,
@@ -96,7 +96,6 @@ pub(crate) fn send_response_to_devtools(
     );
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(crate) fn send_response_values_to_devtools(
     headers: Option<HeaderMap>,
     status: HttpStatus,
