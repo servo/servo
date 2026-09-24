@@ -325,7 +325,7 @@ pub(crate) struct Window {
     /// no devtools server
     #[no_trace]
     #[cfg(feature = "devtools")]
-    devtools_markers: DomRefCell<std::collections::FxHashSet<devtools_traits::TimelineMarkerType>>,
+    devtools_markers: DomRefCell<FxHashSet<devtools_traits::TimelineMarkerType>>,
     #[no_trace]
     #[cfg(feature = "devtools")]
     devtools_marker_sender:
