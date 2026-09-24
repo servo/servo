@@ -89,7 +89,7 @@ impl Geolocation {
                 let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
             // Step 4.3 Terminate this algorithm.
-            #[allow(clippy::needless_return)]
+            #[expect(clippy::needless_return)]
             return;
         }
         // TODO: Step 5
