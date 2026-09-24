@@ -1,0 +1,3 @@
+
+  success2 = false;
+  onload = () => { loaded = true; }

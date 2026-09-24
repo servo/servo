@@ -127,6 +127,7 @@ pub(crate) struct Navigator {
     #[cfg(feature = "webxr")]
     xr: MutNullableDom<XRSystem>,
     mediadevices: MutNullableDom<MediaDevices>,
+    geolocation: MutNullableDom<Geolocation>,
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepads>
     #[cfg(feature = "gamepad")]
     gamepads: DomRefCell<Vec<MutNullableDom<Gamepad>>>,
@@ -157,6 +158,7 @@ impl Navigator {
             #[cfg(feature = "webxr")]
             xr: Default::default(),
             mediadevices: Default::default(),
+            geolocation: Default::default(),
             #[cfg(feature = "gamepad")]
             gamepads: Default::default(),
             permissions: Default::default(),
@@ -180,6 +182,11 @@ impl Navigator {
     #[cfg(feature = "webxr")]
     pub(crate) fn xr(&self) -> Option<DomRoot<XRSystem>> {
         self.xr.get()
+    }
+
+    /// The `Geolocation` object, if `navigator.geolocation` was ever accessed.
+    pub(crate) fn maybe_geolocation(&self) -> Option<DomRoot<Geolocation>> {
+        self.geolocation.get()
     }
 
     #[cfg(feature = "gamepad")]
@@ -365,7 +372,8 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://www.w3.org/TR/geolocation/#navigator_interface>
     fn Geolocation(&self, cx: &mut js::context::JSContext) -> DomRoot<Geolocation> {
-        Geolocation::new(cx, &self.global())
+        self.geolocation
+            .or_init(|| Geolocation::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigatorlanguage>
