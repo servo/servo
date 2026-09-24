@@ -42,9 +42,7 @@ const ASCII_SPACE: u8 = 0x20;
 
 /// Gets the latin1 bytes from the js engine.
 /// Safety: Make sure the *mut JSString is not null.
-unsafe fn get_latin1_string_bytes(
-    rooted_traceable_box: &RootedTraceableBox<Heap<*mut JSString>>,
-) -> &[u8] {
+unsafe fn get_latin1_string_bytes(rooted_traceable_box: &Box<Heap<*mut JSString>>) -> &[u8] {
     debug_assert!(!rooted_traceable_box.get().is_null());
     let mut length = 0;
     unsafe {
@@ -90,7 +88,7 @@ enum DOMStringType {
     Rust(String),
     /// A JS String stored in mozjs.
     #[zeroize(skip)]
-    JSString(RootedTraceableBox<Heap<*mut JSString>>),
+    JSString(Box<Heap<*mut JSString>>),
     #[cfg(test)]
     /// This is used for testing of the bindings to give
     /// a raw u8 Latin1 encoded string without having a js engine.
@@ -295,22 +293,29 @@ impl std::fmt::Debug for DOMStringType {
 /// conversion cost.
 #[repr(transparent)]
 #[derive(Debug, Default, MallocSizeOf, JSTraceable)]
-pub struct DOMString(RefCell<DOMStringType>);
+pub struct TracedDOMString(RefCell<DOMStringType>);
 
-impl Clone for DOMString {
+#[derive(Default, MallocSizeOf, JSTraceable)]
+pub struct DOMString(RootedTraceableBox<TracedDOMString>);
+
+impl Deref for DOMString {
+    type Target = TracedDOMString;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
+
+impl Clone for TracedDOMString {
     fn clone(&self) -> Self {
         self.ensure_rust_string().clone().into()
     }
 }
 
-pub enum DOMStringErrorType {
-    JSConversionError,
-}
-
 impl DOMString {
     /// Creates a new `DOMString`.
     pub fn new() -> DOMString {
-        Default::default()
+        TracedDOMString::default().root()
     }
 
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
@@ -326,7 +331,7 @@ impl DOMString {
         } else {
             let latin1 = unsafe { js::jsapi::JS_DeprecatedStringHasLatin1Chars(string_ptr) };
             let inner = if latin1 {
-                let h = RootedTraceableBox::from_box(Heap::boxed(string_ptr));
+                let h = Heap::boxed(string_ptr);
                 DOMStringType::JSString(h)
             } else {
                 // We need to convert the string anyway as it is not just latin1
@@ -334,13 +339,23 @@ impl DOMString {
                     jsstr_to_string(cx, NonNull::new(string_ptr).unwrap())
                 })
             };
-            Ok(DOMString(RefCell::new(inner)))
+            Ok(TracedDOMString(RefCell::new(inner)).root())
         }
     }
 
     /// Creates a DOMString from a `&'static str` reference. More efficient than allocating the string.
     pub fn from_static(s: &'static str) -> DOMString {
-        DOMString(RefCell::new(DOMStringType::RustStatic(s)))
+        TracedDOMString(RefCell::new(DOMStringType::RustStatic(s))).root()
+    }
+}
+
+pub enum DOMStringErrorType {
+    JSConversionError,
+}
+
+impl TracedDOMString {
+    pub fn root(self) -> DOMString {
+        DOMString(RootedTraceableBox::from_box(Box::new(self)))
     }
 
     /// Transforms the internal storage of this [`DOMString`] into a Rust string if it is not
@@ -553,9 +568,10 @@ impl DOMString {
 
     pub fn replace(self, needle: &str, replace_char: &str) -> DOMString {
         let new_string = self.str().to_owned();
-        DOMString(RefCell::new(DOMStringType::Rust(
+        TracedDOMString(RefCell::new(DOMStringType::Rust(
             new_string.replace(needle, replace_char),
         )))
+        .root()
     }
 
     /// Pattern is not yet stable in rust, hence, we need different methods for str and char
@@ -794,25 +810,25 @@ impl Deref for BytesView<'_> {
     }
 }
 
-impl Ord for DOMString {
+impl Ord for TracedDOMString {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.str().cmp(&other.str())
     }
 }
 
-impl PartialOrd for DOMString {
+impl PartialOrd for TracedDOMString {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.str().partial_cmp(&other.str())
     }
 }
 
-impl Extend<char> for DOMString {
+impl Extend<char> for TracedDOMString {
     fn extend<T: IntoIterator<Item = char>>(&mut self, iter: T) {
         self.0.borrow_mut().ensure_rust_string().extend(iter)
     }
 }
 
-impl ToJSValConvertible for DOMString {
+impl ToJSValConvertible for TracedDOMString {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
         let val = self.0.borrow();
         match *val {
@@ -836,19 +852,19 @@ impl ToJSValConvertible for DOMString {
     }
 }
 
-impl std::hash::Hash for DOMString {
+impl std::hash::Hash for TracedDOMString {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.str().hash(state);
     }
 }
 
-impl std::fmt::Display for DOMString {
+impl std::fmt::Display for TracedDOMString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self.str().deref(), f)
     }
 }
 
-impl std::cmp::PartialEq<str> for DOMString {
+impl std::cmp::PartialEq<str> for TracedDOMString {
     fn eq(&self, other: &str) -> bool {
         if other.is_ascii() {
             *other.as_bytes() == *self.encoded_bytes().bytes()
@@ -858,32 +874,32 @@ impl std::cmp::PartialEq<str> for DOMString {
     }
 }
 
-impl std::cmp::PartialEq<&str> for DOMString {
+impl std::cmp::PartialEq<&str> for TracedDOMString {
     fn eq(&self, other: &&str) -> bool {
         self.eq(*other)
     }
 }
 
-impl std::cmp::PartialEq<String> for DOMString {
+impl std::cmp::PartialEq<String> for TracedDOMString {
     fn eq(&self, other: &String) -> bool {
         self.eq(other.as_str())
     }
 }
 
-impl std::cmp::PartialEq<DOMString> for String {
-    fn eq(&self, other: &DOMString) -> bool {
+impl std::cmp::PartialEq<TracedDOMString> for String {
+    fn eq(&self, other: &TracedDOMString) -> bool {
         other.eq(self)
     }
 }
 
-impl std::cmp::PartialEq<DOMString> for str {
-    fn eq(&self, other: &DOMString) -> bool {
+impl std::cmp::PartialEq<TracedDOMString> for str {
+    fn eq(&self, other: &TracedDOMString) -> bool {
         other.eq(self)
     }
 }
 
-impl std::cmp::PartialEq for DOMString {
-    fn eq(&self, other: &DOMString) -> bool {
+impl std::cmp::PartialEq for TracedDOMString {
+    fn eq(&self, other: &TracedDOMString) -> bool {
         let result = match (self.encoded_bytes(), other.encoded_bytes()) {
             (EncodedBytes::Latin1(bytes), EncodedBytes::Latin1(other_bytes)) => {
                 Some(*bytes == *other_bytes)
@@ -910,11 +926,11 @@ impl std::cmp::PartialEq for DOMString {
     }
 }
 
-impl std::cmp::Eq for DOMString {}
+impl std::cmp::Eq for TracedDOMString {}
 
 impl From<std::string::String> for DOMString {
     fn from(string: String) -> Self {
-        DOMString(RefCell::new(DOMStringType::Rust(string)))
+        TracedDOMString(RefCell::new(DOMStringType::Rust(string))).root()
     }
 }
 
@@ -979,11 +995,11 @@ impl From<DOMString> for Vec<u8> {
 
 impl From<Cow<'_, str>> for DOMString {
     fn from(value: Cow<'_, str>) -> Self {
-        DOMString(RefCell::new(DOMStringType::Rust(value.into_owned())))
+        TracedDOMString(RefCell::new(DOMStringType::Rust(value.into_owned()))).root()
     }
 }
 
-impl Zeroize for DOMString {
+impl Zeroize for TracedDOMString {
     fn zeroize(&mut self) {
         self.0.get_mut().zeroize();
     }
