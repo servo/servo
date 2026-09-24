@@ -95,6 +95,7 @@ enum DOMStringType {
     Rust(String),
     /// A JS String stored in mozjs.
     #[zeroize(skip)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     JSString(Box<Heap<*mut JSString>>),
     #[cfg(test)]
     /// This is used for testing of the bindings to give
@@ -307,6 +308,7 @@ impl std::fmt::Debug for DOMStringType {
 /// conversion cost.
 #[repr(transparent)]
 #[derive(Debug, Default, MallocSizeOf, JSTraceable)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct TracedDOMString(RefCell<DOMStringType>);
 
 #[derive(Default, MallocSizeOf, JSTraceable)]
@@ -320,7 +322,7 @@ impl std::fmt::Debug for DOMString {
 
 impl DerefMut for DOMString {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut *self.0
+        &mut self.0
     }
 }
 
@@ -328,7 +330,7 @@ impl Deref for DOMString {
     type Target = TracedDOMString;
 
     fn deref(&self) -> &Self::Target {
-        &*self.0
+        &self.0
     }
 }
 
@@ -410,6 +412,7 @@ pub enum DOMStringErrorType {
 }
 
 impl TracedDOMString {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub fn root(self) -> DOMString {
         DOMString(RootedTraceableBox::from_box(Box::new(self)))
     }
@@ -635,6 +638,7 @@ impl TracedDOMString {
         *string = string.replace("\r\n", "\n").replace("\r", "\n")
     }
 
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn replace(self, needle: &str, replace_char: &str) -> DOMString {
         let new_string = self.str().to_owned();
         TracedDOMString(RefCell::new(DOMStringType::Rust(
@@ -1125,6 +1129,7 @@ impl From<DOMString> for Atom {
     }
 }
 
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 impl From<TracedDOMString> for String {
     fn from(val: TracedDOMString) -> Self {
         val.ensure_rust_string();
@@ -1145,6 +1150,7 @@ impl From<DOMString> for String {
     }
 }
 
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 impl From<TracedDOMString> for Vec<u8> {
     fn from(value: TracedDOMString) -> Self {
         value.ensure_rust_string();
