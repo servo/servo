@@ -50,7 +50,7 @@ use profile_traits::{
     generic_callback as profile_generic_callback, generic_channel as profile_generic_channel,
     mem as profile_mem, time as profile_time,
 };
-use rustc_hash::FxBuildHasher;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::callback::OwnerWindow;
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::interfaces::GlobalScopeHelpers;
