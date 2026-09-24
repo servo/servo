@@ -158,6 +158,8 @@ pub struct Preferences {
     pub dom_crypto_subtle_enabled: bool,
     pub dom_document_dblclick_timeout: i64,
     pub dom_document_dblclick_dist: i64,
+    /// How long we should wait after finish load to do a GC in seconds.
+    pub dom_document_load_gc_timeout: i64,
     // feature: File and Directory Entries API | #45653 | Web/API/File_and_Directory_Entries_API
     pub dom_entries_api_enabled: bool,
     // feature: Document.execCommand | #25005 | Web/API/Document/execCommand
@@ -443,6 +445,7 @@ impl Preferences {
             dom_crypto_subtle_enabled: true,
             dom_document_dblclick_dist: 1,
             dom_document_dblclick_timeout: 300,
+            dom_document_load_gc_timeout: 5,
             dom_entries_api_enabled: false,
             dom_exec_command_enabled: false,
             dom_fontface_enabled: false,

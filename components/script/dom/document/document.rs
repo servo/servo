@@ -2412,10 +2412,15 @@ impl Document {
 
         // Step 20. If oldDocument's salvageable state is false, then destroy oldDocument.
         // TODO
+        if !self.salvageable() {
+            // 2. Clear window's map of active timers.
+            self.timers.clear()
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#completely-finish-loading>
     fn completely_finish_loading(&self) {
+        let first_time_load = !self.completely_loaded.get();
         // Step 1. Assert: document's browsing context is non-null.
         // TODO: Adding this assert fails a lot of tests
 
@@ -2451,6 +2456,19 @@ impl Document {
                     from_meta_element: *from_meta_element,
                 }),
                 Duration::from_secs(*time),
+            );
+        }
+
+        // Currently `completely_finish_loading` gets called two times,
+        // to not have the GC run two times, we do this workaround.
+        if first_time_load {
+            let document = Trusted::new(self);
+            self.window.as_global_scope().schedule_callback(
+                OneshotTimerCallback::GC {
+                    document,
+                    reason: js::jsapi::GCReason::LOAD_END,
+                },
+                Duration::from_secs(pref!(dom_document_load_gc_timeout).try_into().unwrap()),
             );
         }
     }
