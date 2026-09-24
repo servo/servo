@@ -253,20 +253,14 @@ where
     T: DomObject,
 {
     /// Create a new MaybeUnreflectedDom value from the given boxed DOM object.
-    ///
-    /// # Safety
-    /// TODO: unclear why this is marked unsafe.
-    pub unsafe fn from_box(value: Box<T>) -> Self {
+    pub fn from_box(value: Box<T>) -> Self {
         Self {
             ptr: Box::leak(value).into(),
         }
     }
 
     /// Create a new MaybeUnreflectedDom value from the given RCed DOM object.
-    ///
-    /// # Safety
-    /// TODO: unclear why this is marked unsafe.
-    pub unsafe fn from_rc(value: Rc<T>) -> Self {
+    pub fn from_rc(value: Rc<T>) -> Self {
         Self {
             ptr: ptr::NonNull::new(Rc::into_raw(value) as *mut T).unwrap(),
         }
