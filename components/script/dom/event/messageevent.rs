@@ -20,7 +20,6 @@ use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -249,7 +248,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: DOMString,
-        init: RootedTraceableBox<MessageEventBinding::MessageEventInit>,
+        init: &MessageEventBinding::MessageEventInit,
     ) -> Fallible<DomRoot<MessageEvent>> {
         let ev = MessageEvent::new_with_proto(
             cx,

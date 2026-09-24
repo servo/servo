@@ -17,7 +17,6 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -97,7 +96,7 @@ impl PromiseRejectionEventMethods<crate::DomTypeHolder> for PromiseRejectionEven
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: DOMString,
-        init: RootedTraceableBox<PromiseRejectionEventBinding::PromiseRejectionEventInit>,
+        init: &PromiseRejectionEventBinding::PromiseRejectionEventInit,
     ) -> Fallible<DomRoot<Self>> {
         let reason = init.reason.handle();
         let bubbles = EventBubbles::from(init.parent.bubbles);

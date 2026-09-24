@@ -36,7 +36,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::stream::readablestream::ReadableStream;
@@ -634,9 +633,9 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         input: RequestInfo,
-        init: RootedTraceableBox<RequestInit>,
+        init: &RequestInit,
     ) -> Fallible<DomRoot<Request>> {
-        Self::constructor(cx, global, proto, input, &init)
+        Self::constructor(cx, global, proto, input, init)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-method>

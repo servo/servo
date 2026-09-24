@@ -22,7 +22,6 @@ use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderMo
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::gpucompilationinfo::GPUCompilationInfo;
 use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait};
 
@@ -110,7 +109,7 @@ where
     pub(crate) fn create(
         cx: &mut CurrentRealm<'_>,
         device: &D::GPUDevice,
-        descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
+        descriptor: &GPUShaderModuleDescriptor,
     ) -> DomRoot<GPUShaderModule<D>> {
         let program_id = device
             .global_from_reflector()

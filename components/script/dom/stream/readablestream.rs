@@ -2032,7 +2032,7 @@ impl ReadableStream {
         &self,
         cx: &mut JSContext,
         global: &GlobalScope,
-        underlying_source_dict: JsUnderlyingSource,
+        underlying_source_dict: &JsUnderlyingSource,
         underlying_source_handle: SafeHandleObject,
         stream: &ReadableStream,
         strategy_hwm: f64,
@@ -2162,7 +2162,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             stream.set_up_byte_controller(
                 cx,
                 global,
-                underlying_source_dict,
+                &underlying_source_dict,
                 underlying_source_obj.handle(),
                 &stream,
                 strategy_hwm,
@@ -2177,7 +2177,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             let controller = ReadableStreamDefaultController::new(
                 cx,
                 global,
-                UnderlyingSourceType::Js(underlying_source_dict),
+                UnderlyingSourceType::Js(&underlying_source_dict),
                 high_water_mark,
                 size_algorithm,
             );

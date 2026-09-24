@@ -2988,7 +2988,7 @@ impl GlobalScope {
         &self,
         cx: &mut js::context::JSContext,
         value: HandleValue,
-        options: RootedTraceableBox<StructuredSerializeOptions>,
+        options: &StructuredSerializeOptions,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
         auto_root!(&in(cx) let guard =

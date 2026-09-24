@@ -20,7 +20,6 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 
@@ -108,7 +107,7 @@ impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: DOMString,
-        init: RootedTraceableBox<ErrorEventBinding::ErrorEventInit>,
+        init: &ErrorEventBinding::ErrorEventInit,
     ) -> Fallible<DomRoot<ErrorEvent>> {
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),

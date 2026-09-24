@@ -51,7 +51,9 @@ impl From<UnderlyingSourceType<'_>> for UnderlyingSource {
             UnderlyingSourceType::Memory(size) => UnderlyingSource::Memory(size),
             UnderlyingSourceType::Blob(size) => UnderlyingSource::Blob(size),
             UnderlyingSourceType::FetchResponse => UnderlyingSource::FetchResponse,
-            UnderlyingSourceType::Js(source) => UnderlyingSource::Js(source, Heap::default()),
+            UnderlyingSourceType::Js(source) => {
+                UnderlyingSource::Js(source.clone(), Heap::default())
+            },
             UnderlyingSourceType::Tee(source) => UnderlyingSource::Tee(Dom::from_ref(source)),
             UnderlyingSourceType::Transfer(port) => UnderlyingSource::Transfer(Dom::from_ref(port)),
             UnderlyingSourceType::Transform(stream, promise) => {
@@ -78,7 +80,7 @@ pub(crate) enum UnderlyingSourceType<'a> {
     FetchResponse,
     /// A struct representing a JS object as underlying source,
     /// and the actual JS object for use as `thisArg` in callbacks.
-    Js(JsUnderlyingSource),
+    Js(&'a JsUnderlyingSource),
     /// Tee
     Tee(&'a DefaultTeeUnderlyingSource),
     /// Transfer, with the port used in some of the algorithms.
