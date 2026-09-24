@@ -308,7 +308,18 @@ impl Deref for DOMString {
 
 impl Clone for TracedDOMString {
     fn clone(&self) -> Self {
-        self.ensure_rust_string().clone().into()
+        TracedDOMString(RefCell::new(DOMStringType::Rust(
+            self.ensure_rust_string().clone(),
+        )))
+    }
+}
+
+impl Clone for DOMString {
+    fn clone(&self) -> Self {
+        TracedDOMString(RefCell::new(DOMStringType::Rust(
+            self.ensure_rust_string().clone(),
+        )))
+        .root()
     }
 }
 
@@ -828,9 +839,9 @@ impl Extend<char> for TracedDOMString {
     }
 }
 
-impl ToJSValConvertible for TracedDOMString {
+impl ToJSValConvertible for DOMString {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        let val = self.0.borrow();
+        let val = self.0.0.borrow();
         match *val {
             DOMStringType::Rust(ref s) => s.to_jsval(cx, rval),
             DOMStringType::JSString(ref rooted_traceable_box) => unsafe {
@@ -858,7 +869,19 @@ impl std::hash::Hash for TracedDOMString {
     }
 }
 
+impl std::hash::Hash for DOMString {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.str().hash(state);
+    }
+}
+
 impl std::fmt::Display for TracedDOMString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self.str().deref(), f)
+    }
+}
+
+impl std::fmt::Display for DOMString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self.str().deref(), f)
     }
@@ -926,7 +949,15 @@ impl std::cmp::PartialEq for TracedDOMString {
     }
 }
 
+impl std::cmp::PartialEq for DOMString {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
 impl std::cmp::Eq for TracedDOMString {}
+
+impl std::cmp::Eq for DOMString {}
 
 impl From<std::string::String> for DOMString {
     fn from(string: String) -> Self {
@@ -965,8 +996,8 @@ impl From<DOMString> for Atom {
     }
 }
 
-impl From<DOMString> for String {
-    fn from(val: DOMString) -> Self {
+impl From<TracedDOMString> for String {
+    fn from(val: TracedDOMString) -> Self {
         val.ensure_rust_string();
         let inner = val.0.take();
         match inner {
@@ -979,8 +1010,8 @@ impl From<DOMString> for String {
     }
 }
 
-impl From<DOMString> for Vec<u8> {
-    fn from(value: DOMString) -> Self {
+impl From<TracedDOMString> for Vec<u8> {
+    fn from(value: TracedDOMString) -> Self {
         value.ensure_rust_string();
         let inner = value.0.take();
         match inner {
