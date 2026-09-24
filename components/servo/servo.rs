@@ -55,7 +55,7 @@ use script::ServiceWorkerManager;
 use servo_background_hang_monitor::HangMonitorRegister;
 use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver, SendError};
 pub use servo_base::id::WebViewId;
-use servo_base::id::{EMBEDDER_PIPELINE_NAMESPACE_ID, PipelineNamespace};
+use servo_base::id::{EMBEDDER_PIPELINE_NAMESPACE_ID, PipelineId, PipelineNamespace};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
@@ -101,6 +101,7 @@ use webxr::WebXrRegistry;
 use crate::clipboard_delegate::StringRequest;
 #[cfg(feature = "gamepad")]
 use crate::gamepad_delegate::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
+use crate::geolocation_delegate::{PositionRequest, PositionWatch};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
@@ -269,6 +270,9 @@ struct ServoInner {
     pending_handled_input_events: RefCell<Vec<PendingHandledInputEvent>>,
     /// An [`EventLoopWaker`] used to wake up the main embedder event loop.
     event_loop_waker: Box<dyn EventLoopWaker>,
+    /// Geolocation watches that have been handed to a GeolocationDelegate grouped by the pipeline
+    /// that asked for them.
+    geolocation_watches: RefCell<FxHashMap<PipelineId, Vec<GeolocationWatchId>>>,
 }
 
 impl ServoInner {
@@ -277,6 +281,34 @@ impl ServoInner {
             .borrow()
             .get(&id)
             .and_then(WebView::from_weak_handle)
+    }
+
+    /// Forget a geolocation watch, returning whether we were still tracking it.
+    fn untrack_geolocation_watch(&self, watch_id: &GeolocationWatchId) -> bool {
+        let mut watches = self.geolocation_watches.borrow_mut();
+        let Some(pipeline_watches) = watches.get_mut(&watch_id.pipeline_id) else {
+            return false;
+        };
+        let Some(index) = pipeline_watches.iter().position(|id| id == watch_id) else {
+            return false;
+        };
+        pipeline_watches.swap_remove(index);
+        if pipeline_watches.is_empty() {
+            watches.remove(&watch_id.pipeline_id);
+        }
+        true
+    }
+
+    /// Tell the GeolocationDelegate to stop a watch, if we still believe it to be running.
+    fn stop_geolocation_watch(&self, watch_id: &GeolocationWatchId) {
+        if !self.untrack_geolocation_watch(watch_id) {
+            return;
+        }
+        if let Some(webview) = self.get_webview_handle(watch_id.webview_id) {
+            webview
+                .geolocation_delegate()
+                .stop_watch(webview.clone(), watch_id);
+        }
     }
 
     #[servo_tracing::instrument(level = "debug", skip_all)]
@@ -638,10 +670,10 @@ impl ServoInner {
                         .request_permission(webview, permission_request);
                 }
             },
-            EmbedderMsg::RequestWakeLockPermission(webview_id, callback, type_) => {
+            EmbedderMsg::RequestPermission(webview_id, requested_feature, callback) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     let permission_request = PermissionRequest {
-                        requested_feature: PermissionFeature::ScreenWakeLock(type_),
+                        requested_feature,
                         allow_deny_request: AllowOrDenyRequest::new_from_callback(
                             callback,
                             AllowOrDeny::Deny,
@@ -652,6 +684,30 @@ impl ServoInner {
                         .delegate()
                         .request_permission(webview, permission_request);
                 }
+            },
+            EmbedderMsg::RequestGeolocationPosition(webview_id, options, result_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.geolocation_delegate().request_position(
+                        webview.clone(),
+                        PositionRequest::new(result_sender, options),
+                    );
+                }
+            },
+            EmbedderMsg::StartGeolocationWatch(watch_id, options, result_sender) => {
+                if let Some(webview) = self.get_webview_handle(watch_id.webview_id) {
+                    self.geolocation_watches
+                        .borrow_mut()
+                        .entry(watch_id.pipeline_id)
+                        .or_default()
+                        .push(watch_id.clone());
+                    webview.geolocation_delegate().start_watch(
+                        webview.clone(),
+                        PositionWatch::new(watch_id, result_sender, options),
+                    );
+                }
+            },
+            EmbedderMsg::StopGeolocationWatch(watch_id) => {
+                self.stop_geolocation_watch(&watch_id);
             },
             EmbedderMsg::OnDevtoolsStarted(port, token) => match port {
                 Ok(port) => self
@@ -864,6 +920,17 @@ impl ServoInner {
                         .notify_crashed(webview, reason, backtrace);
                 }
             },
+            ConstellationToEmbedderMsg::PipelineExited(pipeline_id) => {
+                let orphaned = self
+                    .geolocation_watches
+                    .borrow()
+                    .get(&pipeline_id)
+                    .cloned()
+                    .unwrap_or_default();
+                for watch_id in orphaned {
+                    self.stop_geolocation_watch(&watch_id);
+                }
+            },
             ConstellationToEmbedderMsg::MediaSessionEvent(webview_id, media_session_event) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
@@ -1051,6 +1118,7 @@ impl Servo {
             _js_engine_setup: js_engine_setup,
             pending_handled_input_events: Default::default(),
             event_loop_waker,
+            geolocation_watches: Default::default(),
         }))
     }
 

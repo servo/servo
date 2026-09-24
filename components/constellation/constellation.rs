@@ -2969,6 +2969,10 @@ where
             return;
         };
 
+        // Let the embedding layer release resources it is holding on this pipeline's behalf.
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::PipelineExited(pipeline_id));
+
         // Clean up any registered interests for this pipeline.
         self.pipeline_interests.retain(|_, set| {
             set.remove(&pipeline_id);

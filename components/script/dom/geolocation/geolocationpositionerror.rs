@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use embedder_traits::{GeolocationError, GeolocationErrorKind};
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::GeolocationPositionErrorBinding::GeolocationPositionErrorConstants::{PERMISSION_DENIED, POSITION_UNAVAILABLE, TIMEOUT};
 use script_bindings::codegen::GenericBindings::GeolocationPositionErrorBinding::GeolocationPositionErrorMethods;
@@ -54,13 +55,26 @@ impl GeolocationPositionError {
         Self::new(cx, global, POSITION_UNAVAILABLE, message)
     }
 
-    #[expect(unused)]
     pub(crate) fn timeout(
         cx: &mut JSContext,
         global: &GlobalScope,
         message: DOMString,
     ) -> DomRoot<Self> {
         Self::new(cx, global, TIMEOUT, message)
+    }
+
+    /// Create the error described by a GeolocationError reported by the embedding layer.
+    pub(crate) fn from_embedder_error(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        error: &GeolocationError,
+    ) -> DomRoot<Self> {
+        let code = match error.kind {
+            GeolocationErrorKind::PermissionDenied => PERMISSION_DENIED,
+            GeolocationErrorKind::PositionUnavailable => POSITION_UNAVAILABLE,
+            GeolocationErrorKind::Timeout => TIMEOUT,
+        };
+        Self::new(cx, global, code, DOMString::from(error.message.clone()))
     }
 }
 
