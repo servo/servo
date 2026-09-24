@@ -1706,11 +1706,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
-    fn QueueMicrotask(&self, cx: &JSContext, callback: Rc<VoidFunction>) {
+    fn QueueMicrotask(&self, cx: &JSContext, callback: RootedCallback<VoidFunction>) {
         ScriptThread::enqueue_microtask(
             cx,
             Box::new(UserMicrotask {
-                callback,
+                callback: callback.to_traced(),
                 global: Dom::from_ref(&self.globalscope),
             }),
         );
