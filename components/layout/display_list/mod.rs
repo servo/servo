@@ -646,27 +646,6 @@ impl DisplayListBuilder<'_> {
         }
     }
 
-    fn check_if_paintable(&mut self, bounds: LayoutRect, clip_rect: LayoutRect, opacity: f32) {
-        // From <https://www.w3.org/TR/paint-timing/#paintable>:
-        // An element el is paintable when all of the following apply:
-        // > el is being rendered.
-        // > el’s used visibility is visible.
-        // Note: Above conditions are met, as we selectively call this API.
-
-        // > el and all of its ancestors' used opacity is greater than zero.
-        if opacity <= 0.0 {
-            return;
-        }
-
-        // > el’s paintable bounding rect intersects with the scrolling area of the document.
-        if self
-            .paint_timing_handler
-            .check_bounding_rect(bounds, clip_rect)
-        {
-            self.mark_is_paintable();
-        }
-    }
-
     #[expect(clippy::too_many_arguments)]
     fn collect_image_record(
         &mut self,
@@ -820,7 +799,8 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         // > A parent frame should not be aware of the paint events from its child iframes, and
         // > vice versa. This means that a frame that contains just iframes will have first paint
         // > (due to the enclosing boxes of the iframes) but no first contentful paint.
-        self.check_if_paintable(rect.to_webrender(), common.clip_rect, style.clone_opacity());
+        self.paint_timing_handler
+            .check_if_paintable(rect.to_webrender(), style.clone_opacity());
     }
 
     fn visit_image(
@@ -858,7 +838,8 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                 wr::ColorF::WHITE,
             );
 
-            self.check_if_paintable(rect, common.clip_rect, style.clone_opacity());
+            self.paint_timing_handler
+                .check_if_paintable(rect, style.clone_opacity());
 
             // From <https://www.w3.org/TR/paint-timing/#contentful>:
             // An element target is contentful when one or more of the following apply:
@@ -1184,7 +1165,9 @@ impl Fragment {
             None,
         );
 
-        builder.check_if_paintable(glyph_bounds, common.clip_rect, parent_style.clone_opacity());
+        builder
+            .paint_timing_handler
+            .check_if_paintable(glyph_bounds, parent_style.clone_opacity());
 
         // From <https://www.w3.org/TR/paint-timing/#contentful>:
         // An element target is contentful when one or more of the following apply:
@@ -1839,11 +1822,9 @@ impl<'a> BuilderForBoxFragment<'a> {
                         builder.wr().pop_stacking_context();
                     }
 
-                    builder.check_if_paintable(
-                        layer.bounds,
-                        layer.common.clip_rect,
-                        style.clone_opacity(),
-                    );
+                    builder
+                        .paint_timing_handler
+                        .check_if_paintable(layer.bounds, style.clone_opacity());
                 },
                 ResolvedImage::Image { image, size } => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
@@ -1904,11 +1885,9 @@ impl<'a> BuilderForBoxFragment<'a> {
                             builder.wr().pop_stacking_context();
                         }
 
-                        builder.check_if_paintable(
-                            layer.bounds,
-                            layer.common.clip_rect,
-                            style.clone_opacity(),
-                        );
+                        builder
+                            .paint_timing_handler
+                            .check_if_paintable(layer.bounds, style.clone_opacity());
 
                         // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
                         // An element target is contentful when one or more of the following apply:
@@ -2113,11 +2092,9 @@ impl<'a> BuilderForBoxFragment<'a> {
                     return false;
                 };
 
-                builder.check_if_paintable(
-                    Box2D::from_size(size.cast_unit()),
-                    common.clip_rect,
-                    style.clone_opacity(),
-                );
+                builder
+                    .paint_timing_handler
+                    .check_if_paintable(Box2D::from_size(size.cast_unit()), style.clone_opacity());
 
                 // From <https://www.w3.org/TR/paint-timing/#contentful>:
                 // An element target is contentful when one or more of the following apply:
