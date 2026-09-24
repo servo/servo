@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::f32;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -62,6 +61,7 @@ impl AudioBufferSourceNode {
             1, /* outputs */
         )?;
         let node_id = source_node.node().node_id();
+        // <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-playbackrate>
         let playback_rate = AudioParam::new(
             cx,
             window,
@@ -74,6 +74,7 @@ impl AudioBufferSourceNode {
             f32::MIN,
             f32::MAX,
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-detune>
         let detune = AudioParam::new(
             cx,
             window,

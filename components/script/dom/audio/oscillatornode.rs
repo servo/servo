@@ -7,6 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::oscillator_node::{
@@ -85,6 +86,8 @@ impl OscillatorNode {
             1, /* outputs */
         )?;
         let node_id = source_node.node().node_id();
+        let nyquist = (*context.SampleRate()) / 2.;
+        // <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency>
         let frequency = AudioParam::new(
             cx,
             window,
@@ -94,9 +97,11 @@ impl OscillatorNode {
             ParamType::Frequency,
             AutomationRate::A_rate,
             440.,
-            f32::MIN,
-            f32::MAX,
+            -nyquist,
+            nyquist,
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-detune>
+        let detune_max = 1200. * f32::MAX.log2();
         let detune = AudioParam::new(
             cx,
             window,
@@ -106,8 +111,8 @@ impl OscillatorNode {
             ParamType::Detune,
             AutomationRate::A_rate,
             0.,
-            -440. / 2.,
-            440. / 2.,
+            -detune_max,
+            detune_max,
         );
         Ok(OscillatorNode {
             source_node,

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::f32;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
@@ -43,6 +41,7 @@ impl AudioListener {
     ) -> AudioListener {
         let node = context.listener();
 
+        // <https://webaudio.github.io/web-audio-api/#dom-audiolistener-positionx>
         let position_x = AudioParam::new(
             cx,
             window,
@@ -55,6 +54,7 @@ impl AudioListener {
             f32::MIN, // min value
             f32::MAX, // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-audiolistener-positiony>
         let position_y = AudioParam::new(
             cx,
             window,
@@ -67,6 +67,7 @@ impl AudioListener {
             f32::MIN, // min value
             f32::MAX, // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-audiolistener-positionz>
         let position_z = AudioParam::new(
             cx,
             window,
@@ -79,6 +80,7 @@ impl AudioListener {
             f32::MIN, // min value
             f32::MAX, // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-audiolistener-forwardx>
         let forward_x = AudioParam::new(
             cx,
             window,
@@ -91,6 +93,7 @@ impl AudioListener {
             f32::MIN, // min value
             f32::MAX, // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-audiolistener-forwardy>
         let forward_y = AudioParam::new(
             cx,
             window,
@@ -103,6 +106,7 @@ impl AudioListener {
             f32::MIN, // min value
             f32::MAX, // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-audiolistener-forwardz>
         let forward_z = AudioParam::new(
             cx,
             window,
@@ -115,6 +119,7 @@ impl AudioListener {
             f32::MIN, // min value
             f32::MAX, // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-audiolistener-upx>
         let up_x = AudioParam::new(
             cx,
             window,
@@ -127,6 +132,7 @@ impl AudioListener {
             f32::MIN, // min value
             f32::MAX, // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-audiolistener-upy>
         let up_y = AudioParam::new(
             cx,
             window,
@@ -139,6 +145,7 @@ impl AudioListener {
             f32::MIN, // min value
             f32::MAX, // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-audiolistener-upz>
         let up_z = AudioParam::new(
             cx,
             window,

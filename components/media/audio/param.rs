@@ -32,8 +32,11 @@ pub enum ParamDir {
 /// An AudioParam.
 ///
 /// <https://webaudio.github.io/web-audio-api/#AudioParam>
+#[derive(Debug)]
 pub struct Param {
     val: f32,
+    default_value: f32,
+    val_range: (f32, f32),
     kind: ParamRate,
     events: Vec<AutomationEvent>,
     current_event: usize,
@@ -60,6 +63,8 @@ impl Param {
     pub fn new(val: f32) -> Self {
         Param {
             val,
+            default_value: val,
+            val_range: (f32::MIN, f32::MAX),
             kind: ParamRate::ARate,
             events: vec![],
             current_event: 0,
@@ -75,6 +80,8 @@ impl Param {
     pub fn new_krate(val: f32) -> Self {
         Param {
             val,
+            default_value: val,
+            val_range: (f32::MIN, f32::MAX),
             kind: ParamRate::KRate,
             events: vec![],
             current_event: 0,
@@ -190,11 +197,24 @@ impl Param {
         // the data from connect()ed audionodes is first mixed
         // together in update(), and then mixed with the actual param value
         // https://webaudio.github.io/web-audio-api/#dom-audionode-connect-destinationparam-output
-        self.val + self.block_mix_val
+        // Clamp values when they are to be applied to the output, not during automation.
+        // > If the sum is NaN, replace the sum with the defaultValue.
+        // Specs do not mention replacing positive / negative infinity with defaultValue.
+        // However, nan-param.html WPT test suggests this behavior is expected.
+        // https://webaudio.github.io/web-audio-api/#computedvalue
+        let mut computed_value = self.val + self.block_mix_val;
+        if !computed_value.is_finite() {
+            computed_value = self.default_value;
+        }
+        computed_value.clamp(self.val_range.0, self.val_range.1)
     }
 
     pub fn set_rate(&mut self, rate: ParamRate) {
         self.kind = rate;
+    }
+
+    pub(crate) fn update_range(&mut self, range: (f32, f32)) {
+        self.val_range = range;
     }
 
     pub(crate) fn insert_event(&mut self, event: AutomationEvent) {
