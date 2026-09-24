@@ -5171,6 +5171,12 @@ impl Document {
         // Step 6 Run any page visibility change steps which may be defined in other specifications, with visibility
         // state and document. Any other specs' visibility steps will go here.
 
+        // <https://www.w3.org/TR/geolocation/#dfn-request-a-position>
+        // Position requests made while the document was hidden resume once it becomes visible.
+        if let Some(geolocation) = self.window.maybe_geolocation() {
+            geolocation.handle_visibility_change(visibility_state);
+        }
+
         // <https://www.w3.org/TR/gamepad/#handling-visibility-change>
         #[cfg(feature = "gamepad")]
         if visibility_state == DocumentVisibilityState::Hidden {

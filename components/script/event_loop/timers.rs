@@ -37,6 +37,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
 use crate::dom::document::RefreshRedirectDue;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
+use crate::dom::geolocation::geolocation::GeolocationTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::globalscope::script_execution::RethrowErrors;
 use crate::dom::script_execution::ScriptOptions;
@@ -129,6 +130,8 @@ struct OneshotTimer {
 pub(crate) enum OneshotTimerCallback {
     XhrTimeout(XHRTimeoutCallback),
     EventSourceTimeout(EventSourceTimeoutCallback),
+    /// <https://www.w3.org/TR/geolocation/#dom-positionoptions-timeout>
+    GeolocationTimeout(GeolocationTimeoutCallback),
     JsTimer(JsTimerTask),
     #[cfg(feature = "testbinding")]
     TestBindingCallback(TestBindingCallback),
@@ -153,6 +156,7 @@ impl OneshotTimerCallback {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(cx),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
+            OneshotTimerCallback::GeolocationTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(cx, global, js_timers),
             #[cfg(feature = "testbinding")]
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(cx),

@@ -44,6 +44,7 @@
 mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
 mod gamepad_delegate;
+mod geolocation_delegate;
 #[cfg(feature = "media-gstreamer")]
 mod gstreamer_plugins;
 mod javascript_evaluator;
@@ -107,6 +108,7 @@ pub use crate::clipboard_delegate::{ClipboardDelegate, StringRequest};
 pub use crate::gamepad_delegate::{
     GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
 };
+pub use crate::geolocation_delegate::{GeolocationDelegate, PositionRequest, PositionWatch};
 pub use crate::network_manager::{CacheEntry, NetworkManager};
 #[cfg(feature = "multiprocess")]
 pub use crate::servo::run_content_process;

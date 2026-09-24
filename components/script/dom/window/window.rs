@@ -159,6 +159,7 @@ use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::fetchlaterresult::FetchLaterResult;
+use crate::dom::geolocation::Geolocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::history::History;
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -548,6 +549,7 @@ impl Window {
 
     #[expect(unsafe_code)]
     pub(crate) fn clear_js_runtime_for_script_deallocation(&self) {
+        self.stop_geolocation_watches();
         self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
         unsafe {
@@ -558,6 +560,19 @@ impl Window {
                 .task_manager()
                 .cancel_all_tasks_and_ignore_future_tasks();
         }
+    }
+
+    /// Tell the embedder to stop producing position updates for this `Window`, so that a
+    /// location subscription does not outlive the pipeline that asked for it.
+    fn stop_geolocation_watches(&self) {
+        if let Some(geolocation) = self.maybe_geolocation() {
+            geolocation.stop_all_watches();
+        }
+    }
+
+    /// The `Geolocation` object of this `Window`'s `Navigator`.
+    pub(crate) fn maybe_geolocation(&self) -> Option<DomRoot<Geolocation>> {
+        self.navigator.get()?.maybe_geolocation()
     }
 
     /// A convenience method for
@@ -2475,6 +2490,7 @@ impl Window {
     }
 
     pub(crate) fn clear_js_runtime(&self) {
+        self.stop_geolocation_watches();
         self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
 

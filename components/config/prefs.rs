@@ -169,6 +169,20 @@ pub struct Preferences {
     pub dom_gamepad_enabled: bool,
     // feature: Geolocation API | #38903 | Web/API/Geolocation_API
     pub dom_geolocation_enabled: bool,
+    /// Make the built-in geolocation backend report a fixed position instead of reporting that
+    /// no position is available for testing purposes.
+    pub dom_geolocation_test_position_enabled: bool,
+    /// The accuracy, in meters, reported when `dom_geolocation_test_position_enabled` is set.
+    pub dom_geolocation_test_accuracy: f64,
+    /// The heading, in degrees, reported when `dom_geolocation_test_position_enabled` is set.
+    pub dom_geolocation_test_heading: f64,
+    /// The latitude, in degrees, reported when `dom_geolocation_test_position_enabled` is set.
+    pub dom_geolocation_test_latitude: f64,
+    /// The longitude, in degrees, reported when `dom_geolocation_test_position_enabled` is set.
+    pub dom_geolocation_test_longitude: f64,
+    /// The speed, in meters per second, reported when `dom_geolocation_test_position_enabled`
+    /// is set.
+    pub dom_geolocation_test_speed: f64,
     // feature: Screen Wake Lock API | #43615 | Web/API/Screen_Wake_Lock_API
     pub dom_wakelock_enabled: bool,
     // feature: IndexedDB | #6963 | Web/API/IndexedDB_API
@@ -449,6 +463,12 @@ impl Preferences {
             dom_fullscreen_test: false,
             dom_gamepad_enabled: true,
             dom_geolocation_enabled: false,
+            dom_geolocation_test_position_enabled: false,
+            dom_geolocation_test_accuracy: 0.0,
+            dom_geolocation_test_heading: 0.0,
+            dom_geolocation_test_latitude: -37.0675,
+            dom_geolocation_test_longitude: -12.3111,
+            dom_geolocation_test_speed: 0.0,
             dom_wakelock_enabled: false,
             dom_indexeddb_enabled: false,
             dom_intersection_observer_enabled: false,

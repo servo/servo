@@ -143,8 +143,7 @@ impl TaskManager {
     task_source_functions!(self, file_reading_task_source, FileReading);
     task_source_functions!(self, font_loading_task_source, FontLoading);
     task_source_functions!(self, gamepad_task_source, Gamepad);
-    // FIXME(arihant2math): uncomment when geolocation is implemented.
-    // task_source_functions!(self, geolocation_task_source, Geolocation);
+    task_source_functions!(self, geolocation_task_source, Geolocation);
     task_source_functions!(self, media_element_task_source, MediaElement);
     task_source_functions!(
         self,
