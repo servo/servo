@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::rust::HandleValue;
+use script_bindings::callback::TracedCallback;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_cx};
 use strum::AsRefStr;
 
@@ -26,17 +25,15 @@ use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 
 #[dom_struct]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct TrustedTypePolicy {
     reflector_: Reflector,
 
     name: String,
 
-    #[conditional_malloc_size_of]
-    create_html: Option<Rc<CreateHTMLCallback>>,
-    #[conditional_malloc_size_of]
-    create_script: Option<Rc<CreateScriptCallback>>,
-    #[conditional_malloc_size_of]
-    create_script_url: Option<Rc<CreateScriptURLCallback>>,
+    create_html: Option<TracedCallback<CreateHTMLCallback>>,
+    create_script: Option<TracedCallback<CreateScriptCallback>>,
+    create_script_url: Option<TracedCallback<CreateScriptURLCallback>>,
 }
 
 #[derive(AsRefStr, Clone)]
@@ -67,9 +64,18 @@ impl TrustedTypePolicy {
         Self {
             reflector_: Reflector::new(),
             name,
-            create_html: options.createHTML.clone(),
-            create_script: options.createScript.clone(),
-            create_script_url: options.createScriptURL.clone(),
+            create_html: options
+                .createHTML
+                .as_ref()
+                .map(|listener| listener.to_traced()),
+            create_script: options
+                .createScript
+                .as_ref()
+                .map(|listener| listener.to_traced()),
+            create_script_url: options
+                .createScriptURL
+                .as_ref()
+                .map(|listener| listener.to_traced()),
         }
     }
 
