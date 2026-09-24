@@ -50,6 +50,7 @@ impl GainNode {
             1, // inputs
             1, // outputs
         )?;
+        // <https://webaudio.github.io/web-audio-api/#dom-gainnode-gain>
         let gain = AudioParam::new(
             cx,
             window,

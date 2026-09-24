@@ -62,6 +62,7 @@ impl BiquadFilterNode {
             1, // inputs
             1, // outputs
         )?;
+        // <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-gain>
         let gain = AudioParam::new(
             cx,
             window,
@@ -74,6 +75,7 @@ impl BiquadFilterNode {
             f32::MIN,               // min value
             40. * f32::MAX.log10(), // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-q>
         let q = AudioParam::new(
             cx,
             window,
@@ -87,6 +89,7 @@ impl BiquadFilterNode {
             f32::MAX,  // max value
         );
         let nyquist = (*context.SampleRate()) / 2.;
+        // <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-frequency>
         let frequency = AudioParam::new(
             cx,
             window,
@@ -100,6 +103,7 @@ impl BiquadFilterNode {
             nyquist,           // max value
         );
         let detune_max = 1200. * f32::MAX.log2();
+        // <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-detune>
         let detune = AudioParam::new(
             cx,
             window,

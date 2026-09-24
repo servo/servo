@@ -47,6 +47,7 @@ impl ConstantSourceNode {
             1,            /* outputs */
         )?;
         let node_id = source_node.node().node_id();
+        // <https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-offset>
         let offset = AudioParam::new(
             cx,
             window,

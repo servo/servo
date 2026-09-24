@@ -87,6 +87,7 @@ impl OscillatorNode {
         )?;
         let node_id = source_node.node().node_id();
         let nyquist = (*context.SampleRate()) / 2.;
+        // <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency>
         let frequency = AudioParam::new(
             cx,
             window,
@@ -99,6 +100,7 @@ impl OscillatorNode {
             -nyquist,
             nyquist,
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-detune>
         let detune_max = 1200. * f32::MAX.log2();
         let detune = AudioParam::new(
             cx,
