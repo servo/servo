@@ -7,7 +7,6 @@
 //! script_bindings::refcounted
 
 use std::cell::RefCell;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
@@ -32,7 +31,7 @@ thread_local!(pub(super) static LIVE_PROMISE_REFERENCES: LivePromiseReferences =
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct LivePromiseReferences {
     // keyed on pointer to Rust DOM object
-    promise_table: RefCell<FxHashMap<*const Promise, Vec<TracedPromise>>>,
+    promise_table: RefCell<FxHashMap<*const Promise, TracedPromise>>,
 }
 
 impl LivePromiseReferences {
@@ -42,9 +41,15 @@ impl LivePromiseReferences {
         });
     }
 
-    fn addref_promise(&self, promise: &RootedPromise) {
-        let mut table = self.promise_table.borrow_mut();
-        table.entry(&**promise).or_default().push(promise.to_traced())
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn store_promise(&self, promise: &RootedPromise) -> *const Promise {
+        // Since converting a RootedPromise to a TracedPromise allocates a new
+        // underlying Rc<Promise>, we are guaranteed that there is no prior entry
+        // in the hashtable for this particular promise object.
+        let traced_promise = promise.to_traced();
+        let key = &raw const *traced_promise;
+        self.promise_table.borrow_mut().insert(key, traced_promise);
+        key
     }
 }
 
@@ -65,8 +70,7 @@ impl TrustedPromise {
     /// lifetime.
     pub(crate) fn new(promise: &RootedPromise) -> TrustedPromise {
         LIVE_PROMISE_REFERENCES.with(|live_references| {
-            let ptr = &raw const **promise;
-            live_references.addref_promise(promise);
+            let ptr = live_references.store_promise(promise);
             TrustedPromise {
                 dom_object: ptr,
                 owner_thread: (live_references) as *const _ as *const libc::c_void,
@@ -83,26 +87,12 @@ impl TrustedPromise {
                 self.owner_thread,
                 live_references as *const _ as *const libc::c_void
             );
-            match live_references
+            live_references
                 .promise_table
                 .borrow_mut()
-                .entry(self.dom_object)
-            {
-                Occupied(mut entry) => {
-                    let promise = {
-                        let promises = entry.get_mut();
-                        promises
-                            .pop()
-                            .expect("rooted promise list unexpectedly empty")
-                            .duplicate(cx)
-                    };
-                    if entry.get().is_empty() {
-                        entry.remove();
-                    }
-                    promise
-                },
-                Vacant(_) => unreachable!(),
-            }
+                .remove(&self.dom_object)
+                .expect("Must always have an entry matching a TrustedPromise")
+                .root(cx)
         })
     }
 
