@@ -1182,7 +1182,7 @@ mod tests {
     const LATIN1_POWER2: u8 = 0xB2;
 
     fn from_latin1(l1vec: Vec<u8>) -> DOMString {
-        DOMString(RefCell::new(DOMStringType::Latin1Vec(l1vec)))
+        TracedDOMString(RefCell::new(DOMStringType::Latin1Vec(l1vec))).root()
     }
 
     #[test]
