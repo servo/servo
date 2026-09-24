@@ -6,7 +6,7 @@
 use std::borrow::{Cow, ToOwned};
 use std::cell::{Ref, RefCell, RefMut};
 use std::default::Default;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::ptr::{self, NonNull};
 use std::str::FromStr;
 use std::sync::LazyLock;
@@ -298,6 +298,18 @@ pub struct TracedDOMString(RefCell<DOMStringType>);
 #[derive(Default, MallocSizeOf, JSTraceable)]
 pub struct DOMString(RootedTraceableBox<TracedDOMString>);
 
+impl std::fmt::Debug for DOMString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("DOMString").field(&*self.0).finish()
+    }
+}
+
+impl DerefMut for DOMString {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut *self.0
+    }
+}
+
 impl Deref for DOMString {
     type Target = TracedDOMString;
 
@@ -357,6 +369,14 @@ impl DOMString {
     /// Creates a DOMString from a `&'static str` reference. More efficient than allocating the string.
     pub fn from_static(s: &'static str) -> DOMString {
         TracedDOMString(RefCell::new(DOMStringType::RustStatic(s))).root()
+    }
+
+    pub fn traced(self) -> TracedDOMString {
+        *self.0.into_box()
+    }
+
+    pub fn str(&self) -> StringView<'_> {
+        self.0.str()
     }
 }
 
@@ -833,6 +853,12 @@ impl PartialOrd for TracedDOMString {
     }
 }
 
+impl PartialOrd for DOMString {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
 impl Extend<char> for TracedDOMString {
     fn extend<T: IntoIterator<Item = char>>(&mut self, iter: T) {
         self.0.borrow_mut().ensure_rust_string().extend(iter)
@@ -897,9 +923,21 @@ impl std::cmp::PartialEq<str> for TracedDOMString {
     }
 }
 
+impl std::cmp::PartialEq<str> for DOMString {
+    fn eq(&self, other: &str) -> bool {
+        self.0.eq(other)
+    }
+}
+
 impl std::cmp::PartialEq<&str> for TracedDOMString {
     fn eq(&self, other: &&str) -> bool {
         self.eq(*other)
+    }
+}
+
+impl std::cmp::PartialEq<&str> for DOMString {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.eq(*other)
     }
 }
 
@@ -909,15 +947,33 @@ impl std::cmp::PartialEq<String> for TracedDOMString {
     }
 }
 
+impl std::cmp::PartialEq<String> for DOMString {
+    fn eq(&self, other: &String) -> bool {
+        self.0.eq(other.as_str())
+    }
+}
+
 impl std::cmp::PartialEq<TracedDOMString> for String {
     fn eq(&self, other: &TracedDOMString) -> bool {
         other.eq(self)
     }
 }
 
+impl std::cmp::PartialEq<DOMString> for String {
+    fn eq(&self, other: &DOMString) -> bool {
+        other.0.eq(self)
+    }
+}
+
 impl std::cmp::PartialEq<TracedDOMString> for str {
     fn eq(&self, other: &TracedDOMString) -> bool {
         other.eq(self)
+    }
+}
+
+impl std::cmp::PartialEq<DOMString> for str {
+    fn eq(&self, other: &DOMString) -> bool {
+        other.0.eq(self)
     }
 }
 
@@ -951,7 +1007,7 @@ impl std::cmp::PartialEq for TracedDOMString {
 
 impl std::cmp::PartialEq for DOMString {
     fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
+        *self.0 == *other.0
     }
 }
 
@@ -1010,6 +1066,12 @@ impl From<TracedDOMString> for String {
     }
 }
 
+impl From<DOMString> for String {
+    fn from(value: DOMString) -> Self {
+        String::from(value.traced())
+    }
+}
+
 impl From<TracedDOMString> for Vec<u8> {
     fn from(value: TracedDOMString) -> Self {
         value.ensure_rust_string();
@@ -1024,6 +1086,12 @@ impl From<TracedDOMString> for Vec<u8> {
     }
 }
 
+impl From<DOMString> for Vec<u8> {
+    fn from(value: DOMString) -> Self {
+        Vec::<u8>::from(value.traced())
+    }
+}
+
 impl From<Cow<'_, str>> for DOMString {
     fn from(value: Cow<'_, str>) -> Self {
         TracedDOMString(RefCell::new(DOMStringType::Rust(value.into_owned()))).root()
@@ -1033,6 +1101,12 @@ impl From<Cow<'_, str>> for DOMString {
 impl Zeroize for TracedDOMString {
     fn zeroize(&mut self) {
         self.0.get_mut().zeroize();
+    }
+}
+
+impl Zeroize for DOMString {
+    fn zeroize(&mut self) {
+        self.0.zeroize()
     }
 }
 
