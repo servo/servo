@@ -1342,11 +1342,14 @@ impl LayoutThread {
 
             debug_assert!(!layout_roots.is_empty());
 
-            if let Some(damage_map) = accessibility_damage.as_mut() {
-                damage_map.extend(layout_roots.iter().map(|layout_root| {
+            if let Some(map) = accessibility_damage.as_mut() {
+                for layout_root in &layout_roots {
                     let node = layout_root.node();
-                    (node.opaque(), (node, AccessibilityDamage::Layout))
-                }));
+                    map.entry(node.opaque())
+                        .or_insert((node, AccessibilityDamage::empty()))
+                        .1
+                        .insert(AccessibilityDamage::Layout);
+                }
             }
 
             if layout_roots
@@ -1370,7 +1373,10 @@ impl LayoutThread {
         }
 
         if let Some(map) = accessibility_damage.as_mut() {
-            map.insert(root_node.opaque(), (root_node, AccessibilityDamage::Layout));
+            map.entry(root_node.opaque())
+                .or_insert((root_node, AccessibilityDamage::empty()))
+                .1
+                .insert(AccessibilityDamage::Layout);
         }
 
         let box_tree = &*box_tree;

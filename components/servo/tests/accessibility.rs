@@ -1087,6 +1087,67 @@ fn test_accessibility_bounds_changed_by_sibling() {
     assert_rect_eq(footer_bounds, Rect::new(0.0, 200.0, 100.0, 300.0));
 }
 
+#[test]
+fn test_accessibility_layout_root_node_also_changed() {
+    // Absolutely positioned divs create layout roots; if the DOM content of a layout root also
+    // changes, we need to make sure both types of damage are handled.
+    let url = "data:text/html,<!DOCTYPE html>\
+               <article id='a' style='margin:0;position:absolute;left:0;top:0;width:10px;height:10px'>\
+                 <p id='c' style='margin:0;width:10px;height:10px'>c</p>\
+               </article>\
+               <footer id='b' style='position:absolute;left:100px;top:100px;\
+                                     width:10px;height:10px'></footer>";
+
+    let (servo_test, delegate, webview, tree) = build_webview_and_tree(url);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 2);
+    let (node_a, node_b) = (children[0], children[1]);
+    assert_rect_eq(
+        node_a.raw_bounds().expect("a should have bounds"),
+        Rect::new(0.0, 0.0, 10.0, 10.0),
+    );
+    let node_a_id = node_a.locate().0;
+
+    assert_rect_eq(
+        node_b.raw_bounds().expect("b should have bounds"),
+        Rect::new(100.0, 100.0, 110.0, 110.0),
+    );
+
+    let node_a_children: Vec<accesskit_consumer::Node> = node_a.children().collect();
+    assert_eq!(node_a_children.len(), 1);
+    let node_c = node_a_children[0];
+    assert_rect_eq(
+        node_c.raw_bounds().expect("c should have bounds"),
+        Rect::new(0.0, 0.0, 10.0, 10.0),
+    );
+    let node_c_id = node_c.locate().0;
+
+    // Change a's role, and also c's width. This should mean a has damage both from the DOM change
+    // (adding the role attribute), and from layout (as a layout root when layout is changing, due
+    // to the change in c).
+    let js = "a.setAttribute('role', 'main'); \
+         c.style.width = '20px';";
+    let _ = evaluate_javascript(&servo_test, webview.clone(), js);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let update = updates[0].clone();
+
+    // Should be node a (new role), node c (bounds updated).
+    assert_eq!(update.nodes.len(), 2);
+
+    // Check that node a's role was indeed changed.
+    let node_a_update = find_node_matching(&update, |&id, _node| id == node_a_id);
+    assert_eq!(node_a_update.role(), Role::Main);
+
+    // Check that node c's bounds were indeed updated.
+    let node_c_update = find_node_matching(&update, |&id, _node| id == node_c_id);
+    let node_c_bounds = node_c_update
+        .bounds()
+        .expect("Node c should have bounds after update");
+    assert_rect_eq(node_c_bounds, Rect::new(0.0, 0.0, 20.0, 10.0));
+}
+
 // ************************************************************************************************
 // If you're adding a new test here, consider adding a matching test in
 // tests/wpt/mozilla/tests/accessibility-tree/
