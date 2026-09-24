@@ -166,7 +166,6 @@ def add_css_properties_attributes(css_properties_json: str, parser: Parser) -> N
             ["layout.threads", "layout_threads"],
             ["layout.columns.enabled", "layout_columns_enabled"],
             ["layout.grid.enabled", "layout_grid_enabled"],
-            ["layout.css.alpha-color-function.enabled", "layout_css_alpha_color_function_enabled"],
             ["layout.css.ellipse-corners.enabled", "layout_css_ellipse_corners_enabled"],
             ["layout.css.progress-function.enabled", "layout_css_progress_function_enabled"],
             ["layout.writing-mode.enabled", "layout_writing_mode_enabled"],

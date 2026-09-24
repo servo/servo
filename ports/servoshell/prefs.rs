@@ -45,7 +45,6 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_storage_manager_api_enabled",
     "dom_webgl2_enabled",
     "dom_webgpu_enabled",
-    "layout_css_alpha_color_function_enabled",
     "layout_css_ellipse_corners_enabled",
     "layout_css_progress_function_enabled",
     "layout_columns_enabled",
