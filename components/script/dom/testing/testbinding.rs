@@ -882,7 +882,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOptionalNullableObjectWithDefault(&self, _: *mut JSObject) {}
     fn PassOptionalNullableUnionWithDefault(&self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(&self, _: Option<EventOrString>) {}
-    // fn PassOptionalNullableCallbackFunctionWithDefault(self, _: Option<Function>) {}
+    fn PassOptionalNullableCallbackFunctionWithDefault(&self, _: Option<Rc<Function>>) {}
     fn PassOptionalNullableCallbackInterfaceWithDefault(
         &self,
         _: Option<RootedCallback<EventListener>>,

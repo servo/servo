@@ -441,7 +441,7 @@ interface TestBinding {
   undefined passOptionalNullableObjectWithDefault(optional object? arg = null);
   undefined passOptionalNullableUnionWithDefault(optional (HTMLElement or long)? arg = null);
   undefined passOptionalNullableUnion2WithDefault(optional (Event or DOMString)? data = null);
-  // void passOptionalNullableCallbackFunctionWithDefault(optional Function? fun = null);
+  undefined passOptionalNullableCallbackFunctionWithDefault(optional Function? fun = null);
   undefined passOptionalNullableCallbackInterfaceWithDefault(optional EventListener? listener = null);
   undefined passOptionalAnyWithDefault(optional any arg = null);
 

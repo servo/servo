@@ -1253,8 +1253,6 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
                 failureCode)
 
         if defaultValue is not None:
-            assert allowTreatNonObjectAsNull
-            assert type.treatNonObjectAsNull()
             assert type.nullable()
             assert isinstance(defaultValue, IDLNullValue)
             default = "None"
