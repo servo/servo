@@ -8,8 +8,8 @@ use std::rc::Rc;
 use embedder_traits::{
     AlertResponse, AllowOrDeny, AuthenticationResponse, BluetoothDeviceDescription,
     ConfirmResponse, ConsoleLogLevel, ContextMenuAction, ContextMenuElementInformation,
-    ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
-    FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
+    ContextMenuItem, EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern,
+    InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
     NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RgbColor, ScreenGeometry,
     SelectElementOptionOrOptgroup, SelectElementRequest, SimpleDialogRequest, TraversalId,
     WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
@@ -25,6 +25,7 @@ use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 use crate::proxies::ConstellationProxy;
 use crate::responders::{AutomaticResponder, OneshotSender, ServoErrorSender};
+use crate::webview::Cursor;
 use crate::{RegisterOrUnregister, Servo, WebView, WebViewBuilder};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
