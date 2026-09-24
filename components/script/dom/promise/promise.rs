@@ -84,7 +84,7 @@ impl RootedPromise {
 
 impl From<&'_ RootedPromise> for TrustedPromise {
     fn from(promise: &'_ RootedPromise) -> Self {
-        TrustedPromise::new(promise.duplicate_unrooted())
+        TrustedPromise::new(promise)
     }
 }
 
