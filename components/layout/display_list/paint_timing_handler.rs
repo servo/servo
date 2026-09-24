@@ -154,18 +154,36 @@ impl PaintTimingHandler {
             });
     }
 
-    // Returns true if has non-zero width and height values.
-    pub(crate) fn check_bounding_rect(&self, bounds: LayoutRect, clip_rect: LayoutRect) -> bool {
-        let clipped_rect = bounds
-            .intersection(&clip_rect)
+    /// <https://www.w3.org/TR/paint-timing/#paintable-bounding-rect>
+    fn paintable_bounding_rect(&self, bounds: LayoutRect) -> LayoutRect {
+        bounds
+            .intersection(&self.viewport_rect)
             .unwrap_or(LayoutRect::zero())
-            .to_rect();
+    }
 
-        let bounding_rect = clipped_rect
-            .intersection(&self.viewport_rect.to_rect().cast_unit())
-            .unwrap_or(Rect::zero());
+    /// <https://www.w3.org/TR/paint-timing/#paintable>
+    pub(crate) fn paintable(&self, bounds: LayoutRect, opacity: f32) -> bool {
+        // An element el is paintable when all of the following apply:
+        // > el is being rendered.
+        // > el’s used visibility is visible.
+        // Note: Above conditions are met, as we selectively call this API.
 
-        !bounding_rect.is_empty()
+        // > el and all of its ancestors' used opacity is greater than zero.
+        if opacity <= 0.0 {
+            return false;
+        }
+
+        // > el’s paintable bounding rect intersects with the scrolling area of the document.
+        !self.paintable_bounding_rect(bounds).is_empty()
+    }
+
+    /// Marks wether the document is having paintable element
+    ///
+    /// <https://www.w3.org/TR/paint-timing/#paintable>
+    pub(crate) fn check_if_paintable(&mut self, bounds: LayoutRect, opacity: f32) {
+        if self.paintable(bounds, opacity) {
+            self.mark_document_is_paintable();
+        }
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#sec-effective-visual-size>
