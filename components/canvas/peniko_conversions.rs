@@ -13,7 +13,10 @@ use crate::canvas_data::Filter;
 
 impl Convert<peniko::FontData> for FontDataAndIndex {
     fn convert(self) -> peniko::FontData {
-        peniko::FontData::new(peniko::Blob::new(self.data.inner_arc()), self.index)
+        peniko::FontData::new(
+            peniko::Blob::new(std::sync::Arc::new(self.data)),
+            self.index,
+        )
     }
 }
 
