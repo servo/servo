@@ -342,9 +342,14 @@ unsafe extern "C" fn code_for_eval_gets(
     code_for_eval: MutableHandleString,
 ) -> bool {
     // SAFETY: We are in SM hook
-    let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let (mut cx, code) = unsafe {
+        (
+            JSContext::from_ptr(NonNull::new(cx).unwrap()),
+            RustHandleObject::from_raw(code),
+        )
+    };
     let cx = &mut cx;
-    if let Ok(trusted_script) = unsafe { root_from_object::<TrustedScript>(cx, code.get()) } {
+    if let Ok(trusted_script) = root_from_handleobject::<TrustedScript>(cx, code) {
         let script_str = trusted_script.data().str();
         let s = js::conversions::Utf8Chars::from(&*script_str);
         let new_string = unsafe { JS_NewStringCopyUTF8N(cx, &*s as *const _) };
