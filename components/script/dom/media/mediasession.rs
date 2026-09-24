@@ -27,8 +27,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::HashMapTracedValues;
-use crate::dom::bindings::weakref::MutableWeakRef;
-use crate::dom::html::htmlmediaelement::HTMLMediaElement;
+use crate::dom::html::htmlmediaelement::{HTMLMediaElement, MediaElementWeakRef};
 use crate::dom::media::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
@@ -51,7 +50,7 @@ pub(crate) struct MediaSession {
     >,
     /// The media instance controlled by this media session.
     /// For now only HTMLMediaElements are controlled by media sessions.
-    media_instance: MutableWeakRef<HTMLMediaElement>,
+    media_instance: DomRefCell<Option<MediaElementWeakRef>>,
 }
 
 impl MediaSession {
@@ -61,7 +60,7 @@ impl MediaSession {
             metadata: DomRefCell::new(None),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
             action_handlers: DomRefCell::new(HashMapTracedValues::new_fx()),
-            media_instance: MutableWeakRef::new(None),
+            media_instance: DomRefCell::new(None),
         }
     }
 
@@ -70,7 +69,7 @@ impl MediaSession {
     }
 
     pub(crate) fn register_media_instance(&self, media_instance: &HTMLMediaElement) {
-        self.media_instance.set(Some(media_instance));
+        *self.media_instance.borrow_mut() = Some(MediaElementWeakRef::new(media_instance));
     }
 
     pub(crate) fn handle_action(
@@ -87,8 +86,13 @@ impl MediaSession {
             return;
         }
 
-        // Default action.
-        if let Some(media) = self.media_instance.root() {
+        // Default action. The borrow of the media instance is released before the
+        // element is used, since calling into it can run script.
+        let media_instance = {
+            let media_instance = self.media_instance.borrow();
+            media_instance.as_ref().and_then(|media| media.root())
+        };
+        if let Some(media) = media_instance {
             match action {
                 MediaSessionActionType::Play => {
                     let mut realm = enter_auto_realm(cx, self);

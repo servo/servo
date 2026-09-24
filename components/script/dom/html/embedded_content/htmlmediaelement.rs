@@ -86,6 +86,7 @@ use crate::dom::element::{
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::html::htmlaudioelement::HTMLAudioElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlsourceelement::HTMLSourceElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
@@ -4489,12 +4490,47 @@ impl HTMLMediaElementFetchListener {
     }
 }
 
+/// A weak reference to an [`HTMLMediaElement`], remembering the concrete type of
+/// the referenced element.
+///
+/// A `WeakRef<HTMLMediaElement>` would only remember the parent type, which is not
+/// the type an audio or video element is allocated as.
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) enum MediaElementWeakRef {
+    Audio(WeakRef<HTMLAudioElement>),
+    Video(WeakRef<HTMLVideoElement>),
+}
+
+impl MediaElementWeakRef {
+    /// Create a weak reference to the given media element.
+    pub(crate) fn new(element: &HTMLMediaElement) -> Self {
+        if let Some(audio) = element.downcast::<HTMLAudioElement>() {
+            return Self::Audio(WeakRef::new(audio));
+        }
+
+        match element.downcast::<HTMLVideoElement>() {
+            Some(video) => Self::Video(WeakRef::new(video)),
+            None => unreachable!(
+                "Only HTMLAudioElement and HTMLVideoElement derive from HTMLMediaElement."
+            ),
+        }
+    }
+
+    /// Root the referenced element, if it has not been collected yet.
+    pub(crate) fn root(&self) -> Option<DomRoot<HTMLMediaElement>> {
+        match self {
+            Self::Audio(audio) => audio.root().map(DomRoot::upcast),
+            Self::Video(video) => video.root().map(DomRoot::upcast),
+        }
+    }
+}
+
 /// The [`HTMLMediaElementEventHandler`] is a structure responsible for handling media events for
 /// the [`HTMLMediaElement`] and exists to decouple ownership of the [`HTMLMediaElement`] from IPC
 /// router callback.
 #[derive(JSTraceable, MallocSizeOf)]
 struct HTMLMediaElementEventHandler {
-    element: WeakRef<HTMLMediaElement>,
+    element: MediaElementWeakRef,
 }
 
 #[expect(unsafe_code)]
@@ -4503,7 +4539,7 @@ unsafe impl Send for HTMLMediaElementEventHandler {}
 impl HTMLMediaElementEventHandler {
     fn new(element: &HTMLMediaElement) -> Self {
         Self {
-            element: WeakRef::new(element),
+            element: MediaElementWeakRef::new(element),
         }
     }
 
