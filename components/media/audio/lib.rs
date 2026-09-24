@@ -29,6 +29,7 @@ pub mod channel_node;
 pub mod constant_source_node;
 pub mod context;
 pub mod decoder;
+pub mod delay_node;
 pub mod destination_node;
 pub mod gain_node;
 pub mod graph;

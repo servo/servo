@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
+
 use malloc_size_of_derive::MallocSizeOf;
 
 use crate::audio_node::{
@@ -177,6 +179,11 @@ impl AudioNodeEngine for OscillatorNode {
             _ => panic!("Unknown param {:?} for OscillatorNode", id),
         }
     }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
+
     make_message_handler!(
         AudioScheduledSourceNode: handle_source_node_message,
         OscillatorNode: handle_oscillator_message

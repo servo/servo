@@ -5,6 +5,7 @@
 use std::cell::{RefCell, RefMut};
 use std::{cmp, fmt, hash};
 
+use log::error;
 use malloc_size_of::MallocSizeOf as MallocSizeOfTrait;
 use malloc_size_of_derive::MallocSizeOf;
 use petgraph::Direction;
@@ -15,8 +16,11 @@ use petgraph::visit::{DfsPostOrder, EdgeRef, Reversed};
 use rustc_hash::FxHashSet;
 use smallvec::SmallVec;
 
-use crate::audio_node::{AudioNodeEngine, BlockInfo, ChannelCountMode, ChannelInterpretation};
+use crate::audio_node::{
+    AudioNodeEngine, AudioNodeType, BlockInfo, ChannelCountMode, ChannelInterpretation,
+};
 use crate::block::{Block, Chunk};
+use crate::delay_node::{DelayNode, DelayReader, DelayWriter};
 use crate::destination_node::DestinationNode;
 use crate::listener::AudioListenerNode;
 use crate::param::ParamType;
@@ -179,6 +183,11 @@ struct Connection {
     cache: RefCell<Option<Block>>,
 }
 
+/// A cycle breaker consists of a DelayNode disconnected from the audio graph,
+/// as well as the NodeIds of its internal DelayWriter and DelayReader respectively.
+/// The internal nodes are currently connected to the graph.
+type CycleBreaker = (Box<DelayNode>, NodeId, NodeId);
+
 impl AudioGraph {
     pub fn new(channel_count: u8) -> Self {
         let mut graph = StableGraph::new();
@@ -196,6 +205,12 @@ impl AudioGraph {
     /// Create a node, obtain its id
     pub(crate) fn add_node(&mut self, node: Box<dyn AudioNodeEngine>) -> NodeId {
         NodeId(self.graph.add_node(Node::new(node)))
+    }
+
+    /// Removes a node and returns it
+    pub(crate) fn remove_node(&mut self, node: NodeId) -> Option<Box<dyn AudioNodeEngine>> {
+        let maybe_weight = self.graph.remove_node(node.0);
+        maybe_weight.map(|weight| weight.node.into_inner())
     }
 
     /// Connect an output port to an input port
@@ -368,7 +383,7 @@ impl AudioGraph {
     /// <https://webaudio.github.io/web-audio-api/#rendering-loop>
     pub fn process(&mut self, info: &BlockInfo) -> Chunk {
         // Step 4.2. Order the AudioNodes of the BaseAudioContext to be processed.
-        let cycle_nodes = self.detect_nodes_in_cycles();
+        let (cycle_nodes, cycle_breakers) = self.detect_nodes_in_cycles();
 
         // DFS post order: Children are processed before their parent,
         // which is exactly what we need since the parent depends on the
@@ -534,6 +549,10 @@ impl AudioGraph {
                 }
             }
         }
+        // Now that we've finished processing, reset the cycle breakers
+        cycle_breakers
+            .into_iter()
+            .for_each(|cycle_breaker| self.reinsert_cycle_breaker(cycle_breaker));
         // The destination node stores its output on itself, extract it.
         self.graph[self.dest_id.0]
             .node
@@ -574,11 +593,15 @@ impl AudioGraph {
     /// >             quantum when in a cycle.
     /// >       7. If nodes contains cycles, mute all the AudioNodes that are part of this cycle, and
     /// >          remove them from nodes.
-    ///
-    /// TODO: Implement steps 4.2.4–4.2.6 for cyclic `DelayNode`s by replacing
-    /// each with a `DelayWriter` and `DelayReader`.
-    fn detect_nodes_in_cycles(&self) -> FxHashSet<NodeIndex<DefaultIx>> {
+    fn detect_nodes_in_cycles(
+        &mut self,
+    ) -> (
+        FxHashSet<NodeIndex<DefaultIx>>,
+        Vec<CycleBreaker>,
+    ) {
         let mut cycle_nodes = FxHashSet::default();
+        let mut cycle_breakers = Vec::default();
+        let mut has_cycle_breakers = false;
         for component in tarjan_scc(&self.graph) {
             // Tarjan's algorithm groups the graph into strongly connected components.
             // A component with multiple nodes is a cycle; a single-node component is a
@@ -590,10 +613,46 @@ impl AudioGraph {
                         .any(|edge| edge.target() == *node_index)
                 });
             if is_cycle {
-                cycle_nodes.extend(component);
+                // See if there is a delay node. If there is, break the cycle.
+                let delay_nodes = component
+                    .iter()
+                    .filter_map(|node_index| {
+                        if matches!(
+                            self.graph[*node_index].node.borrow().node_type(),
+                            AudioNodeType::DelayNode
+                        ) {
+                            self.break_cycle(*node_index)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<CycleBreaker>>();
+                if !delay_nodes.is_empty() {
+                    has_cycle_breakers = true;
+                    cycle_breakers.extend(delay_nodes);
+                } else {
+                    cycle_nodes.extend(component);
+                }
             }
         }
-        cycle_nodes
+        // If we had cycle breakers, we need to run Tarjan's again.
+        // We have only broken cycles with delay nodes.
+        // The SCC could have had another cycle with strictly non-delay nodes.
+        if has_cycle_breakers {
+            cycle_nodes.clear();
+            for component in tarjan_scc(&self.graph) {
+                let is_cycle = component.len() > 1 ||
+                    component.first().is_some_and(|node_index| {
+                        self.graph
+                            .edges(*node_index)
+                            .any(|edge| edge.target() == *node_index)
+                    });
+                if is_cycle {
+                    cycle_nodes.extend(component);
+                }
+            }
+        }
+        (cycle_nodes, cycle_breakers)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#available-for-reading>
@@ -618,6 +677,147 @@ impl AudioGraph {
                 }
             }
         }
+    }
+
+    /// Disconnects all incoming edges to a node.
+    /// Stores the edge id and node index.
+    fn disconnect_incoming_connections(
+        &mut self,
+        node_index: NodeIndex<DefaultIx>,
+    ) -> Vec<(NodeIndex, Edge)> {
+        let incoming_node_indices = self
+            .graph
+            .edges_directed(node_index, Direction::Incoming)
+            .map(|edge| (edge.id(), edge.source()))
+            .collect::<Vec<_>>();
+        incoming_node_indices
+            .into_iter()
+            .map(|(edge_id, incoming_node_index)| {
+                (
+                    incoming_node_index,
+                    self.graph
+                        .remove_edge(edge_id)
+                        .expect("Edge came from graph iterator, must exist"),
+                )
+            })
+            .collect::<Vec<_>>()
+    }
+
+    /// Disconnects all outgoing edges from a node.
+    /// Stores the edge id and node index.
+    fn disconnect_outgoing_connections(
+        &mut self,
+        node_index: NodeIndex<DefaultIx>,
+    ) -> Vec<(NodeIndex, Edge)> {
+        let outgoing_node_indices = self
+            .graph
+            .edges(node_index)
+            .map(|edge| (edge.id(), edge.target()))
+            .collect::<Vec<_>>();
+        outgoing_node_indices
+            .into_iter()
+            .map(|(edge_id, outgoing_node_index)| {
+                (
+                    outgoing_node_index,
+                    self.graph
+                        .remove_edge(edge_id)
+                        .expect("Edge came from graph iterator, must exist"),
+                )
+            })
+            .collect::<Vec<_>>()
+    }
+
+    /// Breaks cycles with a [DelayNode] by removing it from the graph, and then rerouting
+    /// connections to its internal [DelayReader] and [DelayWriter].
+    /// See detect_nodes_in_cycles for a detailed description of the cycle breaker specs.
+    ///
+    /// For a given delay node, there is only one input and one output.
+    /// We connect the input to the DelayWriter, and connect the DelayReader to the output.
+    /// 1.18
+    /// > This interface is an AudioNode with a single input and single output.
+    ///
+    /// 1.18.4
+    /// > [DelayWriter] has the same input connections as the [DelayNode] it was created from.
+    /// > [DelayReader] is connected to the same AudioNodes as the [DelayNode] it was created from.
+    fn break_cycle(&mut self, delay_node_index: NodeIndex) -> Option<CycleBreaker> {
+        // Disconnect the delay node and save its neighbors.
+        let incoming_nodes = self.disconnect_incoming_connections(delay_node_index);
+        let outgoing_nodes = self.disconnect_outgoing_connections(delay_node_index);
+        // Remove the delay node from the graph.
+        let Some(delay_node) = self.remove_node(NodeId(delay_node_index)) else {
+            error!("Cycle breaker node index not in the graph");
+            return None;
+        };
+        // Downcast the node to a DelayNode. Only delay nodes are cycle breakers.
+        let Ok(mut delay_node) = delay_node.into_any().downcast::<DelayNode>() else {
+            error!("Node at cycle breaker node index is not a DelayNode");
+            return None;
+        };
+        // Temporarily remove ownership of DelayNode's internal DelayReader and DelayWriter,
+        // and pass ownership to graph. Will regain ownership after processing completes.
+        let Some(delay_writer) = delay_node.take_delay_writer() else {
+            error!("Tried to break cycle without a DelayWriter");
+            return None;
+        };
+        let Some(mut delay_reader) = delay_node.take_delay_reader() else {
+            error!("Tried to break cycle without a DelayReader");
+            return None;
+        };
+        // Set the delay reader cycle breaker status so that it sets the correct minimum delay time.
+        delay_reader.set_cycle_breaker_status(true);
+        // Add the DelayWriter and DelayReader to the graph.
+        let delay_writer_id = self.add_node(delay_writer);
+        let delay_reader_id = self.add_node(delay_reader);
+        // The DelayWriter is a destination node.
+        self.add_extra_dest(delay_writer_id);
+        // Reroute delay node's neighbors to the DelayReader and DelayWriter.
+        incoming_nodes.into_iter().for_each(|(input, weight)| {
+            self.graph.add_edge(input, delay_writer_id.0, weight);
+        });
+        outgoing_nodes.into_iter().for_each(|(output, weight)| {
+            self.graph.add_edge(delay_reader_id.0, output, weight);
+        });
+        Some((delay_node, delay_writer_id, delay_reader_id))
+    }
+
+    /// Reinserts cycle breakers into the audio graph after processing the render quantum loop.
+    /// We do this after every processing loop because connections can change each iteration.
+    fn reinsert_cycle_breaker(&mut self, cycle_breaker: CycleBreaker) {
+        let (mut delay_node, delay_writer_id, delay_reader_id) = cycle_breaker;
+        // Disconnect the connections to the DelayWriter and out of the DelayReader.
+        let incoming_nodes = self.disconnect_incoming_connections(delay_writer_id.0);
+        let outgoing_nodes = self.disconnect_outgoing_connections(delay_reader_id.0);
+        // Remove the DelayReader and DelayWriter from the graph.
+        let Some(delay_writer) = self.remove_node(delay_writer_id) else {
+            error!("Tried to remove a non-existent DelayWriter");
+            return;
+        };
+        let Ok(delay_writer) = delay_writer.into_any().downcast::<DelayWriter>() else {
+            error!("Failed to downcast graph node to DelayWriter");
+            return;
+        };
+        let Some(delay_reader) = self.remove_node(delay_reader_id) else {
+            error!("Tried to remove a non-existent DelayReader");
+            return;
+        };
+        let Ok(delay_reader) = delay_reader.into_any().downcast::<DelayReader>() else {
+            error!("Failed to downcast graph node to DelayReader");
+            return;
+        };
+        // DelayNode regains ownership of its internal DelayReader and DelayWriter.
+        // This resets the cycle breaker status.
+        delay_node.set_delay_writer(Some(delay_writer));
+        delay_node.set_delay_reader(Some(delay_reader));
+        delay_node.set_cycle_breaker_status(false);
+        // Insert the delay node back into the graph.
+        let delay_node_id = self.add_node(delay_node);
+        // Reroute the connections from the DelayReader and DelayWriter back to the parent DelayNode
+        incoming_nodes.into_iter().for_each(|(input, weight)| {
+            self.graph.add_edge(input, delay_node_id.0, weight);
+        });
+        outgoing_nodes.into_iter().for_each(|(output, weight)| {
+            self.graph.add_edge(delay_node_id.0, output, weight);
+        });
     }
 }
 
