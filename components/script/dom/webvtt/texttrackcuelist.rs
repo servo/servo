@@ -62,10 +62,21 @@ impl TextTrackCueList {
             .map(|(i, _)| i)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#text-track-cue-order>
+    pub(crate) fn sort(&self) {
+        // Manually call `Ord::cmp` since `Dom<T>` doesn't implement Ord
+        self.dom_cues.borrow_mut().sort_by(|a, b| a.cmp(b));
+    }
+
     pub(crate) fn add(&self, cx: &mut JSContext, cue: &TextTrackCue) {
         // Only add a cue if it does not exist in the list
         if self.find(cue).is_none() {
-            self.dom_cues.borrow_mut().push(Dom::from_ref(cue));
+            {
+                let mut dom_cues = self.dom_cues.borrow_mut();
+                dom_cues.push(Dom::from_ref(cue));
+                cue.set_initial_index_in_list(dom_cues.len());
+            }
+            self.sort();
             if let Some(track_list) = self.text_track.get().track_list() {
                 track_list.notify_media_element_for_added_cue(cx, cue);
             }

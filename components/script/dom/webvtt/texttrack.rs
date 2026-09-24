@@ -167,6 +167,12 @@ impl TextTrack {
         }
     }
 
+    pub(crate) fn sort_cue_list(&self) {
+        if let Some(cue_list) = self.cue_list.get() {
+            cue_list.sort();
+        }
+    }
+
     pub(crate) fn set_text_track_mode(&self, cx: &mut JSContext, value: TextTrackMode) {
         if self.mode.get() == value {
             return;
