@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Deref;
+
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::TextTrackCueListBinding::TextTrackCueListMethods;
-use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutDom, UnrootedDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttrackcue::TextTrackCue;
@@ -22,14 +24,11 @@ pub(crate) struct TextTrackCueList {
 }
 
 impl TextTrackCueList {
-    pub(crate) fn new_inherited(
-        text_track: &TextTrack,
-        cues: &[&TextTrackCue],
-    ) -> TextTrackCueList {
+    pub(crate) fn new_inherited(text_track: &TextTrack) -> TextTrackCueList {
         TextTrackCueList {
             reflector_: Reflector::new(),
             text_track: MutDom::new(text_track),
-            dom_cues: DomRefCell::new(cues.iter().map(|g| Dom::from_ref(&**g)).collect()),
+            dom_cues: Default::default(),
         }
     }
 
@@ -37,10 +36,9 @@ impl TextTrackCueList {
         cx: &mut JSContext,
         text_track: &TextTrack,
         window: &Window,
-        cues: &[&TextTrackCue],
     ) -> DomRoot<TextTrackCueList> {
         reflect_dom_object_with_cx(
-            Box::new(TextTrackCueList::new_inherited(text_track, cues)),
+            Box::new(TextTrackCueList::new_inherited(text_track)),
             window,
             cx,
         )
@@ -72,6 +70,19 @@ impl TextTrackCueList {
         }
     }
 
+    pub(crate) fn refresh_active_cues<'no_gc>(
+        &self,
+        no_gc: &'no_gc NoGC,
+        other: UnrootedDom<'no_gc, TextTrackCueList>,
+    ) {
+        *self.dom_cues.safe_borrow_mut(no_gc) = other
+            .cues(no_gc)
+            .iter()
+            .filter(|cue| cue.is_active())
+            .map(|cue| cue.deref().clone())
+            .collect();
+    }
+
     pub(crate) fn remove(&self, idx: usize) {
         self.dom_cues.borrow_mut().remove(idx);
     }
@@ -80,12 +91,15 @@ impl TextTrackCueList {
         self.dom_cues.borrow_mut().clear();
     }
 
-    pub(crate) fn cues(&self) -> Vec<DomRoot<TextTrackCue>> {
+    pub(crate) fn cues<'no_gc>(
+        &self,
+        no_gc: &'no_gc NoGC,
+    ) -> Vec<UnrootedDom<'no_gc, TextTrackCue>> {
         self.dom_cues
             .borrow()
             .clone()
             .into_iter()
-            .map(|track| track.as_rooted())
+            .map(|track| track.as_unrooted(no_gc))
             .collect()
     }
 }
