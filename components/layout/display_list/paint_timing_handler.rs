@@ -156,9 +156,7 @@ impl PaintTimingHandler {
 
     /// <https://www.w3.org/TR/paint-timing/#paintable-bounding-rect>
     fn paintable_bounding_rect(&self, bounds: LayoutRect) -> LayoutRect {
-        bounds
-            .intersection(&self.viewport_rect)
-            .unwrap_or(LayoutRect::zero())
+        bounds.intersection(&self.viewport_rect).unwrap_or_default()
     }
 
     /// <https://www.w3.org/TR/paint-timing/#paintable>
