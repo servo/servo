@@ -1,0 +1,14 @@
+# The following packages are required by wpt:
+# TODO: What is this required for? `linux-wpt.yml` workflow installs it.
+mesa-vulkan-drivers
+# Install fonts preinstalled on github runners (https://github.com/servo/servo/issues/35029)
+# In CI run `dpkg -S /usr/share/fonts` before bootstrap to reproduce the list.
+# fonts-noto-color-emoji is required, if it's missing some emoji tests start falsely passing.
+fonts-lato
+fonts-liberation
+fonts-noto-color-emoji
+fonts-dejavu-core
+# https://github.com/servo/servo/issues/41044
+fonts-noto-cjk
+# https://github.com/servo/servo/issues/41043
+fonts-dejavu-extra
