@@ -6802,6 +6802,7 @@ enum GetPublicKeyAlgorithm {
     Ed448(Algorithm),
     X448(Algorithm),
     MlKem(Algorithm),
+    HybridKem(Algorithm),
     MlDsa(Algorithm),
 }
 
@@ -6844,6 +6845,9 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
                     object.try_into_with_cx_and_name(cx, algorithm_name)?,
                 ))
             },
+            CryptoAlgorithm::MlKem768X25519 => Ok(GetPublicKeyAlgorithm::HybridKem(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => Ok(
                 GetPublicKeyAlgorithm::MlDsa(object.try_into_with_cx_and_name(cx, algorithm_name)?),
             ),
@@ -6866,6 +6870,7 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
             GetPublicKeyAlgorithm::Ed448(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::X448(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::MlKem(algorithm) => algorithm.name,
+            GetPublicKeyAlgorithm::HybridKem(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::MlDsa(algorithm) => algorithm.name,
         }
     }
@@ -6910,6 +6915,9 @@ impl GetPublicKeyAlgorithm {
             },
             GetPublicKeyAlgorithm::MlKem(_algorithm) => {
                 ml_kem_operation::get_public_key(cx, global, key, algorithm, usages)
+            },
+            GetPublicKeyAlgorithm::HybridKem(_algorithm) => {
+                hybrid_kem_operation::get_public_key(cx, global, key, algorithm, usages)
             },
             GetPublicKeyAlgorithm::MlDsa(_algorithm) => {
                 ml_dsa_operation::get_public_key(cx, global, key, algorithm, usages)

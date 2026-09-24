@@ -721,3 +721,56 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
     // Step 4.  Return result.
     Ok(result)
 }
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for hybrid KEM
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
+    // identified by algorithm, then throw a SyntaxError.
+    //
+    // NOTE: See "importKey" operation for supported usages
+    if usages
+        .iter()
+        .any(|usage| !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits))
+    {
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not \"encapsulateKey\" or \"encapsulateBits\""
+                .into(),
+        )));
+    }
+
+    // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
+    // private key represented by the [[handle]] internal slot of key.
+    // Step 11. If an error occurred, then throw a OperationError.
+    // Step 12. Set the [[type]] internal slot of publicKey to "public".
+    // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 14. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    let public_key_handle = match key.handle() {
+        Handle::MlKem768X25519PrivateKey(decapsulation_key) => {
+            Handle::MlKem768X25519PublicKey(decapsulation_key.encapsulation_key().clone())
+        },
+        _ => {
+            return Err(Error::Operation(Some(
+                "[[handle]] internal slot of key is not a hybrid KEM private key".into(),
+            )));
+        },
+    };
+    let public_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Public,
+        true,
+        algorithm.clone(),
+        usages,
+        public_key_handle,
+    );
+
+    Ok(public_key)
+}
