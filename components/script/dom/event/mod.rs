@@ -10,7 +10,7 @@ pub(crate) mod commandevent;
 pub(crate) mod compositionevent;
 pub(crate) mod customevent;
 pub(crate) mod errorevent;
-#[allow(clippy::module_inception, reason = "The interface name is Event")]
+#[expect(clippy::module_inception, reason = "The interface name is Event")]
 pub(crate) mod event;
 pub(crate) mod eventtarget;
 pub(crate) mod focusevent;

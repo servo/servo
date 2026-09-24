@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub(crate) use self::datatransfer::*;
-#[allow(
+#[expect(
     clippy::module_inception,
     reason = "The interface name is DataTransfer"
 )]

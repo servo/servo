@@ -667,7 +667,7 @@ impl DisplayListBuilder<'_> {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn collect_image_record(
         &mut self,
         state: &TraversalState,

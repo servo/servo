@@ -274,7 +274,7 @@ impl ImageBitmap {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn create_image_bitmap(
         global_scope: &GlobalScope,
         image: ImageBitmapSource,

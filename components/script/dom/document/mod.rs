@@ -4,7 +4,7 @@
 
 pub(crate) mod accessibility_data;
 mod animation_manager;
-#[allow(clippy::module_inception, reason = "The interface name is Document")]
+#[expect(clippy::module_inception, reason = "The interface name is Document")]
 pub(crate) mod document;
 pub(crate) mod document_embedder_controls;
 pub(crate) mod document_event_handler;

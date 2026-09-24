@@ -82,7 +82,7 @@ pub(crate) mod dom {
 }
 
 /// Generated JS-Rust bindings.
-#[allow(missing_docs, non_snake_case)]
+#[expect(non_snake_case)]
 pub(crate) mod codegen {
     #[expect(unused)]
     pub(crate) mod Bindings {

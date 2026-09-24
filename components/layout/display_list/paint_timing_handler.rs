@@ -110,7 +110,7 @@ impl PaintTimingHandler {
         self.is_document_contentful = true;
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn append_image_record(
         &mut self,
         tag: Option<Tag>,

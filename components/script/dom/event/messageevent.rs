@@ -114,7 +114,7 @@ impl MessageEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_initialized(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -137,7 +137,7 @@ impl MessageEvent {
         ev
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -165,7 +165,7 @@ impl MessageEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         cx: &mut JSContext,
         global: &GlobalScope,
