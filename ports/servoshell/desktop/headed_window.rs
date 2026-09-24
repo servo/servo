@@ -342,19 +342,6 @@ impl HeadedWindow {
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 window.close_webview(active_webview.id());
             })
-            .shortcut(CMD_OR_CONTROL, 'X', || {
-                active_webview
-                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Cut));
-            })
-            .shortcut(CMD_OR_CONTROL, 'C', || {
-                active_webview
-                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Copy));
-            })
-            .shortcut(CMD_OR_CONTROL, 'V', || {
-                active_webview.notify_input_event(InputEvent::EditingAction(
-                    servo::EditingActionEvent::Paste,
-                ));
-            })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F9), || {
                 active_webview.capture_webrender();
             })

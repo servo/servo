@@ -7842,6 +7842,7 @@ dependencies = [
  "euclid",
  "keyboard-types",
  "servo-base",
+ "servo-embedder-traits",
  "servo-script",
  "servo-url",
  "tempfile",

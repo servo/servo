@@ -8,8 +8,10 @@ use std::default::Default;
 use std::ops::Range;
 
 use app_units::Au;
-use embedder_traits::{EmbedderMsg, MouseButton, ScriptToEmbedderChan};
-use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
+use embedder_traits::{
+    EditingAction, EditingDirection, EditingMotion, EmbedderMsg, ModifySelection, MouseButton,
+    ScriptToEmbedderChan,
+};
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::match_domstring_ascii;
 use script_bindings::root::Dom;
@@ -25,7 +27,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::event::Event;
 use crate::dom::inputevent::HitTestResult;
-use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::text_control::TextControlElement;
 use crate::dom::types::{HTMLInputElement, HTMLTextAreaElement, UIEvent};
@@ -60,12 +61,6 @@ impl ClipboardProvider for EmbedderClipboardProvider {
             .send(EmbedderMsg::SetClipboardText(self.webview_id, s))
             .unwrap();
     }
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum Selection {
-    Selected,
-    NotSelected,
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -208,25 +203,13 @@ impl InputEventType {
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
+#[derive(PartialEq)]
 pub enum KeyReaction {
     TriggerDefaultAction,
     DispatchInput(Option<String>, IsComposing, InputEventType),
     RedrawSelection,
     Nothing,
 }
-
-/// The direction in which to delete a character.
-#[derive(Clone, Copy, Eq, PartialEq)]
-pub enum Direction {
-    Forward,
-    Backward,
-}
-
-// Some shortcuts use Cmd on Mac and Control on other systems.
-#[cfg(target_os = "macos")]
-pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::META;
-#[cfg(not(target_os = "macos"))]
-pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
@@ -291,11 +274,15 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// worth of text in [`direction`] Remove a character at the current editing point
     ///
     /// Returns true if any text was deleted.
-    pub fn delete_unit_or_selection(&mut self, unit: RopeMovement, direction: Direction) -> bool {
+    pub fn delete_unit_or_selection(
+        &mut self,
+        unit: RopeMovement,
+        direction: EditingDirection,
+    ) -> bool {
         if !self.has_uncollapsed_selection() {
             let amount = match direction {
-                Direction::Forward => 1,
-                Direction::Backward => -1,
+                EditingDirection::Forward => 1,
+                EditingDirection::Backward => -1,
             };
             self.modify_selection(amount, unit);
         }
@@ -487,11 +474,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         &mut self,
         amount: isize,
         movement: RopeMovement,
-        select: Selection,
+        update_selection: ModifySelection,
     ) {
-        match select {
-            Selection::Selected => self.modify_selection(amount, movement),
-            Selection::NotSelected => self.modify_edit_point(amount, movement),
+        match update_selection {
+            ModifySelection::Yes => self.modify_selection(amount, movement),
+            ModifySelection::No => self.modify_edit_point(amount, movement),
         }
         self.assert_ok_selection();
     }
@@ -552,99 +539,43 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.edit_point = Default::default();
     }
 
-    /// Process a given `KeyboardEvent` and return an action for the caller to execute.
-    pub(crate) fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
-        let key = event.key();
-        let mods = event.modifiers();
-        self.handle_keydown_aux(key, mods, cfg!(target_os = "macos"))
-    }
-
-    // This function exists for easy unit testing.
-    // To test Mac OS shortcuts on other systems a flag is passed.
-    pub fn handle_keydown_aux(
-        &mut self,
-        key: Key,
-        mut mods: Modifiers,
-        macos: bool,
-    ) -> KeyReaction {
-        let maybe_select = if mods.contains(Modifiers::SHIFT) {
-            Selection::Selected
-        } else {
-            Selection::NotSelected
-        };
-
-        let alt_or_control = if macos {
-            Modifiers::ALT
-        } else {
-            Modifiers::CONTROL
-        };
-
-        mods.remove(Modifiers::SHIFT);
-        ShortcutMatcher::new(KeyState::Down, key.clone(), mods)
-            .shortcut(Modifiers::CONTROL | Modifiers::ALT, 'B', || {
-                self.modify_selection_or_edit_point(-1, RopeMovement::Word, maybe_select);
+    /// Process a given `EditingAction` and return an action for the caller to execute.
+    ///
+    /// This is public so that it can be used in external unit tests.
+    pub fn perform_editing_action(&mut self, action: EditingAction) -> KeyReaction {
+        match action {
+            EditingAction::MoveCursor(direction, motion, selection) => {
+                let movement = match motion {
+                    EditingMotion::Character => RopeMovement::Character,
+                    EditingMotion::Grapheme => RopeMovement::Grapheme,
+                    EditingMotion::Word => RopeMovement::Word,
+                    EditingMotion::Line => RopeMovement::Line,
+                    EditingMotion::LineStartOrEnd => RopeMovement::LineStartOrEnd,
+                    EditingMotion::Page => RopeMovement::Line,
+                    EditingMotion::DocumentStartOrEnd => RopeMovement::RopeStartOrEnd,
+                };
+                let amount = match (direction, motion) {
+                    // TODO: This should really be based on the size of the text area.
+                    (EditingDirection::Forward, EditingMotion::Page) => 28,
+                    (EditingDirection::Backward, EditingMotion::Page) => -28,
+                    (EditingDirection::Forward, _) => 1,
+                    (EditingDirection::Backward, _) => -1,
+                };
+                self.modify_selection_or_edit_point(amount, movement, selection);
                 KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::CONTROL | Modifiers::ALT, 'F', || {
-                self.modify_selection_or_edit_point(1, RopeMovement::Word, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::CONTROL | Modifiers::ALT, 'A', || {
-                self.modify_selection_or_edit_point(-1, RopeMovement::LineStartOrEnd, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::CONTROL | Modifiers::ALT, 'E', || {
-                self.modify_selection_or_edit_point(1, RopeMovement::LineStartOrEnd, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .optional_shortcut(macos, Modifiers::CONTROL, 'A', || {
-                self.modify_selection_or_edit_point(-1, RopeMovement::LineStartOrEnd, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .optional_shortcut(macos, Modifiers::CONTROL, 'E', || {
-                self.modify_selection_or_edit_point(1, RopeMovement::LineStartOrEnd, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(CMD_OR_CONTROL, 'A', || {
-                self.select_all();
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(CMD_OR_CONTROL, 'X', || {
-                if let Some(text) = self.selection_content() {
-                    self.clipboard_provider.set_text(text);
-                    self.delete_selection();
-                }
+            },
+            EditingAction::InsertNewline | EditingAction::InsertParagraph => self.handle_return(),
+            EditingAction::InsertText(text) => {
+                self.insert(&text);
                 KeyReaction::DispatchInput(
-                    None,
+                    Some(text),
                     IsComposing::NotComposing,
-                    InputEventType::DeleteByCut,
+                    InputEventType::InsertText,
                 )
-            })
-            .shortcut(CMD_OR_CONTROL, 'C', || {
-                // TODO(stevennovaryo): we should not provide text to clipboard for type=password
-                if let Some(text) = self.selection_content() {
-                    self.clipboard_provider.set_text(text);
-                }
-                KeyReaction::DispatchInput(None, IsComposing::NotComposing, InputEventType::Nothing)
-            })
-            .shortcut(CMD_OR_CONTROL, 'V', || {
-                if let Ok(text_content) = self.clipboard_provider.get_text() {
-                    self.insert(&text_content);
-                    KeyReaction::DispatchInput(
-                        Some(text_content),
-                        IsComposing::NotComposing,
-                        InputEventType::InsertFromPaste,
-                    )
-                } else {
-                    KeyReaction::DispatchInput(
-                        Some(String::new()),
-                        IsComposing::NotComposing,
-                        InputEventType::InsertFromPaste,
-                    )
-                }
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::Delete), || {
-                if self.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Forward) {
+            },
+            EditingAction::Delete => {
+                if self.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward)
+                {
                     KeyReaction::DispatchInput(
                         None,
                         IsComposing::NotComposing,
@@ -653,9 +584,18 @@ impl<T: ClipboardProvider> TextInput<T> {
                 } else {
                     KeyReaction::Nothing
                 }
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::Backspace), || {
-                if self.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Backward) {
+            },
+            EditingAction::Backspace(motion) => {
+                let movement = match motion {
+                    EditingMotion::Character => RopeMovement::Character,
+                    EditingMotion::Grapheme => RopeMovement::Grapheme,
+                    EditingMotion::Word => RopeMovement::Word,
+                    EditingMotion::Line => RopeMovement::Line,
+                    EditingMotion::LineStartOrEnd => RopeMovement::LineStartOrEnd,
+                    EditingMotion::Page => return KeyReaction::Nothing,
+                    EditingMotion::DocumentStartOrEnd => RopeMovement::RopeStartOrEnd,
+                };
+                if self.delete_unit_or_selection(movement, EditingDirection::Backward) {
                     KeyReaction::DispatchInput(
                         None,
                         IsComposing::NotComposing,
@@ -664,141 +604,9 @@ impl<T: ClipboardProvider> TextInput<T> {
                 } else {
                     KeyReaction::Nothing
                 }
-            })
-            .shortcut(alt_or_control, Key::Named(NamedKey::Backspace), || {
-                if self.delete_unit_or_selection(RopeMovement::Word, Direction::Backward) {
-                    KeyReaction::DispatchInput(
-                        None,
-                        IsComposing::NotComposing,
-                        InputEventType::DeleteContentBackward,
-                    )
-                } else {
-                    KeyReaction::Nothing
-                }
-            })
-            .optional_shortcut(
-                macos,
-                Modifiers::META,
-                Key::Named(NamedKey::ArrowLeft),
-                || {
-                    self.modify_selection_or_edit_point(
-                        -1,
-                        RopeMovement::LineStartOrEnd,
-                        maybe_select,
-                    );
-                    KeyReaction::RedrawSelection
-                },
-            )
-            .optional_shortcut(
-                macos,
-                Modifiers::META,
-                Key::Named(NamedKey::ArrowRight),
-                || {
-                    self.modify_selection_or_edit_point(
-                        1,
-                        RopeMovement::LineStartOrEnd,
-                        maybe_select,
-                    );
-                    KeyReaction::RedrawSelection
-                },
-            )
-            .optional_shortcut(
-                macos,
-                Modifiers::META,
-                Key::Named(NamedKey::ArrowUp),
-                || {
-                    self.modify_selection_or_edit_point(
-                        -1,
-                        RopeMovement::RopeStartOrEnd,
-                        maybe_select,
-                    );
-                    KeyReaction::RedrawSelection
-                },
-            )
-            .optional_shortcut(
-                macos,
-                Modifiers::META,
-                Key::Named(NamedKey::ArrowDown),
-                || {
-                    self.modify_selection_or_edit_point(
-                        1,
-                        RopeMovement::RopeStartOrEnd,
-                        maybe_select,
-                    );
-                    KeyReaction::RedrawSelection
-                },
-            )
-            .shortcut(alt_or_control, Key::Named(NamedKey::ArrowLeft), || {
-                self.modify_selection_or_edit_point(-1, RopeMovement::Word, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(alt_or_control, Key::Named(NamedKey::ArrowRight), || {
-                self.modify_selection_or_edit_point(1, RopeMovement::Word, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowLeft), || {
-                self.modify_selection_or_edit_point(-1, RopeMovement::Grapheme, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowRight), || {
-                self.modify_selection_or_edit_point(1, RopeMovement::Grapheme, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowUp), || {
-                self.modify_selection_or_edit_point(-1, RopeMovement::Line, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::ArrowDown), || {
-                self.modify_selection_or_edit_point(1, RopeMovement::Line, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::Enter), || {
-                self.handle_return()
-            })
-            .optional_shortcut(
-                macos,
-                Modifiers::empty(),
-                Key::Named(NamedKey::Home),
-                || {
-                    self.modify_selection_or_edit_point(
-                        -1,
-                        RopeMovement::RopeStartOrEnd,
-                        maybe_select,
-                    );
-                    KeyReaction::RedrawSelection
-                },
-            )
-            .optional_shortcut(macos, Modifiers::empty(), Key::Named(NamedKey::End), || {
-                self.modify_selection_or_edit_point(1, RopeMovement::RopeStartOrEnd, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageUp), || {
-                self.modify_selection_or_edit_point(-28, RopeMovement::Line, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::PageDown), || {
-                self.modify_selection_or_edit_point(28, RopeMovement::Line, maybe_select);
-                KeyReaction::RedrawSelection
-            })
-            .otherwise(|| {
-                if let Key::Character(ref character) = key {
-                    self.insert(character);
-                    return KeyReaction::DispatchInput(
-                        Some(character.to_string()),
-                        IsComposing::NotComposing,
-                        InputEventType::InsertText,
-                    );
-                }
-                if matches!(key, Key::Named(NamedKey::Process)) {
-                    return KeyReaction::DispatchInput(
-                        None,
-                        IsComposing::Composing,
-                        InputEventType::Nothing,
-                    );
-                }
-                KeyReaction::Nothing
-            })
-            .unwrap()
+            },
+            EditingAction::SelectAll | EditingAction::Clipboard(..) => KeyReaction::Nothing,
+        }
     }
 
     pub(crate) fn handle_compositionend(&mut self, event: &CompositionEvent) -> KeyReaction {

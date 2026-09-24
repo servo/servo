@@ -148,10 +148,6 @@ impl KeyboardEvent {
         *self.original_code.borrow()
     }
 
-    pub(crate) fn modifiers(&self) -> Modifiers {
-        self.modifiers.get()
-    }
-
     /// <https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent>
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn init_event(
