@@ -550,6 +550,11 @@ impl OneshotTimers {
     pub(crate) fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
         self.js_timers.clear_timeout_or_interval(global, handle)
     }
+
+    pub(crate) fn clear(&self) {
+        self.timers.borrow_mut().clear();
+        self.js_timers.clear();
+    }
 }
 
 #[derive(Clone, Copy, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
@@ -564,6 +569,12 @@ pub(crate) struct JsTimers {
     nesting_level: Cell<u32>,
     /// Used to introduce a minimum delay in event intervals
     min_duration: Cell<Option<Duration>>,
+}
+
+impl JsTimers {
+    fn clear(&self) {
+        self.active_timers.borrow_mut().clear();
+    }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
