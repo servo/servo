@@ -1085,7 +1085,7 @@ impl Handler {
                 actions: pointer_actions,
             } => {
                 let pointer_ids = self.session().unwrap().pointer_ids();
-                // Get or create a pointer input source with subtype, and other iterms
+                // Get or create a pointer input source with subtype, and other items
                 // set to default values.
                 self.input_state_table_mut()
                     .entry(id)
