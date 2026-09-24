@@ -7,15 +7,16 @@
 //! script_bindings::refcounted
 
 use std::cell::RefCell;
+use std::thread::{self, ThreadId};
 
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSTracer;
+use js::rust::Trace;
 use rustc_hash::FxHashMap;
 use script_bindings::error::Error;
 pub(crate) use script_bindings::refcounted::Trusted;
 use script_bindings::reflector::DomObject;
-use script_bindings::trace::trace_reflector;
 
 use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::tasks::task::TaskOnce;
@@ -26,12 +27,20 @@ thread_local!(pub(super) static LIVE_PROMISE_REFERENCES: LivePromiseReferences =
     }
 );
 
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+struct PromiseKey(*const Promise);
+
+// # Safety
+// PromiseKey is only ever used for comparisons between keys.
+// Its value is never read.
+unsafe impl Send for PromiseKey {}
+
 /// The set of live, pinned DOM objects that are currently prevented
 /// from being garbage collected due to outstanding references.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct LivePromiseReferences {
     // keyed on pointer to Rust DOM object
-    promise_table: RefCell<FxHashMap<*const Promise, TracedPromise>>,
+    promise_table: RefCell<FxHashMap<PromiseKey, TracedPromise>>,
 }
 
 impl LivePromiseReferences {
@@ -42,12 +51,12 @@ impl LivePromiseReferences {
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn store_promise(&self, promise: &RootedPromise) -> *const Promise {
+    fn store_promise(&self, promise: &RootedPromise) -> PromiseKey {
         // Since converting a RootedPromise to a TracedPromise allocates a new
         // underlying Rc<Promise>, we are guaranteed that there is no prior entry
         // in the hashtable for this particular promise object.
         let traced_promise = promise.to_traced();
-        let key = &raw const *traced_promise;
+        let key = PromiseKey(&raw const *traced_promise);
         self.promise_table.borrow_mut().insert(key, traced_promise);
         key
     }
@@ -58,11 +67,9 @@ impl LivePromiseReferences {
 /// as long as the last outstanding `TrustedPromise` instance. These values cannot be cloned,
 /// only created from existing `Rc<Promise>` values.
 pub struct TrustedPromise {
-    dom_object: *const Promise,
-    owner_thread: *const libc::c_void,
+    dom_object: PromiseKey,
+    owner_thread: ThreadId,
 }
-
-unsafe impl Send for TrustedPromise {}
 
 impl TrustedPromise {
     /// Create a new `TrustedPromise` instance from an existing DOM object. The object will
@@ -73,7 +80,7 @@ impl TrustedPromise {
             let ptr = live_references.store_promise(promise);
             TrustedPromise {
                 dom_object: ptr,
-                owner_thread: (live_references) as *const _ as *const libc::c_void,
+                owner_thread: thread::current().id(),
             }
         })
     }
@@ -83,10 +90,7 @@ impl TrustedPromise {
     /// obtained.
     pub(crate) fn root(self, cx: &JSContext) -> RootedPromise {
         LIVE_PROMISE_REFERENCES.with(|live_references| {
-            assert_eq!(
-                self.owner_thread,
-                live_references as *const _ as *const libc::c_void
-            );
+            assert_eq!(self.owner_thread, thread::current().id());
             live_references
                 .promise_table
                 .borrow_mut()
@@ -123,9 +127,9 @@ pub(crate) unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
     trace!("tracing live refcounted promise references");
     LIVE_PROMISE_REFERENCES.with(|live_references| {
         let table = live_references.promise_table.borrow_mut();
-        for promise in table.keys() {
+        for promise in table.values() {
             unsafe {
-                trace_reflector(tracer, "refcounted", (**promise).reflector());
+                promise.reflector().trace(tracer);
             }
         }
     });
