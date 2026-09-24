@@ -30,9 +30,9 @@ thread_local!(pub(super) static LIVE_PROMISE_REFERENCES: LivePromiseReferences =
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 struct PromiseKey(*const Promise);
 
-// # Safety
-// PromiseKey is only ever used for comparisons between keys.
-// Its value is never read.
+/// # Safety
+/// PromiseKey is only ever used for comparisons between keys.
+/// Its value is never read.
 unsafe impl Send for PromiseKey {}
 
 /// The set of live, pinned DOM objects that are currently prevented
@@ -57,7 +57,12 @@ impl LivePromiseReferences {
         // in the hashtable for this particular promise object.
         let traced_promise = promise.to_traced();
         let key = PromiseKey(&raw const *traced_promise);
-        self.promise_table.borrow_mut().insert(key, traced_promise);
+        let _exists = self
+            .promise_table
+            .borrow_mut()
+            .insert(key, traced_promise)
+            .is_some();
+        debug_assert!(!_exists);
         key
     }
 }
@@ -90,7 +95,7 @@ impl TrustedPromise {
     /// obtained.
     pub(crate) fn root(self, cx: &JSContext) -> RootedPromise {
         LIVE_PROMISE_REFERENCES.with(|live_references| {
-            assert_eq!(self.owner_thread, thread::current().id());
+            debug_assert_eq!(self.owner_thread, thread::current().id());
             live_references
                 .promise_table
                 .borrow_mut()
