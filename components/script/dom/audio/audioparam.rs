@@ -88,6 +88,11 @@ impl AudioParam {
             min_value,
             max_value,
         );
+        // Update the value range
+        audio_param.message_node(AudioNodeMessage::SetParamRange(
+            audio_param.param,
+            (min_value, max_value),
+        ));
         reflect_dom_object_with_cx(Box::new(audio_param), window, cx)
     }
 

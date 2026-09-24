@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::f32;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::biquad_filter_node::{
@@ -70,9 +70,9 @@ impl BiquadFilterNode {
             AudioNodeType::BiquadFilterNode,
             ParamType::Gain,
             AutomationRate::A_rate,
-            options.gain, // default value
-            f32::MIN,     // min value
-            f32::MAX,     // max value
+            options.gain,           // default value
+            f32::MIN,               // min value
+            40. * f32::MAX.log10(), // max value
         );
         let q = AudioParam::new(
             cx,
@@ -86,6 +86,7 @@ impl BiquadFilterNode {
             f32::MIN,  // min value
             f32::MAX,  // max value
         );
+        let nyquist = (*context.SampleRate()) / 2.;
         let frequency = AudioParam::new(
             cx,
             window,
@@ -95,9 +96,10 @@ impl BiquadFilterNode {
             ParamType::Frequency,
             AutomationRate::A_rate,
             options.frequency, // default value
-            f32::MIN,          // min value
-            f32::MAX,          // max value
+            0.,                // min value
+            nyquist,           // max value
         );
+        let detune_max = 1200. * f32::MAX.log2();
         let detune = AudioParam::new(
             cx,
             window,
@@ -107,8 +109,8 @@ impl BiquadFilterNode {
             ParamType::Detune,
             AutomationRate::A_rate,
             options.detune, // default value
-            f32::MIN,       // min value
-            f32::MAX,       // max value
+            -detune_max,    // min value
+            detune_max,     // max value
         );
         Ok(BiquadFilterNode {
             node,

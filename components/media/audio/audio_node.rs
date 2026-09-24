@@ -181,6 +181,7 @@ pub(crate) trait AudioNodeEngine: Send + AudioNodeCommon {
             AudioNodeMessage::SetParam(id, event) => self
                 .get_param(id)
                 .insert_event(event.convert_to_event(sample_rate)),
+            AudioNodeMessage::SetParamRange(id, range) => self.get_param(id).update_range(range),
             AudioNodeMessage::SetParamRate(id, rate) => self.get_param(id).set_rate(rate),
             _ => self.message_specific(msg, sample_rate),
         }
@@ -246,6 +247,7 @@ pub enum AudioNodeMessage {
     SetChannelMode(ChannelCountMode),
     SetChannelInterpretation(ChannelInterpretation),
     SetParam(ParamType, UserAutomationEvent),
+    SetParamRange(ParamType, (f32, f32)),
     SetParamRate(ParamType, ParamRate),
     WaveShaperNode(WaveShaperNodeMessage),
 }
