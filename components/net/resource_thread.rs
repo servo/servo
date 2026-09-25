@@ -681,6 +681,10 @@ impl ResourceChannelManager {
             CoreResourceMsg::CollectMemoryReport(_) |
             CoreResourceMsg::RevokeTokenForFile(..) |
             CoreResourceMsg::RefreshTokenForFile(..) => {},
+            CoreResourceMsg::OnBackground => {
+                let http_state = http_state.clone();
+                spawn_task(async move { http_state.http_cache.drain_to_disk().await });
+            },
         }
         true
     }
