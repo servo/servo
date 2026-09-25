@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use elliptic_curve::pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey};
 use elliptic_curve::sec1::{ModulusSize, Sec1Point, ToSec1Point, ValidatePublicKey};
 use elliptic_curve::{Curve, FieldBytesSize, Generate, PublicKey, SecretKey};
@@ -37,9 +35,9 @@ pub(crate) enum EcAlgorithm {
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-generate-key>
 pub(crate) fn generate_key(
-    ec_algorithm: EcAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    ec_algorithm: EcAlgorithm,
     normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
@@ -211,9 +209,9 @@ pub(crate) fn generate_key(
 /// are combined into a single step, and Step 3.9.1 to Step 3.9.3 here are skipped for ECDH.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn import_key(
-    ec_algorithm: EcAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    ec_algorithm: EcAlgorithm,
     normalized_algorithm: &EcKeyImportParams,
     format: KeyFormat,
     key_data: &[u8],
