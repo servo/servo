@@ -7,7 +7,7 @@
 [Exposed=Window,
 SecureContext, Pref="dom_webrtc_enabled"]
 interface MediaDevices : EventTarget {
-    //                attribute EventHandler ondevicechange;
+    attribute EventHandler ondevicechange;
     Promise<sequence<MediaDeviceInfo>> enumerateDevices();
 };
 
