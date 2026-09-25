@@ -225,6 +225,12 @@ partial interface Document {
   Selection? getSelection();
 };
 
+// Legacy mouse capture API (Gecko/IE).
+// https://developer.mozilla.org/en-US/docs/Web/API/Document/releaseCapture
+partial interface Document {
+  undefined releaseCapture();
+};
+
 // https://drafts.csswg.org/web-animations-1/#extensions-to-the-document-interface
 partial interface Document {
     readonly attribute DocumentTimeline timeline;
