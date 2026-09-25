@@ -86,9 +86,7 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<Certifica
 /// Returns a tuple of (public, private) senders to the new threads.
 #[expect(clippy::too_many_arguments)]
 pub fn new_resource_threads(
-    #[cfg(feature = "devtools")] devtools_sender: Option<
-        crossbeam_channel::Sender<devtools_traits::DevtoolsControlMsg>,
-    >,
+    devtools_sender: Option<crossbeam_channel::Sender<DevtoolsMessage>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -109,7 +107,6 @@ pub fn new_resource_threads(
         .unwrap_or_default();
 
     let (public_core, private_core) = new_core_resource_thread(
-        #[cfg(feature = "devtools")]
         devtools_sender,
         time_profiler_chan,
         mem_profiler_chan,
@@ -129,9 +126,7 @@ pub fn new_resource_threads(
 /// Create a CoreResourceThread
 #[expect(clippy::too_many_arguments)]
 pub fn new_core_resource_thread(
-    #[cfg(feature = "devtools")] devtools_sender: Option<
-        crossbeam_channel::Sender<devtools_traits::DevtoolsControlMsg>,
-    >,
+    devtools_sender: Option<crossbeam_channel::Sender<DevtoolsMessage>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -154,7 +149,6 @@ pub fn new_core_resource_thread(
         .name("ResourceManager".to_owned())
         .spawn(move || {
             let resource_manager = CoreResourceManager::new(
-                #[cfg(feature = "devtools")]
                 devtools_sender,
                 time_profiler_chan,
                 embedder_proxy.clone(),
@@ -710,9 +704,14 @@ pub struct AuthCache {
     pub entries: HashMap<String, AuthCacheEntry>,
 }
 
+#[cfg(feature = "devtools")]
+type DevtoolsMessage = devtools_traits::DevtoolsControlMsg;
+
+#[cfg(not(feature = "devtools"))]
+type DevtoolsMessage = ();
+
 pub struct CoreResourceManager {
-    #[cfg(feature = "devtools")]
-    devtools_sender: Option<crossbeam_channel::Sender<devtools_traits::DevtoolsControlMsg>>,
+    devtools_sender: Option<crossbeam_channel::Sender<DevtoolsMessage>>,
     sw_managers: HashMap<ImmutableOrigin, GenericSender<CustomResponseMediator>>,
     filemanager: FileManager,
     request_interceptor: RequestInterceptor,
@@ -725,9 +724,7 @@ pub struct CoreResourceManager {
 
 impl CoreResourceManager {
     pub fn new(
-        #[cfg(feature = "devtools")] devtools_sender: Option<
-            crossbeam_channel::Sender<devtools_traits::DevtoolsControlMsg>,
-        >,
+        devtools_sender: Option<crossbeam_channel::Sender<DevtoolsMessage>>,
         _profiler_chan: ProfilerChan,
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
@@ -735,7 +732,6 @@ impl CoreResourceManager {
         blob_token_communicator: Arc<Mutex<BlobTokenCommunicator>>,
     ) -> CoreResourceManager {
         CoreResourceManager {
-            #[cfg(feature = "devtools")]
             devtools_sender,
             sw_managers: Default::default(),
             filemanager: FileManager::new(embedder_proxy.clone(), blob_token_communicator),
