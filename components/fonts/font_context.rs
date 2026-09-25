@@ -148,7 +148,8 @@ pub trait NetworkTimingHandler: Send + std::fmt::Debug + MallocSizeOf {
 /// Document-specific data required to fetch a web font.
 #[derive(Debug, MallocSizeOf)]
 pub struct WebFontDocumentContext {
-    pub policy_container: PolicyContainer,
+    #[conditional_malloc_size_of]
+    pub policy_container: Arc<PolicyContainer>,
     pub request_client: RequestClient,
     pub document_url: ServoUrl,
     pub csp_handler: Box<dyn CspViolationHandler>,
