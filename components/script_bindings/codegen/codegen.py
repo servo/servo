@@ -1012,8 +1012,6 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             pre = "Rc" if descriptor.useRcCallback else "RootedCallback"
             declType = CGWrapper(CGGeneric(f"{name}<D>"), pre=f"{pre}<", post=">")
             template = f"{name}::new(cx, ${{val}}.get().to_object())"
-            if not descriptor.useRcCallback:
-                template = f"RootedCallback::from({template})"
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
                 template = wrapObjectTemplate(f"Some({template})", "None",
@@ -1223,10 +1221,16 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         callback = type.unroll().callback
         declType = CGGeneric(f"{callback.identifier.name}<D>")
         useRc = descriptorProvider.callbackUsesRc(callback.identifier.name)
-        typeName = "Rc" if useRc else "RootedCallback"
+        needTraced = isMember == "Dictionary"
+        if useRc:
+            typeName = "Rc"
+        elif needTraced:
+            typeName = "TracedCallback"
+        else:
+            typeName = "RootedCallback"
         finalDeclType = CGTemplatedType(typeName, declType)
 
-        conversion = CGCallbackTempRoot(declType.define(), useRc)
+        conversion = CGCallbackTempRoot(declType.define(), useRc, needTraced)
 
         if type.nullable():
             declType = CGTemplatedType("Option", declType)
@@ -2885,11 +2889,12 @@ class CGGeneric(CGThing):
 
 
 class CGCallbackTempRoot(CGGeneric):
-    def __init__(self, name: str, useRc: bool) -> None:
+    def __init__(self, name: str, useRc: bool, needTraced: bool) -> None:
         inner = CGGeneric(f"unsafe {{ {name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object()) }}")
-        pre = "RootedCallback::from(" if not useRc else ""
-        post = ")" if not useRc else ""
-        CGGeneric.__init__(self, CGWrapper(inner, pre, post).define())
+        post = ""
+        if not useRc and needTraced:
+            post += ".to_traced()"
+        CGGeneric.__init__(self, CGWrapper(inner, "", post).define())
 
 
 def getAllTypes(
@@ -6056,17 +6061,11 @@ class ClassConstructor(ClassItem):
     def getBody(self, cgClass: CGClass) -> str:
         initializers = [f"    parent: {self.baseConstructors[0]}"]
         joinedInitializers = '\n'.join(initializers)
+        func = "create_callback" if self.useRc else "create_callback_rooted"
         return (
             f"{self.body}"
-            f"let mut ret = Rc::new({cgClass.name} {{\n"
-            f"{joinedInitializers}\n"
-            "});\n"
-            "// Note: callback cannot be moved after calling init.\n"
-            "match Rc::get_mut(&mut ret) {\n"
-            f"    Some(ref mut callback) => callback.parent.init({self.args[0].name}, {self.args[1].name}),\n"
-            "    None => unreachable!(),\n"
-            "};\n"
-            "ret"
+            f"let obj = {cgClass.name} {{ {joinedInitializers} }};\n"
+            f"{func}({self.args[0].name}, obj, {self.args[1].name})\n"
         )
 
     def declare(self, cgClass: CGClass) -> str:
@@ -6078,8 +6077,9 @@ class ClassConstructor(ClassItem):
         body = f' {{\n{body}}}'
 
         name = cgClass.getNameString().replace(': DomTypes', '')
+        rettype = f"Rc<{name}>" if self.useRc else f"RootedCallback<{name}>"
         return f"""
-pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
+pub unsafe fn {self.getDecorators(True)}new({args}) -> {rettype}{body}
 """
 
     def define(self, cgClass: CGClass) -> str:
@@ -8310,7 +8310,10 @@ class CGBindingRoot(CGThing):
 
         # Do codegen for all the callbacks.
         cgthings.extend(CGList([CGCallbackFunction(c, config.getDescriptorProvider()),
-                                CGCallbackFunctionImpl(c)], "\n")
+                                CGCallbackFunctionImpl(
+                                    c,
+                                    config.getDescriptorProvider().callbackUsesRc(c.identifier.name),
+                                )], "\n")
                         for c in mainCallbacks)
 
         # Do codegen for all the descriptors
@@ -8320,7 +8323,10 @@ class CGBindingRoot(CGThing):
         cgthings.extend(CGList(
             [
                 CGCallbackInterface(x),
-                CGCallbackFunctionImpl(assert_type(x.interface, IDLInterface))
+                CGCallbackFunctionImpl(
+                    assert_type(x.interface, IDLInterface),
+                    config.getDescriptorProvider().callbackUsesRc(x.interface.identifier.name),
+                )
             ],
             "\n"
         ) for x in callbackDescriptors)
@@ -8346,17 +8352,17 @@ class CGBindingRoot(CGThing):
         return stripTrailingWhitespace(self.root.define())
 
 
-def type_needs_tracing(t: IDLObject) -> bool:
+def type_needs_tracing(t: IDLObject, isMember: Optional[str] = None) -> bool:
     assert isinstance(t, IDLObject), (t, type(t))
 
     if t.isType():
         assert isinstance(t, IDLType)
         if isinstance(t, IDLWrapperType):
-            return type_needs_tracing(t.inner)
+            return type_needs_tracing(t.inner, isMember)
 
         if t.nullable():
             assert isinstance(t, IDLNullableType)
-            return type_needs_tracing(t.inner)
+            return type_needs_tracing(t.inner, isMember)
 
         if t.isAny():
             return True
@@ -8366,23 +8372,26 @@ def type_needs_tracing(t: IDLObject) -> bool:
 
         if t.isSequence() :
             assert isinstance(t, IDLSequenceType)
-            return type_needs_tracing(t.inner)
+            return type_needs_tracing(t.inner, isMember)
 
         if t.isUnion():
             assert isinstance(t, IDLUnionType) and t.flatMemberTypes is not None
-            return any(type_needs_tracing(member) for member in t.flatMemberTypes)
+            return any(type_needs_tracing(member, isMember) for member in t.flatMemberTypes)
 
         if is_typed_array(t):
             return True
+
+        if t.isCallback():
+            return isMember == "Dictionary"
 
         return False
 
     if t.isDictionary():
         assert isinstance(t, IDLDictionary)
-        if t.parent and type_needs_tracing(t.parent):
+        if t.parent and type_needs_tracing(t.parent, isMember):
             return True
 
-        if any(type_needs_tracing(member.type) for member in t.members):
+        if any(type_needs_tracing(member.type, 'Dictionary') for member in t.members):
             return True
 
         return False
@@ -8579,6 +8588,7 @@ class CGCallback(CGClass):
                                     "#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]")
 
     def getConstructors(self) -> list[ClassConstructor]:
+        constructor = "new_with_interior_root" if self.useRc else "new_with_exterior_root"
         return [ClassConstructor(
             [Argument("&JSContext", "cx"), Argument("*mut JSObject", "aCallback")],
             useRc=self.useRc,
@@ -8586,7 +8596,7 @@ class CGCallback(CGClass):
             visibility="pub",
             explicit=False,
             baseConstructors=[
-                f"{self.baseName.replace('<D>', '')}::new()"
+                f"{self.baseName.replace('<D>', '')}::{constructor}()"
             ])]
 
     def getMethodImpls(self, method: CallbackMethod) -> list[ClassMethod]:
@@ -8671,16 +8681,36 @@ class CGCallbackFunction(CGCallback):
 
 
 class CGCallbackFunctionImpl(CGGeneric):
-    def __init__(self, callback: IDLCallback | IDLInterface) -> None:
+    def __init__(self, callback: IDLCallback | IDLInterface, useRc: bool) -> None:
         type = f"{callback.identifier.name}<D>"
-        impl = (f"""
-impl<D: DomTypes> CallbackContainer<D> for {type} {{
-    unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> Rc<{type}> {{
-        {type.replace('<D>', '')}::new(cx, callback)
-    }}
+        if useRc:
+            retType = "Rc"
+            traitName = "DeprecatedCallbackContainer"
+        else:
+            retType = "RootedCallback"
+            traitName = "CallbackContainer"
 
+        impl = (f"""
+impl<'a, D: DomTypes> From<&'a CallbackObject<D>> for {type} {{
+    fn from(base: &'a CallbackObject<D>) -> Self {{
+        Self {{ parent: base.into() }}
+    }}
+}}
+
+impl<D: DomTypes> HasCallbackHolder for {type} {{
+    type D = D;
     fn callback_holder(&self) -> &CallbackObject<D> {{
         self.parent.callback_holder()
+    }}
+
+    fn callback_holder_mut(&mut self) -> &mut CallbackObject<D> {{
+        self.parent.callback_holder_mut()
+    }}
+}}
+
+impl<D: DomTypes> {traitName} for {type} {{
+    unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> {retType}<{type}> {{
+        {type.replace('<D>', '')}::new(cx, callback)
     }}
 }}
 

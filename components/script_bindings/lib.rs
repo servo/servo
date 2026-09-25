@@ -38,6 +38,7 @@ mod lock;
 mod mem;
 mod namespace;
 pub mod num;
+pub mod permanent_root;
 pub mod principals;
 pub mod proxyhandler;
 pub mod realms;

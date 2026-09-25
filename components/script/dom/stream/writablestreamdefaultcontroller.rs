@@ -295,16 +295,16 @@ pub enum UnderlyingSinkType {
 
 impl UnderlyingSinkType {
     pub(crate) fn new_js(
-        abort: Option<RootedCallback<UnderlyingSinkAbortCallback>>,
-        start: Option<RootedCallback<UnderlyingSinkStartCallback>>,
-        close: Option<RootedCallback<UnderlyingSinkCloseCallback>>,
-        write: Option<RootedCallback<UnderlyingSinkWriteCallback>>,
+        abort: Option<&TracedCallback<UnderlyingSinkAbortCallback>>,
+        start: Option<&TracedCallback<UnderlyingSinkStartCallback>>,
+        close: Option<&TracedCallback<UnderlyingSinkCloseCallback>>,
+        write: Option<&TracedCallback<UnderlyingSinkWriteCallback>>,
     ) -> Self {
         UnderlyingSinkType::Js {
-            abort: RefCell::new(abort.map(|callback| callback.to_traced())),
-            start: RefCell::new(start.map(|callback| callback.to_traced())),
-            close: RefCell::new(close.map(|callback| callback.to_traced())),
-            write: RefCell::new(write.map(|callback| callback.to_traced())),
+            abort: RefCell::new(abort.cloned()),
+            start: RefCell::new(start.cloned()),
+            close: RefCell::new(close.cloned()),
+            write: RefCell::new(write.cloned()),
         }
     }
 }

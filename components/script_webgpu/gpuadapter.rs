@@ -298,7 +298,7 @@ where
 impl<D: Equivalence> RoutedPromiseListener<D, WebGPUDeviceResponse> for GPUAdapter<D>
 where
     Self: DomGlobalGeneric<D>,
-    EventHandlerNonNull<D>: CallbackContainer<D>,
+    EventHandlerNonNull<D>: CallbackContainer,
 {
     /// <https://www.w3.org/TR/webgpu/#dom-gpuadapter-requestdevice>
     fn handle_response(
