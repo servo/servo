@@ -83,6 +83,7 @@ impl<D: Equivalence> GPUSampler<D> {
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUSampler::new_inherited(
                 channel,
                 device,
@@ -91,7 +92,6 @@ impl<D: Equivalence> GPUSampler<D> {
                 label,
             )),
             global,
-            cx,
             GPUSamplerWrap::<D>,
         )
     }

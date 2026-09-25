@@ -84,6 +84,7 @@ where
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUComputePassEncoder::new_inherited(
                 channel,
                 parent,
@@ -91,7 +92,6 @@ where
                 label,
             )),
             global,
-            cx,
             GPUComputePassEncoderWrap::<D>,
         )
     }

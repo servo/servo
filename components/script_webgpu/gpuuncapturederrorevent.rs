@@ -55,10 +55,10 @@ where
         init: &GPUUncapturedErrorEventInit<D>,
     ) -> DomRoot<Self> {
         let event = reflect_dom_object_with_proto_and_wrap::<D, _, _>(
+            cx,
             Box::new(GPUUncapturedErrorEvent::new_inherited(init)),
             global,
             proto,
-            cx,
             GPUUncapturedErrorEventWrap::<D>,
         );
         event

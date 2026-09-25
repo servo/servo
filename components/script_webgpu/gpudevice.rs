@@ -34,7 +34,7 @@ use script_bindings::interfaces::{
     HeapTracedPromiseHelpers, PromiseHelpers, StackRootPromiseHelpers,
 };
 use script_bindings::reflector::{
-    DomGlobalGeneric, reflect_weak_referenceable_dom_object_with_cx_and_wrap,
+    DomGlobalGeneric, reflect_weak_referenceable_dom_object_with_wrap,
 };
 use script_bindings::routed_promise::RoutedPromiseListener;
 use script_bindings::traits::{DomEventTrait, DomExceptionTrait};
@@ -196,7 +196,7 @@ where
         let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
         let adapter_info = GPUAdapterInfo::clone_from(cx, global, &adapter.info());
         let lost_promise = D::Promise::new(cx, global);
-        let device = reflect_weak_referenceable_dom_object_with_cx_and_wrap::<D, _, _>(
+        let device = reflect_weak_referenceable_dom_object_with_wrap::<D, _, _>(
             cx,
             Rc::new(GPUDevice::new_inherited(
                 channel,

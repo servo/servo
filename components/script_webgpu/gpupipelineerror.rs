@@ -55,10 +55,10 @@ where
         reason: GPUPipelineErrorReason,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
+            cx,
             Box::new(Self::new_inherited(message, reason)),
             global,
             proto,
-            cx,
             GPUPipelineErrorWrap::<D>,
         )
     }

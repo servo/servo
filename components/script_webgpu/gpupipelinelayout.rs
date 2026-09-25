@@ -90,6 +90,7 @@ where
         bgls: Vec<WebGPUBindGroupLayout>,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUPipelineLayout::new_inherited(
                 channel,
                 pipeline_layout,
@@ -97,7 +98,6 @@ where
                 bgls,
             )),
             global,
-            cx,
             GPUPipelineLayoutWrap::<D>,
         )
     }

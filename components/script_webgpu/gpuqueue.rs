@@ -76,9 +76,9 @@ impl<D: Equivalence> GPUQueue<D> {
         queue: WebGPUQueue,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUQueue::new_inherited(channel, queue)),
             global,
-            cx,
             GPUQueueWrap::<D>,
         )
     }

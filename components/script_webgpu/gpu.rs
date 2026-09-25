@@ -49,9 +49,9 @@ impl<D: Equivalence> GPU<D> {
 
     pub fn new(cx: &mut JSContext, global: &D::GlobalScope) -> DomRoot<GPU<D>> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPU::new_inherited()),
             global,
-            cx,
             GPUWrap::<D>,
         )
     }
