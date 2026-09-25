@@ -724,6 +724,9 @@ pub struct ReflowRequest {
     pub animating_images: Arc<RwLock<AnimatingImages>>,
     /// The node highlighted by the devtools, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
+    /// Whether or not this document has system focus and is the focused frame
+    /// in the frame tree.
+    pub frame_focused: bool,
     /// Whether LCP computation should be halted for this reflow.
     /// From <https://www.w3.org/TR/largest-contentful-paint/#limitations>:
     /// > The LargestContentfulPaint ... algorithm halts ... inputs.

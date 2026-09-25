@@ -499,14 +499,12 @@ impl ServoAction {
                 servo.resize(Rect::new(Point2D::origin(), Size2D::new(*width, *height)))
             },
             FocusWindow(arkts_index, arkts_ids) => {
-                let windows = servo.state.windows();
                 if let Some(window) = arkts_ids
                     .get(*arkts_index as usize)
-                    .and_then(|value| windows.get(&ServoShellWindowId::from(*value as u64)))
+                    .and_then(|value| servo.state.window(ServoShellWindowId::from(*value as u64)))
                 {
-                    servo.state.focus_window(window.clone());
+                    servo.state.set_window_has_focus(window.clone(), true);
                     if let Some(webview) = window.active_webview() {
-                        webview.focus();
                         if let Some(url) = webview.url() {
                             SET_URL_BAR_CB.get().map(|f| {
                                 f.call(url.to_string(), ThreadsafeFunctionCallMode::Blocking)
@@ -518,7 +516,12 @@ impl ServoAction {
                         "Could not find window to activate. Arkts_index {}, arkts_ids {:?}, window_ids {:?}",
                         arkts_index,
                         arkts_ids,
-                        windows.keys().collect::<Vec<_>>(),
+                        servo
+                            .state
+                            .windows()
+                            .iter()
+                            .map(|window| window.id())
+                            .collect::<Vec<_>>(),
                     );
                 }
             },
@@ -546,19 +549,15 @@ impl ServoAction {
                 );
             },
             RemovePlatformWindow(arkts_index, arkts_ids) => {
-                let windows = servo.state.windows();
                 if let Some(window_to_remove) = arkts_ids
                     .get(*arkts_index as usize)
                     .map(|id| ServoShellWindowId::from(*id as u64))
-                    .and_then(|window_id| windows.get(&window_id))
+                    .and_then(|window_id| servo.state.window(window_id))
                 {
-                    if let Some(window_to_focus) =
-                        servo.state.windows().get(&ServoShellWindowId::from(0))
-                    {
-                        servo.state.focus_window(window_to_focus.clone());
-                        if let Some(webview) = window_to_focus.active_webview() {
-                            webview.focus();
-                        }
+                    if let Some(window_to_focus) = servo.state.window(ServoShellWindowId::from(0)) {
+                        servo
+                            .state
+                            .set_window_has_focus(window_to_focus.clone(), true);
                         window_to_remove.schedule_close();
                     } else {
                         error!("Window is already closed.");

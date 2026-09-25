@@ -68,6 +68,9 @@ pub struct WebViewState {
     pub id: WebViewId,
     /// The platform [`Theme`] to use for this `WebView`.
     pub theme: Cell<Theme>,
+    /// Whether or not the `WebView` has system focus. More than one `WebView` may have
+    /// system focus at one time.
+    pub has_system_focus: Cell<bool>,
 }
 
 /// The initial data required to create a new `Pipeline` attached to an existing `ScriptThread`.
@@ -161,8 +164,8 @@ pub enum ScriptThreadMessage {
     StopDelayingLoadEventsMode(PipelineId),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
     Resize(PipelineId, ViewportDetails, WindowSizeType),
-    /// Theme changed.
-    ThemeChange(WebViewId, Theme),
+    /// Inform the ScriptThread that some aspect of the WebViewState has changed.
+    UpdateWebViewState(WebViewState),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, ViewportDetails),
     /// Window switched from fullscreen mode.
