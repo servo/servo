@@ -10,7 +10,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
-use js::jsval::{DoubleValue, JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{DoubleValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
@@ -244,6 +244,8 @@ impl RequestListener {
                                     .set(ObjectValue(*cursor.reflector().get_jsobject()));
                             },
                         }
+                    } else {
+                        answer.handle_mut().set(NullValue());
                     }
                 },
                 IdbResult::None => {
@@ -450,6 +452,12 @@ impl IDBRequest {
         self.transaction.set(None);
     }
 
+    pub fn reset(&self) {
+        self.ready_state.set(IDBRequestReadyState::Pending);
+        self.result.set(UndefinedValue());
+        self.error.set(None);
+    }
+
     fn is_done(&self) -> bool {
         self.ready_state.get() == IDBRequestReadyState::Done
     }
@@ -481,12 +489,18 @@ impl IDBRequest {
         let request_id = transaction.allocate_request_id();
 
         // Step 3: If request was not given, let request be a new request with source as source.
-        let request = request.unwrap_or_else(|| {
-            let new_request = IDBRequest::new(cx, &global);
-            new_request.set_source(Some(source));
-            new_request.set_transaction(&transaction);
-            new_request
-        });
+        let request = match request {
+            Some(existing_request) => {
+                existing_request.reset();
+                existing_request
+            },
+            None => {
+                let new_request = IDBRequest::new(cx, &global);
+                new_request.set_source(Some(source));
+                new_request.set_transaction(&transaction);
+                new_request
+            },
+        };
 
         // Step 4: Add request to the end of transaction’s request list.
         transaction.add_request(&request);
