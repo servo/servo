@@ -295,10 +295,11 @@ impl Param {
                 } else {
                     if let Some(overlap_event) = self.get_previous_event_mut(idx) &&
                         (overlap_event.is_set_target() ||
+                            // SetValueCurve always has done time
                             (overlap_event.is_set_value_curve() &&
                                 overlap_event
                                     .done_time()
-                                    .expect("SetValueCurve always has a done time.") >=
+                                    .unwrap() >=
                                     event.time()))
                     {
                         overlap_event.set_cancel_tick(event.time());
@@ -315,9 +316,10 @@ impl Param {
                 if let Some(overlap_event) = self.get_previous_event(idx) &&
                     (overlap_event.is_set_target() ||
                         (overlap_event.is_set_value_curve() &&
+                            // SetValueCurve always has done time
                             overlap_event
                                 .done_time()
-                                .expect("SetValueCurve always has a done time.") >=
+                                .unwrap() >=
                                 event.time()))
                 {
                     events_to_keep = idx - 1;
@@ -543,8 +545,8 @@ impl AutomationEvent {
             AutomationEvent::SetValueAtTime(_, time) => *time == current_tick,
             // https://webaudio.github.io/web-audio-api/#dom-audioparam-linearramptovalueattime
             AutomationEvent::RampToValueAtTime(..) => {
-                // Ramp has a done time so unwrap is safe.
-                let done_time = self.done_time().expect("Ramp always has a done time.");
+                // Ramp always has a done time.
+                let done_time = self.done_time().unwrap();
                 let previous_event_check = previous_event.is_none_or(|event| {
                     // > If the preceding event is a SetTarget event, T0 and V0
                     // > are chosen from the current time and value of SetTarget automation.
@@ -577,12 +579,9 @@ impl AutomationEvent {
             },
             // > During the time interval: T0≤t, where T0 is the startTime parameter.
             // https://webaudio.github.io/web-audio-api/#dom-audioparam-settargetattime
-            AutomationEvent::SetTargetAtTime(..) => {
+            AutomationEvent::SetTargetAtTime(_, start_time, _, _) => {
                 // SetTarget has a start time. Once current tick reaches the start time,
                 // the event becomes active.
-                let start_time = self
-                    .start_time()
-                    .expect("SetTarget always has a start time.");
                 let next_event_check = next_event.is_none_or(|event| {
                     // If next event is Ramp, it will become active once the SetTarget is active.
                     // We need to handle the edge case where the SetTarget event is already started.
@@ -601,19 +600,19 @@ impl AutomationEvent {
                     .done_time()
                     .is_none_or(|done_time| done_time >= current_tick);
 
-                start_time <= current_tick && next_event_check && cancel_and_hold_check
+                *start_time <= current_tick && next_event_check && cancel_and_hold_check
             },
             // https://webaudio.github.io/web-audio-api/#dom-audioparam-setvaluecurveattime
-            AutomationEvent::SetValueCurveAtTime(..) => {
+            AutomationEvent::SetValueCurveAtTime(_, start_time, _, _) => {
                 // > An implicit call to setValueAtTime() is made at time T0+TD with value V[N−1]
                 // > so that following automations will start from the end of the setValueCurveAtTime() event.
                 //
                 // Therefore when t = T0+TD, it is active because we need to calculate V(t).
-                self.start_time()
-                    .expect("SetValueCurve always has a start time.") <=
+                *start_time <=
                     current_tick &&
+                    // SetValueCurve always has an end time.
                     self.done_time()
-                        .expect("SetValueCurve always has an end time.") >=
+                        .unwrap() >=
                         current_tick
             },
             _ => false,
