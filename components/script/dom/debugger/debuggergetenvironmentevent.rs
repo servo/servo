@@ -8,7 +8,7 @@ use devtools_traits::GetEnvironmentRequest;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::str::DOMString;
 
 use crate::dom::GlobalScope;
@@ -49,8 +49,7 @@ impl DebuggerGetEnvironmentEvent {
                 }
             },
         });
-        let result =
-            reflect_dom_object_with_cx(result, debugger_global_scope.upcast::<GlobalScope>(), cx);
+        let result = reflect_dom_object(cx, result, debugger_global_scope.upcast::<GlobalScope>());
         result
             .event
             .init_event("getEnvironment".into(), false, false);

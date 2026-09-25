@@ -11,7 +11,7 @@ use itertools::Itertools;
 use js::context::JSContext;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::dom::UnrootedDom;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use stylo_dom::ElementState;
 
 use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::ValidityStateFlags;
@@ -97,7 +97,7 @@ impl ValidityState {
         window: &Window,
         element: &Element,
     ) -> DomRoot<ValidityState> {
-        reflect_dom_object_with_cx(Box::new(ValidityState::new_inherited(element)), window, cx)
+        reflect_dom_object(cx, Box::new(ValidityState::new_inherited(element)), window)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#custom-validity-error-message>

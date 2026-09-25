@@ -5,7 +5,7 @@
 use cssparser::Parser;
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleValueBinding::CSSStyleValueMethods;
@@ -32,7 +32,7 @@ impl CSSStyleValue {
         global: &GlobalScope,
         value: String,
     ) -> DomRoot<CSSStyleValue> {
-        reflect_dom_object_with_cx(Box::new(CSSStyleValue::new_inherited(value)), global, cx)
+        reflect_dom_object(cx, Box::new(CSSStyleValue::new_inherited(value)), global)
     }
 }
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::gc::HandleValue;
-use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
+use script_bindings::reflector::{DomObject, reflect_dom_object};
 use servo_base::generic_channel::{GenericCallback, GenericSender};
 use servo_base::text::Utf8CodeUnits;
 use servo_bluetooth_traits::{BluetoothError, BluetoothRequest, GATTType};
@@ -159,7 +159,7 @@ impl Bluetooth {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Bluetooth> {
-        reflect_dom_object_with_cx(Box::new(Bluetooth::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(Bluetooth::new_inherited()), global)
     }
 
     fn get_bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {

@@ -14,7 +14,7 @@ use script_bindings::codegen::GenericBindings::GeolocationBinding::{
 use script_bindings::codegen::GenericBindings::PermissionStatusBinding::PermissionName;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::domstring::DOMString;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
@@ -40,7 +40,7 @@ impl Geolocation {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited()), global)
     }
 
     /// <https://www.w3.org/TR/geolocation/#dfn-request-a-position>

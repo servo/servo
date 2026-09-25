@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerEvalEventMethods;
@@ -42,7 +42,7 @@ impl DebuggerEvalEvent {
             frame_actor_id,
             eager,
         });
-        let result = reflect_dom_object_with_cx(result, debugger_global, cx);
+        let result = reflect_dom_object(cx, result, debugger_global);
         result.event.init_event("eval".into(), false, false);
 
         result

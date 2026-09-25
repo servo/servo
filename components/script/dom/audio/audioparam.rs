@@ -8,7 +8,7 @@ use std::sync::mpsc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cformat;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_media::audio::audio_node::{AudioNodeMessage, AudioNodeType};
 use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::{ParamRate, ParamType, RampKind, UserAutomationEvent};
@@ -93,7 +93,7 @@ impl AudioParam {
             audio_param.param,
             (min_value, max_value),
         ));
-        reflect_dom_object_with_cx(Box::new(audio_param), window, cx)
+        reflect_dom_object(cx, Box::new(audio_param), window)
     }
 
     fn message_node(&self, message: AudioNodeMessage) {

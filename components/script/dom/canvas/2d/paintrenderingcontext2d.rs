@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webrender_api::ImageKey;
@@ -64,10 +64,10 @@ impl PaintRenderingContext2D {
         cx: &mut JSContext,
         global: &PaintWorkletGlobalScope,
     ) -> Option<DomRoot<PaintRenderingContext2D>> {
-        Some(reflect_dom_object_with_cx(
+        Some(reflect_dom_object(
+            cx,
             Box::new(PaintRenderingContext2D::new_inherited(global)?),
             global,
-            cx,
         ))
     }
 

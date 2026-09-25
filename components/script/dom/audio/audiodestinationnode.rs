@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper, MAX_CHANNEL_COUNT};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
@@ -46,7 +46,7 @@ impl AudioDestinationNode {
         options: &AudioNodeOptions,
     ) -> DomRoot<AudioDestinationNode> {
         let node = AudioDestinationNode::new_inherited(context, options);
-        reflect_dom_object_with_cx(Box::new(node), global, cx)
+        reflect_dom_object(cx, Box::new(node), global)
     }
 }
 
