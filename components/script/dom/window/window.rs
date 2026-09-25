@@ -57,7 +57,8 @@ use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResponseCallback, ImageCacheResponseMessage, ImageLoadListener,
-    ImageResponse, PendingImageId, PendingImageResponse, RasterizationCompleteResponse,
+    ImageResponse, PendingImageId, PendingImageResponse, RasterDecodeRequestCounter,
+    RasterizationCompleteResponse,
 };
 use net_traits::request::{Origin, Referrer, RequestClient};
 use net_traits::{ResourceFetchTiming, ResourceThreads};
@@ -406,6 +407,12 @@ pub(crate) struct Window {
     pending_layout_images: DomRefCell<
         HashMapTracedValues<PendingImageId, Vec<PendingLayoutImageAncillaryData>, FxBuildHasher>,
     >,
+
+    /// Active decodes. A completion notification would remove the entry
+    /// and request new display list. Must complete before screenshot ready.
+    #[no_trace]
+    pending_encoded_raster_images:
+        DomRefCell<FxHashMap<PendingImageId, RasterDecodeRequestCounter>>,
 
     /// Vector images for which layout has intiated rasterization at a specific size
     /// and whose results are not yet available. They are stored in the [`ScriptThread`]
@@ -778,6 +785,18 @@ impl Window {
                 nodes.remove();
             },
         }
+    }
+
+    pub(crate) fn handle_encoded_raster_image_ready(
+        &self,
+        id: PendingImageId,
+        current_counter: RasterDecodeRequestCounter,
+    ) {
+        let mut pending = self.pending_encoded_raster_images.borrow_mut();
+        if pending.get(&id) == Some(&current_counter) {
+            pending.remove(&id);
+        }
+        self.layout().set_needs_new_display_list();
     }
 
     pub(crate) fn handle_image_rasterization_complete_notification(
@@ -2759,6 +2778,33 @@ impl Window {
 
         self.handle_new_or_removed_web_fonts_post_reflow(cx, reflow_result.changed_web_fonts);
 
+        if let Some(demands) = reflow_result.raster_decode_demands {
+            let sender = self.image_cache_sender.clone();
+            let statuses = self.image_cache().set_raster_decode_demands(
+                demands,
+                Box::new(move |message| {
+                    let _ = sender.send(message);
+                }),
+            );
+            let statuses: FxHashMap<_, _> = statuses
+                .into_iter()
+                .map(|status| (status.id, status))
+                .collect();
+            let mut pending = self.pending_encoded_raster_images.borrow_mut();
+            // Keep completed requests until script handles their queued callback,
+            // so screenshots cannot race an upload and capture an old display list.
+            pending.retain(|id, generation| {
+                statuses
+                    .get(id)
+                    .is_some_and(|status| status.counter == *generation)
+            });
+            for status in statuses.into_values() {
+                if status.pending {
+                    pending.insert(status.id, status.counter);
+                }
+            }
+        }
+
         self.handle_pending_images_post_reflow(
             cx,
             reflow_result.pending_images,
@@ -2823,7 +2869,8 @@ impl Window {
         }
 
         if !self.pending_layout_images.borrow().is_empty() ||
-            !self.pending_images_for_rasterization.borrow().is_empty()
+            !self.pending_images_for_rasterization.borrow().is_empty() ||
+            !self.pending_encoded_raster_images.borrow().is_empty()
         {
             return;
         }
@@ -3982,6 +4029,7 @@ impl Window {
             pending_image_callbacks: Default::default(),
             pending_layout_images: Default::default(),
             pending_images_for_rasterization: Default::default(),
+            pending_encoded_raster_images: Default::default(),
             unminified_css_dir: DomRefCell::new(if unminify_css {
                 Some(unminified_path("unminified-css"))
             } else {

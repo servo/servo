@@ -9,6 +9,7 @@ use std::{cmp, fmt, vec};
 
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
+use image::imageops::{self, FilterType};
 use image::metadata::LoopCount;
 use image::{
     AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat, ImageResult, Limits,
@@ -256,6 +257,7 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
 pub(crate) fn decode_static_image(
     cors_status: CorsStatus,
     mut image_decoder: impl ImageDecoder,
+    target: Option<ImageMetadata>,
 ) -> Option<RasterImage> {
     let orientation = image_decoder.orientation();
 
@@ -268,12 +270,26 @@ pub(crate) fn decode_static_image(
         dynamic_image.apply_orientation(orientation);
     }
 
+    let metadata = ImageMetadata {
+        width: dynamic_image.width(),
+        height: dynamic_image.height(),
+    };
+    let decoded_resolution = target.map_or(metadata, |target| metadata.fit_decode_size(target));
     let mut rgba = dynamic_image.into_rgba8();
-
-    // Store pre-multiplied data as that prevents having to do conversions of the data at later
-    // times. This does cause an issue with some canvas APIs. See:
+    // Store pre-multiplied data to avoid conversions later. Premultiplying before
+    // resizing also prevents colors in transparent texels from bleeding into edges.
+    // This does cause an issue with some canvas APIs. See:
     // https://github.com/servo/servo/issues/40257
+
     let is_opaque = rgba8_premultiply_inplace(&mut rgba);
+    if decoded_resolution != metadata {
+        rgba = imageops::resize(
+            &rgba,
+            decoded_resolution.width,
+            decoded_resolution.height,
+            FilterType::Lanczos3,
+        );
+    }
 
     let frame = ImageFrame {
         delay: None,
@@ -282,10 +298,8 @@ pub(crate) fn decode_static_image(
         height: rgba.height(),
     };
     Some(RasterImage {
-        metadata: ImageMetadata {
-            width: rgba.width(),
-            height: rgba.height(),
-        },
+        metadata,
+        decoded_resolution,
         format: PixelFormat::RGBA8,
         frames: vec![frame],
         bytes: Arc::new(rgba.into_vec()),
@@ -360,13 +374,16 @@ where
     }
 
     // Coalesce the frame data into one single shared memory region.
+    let metadata = ImageMetadata { width, height };
+    let decoded_resolution = metadata;
     let mut bytes = Vec::with_capacity(total_number_of_bytes);
     for frame in frame_data {
         bytes.extend_from_slice(frame.buffer());
     }
 
     Some(RasterImage {
-        metadata: ImageMetadata { width, height },
+        metadata,
+        decoded_resolution,
         cors_status,
         frames,
         id: None,

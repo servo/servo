@@ -286,6 +286,7 @@ pub enum Repeat {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct SharedRasterImage {
     pub metadata: ImageMetadata,
+    pub decoded_resolution: ImageMetadata,
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
@@ -299,6 +300,8 @@ pub struct SharedRasterImage {
 #[derive(Clone, MallocSizeOf)]
 pub struct RasterImage {
     pub metadata: ImageMetadata,
+    /// The dimensions of the decoded pixel data, which may be smaller than the natural size.
+    pub decoded_resolution: ImageMetadata,
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
@@ -380,7 +383,10 @@ impl RasterImage {
     }
 
     pub fn as_snapshot(&self) -> Snapshot {
-        let size = Size2D::new(self.metadata.width, self.metadata.height);
+        let size = Size2D::new(
+            self.decoded_resolution.width,
+            self.decoded_resolution.height,
+        );
         let format = match self.format {
             PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
             PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
@@ -452,7 +458,10 @@ impl RasterImage {
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
         flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
 
-        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let size = DeviceIntSize::new(
+            self.decoded_resolution.width as i32,
+            self.decoded_resolution.height as i32,
+        );
         let descriptor = ImageDescriptor {
             size,
             stride: None,
@@ -484,7 +493,10 @@ impl RasterImage {
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
         flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
 
-        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let size = DeviceIntSize::new(
+            self.decoded_resolution.width as i32,
+            self.decoded_resolution.height as i32,
+        );
         let descriptor = ImageDescriptor {
             size,
             stride: None,
@@ -498,6 +510,7 @@ impl RasterImage {
     pub fn to_shared(&self) -> Arc<SharedRasterImage> {
         Arc::new(SharedRasterImage {
             metadata: self.metadata,
+            decoded_resolution: self.decoded_resolution,
             format: self.format,
             id: self.id,
             cors_status: self.cors_status,
@@ -528,6 +541,16 @@ pub struct ImageMetadata {
 // reference count them.
 
 pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
+    load_from_memory_with_target(buffer, cors_status, None)
+}
+
+/// Decode static images at an aspect-preserving display resolution. Animated images
+/// retain their original resolution. Full-resolution decode memory is temporary.
+pub fn load_from_memory_with_target(
+    buffer: &[u8],
+    cors_status: CorsStatus,
+    target: Option<ImageMetadata>,
+) -> Option<RasterImage> {
     if buffer.is_empty() {
         return None;
     }
@@ -547,7 +570,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
             if image_decoder.is_animated() {
                 decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
             } else {
-                decoding::decode_static_image(cors_status, image_decoder.decoder())
+                decoding::decode_static_image(cors_status, image_decoder.decoder(), target)
             }
         },
     }
@@ -729,5 +752,35 @@ mod test {
         assert!(detect_image_format(&bmp).is_ok());
         assert!(detect_image_format(&ico).is_ok());
         assert!(detect_image_format(&junk_format).is_err());
+    }
+}
+
+impl ImageMetadata {
+    /// Calculate new dimentions so that the smallest axis matched required aspect ratio
+    /// also checks to not exceed source diminetions of the image
+    pub fn fit_decode_size(self, target: Self) -> Self {
+        if self.width == 0 || self.height == 0 {
+            return self;
+        }
+        if target.width >= self.width || target.height >= self.height {
+            return self;
+        }
+        if u64::from(target.width) * u64::from(self.height) >=
+            u64::from(target.height) * u64::from(self.width)
+        {
+            let width = target.width.max(1);
+            Self {
+                width,
+                height: (u64::from(self.height) * u64::from(width)).div_ceil(u64::from(self.width))
+                    as u32,
+            }
+        } else {
+            let height = target.height.max(1);
+            Self {
+                width: (u64::from(self.width) * u64::from(height)).div_ceil(u64::from(self.height))
+                    as u32,
+                height,
+            }
+        }
     }
 }
