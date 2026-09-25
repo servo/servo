@@ -92,6 +92,7 @@ where
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPURenderBundleEncoder::new_inherited(
                 device,
                 channel,
@@ -99,7 +100,6 @@ where
                 render_bundle_encoder,
             )),
             global,
-            cx,
             GPURenderBundleEncoderWrap::<D>,
         )
     }

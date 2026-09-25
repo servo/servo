@@ -100,6 +100,7 @@ impl<D: Equivalence> GPUSupportedFeatures<D> {
         */
 
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
+            cx,
             Box::new(GPUSupportedFeatures {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(set),
@@ -108,7 +109,6 @@ impl<D: Equivalence> GPUSupportedFeatures<D> {
             }),
             global,
             proto,
-            cx,
             GPUSupportedFeaturesWrap::<D>,
         )
     }

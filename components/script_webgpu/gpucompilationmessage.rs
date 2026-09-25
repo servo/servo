@@ -65,11 +65,11 @@ impl<D: Equivalence> GPUCompilationMessage<D> {
         length: u64,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(Self::new_inherited(
                 message, mtype, line_num, line_pos, offset, length,
             )),
             global,
-            cx,
             GPUCompilationMessageWrap::<D>,
         )
     }

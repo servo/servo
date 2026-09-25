@@ -87,11 +87,11 @@ impl<D: Equivalence> GPUBindGroup<D> {
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUBindGroup::new_inherited(
                 channel, bind_group, device, layout, label,
             )),
             global,
-            cx,
             GPUBindGroupWrap::<D>,
         )
     }

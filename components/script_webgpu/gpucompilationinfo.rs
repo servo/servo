@@ -40,10 +40,10 @@ impl<D: Equivalence> GPUCompilationInfo<D> {
         msg: Vec<DomRoot<GPUCompilationMessage<D>>>,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
+            cx,
             Box::new(Self::new_inherited(msg)),
             global,
             None,
-            cx,
             GPUCompilationInfoWrap::<D>,
         )
     }

@@ -106,11 +106,11 @@ where
         let limits = GPUSupportedLimits::new(cx, global, limits);
         let info = GPUAdapter::create_adapter_info(cx, global, info, &features);
         let dom_root = reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUAdapter::new_inherited(
                 channel, name, &features, &limits, &info, adapter,
             )),
             global,
-            cx,
             GPUAdapterWrap::<D>,
         );
         dom_root.extensions.set(*extensions);

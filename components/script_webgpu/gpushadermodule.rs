@@ -83,6 +83,7 @@ impl<D: Equivalence> GPUShaderModule<D> {
         promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUShaderModule::new_inherited(
                 channel,
                 shader_module,
@@ -90,7 +91,6 @@ impl<D: Equivalence> GPUShaderModule<D> {
                 promise,
             )),
             global,
-            cx,
             GPUShaderModuleWrap::<D>,
         )
     }

@@ -78,13 +78,13 @@ impl<D: Equivalence> GPUCommandBuffer<D> {
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUCommandBuffer::new_inherited(
                 channel,
                 command_buffer,
                 label,
             )),
             global,
-            cx,
             GPUCommandBufferWrap::<D>,
         )
     }
