@@ -983,6 +983,11 @@ impl InlineFormattingContextLayout<'_> {
                 containing_block.style.writing_mode,
             );
 
+        // Starting an inline box should flush any deferred soft wrap opportunities.
+        if mem::take(&mut self.have_deferred_soft_wrap_opportunity) {
+            self.process_soft_wrap_opportunity();
+        }
+
         // If we are starting a `<br>` element prepare to clear after its deferred linebreak has been
         // processed. Note that a `<br>` is composed of the element itself and the inner pseudo-element
         // with the actual linebreak. Both will have this `FragmentFlag`; that's why this code only
@@ -1787,6 +1792,11 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     fn unbreakable_segment_fits_on_line(&mut self) -> bool {
+        // An empty unbreakable segment always fits on a line.
+        if !self.current_line_segment.has_content && !self.current_line_segment.has_inline_pbm {
+            return true;
+        }
+
         let potential_line_size_without_hanging_whitespace = self.potential_line_size() -
             LogicalVec2 {
                 inline: self.current_line_segment.trailing_whitespace_size,
@@ -2605,6 +2615,11 @@ impl IndependentFormattingContext {
             Some(child_positioning_context)
         };
 
+        // The deferred soft wrap opportunities is handled below, so it is fine to clear the
+        // flag unconditionally here regardless of whether the soft wrap opportunity is
+        // ultimately taken.
+        layout.have_deferred_soft_wrap_opportunity = false;
+
         if layout.text_wrap_mode == TextWrapMode::Wrap &&
             !layout
                 .ifc
@@ -2850,6 +2865,9 @@ struct ContentSizesComputation<'layout_data> {
     uncleared_floats: LogicalSides1D<ContentSizes>,
     /// The size of the already cleared floats in the inline axis of the containing block.
     cleared_floats: LogicalSides1D<ContentSizes>,
+    /// Whether or not a lazy soft wrap opportunity is pending after an atomic. The opportunity
+    /// is lazy so that ending inline box padding and border stay on the atomic's line.
+    pending_line_break_opportunity_after_atomic: bool,
     /// Whether or not the current line has seen any content (excluding collapsed whitespace),
     /// when sizing under a min-content constraint.
     had_content_yet_for_min_content: bool,
@@ -2892,6 +2910,12 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
     ) {
         match inline_item {
             InlineItem::StartInlineBox(inline_box) => {
+                let pending_line_break =
+                    mem::take(&mut self.pending_line_break_opportunity_after_atomic);
+                if pending_line_break {
+                    self.soft_wrap_opportunity();
+                }
+
                 // For margins and paddings, a cyclic percentage is resolved against zero
                 // for determining intrinsic size contributions.
                 // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
@@ -2942,24 +2966,23 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 }
             },
             InlineItem::Atomic(atomic, offset_in_text, _level) => {
-                let can_wrap = self.text_wrap_mode() == TextWrapMode::Wrap;
-                if can_wrap &&
-                    self.had_content_yet_for_min_content &&
+                self.pending_line_break_opportunity_after_atomic = false;
+
+                if self.had_content_yet_for_min_content &&
                     !inline_formatting_context
                         .previous_character_prevents_soft_wrap_opportunity(*offset_in_text)
                 {
-                    self.line_break_opportunity();
+                    self.soft_wrap_opportunity();
                 }
 
                 self.commit_pending_whitespace();
                 let outer = self.outer_inline_content_sizes_of_float_or_atomic(&atomic.borrow());
                 self.current_line += outer;
 
-                if can_wrap &&
-                    !inline_formatting_context
-                        .next_character_prevents_soft_wrap_opportunity(*offset_in_text)
+                if !inline_formatting_context
+                    .next_character_prevents_soft_wrap_opportunity(*offset_in_text)
                 {
-                    self.line_break_opportunity();
+                    self.pending_line_break_opportunity_after_atomic = true;
                 }
             },
             InlineItem::OutOfFlowFloatBox(float_box) => {
@@ -3001,17 +3024,18 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         segment: &TextRunSegment,
     ) {
         let style_text = parent_style.get_inherited_text();
-        let can_wrap = style_text.text_wrap_mode == TextWrapMode::Wrap;
 
-        // TODO: This should take account whether or not the first and last character prevent
-        // linebreaks after atomics as in layout.
-        let break_at_start = segment.break_at_start && self.had_content_yet_for_min_content;
+        let can_wrap = self.text_wrap_mode() == TextWrapMode::Wrap;
+        let pending_line_break = mem::take(&mut self.pending_line_break_opportunity_after_atomic);
+        let break_at_start =
+            self.had_content_yet_for_min_content && (segment.break_at_start || pending_line_break);
 
         for (run_index, run) in segment.runs.iter().enumerate() {
             // Break before each unbreakable run in this TextRun, except the first unless the
-            // linebreaker was set to break before the first run.
-            if can_wrap && (run_index != 0 || break_at_start) {
-                self.line_break_opportunity();
+            // linebreaker was set to break before the first run or was preceded by an atomic
+            // that queued a pending line break opportunity.
+            if run_index != 0 || break_at_start {
+                self.soft_wrap_opportunity();
             }
 
             let advance = run.total_advance();
@@ -3032,6 +3056,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     }
                     continue;
                 }
+
                 if can_wrap {
                     self.pending_whitespace.max_content += advance;
                     self.commit_pending_whitespace();
@@ -3047,8 +3072,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             // but for `white-space: break-spaces` we place the first whitespace
             // with the preceding text. That prevents a line break before that
             // first space, but we still need to allow a line break after it.
-            if can_wrap && run.ends_with_whitespace() {
-                self.line_break_opportunity();
+            if run.ends_with_whitespace() {
+                self.soft_wrap_opportunity();
             }
         }
     }
@@ -3058,6 +3083,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         parent_style: &AtomicRef<'_, ServoArc<ComputedValues>>,
         inline_formatting_context: &InlineFormattingContext,
     ) {
+        let pending_line_break = mem::take(&mut self.pending_line_break_opportunity_after_atomic);
+        if pending_line_break {
+            self.soft_wrap_opportunity();
+        }
+
         // If there is a preserved tab, that means that all whitespace is preserved.
         self.commit_pending_whitespace();
 
@@ -3065,14 +3095,20 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             .next_tab_stop_after_inline_advance(parent_style, self.current_line.min_content);
         self.current_line.max_content += inline_formatting_context
             .next_tab_stop_after_inline_advance(parent_style, self.current_line.max_content);
-        if parent_style.get_inherited_text().text_wrap_mode == TextWrapMode::Wrap {
-            self.line_break_opportunity();
-        }
+        self.soft_wrap_opportunity();
     }
 
     fn add_inline_size(&mut self, l: Au) {
         self.current_line.min_content += l;
         self.current_line.max_content += l;
+    }
+
+    /// This is like [`Self::line_break_opportunity`] but only produces a line break
+    /// opportunity if the current style's `text-wrap-mode` allows wrapping.
+    fn soft_wrap_opportunity(&mut self) {
+        if self.text_wrap_mode() == TextWrapMode::Wrap {
+            self.line_break_opportunity();
+        }
     }
 
     fn line_break_opportunity(&mut self) {
@@ -3094,6 +3130,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         let current_max_content = mem::take(&mut self.current_line.max_content);
         self.paragraph.max_content.max_assign(current_max_content);
         self.had_content_yet_for_max_content = false;
+        self.pending_line_break_opportunity_after_atomic = false;
     }
 
     fn commit_pending_whitespace(&mut self) {
@@ -3163,6 +3200,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             pending_whitespace: ContentSizes::zero(),
+            pending_line_break_opportunity_after_atomic: false,
             uncleared_floats: LogicalSides1D::default(),
             cleared_floats: LogicalSides1D::default(),
             had_content_yet_for_min_content: false,

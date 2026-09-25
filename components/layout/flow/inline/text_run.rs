@@ -669,7 +669,9 @@ impl TextRun {
                 TextRunItem::LineBreak(caret_placeholder) => {
                     ifc.defer_forced_line_break_at_character_offset(caret_placeholder);
                 },
-                TextRunItem::Tab { bidi_level } => self.process_preserved_tab(ifc, *bidi_level),
+                TextRunItem::Tab { bidi_level } => {
+                    self.process_preserved_tab(ifc, soft_wrap_policy, *bidi_level)
+                },
                 TextRunItem::TextSegment(segment) => {
                     segment.layout_into_line_items(self, soft_wrap_policy, ifc)
                 },
@@ -681,8 +683,13 @@ impl TextRun {
     fn process_preserved_tab(
         &self,
         ifc_layout: &mut InlineFormattingContextLayout,
+        soft_wrap_policy: SegmentStartSoftWrapPolicy,
         bidi_level: Level,
     ) {
+        if soft_wrap_policy == SegmentStartSoftWrapPolicy::Force {
+            ifc_layout.process_soft_wrap_opportunity();
+        }
+
         let advance = ifc_layout.ifc.next_tab_stop_after_inline_advance(
             &self.inline_styles().style.borrow(),
             ifc_layout.potential_line_size().inline,
