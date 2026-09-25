@@ -1,0 +1,18 @@
+[package]
+name = "servo-unscientific-benchmark"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+
+[dependencies]
+anyhow = "1.0.100"
+clap = { version = "4.5.51", features = ["derive"] }
+env_logger = "0.11.8"
+libc = "0.2.177"
+log = "0.4.28"
+termion = "4.0.5"
+thirtyfour = "0.36.1"
+tokio = "1.48.0"
+which = "8.0.0"
+
+[workspace]
