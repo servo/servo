@@ -81,7 +81,7 @@ use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{
-    AttributeMutation, AttributeMutationReason, CustomElementCreationMode, Element, ElementCreator,
+    AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
 };
 use crate::dom::event::Event;
@@ -582,8 +582,11 @@ pub(crate) struct HTMLMediaElement {
     /// initiated by a script or by the user agent itself, rather than by the media engine and to
     /// abort other running instance of the `seek` algorithm.
     current_seek_position: Cell<f64>,
-    /// <https://html.spec.whatwg.org/multipage/#dom-media-muted>
-    muted: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-media-muted-state>
+    /// > Each media element has a muted state, which is either true, false,
+    /// > or "default"; it is initially "default".
+    /// We model "default" as None
+    muted_state: Cell<Option<bool>>,
     /// Loading state from source, if any.
     load_state: Cell<LoadState>,
     source_children_pointer: DomRefCell<Option<SourceChildrenPointer>>,
@@ -682,7 +685,7 @@ impl HTMLMediaElement {
             paused: Cell::new(true),
             default_playback_rate: Cell::new(1.0),
             playback_rate: Cell::new(1.0),
-            muted: Cell::new(false),
+            muted_state: Default::default(),
             load_state: Cell::new(LoadState::NotLoaded),
             source_children_pointer: DomRefCell::new(None),
             current_source_child: Default::default(),
@@ -2527,7 +2530,7 @@ impl HTMLMediaElement {
                 warn!("Could not set download buffering: {error:?}");
             }
 
-            if let Err(error) = player_guard.set_mute(self.muted.get()) {
+            if let Err(error) = player_guard.set_mute(self.is_muted()) {
                 warn!("Could not set mute state: {error:?}");
             }
 
@@ -3459,6 +3462,22 @@ impl HTMLMediaElement {
             default_candidate.set_text_track_mode(cx, TextTrackMode::Showing);
         }
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-media-muted>
+    fn is_muted(&self) -> bool {
+        // > A media element is muted if any of the following are true:
+        // > * The direction of playback is backwards.
+        self.direction_of_playback() == PlaybackDirection::Backwards
+        // > * Its muted state is true.
+        || self.muted_state.get().unwrap_or_else(|| {
+            // > * Its muted state is "default" and it has a muted content attribute.
+            self.upcast::<Element>()
+                    .has_attribute(&local_name!("muted"))
+            // > * Its playbackRate is so low or so high that
+            // > * the user agent cannot play audio usefully.
+            // TODO
+        })
+    }
 }
 
 impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
@@ -3509,16 +3528,23 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-muted>
     fn Muted(&self) -> bool {
-        self.muted.get()
+        // > The muted getter steps are to return true if this is muted; otherwise false.
+        self.is_muted()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-muted>
     fn SetMuted(&self, _cx: &mut JSContext, value: bool) {
-        if self.muted.get() == value {
+        // > The muted setter steps are to set the muted state of this to the given value.
+        // https://html.spec.whatwg.org/multipage/#set-the-muted-state
+        let idl_value_changed = self.Muted() != value;
+
+        // Step 1. If element's muted state equals value, then return.
+        if self.muted_state.get() == Some(value) {
             return;
         }
 
-        self.muted.set(value);
+        // Step 2. Set element's muted state to value.
+        self.muted_state.set(Some(value));
 
         if let Some(ref player) = *self.player.borrow() &&
             let Err(error) = player.lock().unwrap().set_mute(value)
@@ -3526,14 +3552,21 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             warn!("Could not set mute state: {error:?}");
         }
 
-        // The user agent must queue a media element task given the media element to fire an event
-        // named volumechange at the media element.
-        self.queue_media_element_task_to_fire_event(atom!("volumechange"));
-
-        // Then, if the media element is not allowed to play, the user agent must run the internal
-        // pause steps for the media element.
+        // Step 3. If element is not allowed to play,
+        // then run the internal pause steps for element.
         if !self.is_allowed_to_play() {
             self.internal_pause_steps();
+        }
+
+        // It's implicit in the spec, but since this is an IDL setter, this
+        // should only run when the value actually changed. We still need
+        // to update the internal muted state, but we only should fire the
+        // volumechange event when there was actually a difference in the
+        // computed value of the IDL attribute.
+        if idl_value_changed {
+            // Step 4. Queue a media element task given element to
+            // fire an event named volumechange at element.
+            self.queue_media_element_task_to_fire_event(atom!("volumechange"));
         }
     }
 
@@ -3900,18 +3933,6 @@ impl VirtualMethods for HTMLMediaElement {
             .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
-            local_name!("muted") => {
-                // <https://html.spec.whatwg.org/multipage/#dom-media-muted>
-                // When a media element is created, if the element has a muted content attribute
-                // specified, then the muted IDL attribute should be set to true.
-                if let AttributeMutation::Set(
-                    _,
-                    AttributeMutationReason::ByCloning | AttributeMutationReason::ByParser,
-                ) = mutation
-                {
-                    self.SetMuted(cx, true);
-                }
-            },
             local_name!("src") => {
                 // <https://html.spec.whatwg.org/multipage/#location-of-the-media-resource>
                 // If a src attribute of a media element is set or changed, the user agent must invoke
