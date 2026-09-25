@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 mod aes_cbc_operation;
 mod aes_common;
 mod aes_ctr_operation;
@@ -2574,9 +2572,9 @@ trait TryFromWithCxAndName<T>: Sized {
     type Error;
 
     fn try_from_with_cx_and_name(
-        value: T,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        value: T,
     ) -> Result<Self, Self::Error>;
 }
 
@@ -2602,7 +2600,7 @@ where
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<U, Self::Error> {
-        U::try_from_with_cx_and_name(self, cx, algorithm_name)
+        U::try_from_with_cx_and_name(cx, algorithm_name, self)
     }
 }
 
@@ -2635,9 +2633,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Algorithm {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        _object: HandleObject<'a>,
         _cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        _object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(Algorithm {
             name: algorithm_name,
@@ -2722,9 +2720,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaHashedKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject,
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
@@ -2903,9 +2901,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaHashedImportParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject,
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
@@ -2930,9 +2928,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaPssParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject,
     ) -> Result<Self, Self::Error> {
         Ok(RsaPssParams {
             name: algorithm_name,
@@ -2960,9 +2958,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaOaepParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(RsaOaepParams {
             name: algorithm_name,
@@ -2985,9 +2983,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcdsaParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
@@ -3012,9 +3010,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(EcKeyGenParams {
             name: algorithm_name,
@@ -3091,9 +3089,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcKeyImportParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(EcKeyImportParams {
             name: algorithm_name,
@@ -3121,9 +3119,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcdhKeyDeriveParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         let public = get_required_parameter::<DomRoot<CryptoKey>>(cx, object, c"public", ())?;
 
@@ -3151,9 +3149,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesCtrParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(AesCtrParams {
             name: algorithm_name,
@@ -3231,9 +3229,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(AesKeyGenParams {
             name: algorithm_name,
@@ -3261,9 +3259,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesDerivedKeyParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(AesDerivedKeyParams {
             name: algorithm_name,
@@ -3291,9 +3289,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesCbcParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(AesCbcParams {
             name: algorithm_name,
@@ -3322,9 +3320,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesGcmParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(AesGcmParams {
             name: algorithm_name,
@@ -3352,9 +3350,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for HmacImportParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
@@ -3445,9 +3443,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for HmacKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
@@ -3479,9 +3477,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for HkdfParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
@@ -3514,9 +3512,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Pbkdf2Params {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
@@ -3548,9 +3546,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for ContextParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(ContextParams {
             name: algorithm_name,
@@ -3579,9 +3577,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AeadParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(AeadParams {
             name: algorithm_name,
@@ -3612,9 +3610,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for CShakeParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(CShakeParams {
             name: algorithm_name,
@@ -3671,9 +3669,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for TurboShakeParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(TurboShakeParams {
             name: algorithm_name,
@@ -3732,9 +3730,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KangarooTwelveParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(KangarooTwelveParams {
             name: algorithm_name,
@@ -3785,9 +3783,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KmacKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject,
     ) -> Result<Self, Self::Error> {
         Ok(KmacKeyGenParams {
             name: algorithm_name,
@@ -3810,9 +3808,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KmacImportParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject,
     ) -> Result<Self, Self::Error> {
         Ok(KmacImportParams {
             name: algorithm_name,
@@ -3886,9 +3884,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KmacParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(KmacParams {
             name: algorithm_name,
@@ -3935,9 +3933,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Argon2Params {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(Argon2Params {
             name: algorithm_name,
@@ -4073,9 +4071,9 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEd448Params {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
-        object: HandleObject<'a>,
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
+        object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
         Ok(SubtleEd448Params {
             name: algorithm_name,
