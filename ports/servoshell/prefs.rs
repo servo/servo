@@ -106,6 +106,8 @@ pub(crate) struct ServoShellPreferences {
     /// Log also to a file
     #[cfg(target_env = "ohos")]
     pub log_to_file: bool,
+    #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
+    pub memory_output: bool,
 }
 
 impl Default for ServoShellPreferences {
@@ -132,6 +134,8 @@ impl Default for ServoShellPreferences {
             #[cfg(target_env = "ohos")]
             log_to_file: false,
             experimental_preferences_enabled: false,
+            #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
+            memory_output: false,
         }
     }
 }
@@ -471,6 +475,11 @@ struct CmdArgs {
     #[bpaf(long)]
     log_to_file: bool,
 
+    #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
+    /// Should we output memory stats after a page load.
+    #[bpaf(long)]
+    memory_output: bool,
+
     /// Run in multiprocess mode.
     #[bpaf(short('M'), long)]
     multiprocess: bool,
@@ -727,6 +736,8 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         }),
         #[cfg(target_env = "ohos")]
         log_to_file: cmd_args.log_to_file,
+        #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
+        memory_output: cmd_args.memory_output,
         ..Default::default()
     };
 
