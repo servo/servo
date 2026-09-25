@@ -40,7 +40,7 @@ use net_traits::request::{
     CredentialsMode, Destination, Referrer, Request, RequestBuilder, RequestMode,
     TraversableForUserPrompts, create_request_body_with_content,
 };
-use net_traits::response::{Response, ResponseBody};
+use net_traits::response::{DoneResponseBody, Response, ResponseBody};
 use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy, get_current_locale};
 use parking_lot::{Mutex, RwLock};
 use servo_base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
@@ -592,10 +592,14 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
 
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.clone().code().is_success());
-    assert_eq!(
-        *internal_response.body.lock(),
-        ResponseBody::Done(b"Yay!".to_vec())
-    );
+
+    let response = internal_response.body.lock();
+    match &*response {
+        ResponseBody::Empty | ResponseBody::Receiving(_) => assert!(false),
+        ResponseBody::Done(done_response_body) => {
+            assert_eq!(done_response_body.decoded_body, b"Yay!".to_vec())
+        },
+    };
 }
 
 #[test]
@@ -628,10 +632,13 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
 
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.clone().code().is_success());
-    assert_eq!(
-        *internal_response.body.lock(),
-        ResponseBody::Done(b"Yay!".to_vec())
-    );
+    let response = internal_response.body.lock();
+    match &*response {
+        ResponseBody::Empty | ResponseBody::Receiving(_) => assert!(false),
+        ResponseBody::Done(done_response_body) => {
+            assert_eq!(done_response_body.decoded_body, b"Yay!".to_vec())
+        },
+    };
 }
 
 #[test]
@@ -1268,7 +1275,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
     assert_eq!(response.url_list, [url_a.url(), url_b.url(), url_a.url()]);
     assert_eq!(
         *response.body.lock(),
-        ResponseBody::Done(b"Success".to_vec())
+        ResponseBody::Done(DoneResponseBody::new(b"Success".to_vec()))
     );
 }
 
@@ -1312,7 +1319,7 @@ fn test_load_follows_a_redirect() {
     assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
         *internal_response.body.lock(),
-        ResponseBody::Done(b"Yay!".to_vec())
+        ResponseBody::Done(DoneResponseBody::new(b"Yay!".to_vec()))
     );
 }
 
@@ -1402,7 +1409,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
         *internal_response.body.lock(),
-        ResponseBody::Done(b"Yay!".to_vec())
+        ResponseBody::Done(DoneResponseBody::new(b"Yay!".to_vec()))
     );
 }
 
@@ -1458,7 +1465,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
     assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
         *internal_response.body.lock(),
-        ResponseBody::Done(b"Yay!".to_vec())
+        ResponseBody::Done(DoneResponseBody::new(b"Yay!".to_vec()))
     );
 }
 
