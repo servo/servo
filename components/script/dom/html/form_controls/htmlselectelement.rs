@@ -782,8 +782,8 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
-    fn WillValidate(&self) -> bool {
-        self.is_instance_validatable()
+    fn WillValidate(&self, no_gc: &NoGC) -> bool {
+        self.is_instance_validatable(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
@@ -845,7 +845,7 @@ impl VirtualMethods for HTMLSelectElement {
                     AttributeMutation::Removed => {
                         el.set_disabled_state(false);
                         el.set_enabled_state(true);
-                        el.check_ancestors_disabled_state_for_form_control();
+                        el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
                     },
                 }
 
@@ -870,7 +870,7 @@ impl VirtualMethods for HTMLSelectElement {
         }
 
         self.upcast::<Element>()
-            .check_ancestors_disabled_state_for_form_control();
+            .check_ancestors_disabled_state_for_form_control(cx.no_gc());
     }
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
@@ -882,7 +882,7 @@ impl VirtualMethods for HTMLSelectElement {
             .ancestors()
             .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
         {
-            el.check_ancestors_disabled_state_for_form_control();
+            el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
         } else {
             el.check_disabled_attribute();
         }
@@ -946,10 +946,11 @@ impl Validatable for HTMLSelectElement {
             .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
-    fn is_instance_validatable(&self) -> bool {
+    fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
-        !self.upcast::<Element>().disabled_state() && !is_barred_by_datalist_ancestor(self.upcast())
+        !self.upcast::<Element>().disabled_state() &&
+            !is_barred_by_datalist_ancestor(no_gc, self.upcast())
     }
 
     fn perform_validation(

@@ -1903,11 +1903,11 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation>
-    fn is_candidate_for_constraint_validation(&self) -> bool {
+    fn is_candidate_for_constraint_validation(&self, no_gc: &NoGC) -> bool {
         let element = self.to_element();
         let html_element = element.downcast::<HTMLElement>();
         if let Some(html_element) = html_element {
-            html_element.is_submittable_element() || element.is_instance_validatable()
+            html_element.is_submittable_element() || element.is_instance_validatable(no_gc)
         } else {
             false
         }

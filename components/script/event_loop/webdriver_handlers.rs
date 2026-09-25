@@ -1863,7 +1863,7 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
 
     // Step 1 - 2. if element is a candidate for constraint
     // validation and value is empty, abort steps.
-    if html_element.is_candidate_for_constraint_validation() {
+    if html_element.is_candidate_for_constraint_validation(cx.no_gc()) {
         if let Some(input_element) = element.downcast::<HTMLInputElement>() {
             if input_element.Value().is_empty() {
                 return Ok(());
