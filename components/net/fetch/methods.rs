@@ -901,6 +901,8 @@ async fn wait_for_response(
     if let Some(ref mut ch) = *done_chan {
         #[cfg(feature = "devtools")]
         let mut devtools_body = context.devtools_chan.as_ref().map(|_| Vec::new());
+        #[cfg(not(feature = "devtools"))]
+        let devtools_body = None;
         loop {
             match ch.1.recv().await {
                 Some(Data::ContentLength(length)) => {
@@ -922,7 +924,6 @@ async fn wait_for_response(
                     break;
                 },
                 Some(Data::Done) => {
-                    #[cfg(feature = "devtools")]
                     send_response_to_devtools(request, context, response, devtools_body);
                     break;
                 },

@@ -903,6 +903,12 @@ impl Drop for ServoInner {
     }
 }
 
+#[cfg(feature = "devtools")]
+type DevtoolsMessage = devtools_traits::DevtoolsControlMsg;
+
+#[cfg(not(feature = "devtools"))]
+type DevtoolsMessage = ();
+
 /// An in-process handle to a `Servo` instance. Cloning the handle does not create a new instance
 /// of `Servo`.
 ///
@@ -964,15 +970,14 @@ impl Servo {
         );
         let mem_profiler_chan = profile_mem::Profiler::create();
 
+        let mut devtools_sender: Option<Sender<DevtoolsMessage>> = None;
         #[cfg(feature = "devtools")]
-        let devtools_sender = if pref!(devtools_server_enabled) {
-            Some(devtools::start_server(
+        if pref!(devtools_server_enabled) {
+            devtools_sender = Some(devtools::start_server(
                 embedder_proxy.clone(),
                 mem_profiler_chan.clone(),
             ))
-        } else {
-            None
-        };
+        }
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -1003,7 +1008,6 @@ impl Servo {
         let protocols = Arc::new(protocols);
         let (public_resource_threads, private_resource_threads, async_runtime) =
             new_resource_threads(
-                #[cfg(feature = "devtools")]
                 devtools_sender.clone(),
                 time_profiler_chan.clone(),
                 mem_profiler_chan.clone(),
