@@ -1868,7 +1868,15 @@ impl ScriptThread {
                 evaluation_id,
                 script,
             ) => {
-                self.handle_evaluate_javascript(webview_id, pipeline_id, evaluation_id, script, cx);
+                self.handle_evaluate_javascript(webview_id, pipeline_id, evaluation_id, script, cx, false);
+            },
+            ScriptThreadMessage::EvaluateTrustedJavaScript(
+                webview_id,
+                pipeline_id,
+                evaluation_id,
+                script,
+            ) => {
+                self.handle_evaluate_javascript(webview_id, pipeline_id, evaluation_id, script, cx, true);
             },
             ScriptThreadMessage::SendImageKeysBatch(pipeline_id, image_keys) => {
                 if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
@@ -4423,6 +4431,7 @@ impl ScriptThread {
         evaluation_id: JavaScriptEvaluationId,
         script: String,
         cx: &mut js::context::JSContext,
+        trusted: bool,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             let _ = self.senders.pipeline_to_constellation_sender.send((
@@ -4441,13 +4450,24 @@ impl ScriptThread {
         let cx = &mut realm.current_realm();
 
         rooted!(&in(cx) let mut return_value = UndefinedValue());
-        if let Err(err) = global_scope.evaluate_js_on_global(
-            cx,
-            script.into(),
-            "",
-            None, // No known `introductionType` for JS code from embedder
-            Some(return_value.handle_mut()),
-        ) {
+        let result = if trusted {
+            global_scope.evaluate_trusted_js_on_global(
+                cx,
+                script.into(),
+                "",
+                None, // No known `introductionType` for JS code from embedder
+                Some(return_value.handle_mut()),
+            )
+        } else {
+            global_scope.evaluate_js_on_global(
+                cx,
+                script.into(),
+                "",
+                None, // No known `introductionType` for JS code from embedder
+                Some(return_value.handle_mut()),
+            )
+        };
+        if let Err(err) = result {
             _ = self.senders.pipeline_to_constellation_sender.send((
                 webview_id,
                 pipeline_id,

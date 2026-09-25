@@ -1411,7 +1411,7 @@ where
                 evaluation_id,
                 script,
             ) => {
-                self.handle_evaluate_javascript(webview_id, evaluation_id, script);
+                self.handle_evaluate_trusted_javascript(webview_id, evaluation_id, script);
             },
             EmbedderToConstellationMessage::CreateMemoryReport(sender) => {
                 self.mem_profiler_chan.send(ProfilerMsg::Report(sender));
@@ -1570,7 +1570,7 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_evaluate_javascript(
+    fn handle_evaluate_trusted_javascript(
         &mut self,
         webview_id: WebViewId,
         evaluation_id: JavaScriptEvaluationId,
@@ -1591,7 +1591,7 @@ where
 
         if pipeline
             .event_loop
-            .send(ScriptThreadMessage::EvaluateJavaScript(
+            .send(ScriptThreadMessage::EvaluateTrustedJavaScript(
                 webview_id,
                 pipeline.id,
                 evaluation_id,

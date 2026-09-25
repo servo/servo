@@ -286,6 +286,9 @@ pub enum ScriptThreadMessage {
     /// Evaluate the given JavaScript and return a result via a corresponding message
     /// to the Constellation.
     EvaluateJavaScript(WebViewId, PipelineId, JavaScriptEvaluationId, String),
+    /// Evaluate the given JavaScript assuming it originates from a trusted source
+    /// and return a result via a corresponding message to the Constellation.
+    EvaluateTrustedJavaScript(WebViewId, PipelineId, JavaScriptEvaluationId, String),
     /// A new batch of keys for the image cache for the specific pipeline.
     SendImageKeysBatch(PipelineId, Vec<ImageKey>),
     /// Preferences were updated in the parent process.
