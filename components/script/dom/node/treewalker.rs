@@ -3,11 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::callback::OwnerWindow;
+use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::script_runtime::temp_cx;
 
@@ -33,13 +32,20 @@ pub(crate) struct TreeWalker {
 }
 
 impl TreeWalker {
-    fn new_inherited(root_node: &Node, what_to_show: u32, filter: Filter) -> TreeWalker {
+    fn new_inherited(
+        root_node: &Node,
+        what_to_show: u32,
+        node_filter: Option<RootedCallback<NodeFilter>>,
+    ) -> TreeWalker {
         TreeWalker {
             reflector_: Reflector::new(),
             root_node: Dom::from_ref(root_node),
             current_node: MutDom::new(root_node),
             what_to_show,
-            filter,
+            filter: match node_filter {
+                None => Filter::None,
+                Some(jsfilter) => Filter::Dom(jsfilter.to_traced()),
+            },
             active: Cell::new(false),
         }
     }
@@ -49,11 +55,15 @@ impl TreeWalker {
         document: &Document,
         root_node: &Node,
         what_to_show: u32,
-        filter: Filter,
+        node_filter: Option<RootedCallback<NodeFilter>>,
     ) -> DomRoot<TreeWalker> {
         reflect_dom_object(
             cx,
-            Box::new(TreeWalker::new_inherited(root_node, what_to_show, filter)),
+            Box::new(TreeWalker::new_inherited(
+                root_node,
+                what_to_show,
+                node_filter,
+            )),
             document.window(),
         )
     }
@@ -63,13 +73,9 @@ impl TreeWalker {
         document: &Document,
         root_node: &Node,
         what_to_show: u32,
-        node_filter: Option<Rc<NodeFilter>>,
+        node_filter: Option<RootedCallback<NodeFilter>>,
     ) -> DomRoot<TreeWalker> {
-        let filter = match node_filter {
-            None => Filter::None,
-            Some(jsfilter) => Filter::Dom(jsfilter),
-        };
-        TreeWalker::new_with_filter(cx, document, root_node, what_to_show, filter)
+        TreeWalker::new_with_filter(cx, document, root_node, what_to_show, node_filter)
     }
 }
 
@@ -85,10 +91,10 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-treewalker-filter>
-    fn GetFilter(&self) -> Option<Rc<NodeFilter>> {
+    fn GetFilter(&self) -> Option<RootedCallback<NodeFilter>> {
         match self.filter {
             Filter::None => None,
-            Filter::Dom(ref nf) => Some(nf.clone()),
+            Filter::Dom(ref nf) => Some(nf.root()),
         }
     }
 
@@ -503,9 +509,10 @@ impl Iterator for &TreeWalker {
 }
 
 #[derive(JSTraceable)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum Filter {
     None,
-    Dom(Rc<NodeFilter>),
+    Dom(TracedCallback<NodeFilter>),
 }
 
 impl OwnerWindow<crate::DomTypeHolder> for TreeWalker {}
