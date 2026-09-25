@@ -99,6 +99,9 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
+use crate::dom::rules_for_rendering::{
+    RulesForUpdatingTheTextTrackRendering, ShouldResetRenderingControls,
+};
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttracklist::TextTrackList;
@@ -792,6 +795,7 @@ impl HTMLMediaElement {
     fn current_and_other_cues<'no_gc>(
         &self,
         no_gc: &'no_gc NoGC,
+        text_tracks_list: &TextTrackList,
     ) -> Option<(
         Vec<UnrootedDom<'no_gc, TextTrackCue>>,
         Vec<UnrootedDom<'no_gc, TextTrackCue>>,
@@ -805,7 +809,6 @@ impl HTMLMediaElement {
         // all the cues of hidden and showing text tracks of the media element
         // that are not present in current cues.
         let current_playback_position = self.current_playback_position.get();
-        let text_tracks_list = self.text_tracks_list.get()?;
         Some(
             text_tracks_list
                 .iter(no_gc)
@@ -830,7 +833,12 @@ impl HTMLMediaElement {
         // Step 2. Let other cues be a list of cues, initialized to contain
         // all the cues of hidden and showing text tracks of the media element
         // that are not present in current cues.
-        let Some((current_cues, other_cues)) = self.current_and_other_cues(cx.no_gc()) else {
+        let Some(text_tracks_list) = self.text_tracks_list.get() else {
+            return;
+        };
+        let Some((current_cues, other_cues)) =
+            self.current_and_other_cues(cx.no_gc(), &text_tracks_list)
+        else {
             return;
         };
         // Step 3. Let last time be the current playback position at the time
@@ -926,6 +934,7 @@ impl HTMLMediaElement {
         // a text track cue target with a time time,
         // the user agent must run these steps:
         let mut events: Vec<(f64, (Atom, DomRoot<TextTrackCue>))> = vec![];
+        let no_gc = cx.no_gc();
         let mut affected_tracks = vec![];
         // https://html.spec.whatwg.org/multipage/#prepare-an-event
         let mut prepare_an_event =
@@ -942,7 +951,7 @@ impl HTMLMediaElement {
                 // the text track track, and the text track cue target.
                 events.push((time, (event, text_track_cue)));
                 // Step 4. Add track to affected tracks.
-                affected_tracks.push(track);
+                affected_tracks.push(track.as_unrooted(no_gc));
             };
 
         // Step 10. For each text track cue in missed cues,
@@ -1000,15 +1009,19 @@ impl HTMLMediaElement {
 
         // Step 15. Sort affected tracks in the same order as the text tracks appear
         // in the media element's list of text tracks, and remove duplicates.
-        // TODO
+        let affected_tracks: Vec<DomRoot<TextTrack>> = text_tracks_list
+            .iter(cx.no_gc())
+            .filter(|text_track| affected_tracks.contains(text_track))
+            .map(|text_track| text_track.as_rooted())
+            .collect();
 
         // Step 16. For each text track in affected tracks, in the list order,
         // queue a media element task given the media element to fire
         // an event named cuechange at the TextTrack object,
         // and, if the text track has a corresponding track element,
         // to then fire an event named cuechange at the track element as well.
-        for text_track in affected_tracks {
-            let text_track = Trusted::new(&*text_track);
+        for text_track in &affected_tracks {
+            let text_track = Trusted::new(&**text_track);
 
             self.owner_global()
                 .task_manager()
@@ -1038,7 +1051,16 @@ impl HTMLMediaElement {
         // if it is not the empty string.
         // For example, for text tracks based on WebVTT,
         // the rules for updating the display of WebVTT text tracks. [WEBVTT]
-        // TODO
+        //
+        // TODO(https://github.com/whatwg/html/issues/12994): Figure out how to pass in language
+        // as well as handling multiple text tracks with different updating rules
+        RulesForUpdatingTheTextTrackRendering::WebVTT.run(
+            cx,
+            self,
+            affected_tracks,
+            None,
+            ShouldResetRenderingControls::No,
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#internal-play-steps>
@@ -3246,11 +3268,43 @@ impl HTMLMediaElement {
         }
 
         self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+
+        // https://html.spec.whatwg.org/multipage/#embedded-content-rendering-rules:rules-for-updating-the-text-track-rendering
+        // > When the user agent starts exposing a user interface for a video element,
+        // > the user agent should run the rules for updating the text track rendering
+        // > of each of the text tracks in the video element's list of text tracks
+        // > that are showing and whose text track kind is one of subtitles or captions
+        // > (e.g., for text tracks based on WebVTT,
+        // > the rules for updating the display of WebVTT text tracks). [WEBVTT]
+        self.run_rules_for_updating_the_text_track_rendering_for_current_tracks(cx);
     }
 
-    fn remove_controls(&self) {
+    fn remove_controls(&self, cx: &mut JSContext) {
         if let Some(id) = self.media_controls_id.borrow_mut().take() {
+            // We also rerun this when removing controls, even if time marches on
+            // hasn't run yet. That way, existing cues that are rendered will be
+            // repositioned accordingly
+            self.run_rules_for_updating_the_text_track_rendering_for_current_tracks(cx);
             self.owner_document().unregister_media_controls(&id);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#embedded-content-rendering-rules:rules-for-updating-the-text-track-rendering>
+    fn run_rules_for_updating_the_text_track_rendering_for_current_tracks(
+        &self,
+        cx: &mut JSContext,
+    ) {
+        if let Some(text_track_list) = self.text_tracks_list.get() {
+            RulesForUpdatingTheTextTrackRendering::WebVTT.run(
+                cx,
+                self,
+                text_track_list
+                    .iter(cx.no_gc())
+                    .map(|text_track| text_track.as_rooted())
+                    .collect(),
+                None,
+                ShouldResetRenderingControls::Yes,
+            );
         }
     }
 
@@ -3925,7 +3979,7 @@ impl VirtualMethods for HTMLMediaElement {
                 if mutation.new_value(attr).is_some() {
                     self.render_controls(cx);
                 } else {
-                    self.remove_controls();
+                    self.remove_controls(cx);
                 }
             },
             _ => (),
@@ -3936,7 +3990,7 @@ impl VirtualMethods for HTMLMediaElement {
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
 
-        self.remove_controls();
+        self.remove_controls(cx);
 
         // Step 1. Await a stable state, allowing the task that removed the media element from the Document to continue.
         // The synchronous section consists of all the remaining steps of this algorithm.
