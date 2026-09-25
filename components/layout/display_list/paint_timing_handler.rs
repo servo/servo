@@ -16,7 +16,7 @@ use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use webrender_api::units::{LayoutRect, LayoutSize};
 
-use crate::fragment_tree::Tag;
+use crate::fragment_tree::{Fragment, Tag};
 use crate::query::transform_f32_rectangle;
 
 /// <https://w3c.github.io/paint-timing/#pending-image-record>
@@ -175,12 +175,60 @@ impl PaintTimingHandler {
         !self.paintable_bounding_rect(bounds).is_empty()
     }
 
-    /// Marks wether the document is having paintable element
+    /// <https://www.w3.org/TR/paint-timing/#contentful>
+    pub(crate) fn contentful(&self, fragment: &Fragment, is_resolved_image: bool) -> bool {
+        // An element target is contentful when one or more of the following
+        // apply:
+        match fragment {
+            // > target has a text node child, representing non-empty text, and
+            // > the node's used opacity is greater than zero.
+            // NOTE: Opacity is already dealt in paintable check.
+            Fragment::Text(fragment) => {
+                !fragment.is_empty_for_text_cursor && !fragment.glyphs.is_empty()
+            },
+            // > target is a replaced element representing an available image.
+            // > target is a canvas with its context mode set to any value other than none.
+            // NOTE: We make [`ImageFragmnet`] for `ReplacedContentKind::Canvas`
+            // > target is a video element that represents its poster frame or the first
+            // > video frame and the frame is available.
+            // NOTE: We make [`ImageFragmnet`] for `ReplacedContentKind::Video` poster
+            // > target is an svg element with rendered descendants.
+            // NOTE: We make [`ImageFragmnet`] for `ReplacedContentKind::SVGElement`
+            // > target is an input element with a non-empty value attribute.
+            // NOTE: Not decided here, as the value attribute is not part of this fragment.
+            // > target is an originating element for a paintable pseudo-element that
+            // > represents a contentful image or non-empty text.
+            // NOTE: Handled by above cases
+            Fragment::Image(fragment) => {
+                fragment.image_key.is_some() && !fragment.showing_broken_image_icon
+            },
+            // > target has a background-image which is a contentful image, and its used
+            // > background-size has non-zero width and height values.
+            // NOTE: Background Image is built from Fragment::Box, and contentful image
+            // is fullfilled using is_resolved_image.
+            Fragment::Box(..) => is_resolved_image,
+            _ => false,
+        }
+    }
+
+    /// Marks wether the document is having paintable and contentful element
     ///
     /// <https://www.w3.org/TR/paint-timing/#paintable>
-    pub(crate) fn check_if_paintable(&mut self, bounds: LayoutRect, opacity: f32) {
+    /// <https://www.w3.org/TR/paint-timing/#contentful>
+    pub(crate) fn check_if_paintable_and_contentful(
+        &mut self,
+        fragment: &Fragment,
+        bounds: LayoutRect,
+        opacity: f32,
+        is_resolved_image: bool,
+    ) {
         if self.paintable(bounds, opacity) {
             self.mark_document_is_paintable();
+
+            // Note: Because spec asks contentful in conjuction with paintable.
+            if self.contentful(fragment, is_resolved_image) {
+                self.mark_document_is_contentful();
+            }
         }
     }
 

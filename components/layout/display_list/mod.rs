@@ -270,10 +270,6 @@ impl DisplayListBuilder<'_> {
         self.paint_timing_handler.mark_document_is_paintable();
     }
 
-    fn mark_is_contentful(&mut self) {
-        self.paint_timing_handler.mark_document_is_contentful();
-    }
-
     fn spatial_id(&self, id: ScrollTreeNodeId) -> SpatialId {
         self.paint_info.scroll_tree.webrender_id(id)
     }
@@ -799,8 +795,12 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         // > A parent frame should not be aware of the paint events from its child iframes, and
         // > vice versa. This means that a frame that contains just iframes will have first paint
         // > (due to the enclosing boxes of the iframes) but no first contentful paint.
-        self.paint_timing_handler
-            .check_if_paintable(rect.to_webrender(), style.clone_opacity());
+        self.paint_timing_handler.check_if_paintable_and_contentful(
+            &Fragment::IFrame(Arc::clone(fragment)),
+            rect.to_webrender(),
+            style.clone_opacity(),
+            false, /* is_resolved_image */
+        );
     }
 
     fn visit_image(
@@ -838,19 +838,19 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                 wr::ColorF::WHITE,
             );
 
-            self.paint_timing_handler
-                .check_if_paintable(rect, style.clone_opacity());
+            self.paint_timing_handler.check_if_paintable_and_contentful(
+                &Fragment::Image(Arc::clone(fragment)),
+                rect,
+                style.clone_opacity(),
+                false, /* is_resolved_image */
+            );
 
-            // From <https://www.w3.org/TR/paint-timing/#contentful>:
-            // An element target is contentful when one or more of the following apply:
-            // > target is a replaced element representing an available image.
-            // From: <https://html.spec.whatwg.org/multipage/#img-available>
-            // When an image request's state is either partially available or completely available,
-            // the image request is said to be available.
-            // Hence, Skip Broken Images.
+            // From <https://w3c.github.io/paint-timing/#timing-eligible>:
+            // An element is timing-eligible if it is one of the following:
+            // > an img element.
+            // Refer <https://github.com/w3c/largest-contentful-paint/issues/177>:
+            // Spec perhaps misses contentful aka available condition
             if !fragment.showing_broken_image_icon {
-                self.mark_is_contentful();
-
                 self.collect_image_record(
                     state,
                     rect,
@@ -1040,7 +1040,7 @@ impl InspectorHighlight {
 
 impl Fragment {
     fn build_display_list_for_text_fragment(
-        fragment: &TextFragment,
+        fragment: &Arc<TextFragment>,
         builder: &mut DisplayListBuilder,
         state: &TraversalState,
         line_box_rect: &PhysicalRect<Au>,
@@ -1167,12 +1167,12 @@ impl Fragment {
 
         builder
             .paint_timing_handler
-            .check_if_paintable(glyph_bounds, parent_style.clone_opacity());
-
-        // From <https://www.w3.org/TR/paint-timing/#contentful>:
-        // An element target is contentful when one or more of the following apply:
-        // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
-        builder.mark_is_contentful();
+            .check_if_paintable_and_contentful(
+                &Fragment::Text(Arc::clone(fragment)),
+                glyph_bounds,
+                parent_style.clone_opacity(),
+                false, /* is_resolved_image */
+            );
 
         // Accumulate this text fragment for LCP by the containing element's tag
         if let Some(tag) = state.containing_element_tag &&
@@ -1824,7 +1824,12 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                     builder
                         .paint_timing_handler
-                        .check_if_paintable(layer.bounds, style.clone_opacity());
+                        .check_if_paintable_and_contentful(
+                            &Fragment::Box(Arc::clone(self.fragment.box_fragment)),
+                            layer.bounds,
+                            style.clone_opacity(),
+                            false, /* is_resolved_image */
+                        );
                 },
                 ResolvedImage::Image { image, size } => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
@@ -1887,13 +1892,12 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                         builder
                             .paint_timing_handler
-                            .check_if_paintable(layer.bounds, style.clone_opacity());
-
-                        // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
-                        // An element target is contentful when one or more of the following apply:
-                        // > target has a background-image which is a contentful image, and its used
-                        // > background-size has non-zero width and height values.
-                        builder.mark_is_contentful();
+                            .check_if_paintable_and_contentful(
+                                &Fragment::Box(Arc::clone(self.fragment.box_fragment)),
+                                layer.bounds,
+                                style.clone_opacity(),
+                                true, /* is_resolved_image */
+                            );
 
                         let natural_width = Some(Au::from_f32_px(size.width / dppx));
                         let natural_height = Some(Au::from_f32_px(size.height / dppx));
@@ -2092,16 +2096,6 @@ impl<'a> BuilderForBoxFragment<'a> {
                     return false;
                 };
 
-                builder
-                    .paint_timing_handler
-                    .check_if_paintable(Box2D::from_size(size.cast_unit()), style.clone_opacity());
-
-                // From <https://www.w3.org/TR/paint-timing/#contentful>:
-                // An element target is contentful when one or more of the following apply:
-                // > target has a background-image which is a contentful image,
-                // > and its used background-size has non-zero width and height values.
-                builder.mark_is_contentful();
-
                 width = size.width;
                 height = size.height;
                 let image_rendering = style.clone_image_rendering().to_webrender();
@@ -2161,6 +2155,14 @@ impl<'a> BuilderForBoxFragment<'a> {
             details,
         );
         builder.wr().push_stops(&stops);
+        builder
+            .paint_timing_handler
+            .check_if_paintable_and_contentful(
+                &Fragment::Box(Arc::clone(self.fragment.box_fragment)),
+                Box2D::from_size(Size2D::new(size.width as f32, size.height as f32)),
+                style.clone_opacity(),
+                matches!(source, NinePatchBorderSource::Image(..)), /* is_resolved_image */
+            );
         true
     }
 
