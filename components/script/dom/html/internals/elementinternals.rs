@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use html5ever::local_name;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
@@ -187,7 +187,7 @@ impl ElementInternals {
 
     pub(crate) fn is_invalid(&self, cx: &mut JSContext) -> bool {
         self.is_target_form_associated() &&
-            self.is_instance_validatable() &&
+            self.is_instance_validatable(cx.no_gc()) &&
             !self.satisfies_constraints(cx)
     }
 
@@ -353,13 +353,13 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-willvalidate>
-    fn GetWillValidate(&self) -> Fallible<bool> {
+    fn GetWillValidate(&self, no_gc: &NoGC) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported(Some(
                 "The target element is not a form-associated custom element".to_owned(),
             )));
         }
-        Ok(self.is_instance_validatable())
+        Ok(self.is_instance_validatable(no_gc))
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-form>
@@ -423,7 +423,7 @@ impl Validatable for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#candidate-for-constraint-validation>
-    fn is_instance_validatable(&self) -> bool {
+    fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {
         debug_assert!(self.is_target_form_associated());
         if !self.target_element.is_submittable_element() {
             return false;
@@ -434,6 +434,6 @@ impl Validatable for ElementInternals {
         // or the element has a datalist element ancestor.
         !self.as_element().read_write_state() &&
             !self.as_element().disabled_state() &&
-            !is_barred_by_datalist_ancestor(self.target_element.upcast::<Node>())
+            !is_barred_by_datalist_ancestor(no_gc, self.target_element.upcast::<Node>())
     }
 }

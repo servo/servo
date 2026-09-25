@@ -6,7 +6,7 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use pixels::RasterImage;
 use script_bindings::cell::DomRefCell;
@@ -107,8 +107,8 @@ impl HTMLObjectElementMethods<crate::DomTypeHolder> for HTMLObjectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
-    fn WillValidate(&self) -> bool {
-        self.is_instance_validatable()
+    fn WillValidate(&self, no_gc: &NoGC) -> bool {
+        self.is_instance_validatable(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
@@ -147,7 +147,7 @@ impl Validatable for HTMLObjectElement {
             .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
-    fn is_instance_validatable(&self) -> bool {
+    fn is_instance_validatable(&self, _no_gc: &NoGC) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-object-element%3Abarred-from-constraint-validation
         false
     }

@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, RgbColor, SelectedFile};
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::jsapi::{ClippedTime, JSObject, RegExpFlag_UnicodeSets, RegExpFlags};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers2::{
@@ -1560,8 +1560,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
-    fn WillValidate(&self) -> bool {
-        self.is_instance_validatable()
+    fn WillValidate(&self, no_gc: &NoGC) -> bool {
+        self.is_instance_validatable(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
@@ -2045,7 +2045,7 @@ impl VirtualMethods for HTMLInputElement {
                 let el = self.upcast::<Element>();
                 el.set_disabled_state(disabled_state);
                 el.set_enabled_state(!disabled_state);
-                el.check_ancestors_disabled_state_for_form_control();
+                el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
 
                 if self.input_type().is_textual() {
                     let read_write = !(self.ReadOnly() || el.disabled_state());
@@ -2278,7 +2278,7 @@ impl VirtualMethods for HTMLInputElement {
             s.bind_to_tree(cx, context);
         }
         self.upcast::<Element>()
-            .check_ancestors_disabled_state_for_form_control();
+            .check_ancestors_disabled_state_for_form_control(cx.no_gc());
 
         self.input_type()
             .as_specific()
@@ -2302,7 +2302,7 @@ impl VirtualMethods for HTMLInputElement {
             .ancestors()
             .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
         {
-            el.check_ancestors_disabled_state_for_form_control();
+            el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
         } else {
             el.check_disabled_attribute();
         }
@@ -2436,7 +2436,7 @@ impl Validatable for HTMLInputElement {
             .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
-    fn is_instance_validatable(&self) -> bool {
+    fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {
         // https://html.spec.whatwg.org/multipage/#hidden-state-(type%3Dhidden)%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#button-state-(type%3Dbutton)%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#reset-button-state-(type%3Dreset)%3Abarred-from-constraint-validation
@@ -2448,7 +2448,7 @@ impl Validatable for HTMLInputElement {
             _ => {
                 !(self.upcast::<Element>().disabled_state() ||
                     self.ReadOnly() ||
-                    is_barred_by_datalist_ancestor(self.upcast()))
+                    is_barred_by_datalist_ancestor(no_gc, self.upcast()))
             },
         }
     }

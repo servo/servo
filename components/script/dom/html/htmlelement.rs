@@ -1320,7 +1320,7 @@ impl VirtualMethods for HTMLElement {
             {
                 element.set_disabled_state(false);
                 element.set_enabled_state(true);
-                element.check_ancestors_disabled_state_for_form_control();
+                element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
                 if element.enabled_state() {
                     ScriptThread::enqueue_callback_reaction(
                         cx,
@@ -1362,7 +1362,7 @@ impl VirtualMethods for HTMLElement {
         // ancestors is a fieldset.
         let element = self.as_element();
         if self.is_form_associated_custom_element() && element.enabled_state() {
-            element.check_ancestors_disabled_state_for_form_control();
+            element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
             if element.disabled_state() {
                 ScriptThread::enqueue_callback_reaction(
                     cx,
@@ -1426,7 +1426,7 @@ impl VirtualMethods for HTMLElement {
         // TODO: This should likely just call reset on form owner.
         if self.is_form_associated_custom_element() && element.disabled_state() {
             element.check_disabled_attribute();
-            element.check_ancestors_disabled_state_for_form_control();
+            element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
             if element.enabled_state() {
                 ScriptThread::enqueue_callback_reaction(
                     cx,
