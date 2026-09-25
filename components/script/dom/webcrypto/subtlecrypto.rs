@@ -1166,7 +1166,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         // exception when a JS error is thrown. When this happens, we report the
                         // error.
                         match jwk.stringify(cx) {
-                            Ok(stringified) => Zeroizing::new(stringified.as_bytes().to_vec()),
+                            Ok(stringified) => {
+                                Zeroizing::new(stringified.as_bytes(cx.no_gc()).to_vec())
+                            },
                             Err(error) => {
                                 let promise = Promise::new_in_realm(cx);
                                 promise.reject_error(cx, error);
@@ -1479,7 +1481,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let bytes = match exported_key {
                     ExportedKey::Bytes(bytes) => bytes,
                     ExportedKey::Jwk(jwk) => match jwk.stringify(cx) {
-                        Ok(stringified_jwk) => Zeroizing::new(stringified_jwk.as_bytes().to_vec()),
+                        Ok(stringified_jwk) => Zeroizing::new(stringified_jwk.as_bytes(cx.no_gc()).to_vec()),
                         Err(error) => {
                             subtle.reject_promise_with_error(promise, error);
                             return;

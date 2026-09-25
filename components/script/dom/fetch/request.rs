@@ -476,13 +476,13 @@ impl Request {
                 // Step 37.4. If type is non-null and this’s headers’s header list
                 // does not contain `Content-Type`, then append (`Content-Type`, type) to this’s headers.
                 let content_type_header_name = b"Content-Type";
-                if !request
-                    .Headers(cx)
+                let headers = request.Headers(cx);
+                if !headers
                     .Has(ByteString::new(content_type_header_name.to_vec()))
                     .unwrap()
                 {
-                    let content_type_header_value = contents.as_bytes();
-                    request.Headers(cx).Append(
+                    let content_type_header_value = contents.as_bytes(cx.no_gc());
+                    headers.Append(
                         ByteString::new(content_type_header_name.to_vec()),
                         ByteString::new(content_type_header_value.to_vec()),
                     )?;

@@ -454,7 +454,7 @@ fn initialize_response(
         {
             response.Headers(cx).Append(
                 ByteString::new(b"Content-Type".to_vec()),
-                ByteString::new(content_type_contents.as_bytes().to_vec()),
+                ByteString::new(content_type_contents.as_bytes(cx.no_gc()).to_vec()),
             )?;
         };
     } else {

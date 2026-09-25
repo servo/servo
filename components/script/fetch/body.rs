@@ -626,7 +626,7 @@ impl Extractable for DOMString {
         global: &GlobalScope,
         _keep_alive: bool,
     ) -> Fallible<ExtractedBody> {
-        let bytes = self.as_bytes().to_owned();
+        let bytes = self.as_bytes(cx.no_gc()).to_owned();
         let total_bytes = bytes.len();
         let content_type = Some(DOMString::from_static("text/plain;charset=UTF-8"));
         let stream = stream_from_body_init_bytes(cx, global, bytes)?;
