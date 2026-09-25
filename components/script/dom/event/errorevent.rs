@@ -13,8 +13,9 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::codegen::Bindings::ErrorEventBinding;
-use crate::dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
+use crate::dom::bindings::codegen::Bindings::ErrorEventBinding::{
+    ErrorEventInit, ErrorEventMethods,
+};
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
@@ -107,7 +108,7 @@ impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: DOMString,
-        init: &ErrorEventBinding::ErrorEventInit,
+        init: &ErrorEventInit,
     ) -> Fallible<DomRoot<ErrorEvent>> {
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),

@@ -12,8 +12,9 @@ use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::MessageEventBinding;
-use crate::dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
+use crate::dom::bindings::codegen::Bindings::MessageEventBinding::{
+    MessageEventInit, MessageEventMethods,
+};
 use crate::dom::bindings::codegen::UnionTypes::WindowProxyOrMessagePortOrServiceWorker;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
@@ -224,7 +225,7 @@ impl MessageEvent {
     }
 
     pub(crate) fn dispatch_error(cx: &mut JSContext, target: &EventTarget, scope: &GlobalScope) {
-        let init = MessageEventBinding::MessageEventInit::empty();
+        let init = MessageEventInit::empty();
         let messageevent = MessageEvent::new(
             cx,
             scope,
@@ -248,7 +249,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: DOMString,
-        init: &MessageEventBinding::MessageEventInit,
+        init: &MessageEventInit,
     ) -> Fallible<DomRoot<MessageEvent>> {
         let ev = MessageEvent::new_with_proto(
             cx,
