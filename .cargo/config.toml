@@ -34,4 +34,3 @@ RUSTC_BOOTSTRAP = "crown,script,script_webgpu,script_bindings,style_tests,mozjs,
 
 [build]
 rustdocflags = ["--document-private-items"]
-jobs = 5
