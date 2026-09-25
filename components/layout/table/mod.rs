@@ -91,9 +91,9 @@ use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
 };
 use crate::fragment_tree::BaseFragmentInfo;
-use crate::geom::PhysicalVec;
+use crate::geom::{LogicalVec2, PhysicalVec};
 use crate::layout_box_base::LayoutBoxBase;
-use crate::style_ext::BorderStyleColor;
+use crate::style_ext::{AspectRatio, BorderStyleColor, ComputedValuesExt};
 use crate::table::layout::TableLayout;
 use crate::{PropagatedBoxTreeData, SharedStyle};
 
@@ -218,6 +218,14 @@ impl Table {
             .flat_map(|row| row.iter())
             .map(TableSlot::subtree_size)
             .sum()
+    }
+
+    #[inline]
+    pub(crate) fn preferred_aspect_ratio(
+        &self,
+        padding_border_sums: &LogicalVec2<Au>,
+    ) -> Option<AspectRatio> {
+        self.style.preferred_aspect_ratio(None, padding_border_sums)
     }
 }
 
