@@ -1860,11 +1860,7 @@ impl WindowOrDissimilarOriginWindow {
     ) -> Option<DomRoot<WindowProxy>> {
         let window_proxy = self.window_proxy();
         let browsing_context_id = if let Some(document) = window_proxy.document() {
-            document
-                .iframes()
-                .at_index(index as usize)?
-                .element
-                .browsing_context_id()?
+            document.iframes().at_insertion_index(index as usize)?
         } else {
             let parent_browsing_context_id = window_proxy.browsing_context_id();
             let (result_sender, result_receiver) = generic_channel::channel().unwrap();

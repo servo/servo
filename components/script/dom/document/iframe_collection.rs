@@ -34,12 +34,16 @@ pub(crate) struct IFrameCollection {
     /// The `<iframe>`s in the collection. These are kept in DOM tree order to ensure that
     /// requestAnimationFrame callbacks respect that order.
     iframes: Vec<IFrame>,
+    /// The same `<iframe>`s in [`Self::iframes`], but stored in insertion order for use
+    /// in the `WindowProxy` subframe getter.
+    iframe_in_insertion_order: Vec<Dom<HTMLIFrameElement>>,
 }
 
 impl IFrameCollection {
     pub(crate) fn new() -> Self {
         Self {
             iframes: Default::default(),
+            iframe_in_insertion_order: Default::default(),
         }
     }
 
@@ -75,17 +79,28 @@ impl IFrameCollection {
                 size,
             },
         );
+
+        self.iframe_in_insertion_order
+            .push(Dom::from_ref(iframe_element));
     }
 
     pub(crate) fn remove(&mut self, iframe_element: &HTMLIFrameElement) -> Option<ViewportDetails> {
+        self.iframe_in_insertion_order
+            .retain(|iframe| *iframe != iframe_element);
         self.iframes
             .iter()
             .position(|iframe| &*iframe.element == iframe_element)
             .and_then(|index| self.iframes.remove(index).size)
     }
 
-    pub(crate) fn at_index(&self, index: usize) -> Option<&IFrame> {
-        self.iframes.get(index)
+    /// Get the [`BrowsingContextId`] of the `<iframe>` element at the given
+    /// position in insertion order, filtering out `<iframe>`s that do not have
+    /// a browsing context.
+    pub(crate) fn at_insertion_index(&self, index: usize) -> Option<BrowsingContextId> {
+        self.iframe_in_insertion_order
+            .iter()
+            .filter_map(|iframe| iframe.browsing_context_id())
+            .nth(index)
     }
 
     pub(crate) fn get(&self, browsing_context_id: BrowsingContextId) -> Option<&IFrame> {
