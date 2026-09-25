@@ -35,9 +35,9 @@ pub(crate) fn generate_key(
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
     ec_common::generate_key(
-        EcAlgorithm::Ecdh,
         cx,
         global,
+        EcAlgorithm::Ecdh,
         normalized_algorithm,
         extractable,
         usages,
@@ -236,9 +236,9 @@ pub(crate) fn import_key(
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     ec_common::import_key(
-        EcAlgorithm::Ecdh,
         cx,
         global,
+        EcAlgorithm::Ecdh,
         normalized_algorithm,
         format,
         key_data,

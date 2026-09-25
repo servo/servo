@@ -165,9 +165,9 @@ pub(crate) fn generate_key(
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
     rsa_common::generate_key(
-        RsaAlgorithm::RsaOaep,
         cx,
         global,
+        RsaAlgorithm::RsaOaep,
         normalized_algorithm,
         extractable,
         usages,
@@ -185,9 +185,9 @@ pub(crate) fn import_key(
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     rsa_common::import_key(
-        RsaAlgorithm::RsaOaep,
         cx,
         global,
+        RsaAlgorithm::RsaOaep,
         normalized_algorithm,
         format,
         key_data,
@@ -210,5 +210,5 @@ pub(crate) fn get_public_key(
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
-    rsa_common::get_public_key(RsaAlgorithm::RsaOaep, cx, global, key, algorithm, usages)
+    rsa_common::get_public_key(cx, global, RsaAlgorithm::RsaOaep, key, algorithm, usages)
 }
