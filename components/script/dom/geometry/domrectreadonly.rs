@@ -8,9 +8,7 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{
-    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto,
-};
+use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
 use servo_base::id::{DomRectId, DomRectIndex};
 use servo_constellation_traits::DomRect;
 
@@ -114,7 +112,7 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
     ) -> DomRoot<DOMRectReadOnly> {
         let dom_rect = create_a_domrectreadonly_from_the_dictionary(other);
 
-        reflect_dom_object_with_cx(Box::new(dom_rect), global, cx)
+        reflect_dom_object(cx, Box::new(dom_rect), global)
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-x>

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use itertools::Itertools;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -31,7 +31,7 @@ impl DOMStringList {
         global: &GlobalScope,
         strings: Vec<DOMString>,
     ) -> DomRoot<DOMStringList> {
-        reflect_dom_object_with_cx(Box::new(DOMStringList::new_inherited(strings)), global, cx)
+        reflect_dom_object(cx, Box::new(DOMStringList::new_inherited(strings)), global)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#sorted-name-list>

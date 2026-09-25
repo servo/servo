@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::FileSystemBinding::FileSystemMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -34,7 +34,7 @@ impl FileSystem {
         name: USVString,
         root: &FileSystemDirectoryEntry,
     ) -> DomRoot<FileSystem> {
-        reflect_dom_object_with_cx(Box::new(FileSystem::new_inherited(name, root)), global, cx)
+        reflect_dom_object(cx, Box::new(FileSystem::new_inherited(name, root)), global)
     }
 }
 

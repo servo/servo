@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::typedarray::{Float32, HeapFloat32Array};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
@@ -48,7 +48,7 @@ impl GamepadPose {
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
     ) -> DomRoot<GamepadPose> {
-        reflect_dom_object_with_cx(Box::new(GamepadPose::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(GamepadPose::new_inherited()), global)
     }
 }
 

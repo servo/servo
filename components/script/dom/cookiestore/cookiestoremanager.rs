@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::{Dom, DomRoot};
 use servo_url::ServoUrl;
 
@@ -54,7 +54,7 @@ impl CookieStoreManager {
     ) -> DomRoot<CookieStoreManager> {
         // The cookies getter steps are to return this's associated
         // CookieStoreManager object.
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(registration)), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited(registration)), global)
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestoremanager-subscribe>

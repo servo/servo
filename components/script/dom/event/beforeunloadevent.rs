@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
@@ -35,7 +35,7 @@ impl BeforeUnloadEvent {
         cx: &mut JSContext,
         window: &Window,
     ) -> DomRoot<BeforeUnloadEvent> {
-        reflect_dom_object_with_cx(Box::new(BeforeUnloadEvent::new_inherited()), window, cx)
+        reflect_dom_object(cx, Box::new(BeforeUnloadEvent::new_inherited()), window)
     }
 
     pub(crate) fn new(

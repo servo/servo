@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use servo_base::id::{DomRectId, DomRectIndex};
 use servo_constellation_traits::DomRect;
 
@@ -83,7 +83,7 @@ impl DOMRectMethods<crate::DomTypeHolder> for DOMRect {
     fn FromRect(cx: &mut JSContext, global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMRect> {
         let rect = create_a_domrectreadonly_from_the_dictionary(other);
 
-        reflect_dom_object_with_cx(Box::new(Self { rect }), global, cx)
+        reflect_dom_object(cx, Box::new(Self { rect }), global)
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domrect-x>

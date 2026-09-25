@@ -9,7 +9,7 @@ use script_bindings::codegen::GenericBindings::CredentialsContainerBinding::{
 };
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::CredentialsContainerBinding::CredentialsContainerMethods;
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
@@ -31,7 +31,7 @@ impl CredentialsContainer {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<CredentialsContainer> {
-        reflect_dom_object_with_cx(Box::new(CredentialsContainer::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(CredentialsContainer::new_inherited()), global)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-request-a-credential>

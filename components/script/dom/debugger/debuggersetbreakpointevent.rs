@@ -6,7 +6,7 @@ use std::fmt::Debug;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerSetBreakpointEventBinding::DebuggerSetBreakpointEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -37,7 +37,7 @@ impl DebuggerSetBreakpointEvent {
             script_id,
             offset,
         });
-        let result = reflect_dom_object_with_cx(result, debugger_global, cx);
+        let result = reflect_dom_object(cx, result, debugger_global);
         result
             .event
             .init_event("setBreakpoint".into(), false, false);

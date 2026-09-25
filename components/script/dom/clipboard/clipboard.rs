@@ -10,7 +10,7 @@ use embedder_traits::EmbedderMsg;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue as SafeHandleValue;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_constellation_traits::BlobImpl;
 
 use super::clipboarditem::Representation;
@@ -91,7 +91,7 @@ impl Clipboard {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Clipboard> {
-        reflect_dom_object_with_cx(Box::new(Clipboard::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(Clipboard::new_inherited()), global)
     }
 }
 
