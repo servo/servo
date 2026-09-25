@@ -211,10 +211,7 @@ impl SubtleCrypto {
         }
     }
 
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        global: &GlobalScope,
-    ) -> DomRoot<SubtleCrypto> {
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<SubtleCrypto> {
         reflect_dom_object_with_cx(Box::new(SubtleCrypto::new_inherited()), global, cx)
     }
 
