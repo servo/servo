@@ -20,6 +20,8 @@ use js::jsapi::JSTracer;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 use crate::JSTraceable;
+use crate::codegen::PrototypeList::proto_id_to_id;
+use crate::conversions::IDLInterface;
 use crate::dom::UnrootedDom;
 use crate::reflector::DomObject;
 use crate::root::DomRoot;
@@ -30,9 +32,12 @@ use crate::root::DomRoot;
 pub struct WeakRef<T: WeakReferenceable>(Weak<T>);
 
 /// Trait implemented by weak-referenceable interfaces.
-pub trait WeakReferenceable: DomObject + Sized {
+pub trait WeakReferenceable: IDLInterface + DomObject + Sized {
     /// Downgrade a DOM object reference to a weak one.
+    ///
+    /// Panics if the object is parent type not leaf type
     fn downgrade(&self) -> WeakRef<Self> {
+        assert_eq!(Self::PROTO_ID, proto_id_to_id(self.reflector().proto_id()));
         let rc = unsafe { Rc::from_raw(self as *const Self) };
         let weak = WeakRef(Rc::downgrade(&rc));
         mem::forget(rc);
