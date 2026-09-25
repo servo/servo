@@ -14,25 +14,15 @@
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-actions.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/visual-viewport/viewport_support.js"></script>
 </head>
 
 <body>
   <div style="font-size: 50px;">This page can not be pinch zoomed, it is clamped using meta viewport scale.</div>
   <script> promise_test(async () => {
-      const x = 200, y = 200;
       const initialScale = window.visualViewport.scale;
-      // Perform pinch zoom
-      await new test_driver.Actions()
-        .addPointer("f1", "touch")
-        .addPointer("f2", "touch")
-        .pointerMove(x, y, { origin: "viewport", sourceName: "f1" })
-        .pointerMove(x + 100, y + 100, { origin: "viewport", sourceName: "f2" })
-        .pointerDown({ sourceName: "f1" })
-        .pointerDown({ sourceName: "f2" })
-        .pointerMove(x - 100, y - 100, { origin: "viewport", sourceName: "f1", duration: 0 })
-        .pointerMove(x + 100, y + 100, { origin: "viewport", sourceName: "f2", duration: 0 })
-        .pointerUp({ sourceName: "f1" })
-        .pointerUp({ sourceName: "f2" }).send();
+      // Perform Pinch Zoom-In
+      await pinchZoomIn();
       assert_equals(window.visualViewport.scale, initialScale, "Scale should be same");
     }) </script>
 </body>
