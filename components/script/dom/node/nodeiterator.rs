@@ -32,7 +32,11 @@ pub(crate) struct NodeIterator {
 }
 
 impl NodeIterator {
-    fn new_inherited(root_node: &Node, what_to_show: u32, node_filter: Option<RootedCallback<NodeFilter>>) -> NodeIterator {
+    fn new_inherited(
+        root_node: &Node,
+        what_to_show: u32,
+        node_filter: Option<RootedCallback<NodeFilter>>,
+    ) -> NodeIterator {
         NodeIterator {
             reflector_: Reflector::new(),
             root_node: Dom::from_ref(root_node),
@@ -56,7 +60,11 @@ impl NodeIterator {
     ) -> DomRoot<NodeIterator> {
         reflect_dom_object(
             cx,
-            Box::new(NodeIterator::new_inherited(root_node, what_to_show, node_filter)),
+            Box::new(NodeIterator::new_inherited(
+                root_node,
+                what_to_show,
+                node_filter,
+            )),
             document.window(),
         )
     }

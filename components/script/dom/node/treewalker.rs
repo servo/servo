@@ -32,7 +32,11 @@ pub(crate) struct TreeWalker {
 }
 
 impl TreeWalker {
-    fn new_inherited(root_node: &Node, what_to_show: u32, node_filter: Option<RootedCallback<NodeFilter>>) -> TreeWalker {
+    fn new_inherited(
+        root_node: &Node,
+        what_to_show: u32,
+        node_filter: Option<RootedCallback<NodeFilter>>,
+    ) -> TreeWalker {
         TreeWalker {
             reflector_: Reflector::new(),
             root_node: Dom::from_ref(root_node),
@@ -55,7 +59,11 @@ impl TreeWalker {
     ) -> DomRoot<TreeWalker> {
         reflect_dom_object(
             cx,
-            Box::new(TreeWalker::new_inherited(root_node, what_to_show, node_filter)),
+            Box::new(TreeWalker::new_inherited(
+                root_node,
+                what_to_show,
+                node_filter,
+            )),
             document.window(),
         )
     }
