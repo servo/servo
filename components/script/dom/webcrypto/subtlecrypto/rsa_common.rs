@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use base64ct::{Base64UrlUnpadded, Encoding};
 use crypto_bigint::NonZero;
 use js::context::JSContext;
@@ -39,9 +37,9 @@ pub(crate) enum RsaAlgorithm {
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-generate-key>
 pub(crate) fn generate_key(
-    rsa_algorithm: RsaAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    rsa_algorithm: RsaAlgorithm,
     normalized_algorithm: &RsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
@@ -187,9 +185,9 @@ pub(crate) fn generate_key(
 /// When format is "jwk", Step 2.2 and 2.3 in the specification of RSA-OAEP are combined into a single step.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn import_key(
-    rsa_algorithm: RsaAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    rsa_algorithm: RsaAlgorithm,
     normalized_algorithm: &RsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
@@ -985,9 +983,9 @@ pub(crate) fn export_key(
 /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
 /// Step 9 - 15, for RSA algorithms
 pub(crate) fn get_public_key(
-    rsa_algorithm: RsaAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    rsa_algorithm: RsaAlgorithm,
     key: &CryptoKey,
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
