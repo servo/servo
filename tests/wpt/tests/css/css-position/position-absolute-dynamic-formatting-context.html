@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Position: a laid-out formatting context can become absolutely positioned</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#position-property">
+<link rel="author" href="mailto:102797145+mxmgorin@users.noreply.github.com" title="Maxim Gorin">
+<meta name="assert" content="An element that has already been laid out in flow is correctly updated after its position is changed to absolute or fixed, whatever formatting context it establishes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Each case is laid out in flow before being taken out; the resulting box
+// determines the incremental path, making these displays more interesting
+// than a single div.
+const DISPLAYS = ["block", "flex", "grid", "flow-root", "inline-flex"];
+const POSITIONS = ["absolute", "fixed"];
+
+const CONTAINING_BLOCK_SIZE = 300;
+const ELEMENT_WIDTH = 50;
+const ELEMENT_HEIGHT = 60;
+// Inert while the element is in flow, so a box that honors them is out of flow.
+const OFFSET_LEFT = 80;
+const OFFSET_TOP = 70;
+
+function laidOutElement(t, tagName, display) {
+  const container = document.createElement("div");
+  container.style.position = "relative";
+  container.style.width = `${CONTAINING_BLOCK_SIZE}px`;
+  container.style.height = `${CONTAINING_BLOCK_SIZE}px`;
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const element = document.createElement(tagName);
+  element.style.display = display;
+  element.style.width = `${ELEMENT_WIDTH}px`;
+  element.style.height = `${ELEMENT_HEIGHT}px`;
+  element.style.left = `${OFFSET_LEFT}px`;
+  element.style.top = `${OFFSET_TOP}px`;
+  container.appendChild(element);
+
+  // Forces layout, so the change below is incremental rather than part of the
+  // element's initial layout.
+  const rect = element.getBoundingClientRect();
+  assert_equals(rect.height, ELEMENT_HEIGHT,
+                "the element has a box while it is in flow");
+  assert_equals(rect.left, container.getBoundingClientRect().left,
+                "the in-flow element ignores the left property");
+  return { container, element };
+}
+
+function assertPositionedAt(container, element, position) {
+  // An absolute box is placed against its positioned ancestor, a fixed one
+  // against the viewport.
+  const origin = position === "fixed"
+    ? { left: 0, top: 0 }
+    : container.getBoundingClientRect();
+  const rect = element.getBoundingClientRect();
+  assert_equals(rect.left, origin.left + OFFSET_LEFT, "left");
+  assert_equals(rect.top, origin.top + OFFSET_TOP, "top");
+  assert_equals(rect.width, ELEMENT_WIDTH, "width");
+  assert_equals(rect.height, ELEMENT_HEIGHT, "height");
+}
+
+for (const position of POSITIONS) {
+  for (const display of DISPLAYS) {
+    test(t => {
+      const { container, element } = laidOutElement(t, "div", display);
+      element.style.position = position;
+      assertPositionedAt(container, element, position);
+    }, `display: ${display} gets position set to ${position}`);
+  }
+
+  // A block-level replaced element is an independent formatting context too, and
+  // reaches the same path as the containers above.
+  test(t => {
+    const { container, element } = laidOutElement(t, "canvas", "block");
+    element.style.position = position;
+    assertPositionedAt(container, element, position);
+  }, `block-level canvas gets position set to ${position}`);
+}
+</script>
