@@ -3,11 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::callback::OwnerWindow;
+use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::callback::ExceptionHandling::Rethrow;
@@ -33,6 +32,8 @@ pub(crate) struct NodeIterator {
 }
 
 impl NodeIterator {
+    // `filter` is moved directly into the traced `NodeIterator` allocation without running JS.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(root_node: &Node, what_to_show: u32, filter: Filter) -> NodeIterator {
         NodeIterator {
             reflector_: Reflector::new(),
@@ -45,6 +46,8 @@ impl NodeIterator {
         }
     }
 
+    // `filter` is moved into `NodeIterator` before `reflect_dom_object` can run JS.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_with_filter(
         cx: &mut JSContext,
         document: &Document,
@@ -59,16 +62,18 @@ impl NodeIterator {
         )
     }
 
+    // The temporary filter does not cross a JS/GC-capable operation before storage.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         cx: &mut JSContext,
         document: &Document,
         root_node: &Node,
         what_to_show: u32,
-        node_filter: Option<Rc<NodeFilter>>,
+        node_filter: Option<RootedCallback<NodeFilter>>,
     ) -> DomRoot<NodeIterator> {
         let filter = match node_filter {
             None => Filter::None,
-            Some(jsfilter) => Filter::Callback(jsfilter),
+            Some(jsfilter) => Filter::Callback(jsfilter.to_traced()),
         };
         NodeIterator::new_with_filter(cx, document, root_node, what_to_show, filter)
     }
@@ -86,10 +91,10 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nodeiterator-filter>
-    fn GetFilter(&self) -> Option<Rc<NodeFilter>> {
+    fn GetFilter(&self) -> Option<RootedCallback<NodeFilter>> {
         match self.filter {
             Filter::None => None,
-            Filter::Callback(ref nf) => Some((*nf).clone()),
+            Filter::Callback(ref nf) => Some(RootedCallback::from(nf)),
         }
     }
 
@@ -231,9 +236,12 @@ impl NodeIterator {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum Filter {
     None,
-    Callback(#[ignore_malloc_size_of = "callbacks are hard"] Rc<NodeFilter>),
+    Callback(TracedCallback<NodeFilter>),
 }
+
+impl js::gc::Rootable for Filter {}
 
 impl OwnerWindow<crate::DomTypeHolder> for NodeIterator {}

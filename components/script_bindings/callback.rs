@@ -122,6 +122,12 @@ impl<T> From<Rc<T>> for TracedCallback<T> {
     }
 }
 
+impl<T> From<&TracedCallback<T>> for RootedCallback<T> {
+    fn from(callback: &TracedCallback<T>) -> Self {
+        Self(callback.0.clone())
+    }
+}
+
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[derive(JSTraceable, MallocSizeOf)]
