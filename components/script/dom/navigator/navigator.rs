@@ -59,7 +59,7 @@ use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::servointernals::ServoInternals;
 use crate::dom::storagemanager::StorageManager;
-use crate::dom::types::UserActivation;
+use crate::dom::types::{LockManager, UserActivation};
 use crate::dom::wakelock::WakeLock;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
@@ -141,6 +141,7 @@ pub(crate) struct Navigator {
     servo_internals: MutNullableDom<ServoInternals>,
     user_activation: MutNullableDom<UserActivation>,
     wake_lock: MutNullableDom<WakeLock>,
+    locks: MutNullableDom<LockManager>,
 }
 
 impl Navigator {
@@ -169,6 +170,7 @@ impl Navigator {
             servo_internals: Default::default(),
             user_activation: Default::default(),
             wake_lock: Default::default(),
+            locks: Default::default(),
         }
     }
 
@@ -667,6 +669,11 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://w3c.github.io/screen-wake-lock/#dom-navigator-wakelock>
     fn WakeLock(&self, cx: &mut js::context::JSContext) -> DomRoot<WakeLock> {
         self.wake_lock.or_init(|| WakeLock::new(cx, &self.global()))
+    }
+
+    /// <https://w3c.github.io/web-locks/#navigator-mixins>
+    fn Locks(&self, cx: &mut JSContext) -> DomRoot<LockManager> {
+        self.locks.or_init(|| LockManager::new(cx, &self.global()))
     }
 }
 
