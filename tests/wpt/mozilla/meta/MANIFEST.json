@@ -13468,6 +13468,15 @@
       }
      ]
     ],
+    "input-type-password-copy-and-cut.html": [
+     "2dbbe6b2f5003a7cd57ddc98de1447ced44a77e5",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "key-event-text-input-backspace.html": [
      "fa6c35fd6a0ef966c313a9ef7ac720ea6be27113",
      [

@@ -339,9 +339,10 @@ impl DocumentEmbedderControls {
                 .insert(ContextMenuElementInformationFlags::Selection);
         }
 
-        let cutting_and_pasting_enabled = editing_context.cutting_and_pasting_enabled();
-        let can_cut = has_selection && cutting_and_pasting_enabled;
-        if cutting_and_pasting_enabled {
+        let can_cut = has_selection && editing_context.cutting_enabled();
+        let can_copy = has_selection && editing_context.copying_enabled();
+        let can_paste = editing_context.pasting_enabled();
+        if can_paste {
             info.flags
                 .insert(ContextMenuElementInformationFlags::EditableText);
         }
@@ -354,12 +355,12 @@ impl DocumentEmbedderControls {
             ContextMenuItem::Item {
                 label: "Copy".into(),
                 action: ContextMenuAction::Copy,
-                enabled: has_selection,
+                enabled: can_copy,
             },
             ContextMenuItem::Item {
                 label: "Paste".into(),
                 action: ContextMenuAction::Paste,
-                enabled: cutting_and_pasting_enabled,
+                enabled: can_paste,
             },
             ContextMenuItem::Item {
                 label: "Select All".into(),
