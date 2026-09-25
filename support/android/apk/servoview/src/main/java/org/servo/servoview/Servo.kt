@@ -13,6 +13,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.nativeKeyCode
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LifecycleResumeEffect
 
@@ -27,7 +33,26 @@ fun Servo(
     }
     AndroidView(
         factory = { _ -> servoView },
-        modifier = modifier,
+        modifier =
+            modifier.onKeyEvent { keyEvent ->
+                when (keyEvent.type) {
+                    KeyEventType.KeyDown if keyEvent.key != Key.Back -> {
+                        servoView.servo!!.onKeyDown(
+                            keyEvent.key.nativeKeyCode,
+                            keyEvent.nativeKeyEvent,
+                        )
+                        true
+                    }
+                    KeyEventType.KeyUp if keyEvent.key != Key.Back -> {
+                        servoView.servo!!.onKeyUp(
+                            keyEvent.key.nativeKeyCode,
+                            keyEvent.nativeKeyEvent,
+                        )
+                        true
+                    }
+                    else -> false
+                }
+            },
     )
 }
 
