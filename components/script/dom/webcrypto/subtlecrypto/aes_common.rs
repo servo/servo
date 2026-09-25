@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use aes::cipher::common::{Generate, Key};
 use aes::{Aes128, Aes192, Aes256};
 use js::context::JSContext;
@@ -41,9 +39,9 @@ pub(crate) enum AesAlgorithm {
 /// The step order in the specification of AES-OCB is slightly different, but it is equivalent to
 /// this implementation.
 pub(crate) fn generate_key(
-    aes_algorithm: AesAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    aes_algorithm: AesAlgorithm,
     normalized_algorithm: &AesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
@@ -171,9 +169,9 @@ pub(crate) fn generate_key(
 /// As it is simply used to name the variable, it is safe to omit it in the implementation below to
 /// align with the specification of other AES algorithms.
 pub(crate) fn import_key(
-    aes_algorithm: AesAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    aes_algorithm: AesAlgorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,

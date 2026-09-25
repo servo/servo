@@ -152,9 +152,9 @@ pub(crate) fn generate_key(
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     aes_common::generate_key(
-        AesAlgorithm::AesCtr,
         cx,
         global,
+        AesAlgorithm::AesCtr,
         normalized_algorithm,
         extractable,
         usages,
@@ -171,9 +171,9 @@ pub(crate) fn import_key(
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     aes_common::import_key(
-        AesAlgorithm::AesCtr,
         cx,
         global,
+        AesAlgorithm::AesCtr,
         format,
         key_data,
         extractable,
