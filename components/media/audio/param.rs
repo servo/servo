@@ -71,7 +71,6 @@ impl Param {
             time: Tick(0),
             default_value: val,
             val_range: (f32::MIN, f32::MAX),
-            time: Tick(0),
             kind: ParamRate::ARate,
             events: vec![],
             current_event: 0,
