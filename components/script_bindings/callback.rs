@@ -122,9 +122,9 @@ impl<T> From<Rc<T>> for TracedCallback<T> {
     }
 }
 
-impl<T> From<&TracedCallback<T>> for RootedCallback<T> {
-    fn from(callback: &TracedCallback<T>) -> Self {
-        Self(callback.0.clone())
+impl<T> TracedCallback<T> {
+    pub fn root(&self) -> RootedCallback<T> {
+        RootedCallback(self.0.clone())
     }
 }
 

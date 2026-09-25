@@ -94,7 +94,7 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
     fn GetFilter(&self) -> Option<RootedCallback<NodeFilter>> {
         match self.filter {
             Filter::None => None,
-            Filter::Callback(ref nf) => Some(RootedCallback::from(nf)),
+            Filter::Callback(ref nf) => Some(nf.root()),
         }
     }
 
@@ -241,7 +241,5 @@ pub(crate) enum Filter {
     None,
     Callback(TracedCallback<NodeFilter>),
 }
-
-impl js::gc::Rootable for Filter {}
 
 impl OwnerWindow<crate::DomTypeHolder> for NodeIterator {}

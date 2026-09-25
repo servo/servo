@@ -90,7 +90,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
     fn GetFilter(&self) -> Option<RootedCallback<NodeFilter>> {
         match self.filter {
             Filter::None => None,
-            Filter::Dom(ref nf) => Some(RootedCallback::from(nf)),
+            Filter::Dom(ref nf) => Some(nf.root()),
         }
     }
 
@@ -510,7 +510,5 @@ pub(crate) enum Filter {
     None,
     Dom(TracedCallback<NodeFilter>),
 }
-
-impl js::gc::Rootable for Filter {}
 
 impl OwnerWindow<crate::DomTypeHolder> for TreeWalker {}
