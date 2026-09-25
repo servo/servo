@@ -18,7 +18,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::conversions::{ConversionResult, ToJSValConvertible};
+use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use js::gc::MutableHandleValue;
 use js::jsapi::{
     CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JSContext as RawJSContext,
@@ -88,7 +88,7 @@ impl From<&'_ RootedPromise> for TrustedPromise {
     }
 }
 
-impl js::conversions::FromJSValConvertible for RootedPromise {
+impl FromJSValConvertible for RootedPromise {
     type Config = ();
 
     fn from_jsval(

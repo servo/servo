@@ -225,9 +225,6 @@ class DescriptorProvider:
     def callbackUsesRc(self, callbackIdentifier: str) -> bool:
         return self.config.getCallbackConfig(callbackIdentifier).get('rc', False)
 
-    def callbackUsesRcPromise(self, callbackIdentifier: str) -> bool:
-        return self.config.getCallbackConfig(callbackIdentifier).get('useRcPromise', False)
-
 def MemberIsLegacyUnforgeable(member: IDLAttribute | IDLMethod, descriptor: Descriptor) -> bool:
     return ((member.isAttr() or member.isMethod())
             and not member.isStatic()
@@ -325,7 +322,6 @@ class Descriptor(DescriptorProvider):
         self.weakReferenceable = desc.get('weakReferenceable', False)
         self.useSystemCompartment = desc.get('useSystemCompartment', False)
         self.allowDropImpl = desc.get('allowDropImpl', False)
-        self.useRcPromise = desc.get('useRcPromise', False)
         self.useRcCallback = self.interface.isCallback() and desc.get('useRcCallback', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
