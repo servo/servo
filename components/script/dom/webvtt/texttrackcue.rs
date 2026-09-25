@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
@@ -29,6 +30,10 @@ pub(crate) struct TextTrackCue {
     pause_on_exit: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-cue-active-flag>
     active: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-cue-order>
+    /// > in the order they were last added to their respective
+    /// > text track list of cues, oldest first
+    initial_index_in_list: Cell<usize>,
 }
 
 impl TextTrackCue {
@@ -46,6 +51,7 @@ impl TextTrackCue {
             end_time: Cell::new(end_time),
             pause_on_exit: Cell::new(false),
             active: Default::default(),
+            initial_index_in_list: Default::default(),
         }
     }
 
@@ -76,6 +82,10 @@ impl TextTrackCue {
     pub(crate) fn set_active(&self, active: bool) {
         self.active.set(active)
     }
+
+    pub(crate) fn set_initial_index_in_list(&self, initial_index_in_list: usize) {
+        self.initial_index_in_list.set(initial_index_in_list);
+    }
 }
 
 impl TextTrackCueMethods<crate::DomTypeHolder> for TextTrackCue {
@@ -102,6 +112,9 @@ impl TextTrackCueMethods<crate::DomTypeHolder> for TextTrackCue {
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-starttime>
     fn SetStartTime(&self, value: Finite<f64>) {
         self.start_time.set(*value);
+        if let Some(text_track) = self.text_track.get() {
+            text_track.sort_cue_list();
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-endtime>
@@ -112,6 +125,9 @@ impl TextTrackCueMethods<crate::DomTypeHolder> for TextTrackCue {
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-endtime>
     fn SetEndTime(&self, value: Finite<f64>) {
         self.end_time.set(*value);
+        if let Some(text_track) = self.text_track.get() {
+            text_track.sort_cue_list();
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-pauseonexit>
@@ -129,4 +145,37 @@ impl TextTrackCueMethods<crate::DomTypeHolder> for TextTrackCue {
 
     // https://html.spec.whatwg.org/multipage/#handler-texttrackcue-onexit
     event_handler!(exit, GetOnexit, SetOnexit);
+}
+
+impl PartialOrd for TextTrackCue {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for TextTrackCue {
+    /// <https://html.spec.whatwg.org/multipage/#text-track-cue-order>
+    fn cmp(&self, other: &TextTrackCue) -> Ordering {
+        // > cues must be sorted by their start time, earliest first;
+        self.start_time
+            .get()
+            .total_cmp(&other.start_time.get())
+            .then_with(|| {
+                // > then, any cues with the same start time must be sorted by their end time, latest first;
+                self.end_time
+                    .get()
+                    .total_cmp(&other.end_time.get())
+                    .reverse()
+                    .then_with(|| {
+                        // > and finally, any cues with identical end times must be sorted in the order
+                        // > they were last added to their respective text track list of cues,
+                        // > oldest first (so e.g. for cues from a WebVTT file,
+                        // > that would initially be the order in which the cues were listed in the file).
+                        self.initial_index_in_list
+                            .get()
+                            .cmp(&other.initial_index_in_list.get())
+                    })
+            })
+    }
 }
