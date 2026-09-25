@@ -76,7 +76,7 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         init: Option<HeadersInit>,
     ) -> Fallible<DomRoot<Headers>> {
         let dom_headers_new = Headers::new_with_proto(cx, global, proto);
-        dom_headers_new.fill(init)?;
+        dom_headers_new.fill(init.as_ref())?;
         Ok(dom_headers_new)
     }
 
@@ -257,14 +257,12 @@ impl Headers {
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-headers-fill>
-    pub(crate) fn fill(&self, filler: Option<HeadersInit>) -> ErrorResult {
+    pub(crate) fn fill(&self, filler: Option<&HeadersInit>) -> ErrorResult {
         match filler {
             Some(HeadersInit::ByteStringSequenceSequence(v)) => {
-                for mut seq in v {
+                for seq in v {
                     if seq.len() == 2 {
-                        let val = seq.pop().unwrap();
-                        let name = seq.pop().unwrap();
-                        self.Append(name, val)?;
+                        self.Append(seq[0].clone(), seq[1].clone())?;
                     } else {
                         return Err(Error::Type(cformat!(
                             "Each header object must be a sequence of length 2 - found one with length {}",
