@@ -27,7 +27,7 @@ use servo_url::ServoUrl;
 use crate::conversions::Convert;
 use crate::dom::RootedPromise;
 use crate::dom::abortsignal::AbortSignal;
-use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
+use crate::dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{
     ReferrerPolicy, RequestCache, RequestCredentials, RequestDestination, RequestDuplex,
     RequestInfo, RequestInit, RequestMethods, RequestMode, RequestRedirect,
@@ -377,26 +377,10 @@ impl Request {
         // Step 33. If init is not empty, then:
         //
         // but spec says this should only be when non-empty init?
-        let headers_copy = init
-            .headers
-            .as_ref()
-            .map(|possible_header| match possible_header {
-                HeadersInit::ByteStringSequenceSequence(init_sequence) => {
-                    HeadersInit::ByteStringSequenceSequence(init_sequence.clone())
-                },
-                HeadersInit::ByteStringByteStringRecord(init_map) => {
-                    HeadersInit::ByteStringByteStringRecord(init_map.clone())
-                },
-            });
 
         // Step 33.3
         // We cannot empty `r.Headers().header_list` because
-        // we would undo the Step 25 above.  One alternative is to set
-        // `headers_copy` as a deep copy of `r.Headers()`. However,
-        // `r.Headers()` is a `DomRoot<T>`, and therefore it is difficult
-        // to obtain a mutable reference to `r.Headers()`. Without the
-        // mutable reference, we cannot mutate `r.Headers()` to be the
-        // deep copied headers in Step 25.
+        // we would undo the Step 25 above.
 
         // Step 32. If this’s request’s mode is "no-cors", then:
         if request.request.borrow().mode == NetTraitsRequestMode::NoCors {
@@ -412,7 +396,7 @@ impl Request {
             request.Headers(cx).set_guard(Guard::RequestNoCors);
         }
 
-        match headers_copy {
+        match init.headers.as_ref() {
             None => {
                 // Step 33.4. If headers is a Headers object, then for each header of its header list, append header to this’s headers.
                 //
@@ -427,7 +411,7 @@ impl Request {
                 }
             },
             // Step 33.5. Otherwise, fill this’s headers with headers.
-            Some(headers_copy) => request.Headers(cx).fill(Some(headers_copy))?,
+            Some(headers) => request.Headers(cx).fill(Some(headers))?,
         }
 
         // Step 33.5 depending on how we got here

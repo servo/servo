@@ -428,7 +428,7 @@ fn initialize_response(
 
     // 5. If init["headers"] exists, then fill response’s headers with init["headers"].
     if let Some(ref headers_member) = init.headers {
-        response.Headers(cx).fill(Some(headers_member.clone()))?;
+        response.Headers(cx).fill(Some(headers_member))?;
     }
 
     // 6. If body is non-null, then:
