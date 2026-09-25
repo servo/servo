@@ -231,10 +231,12 @@ pub(crate) struct RunningAppState {
     experimental_preferences_enabled: Cell<bool>,
 
     /// The set of [`ServoShellWindow`]s that currently exist for this instance of servoshell.
+    ///
+    /// These are stored in creation order to ensure consistent focus behavior.
     // This is the last field of the struct to ensure that windows are dropped *after* all
     // other references to the relevant rendering contexts have been destroyed.
     // See https://github.com/servo/servo/issues/36711.
-    windows: RefCell<HashMap<ServoShellWindowId, Rc<ServoShellWindow>>>,
+    windows: RefCell<Vec<Rc<ServoShellWindow>>>,
 
     /// The currently focused [`ServoShellWindow`], if one is focused.
     focused_window: RefCell<Option<Rc<ServoShellWindow>>>,
@@ -304,9 +306,7 @@ impl RunningAppState {
         creation_request: TopLevelWebViewCreationRequest,
     ) -> Rc<ServoShellWindow> {
         let window = Rc::new(ServoShellWindow::new(platform_window.clone()));
-        self.windows
-            .borrow_mut()
-            .insert(window.id(), window.clone());
+        self.windows.borrow_mut().push(window.clone());
         window.create_and_activate_toplevel_webview(self.clone(), creation_request);
 
         // If the window already has platform focus, mark it as focused in our application state.
@@ -317,9 +317,7 @@ impl RunningAppState {
         window
     }
 
-    pub(crate) fn windows<'a>(
-        &'a self,
-    ) -> Ref<'a, HashMap<ServoShellWindowId, Rc<ServoShellWindow>>> {
+    pub(crate) fn windows<'a>(&'a self) -> Ref<'a, Vec<Rc<ServoShellWindow>>> {
         self.windows.borrow()
     }
 
@@ -357,14 +355,18 @@ impl RunningAppState {
         }
     }
 
-    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+    #[cfg_attr(target_os = "android", expect(dead_code))]
     pub(crate) fn window(&self, id: ServoShellWindowId) -> Option<Rc<ServoShellWindow>> {
-        self.windows.borrow().get(&id).cloned()
+        self.windows
+            .borrow()
+            .iter()
+            .find(|window| window.id() == id)
+            .cloned()
     }
 
     pub(crate) fn webview_by_id(&self, webview_id: WebViewId) -> Option<WebView> {
         self.windows()
-            .values()
+            .iter()
             .find_map(|window| window.webview_by_id(webview_id))
     }
 
@@ -435,7 +437,7 @@ impl RunningAppState {
     /// Close any [`ServoShellWindow`] that doesn't have an open [`WebView`].
     fn close_empty_windows(&self) {
         let mut move_focus = false;
-        self.windows.borrow_mut().retain(|_, window| {
+        self.windows.borrow_mut().retain(|window| {
             if !self.exit_scheduled.get() && !window.should_close() {
                 return true;
             }
@@ -449,10 +451,13 @@ impl RunningAppState {
             false
         });
 
+        // If the platform doesn't manage focus, then focus the most recently opened
+        // window.
         if move_focus &&
             let Some(newly_focused_window) = self
                 .windows()
-                .values()
+                .iter()
+                .rev()
                 .find(|window| !window.platform_window().platform_manages_focus())
                 .cloned()
         {
@@ -475,12 +480,12 @@ impl RunningAppState {
 
         self.servo.spin_event_loop();
 
-        for window in self.windows.borrow().values() {
+        for window in self.windows.borrow().iter() {
             window.update_and_request_repaint_if_necessary(self);
         }
 
         // We clone here to avoid a double borrow. User interface commands can update the list of windows.
-        let windows: Vec<_> = self.windows.borrow().values().cloned().collect();
+        let windows: Vec<_> = self.windows.borrow().iter().cloned().collect();
         for window in windows {
             window.handle_interface_commands(self, create_platform_window);
         }
@@ -508,7 +513,7 @@ impl RunningAppState {
         // ServoShellWindow yet.
         let rendering_context = webview.rendering_context();
         self.windows()
-            .values()
+            .iter()
             .find(|window| {
                 Rc::ptr_eq(
                     &window.platform_window().rendering_context(),
@@ -731,7 +736,7 @@ impl RunningAppState {
             return;
         }
 
-        for window in self.windows().values() {
+        for window in self.windows().iter() {
             for (_, webview) in window.webviews() {
                 // Activate accessibility in the WebView.
                 // There are two sites like this; this is the a11y activation site.

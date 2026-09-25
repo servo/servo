@@ -169,8 +169,7 @@ impl RunningAppState {
                         },
                         _ => self
                             .windows()
-                            .values()
-                            .nth(0)
+                            .last()
                             .expect("Expected at least one window to be open")
                             .create_toplevel_webview(
                                 self.clone(),
@@ -207,7 +206,7 @@ impl RunningAppState {
                 WebDriverCommandMsg::GetAllWebViews(response_sender) => {
                     let webviews = self
                         .windows()
-                        .values()
+                        .iter()
                         .flat_map(|window| window.webview_ids())
                         .collect();
                     if let Err(error) = response_sender.send(webviews) {

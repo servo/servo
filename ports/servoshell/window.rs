@@ -354,7 +354,7 @@ impl ServoShellWindow {
                     }
                 },
                 UserInterfaceCommand::ReloadAll => {
-                    for window in state.windows().values() {
+                    for window in state.windows().iter() {
                         window.set_needs_update();
                         for (_, webview) in window.webviews() {
                             webview.reload();
