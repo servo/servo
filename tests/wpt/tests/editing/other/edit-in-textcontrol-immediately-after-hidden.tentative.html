@@ -45,7 +45,7 @@ promise_test(async () => {
 promise_test(async () => {
   const [hideTarget, editor] = init();
   try {
-    editor.select();
+    editor.focus();
     hideTarget.style.display = "none";
     document.execCommand("insertText", false, "typed value");
     assert_equals(editor.value, "default value", "The value shouldn't be modified by \"insertText\" command");
@@ -57,7 +57,7 @@ promise_test(async () => {
 promise_test(async () => {
   const [hideTarget, editor] = init();
   try {
-    editor.select();
+    editor.focus();
     hideTarget.style.display = "none";
     document.execCommand("delete");
     assert_equals(editor.value, "default value", "The value shouldn't be modified by \"delete\" command");
@@ -69,7 +69,7 @@ promise_test(async () => {
 promise_test(async () => {
   const [hideTarget, editor] = init();
   try {
-    editor.select();
+    editor.focus();
     const waitForKeyDown = new Promise(resolve => {
       editor.addEventListener("keydown", () => {
         hideTarget.style.display = "none";
@@ -92,7 +92,7 @@ promise_test(async () => {
 promise_test(async () => {
   const [hideTarget, editor] = init();
   try {
-    editor.select();
+    editor.focus();
     const waitForKeyDown = new Promise(resolve => {
       editor.addEventListener("keypress", () => {
         hideTarget.style.display = "none";
@@ -115,7 +115,7 @@ promise_test(async () => {
 promise_test(async () => {
   const [hideTarget, editor] = init();
   try {
-    editor.select();
+    editor.focus();
     const waitForKeyDown = new Promise(resolve => {
       editor.addEventListener("beforeinput", () => {
         hideTarget.style.display = "none";

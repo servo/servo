@@ -57,6 +57,9 @@ pub(crate) trait TextControlElement {
     }
 
     fn perform_editing_action(&self, cx: &mut JSContext, action: EditingAction) -> bool {
+        if !self.as_element().has_css_layout_box() {
+            return false;
+        }
         let key_reaction = self.text_input_mut().perform_editing_action(action);
         if key_reaction == KeyReaction::Nothing {
             return false;
