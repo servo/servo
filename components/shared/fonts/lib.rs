@@ -34,23 +34,23 @@ pub type StylesheetWebFontLoadFinishedCallback =
     Arc<dyn Fn(WebFontLoadEvent) + Send + Sync + 'static>;
 
 #[derive(Serialize, Deserialize)]
-struct FontDataSerializable(Arc<GenericSharedMemory>);
+struct SerializableFontData(Arc<GenericSharedMemory>);
 
-impl From<FontData> for FontDataSerializable {
+impl From<FontData> for SerializableFontData {
     fn from(value: FontData) -> Self {
         match value {
             FontData::MemoryMapped(mmap) => {
-                FontDataSerializable(Arc::new(GenericSharedMemory::from_bytes(&mmap)))
+                SerializableFontData(Arc::new(GenericSharedMemory::from_bytes(&mmap)))
             },
             FontData::SharedMemory(generic_shared_memory) => {
-                FontDataSerializable(generic_shared_memory)
+                SerializableFontData(generic_shared_memory)
             },
         }
     }
 }
 
-impl From<FontDataSerializable> for FontData {
-    fn from(value: FontDataSerializable) -> Self {
+impl From<SerializableFontData> for FontData {
+    fn from(value: SerializableFontData) -> Self {
         FontData::SharedMemory(value.0)
     }
 }
@@ -59,7 +59,7 @@ impl From<FontDataSerializable> for FontData {
 /// [`GenericSharedMemory`] handle, so that it can be sent without serialization
 /// across IPC channels.
 #[derive(Clone, Deserialize, Serialize, MallocSizeOf)]
-#[serde(from = "FontDataSerializable", into = "FontDataSerializable")]
+#[serde(from = "SerializableFontData", into = "SerializableFontData")]
 pub enum FontData {
     MemoryMapped(#[conditional_malloc_size_of] Arc<Mmap>),
     SharedMemory(#[conditional_malloc_size_of] Arc<GenericSharedMemory>),
@@ -85,12 +85,6 @@ impl FontData {
     pub fn from_vec(bytes: Vec<u8>) -> Self {
         Self::SharedMemory(Arc::new(GenericSharedMemory::from_vec(bytes)))
     }
-
-    /*
-    pub fn inner_arc(self) -> Arc<FontDataInner> {
-        self.inner
-    }
-     */
 }
 
 impl AsRef<[u8]> for FontData {
