@@ -3529,6 +3529,9 @@ class CGIDLInterface(CGThing):
         fn derives(class: &'static DOMClass) -> bool {{
             {check}
         }}
+
+        const PROTO_ID: PrototypeList::ID = PrototypeList::ID::{name};
+
         const PROTO_FIRST: u16 = {proto_first};
         const PROTO_LAST: u16 = {proto_last};
     }}
@@ -3540,6 +3543,8 @@ impl IDLInterface for {name} {{
     fn derives(class: &'static DOMClass) -> bool {{
         {check}
     }}
+    const PROTO_ID: PrototypeList::ID = PrototypeList::ID::{name};
+
     const PROTO_FIRST: u16 = {proto_first};
     const PROTO_LAST: u16 = {proto_last};
 }}

@@ -27,6 +27,7 @@ use num_traits::Float;
 
 use crate::JSTraceable;
 use crate::codegen::GenericBindings::EventModifierInitBinding::EventModifierInit;
+use crate::codegen::PrototypeList;
 use crate::inheritance::Castable;
 use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
@@ -39,6 +40,8 @@ use crate::utils::{DOMClass, DOMJSClass};
 pub trait IDLInterface {
     /// Returns whether the given DOM class derives that interface.
     fn derives(_: &'static DOMClass) -> bool;
+
+    const PROTO_ID: PrototypeList::ID;
 
     /// First prototype ID in the DFS-ordered range for this interface and its descendants.
     const PROTO_FIRST: u16 = 0;
