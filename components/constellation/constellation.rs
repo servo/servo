@@ -1474,12 +1474,6 @@ where
             EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
                 self.handle_clear_session_history(webview_id);
             },
-            EmbedderToConstellationMessage::OnlineChanged(online) => {
-                self.handle_online_changed(online);
-            },
-            EmbedderToConstellationMessage::SetOnlineStatus(online) => {
-                self.handle_set_online_status(online);
-            },
             EmbedderToConstellationMessage::SetNetworkOnlineState(online) => {
                 self.handle_set_network_online_state(online);
             },
