@@ -8130,6 +8130,7 @@ dependencies = [
  "http",
  "http-body-util",
  "hyper",
+ "hyper-util",
  "image",
  "ipc-channel",
  "itertools 0.15.0",

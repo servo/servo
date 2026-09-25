@@ -203,7 +203,8 @@ gleam = { workspace = true }
 glow = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
-hyper = { workspace = true }
+hyper = { workspace = true, features = ["full"] }
+hyper-util = { workspace = true, features = ["server-graceful"] }
 itertools = { workspace = true }
 net = { workspace = true, features = ["test-util"] }
 rustls = { workspace = true, default-features = false }
