@@ -944,11 +944,11 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         text_input.selection_for_layout
     }
 
-    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn width(self) -> LengthOrPercentageOrAuto {
         self.image_button_dimension(&local_name!("width"))
     }
 
-    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn height(self) -> LengthOrPercentageOrAuto {
         self.image_button_dimension(&local_name!("height"))
     }
 
@@ -1668,6 +1668,7 @@ impl HTMLInputElement {
                 // Step 5.2.2: If the field element has a name attribute specified and its value is not
                 // the empty string, let name be that value followed by U+002E (.); otherwise, let name
                 // be the empty string.
+                // Note: step 5.2.1 is handled above.
                 let prefix = if name.is_empty() {
                     String::new()
                 } else {
@@ -2492,7 +2493,9 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
-            &local_name!("width") | &local_name!("height") => true,
+            &local_name!("width") | &local_name!("height") => {
+                matches!(*self.input_type(), InputType::Image(_))
+            },
             _ => self
                 .super_type()
                 .unwrap()
