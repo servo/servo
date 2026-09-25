@@ -103,12 +103,6 @@ pub struct TracedCallback<T>(#[conditional_malloc_size_of] Rc<T>);
 
 impl<T: crate::JSTraceable> js::gc::Rootable for TracedCallback<T> {}
 
-impl<T> TracedCallback<T> {
-    pub fn root(&self) -> RootedCallback<T> {
-        RootedCallback(self.0.clone())
-    }
-}
-
 impl<T> Clone for TracedCallback<T> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
