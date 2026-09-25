@@ -32,34 +32,34 @@ pub(crate) struct TreeWalker {
 }
 
 impl TreeWalker {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn new_inherited(root_node: &Node, what_to_show: u32, filter: Filter) -> TreeWalker {
+    fn new_inherited(root_node: &Node, what_to_show: u32, node_filter: Option<RootedCallback<NodeFilter>>) -> TreeWalker {
         TreeWalker {
             reflector_: Reflector::new(),
             root_node: Dom::from_ref(root_node),
             current_node: MutDom::new(root_node),
             what_to_show,
-            filter,
+            filter: match node_filter {
+                None => Filter::None,
+                Some(jsfilter) => Filter::Dom(jsfilter.to_traced()),
+            },
             active: Cell::new(false),
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_with_filter(
         cx: &mut JSContext,
         document: &Document,
         root_node: &Node,
         what_to_show: u32,
-        filter: Filter,
+        node_filter: Option<RootedCallback<NodeFilter>>,
     ) -> DomRoot<TreeWalker> {
         reflect_dom_object(
             cx,
-            Box::new(TreeWalker::new_inherited(root_node, what_to_show, filter)),
+            Box::new(TreeWalker::new_inherited(root_node, what_to_show, node_filter)),
             document.window(),
         )
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         cx: &mut JSContext,
         document: &Document,
@@ -67,11 +67,7 @@ impl TreeWalker {
         what_to_show: u32,
         node_filter: Option<RootedCallback<NodeFilter>>,
     ) -> DomRoot<TreeWalker> {
-        let filter = match node_filter {
-            None => Filter::None,
-            Some(jsfilter) => Filter::Dom(jsfilter.to_traced()),
-        };
-        TreeWalker::new_with_filter(cx, document, root_node, what_to_show, filter)
+        TreeWalker::new_with_filter(cx, document, root_node, what_to_show, node_filter)
     }
 }
 

@@ -32,38 +32,35 @@ pub(crate) struct NodeIterator {
 }
 
 impl NodeIterator {
-    // `filter` is moved directly into the traced `NodeIterator` allocation without running JS.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn new_inherited(root_node: &Node, what_to_show: u32, filter: Filter) -> NodeIterator {
+    fn new_inherited(root_node: &Node, what_to_show: u32, node_filter: Option<RootedCallback<NodeFilter>>) -> NodeIterator {
         NodeIterator {
             reflector_: Reflector::new(),
             root_node: Dom::from_ref(root_node),
             reference_node: MutDom::new(root_node),
             pointer_before_reference_node: Cell::new(true),
             what_to_show,
-            filter,
+            filter: match node_filter {
+                None => Filter::None,
+                Some(callback) => Filter::Callback(callback.to_traced()),
+            },
             active: Cell::new(false),
         }
     }
 
-    // `filter` is moved into `NodeIterator` before `reflect_dom_object` can run JS.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_with_filter(
         cx: &mut JSContext,
         document: &Document,
         root_node: &Node,
         what_to_show: u32,
-        filter: Filter,
+        node_filter: Option<RootedCallback<NodeFilter>>,
     ) -> DomRoot<NodeIterator> {
         reflect_dom_object(
             cx,
-            Box::new(NodeIterator::new_inherited(root_node, what_to_show, filter)),
+            Box::new(NodeIterator::new_inherited(root_node, what_to_show, node_filter)),
             document.window(),
         )
     }
 
-    // The temporary filter does not cross a JS/GC-capable operation before storage.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         cx: &mut JSContext,
         document: &Document,
@@ -71,11 +68,7 @@ impl NodeIterator {
         what_to_show: u32,
         node_filter: Option<RootedCallback<NodeFilter>>,
     ) -> DomRoot<NodeIterator> {
-        let filter = match node_filter {
-            None => Filter::None,
-            Some(jsfilter) => Filter::Callback(jsfilter.to_traced()),
-        };
-        NodeIterator::new_with_filter(cx, document, root_node, what_to_show, filter)
+        NodeIterator::new_with_filter(cx, document, root_node, what_to_show, node_filter)
     }
 }
 
