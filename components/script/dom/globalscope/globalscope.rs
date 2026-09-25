@@ -51,7 +51,7 @@ use profile_traits::{
     mem as profile_mem, time as profile_time,
 };
 use rustc_hash::{FxBuildHasher, FxHashMap};
-use script_bindings::callback::OwnerWindow;
+use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use script_bindings::reflector::DomObject;
@@ -325,9 +325,8 @@ pub(crate) struct GlobalScope {
     #[ignore_malloc_size_of = "callbacks are hard"]
     count_queuing_strategy_size_function: OnceCell<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "callbacks are hard"]
     notification_permission_request_callback_map:
-        DomRefCell<HashMap<String, Rc<NotificationPermissionCallback>>>,
+        DomRefCell<HashMap<String, TracedCallback<NotificationPermissionCallback>>>,
 
     /// An import map allows control over module specifier resolution.
     /// For now, only Window global objects have their import map modified from the initial empty one.
@@ -3058,17 +3057,17 @@ impl GlobalScope {
     pub(crate) fn add_notification_permission_request_callback(
         &self,
         callback_id: String,
-        callback: Rc<NotificationPermissionCallback>,
+        callback: RootedCallback<NotificationPermissionCallback>,
     ) {
         self.notification_permission_request_callback_map
             .borrow_mut()
-            .insert(callback_id, callback);
+            .insert(callback_id, callback.to_traced());
     }
 
     pub(crate) fn remove_notification_permission_request_callback(
         &self,
         callback_id: String,
-    ) -> Option<Rc<NotificationPermissionCallback>> {
+    ) -> Option<TracedCallback<NotificationPermissionCallback>> {
         self.notification_permission_request_callback_map
             .borrow_mut()
             .remove(&callback_id)

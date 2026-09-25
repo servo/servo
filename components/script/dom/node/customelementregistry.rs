@@ -26,7 +26,9 @@ use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
 
 use crate::DomTypeHolder;
-use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
+use crate::dom::bindings::callback::{
+    CallbackContainer, ExceptionHandling, RootedCallback, TracedCallback,
+};
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
     CustomElementConstructor, CustomElementRegistryMethods, ElementDefinitionOptions,
 };
@@ -385,7 +387,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         &self,
         cx: &mut JSContext,
         name: DOMString,
-        constructor_: Rc<CustomElementConstructor>,
+        constructor_: RootedCallback<CustomElementConstructor>,
         options: &ElementDefinitionOptions,
     ) -> ErrorResult {
         rooted!(&in(cx) let constructor = constructor_.callback());
@@ -429,7 +431,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             .definitions
             .borrow()
             .iter()
-            .any(|(_, def)| def.constructor == constructor_)
+            .any(|(_, def)| def.constructor.callback() == constructor_.callback())
         {
             return Err(Error::NotSupported(None));
         }
@@ -653,12 +655,12 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-getname>
-    fn GetName(&self, constructor: Rc<CustomElementConstructor>) -> Option<DOMString> {
+    fn GetName(&self, constructor: RootedCallback<CustomElementConstructor>) -> Option<DOMString> {
         self.definitions
             .borrow()
             .0
             .values()
-            .find(|definition| definition.constructor == constructor)
+            .find(|definition| definition.constructor.callback() == constructor.callback())
             .map(|definition| DOMString::from(definition.name.to_string()))
     }
 
@@ -836,7 +838,12 @@ pub(crate) enum ConstructionStackEntry {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#custom-element-definition>
+/// # Safety
+/// This can be shared inside an Rc because every Rc copy is reachable from a
+/// CustomElementRegistry's definitions map, which the GC traces.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 pub(crate) struct CustomElementDefinition {
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-name>
     #[no_trace]
@@ -847,8 +854,7 @@ pub(crate) struct CustomElementDefinition {
     pub(crate) local_name: LocalName,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-constructor>
-    #[conditional_malloc_size_of]
-    pub(crate) constructor: Rc<CustomElementConstructor>,
+    pub(crate) constructor: TracedCallback<CustomElementConstructor>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-observed-attributes>
     pub(crate) observed_attributes: Vec<DOMString>,
@@ -874,7 +880,7 @@ impl CustomElementDefinition {
     fn new(
         name: LocalName,
         local_name: LocalName,
-        constructor: Rc<CustomElementConstructor>,
+        constructor: RootedCallback<CustomElementConstructor>,
         observed_attributes: Vec<DOMString>,
         callbacks: LifecycleCallbacks,
         form_associated: bool,
@@ -884,7 +890,7 @@ impl CustomElementDefinition {
         CustomElementDefinition {
             name,
             local_name,
-            constructor,
+            constructor: constructor.to_traced(),
             observed_attributes,
             callbacks,
             construction_stack: Default::default(),
