@@ -2316,7 +2316,7 @@ impl<'a> RowFragmentLayout<'a> {
         containing_block_for_children: &ContainingBlock,
         row_group_fragment_layout: &mut Option<RowGroupFragmentLayout>,
     ) -> Fragment {
-        if self.positioning_context.is_some() {
+        if self.row.base.style.clone_position() == Position::Relative {
             self.rect.start_corner +=
                 relative_adjustement(&self.row.base.style, containing_block_for_children);
         }
@@ -2408,7 +2408,7 @@ impl RowGroupFragmentLayout {
         containing_block_for_children: &ContainingBlock,
     ) -> Fragment {
         let row_group = self.row_group.borrow();
-        if self.positioning_context.is_some() {
+        if row_group.base.style.clone_position() == Position::Relative {
             self.rect.start_corner +=
                 relative_adjustement(&row_group.base.style, containing_block_for_children);
         }
