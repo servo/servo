@@ -9297,17 +9297,18 @@ class GlobalGenRoots():
             CGGeneric(f"pub const PROTO_OR_IFACE_LENGTH: usize = {len(protos) + len(constructors)};\n"),
             CGGeneric(f"pub const MAX_PROTO_CHAIN_LENGTH: usize = {config.maxProtoChainLength};\n\n"),
             CGGeneric("#[allow(clippy::enum_variant_names, dead_code)]"),
-            CGNonNamespacedEnum('ID', protos, 0, deriving="strum::IntoStaticStr, PartialEq, Copy, Clone", repr="u16"),
+            CGNonNamespacedEnum('ID', protos, 0, deriving="strum::VariantArray, strum::VariantNames, strum::IntoStaticStr, PartialEq, Copy, Clone", repr="u16"),
             CGNonNamespacedEnum('Constructor', constructors, len(protos),
                                 deriving="PartialEq, Copy, Clone", repr="u16"),
-            CGWrapper(CGIndenter(CGList([CGGeneric(f'"{name}"') for name in protos],
-                                        ",\n"),
-                                 indentLevel=4),
-                      pre=f"static INTERFACES: [&str; {len(protos)}] = [\n",
-                      post="\n];\n\n"),
-            CGGeneric("pub fn proto_id_to_name(proto_id: u16) -> &'static str {\n"
+            CGGeneric("pub const fn proto_id_to_id(proto_id: u16) -> ID {\n"
+                                  "    use strum::VariantArray;"
+                                  "    debug_assert!(proto_id < ID::Last as u16);\n"
+                                  "    ID::VARIANTS[proto_id as usize]\n"
+                                  "}\n\n"),
+            CGGeneric("pub const fn proto_id_to_name(proto_id: u16) -> &'static str {\n"
+                      "    use strum::VariantNames;"
                       "    debug_assert!(proto_id < ID::Last as u16);\n"
-                      "    INTERFACES[proto_id as usize]\n"
+                      "    ID::VARIANTS[proto_id as usize]\n"
                       "}\n\n"),
         ])
 
