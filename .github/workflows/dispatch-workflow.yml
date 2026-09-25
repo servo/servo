@@ -128,7 +128,9 @@ jobs:
     name: Lint
     # Note: The lint workflow does not need access to any secrets.
     uses: ./.github/workflows/lint.yml
-
+    with:
+      profile: ${{ inputs.profile }}
+      
   android:
     if: ${{ inputs.workflow == 'android' }}
     name: Android

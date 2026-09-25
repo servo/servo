@@ -2034,7 +2034,7 @@ impl WebGLImpl {
                 gl.tex_parameter_f32(target, param, value)
             },
             WebGLCommand::LinkProgram(program_id, ref sender) => {
-                return sender.send(Self::link_program(gl, program_id)).unwrap();
+                sender.send(Self::link_program(gl, program_id)).unwrap()
             },
             WebGLCommand::UseProgram(program_id) => unsafe {
                 gl.use_program(program_id.map(|p| p.glow()))
