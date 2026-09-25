@@ -1868,7 +1868,14 @@ impl ScriptThread {
                 evaluation_id,
                 script,
             ) => {
-                self.handle_evaluate_javascript(webview_id, pipeline_id, evaluation_id, script, cx, false);
+                self.handle_evaluate_javascript(
+                    webview_id,
+                    pipeline_id,
+                    evaluation_id,
+                    script,
+                    cx,
+                    false,
+                );
             },
             ScriptThreadMessage::EvaluateTrustedJavaScript(
                 webview_id,
@@ -1876,7 +1883,14 @@ impl ScriptThread {
                 evaluation_id,
                 script,
             ) => {
-                self.handle_evaluate_javascript(webview_id, pipeline_id, evaluation_id, script, cx, true);
+                self.handle_evaluate_javascript(
+                    webview_id,
+                    pipeline_id,
+                    evaluation_id,
+                    script,
+                    cx,
+                    true,
+                );
             },
             ScriptThreadMessage::SendImageKeysBatch(pipeline_id, image_keys) => {
                 if let Some(window) = self.documents.borrow().find_window(pipeline_id) {

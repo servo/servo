@@ -9,9 +9,10 @@ use std::rc::Rc;
 
 use http::{HeaderName, HeaderValue};
 use http_body_util::combinators::BoxBody;
+use hyper::body::{Bytes, Incoming};
+use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{make_body, make_server};
 use servo::{JSValue, JavaScriptEvaluationError, WebViewBuilder};
-use hyper::{Request as HyperRequest, Response as HyperResponse, body::{Bytes, Incoming}};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
@@ -126,8 +127,5 @@ fn runs_in_csp_restricted() {
     server.close();
 
     let result = evaluate_javascript(&servo_test, webview.clone(), "document.readyState");
-    assert_eq!(
-        result,
-        Ok(JSValue::String("complete".into()))
-    );
+    assert_eq!(result, Ok(JSValue::String("complete".into())));
 }
