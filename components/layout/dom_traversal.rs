@@ -392,7 +392,7 @@ pub(crate) fn generate_pseudo_element_content(
                     ContentItem::Counter(_, style) | ContentItem::Counters(_, _, style) => {
                         // TODO: Add support for counters, this assumes a value of 0.
                         vec.push(PseudoElementContentItem::Text(
-                            generate_counter_representation(style).to_string(),
+                            generate_counter_representation(style, 0),
                         ));
                     },
                     ContentItem::NoOpenQuote | ContentItem::NoCloseQuote => {},
