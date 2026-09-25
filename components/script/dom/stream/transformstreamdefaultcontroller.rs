@@ -102,24 +102,9 @@ pub(crate) enum TransformerType {
 impl TransformerType {
     pub(crate) fn new_from_js_transformer(transformer: &Transformer) -> TransformerType {
         TransformerType::Js {
-            cancel: RefCell::new(
-                transformer
-                    .cancel
-                    .as_ref()
-                    .map(|callback| callback.to_traced()),
-            ),
-            flush: RefCell::new(
-                transformer
-                    .flush
-                    .as_ref()
-                    .map(|callback| callback.to_traced()),
-            ),
-            transform: RefCell::new(
-                transformer
-                    .transform
-                    .as_ref()
-                    .map(|callback| callback.to_traced()),
-            ),
+            cancel: RefCell::new(transformer.cancel.clone()),
+            flush: RefCell::new(transformer.flush.clone()),
+            transform: RefCell::new(transformer.transform.clone()),
             transform_obj: Default::default(),
         }
     }
