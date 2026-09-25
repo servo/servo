@@ -64,18 +64,9 @@ impl TrustedTypePolicy {
         Self {
             reflector_: Reflector::new(),
             name,
-            create_html: options
-                .createHTML
-                .as_ref()
-                .map(|listener| listener.to_traced()),
-            create_script: options
-                .createScript
-                .as_ref()
-                .map(|listener| listener.to_traced()),
-            create_script_url: options
-                .createScriptURL
-                .as_ref()
-                .map(|listener| listener.to_traced()),
+            create_html: options.createHTML.clone(),
+            create_script: options.createScript.clone(),
+            create_script_url: options.createScriptURL.clone(),
         }
     }
 
