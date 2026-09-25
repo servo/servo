@@ -8,6 +8,7 @@
 
 #![deny(unsafe_code)]
 
+mod container_timing_record;
 mod largest_contentful_paint_candidate;
 mod layout_damage;
 mod layout_dom;
@@ -25,6 +26,7 @@ use std::time::Duration;
 use app_units::Au;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
+pub use container_timing_record::ContainerTimingRecord;
 use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
 use fonts::{FontContext, WebFontDocumentContext, WebFontSetDifference};
@@ -639,6 +641,8 @@ pub struct ReflowResult {
     pub changed_web_fonts: WebFontSetDifference,
     /// The LCP candidate during this layout pass, if any.
     pub lcp_candidate: Option<LCPCandidate>,
+    /// The containers whose painted area grew during this layout pass, if any.
+    pub container_timing_records: Vec<ContainerTimingRecord>,
 }
 
 bitflags! {
