@@ -412,6 +412,9 @@ impl Font {
     }
 
     pub fn key(&self, painter_id: PainterId, font_context: &FontContext) -> FontInstanceKey {
+        if let Some(key) = self.font_instance_key.read().unwrap().get(&painter_id) {
+            return *key;
+        }
         *self
             .font_instance_key
             .write()
