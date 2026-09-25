@@ -42,7 +42,8 @@
 
       assert_equals(initial.nodesUpdatedFromDom, 20, "nodesUpdatedFromDom");
       assert_equals(initial.nodesUpdatedFromTree, 20, "nodesUpdatedFromTree");
-      assert_equals(initial.nodesUpdatedBounds, 20, "nodesUpdatedBounds");
+      // Bounds are refreshed for every visible node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 10, "nodesUpdatedBounds");
       assert_equals(initial.nodesInTreeUpdate, 20, "nodesInTreeUpdate");
 
       a.style.width = "50px";
@@ -57,8 +58,8 @@
 
       assert_equals(update.nodesUpdatedFromTree, 0, "nodesUpdatedFromTree");
 
-      // All nodes have their bounds checked.
-      assert_equals(update.nodesUpdatedBounds, 20, "nodesUpdatedBounds");
+      // Bounds are refreshed for every visible node in the tree
+      assert_equals(update.nodesUpdatedBounds, 10, "nodesUpdatedBounds");
 
       // Changed nodes: #a and #b (bounds changed)
       assert_equals(update.nodesInTreeUpdate, 2, "nodesInTreeUpdate");

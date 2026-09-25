@@ -16,8 +16,8 @@
 
       assert_equals(initial.nodesUpdatedFromDom, 19, "nodesUpdatedFromDom");
       assert_equals(initial.nodesUpdatedFromTree, 19, "nodesUpdatedFromTree");
-      // Bounds are refreshed for every node in the tree
-      assert_equals(initial.nodesUpdatedBounds, 19, "nodesUpdatedBounds");
+      // Bounds are refreshed for every visible node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 12, "nodesUpdatedBounds");
       assert_equals(initial.nodesInTreeUpdate, 19, "nodesInTreeUpdate");
 
       document.getElementById("h2").remove();
@@ -31,8 +31,9 @@
       // changed
       assert_equals(update.nodesUpdatedFromTree, 3, "nodesUpdatedFromTree");
 
-      // Bounds are refreshed for every node still in the tree (the <h2> and its text are gone)
-      assert_equals(update.nodesUpdatedBounds, 17, "nodesUpdatedBounds");
+      // Bounds are refreshed for every visible node still in the tree (the <h2> and its text are
+      // gone)
+      assert_equals(update.nodesUpdatedBounds, 10, "nodesUpdatedBounds");
 
       // The tree update holds the parent <section> of the removed <h2>, plus the <body> and the
       // document, whose heights shrank when the <h2> was removed

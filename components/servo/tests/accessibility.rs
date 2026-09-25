@@ -1148,6 +1148,94 @@ fn test_accessibility_layout_root_node_also_changed() {
     assert_rect_eq(node_c_bounds, Rect::new(0.0, 0.0, 20.0, 10.0));
 }
 
+#[test]
+fn test_accessibility_display_none_change() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <style>section.subdued em { display: none }</style>
+               <section class='subdued'><h1>We <em>really</em> love the web</h1></section>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Should have a heading");
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 3);
+    let em = heading_children[1];
+    assert_eq!(em.is_hidden(), true);
+    assert_eq!(heading.label(), Some("We  love the web".to_owned()));
+
+    // Test that making previously-hidden content visible works correctly.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('section').removeAttribute('class');",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Heading should still be in the tree");
+    // Un-hiding the <em> should change the computed text of the heading
+    assert_eq!(heading.label(), Some("We really love the web".to_owned()));
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 3);
+    let em = heading_children[1];
+    assert_eq!(em.is_hidden(), false);
+
+    // Test that changing a node in a hidden subtree is picked up, even though the node is hidden.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('section').className = 'subdued';\
+         document.querySelector('em').firstChild.appendData(', really');",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Heading should still be in the tree");
+    // Hiding the <em> should change the computed text of the heading
+    assert_eq!(heading.label(), Some("We  love the web".to_owned()));
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 3);
+    let em = heading_children[1];
+    assert_eq!(em.is_hidden(), true);
+
+    // Make the previously added text content visible to ensure it was added correctly.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('section').removeAttribute('class');",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Heading should still be in the tree");
+    // Un-hiding the <em> should change the computed text of the heading, and the new text should be
+    // present
+    assert_eq!(
+        heading.label(),
+        Some("We really, really love the web".to_owned())
+    );
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 3);
+    let em = heading_children[1];
+    assert_eq!(em.is_hidden(), false);
+}
+
 // ************************************************************************************************
 // If you're adding a new test here, consider adding a matching test in
 // tests/wpt/mozilla/tests/accessibility-tree/
