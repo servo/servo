@@ -14661,6 +14661,15 @@
       {}
      ]
     ],
+    "input-type-password-copy-and-cut.html": [
+     "2dbbe6b2f5003a7cd57ddc98de1447ced44a77e5",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "input-value.html": [
      "a2a12d44d0331164651816710eeb2ddcb1738735",
      [

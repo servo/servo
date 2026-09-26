@@ -94,7 +94,7 @@ impl Document {
         if !event.DefaultPrevented() {
             // Step 3. If the event was not canceled, then
             match clipboard_event.clipboard_event_type() {
-                ClipboardEventType::Copy => {
+                ClipboardEventType::Copy if editing_context.has_copyable_text() => {
                     // Step 3.1. Copy the selected contents, if any, to the clipboard.
                     // Implementations should create alternate text/html and text/plain
                     // clipboard formats when content in a web page is selected.
@@ -110,7 +110,7 @@ impl Document {
                     // This is how `true` is returned from this function.
                     event.mark_as_handled();
                 },
-                ClipboardEventType::Cut => {
+                ClipboardEventType::Cut if editing_context.has_copyable_text() => {
                     if let Some(selection) = editing_context.selection_content(cx) &&
                         editing_context.cutting_and_pasting_enabled()
                     {
@@ -476,6 +476,15 @@ impl EditingContext {
         match self {
             EditingContext::TextControl(element) => {
                 element.text_control_element().has_selectable_text()
+            },
+            EditingContext::Document(..) => true,
+        }
+    }
+
+    pub(crate) fn has_copyable_text(&self) -> bool {
+        match self {
+            EditingContext::TextControl(element) => {
+                !element.text_control_element().is_password_field()
             },
             EditingContext::Document(..) => true,
         }
