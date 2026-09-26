@@ -7,6 +7,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 
+use style::selector_parser::PseudoElement;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackMethods, TextTrackMode};
 use crate::dom::bindings::codegen::Bindings::VTTCueBinding::VTTCueMethods;
@@ -144,11 +145,16 @@ impl RulesForUpdatingTheTextTrackRendering {
             // rather than the fragment itself. That's why we use this wrapper `boxes` to keep
             // track of cues so that we can later remove it.
             let boxes = document.create_element(cx, "span");
-            let _ = boxes.upcast::<Node>().AppendChild(cx, nodes.upcast());
+            let boxes_as_node = boxes.upcast::<Node>();
+            let _ = boxes_as_node.AppendChild(cx, nodes.upcast());
             // Step 14.2.2. Let cue’s text track cue display state have the CSS boxes in boxes.
-            cue.set_display_state(Some(boxes.upcast()));
+            cue.set_display_state(Some(boxes_as_node));
             // Step 14.2.3. Add the CSS boxes in boxes to output.
-            let _ = cue_container.AppendChild(cx, boxes.upcast());
+            let _ = cue_container.AppendChild(cx, boxes_as_node);
+            // Note that we should do this after it is appended to the DOM, otherwise we run into
+            // the assertion that `boxes` should be in a UA widget.
+            boxes_as_node
+                .set_implemented_pseudo_element(PseudoElement::Cue);
         }
     }
 }
