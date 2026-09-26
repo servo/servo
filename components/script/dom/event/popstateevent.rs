@@ -21,7 +21,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
 
-// https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
+/// <https://html.spec.whatwg.org/multipage/#the-popstateevent-interface>
 #[dom_struct]
 pub(crate) struct PopStateEvent {
     event: Event,

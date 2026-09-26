@@ -18,7 +18,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 
-// https://html.spec.whatwg.org/multipage/#hashchangeevent
+/// <https://html.spec.whatwg.org/multipage/#hashchangeevent>
 #[dom_struct]
 pub(crate) struct HashChangeEvent {
     event: Event,

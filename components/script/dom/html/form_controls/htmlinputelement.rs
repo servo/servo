@@ -236,7 +236,7 @@ impl HTMLInputElement {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-value
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
     /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
     pub(crate) fn value_mode(&self) -> ValueMode {
         match *self.input_type() {
@@ -742,7 +742,7 @@ impl HTMLInputElement {
             .suffers_from_bad_input(value)
     }
 
-    // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long
+    /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long>
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short>
     fn suffers_from_length_issues(&self, value: &DOMString) -> ValidationFlags {
         // https://html.spec.whatwg.org/multipage/#limiting-user-input-length%3A-the-maxlength-attribute%3Asuffering-from-being-too-long
@@ -1251,7 +1251,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         self.suggestions_source_element()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasdate>
     #[expect(unsafe_code)]
     fn GetValueAsDate(&self, cx: &mut JSContext, mut return_value: MutableHandleObject) {
         if let Some(date_time) = self
@@ -1266,7 +1266,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasdate>
     #[expect(unsafe_code)]
     fn SetValueAsDate(&self, cx: &mut JSContext, value: *mut JSObject) -> ErrorResult {
         rooted!(&in(cx) let value = value);

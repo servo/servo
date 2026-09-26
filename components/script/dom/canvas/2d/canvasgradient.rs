@@ -20,7 +20,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 
-// https://html.spec.whatwg.org/multipage/#canvasgradient
+/// <https://html.spec.whatwg.org/multipage/#canvasgradient>
 #[dom_struct]
 pub(crate) struct CanvasGradient {
     reflector_: Reflector,

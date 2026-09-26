@@ -156,7 +156,7 @@ impl QueuedTaskConversion for SharedWorkerScriptMsg {
 
 unsafe_no_jsmanaged_fields!(TaskQueue<SharedWorkerScriptMsg>);
 
-// https://html.spec.whatwg.org/multipage/#shared-workers-and-the-sharedworkerglobalscope-interface
+/// <https://html.spec.whatwg.org/multipage/#shared-workers-and-the-sharedworkerglobalscope-interface>
 #[dom_struct]
 pub(crate) struct SharedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
