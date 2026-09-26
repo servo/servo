@@ -187,21 +187,12 @@ pub(crate) fn generate_key(
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains any entry which is not one of "encapsulateKey",
     // "encapsulateBits", "decapsulateKey" or "decapsulateBits", then throw a SyntaxError.
-    if usages.iter().any(|usage| {
-        !matches!(
-            usage,
-            KeyUsage::EncapsulateKey |
-                KeyUsage::EncapsulateBits |
-                KeyUsage::DecapsulateKey |
-                KeyUsage::DecapsulateBits
-        )
-    }) {
-        return Err(Error::Syntax(Some(
-            "Usages contains any entry which is not one of \"encapsulateKey\", \
-            \"encapsulateBits\", \"decapsulateKey\" or \"decapsulateBits\""
-                .into(),
-        )));
-    }
+    usages.only_contain_entries_from(&[
+        KeyUsage::EncapsulateKey,
+        KeyUsage::EncapsulateBits,
+        KeyUsage::DecapsulateKey,
+        KeyUsage::DecapsulateBits,
+    ])?;
 
     // Step 2. Generate an ML-KEM key pair, as described in Section 7.1 of [FIPS-203], with the
     // parameter set indicated by the name member of normalizedAlgorithm.
@@ -309,16 +300,10 @@ pub(crate) fn import_key(
         KeyFormat::Spki => {
             // Step 2.1. If usages contains an entry which is not "encapsulateKey" or
             // "encapsulateBits" then throw a SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"encapsulateKey\" or \
-                    \"encapsulateBits\""
-                        .into(),
-                )));
-            }
+            usages.only_contain_entries_from(&[
+                KeyUsage::EncapsulateKey,
+                KeyUsage::EncapsulateBits,
+            ])?;
 
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData.
@@ -653,30 +638,17 @@ pub(crate) fn import_key(
 
             // Step 2.2. If the priv field of jwk is present and if usages contains an entry which
             // is not "decapsulateKey" or "decapsulateBits" then throw a SyntaxError.
-            if jwk.priv_.is_some() &&
-                usages.iter().any(|usage| {
-                    !matches!(usage, KeyUsage::DecapsulateKey | KeyUsage::DecapsulateBits)
-                })
-            {
-                return Err(Error::Syntax(Some(
-                    "The priv field of jwk is present and usages contains an entry which is \
-                    not \"decapsulateKey\" or \"decapsulateBits\""
-                        .into(),
-                )));
-            }
-
             // Step 2.3. If the priv field of jwk is not present and if usages contains an entry
             // which is not "encapsulateKey" or "encapsulateBits" then throw a SyntaxError.
-            if jwk.priv_.is_none() &&
-                usages.iter().any(|usage| {
-                    !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits)
-                })
-            {
-                return Err(Error::Syntax(Some(
-                    "The priv field of jwk is not present and usages contains an entry which is \
-                    not \"encapsulateKey\" or \"encapsulateBits\""
-                        .into(),
-                )));
+            match jwk.priv_.as_ref() {
+                Some(_) => usages.only_contain_entries_from(&[
+                    KeyUsage::DecapsulateKey,
+                    KeyUsage::DecapsulateBits,
+                ])?,
+                None => usages.only_contain_entries_from(&[
+                    KeyUsage::EncapsulateKey,
+                    KeyUsage::EncapsulateBits,
+                ])?,
             }
 
             // Step 2.4. If the kty field of jwk is not "AKP", then throw a DataError.
@@ -1329,15 +1301,7 @@ pub(crate) fn get_public_key(
     // identified by algorithm, then throw a SyntaxError.
     //
     // NOTE: See "importKey" operation for supported usages
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"encapsulateKey\" or \"encapsulateBits\""
-                .into(),
-        )));
-    }
+    usages.only_contain_entries_from(&[KeyUsage::EncapsulateKey, KeyUsage::EncapsulateBits])?;
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
     // private key represented by the [[handle]] internal slot of key.

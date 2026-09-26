@@ -93,15 +93,9 @@ pub(crate) fn generate_key(
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
-    // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"sign\" or \"verify\"".into(),
-        )));
-    }
+    // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a
+    // SyntaxError.
+    usages.only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 2.
     let length = match normalized_algorithm.length {
@@ -188,16 +182,7 @@ pub(crate) fn import_key(
     // Step 2. Let keyData be the key data to be imported.
 
     // Step 3. If usages contains an entry which is not "sign" or "verify", then throw a SyntaxError.
-    // Note: This is not explicitly spec'ed, but also throw a SyntaxError if usages is empty
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify)) ||
-        usages.is_empty()
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"sign\" or \"verify\", or is empty".into(),
-        )));
-    }
+    usages.only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 4. Let hash be a new KeyAlgorithm.
     let hash;

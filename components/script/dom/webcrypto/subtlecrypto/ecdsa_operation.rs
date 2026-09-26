@@ -272,5 +272,5 @@ pub(crate) fn get_public_key(
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
-    ec_common::get_public_key(cx, global, key, algorithm, usages)
+    ec_common::get_public_key(cx, global, EcAlgorithm::Ecdsa, key, algorithm, usages)
 }

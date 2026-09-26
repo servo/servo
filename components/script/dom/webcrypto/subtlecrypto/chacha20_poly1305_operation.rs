@@ -164,18 +164,12 @@ pub(crate) fn generate_key(
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt", "wrapKey" or
     // "unwrapKey", then throw a SyntaxError.
-    if usages.iter().any(|usage| {
-        !matches!(
-            usage,
-            KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
-        )
-    }) {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \"wrapKey\" \
-            or \"unwrapKey\""
-                .to_string(),
-        )));
-    }
+    usages.only_contain_entries_from(&[
+        KeyUsage::Encrypt,
+        KeyUsage::Decrypt,
+        KeyUsage::WrapKey,
+        KeyUsage::UnwrapKey,
+    ])?;
 
     // Step 2. Generate a 256-bit key.
     // Step 3. If the key generation step fails, then throw an OperationError.
@@ -219,18 +213,12 @@ pub(crate) fn import_key(
 
     // Step 2. If usages contains an entry which is not one of "encrypt", "decrypt", "wrapKey" or
     // "unwrapKey", then throw a SyntaxError.
-    if usages.iter().any(|usage| {
-        !matches!(
-            usage,
-            KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
-        )
-    }) {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \"wrapKey\" \
-            or \"unwrapKey\""
-                .to_string(),
-        )));
-    }
+    usages.only_contain_entries_from(&[
+        KeyUsage::Encrypt,
+        KeyUsage::Decrypt,
+        KeyUsage::WrapKey,
+        KeyUsage::UnwrapKey,
+    ])?;
 
     // Step 3.
     let data: Zeroizing<Vec<u8>>;

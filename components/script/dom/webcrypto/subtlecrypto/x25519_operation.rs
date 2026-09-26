@@ -141,14 +141,7 @@ pub(crate) fn generate_key(
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains an entry which is not "deriveKey" or "deriveBits" then throw a
     // SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
-    {
-        return Err(Error::Syntax(Some(
-            "One of the key usage is neither deriveKey nor deriveBits".into(),
-        )));
-    }
+    usages.only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
 
     // Step 2. Generate an X25519 key pair, with the private key being 32 random bytes, and the
     // public key being X25519(a, 9), as defined in [RFC7748], section 6.1.
@@ -220,9 +213,7 @@ pub(crate) fn import_key(
         // If format is "spki":
         KeyFormat::Spki => {
             // Step 2.1. If usages is not empty then throw a SyntaxError.
-            if !usages.is_empty() {
-                return Err(Error::Syntax(Some("Usages is not empty".into())));
-            }
+            usages.only_contain_entries_from(&[])?;
 
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData.
@@ -284,14 +275,7 @@ pub(crate) fn import_key(
         KeyFormat::Pkcs8 => {
             // Step 2.1. If usages contains an entry which is not "deriveKey" or "deriveBits" then
             // throw a SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
-            {
-                return Err(Error::Syntax(Some(
-                    "One of the key usage is neither deriveKey nor deriveBits".into(),
-                )));
-            }
+            usages.only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
 
             // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
             // algorithm over keyData.
@@ -373,22 +357,12 @@ pub(crate) fn import_key(
 
             // Step 2.2. If the d field is present and if usages contains an entry which is not
             // "deriveKey" or "deriveBits" then throw a SyntaxError.
-            if jwk.d.is_some() &&
-                usages
-                    .iter()
-                    .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
-            {
-                return Err(Error::Syntax(Some(
-                    "One of the key usage is neither deriveKey nor deriveBits, and JSON Web Key does not provide 'd' field".into(),
-                )));
-            }
-
             // Step 2.3. If the d field is not present and if usages is not empty then throw a
             // SyntaxError.
-            if jwk.d.is_none() && !usages.is_empty() {
-                return Err(Error::Syntax(Some(
-                    "'d' field of Json Web Key is not present and key usages is not empty".into(),
-                )));
+            match jwk.d.as_ref() {
+                Some(_) => usages
+                    .only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?,
+                None => usages.only_contain_entries_from(&[])?,
             }
 
             // Step 2.4. If the kty field of jwk is not "OKP", then throw a DataError.
@@ -501,9 +475,7 @@ pub(crate) fn import_key(
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 2.1. If usages is not empty then throw a SyntaxError.
-            if !usages.is_empty() {
-                return Err(Error::Syntax(Some("Key usages is not empty".into())));
-            }
+            usages.only_contain_entries_from(&[])?;
 
             // Step 2.2. If the length in bits of keyData is not 256 then throw a DataError.
             if key_data.len() != 32 {
@@ -748,9 +720,7 @@ pub(crate) fn get_public_key(
     // identified by algorithm, then throw a SyntaxError.
     //
     // NOTE: See "importKey" operation for supported usages
-    if !usages.is_empty() {
-        return Err(Error::Syntax(Some("Usages is not empty".to_string())));
-    }
+    usages.only_contain_entries_from(&[])?;
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
     // private key represented by the [[handle]] internal slot of key.

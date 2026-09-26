@@ -119,15 +119,7 @@ pub(crate) fn import_key(
     if matches!(format, KeyFormat::Raw | KeyFormat::Raw_secret) {
         // Step 2.1. If usages contains a value that is not "deriveKey" or "deriveBits", then throw
         // a SyntaxError.
-        if usages
-            .iter()
-            .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) ||
-            usages.is_empty()
-        {
-            return Err(Error::Syntax(Some(
-                "Usages contains an entry which is not \"deriveKey\" or \"deriveBits\"".into(),
-            )));
-        }
+        usages.only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
 
         // Step 2.2. If extractable is not false, then throw a SyntaxError.
         if extractable {
