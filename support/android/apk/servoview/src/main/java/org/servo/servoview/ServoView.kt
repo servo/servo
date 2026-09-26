@@ -24,7 +24,7 @@ class ServoView(
     servoLog: String?,
     private val experimentalMode: Boolean,
     private val initialUri: String?,
-    navigator: ServoNavigator,
+    internal val navigator: ServoNavigator,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     private val glThread = GLThread().apply { start() }
     internal var servo: Servo? = null
@@ -80,14 +80,6 @@ class ServoView(
 
     fun reload() {
         servo!!.reload()
-    }
-
-    fun goBack() {
-        servo!!.goBack()
-    }
-
-    fun goForward() {
-        servo!!.goForward()
     }
 
     fun stop() {

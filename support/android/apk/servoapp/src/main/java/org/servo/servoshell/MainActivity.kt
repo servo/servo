@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (isWindowWidthAtLeastMedium) {
                             IconButton(
-                                onClick = ::onHistoryBackMenuItemClicked,
+                                onClick = { onHistoryBackMenuItemClicked(navigator) },
                                 enabled = navigator.canGoBackState.value,
                             ) {
                                 Icon(
@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                                 )
                             }
                             IconButton(
-                                onClick = ::onHistoryForwardMenuItemClicked,
+                                onClick = { onHistoryForwardMenuItemClicked(navigator) },
                                 enabled = navigator.canGoForwardState.value,
                             ) {
                                 Icon(
@@ -172,14 +172,14 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             NavigationBarItem(
                                 selected = false,
                                 enabled = navigator.canGoBackState.value,
-                                onClick = ::onHistoryBackMenuItemClicked,
+                                onClick = { onHistoryBackMenuItemClicked(navigator) },
                                 icon = { Icon(painterResource(R.drawable.arrow_back), null) },
                                 label = { Text(stringResource(R.string.history_back)) },
                             )
                             NavigationBarItem(
                                 selected = false,
                                 enabled = navigator.canGoForwardState.value,
-                                onClick = { onHistoryForwardMenuItemClicked() },
+                                onClick = { onHistoryForwardMenuItemClicked(navigator) },
                                 icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
                                 label = { Text(stringResource(R.string.history_forward)) },
                             )
@@ -218,7 +218,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     servoView = servoView,
                     modifier = Modifier.padding(innerPadding),
                 )
-                BackHandler(enabled = navigator.canGoBackState.value) { servoView.goBack() }
+                BackHandler(enabled = navigator.canGoBackState.value) { navigator.back() }
                 alertMessageState.value?.let { alertMessage ->
                     AlertDialog(
                         onDismissRequest = { alertMessageState.value = null },
@@ -258,14 +258,14 @@ class MainActivity : ComponentActivity(), Servo.Client {
         onLoadEnded()
     }
 
-    private fun onHistoryBackMenuItemClicked() {
+    private fun onHistoryBackMenuItemClicked(navigator: ServoNavigator) {
         onHistoryItemClicked()
-        servoView.goBack()
+        navigator.back()
     }
 
-    private fun onHistoryForwardMenuItemClicked() {
+    private fun onHistoryForwardMenuItemClicked(navigator: ServoNavigator) {
         onHistoryItemClicked()
-        servoView.goForward()
+        navigator.forward()
     }
 
     private fun onRefreshMenuItemClicked() {
