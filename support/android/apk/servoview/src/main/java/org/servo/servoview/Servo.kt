@@ -9,7 +9,9 @@ import android.content.Context
 import android.util.Size
 import android.view.KeyEvent
 import android.view.Surface
+import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -21,6 +23,10 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 
 @Composable
 fun Servo(
@@ -30,6 +36,10 @@ fun Servo(
     LifecycleResumeEffect(servoView) {
         servoView.onResume()
         onPauseOrDispose { servoView.onPause() }
+    }
+    // TODO Key off of and pass `servo` instead of `servoView` once `servo` is non-null.
+    LaunchedEffect(servoView, servoView.navigator) {
+        servoView.navigator.consumeNavigationEvents(servoView)
     }
     AndroidView(
         factory = { _ -> servoView },
@@ -58,11 +68,37 @@ fun Servo(
 
 @Stable
 class ServoNavigator {
+    private sealed interface NavigationEvent : Interaction {
+        data object Back : NavigationEvent
+
+        data object Forward : NavigationEvent
+    }
+
+    private val coroutineScope = CoroutineScope(EmptyCoroutineContext)
+    private val navigationEvents = MutableSharedFlow<NavigationEvent>()
+
+    internal suspend fun consumeNavigationEvents(servoView: ServoView) {
+        navigationEvents.collect { navigationEvent ->
+            when (navigationEvent) {
+                NavigationEvent.Back -> servoView.servo!!.goBack()
+                NavigationEvent.Forward -> servoView.servo!!.goForward()
+            }
+        }
+    }
+
     var canGoBackState = mutableStateOf(false)
         internal set
 
     var canGoForwardState = mutableStateOf(false)
         internal set
+
+    fun back() {
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Back) }
+    }
+
+    fun forward() {
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Forward) }
+    }
 }
 
 class Servo(
