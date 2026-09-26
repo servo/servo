@@ -657,8 +657,8 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
     }
 }
 
-/// The trait providing helper functions for [`Vec<KeyUsage>`]
-pub(crate) trait KeyUsageVecHelper {
+/// The trait providing helper functions for `&[KeyUsage]`
+pub(crate) trait KeyUsageSliceHelper {
     /// <https://w3c.github.io/webcrypto/#concept-usage-intersection>
     fn usage_intersection(&self, other: &[KeyUsage]) -> Vec<KeyUsage>;
 
@@ -666,7 +666,7 @@ pub(crate) trait KeyUsageVecHelper {
     fn normalized_value(&self) -> Vec<KeyUsage>;
 }
 
-impl KeyUsageVecHelper for Vec<KeyUsage> {
+impl KeyUsageSliceHelper for [KeyUsage] {
     fn usage_intersection(&self, other: &[KeyUsage]) -> Vec<KeyUsage> {
         // When this specification says to calculate the usage intersection of two sequences, a and
         // b the result shall be a sequence containing each recognized key usage value that appears
