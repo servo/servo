@@ -12,6 +12,7 @@ use js::realm::CurrentRealm;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel;
+use servo_base::generic_channel::GenericCallback;
 use servo_config::pref;
 
 use crate::conversions::Convert;
@@ -376,6 +377,60 @@ fn prompt_user_from_embedder(name: PermissionName, global_scope: &GlobalScope) -
             PermissionState::Denied
         },
     }
+}
+
+/// The outcome of request_permission_to_use_async()
+pub(crate) enum AsyncPermissionRequest {
+    /// The state was already known, so the user was not prompted. The caller should continue
+    /// immediately with this state.
+    Settled(PermissionState),
+    /// The user is being prompted. The callback will be invoked with their decision.
+    Prompting,
+}
+
+/// Non-blocking variant of request_permission_to_use(), for specifications that obtain
+/// permission "in parallel" rather than on the script thread.
+///
+/// `callback` is only invoked when the return value is AsyncPermissionRequest::Prompting
+pub(crate) fn request_permission_to_use_async(
+    name: PermissionName,
+    global_scope: &GlobalScope,
+    callback: GenericCallback<AllowOrDeny>,
+) -> AsyncPermissionRequest {
+    let state = descriptor_permission_state(name, Some(global_scope));
+    if state != PermissionState::Prompt {
+        return AsyncPermissionRequest::Settled(state);
+    }
+
+    let Some(webview_id) = global_scope.webview_id() else {
+        warn!("Requesting permissions from non-webview-associated global scope");
+        return AsyncPermissionRequest::Settled(PermissionState::Denied);
+    };
+
+    global_scope.send_to_embedder(EmbedderMsg::RequestPermission(
+        webview_id,
+        name.convert(),
+        callback,
+    ));
+    AsyncPermissionRequest::Prompting
+}
+
+/// Store the user's answer to a prompt started by request_permission_to_use_async(), and return
+/// the resulting permission state.
+pub(crate) fn record_permission_request_result(
+    name: PermissionName,
+    global_scope: &GlobalScope,
+    response: AllowOrDeny,
+) -> PermissionState {
+    let state = match response {
+        AllowOrDeny::Allow => PermissionState::Granted,
+        AllowOrDeny::Deny => PermissionState::Denied,
+    };
+    global_scope
+        .permission_state_invocation_results()
+        .borrow_mut()
+        .insert(name, state);
+    descriptor_permission_state(name, Some(global_scope))
 }
 
 impl Convert<PermissionFeature> for PermissionName {

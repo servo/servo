@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use embedder_traits::GeolocationPositionData;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::GeolocationCoordinatesBinding::GeolocationCoordinatesMethods;
 use script_bindings::num::Finite;
@@ -21,6 +22,15 @@ pub struct GeolocationCoordinates {
     altitude_accuracy: Option<Finite<f64>>,
     heading: Option<Finite<f64>>,
     speed: Option<Finite<f64>>,
+}
+
+/// The outer `Option` reports whether the value was representable while the inner one is the
+/// attribute's own nullability.
+fn optional_finite(value: Option<f64>) -> Option<Option<Finite<f64>>> {
+    match value {
+        None => Some(None),
+        Some(value) => Finite::new(value).map(Some),
+    }
 }
 
 impl GeolocationCoordinates {
@@ -45,31 +55,37 @@ impl GeolocationCoordinates {
         }
     }
 
-    #[expect(unused, clippy::too_many_arguments)]
-    pub(crate) fn new(
+    /// Step 1 and 2 of "constructing a `GeolocationPosition`"
+    /// Returns `None` if the platform reported a value that cannot be represented as an
+    /// unrestricted double, in which case the caller should report `POSITION_UNAVAILABLE`.
+    ///
+    /// [spec]: https://www.w3.org/TR/geolocation/#dfn-a-new-geolocationposition
+    pub(crate) fn from_position_data(
         cx: &mut JSContext,
         global: &GlobalScope,
-        accuracy: Finite<f64>,
-        latitude: Finite<f64>,
-        longitude: Finite<f64>,
-        altitude: Option<Finite<f64>>,
-        altitude_accuracy: Option<Finite<f64>>,
-        heading: Option<Finite<f64>>,
-        speed: Option<Finite<f64>>,
-    ) -> DomRoot<Self> {
-        reflect_dom_object(
+        data: &GeolocationPositionData,
+    ) -> Option<DomRoot<Self>> {
+        // > "heading": A double? that represents the heading in degrees, or null if not available
+        // > or the device is stationary.
+        let heading = if data.speed == Some(0.0) {
+            None
+        } else {
+            optional_finite(data.heading)?
+        };
+
+        Some(reflect_dom_object(
             cx,
             Box::new(Self::new_inherited(
-                accuracy,
-                latitude,
-                longitude,
-                altitude,
-                altitude_accuracy,
+                Finite::new(data.accuracy)?,
+                Finite::new(data.latitude)?,
+                Finite::new(data.longitude)?,
+                optional_finite(data.altitude)?,
+                optional_finite(data.altitude_accuracy)?,
                 heading,
-                speed,
+                optional_finite(data.speed)?,
             )),
             global,
-        )
+        ))
     }
 }
 
