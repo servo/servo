@@ -102,7 +102,7 @@ pub(crate) struct InlineFormattingContextBuilder {
 
     /// Whether or not the `::first-letter` pseudo-element of this inline formatting context
     /// has been processed yet.
-    has_processed_first_letter: bool,
+    pub has_processed_first_letter: bool,
 
     /// Whether or not the inline formatting context under construction has any kind of
     /// right-to-left content such as a character with an RTL character class or a `dir`
