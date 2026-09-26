@@ -290,11 +290,11 @@ impl<'dom> LayoutDom<'dom, Node> {
                 return true;
             }
         }
-        // This is the cases where, if `selection_for_text_node` returns a selection
+        // This is the cases where, if `selection_for_text_node` returns a selection,
         // it is a document selection.
-        // For now, never paint a caret for document selection.
-        // This will change as we improve `contenteditable` support.
-        false
+        self.owner_doc_for_layout()
+            .visible_selection_for_layout()
+            .is_some_and(|selection| selection.paints_caret_for_layout())
     }
 
     pub(crate) fn replaced_is_selected(&self) -> bool {
