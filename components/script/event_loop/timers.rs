@@ -19,6 +19,7 @@ use js::rust::HandleValue;
 use js::rust::wrappers2::JS_GetScriptedCallerPrivate;
 use net_traits::request::ParserMetadata;
 use rustc_hash::FxHashMap;
+use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
@@ -607,7 +608,7 @@ pub(crate) enum IsInterval {
 
 pub(crate) enum TimerCallback {
     StringTimerCallback(TrustedScriptOrString),
-    FunctionTimerCallback(Rc<Function>),
+    FunctionTimerCallback(RootedCallback<Function>),
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -615,7 +616,7 @@ pub(crate) enum TimerCallback {
 enum InternalTimerCallback {
     StringTimerCallback(DOMString, InitiatingScriptFetchInfo),
     FunctionTimerCallback(
-        #[conditional_malloc_size_of] Rc<Function>,
+        TracedCallback<Function>,
         #[ignore_malloc_size_of = "mozjs"] Rc<Box<[Heap<JSVal>]>>,
     ),
 }
@@ -700,7 +701,7 @@ impl JsTimers {
                 // Step 9.5. If handler is a Function, then invoke handler given arguments and "report",
                 // and with callback this value set to thisArg.
                 InternalTimerCallback::FunctionTimerCallback(
-                    function,
+                    function.to_traced(),
                     Rc::new(args.into_boxed_slice()),
                 )
             },

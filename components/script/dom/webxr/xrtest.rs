@@ -6,13 +6,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::JSVal;
 use js::realm::CurrentRealm;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use script_bindings::callback::RootedCallback;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSender;
@@ -181,7 +180,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn SimulateUserActivation(&self, cx: &mut JSContext, f: Rc<Function>) {
+    fn SimulateUserActivation(&self, cx: &mut JSContext, f: RootedCallback<Function>) {
         let _guard = ScriptThread::user_interacting_guard();
         rooted!(&in(cx) let mut value: JSVal);
         let _ = f.Call__(cx, vec![], value.handle_mut(), ExceptionHandling::Rethrow);

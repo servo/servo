@@ -33,6 +33,7 @@ use layout_api::{
 };
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
+use script_bindings::callback::RootedCallback;
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::AnimationBinding::AnimationMethods;
 use script_bindings::codegen::GenericBindings::KeyframeEffectBinding::KeyframeEffectMethods;
@@ -486,13 +487,13 @@ impl Element {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn push_callback_reaction(
         &self,
-        function: Rc<Function>,
+        function: RootedCallback<Function>,
         args: Box<[Heap<JSVal>]>,
         no_gc: &NoGC,
     ) {
         self.ensure_rare_data(no_gc)
             .custom_element_reaction_queue
-            .push(CustomElementReaction::Callback(function, args));
+            .push(CustomElementReaction::Callback(function.to_traced(), args));
     }
 
     pub(crate) fn push_upgrade_reaction(
