@@ -19,6 +19,7 @@ use std::time::{Duration, Instant};
 
 use content_security_policy::CspList;
 use crossbeam_channel::Sender;
+#[cfg(feature = "devtools")]
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg, get_time_stamp};
 use dom_struct::dom_struct;
 use embedder_traits::{
@@ -139,7 +140,9 @@ use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::CrossRealmTransformWritable;
 use crate::dom::transformstream::CrossRealmTransform;
-use crate::dom::types::{AbortSignal, DebuggerGlobalScope, MessageEvent};
+#[cfg(feature = "devtools")]
+use crate::dom::types::DebuggerGlobalScope;
+use crate::dom::types::{AbortSignal, MessageEvent};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
 #[cfg(feature = "webgpu")]
@@ -205,6 +208,7 @@ pub(crate) struct GlobalScope {
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
+    #[cfg(feature = "devtools")]
     devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
 
     /// For sending messages to the memory profiler.
@@ -386,7 +390,9 @@ impl GlobalScope {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(
-        devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+        #[cfg(feature = "devtools")] devtools_chan: Option<
+            GenericCallback<ScriptToDevtoolsControlMsg>,
+        >,
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_sender: ScriptToConstellationSender,
@@ -410,6 +416,7 @@ impl GlobalScope {
             indexeddb: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             console_timers: DomRefCell::new(Default::default()),
+            #[cfg(feature = "devtools")]
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
@@ -2107,6 +2114,7 @@ impl GlobalScope {
 
     /// Get an `&IpcSender<ScriptToDevtoolsControlMsg>` to send messages
     /// to the devtools thread when available.
+    #[cfg(feature = "devtools")]
     pub(crate) fn devtools_chan(&self) -> Option<&GenericCallback<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.as_ref()
     }
@@ -2144,13 +2152,15 @@ impl GlobalScope {
             worker.pipeline_id()
         } else if let Some(window) = self.downcast::<Window>() {
             window.pipeline_id()
-        } else if let Some(debugger) = self.downcast::<DebuggerGlobalScope>() {
-            debugger.pipeline_id()
         } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
             worklet.pipeline_id()
         } else if let Some(dissimilar) = self.downcast::<DissimilarOriginWindow>() {
             dissimilar.pipeline_id()
         } else {
+            #[cfg(feature = "devtools")]
+            if let Some(debugger) = self.downcast::<DebuggerGlobalScope>() {
+                return debugger.pipeline_id();
+            }
             unreachable!("Unsupported global type for pipeline id")
         }
     }
@@ -2193,9 +2203,11 @@ impl GlobalScope {
             worklet.origin()
         } else if let Some(dissimilar_window) = self.downcast::<DissimilarOriginWindow>() {
             dissimilar_window.origin()
-        } else if let Some(debugger) = self.downcast::<DebuggerGlobalScope>() {
-            debugger.origin()
         } else {
+            #[cfg(feature = "devtools")]
+            if let Some(debugger) = self.downcast::<DebuggerGlobalScope>() {
+                return debugger.origin();
+            }
             unreachable!("Unexpected origin check against global")
         }
     }
@@ -2312,6 +2324,7 @@ impl GlobalScope {
             // https://drafts.css-houdini.org/worklets/#script-settings-for-worklets
             return worklet.base_url();
         }
+        #[cfg(feature = "devtools")]
         if let Some(_debugger_global) = self.downcast::<DebuggerGlobalScope>() {
             return self.creation_url();
         }
@@ -2330,7 +2343,11 @@ impl GlobalScope {
             // TODO: is this the right URL to return?
             return worklet.base_url();
         }
-        if self.is::<DebuggerGlobalScope>() || self.is::<DissimilarOriginWindow>() {
+        if self.is::<DissimilarOriginWindow>() {
+            return self.creation_url();
+        }
+        #[cfg(feature = "devtools")]
+        if self.downcast::<DebuggerGlobalScope>().is_some() {
             return self.creation_url();
         }
         unreachable!();
@@ -2502,6 +2519,7 @@ impl GlobalScope {
                 dedicated.forward_error_to_worker_object(error_info);
             } else if self.is::<Window>() {
                 // Step 7.3. Otherwise, the user agent may report exception to a developer console.
+                #[cfg(feature = "devtools")]
                 if let Some(ref chan) = self.devtools_chan {
                     let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
                         self.pipeline_id(),

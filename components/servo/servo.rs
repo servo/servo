@@ -886,6 +886,12 @@ impl Drop for ServoInner {
     }
 }
 
+#[cfg(feature = "devtools")]
+type DevtoolsMessage = devtools_traits::DevtoolsControlMsg;
+
+#[cfg(not(feature = "devtools"))]
+type DevtoolsMessage = ();
+
 /// An in-process handle to a `Servo` instance. Cloning the handle does not create a new instance
 /// of `Servo`.
 ///
@@ -947,14 +953,14 @@ impl Servo {
         );
         let mem_profiler_chan = profile_mem::Profiler::create();
 
-        let devtools_sender = if pref!(devtools_server_enabled) {
-            Some(devtools::start_server(
+        let mut devtools_sender: Option<Sender<DevtoolsMessage>> = None;
+        #[cfg(feature = "devtools")]
+        if pref!(devtools_server_enabled) {
+            devtools_sender = Some(devtools::start_server(
                 embedder_proxy.clone(),
                 mem_profiler_chan.clone(),
             ))
-        } else {
-            None
-        };
+        }
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -1009,6 +1015,7 @@ impl Servo {
             paint_proxy,
             time_profiler_chan,
             mem_profiler_chan,
+            #[cfg(feature = "devtools")]
             devtools_sender,
             protocols,
             public_resource_threads.clone(),
@@ -1217,7 +1224,9 @@ fn create_constellation(
     paint_proxy: PaintProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
-    devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
+    #[cfg(feature = "devtools")] devtools_sender: Option<
+        Sender<devtools_traits::DevtoolsControlMsg>,
+    >,
     protocols: Arc<ProtocolRegistry>,
     public_resource_threads: ResourceThreads,
     private_resource_threads: ResourceThreads,
@@ -1246,6 +1255,7 @@ fn create_constellation(
         paint_proxy,
         embedder_proxy,
         constellation_to_embedder_proxy,
+        #[cfg(feature = "devtools")]
         devtools_sender,
         #[cfg(feature = "bluetooth")]
         bluetooth_thread,

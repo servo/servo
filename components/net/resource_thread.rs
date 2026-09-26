@@ -13,8 +13,6 @@ use std::sync::{Arc, Weak};
 use std::thread;
 
 use cookie::Cookie;
-use crossbeam_channel::Sender;
-use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
@@ -89,7 +87,7 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<Certifica
 /// Returns a tuple of (public, private) senders to the new threads.
 #[expect(clippy::too_many_arguments)]
 pub fn new_resource_threads(
-    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    devtools_sender: Option<crossbeam_channel::Sender<DevtoolsMessage>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -129,7 +127,7 @@ pub fn new_resource_threads(
 /// Create a CoreResourceThread
 #[expect(clippy::too_many_arguments)]
 pub fn new_core_resource_thread(
-    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    devtools_sender: Option<crossbeam_channel::Sender<DevtoolsMessage>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -707,8 +705,14 @@ pub struct AuthCache {
     pub entries: HashMap<String, AuthCacheEntry>,
 }
 
+#[cfg(feature = "devtools")]
+type DevtoolsMessage = devtools_traits::DevtoolsControlMsg;
+
+#[cfg(not(feature = "devtools"))]
+type DevtoolsMessage = ();
+
 pub struct CoreResourceManager {
-    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    devtools_sender: Option<crossbeam_channel::Sender<DevtoolsMessage>>,
     sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
     request_interceptor: RequestInterceptor,
@@ -721,7 +725,7 @@ pub struct CoreResourceManager {
 
 impl CoreResourceManager {
     pub fn new(
-        devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+        devtools_sender: Option<crossbeam_channel::Sender<DevtoolsMessage>>,
         _profiler_chan: ProfilerChan,
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
@@ -790,6 +794,7 @@ impl CoreResourceManager {
         protocols: Arc<ProtocolRegistry>,
     ) {
         let http_state = http_state.clone();
+        #[cfg(feature = "devtools")]
         let devtools_chan = self.devtools_sender.clone();
         let filemanager = self.filemanager.clone();
         let request_interceptor = self.request_interceptor.clone();
@@ -842,6 +847,7 @@ impl CoreResourceManager {
             let context = FetchContext {
                 state: http_state,
                 user_agent: servo_config::pref!(user_agent),
+                #[cfg(feature = "devtools")]
                 devtools_chan,
                 filemanager,
                 file_token,
@@ -909,6 +915,7 @@ impl CoreResourceManager {
         protocols: Arc<ProtocolRegistry>,
     ) {
         let http_state = http_state.clone();
+        #[cfg(feature = "devtools")]
         let devtools_chan = self.devtools_sender.clone();
         let filemanager = self.filemanager.clone();
         let request_interceptor = self.request_interceptor.clone();
@@ -938,6 +945,7 @@ impl CoreResourceManager {
                     let context = FetchContext {
                         state: http_state,
                         user_agent: servo_config::pref!(user_agent),
+                        #[cfg(feature = "devtools")]
                         devtools_chan,
                         filemanager,
                         file_token: FileTokenCheck::NotRequired,
