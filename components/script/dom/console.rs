@@ -15,14 +15,14 @@ use embedder_traits::EmbedderMsg;
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{self, ESClass, JS_GetFunctionArity, PropertyDescriptor, SavedFrameSelfHosted};
-use js::jsval::{Int32Value, UndefinedValue};
+use js::jsval::{Int32Value, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     GetArrayLength, GetBuiltinClass, GetPropertyKeys, GetSavedFrameColumn,
     GetSavedFrameFunctionDisplayName, GetSavedFrameLine, GetSavedFrameSource,
     JS_ClearPendingException, JS_GetElement, JS_GetFunctionDisplayId, JS_GetFunctionId,
-    JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_IdToValue, JS_Stringify,
-    JS_ValueToFunction, JS_ValueToSource, MapEntries, MapSize,
+    JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_GetPrototype, JS_IdToValue,
+    JS_Stringify, JS_ValueToFunction, JS_ValueToSource, MapEntries, MapSize,
 };
 use js::rust::{
     CapturedJSStack, HandleObject, HandleValue, IdVector, ToNumber, ToString,
@@ -204,7 +204,9 @@ fn console_argument_from_handle_value(
             }
 
             seen.push(handle_value.asBits_);
+            rooted!(&in(cx) let object = handle_value.to_object());
             let console_object = console_object_from_handle_value(cx, handle_value, seen);
+            let prototype = object_prototype_debugger_value(cx, object.handle(), seen)?;
             let js_value = seen.pop();
             debug_assert_eq!(js_value, Some(handle_value.asBits_));
 
@@ -214,6 +216,7 @@ fn console_argument_from_handle_value(
                     class,
                     own_property_length: preview.own_properties_length,
                     preview: Some(Box::new(preview)),
+                    prototype,
                 });
             }
 
@@ -233,6 +236,28 @@ fn console_argument_from_handle_value(
             DebuggerValue::StringValue("<error>".into())
         },
     }
+}
+
+#[expect(unsafe_code)]
+fn object_prototype_debugger_value(
+    cx: &mut JSContext,
+    object: HandleObject,
+    seen: &mut Vec<u64>,
+) -> Result<Option<Box<DebuggerValue>>, ()> {
+    rooted!(&in(cx) let mut prototype = ptr::null_mut::<jsapi::JSObject>());
+    if unsafe { !JS_GetPrototype(cx, object, prototype.handle_mut()) } {
+        return Err(());
+    }
+    if prototype.is_null() {
+        return Ok(Some(Box::new(DebuggerValue::NullValue(false))));
+    }
+
+    rooted!(&in(cx) let prototype = ObjectValue(prototype.get()));
+    Ok(Some(Box::new(console_argument_from_handle_value(
+        cx,
+        prototype.handle(),
+        seen,
+    ))))
 }
 
 fn accessor_value_from_property_descriptor(descriptor: &PropertyDescriptor) -> DebuggerValue {

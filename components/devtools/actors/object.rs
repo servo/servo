@@ -40,7 +40,7 @@ struct EnumReply {
 #[derive(Serialize)]
 struct PrototypeReply {
     from: String,
-    prototype: ObjectActorMsg,
+    prototype: Value,
 }
 
 #[derive(Serialize)]
@@ -130,6 +130,7 @@ struct ObjectActorData {
     class: String,
     own_property_length: Option<u32>,
     preview: Option<devtools_traits::ObjectPreview>,
+    prototype: Option<DebuggerValue>,
 }
 
 #[derive(MallocSizeOf)]
@@ -228,9 +229,15 @@ impl Actor for ObjectActor {
             },
 
             "prototype" => {
+                let prototype = self
+                    .data
+                    .borrow()
+                    .prototype
+                    .clone()
+                    .unwrap_or(DebuggerValue::NullValue(false));
                 let msg = PrototypeReply {
                     from: self.name().into(),
-                    prototype: self.encode(registry),
+                    prototype: debugger_value_to_json(registry, prototype),
                 };
                 request.reply_final(&msg)?
             },
@@ -266,6 +273,7 @@ impl ObjectActor {
         class: String,
         own_property_length: Option<u32>,
         preview: Option<devtools_traits::ObjectPreview>,
+        prototype: Option<DebuggerValue>,
     ) -> String {
         if let Some(name) = actor_name {
             let actor = registry.find::<Self>(&name);
@@ -276,6 +284,9 @@ impl ObjectActor {
 
             if preview.is_some() || data.preview.is_none() {
                 data.preview = preview;
+            }
+            if prototype.is_some() || data.prototype.is_none() {
+                data.prototype = prototype;
             }
 
             return name;
@@ -288,6 +299,7 @@ impl ObjectActor {
                 class,
                 own_property_length,
                 preview,
+                prototype,
             }),
         };
         registry.register(actor);
