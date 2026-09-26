@@ -5,6 +5,7 @@ mod layout;
 mod stylo_taffy;
 use std::fmt;
 
+use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc;
@@ -21,8 +22,10 @@ use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
+use crate::geom::LogicalVec2;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::style_ext::{AspectRatio, ComputedValuesExt};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct TaffyContainer {
@@ -77,6 +80,14 @@ impl TaffyContainer {
 
     pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.style = new_style.clone();
+    }
+
+    #[inline]
+    pub(crate) fn preferred_aspect_ratio(
+        &self,
+        padding_border_sums: &LogicalVec2<Au>,
+    ) -> Option<AspectRatio> {
+        self.style.preferred_aspect_ratio(None, padding_border_sums)
     }
 }
 

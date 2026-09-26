@@ -41,7 +41,9 @@ use crate::sizing::{
     self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
     SizeConstraint, Sizes,
 };
-use crate::style_ext::{AspectRatio, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin};
+use crate::style_ext::{
+    AspectRatio, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin,
+};
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock};
 
 mod construct;
@@ -73,6 +75,17 @@ impl BlockContainer {
                 .any(|block_level_box| block_level_box.borrow().contains_floats()),
             BlockContainer::InlineFormattingContext(context) => context.contains_floats,
         }
+    }
+
+    #[inline]
+    pub(crate) fn preferred_aspect_ratio(
+        &self,
+        base: &LayoutBoxBase,
+        padding_border_sums: &LogicalVec2<Au>,
+    ) -> Option<AspectRatio> {
+        self.layout_style(base)
+            .style()
+            .preferred_aspect_ratio(None, padding_border_sums)
     }
 
     pub(crate) fn repair_style(
@@ -516,6 +529,15 @@ impl BlockFormattingContext {
     #[inline]
     pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
         LayoutStyle::Default(&base.style)
+    }
+
+    #[inline]
+    pub(crate) fn preferred_aspect_ratio(
+        &self,
+        base: &LayoutBoxBase,
+        padding_border_sums: &LogicalVec2<Au>,
+    ) -> Option<AspectRatio> {
+        self.contents.preferred_aspect_ratio(base, padding_border_sums)
     }
 
     pub(crate) fn repair_style(
