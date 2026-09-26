@@ -1251,7 +1251,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         self.suggestions_source_element()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasdate>
     #[expect(unsafe_code)]
     fn GetValueAsDate(&self, cx: &mut JSContext, mut return_value: MutableHandleObject) {
         if let Some(date_time) = self
@@ -1266,7 +1266,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasdate>
     #[expect(unsafe_code)]
     fn SetValueAsDate(&self, cx: &mut JSContext, value: *mut JSObject) -> ErrorResult {
         rooted!(&in(cx) let value = value);

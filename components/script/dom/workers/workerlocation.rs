@@ -37,7 +37,7 @@ impl WorkerLocation {
         reflect_dom_object_with_cx(Box::new(WorkerLocation::new_inherited(url)), global, cx)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin>
     #[expect(dead_code)]
     pub(crate) fn origin(&self) -> ImmutableOrigin {
         self.url.origin()
