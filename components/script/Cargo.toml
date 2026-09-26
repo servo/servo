@@ -83,6 +83,7 @@ webxr = ["webgl", "gamepad", "webxr-api", "script_bindings/webxr"]
 workspace = true
 
 [dependencies]
+accesskit = { workspace = true }
 aes = { workspace = true, optional = true }
 aes-gcm = { workspace = true, optional = true }
 aes-kw = { workspace = true, optional = true }
