@@ -6,7 +6,6 @@
 
 use std::borrow::ToOwned;
 use std::ptr;
-use std::rc::Rc;
 use std::time::Duration;
 
 use dom_struct::dom_struct;
@@ -20,7 +19,7 @@ use js::rust::{
     CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue,
 };
 use js::typedarray::{self, HeapUint8ClampedArray};
-use script_bindings::callback::RootedCallback;
+use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::cformat;
 use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
@@ -1065,8 +1064,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PromiseNativeHandler(
         &self,
         realm: &mut CurrentRealm,
-        resolve: Option<Rc<SimpleCallback>>,
-        reject: Option<Rc<SimpleCallback>>,
+        resolve: Option<RootedCallback<SimpleCallback>>,
+        reject: Option<RootedCallback<SimpleCallback>>,
     ) -> RootedPromise {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
@@ -1081,13 +1080,13 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         return p;
 
         #[derive(JSTraceable, MallocSizeOf)]
+        #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
         struct SimpleHandler {
-            #[conditional_malloc_size_of]
-            handler: Rc<SimpleCallback>,
+            handler: TracedCallback<SimpleCallback>,
         }
         impl SimpleHandler {
-            fn new_boxed(callback: Rc<SimpleCallback>) -> Box<dyn Callback> {
-                Box::new(SimpleHandler { handler: callback })
+            fn new_boxed(callback: RootedCallback<SimpleCallback>) -> Box<dyn Callback> {
+                Box::new(SimpleHandler { handler: callback.to_traced() })
             }
         }
         impl Callback for SimpleHandler {
