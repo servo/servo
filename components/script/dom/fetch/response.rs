@@ -65,7 +65,7 @@ pub(crate) struct Response {
 }
 
 impl Response {
-    pub(crate) fn new_inherited(stream: DomRoot<ReadableStream>) -> Response {
+    pub(crate) fn new_inherited(body_stream: Option<&ReadableStream>) -> Response {
         Response {
             reflector_: Reflector::new(),
             headers_reflector: Default::default(),
@@ -73,8 +73,8 @@ impl Response {
             response_type: DomRefCell::new(DOMResponseType::Default),
             url: DomRefCell::new(None),
             url_list: DomRefCell::new(vec![]),
-            body_stream: MutNullableDom::new(Some(&*stream)),
-            fetch_body_stream: MutNullableDom::new(Some(&*stream)),
+            body_stream: MutNullableDom::new(body_stream),
+            fetch_body_stream: MutNullableDom::new(body_stream),
             stream_consumer: DomRefCell::new(None),
             redirected: Cell::new(false),
         }
@@ -90,13 +90,27 @@ impl Response {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Response> {
+        reflect_dom_object_with_proto(cx, Box::new(Response::new_inherited(None)), global, proto)
+    }
+
+    /// Create a `Response` whose body stream receives the chunks delivered by the network.
+    /// This is only for the fetch machinery; a JS-created `Response` is never network-backed.
+    pub(crate) fn new_fetch_response(
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+    ) -> DomRoot<Response> {
         let stream = ReadableStream::new_with_external_underlying_source(
             cx,
             global,
             UnderlyingSourceType::FetchResponse,
         )
         .expect("Failed to create ReadableStream with external underlying source");
-        reflect_dom_object_with_proto(cx, Box::new(Response::new_inherited(stream)), global, proto)
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(Response::new_inherited(Some(&stream))),
+            global,
+            None,
+        )
     }
 
     pub(crate) fn error_stream(&self, cx: &mut js::context::JSContext, error: Error) {
