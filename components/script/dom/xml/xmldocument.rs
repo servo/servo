@@ -30,7 +30,7 @@ use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::event_loop::document_loader::DocumentLoader;
 
-/// <https://dom.spec.whatwg.org/#xmldocument>
+// https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]
 pub(crate) struct XMLDocument {
     document: Document,

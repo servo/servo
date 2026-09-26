@@ -30,7 +30,7 @@ use crate::dom::node::{ChildrenMutation, Node, NodeDamage};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
 
-/// <https://dom.spec.whatwg.org/#characterdata>
+// https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
 pub(crate) struct CharacterData {
     node: Node,
