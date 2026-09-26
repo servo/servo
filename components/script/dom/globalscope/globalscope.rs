@@ -2567,7 +2567,6 @@ impl GlobalScope {
     }
 
     /// Evaluate JS code on this global scope.
-    #[expect(unsafe_code)]
     pub(crate) fn evaluate_js_on_global(
         &self,
         cx: &mut CurrentRealm,
@@ -2578,6 +2577,19 @@ impl GlobalScope {
     ) -> Result<(), JavaScriptEvaluationError> {
         assert!(self.can_run_script());
 
+        self.evaluate_trusted_js_on_global(cx, code, filename, introduction_type, rval)
+    }
+
+    /// Evaluate JS code on this global scope for sources that are always allowed to execute.
+    #[expect(unsafe_code)]
+    pub(crate) fn evaluate_trusted_js_on_global(
+        &self,
+        cx: &mut CurrentRealm,
+        code: Cow<'_, str>,
+        filename: &str,
+        introduction_type: Option<&'static CStr>,
+        rval: Option<MutableHandleValue>,
+    ) -> Result<(), JavaScriptEvaluationError> {
         run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script();
