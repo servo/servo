@@ -861,7 +861,7 @@ impl EventTarget {
             .is_some_and(|handlers| !handlers.is_empty())
     }
 
-    // https://dom.spec.whatwg.org/#concept-event-fire
+    /// <https://dom.spec.whatwg.org/#concept-event-fire>
     pub(crate) fn fire_event(&self, cx: &mut js::context::JSContext, name: Atom) -> bool {
         self.fire_event_with_params(
             cx,
@@ -872,7 +872,7 @@ impl EventTarget {
         )
     }
 
-    // https://dom.spec.whatwg.org/#concept-event-fire
+    /// <https://dom.spec.whatwg.org/#concept-event-fire>
     pub(crate) fn fire_bubbling_event(&self, cx: &mut js::context::JSContext, name: Atom) -> bool {
         self.fire_event_with_params(
             cx,
@@ -883,7 +883,7 @@ impl EventTarget {
         )
     }
 
-    // https://dom.spec.whatwg.org/#concept-event-fire
+    /// <https://dom.spec.whatwg.org/#concept-event-fire>
     pub(crate) fn fire_cancelable_event(
         &self,
         cx: &mut js::context::JSContext,
@@ -898,7 +898,7 @@ impl EventTarget {
         )
     }
 
-    // https://dom.spec.whatwg.org/#concept-event-fire
+    /// <https://dom.spec.whatwg.org/#concept-event-fire>
     pub(crate) fn fire_bubbling_cancelable_event(
         &self,
         cx: &mut js::context::JSContext,
