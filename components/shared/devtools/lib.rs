@@ -159,6 +159,11 @@ pub enum DomMutation {
         attribute_name: String,
         new_value: Option<String>,
     },
+    ChildList {
+        parent: String,
+        removed: String,
+        num_children: usize,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -438,6 +443,8 @@ pub enum DevtoolScriptControlMsg {
     ),
     /// Update a given node's attributes with a list of modifications.
     ModifyAttribute(PipelineId, String, Vec<AttrModification>),
+    /// Remove a node and return its next sibling, if any.
+    RemoveNode(PipelineId, String, GenericSender<Option<NodeInfo>>),
     /// Update a given node's style rules with a list of modifications.
     ModifyRule(PipelineId, String, Vec<RuleModification>),
     /// Request live console messages for a given pipeline (true if desired, false otherwise).

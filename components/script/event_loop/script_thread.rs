@@ -2168,6 +2168,16 @@ impl ScriptThread {
                     modifications,
                 )
             },
+            DevtoolScriptControlMsg::RemoveNode(id, node_id, reply) => {
+                devtools::handle_remove_node(
+                    cx,
+                    &self.devtools_state,
+                    &documents,
+                    id,
+                    &node_id,
+                    reply,
+                )
+            },
             DevtoolScriptControlMsg::ModifyRule(id, node_id, modifications) => {
                 devtools::handle_modify_rule(
                     cx,
