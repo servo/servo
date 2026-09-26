@@ -29,6 +29,7 @@ ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 markup5ever = { workspace = true }
 mime = { workspace = true }
+memmap2 = { workspace = true }
 once_cell = { workspace = true }
 parking_lot = { workspace = true }
 resvg = { workspace = true }

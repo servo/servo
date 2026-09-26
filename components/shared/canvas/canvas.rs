@@ -790,12 +790,13 @@ pub struct CanvasFont {
 
 impl CanvasFont {
     pub fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
-        self.data.clone().or_else(|| match &self.identifier {
+        match &self.identifier {
             FontIdentifier::Local(local_font_identifier) => {
                 local_font_identifier.font_data_and_index()
             },
-            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => None,
-        })
+            FontIdentifier::Web(_) => self.data.clone(),
+            FontIdentifier::ArrayBuffer(_) => self.data.clone(),
+        }
     }
 }
 

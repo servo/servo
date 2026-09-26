@@ -16,6 +16,7 @@ pub use font_descriptor::*;
 pub use font_identifier::*;
 pub use font_template::*;
 use malloc_size_of_derive::MallocSizeOf;
+pub use memmap2::Mmap;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSharedMemory;
@@ -32,30 +33,66 @@ pub enum WebFontLoadEvent {
 pub type StylesheetWebFontLoadFinishedCallback =
     Arc<dyn Fn(WebFontLoadEvent) + Send + Sync + 'static>;
 
+#[derive(Serialize, Deserialize)]
+struct SerializableFontData(Arc<GenericSharedMemory>);
+
+impl From<FontData> for SerializableFontData {
+    fn from(value: FontData) -> Self {
+        match value {
+            FontData::MemoryMapped(mmap) => {
+                SerializableFontData(Arc::new(GenericSharedMemory::from_bytes(&mmap)))
+            },
+            FontData::SharedMemory(generic_shared_memory) => {
+                SerializableFontData(generic_shared_memory)
+            },
+        }
+    }
+}
+
+impl From<SerializableFontData> for FontData {
+    fn from(value: SerializableFontData) -> Self {
+        FontData::SharedMemory(value.0)
+    }
+}
+
 /// A data structure to store data for fonts. Data is stored internally in an
 /// [`GenericSharedMemory`] handle, so that it can be sent without serialization
 /// across IPC channels.
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct FontData(#[conditional_malloc_size_of] pub(crate) Arc<GenericSharedMemory>);
+#[derive(Clone, Deserialize, Serialize, MallocSizeOf)]
+#[serde(from = "SerializableFontData", into = "SerializableFontData")]
+pub enum FontData {
+    MemoryMapped(#[conditional_malloc_size_of] Arc<Mmap>),
+    SharedMemory(#[conditional_malloc_size_of] Arc<GenericSharedMemory>),
+}
 
 impl FontData {
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        Self(Arc::new(GenericSharedMemory::from_bytes(bytes)))
+        Self::SharedMemory(Arc::new(GenericSharedMemory::from_bytes(bytes)))
+    }
+
+    pub fn from_mmap(mmap: Mmap) -> Self {
+        Self::MemoryMapped(Arc::new(mmap))
+    }
+
+    pub fn as_ipc_shared_memory(self) -> Arc<GenericSharedMemory> {
+        match self {
+            FontData::MemoryMapped(mmap) => Arc::new(GenericSharedMemory::from_bytes(&mmap)),
+            FontData::SharedMemory(generic_shared_memory) => generic_shared_memory,
+        }
     }
 
     /// This is in single process mode more efficient because we do not have to copy the vector.
     pub fn from_vec(bytes: Vec<u8>) -> Self {
-        Self(Arc::new(GenericSharedMemory::from_vec(bytes)))
-    }
-
-    pub fn as_ipc_shared_memory(&self) -> Arc<GenericSharedMemory> {
-        self.0.clone()
+        Self::SharedMemory(Arc::new(GenericSharedMemory::from_vec(bytes)))
     }
 }
 
 impl AsRef<[u8]> for FontData {
     fn as_ref(&self) -> &[u8] {
-        &self.0
+        match &self {
+            FontData::MemoryMapped(mmap) => mmap,
+            FontData::SharedMemory(generic_shared_memory) => generic_shared_memory,
+        }
     }
 }
 
