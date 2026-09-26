@@ -76,6 +76,25 @@ impl IDBIndex {
         )
     }
 
+    pub(crate) fn object_store(&self) -> DomRoot<IDBObjectStore> {
+        DomRoot::from_ref(&self.object_store)
+    }
+
+    pub(crate) fn verify_not_deleted(&self) -> ErrorResult {
+        let stored_name = self.name.borrow().clone();
+        let transaction = self.object_store.transaction();
+        if !self.object_store.has_index(&stored_name) ||
+            !transaction
+                .get_db()
+                .object_store_exists(&self.object_store.get_name())
+        {
+            return Err(Error::InvalidState(Some(
+                "Index or its object store has been deleted".to_owned(),
+            )));
+        }
+        Ok(())
+    }
+
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbindex-opencursor>
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbindex-openkeycursor>
     fn open_cursor(
@@ -89,16 +108,7 @@ impl IDBIndex {
         let transaction = self.object_store.transaction();
 
         // Step 2. If index or its object store has been deleted, throw an "InvalidStateError" DOMException.
-        let stored_name = self.name.borrow();
-        if !self.object_store.has_index(&stored_name) ||
-            !transaction
-                .get_db()
-                .object_store_exists(&self.object_store.get_name())
-        {
-            return Err(Error::InvalidState(Some(
-                "Index or its object store has been deleted".to_owned(),
-            )));
-        }
+        self.verify_not_deleted()?;
 
         // Step 3. If transaction is not active, throw a "TransactionInactiveError" DOMException.
         if !transaction.is_active() || !transaction.is_usable() {

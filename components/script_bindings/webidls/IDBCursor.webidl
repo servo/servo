@@ -20,8 +20,10 @@ interface IDBCursor {
   // undefined continue(optional any key);
   // undefined continuePrimaryKey(any key, any primaryKey);
 
-  // [NewObject] IDBRequest update(any value);
-  // [NewObject] IDBRequest delete();
+  [NewObject, Throws]
+  IDBRequest update(any value);
+  [NewObject, Throws]
+  IDBRequest delete();
 };
 
 enum IDBCursorDirection {
