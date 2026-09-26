@@ -23,13 +23,14 @@ use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethod
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
-use style::attr::AttrValue;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::str::split_commas;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 use time::OffsetDateTime;
 use unicode_bidi::{BidiClass, bidi_class};
 use webdriver::error::ErrorStatus;
+use xml5ever::ns;
 
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -918,6 +919,31 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         let text_input = unsafe { element.text_input.borrow_for_layout() };
         text_input.selection_for_layout
     }
+
+    pub(crate) fn width(self) -> LengthOrPercentageOrAuto {
+        self.image_button_dimension(&local_name!("width"))
+    }
+
+    pub(crate) fn height(self) -> LengthOrPercentageOrAuto {
+        self.image_button_dimension(&local_name!("height"))
+    }
+
+    fn image_button_dimension(self, name: &LocalName) -> LengthOrPercentageOrAuto {
+        let element = self.upcast::<Element>();
+        let is_image_button = element
+            .get_attr_val_for_layout(&ns!(), &local_name!("type"))
+            .is_some_and(|value| value.eq_ignore_ascii_case("image"));
+
+        if !is_image_button {
+            return LengthOrPercentageOrAuto::Auto;
+        }
+
+        element
+            .get_attr_for_layout(&ns!(), name)
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
 }
 
 impl TextControlElement for HTMLInputElement {
@@ -1616,10 +1642,12 @@ impl HTMLInputElement {
             InputType::Radio(_) | InputType::Checkbox(_) if !self.Checked() => {
                 return (vec![], true);
             },
-
-            // Step 5.2: If the field element is an input element whose type attribute is in the Image Button state:
-            InputType::Image(_) => return (vec![], true), // Unimplemented
-
+            InputType::Image(_) => {
+                // Step 5.2.1 If the field element is not submitter, then continue.
+                if !is_submitter {
+                    return (vec![], true);
+                }
+            },
             // Step 5.4: If either the field element does not have a name attribute specified, or its name attribute's value is the empty string, then continue.
             _ => {
                 if name.is_empty() {
@@ -1629,6 +1657,41 @@ impl HTMLInputElement {
         }
 
         let datums = match *self.input_type() {
+            // Step 5.2: If the field element is an input element whose type attribute is in the Image Button state:
+            InputType::Image(ref image_input_type) => {
+                // Step 5.2.2: If the field element has a name attribute specified and its value is not
+                // the empty string, let name be that value followed by U+002E (.); otherwise, let name
+                // be the empty string.
+                // Note: step 5.2.1 is handled above.
+                let prefix = if name.is_empty() {
+                    String::new()
+                } else {
+                    format!("{name}.")
+                };
+
+                // Step 5.2.3: Let namex be the concatenation of name and "x", and let namey be the
+                // concatenation of name and "y".
+                let name_x: DOMString = format!("{prefix}x").into();
+                let name_y: DOMString = format!("{prefix}y").into();
+
+                // Step 5.2.4: The field element's selected coordinate consists of an x-component and a
+                // y-component. Create an entry with namex and the x-component, and an entry with namey
+                // and the y-component, and append them to entry list.
+                let coordinate = image_input_type.selected_coordinate();
+
+                vec![
+                    FormDatum {
+                        name: name_x,
+                        ty: ty.clone(),
+                        value: FormDatumValue::String(coordinate.x.to_string().into()),
+                    },
+                    FormDatum {
+                        name: name_y,
+                        ty,
+                        value: FormDatumValue::String(coordinate.y.to_string().into()),
+                    },
+                ]
+            },
             // Step 5.7: Otherwise, if the field element is an input element whose type attribute is in the Checkbox state or the Radio Button state:
             InputType::Checkbox(_) | InputType::Radio(_) => {
                 // Step 5.7.1: If the field element has a value attribute specified, then let value be the value of that attribute; otherwise, let value be the string "on".
@@ -1899,6 +1962,7 @@ impl HTMLInputElement {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
+
                 form.submit(
                     cx,
                     SubmittedFrom::NotFromForm,
@@ -2266,6 +2330,7 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("minlength") => {
                 AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH)
             },
+            local_name!("width") | local_name!("height") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
@@ -2409,6 +2474,18 @@ impl VirtualMethods for HTMLInputElement {
             .borrow_mut()
             .set_content(self.text_input.borrow().get_content());
         self.value_changed(cx);
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
+        match attr.local_name() {
+            &local_name!("width") | &local_name!("height") => {
+                matches!(*self.input_type(), InputType::Image(_))
+            },
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
+        }
     }
 }
 

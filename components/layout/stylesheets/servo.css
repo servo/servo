@@ -7,7 +7,7 @@ input[type="hidden"] {
 }
 
 /* Textual inputs */
-input:not([type="file"]),
+input:not([type="file"], [type="image"]),
 textarea {
   background-color: Field;
   border: solid grey 1px;
@@ -22,7 +22,7 @@ textarea {
     padding: 2px;
 }
 
-input {
+input:not([type="image"]) {
     padding: 1px 2px;
 }
 
