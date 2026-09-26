@@ -65,6 +65,7 @@ pub struct IncrementalWebVTTParser<Context, Sink: WebVttParserSink<Context>> {
     // Storage values
     current_line_in_block: StrTendril,
     current_buffer_in_block: String,
+    lines_from_previous_position: StrTendril,
 
     current_cue_in_block: Option<WebVttCue>,
 }
@@ -90,6 +91,7 @@ where
             current_line_in_block: Default::default(),
             current_buffer_in_block: Default::default(),
             current_cue_in_block: Default::default(),
+            lines_from_previous_position: Default::default(),
         }
     }
 
@@ -261,78 +263,79 @@ where
                         //
                         // We check the second part of this step here
                         SetResult::FromSet('\u{000A}') => {
+                            self.lines_from_previous_position.push_char('\u{000A}');
                             // Step 11.2. Increment line count by 1.
                             self.line_count += 1;
-                            if self.in_header {
+                            // Step 11.4. If line contains the three-character substring "-->"
+                            // (U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS, U+003E GREATER-THAN SIGN),
+                            // then run these substeps:
+                            if self.current_line_in_block.contains("-->") {
+                                // Step 11.4.1. If in header is not set and at least
+                                // one of the following conditions are true:
+                                if !self.in_header &&
+                                    (
+                                        // line count is 1
+                                        self.line_count == 1
+                                    // line count is 2 and seen arrow is false
+                                    || (self.line_count == 2 && !self.seen_arrow)
+                                    )
+                                {
+                                    // Step 11.4.1.1. Let seen arrow be true.
+                                    self.seen_arrow = true;
+                                    // Step 11.4.1.2. Let previous position be position.
+                                    self.lines_from_previous_position.clear();
+                                    // Step 11.4.1.3. Cue creation: Let cue be a new WebVTT cue and initialize it as follows:
+                                    // Step 11.4.1.3.1. Let cue’s text track cue identifier be buffer.
+                                    let identifier = self.current_buffer_in_block.clone();
+                                    // Step 11.4.1.4. Collect WebVTT cue timings and settings from line using regions for cue.
+                                    // If that fails, let cue be null.
+                                    // Otherwise, let buffer be the empty string and let seen cue be true.
+                                    let cue = collect_webvtt_cue_timings_and_settings(
+                                        identifier,
+                                        &self.current_line_in_block,
+                                    );
+                                    let has_cue = cue.is_some();
+                                    self.current_cue_in_block = cue;
+                                    if has_cue {
+                                        self.current_buffer_in_block.clear();
+                                        self.current_line_in_block.clear();
+                                        self.seen_cue = true;
+                                    }
+                                } else {
+                                    // Otherwise, let position be previous position and break out of loop.
+                                    self.state = ParserState::AfterBlockLoop;
+                                    self.buffer.push_front(std::mem::take(
+                                        &mut self.lines_from_previous_position,
+                                    ));
+                                }
+                                continue;
+                            } else if self.current_line_in_block.is_empty() {
+                                // Step 11.5. Otherwise, if line is the empty string, break out of loop.
                                 self.state = ParserState::AfterBlockLoop;
                             } else {
-                                // Step 11.4. If line contains the three-character substring "-->"
-                                // (U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS, U+003E GREATER-THAN SIGN),
-                                // then run these substeps:
-                                if self.current_line_in_block.contains("-->") {
-                                    // Step 11.4.1. If in header is not set and at least
-                                    // one of the following conditions are true:
-                                    //
-                                    // We already checked for the header set after step 11.2.
-                                    if
-                                    // line count is 1
-                                    self.line_count == 1
-                                        // line count is 2 and seen arrow is false
-                                        || (self.line_count == 2 && !self.seen_arrow)
-                                    {
-                                        // Step 11.4.1.1. Let seen arrow be true.
-                                        self.seen_arrow = true;
-                                        // Step 11.4.1.2. Let previous position be position.
-                                        // TODO
-                                        // Step 11.4.1.3. Cue creation: Let cue be a new WebVTT cue and initialize it as follows:
-                                        // Step 11.4.1.3.1. Let cue’s text track cue identifier be buffer.
-                                        let identifier = self.current_buffer_in_block.clone();
-                                        // Step 11.4.1.4. Collect WebVTT cue timings and settings from line using regions for cue.
-                                        // If that fails, let cue be null.
-                                        // Otherwise, let buffer be the empty string and let seen cue be true.
-                                        let cue = collect_webvtt_cue_timings_and_settings(
-                                            identifier,
-                                            &self.current_line_in_block,
-                                        );
-                                        let has_cue = cue.is_some();
-                                        self.current_cue_in_block = cue;
-                                        if has_cue {
-                                            self.current_buffer_in_block.clear();
-                                            self.current_line_in_block.clear();
-                                            self.seen_cue = true;
-                                        }
-                                    } else {
-                                        // Otherwise, let position be previous position and break out of loop.
-                                        self.state = ParserState::AfterBlockLoop;
-                                    }
-                                    continue;
-                                } else if self.current_line_in_block.is_empty() {
-                                    // Step 11.5. Otherwise, if line is the empty string, break out of loop.
-                                    self.state = ParserState::AfterBlockLoop;
-                                } else {
-                                    // Step 11.6. Otherwise, run these substeps:
-                                    // Step 11.6.1. If in header is not set and line count is 2, run these substeps:
-                                    // TODO
-                                    // Step 11.6.2. If buffer is not the empty string,
-                                    // append a U+000A LINE FEED (LF) character to buffer.
-                                    if !self.current_buffer_in_block.is_empty() {
-                                        self.current_buffer_in_block.push('\u{000A}');
-                                    }
-                                    // Step 11.6.3. Append line to buffer.
-                                    self.current_buffer_in_block
-                                        .push_str(&self.current_line_in_block);
-                                    // Step 11.6.4. Let previous position be position.
-                                    self.current_line_in_block.clear();
+                                // Step 11.6. Otherwise, run these substeps:
+                                // Step 11.6.1. If in header is not set and line count is 2, run these substeps:
+                                // TODO
+                                // Step 11.6.2. If buffer is not the empty string,
+                                // append a U+000A LINE FEED (LF) character to buffer.
+                                if !self.current_buffer_in_block.is_empty() {
+                                    self.current_buffer_in_block.push('\u{000A}');
                                 }
+                                // Step 11.6.3. Append line to buffer.
+                                self.current_buffer_in_block
+                                    .push_str(&self.current_line_in_block);
+                                // Step 11.6.4. Let previous position be position.
+                                self.current_line_in_block.clear();
+                                self.lines_from_previous_position.clear();
                             }
                             continue;
                         },
                         // Step 11.1. collect a sequence of code points that are not U+000A LINE FEED (LF) characters.
                         // Let line be those characters, if any.
                         SetResult::NotFromSet(current_tendril) => {
-                            if !self.in_header {
-                                self.current_line_in_block.push_tendril(&current_tendril);
-                            }
+                            self.lines_from_previous_position
+                                .push_tendril(&current_tendril);
+                            self.current_line_in_block.push_tendril(&current_tendril);
                         },
                         _ => {
                             unreachable!();
@@ -396,6 +399,8 @@ where
     fn start_collecting_webvtt_block(&mut self) {
         // Step 2. Let line count be zero.
         self.line_count = 0;
+        // Step 3. Let previous position be position.
+        self.lines_from_previous_position.clear();
         // Step 4. Let line be the empty string.
         self.current_line_in_block.clear();
         // Step 5. Let buffer be the empty string.
