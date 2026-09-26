@@ -631,7 +631,9 @@ impl WebViewRenderer {
             touch_id,
         } = pending_touch_input_event;
 
-        if result.contains(InputEventResult::DefaultPrevented) {
+        // A touch is left to the compositor only if neither script nor a user agent widget
+        // process it.
+        if result.intersects(InputEventResult::DefaultPrevented | InputEventResult::Consumed) {
             debug!(
                 "Touch event {:?} in sequence {:?} prevented!",
                 event_type, sequence_id

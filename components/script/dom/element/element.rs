@@ -1076,6 +1076,12 @@ impl Element {
 
     pub(crate) fn style(&self) -> Option<ServoArc<ComputedValues>> {
         self.owner_window().layout_reflow(QueryMsg::StyleQuery);
+        self.style_without_reflow()
+    }
+
+    /// Do the same kind of query as [`Self::style`], but do not force a reflow. This is for
+    /// callers that have just run another query and know the style data is already current.
+    pub(crate) fn style_without_reflow(&self) -> Option<ServoArc<ComputedValues>> {
         self.style_data
             .borrow()
             .as_ref()

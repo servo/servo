@@ -267,9 +267,9 @@ input[type="range"]::slider-thumb {
   border-radius: 50%;
   background: #007aff;
 
-  /* Vertically centered, adjust inline direction by width so thumb
-     is centered on range value. */
-  transform: translate(-8px, -50%);
+  /* The thumb is placed by setting `inset-inline-start` to the value's position within the
+     input's padding box. Adjust inline direction by width so thumb is centered on range value. */
+  margin-inline-start: -8px;
 }
 
 input[type="range"]:disabled::slider-fill,
