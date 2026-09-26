@@ -10,6 +10,7 @@ use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_bindings::interfaces::HasOrigin;
+use servo_base::generic_channel;
 use servo_base::id::PipelineId;
 use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, StructuredSerializedData,
@@ -145,8 +146,21 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
 
     /// <https://html.spec.whatwg.org/multipage/#dom-length>
     fn Length(&self) -> u32 {
-        // TODO: Implement x-origin length
-        0
+        // First try to access the document directly if it is in the same event loop.
+        if let Some(document) = self.window_proxy.document() {
+            return document.iframes().active_iframe_count() as u32;
+        }
+
+        // Fall back to using messaging to get the count from another event loop.
+        let parent_browsing_context_id = self.window_proxy.browsing_context_id();
+        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+        let _ = self.globalscope.script_to_constellation_chan().send(
+            ScriptToConstellationMessage::GetChildBrowsingContextCount(
+                parent_browsing_context_id,
+                result_sender,
+            ),
+        );
+        result_receiver.recv().unwrap_or_default() as u32
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-close>

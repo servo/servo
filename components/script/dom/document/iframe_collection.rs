@@ -36,14 +36,14 @@ pub(crate) struct IFrameCollection {
     iframes: Vec<IFrame>,
     /// The same `<iframe>`s in [`Self::iframes`], but stored in insertion order for use
     /// in the `WindowProxy` subframe getter.
-    iframe_in_insertion_order: Vec<Dom<HTMLIFrameElement>>,
+    iframes_in_insertion_order: Vec<Dom<HTMLIFrameElement>>,
 }
 
 impl IFrameCollection {
     pub(crate) fn new() -> Self {
         Self {
             iframes: Default::default(),
-            iframe_in_insertion_order: Default::default(),
+            iframes_in_insertion_order: Default::default(),
         }
     }
 
@@ -80,12 +80,12 @@ impl IFrameCollection {
             },
         );
 
-        self.iframe_in_insertion_order
+        self.iframes_in_insertion_order
             .push(Dom::from_ref(iframe_element));
     }
 
     pub(crate) fn remove(&mut self, iframe_element: &HTMLIFrameElement) -> Option<ViewportDetails> {
-        self.iframe_in_insertion_order
+        self.iframes_in_insertion_order
             .retain(|iframe| *iframe != iframe_element);
         self.iframes
             .iter()
@@ -97,10 +97,19 @@ impl IFrameCollection {
     /// position in insertion order, filtering out `<iframe>`s that do not have
     /// a browsing context.
     pub(crate) fn at_insertion_index(&self, index: usize) -> Option<BrowsingContextId> {
-        self.iframe_in_insertion_order
+        self.iframes_in_insertion_order
             .iter()
             .filter_map(|iframe| iframe.browsing_context_id())
             .nth(index)
+    }
+
+    /// Get a count of the iframes in this [`IframeCollection`] that have active browsing
+    /// contexts.
+    pub(crate) fn active_iframe_count(&self) -> usize {
+        self.iframes_in_insertion_order
+            .iter()
+            .filter(|iframe| iframe.browsing_context_id().is_some())
+            .count()
     }
 
     pub(crate) fn get(&self, browsing_context_id: BrowsingContextId) -> Option<&IFrame> {

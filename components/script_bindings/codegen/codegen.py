@@ -2167,7 +2167,7 @@ class AttrDefiner(PropertyDefiner):
             {
                 "name": name,
                 "attr": m,
-                "flags": "JSPROP_ENUMERATE",
+                "flags": "0" if crossorigin else "JSPROP_ENUMERATE",
                 "kind": "JSPropertySpec_Kind::NativeAccessor",
             }
             for m in descriptor.interface.members if
