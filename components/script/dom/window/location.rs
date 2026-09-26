@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use net_traits::request::Referrer;
+use script_bindings::dom::MutNullableDom;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use servo_url::ServoUrl;
@@ -15,6 +16,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
+use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use crate::dom::document::Document;
 use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
@@ -41,28 +43,61 @@ pub(crate) enum NavigationType {
     ReloadByConstellation,
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+enum LocationWindow {
+    SameOrigin(Dom<Window>),
+    DissimilarOrigin(Dom<DissimilarOriginWindow>),
+}
+
+impl LocationWindow {
+    fn same_origin_window(&self) -> Fallible<&Window> {
+        match self {
+            LocationWindow::SameOrigin(window) => Ok(window),
+            LocationWindow::DissimilarOrigin(..) => Err(Error::Security(Some(
+                "Tried to access same origin window on cross-origin object".into(),
+            ))),
+        }
+    }
+}
+
 #[dom_struct]
 pub(crate) struct Location {
     reflector_: Reflector,
-    window: Dom<Window>,
+    window: LocationWindow,
     /// <https://html.spec.whatwg.org/multipage/#concept-location-empty-domstringlist>
-    empty_dom_string_list: Dom<DOMStringList>,
+    empty_dom_string_list: MutNullableDom<DOMStringList>,
 }
 
 impl Location {
-    fn new_inherited(window: &Window, empty_dom_string_list: &DOMStringList) -> Location {
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn new_inherited(window: LocationWindow) -> Self {
         Location {
             reflector_: Reflector::new(),
-            window: Dom::from_ref(window),
-            empty_dom_string_list: Dom::from_ref(empty_dom_string_list),
+            window,
+            empty_dom_string_list: Default::default(),
         }
     }
 
-    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<Location> {
-        let empty_dom_string_list = DOMStringList::new(cx, window.upcast(), vec![]);
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<Self> {
         reflect_dom_object(
             cx,
-            Box::new(Location::new_inherited(window, &empty_dom_string_list)),
+            Box::new(Location::new_inherited(LocationWindow::SameOrigin(
+                Dom::from_ref(window),
+            ))),
+            window,
+        )
+    }
+
+    pub(crate) fn new_dissimilar_origin(
+        cx: &mut JSContext,
+        window: &DissimilarOriginWindow,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            cx,
+            Box::new(Location::new_inherited(LocationWindow::DissimilarOrigin(
+                Dom::from_ref(window),
+            ))),
             window,
         )
     }
@@ -71,11 +106,11 @@ impl Location {
     fn navigate_a_location(
         &self,
         cx: &mut JSContext,
+        navigable: &Window,
         url: ServoUrl,
         history_handling: NavigationHistoryBehavior,
     ) {
         // Step 1. Let navigable be location's relevant global object's navigable.
-        let navigable = &self.window;
         let navigable_document = navigable.Document();
         // Step 2. Let sourceDocument be the incumbent global object's associated Document.
         let incumbent_global = GlobalScope::incumbent().expect("no incumbent global object");
@@ -104,6 +139,7 @@ impl Location {
     fn navigate(
         &self,
         cx: &mut JSContext,
+        window: &Window,
         url: ServoUrl,
         history_handling: NavigationHistoryBehavior,
         navigation_type: NavigationType,
@@ -119,7 +155,7 @@ impl Location {
             NavigationType::ReloadByScript | NavigationType::ReloadByConstellation => {
                 // > Navigate the browsing context [...] the source browsing context
                 // > set to the browsing context being navigated.
-                DomRoot::from_ref(&*self.window)
+                DomRoot::from_ref(window)
             },
             NavigationType::Normal => {
                 // > 2. Let `sourceBrowsingContext` be the incumbent global object's
@@ -138,7 +174,7 @@ impl Location {
         // > node document of the element that initiated the navigation.
         let navigation_origin_window = match navigation_type {
             NavigationType::Normal | NavigationType::ReloadByScript => incumbent_window(),
-            NavigationType::ReloadByConstellation => DomRoot::from_ref(&*self.window),
+            NavigationType::ReloadByConstellation => DomRoot::from_ref(window),
         };
         let (load_origin, creator_pipeline_id) = (
             navigation_origin_window.origin().snapshot(),
@@ -165,13 +201,7 @@ impl Location {
             source_document.has_trustworthy_ancestor_origin(),
             source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
-        navigate(
-            cx,
-            &self.window,
-            history_handling,
-            reload_triggered,
-            load_data,
-        );
+        navigate(cx, window, history_handling, reload_triggered, load_data);
     }
 
     /// Get if this `Location`'s [relevant `Document`][1] is non-null.
@@ -184,7 +214,9 @@ impl Location {
         // > this `Location` object's relevant global object's browsing
         // > context's active document, if this `Location` object's relevant
         // > global object's browsing context is non-null, and null otherwise.
-        self.window.Document().browsing_context().is_some()
+        self.window
+            .same_origin_window()
+            .is_ok_and(|window| window.Document().browsing_context().is_some())
     }
 
     /// Get this `Location` object's [relevant `Document`][1], or
@@ -204,13 +236,15 @@ impl Location {
     ///
     /// [1]: https://html.spec.whatwg.org/multipage/#relevant-document
     fn document_if_same_origin(&self) -> Fallible<Option<DomRoot<Document>>> {
+        let window = self.window.same_origin_window()?;
+
         // <https://html.spec.whatwg.org/multipage/#relevant-document>
         //
         // > A `Location` object has an associated relevant `Document`, which is
         // > this `Location` object's relevant global object's browsing
         // > context's active document, if this `Location` object's relevant
         // > global object's browsing context is non-null, and null otherwise.
-        if let Some(window_proxy) = self.window.Document().browsing_context() {
+        if let Some(window_proxy) = window.Document().browsing_context() {
             // `Location`'s many other operations:
             //
             // > If this `Location` object's relevant `Document` is non-null and
@@ -273,6 +307,7 @@ impl Location {
                 // Step 6: Location-object navigate to copyURL.
                 self.navigate(
                     cx,
+                    document.window(),
                     copy_url,
                     NavigationHistoryBehavior::Push,
                     NavigationType::Normal,
@@ -286,14 +321,15 @@ impl Location {
     /// [`reload()`][1]).
     ///
     /// [1]: https://html.spec.whatwg.org/multipage/#dom-location-reload
-    pub(crate) fn reload_without_origin_check(&self, cx: &mut JSContext) {
+    pub(crate) fn reload_without_origin_check(&self, cx: &mut JSContext, window: &Window) {
         // > When a user requests that the active document of a browsing context
         // > be reloaded through a user interface element, the user agent should
         // > navigate the browsing context to the same resource as that
         // > `Document`, with `historyHandling` set to "reload".
-        let url = self.window.get_url();
+        let url = window.get_url();
         self.navigate(
             cx,
+            window,
             url,
             NavigationHistoryBehavior::Replace,
             NavigationType::ReloadByConstellation,
@@ -318,9 +354,11 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location-reload>
     fn Reload(&self, cx: &mut JSContext) -> ErrorResult {
+        let window = self.window.same_origin_window()?;
         let url = self.get_url_if_same_origin()?;
         self.navigate(
             cx,
+            window,
             url,
             NavigationHistoryBehavior::Replace,
             NavigationType::ReloadByScript,
@@ -330,6 +368,9 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location-replace>
     fn Replace(&self, cx: &mut JSContext, url: USVString) -> ErrorResult {
+        // TODO: This should eventually support cross-origin operation.
+        let window = self.window.same_origin_window()?;
+
         // Step 1: If this Location object's relevant Document is null, then return.
         if self.has_document() {
             // Step 2. Let urlRecord be the result of encoding-parsing a URL given url, relative to the entry settings object.
@@ -339,7 +380,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
                 Err(e) => return Err(Error::Syntax(Some(format!("Couldn't parse URL: {}", e)))),
             };
             // Step 4. Location-object navigate this to urlRecord given "replace".
-            self.navigate_a_location(cx, url, NavigationHistoryBehavior::Replace);
+            self.navigate_a_location(cx, window, url, NavigationHistoryBehavior::Replace);
         }
         Ok(())
     }
@@ -351,6 +392,8 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location-hash>
     fn SetHash(&self, cx: &mut JSContext, value: USVString) -> ErrorResult {
+        let window = self.window.same_origin_window()?;
+
         // Step 1. If this's relevant Document is null, then return.
         if self.has_document() {
             // Step 2. If this's relevant Document's origin is not same origin-domain
@@ -374,7 +417,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             // Step 8. If copyURL's fragment is thisURLFragment, then return.
             if copy_url.fragment() != Some(&this_url_fragment) {
                 // Step 9. Location-object navigate this to copyURL.
-                self.navigate_a_location(cx, copy_url, NavigationHistoryBehavior::Auto);
+                self.navigate_a_location(cx, window, copy_url, NavigationHistoryBehavior::Auto);
             }
         }
         Ok(())
@@ -434,6 +477,8 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location-href>
     fn SetHref(&self, cx: &mut JSContext, value: USVString) -> ErrorResult {
+        let window = self.window.same_origin_window()?;
+
         // Step 1. If this's relevant Document is null, then return.
         if self.has_document() {
             // Note: no call to self.check_same_origin_domain()
@@ -444,7 +489,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
                 Err(e) => return Err(Error::Syntax(Some(format!("Couldn't parse URL: {}", e)))),
             };
             // Step 4: Location-object navigate this to url.
-            self.navigate_a_location(cx, url, NavigationHistoryBehavior::Auto);
+            self.navigate_a_location(cx, window, url, NavigationHistoryBehavior::Auto);
         }
         Ok(())
     }
@@ -558,14 +603,18 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location-ancestororigins>
-    fn GetAncestorOrigins(&self) -> Fallible<DomRoot<DOMStringList>> {
+    fn GetAncestorOrigins(&self, cx: &mut JSContext) -> Fallible<DomRoot<DOMStringList>> {
+        let window = self.window.same_origin_window()?;
+
         // Step 1. If this's relevant Document is null, then return this's empty DOMStringList.
         if !self.has_document() {
-            return Ok(self.empty_dom_string_list.as_rooted());
+            return Ok(self
+                .empty_dom_string_list
+                .or_init(|| DOMStringList::new(cx, window.upcast(), vec![])));
         }
         // Step 2. If this's relevant Document's origin is not same origin-domain
         // with the entry settings object's origin, then throw a "SecurityError" DOMException.
-        let document = self.window.Document();
+        let document = window.Document();
         if !document
             .origin()
             .same_origin_domain(&self.entry_settings_object().origin())

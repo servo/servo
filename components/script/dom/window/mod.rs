@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub(crate) use self::window::*;
-pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;
 pub(crate) mod history;
 mod layout_image;

@@ -4446,7 +4446,7 @@ impl ScriptThread {
     fn handle_reload(&self, pipeline_id: PipelineId, cx: &mut js::context::JSContext) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            window.Location(cx).reload_without_origin_check(cx);
+            window.Location(cx).reload_without_origin_check(cx, &window);
         }
     }
 
