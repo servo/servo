@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::default::Default;
+use std::f64::consts::{FRAC_PI_2, PI};
 use std::str::FromStr;
 
 use euclid::Angle;
@@ -30,6 +31,19 @@ impl MallocSizeOf for Path {
 }
 
 pub struct IndexSizeError;
+
+#[derive(Clone, Copy, Debug)]
+pub struct RoundRectRadius {
+    pub x: f64,
+    pub y: f64,
+}
+
+pub enum RangeError {
+    /// `radii` was not a list of size one, two, three, or four.
+    InvalidSize,
+    /// A radius was negative.
+    NegativeRadius,
+}
 
 impl Path {
     pub fn new() -> Self {
@@ -313,24 +327,13 @@ impl Path {
             },
         };
 
-        let arc = kurbo::Arc::new(
+        self.append_ellipse_arc(
             (x, y),
             (radius_x, radius_y),
             start.radians,
             sweep.radians,
             rotation_angle,
         );
-
-        let mut iter = arc.path_elements(0.01);
-        let kurbo::PathEl::MoveTo(start_point) = iter.next().unwrap() else {
-            unreachable!()
-        };
-
-        self.line_to(start_point.x, start_point.y);
-
-        if sweep.radians.abs() > 1e-3 {
-            self.0.extend(iter);
-        }
 
         Ok(())
     }
@@ -355,6 +358,183 @@ impl Path {
 
         // Step 4. Create a new subpath with the point (x, y) as the only point in the subpath.
         self.0.move_to((x, y));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-roundrect>
+    pub fn round_rect(
+        &mut self,
+        mut x: f64,
+        mut y: f64,
+        mut w: f64,
+        mut h: f64,
+        radii: &[RoundRectRadius],
+    ) -> Result<(), RangeError> {
+        // Step 1. If any of x, y, w, or h are infinite or NaN, then return.
+        if !(x.is_finite() && y.is_finite() && w.is_finite() && h.is_finite()) {
+            return Ok(());
+        }
+
+        // Step 3. If radii is not a list of size one, two, three, or four, then throw a
+        // RangeError.
+        if radii.is_empty() || radii.len() > 4 {
+            return Err(RangeError::InvalidSize);
+        }
+
+        // Steps 4 - 5. If any radius is infinite or NaN, then return; if any radius is negative,
+        // then throw a RangeError.
+        // From now on, radii is called normalizedRadii in spec.
+        for radius in radii {
+            if !(radius.x.is_finite() && radius.y.is_finite()) {
+                return Ok(());
+            }
+            if radius.x < 0.0 || radius.y < 0.0 {
+                return Err(RangeError::NegativeRadius);
+            }
+        }
+
+        // Steps 6 - 10. Assign upperLeft, upperRight, lowerRight and lowerLeft.
+        let (mut upper_left, mut upper_right, mut lower_right, mut lower_left) = match radii {
+            // If normalizedRadii's size is 1, then set upperLeft, upperRight, lowerRight,
+            // and lowerLeft to normalizedRadii[0].
+            [a] => (*a, *a, *a, *a),
+            // If normalizedRadii's size is 2, then set upperLeft and lowerRight to
+            // normalizedRadii[0] and set upperRight and lowerLeft to normalizedRadii[1].
+            [a, b] => (*a, *b, *a, *b),
+            // If normalizedRadii's size is 3, then set upperLeft to normalizedRadii[0],
+            // set upperRight and lowerLeft to normalizedRadii[1],
+            // and set lowerRight to normalizedRadii[2].
+            [a, b, c] => (*a, *b, *c, *b),
+            // If normalizedRadii's size is 4, then set upperLeft to normalizedRadii[0],
+            // set upperRight to normalizedRadii[1], set lowerRight to normalizedRadii[2],
+            // and set lowerLeft to normalizedRadii[3].
+            [a, b, c, d] => (*a, *b, *c, *d),
+            _ => unreachable!(),
+        };
+
+        // Not explicitly stated in steps. See non-normative part of `roundRect` in
+        // <https://html.spec.whatwg.org/multipage/#building-paths>
+
+        // Negative widths and heights flip the rounded rectangle horizontally/vertically: the
+        // radii that normally apply to the left/right (respectively top/bottom) corners are
+        // swapped. The path is drawn clockwise when `w` and `h` have the same
+        // sign, and counterclockwise otherwise.
+        let (orig_x, orig_y) = (x, y);
+        let counterclockwise = (w < 0.0) != (h < 0.0);
+        use std::mem::swap;
+        if w < 0.0 {
+            swap(&mut upper_left, &mut upper_right);
+            swap(&mut lower_left, &mut lower_right);
+            x += w;
+            w = -w;
+        }
+        if h < 0.0 {
+            swap(&mut upper_left, &mut lower_left);
+            swap(&mut upper_right, &mut lower_right);
+            y += h;
+            h = -h;
+        }
+
+        // Step 11. Corner curves must not overlap. Scale all radii to prevent this.
+        let top = upper_left.x + upper_right.x;
+        let right = upper_right.y + lower_right.y;
+        let bottom = lower_right.x + lower_left.x;
+        let left = upper_left.y + lower_left.y;
+        let scale = (w / top).min(h / right).min(w / bottom).min(h / left);
+        if scale < 1.0 {
+            upper_left.x *= scale;
+            upper_left.y *= scale;
+            upper_right.x *= scale;
+            upper_right.y *= scale;
+            lower_right.x *= scale;
+            lower_right.y *= scale;
+            lower_left.x *= scale;
+            lower_left.y *= scale;
+        }
+
+        // Step 12. Create a new subpath.
+        let mut subpath = Path::new();
+        // Step 12.1. Move to the point (x + upperLeft["x"], y).
+        subpath.0.move_to((x + upper_left.x, y));
+        // Step 12.2. Draw a straight line to the point (x + w − upperRight["x"], y).
+        subpath.0.line_to((x + w - upper_right.x, y));
+        // Step 12.3. Draw an arc to the point (x + w, y + upperRight["y"]).
+        subpath.round_rect_arc(
+            x + w - upper_right.x,
+            y + upper_right.y,
+            upper_right.x,
+            upper_right.y,
+            -FRAC_PI_2,
+        );
+        // Step 12.4. Draw a straight line to the point (x + w, y + h − lowerRight["y"]).
+        subpath.0.line_to((x + w, y + h - lower_right.y));
+        // Step 12.5. Draw an arc to the point (x + w − lowerRight["x"], y + h).
+        subpath.round_rect_arc(
+            x + w - lower_right.x,
+            y + h - lower_right.y,
+            lower_right.x,
+            lower_right.y,
+            0.0,
+        );
+        // Step 12.6. Draw a straight line to the point (x + lowerLeft["x"], y + h).
+        subpath.0.line_to((x + lower_left.x, y + h));
+        // Step 12.7. Draw an arc to the point (x, y + h − lowerLeft["y"]).
+        subpath.round_rect_arc(
+            x + lower_left.x,
+            y + h - lower_left.y,
+            lower_left.x,
+            lower_left.y,
+            FRAC_PI_2,
+        );
+        // Step 12.8. Draw a straight line to the point (x, y + upperLeft["y"]).
+        subpath.0.line_to((x, y + upper_left.y));
+        // Step 12.9. Draw an arc to the point (x + upperLeft["x"], y).
+        subpath.round_rect_arc(
+            x + upper_left.x,
+            y + upper_left.y,
+            upper_left.x,
+            upper_left.y,
+            PI,
+        );
+
+        // Step 13. Mark the subpath as closed.
+        subpath.0.close_path();
+
+        if counterclockwise {
+            subpath.0 = subpath.0.reverse_subpaths();
+        }
+        self.0.extend(subpath.0.elements().iter().cloned());
+
+        // Step 14. Create a new subpath with the original point (x, y) as the only point in the
+        // subpath.
+        self.0.move_to((orig_x, orig_y));
+
+        Ok(())
+    }
+
+    fn append_ellipse_arc(
+        &mut self,
+        center: (f64, f64),
+        radii: (f64, f64),
+        start_angle: f64,
+        sweep: f64,
+        rotation: f64,
+    ) {
+        let arc = kurbo::Arc::new(center, radii, start_angle, sweep, rotation);
+        let mut iter = arc.path_elements(0.01);
+
+        let Some(PathEl::MoveTo(start_point)) = iter.next() else {
+            unreachable!()
+        };
+        self.line_to(start_point.x, start_point.y);
+        if sweep.abs() > 1e-3 {
+            self.0.extend(iter);
+        }
+    }
+
+    /// Appends a quarter arc, sweeping clockwise by [`FRAC_PI_2`], for a `roundRect` corner.
+    #[inline]
+    fn round_rect_arc(&mut self, cx: f64, cy: f64, rx: f64, ry: f64, start_angle: f64) {
+        self.append_ellipse_arc((cx, cy), (rx, ry), start_angle, FRAC_PI_2, 0.0);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath>

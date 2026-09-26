@@ -30,7 +30,8 @@ use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::canvas::{
     CanvasCommand, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
     FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
-    LinearGradientStyle, Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, TextRun,
+    LinearGradientStyle, Path, RadialGradientStyle, RangeError, RepetitionStyle, RoundRectRadius,
+    ShadowOptions, TextRun,
 };
 use servo_constellation_traits::ScriptToConstellationMessage;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -59,7 +60,10 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasTextAlign, CanvasTextBaseline, ImageDataMethods,
 };
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
-use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
+use crate::dom::bindings::codegen::UnionTypes::{
+    StringOrCanvasGradientOrCanvasPattern, UnrestrictedDoubleOrDOMPointInit,
+    UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -222,6 +226,52 @@ pub(super) struct CanvasState {
     /// Buffered sender for batching canvas commands.
     #[no_trace]
     pub(super) buffered_sender: GenericBufferedSender<CanvasMsg, CanvasCommand>,
+}
+
+/// Converts the `radii` argument of `roundRect` into a list of corner radii.
+pub(super) fn round_rect_radii(
+    radii: &UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
+) -> Vec<RoundRectRadius> {
+    fn from_inner(radius: &UnrestrictedDoubleOrDOMPointInit) -> RoundRectRadius {
+        match radius {
+            UnrestrictedDoubleOrDOMPointInit::UnrestrictedDouble(radius) => RoundRectRadius {
+                x: *radius,
+                y: *radius,
+            },
+            UnrestrictedDoubleOrDOMPointInit::DOMPointInit(point) => RoundRectRadius {
+                x: point.x,
+                y: point.y,
+            },
+        }
+    }
+
+    match radii {
+        UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence::UnrestrictedDouble(radius) => {
+            vec![RoundRectRadius {
+                x: *radius,
+                y: *radius,
+            }]
+        },
+        UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence::DOMPointInit(point) => {
+            vec![RoundRectRadius {
+                x: point.x,
+                y: point.y,
+            }]
+        },
+        UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence::UnrestrictedDoubleOrDOMPointInitSequence(radii) => {
+            radii.iter().map(from_inner).collect()
+        },
+    }
+}
+
+/// Converts a [`RangeError`] from `Path::round_rect` into a DOM `Error`.
+pub(super) fn round_rect_error(error: RangeError) -> Error {
+    match error {
+        RangeError::InvalidSize => {
+            Error::Range(c"radii must be a list of size one, two, three, or four".to_owned())
+        },
+        RangeError::NegativeRadius => Error::Range(c"radii must not be negative".to_owned()),
+    }
 }
 
 impl CanvasState {
@@ -1847,7 +1897,7 @@ impl CanvasState {
         ImageData::new(cx, global, imagedata.Width(), imagedata.Height(), None)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata>
     #[expect(clippy::too_many_arguments)]
     pub(super) fn get_image_data(
         &self,
@@ -2279,6 +2329,21 @@ impl CanvasState {
         self.current_default_path
             .borrow_mut()
             .rect(x, y, width, height);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-roundrect>
+    pub(super) fn round_rect(
+        &self,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+        radii: &[RoundRectRadius],
+    ) -> ErrorResult {
+        self.current_default_path
+            .borrow_mut()
+            .round_rect(x, y, width, height, radii)
+            .map_err(round_rect_error)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-quadraticcurveto>

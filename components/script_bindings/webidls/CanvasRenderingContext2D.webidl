@@ -249,6 +249,10 @@ interface mixin CanvasPath {
   undefined rect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 
   [Throws]
+  undefined roundRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h,
+                 optional (unrestricted double or DOMPointInit or sequence<(unrestricted double or DOMPointInit)>) radii = 0);
+
+  [Throws]
   undefined arc(unrestricted double x, unrestricted double y, unrestricted double radius,
            unrestricted double startAngle, unrestricted double endAngle, optional boolean anticlockwise = false);
 
