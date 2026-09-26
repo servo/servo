@@ -713,7 +713,10 @@ pub enum ScriptToConstellationMessage {
         PipelineId,
         GenericSender<Option<(BrowsingContextId, Option<PipelineId>)>>,
     ),
-    /// Get the nth child browsing context ID for a given browsing context, sorted in tree order.
+    /// Get the count of child browsing contexts for a given browsing context.
+    GetChildBrowsingContextCount(BrowsingContextId, GenericSender<usize>),
+    /// Get the nth child browsing context ID for a given browsing context, when sorted in
+    /// insertion order.
     GetChildBrowsingContextId(
         BrowsingContextId,
         usize,
