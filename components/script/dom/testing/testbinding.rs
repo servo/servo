@@ -881,7 +881,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOptionalNullableObjectWithDefault(&self, _: *mut JSObject) {}
     fn PassOptionalNullableUnionWithDefault(&self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(&self, _: Option<EventOrString>) {}
-    fn PassOptionalNullableCallbackFunctionWithDefault(&self, _: Option<RootedCallback<Function>>) {}
+    fn PassOptionalNullableCallbackFunctionWithDefault(&self, _: Option<RootedCallback<Function>>) {
+    }
     fn PassOptionalNullableCallbackInterfaceWithDefault(
         &self,
         _: Option<RootedCallback<EventListener>>,
@@ -1086,7 +1087,9 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
         impl SimpleHandler {
             fn new_boxed(callback: RootedCallback<SimpleCallback>) -> Box<dyn Callback> {
-                Box::new(SimpleHandler { handler: callback.to_traced() })
+                Box::new(SimpleHandler {
+                    handler: callback.to_traced(),
+                })
             }
         }
         impl Callback for SimpleHandler {

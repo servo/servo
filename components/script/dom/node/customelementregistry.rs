@@ -360,7 +360,10 @@ fn get_callback(
                     c"Lifecycle callback is not callable".to_owned(),
                 ));
             }
-            Ok(Some(RootedCallback::from(Function::new(cx, callback.to_object()))))
+            Ok(Some(RootedCallback::from(Function::new(
+                cx,
+                callback.to_object(),
+            ))))
         } else {
             Ok(None)
         }
@@ -830,16 +833,30 @@ struct RootedLifecycleCallbacks {
 impl From<RootedLifecycleCallbacks> for LifecycleCallbacks {
     fn from(callbacks: RootedLifecycleCallbacks) -> Self {
         Self {
-            connected_callback: callbacks.connected_callback.map(|callback| callback.to_traced()),
-            connected_move_callback: callbacks.connected_move_callback.map(|callback| callback.to_traced()),
-            disconnected_callback: callbacks.disconnected_callback.map(|callback| callback.to_traced()),
-            adopted_callback: callbacks.adopted_callback.map(|callback| callback.to_traced()),
+            connected_callback: callbacks
+                .connected_callback
+                .map(|callback| callback.to_traced()),
+            connected_move_callback: callbacks
+                .connected_move_callback
+                .map(|callback| callback.to_traced()),
+            disconnected_callback: callbacks
+                .disconnected_callback
+                .map(|callback| callback.to_traced()),
+            adopted_callback: callbacks
+                .adopted_callback
+                .map(|callback| callback.to_traced()),
             attribute_changed_callback: callbacks
                 .attribute_changed_callback
                 .map(|callback| callback.to_traced()),
-            form_associated_callback: callbacks.form_associated_callback.map(|callback| callback.to_traced()),
-            form_reset_callback: callbacks.form_reset_callback.map(|callback| callback.to_traced()),
-            form_disabled_callback: callbacks.form_disabled_callback.map(|callback| callback.to_traced()),
+            form_associated_callback: callbacks
+                .form_associated_callback
+                .map(|callback| callback.to_traced()),
+            form_reset_callback: callbacks
+                .form_reset_callback
+                .map(|callback| callback.to_traced()),
+            form_disabled_callback: callbacks
+                .form_disabled_callback
+                .map(|callback| callback.to_traced()),
             form_state_restore_callback: callbacks
                 .form_state_restore_callback
                 .map(|callback| callback.to_traced()),
