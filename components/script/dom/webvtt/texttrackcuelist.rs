@@ -75,7 +75,19 @@ impl TextTrackCueList {
                 cue.set_initial_index_in_list(dom_cues.len());
             }
             self.sort();
-            if let Some(track_list) = self.text_track.get().track_list() {
+            let text_track = self.text_track.get();
+            // https://html.spec.whatwg.org/multipage/#dom-media-addtexttrack
+            // > When a text track cue is added to it,
+            // > the text track list of cues has its rules permanently set accordingly.
+            if text_track
+                .rules_for_updating_the_text_track_rendering()
+                .is_none()
+            {
+                text_track.set_rules_for_updating_the_text_track_rendering(
+                    cue.rules_for_updating_the_text_track_rendering(),
+                );
+            }
+            if let Some(track_list) = text_track.track_list() {
                 track_list.notify_media_element_for_added_cue(cx, cue);
             }
         }
