@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, EcKeyAlgorithm, EcKeyGenParams, EcKeyImportParams, ExportedKey,
@@ -46,26 +46,13 @@ pub(crate) fn generate_key(
         EcAlgorithm::Ecdsa => {
             // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw
             // a SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"sign\" or \"verify\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
         },
         EcAlgorithm::Ecdh => {
             // Step 1. If usages contains an entry which is not "deriveKey" or "deriveBits" then
             // throw a SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"deriveKey\" or \"deriveBits\"".into(),
-                )));
-            }
+            usages
+                .ensure_only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
         },
     }
 
@@ -235,17 +222,11 @@ pub(crate) fn import_key(
                 EcAlgorithm::Ecdsa => {
                     // Step 3.1. If usages contains a value which is not "verify" then throw a
                     // SyntaxError.
-                    if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                        return Err(Error::Syntax(Some(
-                            "Usages contains a value which is not \"verify\"".into(),
-                        )));
-                    }
+                    usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
                 },
                 EcAlgorithm::Ecdh => {
                     // Step 3.1. If usages is not empty then throw a SyntaxError.
-                    if !usages.is_empty() {
-                        return Err(Error::Syntax(Some("Usages list is not empty".into())));
-                    }
+                    usages.ensure_only_contain_entries_from(&[])?;
                 },
             }
 
@@ -352,24 +333,15 @@ pub(crate) fn import_key(
                 EcAlgorithm::Ecdsa => {
                     // Step 3.1. If usages contains a value which is not "sign" then throw a
                     // SyntaxError.
-                    if usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                        return Err(Error::Syntax(Some(
-                            "Usages contains an entry which is not \"sign\"".into(),
-                        )));
-                    }
+                    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?;
                 },
                 EcAlgorithm::Ecdh => {
                     // Step 3.1. If usages contains an entry which is not "deriveKey" or
                     // "deriveBits" then throw a SyntaxError.
-                    if usages
-                        .iter()
-                        .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
-                    {
-                        return Err(Error::Syntax(Some(
-                            "Usages contains an entry which is not \"deriveKey\" or \"deriveBits\""
-                                .into(),
-                        )));
-                    }
+                    usages.ensure_only_contain_entries_from(&[
+                        KeyUsage::DeriveKey,
+                        KeyUsage::DeriveBits,
+                    ])?;
                 },
             }
 
@@ -490,40 +462,21 @@ pub(crate) fn import_key(
                     // Step 3.2. If the d field is present and usages contains a value which is not
                     // "sign", or, if the d field is not present and usages contains a value which
                     // is not "verify" then throw a SyntaxError.
-                    if jwk.d.is_some() && usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                        return Err(Error::Syntax(Some(
-                            "JWK `d` field is present and usages contains an entry \
-                                which is not \"sign\""
-                                .into(),
-                        )));
-                    }
-                    if jwk.d.is_none() && usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                        return Err(Error::Syntax(Some(
-                            "JWK `d` field is not present and usages contains an entry \
-                                which is not \"verify\""
-                                .into(),
-                        )));
+                    match jwk.d.as_ref() {
+                        Some(_) => usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?,
+                        None => usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?,
                     }
                 },
                 EcAlgorithm::Ecdh => {
                     // Step 3.2. If the d field is present and if usages contains an entry which is
                     // not "deriveKey" or "deriveBits" then throw a SyntaxError. If the d field is
                     // not present and if usages is not empty then throw a SyntaxError.
-                    if jwk.d.as_ref().is_some() &&
-                        usages.iter().any(|usage| {
-                            !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)
-                        })
-                    {
-                        return Err(Error::Syntax(Some(
-                            "JWK `d` field is present and usages contains an entry \
-                                which is not \"deriveKey\" or \"deriveBits\""
-                                .into(),
-                        )));
-                    }
-                    if jwk.d.as_ref().is_none() && !usages.is_empty() {
-                        return Err(Error::Syntax(Some(
-                            "JWK `d` field is not present and usages is not empty".into(),
-                        )));
+                    match jwk.d.as_ref() {
+                        Some(_) => usages.ensure_only_contain_entries_from(&[
+                            KeyUsage::DeriveKey,
+                            KeyUsage::DeriveBits,
+                        ])?,
+                        None => usages.ensure_only_contain_entries_from(&[])?,
                     }
                 },
             }
@@ -781,17 +734,11 @@ pub(crate) fn import_key(
                 EcAlgorithm::Ecdsa => {
                     // Step 3.2. If usages contains a value which is not "verify" then throw a
                     // SyntaxError.
-                    if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                        return Err(Error::Syntax(Some(
-                            "Usages contains a value which is not \"verify\"".into(),
-                        )));
-                    }
+                    usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
                 },
                 EcAlgorithm::Ecdh => {
                     // Step 3.2. If usages is not the empty list, then throw a SyntaxError.
-                    if !usages.is_empty() {
-                        return Err(Error::Syntax(Some("Usages list is not empty".into())));
-                    }
+                    usages.ensure_only_contain_entries_from(&[])?;
                 },
             }
 
@@ -1228,6 +1175,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 pub(crate) fn get_public_key(
     cx: &mut JSContext,
     global: &GlobalScope,
+    ec_algorithm: EcAlgorithm,
     key: &CryptoKey,
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
@@ -1236,10 +1184,13 @@ pub(crate) fn get_public_key(
     // identified by algorithm, then throw a SyntaxError.
     //
     // NOTE: See "importKey" operation for supported usages
-    if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"verify\"".to_string(),
-        )));
+    match ec_algorithm {
+        EcAlgorithm::Ecdsa => {
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
+        },
+        EcAlgorithm::Ecdh => {
+            usages.ensure_only_contain_entries_from(&[])?;
+        },
     }
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the

@@ -5,6 +5,7 @@
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
+use itertools::Itertools;
 use js::context::NoGC;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject, Value};
@@ -20,6 +21,7 @@ use zeroize::Zeroizing;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
+use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -657,16 +659,21 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
     }
 }
 
-/// The trait providing helper functions for [`Vec<KeyUsage>`]
-pub(crate) trait KeyUsageVecHelper {
+/// The trait providing helper functions for `&[KeyUsage]`
+pub(crate) trait KeyUsageSliceHelper {
     /// <https://w3c.github.io/webcrypto/#concept-usage-intersection>
     fn usage_intersection(&self, other: &[KeyUsage]) -> Vec<KeyUsage>;
 
     /// <https://w3c.github.io/webcrypto/#concept-normalized-usages>
     fn normalized_value(&self) -> Vec<KeyUsage>;
+
+    /// Ensure that the key usage list only contains entries which are in `allowed`. If the key
+    /// usage list contains an entry which is not in `allowed`, then throw a SyntaxError. Note that,
+    /// if `allowed` is set to empty, it throws a SyntaxError when the key usage list is not empty.
+    fn ensure_only_contain_entries_from(&self, allowed: &[KeyUsage]) -> ErrorResult;
 }
 
-impl KeyUsageVecHelper for Vec<KeyUsage> {
+impl KeyUsageSliceHelper for [KeyUsage] {
     fn usage_intersection(&self, other: &[KeyUsage]) -> Vec<KeyUsage> {
         // When this specification says to calculate the usage intersection of two sequences, a and
         // b the result shall be a sequence containing each recognized key usage value that appears
@@ -689,5 +696,20 @@ impl KeyUsageVecHelper for Vec<KeyUsage> {
         // the result shall be the usage intersection of usages and a sequence containing all
         // recognized key usage values.
         self.usage_intersection(KeyUsage::VARIANTS)
+    }
+
+    fn ensure_only_contain_entries_from(&self, allowed: &[KeyUsage]) -> ErrorResult {
+        if self.iter().all(|usage| allowed.contains(usage)) {
+            Ok(())
+        } else {
+            Err(Error::Syntax(Some(if allowed.is_empty() {
+                "Usages is not empty".into()
+            } else {
+                format!(
+                    "Usages contains an entry which is not {}",
+                    allowed.iter().map(|usage| usage.as_ref()).join(" or "),
+                )
+            })))
+        }
     }
 }

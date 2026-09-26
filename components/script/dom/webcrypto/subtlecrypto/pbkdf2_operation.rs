@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsag
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, KeyAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm, Pbkdf2Params,
@@ -97,15 +97,7 @@ pub(crate) fn import_key(
     }
 
     // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) ||
-        usages.is_empty()
-    {
-        return Err(Error::Syntax(Some(
-            "Usages is empty or contains a value that is not a 'deriveKey' or 'deriveBits'".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
 
     // Step 3. If extractable is not false, then throw a SyntaxError.
     if extractable {

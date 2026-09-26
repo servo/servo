@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     Algorithm, CryptoAlgorithm, EncapsulatedBits, ExportedKey, JsonWebKeyExt, JwkStringField,
@@ -135,21 +135,12 @@ pub(crate) fn generate_key(
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains an entry which is not one of "encapsulateKey", "encapsulateBits",
     // "decapsulateKey" or "decapsulateBits", then throw a SyntaxError.
-    if usages.iter().any(|usage| {
-        !matches!(
-            usage,
-            KeyUsage::EncapsulateKey |
-                KeyUsage::EncapsulateBits |
-                KeyUsage::DecapsulateKey |
-                KeyUsage::DecapsulateBits
-        )
-    }) {
-        return Err(Error::Syntax(Some(
-            "Usages contains any entry which is not one of \"encapsulateKey\", \
-            \"encapsulateBits\", \"decapsulateKey\" or \"decapsulateBits\""
-                .into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[
+        KeyUsage::EncapsulateKey,
+        KeyUsage::EncapsulateBits,
+        KeyUsage::DecapsulateKey,
+        KeyUsage::DecapsulateBits,
+    ])?;
 
     // Step 2. Generate an ML-KEM key pair, as described in Section 7.1 of [FIPS-203], with the
     // parameter set indicated by the name member of normalizedAlgorithm.
@@ -236,46 +227,288 @@ pub(crate) fn import_key(
     // Step 1. Let keyData be the key data to be imported.
 
     // Step 2.
-    let key =
-        match format {
-            // If format is "raw-public":
-            KeyFormat::Raw_public => {
-                // Step 2.1. If usages contains an entry which is not "encapsulateKey" or
-                // "encapsulateBits" then throw a SyntaxError.
-                if usages.iter().any(|usage| {
-                    !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits)
-                }) {
-                    return Err(Error::Syntax(Some(
-                        "Usages contains an entry which is not \"encapsulateKey\" or \
-                        \"encapsulateBits\""
+    let key = match format {
+        // If format is "raw-public":
+        KeyFormat::Raw_public => {
+            // Step 2.1. If usages contains an entry which is not "encapsulateKey" or
+            // "encapsulateBits" then throw a SyntaxError.
+            usages.ensure_only_contain_entries_from(&[
+                KeyUsage::EncapsulateKey,
+                KeyUsage::EncapsulateBits,
+            ])?;
+
+            // Step 2.2. Let data be keyData.
+            let data = key_data;
+
+            // Step 2.3. If the length in bytes of data is not the raw public key length, Nek, for
+            // the hybrid KEM instance indicated by the name member of normalizedAlgorithm in
+            // Section 4 of [draft-irtf-cfrg-concrete-hybrid-kems-04], then throw a DataError.
+            // Step 2.4. Let key be a new CryptoKey that represents the hybrid KEM public key data
+            // in data.
+            // Step 2.5. Set the [[type]] internal slot of key to "public"
+            // Step 2.6. Let algorithm be a new KeyAlgorithm.
+            // Step 2.7. Set the name attribute of algorithm to the name attribute of
+            // normalizedAlgorithm.
+            // Step 2.8. Set the [[algorithm]] internal slot of key to algorithm.
+            let public_key = match normalized_algorithm.name {
+                CryptoAlgorithm::MlKem768X25519 => {
+                    if key_data.len() != 1216 {
+                        return Err(Error::Data(Some(
+                            "Invalid key length for MLKEM768-X25519 public key".into(),
+                        )));
+                    }
+                    let encapsulation_key =
+                        EncapsulationKey::new_from_slice(data).map_err(|_| {
+                            Error::Data(Some(
+                                "Failed to parse the public MLKEM768-X25519 key in raw format"
+                                    .into(),
+                            ))
+                        })?;
+                    Handle::MlKem768X25519PublicKey(encapsulation_key)
+                },
+                name => {
+                    return Err(Error::NotSupported(Some(format!(
+                        "{} is not a hybrid KEM algorithm",
+                        name.as_str()
+                    ))));
+                },
+            };
+            let algorithm = KeyAlgorithm {
+                name: normalized_algorithm.name,
+            };
+            CryptoKey::new(
+                cx,
+                global,
+                KeyType::Public,
+                extractable,
+                KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+                usages.normalized_value(),
+                public_key,
+            )
+        },
+        // If format is "raw-seed":
+        KeyFormat::Raw_seed => {
+            // Step 2.1. If usages contains an entry which is not "decapsulateKey" or
+            // "decapsulateBits" then throw a SyntaxError.
+            usages.ensure_only_contain_entries_from(&[
+                KeyUsage::DecapsulateKey,
+                KeyUsage::DecapsulateBits,
+            ])?;
+
+            // Step 2.2. Let data be keyData.
+            let data = key_data;
+
+            // Step 2.3. If the length in bits of data is not 256 then throw a DataError.
+            if data.len() != 32 {
+                return Err(Error::Data(Some(
+                    "The length in bits of data is not 256".into(),
+                )));
+            }
+
+            // Step 2.4. Let keyPair be the result of performing the DeriveKeyPair function
+            // described in Section 5.5 of [draft-irtf-cfrg-hybrid-kems-12] with the hybrid KEM
+            // instance indicated by the name member of normalizedAlgorithm, using data as the seed
+            // input parameter.
+            // Step 2.5. If the DeriveKeyPair function returned an error, then throw an
+            // OperationError.
+            let private_key = match normalized_algorithm.name {
+                CryptoAlgorithm::MlKem768X25519 => {
+                    let decapsulation_key =
+                        DecapsulationKey::new_from_slice(key_data).map_err(|_| {
+                            Error::Data(Some(
+                                "Failed to parse the private MLKEM768-X25519 key in raw format"
+                                    .into(),
+                            ))
+                        })?;
+                    Handle::MlKem768X25519PrivateKey(decapsulation_key)
+                },
+                name => {
+                    return Err(Error::NotSupported(Some(format!(
+                        "{} is not a hybrid KEM algorithm",
+                        name.as_str()
+                    ))));
+                },
+            };
+
+            // Step 2.6. Let key be a new CryptoKey that represents the hybrid KEM private key
+            // identified by the decapsulation key of keyPair.
+            // Step 2.7. Set the [[type]] internal slot of key to "private"
+            // Step 2.8. Let algorithm be a new KeyAlgorithm.
+            // Step 2.9. Set the name attribute of algorithm to the name attribute of
+            // normalizedAlgorithm.
+            // Step 2.10. Set the [[algorithm]] internal slot of key to algorithm.
+            let algorithm = KeyAlgorithm {
+                name: normalized_algorithm.name,
+            };
+            CryptoKey::new(
+                cx,
+                global,
+                KeyType::Private,
+                extractable,
+                KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+                usages.normalized_value(),
+                private_key,
+            )
+        },
+        // If format is "jwk":
+        KeyFormat::Jwk => {
+            // Step 2.1.
+            // If keyData is a JsonWebKey dictionary:
+            //     Let jwk equal keyData.
+            // Otherwise:
+            //     Throw a DataError.
+            let jwk = JsonWebKey::parse(cx, key_data)?;
+
+            // Step 2.2. If the priv field of jwk is present and if usages contains an entry which
+            // is not "decapsulateKey" or "decapsulateBits" then throw a SyntaxError.
+            // Step 2.3. If the priv field of jwk is not present and if usages contains an entry
+            // which is not "encapsulateKey" or "encapsulateBits" then throw a SyntaxError.
+            match jwk.priv_.as_ref() {
+                Some(_) => usages.ensure_only_contain_entries_from(&[
+                    KeyUsage::DecapsulateKey,
+                    KeyUsage::DecapsulateBits,
+                ])?,
+                None => usages.ensure_only_contain_entries_from(&[
+                    KeyUsage::EncapsulateKey,
+                    KeyUsage::EncapsulateBits,
+                ])?,
+            }
+
+            // Step 2.4. If the kty field of jwk is not "AKP", then throw a DataError.
+            if jwk.kty.as_ref().is_none_or(|kty| kty != "AKP") {
+                return Err(Error::Data(Some(
+                    "The kty field of jwk is not \"AKP\"".into(),
+                )));
+            }
+
+            // Step 2.5. If the alg field of jwk is not present, or its value does not identify the
+            // hybrid KEM instance indicated by the name member of normalizedAlgorithm, then throw a
+            // DataError.
+            match normalized_algorithm.name {
+                CryptoAlgorithm::MlKem768X25519 => {
+                    if jwk.alg.as_ref().is_none_or(|alg| alg != "MLKEM768-X25519") {
+                        return Err(Error::Data(Some(
+                            "The alg field of jwk is not invalid.".into(),
+                        )));
+                    }
+                },
+                name => {
+                    return Err(Error::NotSupported(Some(format!(
+                        "{} is not a hybrid KEM algorithm",
+                        name.as_str()
+                    ))));
+                },
+            }
+
+            // Step 2.6. If usages is non-empty and the use field of jwk is present and is not equal
+            // to "enc", then throw a DataError.
+            if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
+                return Err(Error::Data(Some(
+                    "Usages is non-empty and the use field of jwk is present and is not \
+                        equal to \"enc\""
+                        .into(),
+                )));
+            }
+
+            // Step 2.7. If the key_ops field of jwk is present, and is invalid according to the
+            // requirements of JSON Web Key [JWK], or it does not contain all of the specified
+            // usages values, then throw a DataError.
+            jwk.check_key_ops(&usages)?;
+
+            // Step 2.8. If the ext field of jwk is present and has the value false and extractable
+            // is true, then throw a DataError.
+            if jwk.ext.is_some_and(|ext| !ext) && extractable {
+                return Err(Error::Data(Some(
+                    "The ext field of jwk is present and has the value false and extractable \
+                        is true"
+                        .into(),
+                )));
+            }
+
+            // Step 2.9.
+            // If the priv field of jwk is present:
+            let (key_type, key_handle) = if jwk.priv_.is_some() {
+                // Step 2.9.1. If the priv attribute of jwk does not contain a valid base64url
+                // encoded 32-byte seed representing a hybrid KEM private key, then throw a
+                // DataError.
+                let priv_bytes = jwk.decode_required_string_field(JwkStringField::Priv)?;
+                if priv_bytes.len() != 32 {
+                    return Err(Error::Data(Some(
+                        "The priv attribute of jwk does not contain a valid base64url \
+                            encoded 32-byte seed"
                             .into(),
                     )));
                 }
 
-                // Step 2.2. Let data be keyData.
-                let data = key_data;
-
-                // Step 2.3. If the length in bytes of data is not the raw public key length, Nek, for
-                // the hybrid KEM instance indicated by the name member of normalizedAlgorithm in
-                // Section 4 of [draft-irtf-cfrg-concrete-hybrid-kems-04], then throw a DataError.
-                // Step 2.4. Let key be a new CryptoKey that represents the hybrid KEM public key data
-                // in data.
-                // Step 2.5. Set the [[type]] internal slot of key to "public"
-                // Step 2.6. Let algorithm be a new KeyAlgorithm.
-                // Step 2.7. Set the name attribute of algorithm to the name attribute of
-                // normalizedAlgorithm.
-                // Step 2.8. Set the [[algorithm]] internal slot of key to algorithm.
-                let public_key = match normalized_algorithm.name {
+                // Step 2.9.2. Let key be a new CryptoKey object that represents the hybrid KEM
+                // private key identified by interpreting the priv attribute of jwk as a base64url
+                // encoded seed.
+                // Step 2.9.3. Set the [[type]] internal slot of key to "private".
+                // Step 2.9.4. If the pub attribute of jwk does not contain the base64url encoded
+                // public key representing the hybrid KEM public key corresponding to key, then
+                // throw a DataError.
+                // NOTE: The CryptoKey object is created in Step 2.10 - 2.12.
+                let pub_bytes = jwk.decode_required_string_field(JwkStringField::Pub)?;
+                let private_key_handle = match normalized_algorithm.name {
                     CryptoAlgorithm::MlKem768X25519 => {
-                        if key_data.len() != 1216 {
+                        let decapsulation_key = DecapsulationKey::new_from_slice(&priv_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                "Failed to parse the private MLKEM768-X25519 key in priv attribute"
+                                    .into(),
+                            ))
+                            })?;
+                        let encapsulation_key = EncapsulationKey::new_from_slice(&pub_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                "Failed to parse the public MLKEM768-X25519 key in pub attribute"
+                                    .into(),
+                            ))
+                            })?;
+                        if *decapsulation_key.encapsulation_key() != encapsulation_key {
                             return Err(Error::Data(Some(
-                                "Invalid key length for MLKEM768-X25519 public key".into(),
+                                "The public key in pub attribute does not match \
+                                    the private key in priv attribute"
+                                    .into(),
                             )));
                         }
-                        let encapsulation_key =
-                            EncapsulationKey::new_from_slice(data).map_err(|_| {
+                        Handle::MlKem768X25519PrivateKey(decapsulation_key)
+                    },
+                    name => {
+                        return Err(Error::NotSupported(Some(format!(
+                            "{} is not a hybrid KEM algorithm",
+                            name.as_str()
+                        ))));
+                    },
+                };
+                (KeyType::Private, private_key_handle)
+            }
+            // Otherwise:
+            else {
+                // Step 2.9.1. If the pub attribute of jwk does not contain a valid base64url
+                // encoded raw public key whose length is Nek for the hybrid KEM instance indicated
+                // by the name member of normalizedAlgorithm in Section 4 of
+                // [draft-irtf-cfrg-concrete-hybrid-kems-04], then throw a DataError.
+                // Step 2.9.2. Let key be a new CryptoKey object that represents the hybrid KEM
+                // public key identified by interpreting the pub attribute of jwk as a base64url
+                // encoded public key.
+                // Step 2.9.3. Set the [[type]] internal slot of key to "public".
+                // NOTE: The CryptoKey object is created in Step 2.10 - 2.12.
+                let pub_bytes = jwk.decode_required_string_field(JwkStringField::Pub)?;
+                let public_key_handle = match normalized_algorithm.name {
+                    CryptoAlgorithm::MlKem768X25519 => {
+                        if pub_bytes.len() != 1216 {
+                            return Err(Error::Data(Some(
+                                "The pub attribute of jwk does not contain a valid base64url \
+                                    encoded raw public key with valid length"
+                                    .into(),
+                            )));
+                        }
+                        let encapsulation_key = EncapsulationKey::new_from_slice(&pub_bytes)
+                            .map_err(|_| {
                                 Error::Data(Some(
-                                    "Failed to parse the public MLKEM768-X25519 key in raw format"
+                                    "Failed to parse the public MLKEM768-X25519 key in pub \
+                                        attribute"
                                         .into(),
                                 ))
                             })?;
@@ -288,300 +521,34 @@ pub(crate) fn import_key(
                         ))));
                     },
                 };
-                let algorithm = KeyAlgorithm {
-                    name: normalized_algorithm.name,
-                };
-                CryptoKey::new(
-                    cx,
-                    global,
-                    KeyType::Public,
-                    extractable,
-                    KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                    usages.normalized_value(),
-                    public_key,
-                )
-            },
-            // If format is "raw-seed":
-            KeyFormat::Raw_seed => {
-                // Step 2.1. If usages contains an entry which is not "decapsulateKey" or
-                // "decapsulateBits" then throw a SyntaxError.
-                if usages.iter().any(|usage| {
-                    !matches!(usage, KeyUsage::DecapsulateKey | KeyUsage::DecapsulateBits)
-                }) {
-                    return Err(Error::Syntax(Some(
-                        "Usages contains an entry which is not \"decapsulateKey\" or \
-                        \"decapsulateBits\""
-                            .into(),
-                    )));
-                }
+                (KeyType::Public, public_key_handle)
+            };
 
-                // Step 2.2. Let data be keyData.
-                let data = key_data;
-
-                // Step 2.3. If the length in bits of data is not 256 then throw a DataError.
-                if data.len() != 32 {
-                    return Err(Error::Data(Some(
-                        "The length in bits of data is not 256".into(),
-                    )));
-                }
-
-                // Step 2.4. Let keyPair be the result of performing the DeriveKeyPair function
-                // described in Section 5.5 of [draft-irtf-cfrg-hybrid-kems-12] with the hybrid KEM
-                // instance indicated by the name member of normalizedAlgorithm, using data as the seed
-                // input parameter.
-                // Step 2.5. If the DeriveKeyPair function returned an error, then throw an
-                // OperationError.
-                let private_key = match normalized_algorithm.name {
-                    CryptoAlgorithm::MlKem768X25519 => {
-                        let decapsulation_key = DecapsulationKey::new_from_slice(key_data)
-                            .map_err(|_| {
-                                Error::Data(Some(
-                                    "Failed to parse the private MLKEM768-X25519 key in raw format"
-                                        .into(),
-                                ))
-                            })?;
-                        Handle::MlKem768X25519PrivateKey(decapsulation_key)
-                    },
-                    name => {
-                        return Err(Error::NotSupported(Some(format!(
-                            "{} is not a hybrid KEM algorithm",
-                            name.as_str()
-                        ))));
-                    },
-                };
-
-                // Step 2.6. Let key be a new CryptoKey that represents the hybrid KEM private key
-                // identified by the decapsulation key of keyPair.
-                // Step 2.7. Set the [[type]] internal slot of key to "private"
-                // Step 2.8. Let algorithm be a new KeyAlgorithm.
-                // Step 2.9. Set the name attribute of algorithm to the name attribute of
-                // normalizedAlgorithm.
-                // Step 2.10. Set the [[algorithm]] internal slot of key to algorithm.
-                let algorithm = KeyAlgorithm {
-                    name: normalized_algorithm.name,
-                };
-                CryptoKey::new(
-                    cx,
-                    global,
-                    KeyType::Private,
-                    extractable,
-                    KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                    usages.normalized_value(),
-                    private_key,
-                )
-            },
-            // If format is "jwk":
-            KeyFormat::Jwk => {
-                // Step 2.1.
-                // If keyData is a JsonWebKey dictionary:
-                //     Let jwk equal keyData.
-                // Otherwise:
-                //     Throw a DataError.
-                let jwk = JsonWebKey::parse(cx, key_data)?;
-
-                // Step 2.2. If the priv field of jwk is present and if usages contains an entry which
-                // is not "decapsulateKey" or "decapsulateBits" then throw a SyntaxError.
-                if jwk.priv_.is_some() &&
-                    usages.iter().any(|usage| {
-                        !matches!(usage, KeyUsage::DecapsulateKey | KeyUsage::DecapsulateBits)
-                    })
-                {
-                    return Err(Error::Syntax(Some(
-                        "The priv field of jwk is present and usages contains an entry which is \
-                        not \"decapsulateKey\" or \"decapsulateBits\""
-                            .into(),
-                    )));
-                }
-
-                // Step 2.3. If the priv field of jwk is not present and if usages contains an entry
-                // which is not "encapsulateKey" or "encapsulateBits" then throw a SyntaxError.
-                if jwk.priv_.is_none() &&
-                    usages.iter().any(|usage| {
-                        !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits)
-                    })
-                {
-                    return Err(Error::Syntax(Some(
-                        "The priv field of jwk is not present and usages contains an entry which \
-                        is not \"encapsulateKey\" or \"encapsulateBits\""
-                            .into(),
-                    )));
-                }
-
-                // Step 2.4. If the kty field of jwk is not "AKP", then throw a DataError.
-                if jwk.kty.as_ref().is_none_or(|kty| kty != "AKP") {
-                    return Err(Error::Data(Some(
-                        "The kty field of jwk is not \"AKP\"".into(),
-                    )));
-                }
-
-                // Step 2.5. If the alg field of jwk is not present, or its value does not identify the
-                // hybrid KEM instance indicated by the name member of normalizedAlgorithm, then throw a
-                // DataError.
-                match normalized_algorithm.name {
-                    CryptoAlgorithm::MlKem768X25519 => {
-                        if jwk.alg.as_ref().is_none_or(|alg| alg != "MLKEM768-X25519") {
-                            return Err(Error::Data(Some(
-                                "The alg field of jwk is not invalid.".into(),
-                            )));
-                        }
-                    },
-                    name => {
-                        return Err(Error::NotSupported(Some(format!(
-                            "{} is not a hybrid KEM algorithm",
-                            name.as_str()
-                        ))));
-                    },
-                }
-
-                // Step 2.6. If usages is non-empty and the use field of jwk is present and is not equal
-                // to "enc", then throw a DataError.
-                if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
-                    return Err(Error::Data(Some(
-                        "Usages is non-empty and the use field of jwk is present and is not \
-                        equal to \"enc\""
-                            .into(),
-                    )));
-                }
-
-                // Step 2.7. If the key_ops field of jwk is present, and is invalid according to the
-                // requirements of JSON Web Key [JWK], or it does not contain all of the specified
-                // usages values, then throw a DataError.
-                jwk.check_key_ops(&usages)?;
-
-                // Step 2.8. If the ext field of jwk is present and has the value false and extractable
-                // is true, then throw a DataError.
-                if jwk.ext.is_some_and(|ext| !ext) && extractable {
-                    return Err(Error::Data(Some(
-                        "The ext field of jwk is present and has the value false and extractable \
-                        is true"
-                            .into(),
-                    )));
-                }
-
-                // Step 2.9.
-                // If the priv field of jwk is present:
-                let (key_type, key_handle) = if jwk.priv_.is_some() {
-                    // Step 2.9.1. If the priv attribute of jwk does not contain a valid base64url
-                    // encoded 32-byte seed representing a hybrid KEM private key, then throw a
-                    // DataError.
-                    let priv_bytes = jwk.decode_required_string_field(JwkStringField::Priv)?;
-                    if priv_bytes.len() != 32 {
-                        return Err(Error::Data(Some(
-                            "The priv attribute of jwk does not contain a valid base64url \
-                            encoded 32-byte seed"
-                                .into(),
-                        )));
-                    }
-
-                    // Step 2.9.2. Let key be a new CryptoKey object that represents the hybrid KEM
-                    // private key identified by interpreting the priv attribute of jwk as a base64url
-                    // encoded seed.
-                    // Step 2.9.3. Set the [[type]] internal slot of key to "private".
-                    // Step 2.9.4. If the pub attribute of jwk does not contain the base64url encoded
-                    // public key representing the hybrid KEM public key corresponding to key, then
-                    // throw a DataError.
-                    // NOTE: The CryptoKey object is created in Step 2.10 - 2.12.
-                    let pub_bytes = jwk.decode_required_string_field(JwkStringField::Pub)?;
-                    let private_key_handle = match normalized_algorithm.name {
-                        CryptoAlgorithm::MlKem768X25519 => {
-                            let decapsulation_key = DecapsulationKey::new_from_slice(&priv_bytes)
-                                .map_err(|_| {
-                                Error::Data(Some(
-                                "Failed to parse the private MLKEM768-X25519 key in priv attribute"
-                                    .into(),
-                            ))
-                            })?;
-                            let encapsulation_key = EncapsulationKey::new_from_slice(&pub_bytes)
-                                .map_err(|_| {
-                                    Error::Data(Some(
-                                "Failed to parse the public MLKEM768-X25519 key in pub attribute"
-                                    .into(),
-                            ))
-                                })?;
-                            if *decapsulation_key.encapsulation_key() != encapsulation_key {
-                                return Err(Error::Data(Some(
-                                    "The public key in pub attribute does not match \
-                                    the private key in priv attribute"
-                                        .into(),
-                                )));
-                            }
-                            Handle::MlKem768X25519PrivateKey(decapsulation_key)
-                        },
-                        name => {
-                            return Err(Error::NotSupported(Some(format!(
-                                "{} is not a hybrid KEM algorithm",
-                                name.as_str()
-                            ))));
-                        },
-                    };
-                    (KeyType::Private, private_key_handle)
-                }
-                // Otherwise:
-                else {
-                    // Step 2.9.1. If the pub attribute of jwk does not contain a valid base64url
-                    // encoded raw public key whose length is Nek for the hybrid KEM instance indicated
-                    // by the name member of normalizedAlgorithm in Section 4 of
-                    // [draft-irtf-cfrg-concrete-hybrid-kems-04], then throw a DataError.
-                    // Step 2.9.2. Let key be a new CryptoKey object that represents the hybrid KEM
-                    // public key identified by interpreting the pub attribute of jwk as a base64url
-                    // encoded public key.
-                    // Step 2.9.3. Set the [[type]] internal slot of key to "public".
-                    // NOTE: The CryptoKey object is created in Step 2.10 - 2.12.
-                    let pub_bytes = jwk.decode_required_string_field(JwkStringField::Pub)?;
-                    let public_key_handle = match normalized_algorithm.name {
-                        CryptoAlgorithm::MlKem768X25519 => {
-                            if pub_bytes.len() != 1216 {
-                                return Err(Error::Data(Some(
-                                    "The pub attribute of jwk does not contain a valid base64url \
-                                    encoded raw public key with valid length"
-                                        .into(),
-                                )));
-                            }
-                            let encapsulation_key = EncapsulationKey::new_from_slice(&pub_bytes)
-                                .map_err(|_| {
-                                    Error::Data(Some(
-                                        "Failed to parse the public MLKEM768-X25519 key in pub \
-                                        attribute"
-                                            .into(),
-                                    ))
-                                })?;
-                            Handle::MlKem768X25519PublicKey(encapsulation_key)
-                        },
-                        name => {
-                            return Err(Error::NotSupported(Some(format!(
-                                "{} is not a hybrid KEM algorithm",
-                                name.as_str()
-                            ))));
-                        },
-                    };
-                    (KeyType::Public, public_key_handle)
-                };
-
-                // Step 2.10. Let algorithm be a new instance of a KeyAlgorithm object.
-                // Step 2.11. Set the name attribute of algorithm to the name member of
-                // normalizedAlgorithm.
-                // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-                let algorithm = KeyAlgorithm {
-                    name: normalized_algorithm.name,
-                };
-                CryptoKey::new(
-                    cx,
-                    global,
-                    key_type,
-                    extractable,
-                    KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                    usages.normalized_value(),
-                    key_handle,
-                )
-            },
-            // Otherwise:
-            _ => {
-                // throw a NotSupportedError.
-                return Err(Error::NotSupported(Some(
-                    "Unsupported import key format for ML-KEM key".into(),
-                )));
-            },
-        };
+            // Step 2.10. Let algorithm be a new instance of a KeyAlgorithm object.
+            // Step 2.11. Set the name attribute of algorithm to the name member of
+            // normalizedAlgorithm.
+            // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
+            let algorithm = KeyAlgorithm {
+                name: normalized_algorithm.name,
+            };
+            CryptoKey::new(
+                cx,
+                global,
+                key_type,
+                extractable,
+                KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+                usages.normalized_value(),
+                key_handle,
+            )
+        },
+        // Otherwise:
+        _ => {
+            // throw a NotSupportedError.
+            return Err(Error::NotSupported(Some(
+                "Unsupported import key format for ML-KEM key".into(),
+            )));
+        },
+    };
 
     // Step 3. Return key.
     Ok(key)
@@ -735,15 +702,8 @@ pub(crate) fn get_public_key(
     // identified by algorithm, then throw a SyntaxError.
     //
     // NOTE: See "importKey" operation for supported usages
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"encapsulateKey\" or \"encapsulateBits\""
-                .into(),
-        )));
-    }
+    usages
+        .ensure_only_contain_entries_from(&[KeyUsage::EncapsulateKey, KeyUsage::EncapsulateBits])?;
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
     // private key represented by the [[handle]] internal slot of key.

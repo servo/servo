@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     Algorithm, ContextParams, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField,
@@ -200,14 +200,7 @@ pub(crate) fn generate_key(
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw a
     // SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not one of \"sign\" or \"verify\"".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 2. Generate an ML-DSA key pair, as described in Section 5.1 of [FIPS-204], with the
     // parameter set indicated by the name member of normalizedAlgorithm.
@@ -314,11 +307,7 @@ pub(crate) fn import_key(
         // If format is "spki":
         KeyFormat::Spki => {
             // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"verify\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData.
@@ -391,11 +380,7 @@ pub(crate) fn import_key(
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
             // Step 2.1. If usages contains a value which is not "sign" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"sign\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?;
 
             // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
             // algorithm over keyData.
@@ -482,11 +467,7 @@ pub(crate) fn import_key(
         // If format is "raw-public":
         KeyFormat::Raw_public => {
             // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"verify\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
             // Step 2.2. Let algorithm be a new KeyAlgorithm object.
             // Step 2.3. Set the name attribute of algorithm to the name attribute of
@@ -542,11 +523,7 @@ pub(crate) fn import_key(
         // If format is "raw-seed":
         KeyFormat::Raw_seed => {
             // Step 2.1. If usages contains an entry which is not "sign" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"sign\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?;
 
             // Step 2.2. Let data be keyData.
             // Step 2.3. If the length in bits of data is not 256 then throw a DataError.
@@ -618,18 +595,9 @@ pub(crate) fn import_key(
             // Step 2.2. If the priv field is present and usages contains a value which is not
             // "sign", or, if the priv field is not present and usages contains a value which is
             // not "verify" then throw a SyntaxError.
-            if jwk.priv_.is_some() && usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                return Err(Error::Syntax(Some(
-                    "The priv field is present and usages contains a value which is not \"sign\""
-                        .into(),
-                )));
-            }
-            if jwk.priv_.is_none() && usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                return Err(Error::Syntax(Some(
-                    "The priv field is not present and usages contains a value which is not \
-                        \"verify\""
-                        .into(),
-                )));
+            match jwk.priv_.as_ref() {
+                Some(_) => usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?,
+                None => usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?,
             }
 
             // Step 2.3. If the kty field of jwk is not "AKP", then throw a DataError.
@@ -1211,11 +1179,7 @@ pub(crate) fn get_public_key(
     // identified by algorithm, then throw a SyntaxError.
     //
     // NOTE: See "importKey" operation for supported usages
-    if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"verify\"".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
     // private key represented by the [[handle]] internal slot of key.

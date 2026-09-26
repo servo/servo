@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, CryptoAlgorithm, ExportedKey,
@@ -53,31 +53,17 @@ pub(crate) fn generate_key(
         AesAlgorithm::AesOcb => {
             // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt",
             // "wrapKey" or "unwrapKey", then throw a SyntaxError.
-            if usages.iter().any(|usage| {
-                !matches!(
-                    usage,
-                    KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
-                )
-            }) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \
-                    \"wrapKey\" or \"unwrapKey\""
-                        .to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[
+                KeyUsage::Encrypt,
+                KeyUsage::Decrypt,
+                KeyUsage::WrapKey,
+                KeyUsage::UnwrapKey,
+            ])?;
         },
         AesAlgorithm::AesKw => {
             // Step 1. If usages contains any entry which is not one of "wrapKey" or "unwrapKey",
             // then throw a SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::WrapKey | KeyUsage::UnwrapKey))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not one of \"wrapKey\" or \"unwrapKey\""
-                        .to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::WrapKey, KeyUsage::UnwrapKey])?;
         },
     }
 
@@ -184,31 +170,17 @@ pub(crate) fn import_key(
         AesAlgorithm::AesOcb => {
             // Step 1. If usages contains an entry which is not one of "encrypt", "decrypt",
             // "wrapKey" or "unwrapKey", then throw a SyntaxError.
-            if usages.iter().any(|usage| {
-                !matches!(
-                    usage,
-                    KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
-                )
-            }) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \
-                    \"wrapKey\"  or \"unwrapKey\""
-                        .to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[
+                KeyUsage::Encrypt,
+                KeyUsage::Decrypt,
+                KeyUsage::WrapKey,
+                KeyUsage::UnwrapKey,
+            ])?;
         },
         AesAlgorithm::AesKw => {
             // Step 1. If usages contains an entry which is not one of "wrapKey" or "unwrapKey",
             // then throw a SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::WrapKey | KeyUsage::UnwrapKey))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not one of \"wrapKey\"  or \"unwrapKey\""
-                        .to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::WrapKey, KeyUsage::UnwrapKey])?;
         },
     }
 

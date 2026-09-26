@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
@@ -158,14 +158,7 @@ pub(crate) fn generate_key(
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
     // SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"sign\" or \"verify\"".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 2.
     // If the length member of normalizedAlgorithm is present:
@@ -246,14 +239,7 @@ pub(crate) fn import_key(
 
     // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a
     // SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"sign\" or \"verify\"".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 3.
     let mut data: Zeroizing<Vec<u8>>;
