@@ -113,12 +113,12 @@ impl Path {
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-beziercurveto>
     pub fn bezier_curve_to(&mut self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, x: f64, y: f64) {
         // Step 1. If any of the arguments are infinite or NaN, then return.
-        if !(cp1x.is_finite() &&
-            cp1y.is_finite() &&
-            cp2x.is_finite() &&
-            cp2y.is_finite() &&
-            x.is_finite() &&
-            y.is_finite())
+        if !(cp1x.is_finite()
+            && cp1y.is_finite()
+            && cp2x.is_finite()
+            && cp2y.is_finite()
+            && x.is_finite()
+            && y.is_finite())
         {
             return;
         }
@@ -142,11 +142,11 @@ impl Path {
         radius: f64,
     ) -> Result<(), IndexSizeError> {
         // Step 1. If any of the arguments are infinite or NaN, then return.
-        if !(x1.is_finite() &&
-            y1.is_finite() &&
-            x2.is_finite() &&
-            y2.is_finite() &&
-            radius.is_finite())
+        if !(x1.is_finite()
+            && y1.is_finite()
+            && x2.is_finite()
+            && y2.is_finite()
+            && radius.is_finite())
         {
             return Ok(());
         }
@@ -264,13 +264,13 @@ impl Path {
         counterclockwise: bool,
     ) -> Result<(), IndexSizeError> {
         // Step 1. If any of the arguments are infinite or NaN, then return.
-        if !(x.is_finite() &&
-            y.is_finite() &&
-            radius_x.is_finite() &&
-            radius_y.is_finite() &&
-            rotation_angle.is_finite() &&
-            start_angle.is_finite() &&
-            end_angle.is_finite())
+        if !(x.is_finite()
+            && y.is_finite()
+            && radius_x.is_finite()
+            && radius_y.is_finite()
+            && rotation_angle.is_finite()
+            && start_angle.is_finite()
+            && end_angle.is_finite())
         {
             return Ok(());
         }
@@ -284,8 +284,8 @@ impl Path {
         let mut end = Angle::radians(end_angle);
 
         // Wrap angles mod 2 * PI if necessary
-        if !counterclockwise && start > end + Angle::two_pi() ||
-            counterclockwise && end > start + Angle::two_pi()
+        if !counterclockwise && start > end + Angle::two_pi()
+            || counterclockwise && end > start + Angle::two_pi()
         {
             start = start.positive();
             end = end.positive();
@@ -699,7 +699,7 @@ pub enum RepetitionStyle {
     NoRepeat,
 }
 
-/// <https://drafts.fxtf.org/compositing/#compositemode>
+/// <https://drafts.csswg.org/compositing/#compositemode>
 #[derive(
     Clone, Copy, Debug, Deserialize, Display, EnumString, MallocSizeOf, PartialEq, Serialize,
 )]
@@ -721,7 +721,7 @@ pub enum CompositionStyle {
     // PlusLighter,
 }
 
-/// <https://drafts.fxtf.org/compositing/#ltblendmodegt>
+/// <https://drafts.csswg.org/compositing/#ltblendmodegt>
 #[derive(
     Clone, Copy, Debug, Deserialize, Display, EnumString, MallocSizeOf, PartialEq, Serialize,
 )]

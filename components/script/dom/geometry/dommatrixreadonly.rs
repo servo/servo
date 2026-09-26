@@ -116,17 +116,17 @@ impl DOMMatrixReadOnly {
         self.is2D.set(value);
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m11
     pub(crate) fn set_m11(&self, value: f64) {
         self.matrix.borrow_mut().m11 = value;
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m12
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m12
     pub(crate) fn set_m12(&self, value: f64) {
         self.matrix.borrow_mut().m12 = value;
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m13
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m13
     pub(crate) fn set_m13(&self, value: f64) {
         // For the DOMMatrix interface, setting the m13 attribute must set the
         // m13 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
@@ -137,7 +137,7 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m14
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m14
     pub(crate) fn set_m14(&self, value: f64) {
         // For the DOMMatrix interface, setting the m14 attribute must set the
         // m14 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
@@ -148,17 +148,17 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m21
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m21
     pub(crate) fn set_m21(&self, value: f64) {
         self.matrix.borrow_mut().m21 = value;
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m22
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m22
     pub(crate) fn set_m22(&self, value: f64) {
         self.matrix.borrow_mut().m22 = value;
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m23
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m23
     pub(crate) fn set_m23(&self, value: f64) {
         // For the DOMMatrix interface, setting the m23 attribute must set the
         // m23 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
@@ -169,7 +169,7 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m24
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m24
     pub(crate) fn set_m24(&self, value: f64) {
         // For the DOMMatrix interface, setting the m24 attribute must set the
         // m24 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
@@ -180,7 +180,7 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m31
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m31
     pub(crate) fn set_m31(&self, value: f64) {
         // For the DOMMatrix interface, setting the m31 attribute must set the
         // m31 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
@@ -191,7 +191,7 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m32
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m32
     pub(crate) fn set_m32(&self, value: f64) {
         // For the DOMMatrix interface, setting the m32 attribute must set the
         // m32 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
@@ -202,7 +202,7 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m33
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m33
     pub(crate) fn set_m33(&self, value: f64) {
         // For the DOMMatrix interface, setting the m33 attribute must set the
         // m33 element to the new value and, if the new value is not 1, set is 2D to false.
@@ -213,7 +213,7 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m34
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m34
     pub(crate) fn set_m34(&self, value: f64) {
         // For the DOMMatrix interface, setting the m34 attribute must set the
         // m34 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
@@ -224,17 +224,17 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m41
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m41
     pub(crate) fn set_m41(&self, value: f64) {
         self.matrix.borrow_mut().m41 = value;
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m42
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m42
     pub(crate) fn set_m42(&self, value: f64) {
         self.matrix.borrow_mut().m42 = value;
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m43
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m43
     pub(crate) fn set_m43(&self, value: f64) {
         // For the DOMMatrix interface, setting the m43 attribute must set the
         // m43 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
@@ -245,7 +245,7 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m44
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m44
     pub(crate) fn set_m44(&self, value: f64) {
         // For the DOMMatrix interface, setting the m44 attribute must set the
         // m44 element to the new value and, if the new value is not 1, set is 2D to false.
@@ -256,7 +256,7 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrix-multiplyself
     pub(crate) fn multiply_self(&self, other: &DOMMatrixInit) -> Fallible<()> {
         // Step 1.
         dommatrixinit_to_matrix(other).map(|(is2D, other_matrix)| {
@@ -271,7 +271,7 @@ impl DOMMatrixReadOnly {
         })
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-premultiplyself
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrix-premultiplyself
     pub(crate) fn pre_multiply_self(&self, other: &DOMMatrixInit) -> Fallible<()> {
         // Step 1.
         dommatrixinit_to_matrix(other).map(|(is2D, other_matrix)| {
@@ -286,7 +286,7 @@ impl DOMMatrixReadOnly {
         })
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-translateself
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrix-translateself
     pub(crate) fn translate_self(&self, tx: f64, ty: f64, tz: f64) {
         // Step 1.
         let translation = Transform3D::translation(tx, ty, tz);
@@ -299,7 +299,7 @@ impl DOMMatrixReadOnly {
         // Step 3 in DOMMatrix.TranslateSelf
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scaleself
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrix-scaleself
     pub(crate) fn scale_self(
         &self,
         scaleX: f64,
@@ -332,7 +332,7 @@ impl DOMMatrixReadOnly {
         // Step 7 in DOMMatrix.ScaleSelf
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scale3dself
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrix-scale3dself
     pub(crate) fn scale_3d_self(&self, scale: f64, originX: f64, originY: f64, originZ: f64) {
         // Step 1.
         self.translate_self(originX, originY, originZ);
@@ -351,7 +351,7 @@ impl DOMMatrixReadOnly {
         // Step 5 in DOMMatrix.Scale3dSelf
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateself
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrix-rotateself
     pub(crate) fn rotate_self(&self, mut rotX: f64, mut rotY: Option<f64>, mut rotZ: Option<f64>) {
         // Step 1.
         if rotY.is_none() && rotZ.is_none() {
@@ -388,7 +388,7 @@ impl DOMMatrixReadOnly {
         // Step 8 in DOMMatrix.RotateSelf
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotatefromvectorself
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrix-rotatefromvectorself
     pub(crate) fn rotate_from_vector_self(&self, x: f64, y: f64) {
         // don't do anything when the rotation angle is zero or undefined
         if y != 0.0 || x < 0.0 {
@@ -401,7 +401,7 @@ impl DOMMatrixReadOnly {
         // Step 2 in DOMMatrix.RotateFromVectorSelf
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateaxisangleself
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrix-rotateaxisangleself
     pub(crate) fn rotate_axis_angle_self(&self, x: f64, y: f64, z: f64, angle: f64) {
         // Step 1.
         let (norm_x, norm_y, norm_z) = normalize_point(x, y, z);
@@ -417,7 +417,7 @@ impl DOMMatrixReadOnly {
         // Step 3 in DOMMatrix.RotateAxisAngleSelf
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewxself
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrix-skewxself
     pub(crate) fn skew_x_self(&self, sx: f64) {
         // Step 1.
         let skew = Transform3D::skew(Angle::radians(sx.to_radians()), Angle::radians(0.0));
@@ -426,7 +426,7 @@ impl DOMMatrixReadOnly {
         // Step 2 in DOMMatrix.SkewXSelf
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewyself
+    // https://drafts.csswg.org/geometry-1/#dom-dommatrix-skewyself
     pub(crate) fn skew_y_self(&self, sy: f64) {
         // Step 1.
         let skew = Transform3D::skew(Angle::radians(0.0), Angle::radians(sy.to_radians()));
@@ -435,7 +435,7 @@ impl DOMMatrixReadOnly {
         // Step 2 in DOMMatrix.SkewYSelf
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrix-invertself>
     pub(crate) fn invert_self(&self) {
         let mut matrix = self.matrix.borrow_mut();
         // Step 1. Invert the current matrix.
@@ -473,7 +473,7 @@ impl DOMMatrixReadOnly {
 
 #[expect(non_snake_case)]
 impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly>
     fn Constructor(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
@@ -509,7 +509,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         }
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-frommatrix>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-frommatrix>
     fn FromMatrix(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
@@ -518,7 +518,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         dommatrixinit_to_matrix(other).map(|(is2D, matrix)| Self::new(cx, global, is2D, matrix))
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-fromfloat32array>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-fromfloat32array>
     fn FromFloat32Array(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
@@ -538,7 +538,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         )
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-fromfloat64array>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-fromfloat64array>
     fn FromFloat64Array(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
@@ -553,143 +553,143 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         )
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m11>
     fn M11(&self) -> f64 {
         self.matrix.borrow().m11
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m12>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m12>
     fn M12(&self) -> f64 {
         self.matrix.borrow().m12
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m13>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m13>
     fn M13(&self) -> f64 {
         self.matrix.borrow().m13
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m14>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m14>
     fn M14(&self) -> f64 {
         self.matrix.borrow().m14
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m21>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m21>
     fn M21(&self) -> f64 {
         self.matrix.borrow().m21
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m22>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m22>
     fn M22(&self) -> f64 {
         self.matrix.borrow().m22
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m23>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m23>
     fn M23(&self) -> f64 {
         self.matrix.borrow().m23
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m24>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m24>
     fn M24(&self) -> f64 {
         self.matrix.borrow().m24
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m31>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m31>
     fn M31(&self) -> f64 {
         self.matrix.borrow().m31
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m32>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m32>
     fn M32(&self) -> f64 {
         self.matrix.borrow().m32
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m33>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m33>
     fn M33(&self) -> f64 {
         self.matrix.borrow().m33
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m34>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m34>
     fn M34(&self) -> f64 {
         self.matrix.borrow().m34
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m41>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m41>
     fn M41(&self) -> f64 {
         self.matrix.borrow().m41
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m42>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m42>
     fn M42(&self) -> f64 {
         self.matrix.borrow().m42
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m43>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m43>
     fn M43(&self) -> f64 {
         self.matrix.borrow().m43
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m44>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-m44>
     fn M44(&self) -> f64 {
         self.matrix.borrow().m44
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-a>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-a>
     fn A(&self) -> f64 {
         self.M11()
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-b>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-b>
     fn B(&self) -> f64 {
         self.M12()
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-c>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-c>
     fn C(&self) -> f64 {
         self.M21()
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-d>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-d>
     fn D(&self) -> f64 {
         self.M22()
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-e>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-e>
     fn E(&self) -> f64 {
         self.M41()
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-f>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-f>
     fn F(&self) -> f64 {
         self.M42()
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-is2d>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-is2d>
     fn Is2D(&self) -> bool {
         self.is2D.get()
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-isidentity>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-isidentity>
     fn IsIdentity(&self) -> bool {
         let matrix = self.matrix.borrow();
-        matrix.m12 == 0.0 &&
-            matrix.m13 == 0.0 &&
-            matrix.m14 == 0.0 &&
-            matrix.m21 == 0.0 &&
-            matrix.m23 == 0.0 &&
-            matrix.m24 == 0.0 &&
-            matrix.m31 == 0.0 &&
-            matrix.m32 == 0.0 &&
-            matrix.m34 == 0.0 &&
-            matrix.m41 == 0.0 &&
-            matrix.m42 == 0.0 &&
-            matrix.m43 == 0.0 &&
-            matrix.m11 == 1.0 &&
-            matrix.m22 == 1.0 &&
-            matrix.m33 == 1.0 &&
-            matrix.m44 == 1.0
+        matrix.m12 == 0.0
+            && matrix.m13 == 0.0
+            && matrix.m14 == 0.0
+            && matrix.m21 == 0.0
+            && matrix.m23 == 0.0
+            && matrix.m24 == 0.0
+            && matrix.m31 == 0.0
+            && matrix.m32 == 0.0
+            && matrix.m34 == 0.0
+            && matrix.m41 == 0.0
+            && matrix.m42 == 0.0
+            && matrix.m43 == 0.0
+            && matrix.m11 == 1.0
+            && matrix.m22 == 1.0
+            && matrix.m33 == 1.0
+            && matrix.m44 == 1.0
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-translate>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-translate>
     fn Translate(
         &self,
         cx: &mut js::context::JSContext,
@@ -700,7 +700,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         DOMMatrix::from_readonly(&self.global(), self, cx).TranslateSelf(tx, ty, tz)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-scale>
     fn Scale(
         &self,
         cx: &mut js::context::JSContext,
@@ -715,7 +715,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             .ScaleSelf(scaleX, scaleY, scaleZ, originX, originY, originZ)
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-dommatrixreadonly-scalenonuniform>
+    /// <https://drafts.csswg.org/geometry/#dom-dommatrixreadonly-scalenonuniform>
     fn ScaleNonUniform(
         &self,
         cx: &mut js::context::JSContext,
@@ -732,7 +732,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         )
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale3d>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-scale3d>
     fn Scale3d(
         &self,
         cx: &mut js::context::JSContext,
@@ -745,7 +745,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             .Scale3dSelf(scale, originX, originY, originZ)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotate>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-rotate>
     fn Rotate(
         &self,
         cx: &mut js::context::JSContext,
@@ -756,7 +756,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         DOMMatrix::from_readonly(&self.global(), self, cx).RotateSelf(rotX, rotY, rotZ)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotatefromvector>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-rotatefromvector>
     fn RotateFromVector(
         &self,
         cx: &mut js::context::JSContext,
@@ -766,7 +766,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         DOMMatrix::from_readonly(&self.global(), self, cx).RotateFromVectorSelf(x, y)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotateaxisangle>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-rotateaxisangle>
     fn RotateAxisAngle(
         &self,
         cx: &mut js::context::JSContext,
@@ -778,17 +778,17 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         DOMMatrix::from_readonly(&self.global(), self, cx).RotateAxisAngleSelf(x, y, z, angle)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewx>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-skewx>
     fn SkewX(&self, cx: &mut js::context::JSContext, sx: f64) -> DomRoot<DOMMatrix> {
         DOMMatrix::from_readonly(&self.global(), self, cx).SkewXSelf(sx)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewy>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-skewy>
     fn SkewY(&self, cx: &mut js::context::JSContext, sy: f64) -> DomRoot<DOMMatrix> {
         DOMMatrix::from_readonly(&self.global(), self, cx).SkewYSelf(sy)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-multiply>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-multiply>
     fn Multiply(
         &self,
         cx: &mut js::context::JSContext,
@@ -797,7 +797,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         DOMMatrix::from_readonly(&self.global(), self, cx).MultiplySelf(other)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipx>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-flipx>
     fn FlipX(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMMatrix> {
         let is2D = self.is2D.get();
         let flip = Transform3D::new(
@@ -807,7 +807,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         DOMMatrix::new(cx, &self.global(), is2D, matrix)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipy>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-flipy>
     fn FlipY(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMMatrix> {
         let is2D = self.is2D.get();
         let flip = Transform3D::new(
@@ -817,12 +817,12 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         DOMMatrix::new(cx, &self.global(), is2D, matrix)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-inverse>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-inverse>
     fn Inverse(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMMatrix> {
         DOMMatrix::from_readonly(&self.global(), self, cx).InvertSelf()
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-transformpoint>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-transformpoint>
     fn TransformPoint(
         &self,
         cx: &mut js::context::JSContext,
@@ -843,7 +843,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         DOMPoint::new(cx, &self.global(), x, y, z, w)
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat32array>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-tofloat32array>
     fn ToFloat32Array(
         &self,
         cx: &mut js::context::JSContext,
@@ -860,7 +860,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             .expect("Converting matrix to float32 array should never fail")
     }
 
-    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat64array>
+    /// <https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-tofloat64array>
     fn ToFloat64Array(
         &self,
         cx: &mut js::context::JSContext,
@@ -870,27 +870,27 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             .expect("Converting matrix to float64 array should never fail")
     }
 
-    // https://drafts.fxtf.org/geometry/#dommatrixreadonly-stringification-behavior
+    // https://drafts.csswg.org/geometry/#dommatrixreadonly-stringification-behavior
     fn Stringifier(&self, cx: &mut js::context::JSContext) -> Fallible<DOMString> {
         // Step 1. If one or more of m11 element through m44 element are a non-finite value,
         // then throw an "InvalidStateError" DOMException.
         let mat = self.matrix.borrow();
-        if !mat.m11.is_finite() ||
-            !mat.m12.is_finite() ||
-            !mat.m13.is_finite() ||
-            !mat.m14.is_finite() ||
-            !mat.m21.is_finite() ||
-            !mat.m22.is_finite() ||
-            !mat.m23.is_finite() ||
-            !mat.m24.is_finite() ||
-            !mat.m31.is_finite() ||
-            !mat.m32.is_finite() ||
-            !mat.m33.is_finite() ||
-            !mat.m34.is_finite() ||
-            !mat.m41.is_finite() ||
-            !mat.m42.is_finite() ||
-            !mat.m43.is_finite() ||
-            !mat.m44.is_finite()
+        if !mat.m11.is_finite()
+            || !mat.m12.is_finite()
+            || !mat.m13.is_finite()
+            || !mat.m14.is_finite()
+            || !mat.m21.is_finite()
+            || !mat.m22.is_finite()
+            || !mat.m23.is_finite()
+            || !mat.m24.is_finite()
+            || !mat.m31.is_finite()
+            || !mat.m32.is_finite()
+            || !mat.m33.is_finite()
+            || !mat.m34.is_finite()
+            || !mat.m41.is_finite()
+            || !mat.m42.is_finite()
+            || !mat.m43.is_finite()
+            || !mat.m44.is_finite()
         {
             return Err(error::Error::InvalidState(None));
         }
@@ -1067,7 +1067,7 @@ impl Serializable for DOMMatrixReadOnly {
     }
 }
 
-// https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
+// https://drafts.csswg.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
 pub(crate) fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Transform3D<f64>)> {
     if let Ok(array) = entries.try_into() {
         Ok((true, Transform2D::from_array(array).to_3d()))
@@ -1079,31 +1079,31 @@ pub(crate) fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Transform3D<
     }
 }
 
-/// <https://drafts.fxtf.org/geometry-1/#matrix-validate-and-fixup-2d>
+/// <https://drafts.csswg.org/geometry-1/#matrix-validate-and-fixup-2d>
 fn validate_and_fixup_2d(dict: &DOMMatrix2DInit) -> Fallible<Transform2D<f64>> {
     // <https://tc39.es/ecma262/#sec-numeric-types-number-sameValueZero>
     let same_value_zero = |x: f64, y: f64| -> bool { x.is_nan() && y.is_nan() || x == y };
 
     // Step 1. If if at least one of the following conditions are true for dict,
     // then throw a TypeError exception and abort these steps.
-    if dict.a.is_some() &&
-        dict.m11.is_some() &&
-        !same_value_zero(dict.a.unwrap(), dict.m11.unwrap()) ||
-        dict.b.is_some() &&
-            dict.m12.is_some() &&
-            !same_value_zero(dict.b.unwrap(), dict.m12.unwrap()) ||
-        dict.c.is_some() &&
-            dict.m21.is_some() &&
-            !same_value_zero(dict.c.unwrap(), dict.m21.unwrap()) ||
-        dict.d.is_some() &&
-            dict.m22.is_some() &&
-            !same_value_zero(dict.d.unwrap(), dict.m22.unwrap()) ||
-        dict.e.is_some() &&
-            dict.m41.is_some() &&
-            !same_value_zero(dict.e.unwrap(), dict.m41.unwrap()) ||
-        dict.f.is_some() &&
-            dict.m42.is_some() &&
-            !same_value_zero(dict.f.unwrap(), dict.m42.unwrap())
+    if dict.a.is_some()
+        && dict.m11.is_some()
+        && !same_value_zero(dict.a.unwrap(), dict.m11.unwrap())
+        || dict.b.is_some()
+            && dict.m12.is_some()
+            && !same_value_zero(dict.b.unwrap(), dict.m12.unwrap())
+        || dict.c.is_some()
+            && dict.m21.is_some()
+            && !same_value_zero(dict.c.unwrap(), dict.m21.unwrap())
+        || dict.d.is_some()
+            && dict.m22.is_some()
+            && !same_value_zero(dict.d.unwrap(), dict.m22.unwrap())
+        || dict.e.is_some()
+            && dict.m41.is_some()
+            && !same_value_zero(dict.e.unwrap(), dict.m41.unwrap())
+        || dict.f.is_some()
+            && dict.m42.is_some()
+            && !same_value_zero(dict.f.unwrap(), dict.m42.unwrap())
     {
         return Err(error::Error::Type(
             c"Property mismatch on matrix initialization.".to_owned(),
@@ -1137,7 +1137,7 @@ fn validate_and_fixup_2d(dict: &DOMMatrix2DInit) -> Fallible<Transform2D<f64>> {
     Ok(Transform2D::new(m11, m12, m21, m22, m41, m42))
 }
 
-/// <https://drafts.fxtf.org/geometry-1/#matrix-validate-and-fixup>
+/// <https://drafts.csswg.org/geometry-1/#matrix-validate-and-fixup>
 fn validate_and_fixup(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)> {
     // Step 1. Validate and fixup (2D) dict.
     let transform2d = validate_and_fixup_2d(&dict.parent)?;
@@ -1146,17 +1146,17 @@ fn validate_and_fixup(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)
     // m32, m34, m43 are present with a value other than 0 or -0, or at least
     // one of m33, m44 are present with a value other than 1, then throw
     // a TypeError exception and abort these steps.
-    if dict.is2D == Some(true) &&
-        (dict.m13 != 0.0 ||
-            dict.m14 != 0.0 ||
-            dict.m23 != 0.0 ||
-            dict.m24 != 0.0 ||
-            dict.m31 != 0.0 ||
-            dict.m32 != 0.0 ||
-            dict.m34 != 0.0 ||
-            dict.m43 != 0.0 ||
-            dict.m33 != 1.0 ||
-            dict.m44 != 1.0)
+    if dict.is2D == Some(true)
+        && (dict.m13 != 0.0
+            || dict.m14 != 0.0
+            || dict.m23 != 0.0
+            || dict.m24 != 0.0
+            || dict.m31 != 0.0
+            || dict.m32 != 0.0
+            || dict.m34 != 0.0
+            || dict.m43 != 0.0
+            || dict.m33 != 1.0
+            || dict.m44 != 1.0)
     {
         return Err(error::Error::Type(
             c"The is2D member is set to true but the input matrix is a 3d matrix.".to_owned(),
@@ -1169,17 +1169,17 @@ fn validate_and_fixup(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)
     // m31, m32, m34, m43 are present with a value other than 0 or -0, or at
     // least one of m33, m44 are present with a value other than 1, set is2D
     // to false.
-    if is_2d.is_none() &&
-        (dict.m13 != 0.0 ||
-            dict.m14 != 0.0 ||
-            dict.m23 != 0.0 ||
-            dict.m24 != 0.0 ||
-            dict.m31 != 0.0 ||
-            dict.m32 != 0.0 ||
-            dict.m34 != 0.0 ||
-            dict.m43 != 0.0 ||
-            dict.m33 != 1.0 ||
-            dict.m44 != 1.0)
+    if is_2d.is_none()
+        && (dict.m13 != 0.0
+            || dict.m14 != 0.0
+            || dict.m23 != 0.0
+            || dict.m24 != 0.0
+            || dict.m31 != 0.0
+            || dict.m32 != 0.0
+            || dict.m34 != 0.0
+            || dict.m43 != 0.0
+            || dict.m33 != 1.0
+            || dict.m44 != 1.0)
     {
         is_2d = Some(false);
     }
@@ -1202,7 +1202,7 @@ fn validate_and_fixup(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)
     Ok((is_2d, transform))
 }
 
-/// <https://drafts.fxtf.org/geometry-1/#create-a-dommatrixreadonly-from-the-2d-dictionary>
+/// <https://drafts.csswg.org/geometry-1/#create-a-dommatrixreadonly-from-the-2d-dictionary>
 pub(crate) fn dommatrix2dinit_to_matrix(dict: &DOMMatrix2DInit) -> Fallible<Transform2D<f64>> {
     // Step 1. Validate and fixup (2D) other.
     // Step 2. Return the result of invoking create a 2d matrix of type
@@ -1212,7 +1212,7 @@ pub(crate) fn dommatrix2dinit_to_matrix(dict: &DOMMatrix2DInit) -> Fallible<Tran
     validate_and_fixup_2d(dict)
 }
 
-/// <https://drafts.fxtf.org/geometry-1/#create-a-dommatrix-from-the-dictionary>
+/// <https://drafts.csswg.org/geometry-1/#create-a-dommatrix-from-the-dictionary>
 pub(crate) fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)> {
     // Step 1. Validate and fixup other.
     // Step 2. Return the result of invoking create a 3d matrix of type

@@ -127,7 +127,7 @@ WEBIDL_STANDARDS = [
     b"//dom.spec.whatwg.org",
     b"//drafts.csswg.org",
     b"//drafts.css-houdini.org",
-    b"//drafts.fxtf.org",
+    b"//drafts.csswg.org",
     b"//console.spec.whatwg.org",
     b"//encoding.spec.whatwg.org",
     b"//fetch.spec.whatwg.org",
