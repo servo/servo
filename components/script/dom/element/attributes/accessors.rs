@@ -10,8 +10,8 @@ use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::UnionTypes::{TrustedHTMLOrString, TrustedScriptURLOrUSVString};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::element::Element;
 use crate::dom::element::attributes::storage::AttrRef;
-use crate::dom::element::{AttributeMutationReason, Element};
 use crate::dom::node::NodeTraits;
 
 impl Element {
@@ -280,7 +280,6 @@ impl Element {
                 attr.name().clone(),
                 attr.namespace().clone(),
                 attr.prefix().cloned(),
-                AttributeMutationReason::ByCloning,
             );
         }
     }

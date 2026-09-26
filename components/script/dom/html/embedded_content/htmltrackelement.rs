@@ -324,7 +324,7 @@ impl VirtualMethods for HTMLTrackElement {
             local_name!("src") => {
                 // https://html.spec.whatwg.org/multipage/#attr-track-src
                 // > When the element's src attribute is set, run these steps:
-                if matches!(mutation, AttributeMutation::Set(..)) {
+                if matches!(mutation, AttributeMutation::Set(_)) {
                     // Step 2. Let value be the element's src attribute value.
                     let value = &**attr.value();
                     // Step 1. Let trackURL be failure.
