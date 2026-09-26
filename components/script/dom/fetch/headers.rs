@@ -82,65 +82,13 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
 
     /// <https://fetch.spec.whatwg.org/#concept-headers-append>
     fn Append(&self, name: ByteString, value: ByteString) -> ErrorResult {
-        // 1. Normalize value.
-        let value = trim_http_whitespace(&value);
-
-        // 2. If validating (name, value) for headers returns false, then return.
-        let Some((mut valid_name, valid_value)) =
-            self.validate_name_and_value(name, ByteString::new(value.into()))?
-        else {
-            return Ok(());
-        };
-
-        // Validated tokens are always ASCII.
-        valid_name.make_ascii_lowercase();
-
-        // 3. If headers’s guard is "request-no-cors":
-        if self.guard.get() == Guard::RequestNoCors {
-            // 3.1. Let temporaryValue be the result of getting name from headers’s header list.
-            let tmp_value = if let Some(mut value) =
-                get_value_from_header_list(&valid_name, &self.header_list.borrow())
-            {
-                // 3.3. Otherwise, set temporaryValue to temporaryValue, followed by 0x2C 0x20, followed by value.
-                value.extend(b", ");
-                value.extend(valid_value.to_vec());
-                value
-            } else {
-                // 3.2. If temporaryValue is null, then set temporaryValue to value.
-                valid_value.to_vec()
-            };
-            // 3.4. If (name, temporaryValue) is not a no-CORS-safelisted request-header, then return.
-            if !is_cors_safelisted_request_header(&valid_name, &tmp_value) {
-                return Ok(());
-            }
-        }
-
-        // 4. Append (name, value) to headers’s header list.
-        match (
-            HeaderName::from_str(&valid_name),
-            HeaderValue::from_bytes(&valid_value),
-        ) {
-            (Ok(name), Ok(value)) => {
-                self.header_list.borrow_mut().append(name, value);
-            },
-            _ => {
-                warn!("Could not set header \"{valid_name:?}: {valid_value:?}\"");
-            },
-        };
-
-        // 5. If headers’s guard is "request-no-cors", then remove privileged no-CORS request-headers from headers.
-        if self.guard.get() == Guard::RequestNoCors {
-            self.remove_privileged_no_cors_request_headers();
-        }
-
-        Ok(())
+        self.append(name, &value)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-headers-delete>
     fn Delete(&self, name: ByteString) -> ErrorResult {
         // Step 1 If validating (name, ``) for this returns false, then return.
-        let name_and_value = self.validate_name_and_value(name, ByteString::new(vec![]))?;
-        let Some((mut valid_name, _valid_value)) = name_and_value else {
+        let Some(mut valid_name) = self.validate_name_and_value(name, b"")? else {
             return Ok(());
         };
 
@@ -206,9 +154,7 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         let value = trim_http_whitespace(&value);
 
         // 2. If validating (name, value) for this returns false, then return.
-        let Some((mut valid_name, valid_value)) =
-            self.validate_name_and_value(name, ByteString::new(value.into()))?
-        else {
+        let Some(mut valid_name) = self.validate_name_and_value(name, value)? else {
             return Ok(());
         };
         // Validated tokens are always ASCII.
@@ -217,7 +163,7 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         // 3. If this’s guard is "request-no-cors" and (name, value) is not a
         // no-CORS-safelisted request-header, then return.
         if self.guard.get() == Guard::RequestNoCors &&
-            !is_cors_safelisted_request_header(&valid_name, &valid_value.to_vec())
+            !is_cors_safelisted_request_header(&valid_name, &value)
         {
             return Ok(());
         }
@@ -226,13 +172,13 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         // https://fetch.spec.whatwg.org/#concept-header-list-set
         match (
             HeaderName::from_str(&valid_name),
-            HeaderValue::from_bytes(&valid_value),
+            HeaderValue::from_bytes(value),
         ) {
             (Ok(name), Ok(value)) => {
                 self.header_list.borrow_mut().insert(name, value);
             },
             _ => {
-                warn!("Could not set header:  \"{valid_name:?}: {valid_value:?}\"");
+                warn!("Could not set header:  \"{valid_name:?}: {value:?}\"");
             },
         };
 
@@ -256,13 +202,66 @@ impl Headers {
         Ok(())
     }
 
+    fn append(&self, name: ByteString, value: &ByteString) -> ErrorResult {
+        // 1. Normalize value.
+        let value = trim_http_whitespace(value);
+
+        // 2. If validating (name, value) for headers returns false, then return.
+        let Some(mut valid_name) = self.validate_name_and_value(name, value)? else {
+            return Ok(());
+        };
+
+        // Validated tokens are always ASCII.
+        valid_name.make_ascii_lowercase();
+
+        // 3. If headers’s guard is "request-no-cors":
+        if self.guard.get() == Guard::RequestNoCors {
+            // 3.1. Let temporaryValue be the result of getting name from headers’s header list.
+            let tmp_value = if let Some(mut tmp_value) =
+                get_value_from_header_list(&valid_name, &self.header_list.borrow())
+            {
+                // 3.3. Otherwise, set temporaryValue to temporaryValue, followed by 0x2C 0x20, followed by value.
+                tmp_value.extend(b", ");
+                tmp_value.extend(value);
+                tmp_value
+            } else {
+                // 3.2. If temporaryValue is null, then set temporaryValue to value.
+                value.to_vec()
+            };
+            // 3.4. If (name, temporaryValue) is not a no-CORS-safelisted request-header, then return.
+            if !is_cors_safelisted_request_header(&valid_name, &tmp_value) {
+                return Ok(());
+            }
+        }
+
+        // 4. Append (name, value) to headers’s header list.
+        match (
+            HeaderName::from_str(&valid_name),
+            HeaderValue::from_bytes(value),
+        ) {
+            (Ok(name), Ok(value)) => {
+                self.header_list.borrow_mut().append(name, value);
+            },
+            _ => {
+                warn!("Could not set header \"{valid_name:?}: {value:?}\"");
+            },
+        };
+
+        // 5. If headers’s guard is "request-no-cors", then remove privileged no-CORS request-headers from headers.
+        if self.guard.get() == Guard::RequestNoCors {
+            self.remove_privileged_no_cors_request_headers();
+        }
+
+        Ok(())
+    }
+
     /// <https://fetch.spec.whatwg.org/#concept-headers-fill>
     pub(crate) fn fill(&self, filler: Option<&HeadersInit>) -> ErrorResult {
         match filler {
             Some(HeadersInit::ByteStringSequenceSequence(v)) => {
                 for seq in v {
                     if seq.len() == 2 {
-                        self.Append(seq[0].clone(), seq[1].clone())?;
+                        self.append(seq[0].clone(), &seq[1])?;
                     } else {
                         return Err(Error::Type(cformat!(
                             "Each header object must be a sequence of length 2 - found one with length {}",
@@ -274,7 +273,7 @@ impl Headers {
             },
             Some(HeadersInit::ByteStringByteStringRecord(m)) => {
                 for (key, value) in m.iter() {
-                    self.Append(key.clone(), value.clone())?;
+                    self.append(key.clone(), value)?;
                 }
                 Ok(())
             },
@@ -345,11 +344,11 @@ impl Headers {
     pub(crate) fn validate_name_and_value(
         &self,
         name: ByteString,
-        value: ByteString,
-    ) -> Fallible<Option<(String, ByteString)>> {
+        value: &[u8],
+    ) -> Fallible<Option<String>> {
         // 1. If name is not a header name or value is not a header value, then throw a TypeError.
         let valid_name = validate_name(name)?;
-        if !is_legal_header_value(&value) {
+        if !is_legal_header_value(value) {
             return Err(Error::Type(c"Header value is not valid".to_owned()));
         }
         // 2. If headers’s guard is "immutable", then throw a TypeError.
@@ -357,7 +356,7 @@ impl Headers {
             return Err(Error::Type(c"Guard is immutable".to_owned()));
         }
         // 3. If headers’s guard is "request" and (name, value) is a forbidden request-header, then return false.
-        if self.guard.get() == Guard::Request && is_forbidden_request_header(&valid_name, &value) {
+        if self.guard.get() == Guard::Request && is_forbidden_request_header(&valid_name, value) {
             return Ok(None);
         }
         // 4. If headers’s guard is "response" and name is a forbidden response-header name, then return false.
@@ -365,7 +364,7 @@ impl Headers {
             return Ok(None);
         }
 
-        Ok(Some((valid_name, value)))
+        Ok(Some(valid_name))
     }
 }
 
