@@ -4,7 +4,7 @@
 
 'use strict';
 
-// https://drafts.fxtf.org/filter-effects/
+// https://drafts.csswg.org/filter-effects/
 
 idl_test(
   ['filter-effects'],

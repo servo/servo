@@ -60,7 +60,7 @@ const gCSSProperties1 = {
     types: [ 'color' ]
   },
   'background-blend-mode': {
-    // https://drafts.fxtf.org/compositing-1/#propdef-background-blend-mode
+    // https://drafts.csswg.org/compositing-1/#propdef-background-blend-mode
     types: [
       { type: 'discrete', options: [ [ 'multiply', 'screen' ] ] }
     ]
@@ -377,7 +377,7 @@ const gCSSProperties1 = {
     ]
   },
   'clip': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-clip
+    // https://drafts.csswg.org/css-masking-1/#propdef-clip
     types: [
       'rect',
       { type: 'discrete', options: [ [ 'rect(10px, 10px, 10px, 10px)',
@@ -387,12 +387,12 @@ const gCSSProperties1 = {
     ]
   },
   'clip-path': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-clip-path
+    // https://drafts.csswg.org/css-masking-1/#propdef-clip-path
     types: [
     ]
   },
   'clip-rule': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-clip-rule
+    // https://drafts.csswg.org/css-masking-1/#propdef-clip-rule
     types: [
       { type: 'discrete', options: [ [ 'evenodd', 'nonzero' ] ] }
     ]
@@ -414,7 +414,7 @@ const gCSSProperties1 = {
     ]
   },
   'color-interpolation-filters': {
-    // https://drafts.fxtf.org/filters-1/#propdef-color-interpolation-filters
+    // https://drafts.csswg.org/filters-1/#propdef-color-interpolation-filters
     types: [
       { type: 'discrete', options: [ [ 'srgb', 'linearrgb' ] ] }
     ]
@@ -530,7 +530,7 @@ const gCSSProperties1 = {
     ]
   },
   'filter': {
-    // https://drafts.fxtf.org/filters/#propdef-filter
+    // https://drafts.csswg.org/filters/#propdef-filter
     types: [ 'filterList' ]
   },
   'flex-basis': {
@@ -567,11 +567,11 @@ const gCSSProperties1 = {
     ]
   },
   'flood-color': {
-    // https://drafts.fxtf.org/filters/#FloodColorProperty
+    // https://drafts.csswg.org/filters/#FloodColorProperty
     types: [ 'color' ]
   },
   'flood-opacity': {
-    // https://drafts.fxtf.org/filters/#propdef-flood-opacity
+    // https://drafts.csswg.org/filters/#propdef-flood-opacity
     types: [ 'opacity' ]
   },
   'font-size': {
@@ -836,7 +836,7 @@ const gCSSProperties2 = {
     ]
   },
   'isolation': {
-    // https://drafts.fxtf.org/compositing-1/#propdef-isolation
+    // https://drafts.csswg.org/compositing-1/#propdef-isolation
     types: [
       { type: 'discrete', options: [ [ 'auto', 'isolate' ] ] }
     ]
@@ -869,7 +869,7 @@ const gCSSProperties2 = {
     types: [ 'lengthPercentageOrCalc' ]
   },
   'lighting-color': {
-    // https://drafts.fxtf.org/filters/#LightingColorProperty
+    // https://drafts.csswg.org/filters/#LightingColorProperty
     types: [ 'color' ]
   },
   'line-height': {
@@ -986,7 +986,7 @@ const gCSSProperties2 = {
     ]
   },
   'mask': {
-    // https://drafts.fxtf.org/css-masking-1/#the-mask
+    // https://drafts.csswg.org/css-masking-1/#the-mask
     types: [
       { type: 'discrete',
         options: [ [ 'url("http://localhost/test-1")',
@@ -994,19 +994,19 @@ const gCSSProperties2 = {
     ]
   },
   'mask-clip': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-mask-clip
+    // https://drafts.csswg.org/css-masking-1/#propdef-mask-clip
     types: [
       { type: 'discrete', options: [ [ 'content-box', 'border-box' ] ] }
     ]
   },
   'mask-composite': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-mask-composite
+    // https://drafts.csswg.org/css-masking-1/#propdef-mask-composite
     types: [
       { type: 'discrete', options: [ [ 'add', 'subtract' ] ] }
     ]
   },
   'mask-image': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-mask-image
+    // https://drafts.csswg.org/css-masking-1/#propdef-mask-image
     types: [
       { type: 'discrete',
         options: [ [ 'url("http://localhost/test-1")',
@@ -1014,19 +1014,19 @@ const gCSSProperties2 = {
     ]
   },
   'mask-mode': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-mask-mode
+    // https://drafts.csswg.org/css-masking-1/#propdef-mask-mode
     types: [
       { type: 'discrete', options: [ [ 'alpha', 'luminance' ] ] }
     ]
   },
   'mask-origin': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-mask-origin
+    // https://drafts.csswg.org/css-masking-1/#propdef-mask-origin
     types: [
       { type: 'discrete', options: [ [ 'content-box', 'border-box' ] ] }
     ]
   },
   'mask-position': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-mask-position
+    // https://drafts.csswg.org/css-masking-1/#propdef-mask-position
     types: [
     ]
   },
@@ -1041,18 +1041,18 @@ const gCSSProperties2 = {
     ]
   },
   'mask-repeat': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-mask-repeat
+    // https://drafts.csswg.org/css-masking-1/#propdef-mask-repeat
     types: [
       { type: 'discrete', options: [ [ 'space', 'round' ] ] }
     ]
   },
   'mask-size': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-mask-size
+    // https://drafts.csswg.org/css-masking-1/#propdef-mask-size
     types: [
     ]
   },
   'mask-type': {
-    // https://drafts.fxtf.org/css-masking-1/#propdef-mask-type
+    // https://drafts.csswg.org/css-masking-1/#propdef-mask-type
     types: [
       { type: 'discrete', options: [ [ 'alpha', 'luminance' ] ] }
     ]
@@ -1098,7 +1098,7 @@ const gCSSProperties2 = {
     ]
   },
   'mix-blend-mode': {
-    // https://drafts.fxtf.org/compositing-1/#propdef-mix-blend-mode
+    // https://drafts.csswg.org/compositing-1/#propdef-mix-blend-mode
     types: [
       { type: 'discrete', options: [ [ 'multiply', 'screen' ] ] }
     ]
@@ -1135,11 +1135,11 @@ const gCSSProperties2 = {
     ]
   },
   'offset-distance': {
-    // https://drafts.fxtf.org/motion-1/#offset-distance-property
+    // https://drafts.csswg.org/motion-1/#offset-distance-property
     types: [ 'lengthPercentageOrCalc' ]
   },
   'offset-path': {
-    // https://drafts.fxtf.org/motion-1/#offset-path-property
+    // https://drafts.csswg.org/motion-1/#offset-path-property
     types: [
     ]
   },
@@ -1432,7 +1432,7 @@ const gCSSProperties2 = {
     ]
   },
   'stroke-color': {
-    // https://drafts.fxtf.org/fill-stroke-3/#propdef-stroke-color
+    // https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-color
     types: [ 'color' ]
   },
   'stroke-dasharray': {

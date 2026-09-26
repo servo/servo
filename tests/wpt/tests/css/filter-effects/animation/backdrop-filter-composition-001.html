@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="UTF-8">
 <title>backdrop-filter composition</title>
-<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="help" href="https://drafts.csswg.org/filter-effects-2/#BackdropFilterProperty">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/interpolation-testcommon.js"></script>
@@ -25,7 +25,7 @@ test_composition({
 
 // Here we have add-from and replace-to, so the list will be have mismatched
 // lengths and the replace-to list will have to be extended to interpolate as
-// per https://drafts.fxtf.org/filter-effects-1/#interpolation-of-filters
+// per https://drafts.csswg.org/filter-effects-1/#interpolation-of-filters
 //
 // That is, this becomes an interpolation of the form:
 //   sepia(0.5) sepia(0.5) --> sepia(1) sepia(0)

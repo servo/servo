@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml"
      class="reftest-wait">
   <title>Removing a clip-path attribute pointing to an empty &#x3c;clipPath&#x3e;</title>
-  <h:link rel="help" href="https://drafts.fxtf.org/css-masking-1/#ClipPathElement"/>
+  <h:link rel="help" href="https://drafts.csswg.org/css-masking-1/#ClipPathElement"/>
   <h:link rel="match" href="reference/clip-path-square-003-ref.svg"/>
   <h:script src="/common/reftest-wait.js"/>
   <h:script src="/common/rendering-utils.js"/>

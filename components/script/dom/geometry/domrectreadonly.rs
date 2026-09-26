@@ -90,7 +90,7 @@ impl DOMRectReadOnly {
 }
 
 impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
-    /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-domrectreadonly>
+    /// <https://drafts.csswg.org/geometry/#dom-domrectreadonly-domrectreadonly>
     fn Constructor(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -103,7 +103,7 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
         Ok(DOMRectReadOnly::new(cx, global, proto, x, y, width, height))
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-fromrect
+    // https://drafts.csswg.org/geometry/#dom-domrectreadonly-fromrect
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn FromRect(
         cx: &mut JSContext,
@@ -115,27 +115,27 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
         reflect_dom_object(cx, Box::new(dom_rect), global)
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-x>
+    /// <https://drafts.csswg.org/geometry/#dom-domrectreadonly-x>
     fn X(&self) -> f64 {
         self.x.get()
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-y>
+    /// <https://drafts.csswg.org/geometry/#dom-domrectreadonly-y>
     fn Y(&self) -> f64 {
         self.y.get()
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-width>
+    /// <https://drafts.csswg.org/geometry/#dom-domrectreadonly-width>
     fn Width(&self) -> f64 {
         self.width.get()
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-height>
+    /// <https://drafts.csswg.org/geometry/#dom-domrectreadonly-height>
     fn Height(&self) -> f64 {
         self.height.get()
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-top>
+    /// <https://drafts.csswg.org/geometry/#dom-domrectreadonly-top>
     fn Top(&self) -> f64 {
         let height = self.height.get();
         if height >= 0f64 {
@@ -145,7 +145,7 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
         }
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-right>
+    /// <https://drafts.csswg.org/geometry/#dom-domrectreadonly-right>
     fn Right(&self) -> f64 {
         let width = self.width.get();
         if width < 0f64 {
@@ -155,7 +155,7 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
         }
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-bottom>
+    /// <https://drafts.csswg.org/geometry/#dom-domrectreadonly-bottom>
     fn Bottom(&self) -> f64 {
         let height = self.height.get();
         if height < 0f64 {
@@ -165,7 +165,7 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
         }
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-left>
+    /// <https://drafts.csswg.org/geometry/#dom-domrectreadonly-left>
     fn Left(&self) -> f64 {
         let width = self.width.get();
         if width >= 0f64 {
@@ -176,7 +176,7 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
     }
 }
 
-/// <https://drafts.fxtf.org/geometry/#ref-for-create-a-domrectreadonly-from-the-dictionary>
+/// <https://drafts.csswg.org/geometry/#ref-for-create-a-domrectreadonly-from-the-dictionary>
 pub(super) fn create_a_domrectreadonly_from_the_dictionary(other: &DOMRectInit) -> DOMRectReadOnly {
     // NOTE: We trivially combine all three steps into one
 

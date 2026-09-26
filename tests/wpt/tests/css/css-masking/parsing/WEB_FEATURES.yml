@@ -1,6 +1,6 @@
 rules:
 # To match the scope of the feature in web-features, this should only include
-# tests for https://drafts.fxtf.org/css-masking-1/#positioned-masks.
+# tests for https://drafts.csswg.org/css-masking-1/#positioned-masks.
 - mask-composite-*: [masks]
 - mask-computed.html: [masks]
 - mask-invalid.html: [masks]

@@ -188,7 +188,7 @@
 					</p></p>
 					<section>
 						<h4>An element with <code>mix-blend-mode</code> other than normal creates a stacking context</h4>
-						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode" >spec</a>: <q>Applying a blendmode other than ‘normal’ to the element must establish a new stacking context [CSS21].</q></p>
+						<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#mix-blend-mode" >spec</a>: <q>Applying a blendmode other than ‘normal’ to the element must establish a new stacking context [CSS21].</q></p>
 						<table>
 							<tr>
 								<th>Test name</th>
@@ -206,7 +206,7 @@
 					</section>
 					<section>
 						<h4>An element with <code>mix-blend-mode</code> blends with the content within the current stacking context</h4>
-						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q>An element that has blending applied, must blend with all the underlying content of the stacking context [CSS21] that that element belongs to.</q> </p>
+						<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q>An element that has blending applied, must blend with all the underlying content of the stacking context [CSS21] that that element belongs to.</q> </p>
 						<table>
 							<tr>
 								<th>Test name</th>
@@ -253,7 +253,7 @@
 					</section>
 					<section>
 						<h4>An element with <code>mix-blend-mode</code> doesn't blend with anything outside the current stacking context</h4>
-						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q> An element that has blending applied, must blend with all the underlying content of the stacking context [CSS21] that that element belongs to.</q></p>
+						<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q> An element that has blending applied, must blend with all the underlying content of the stacking context [CSS21] that that element belongs to.</q></p>
 						<table>
 							<tr>
 								<th>Test name</th>
@@ -296,7 +296,7 @@
 					</section>
 					<section>
 						<h4>An element with <code>mix-blend-mode</code> other than normal must cause a group to be isolated</h4>
-						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#isolation" >spec</a>: <q>operations that cause the creation of stacking context [CSS21] must cause a group to be isolated.</q> </p>
+						<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#isolation" >spec</a>: <q>operations that cause the creation of stacking context [CSS21] must cause a group to be isolated.</q> </p>
 						<table>
 							<tr>
 								<th>Test name</th>
@@ -627,7 +627,7 @@
 				<h3>Test cases for SVG elements with <code>mix-blend-mode</code></h4>
 				<section>
 					<h4><code>mix-blend-mode</code> with simple SVG graphical elements</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode" >spec</a> : <q><code>mix-blend-mode</code> applies to svg, g, use, image, path, rect, circle, ellipse, line, polyline, polygon, text, tspan, and marker.</q></p>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#mix-blend-mode" >spec</a> : <q><code>mix-blend-mode</code> applies to svg, g, use, image, path, rect, circle, ellipse, line, polyline, polygon, text, tspan, and marker.</q></p>
 					<table>
 						<tr>
 							<th>Test name</th>
@@ -765,7 +765,7 @@
 				</section>
 				<section>
 					<h4><code>mix-blend-mode</code> with isolated groups</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode" >spec</a>:
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#mix-blend-mode" >spec</a>:
 					<br><q>By default, every element must create a non-isolated group.<br>
 						However, certain operations in SVG will create isolated groups.<br>
 						If one of the following features is used, the group must become isolated:
@@ -932,7 +932,7 @@
 				<h3>Test cases for <code>background-blend-mode</code></h3>
 				<section>
 					<h4>Blending between the background layers and the background color for an element with <code>background-blend-mode</code> </h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>Each background layer must blend with the element's background layer that are below it and the element's background color.</q></p>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#background-blend-mode">spec</a>: <q>Each background layer must blend with the element's background layer that are below it and the element's background color.</q></p>
 					<table>
 						<tr>
 							<th>Test name</th>
@@ -1074,7 +1074,7 @@
 				</section>
 				<section>
 					<h4>Background layers do not blend with content outside the background (or behind the element)</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>Background layer must not blend with the content that is behind the element instead they must act as if they are rendered into an isolated group.</q>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#background-blend-mode">spec</a>: <q>Background layer must not blend with the content that is behind the element instead they must act as if they are rendered into an isolated group.</q>
 					</p>
 					<table>
 						<tr>
@@ -1121,7 +1121,7 @@
 				</section>
 				<section>
 					<h4> <code>background-blend-mode</code> list values apply to the corresponding background layer</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>The ‘background-blend-mode’ list must be applied in the same order as ‘background-image’[CSS3BG]. This means that the first element in the list will apply to the layer that is on top.</q>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#background-blend-mode">spec</a>: <q>The ‘background-blend-mode’ list must be applied in the same order as ‘background-image’[CSS3BG]. This means that the first element in the list will apply to the layer that is on top.</q>
 					</p>
 					<table>
 						<tr>
@@ -1144,7 +1144,7 @@
 				</section>
 				<section>
 					<h4><code>background-blend-mode</code> list values are repeated if the list is shorter than the background layer list</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>If a property doesn't have enough comma-separated values to match the number of layers, the UA must calculate its used value by repeating the list of values until there are enough.</q>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#background-blend-mode">spec</a>: <q>If a property doesn't have enough comma-separated values to match the number of layers, the UA must calculate its used value by repeating the list of values until there are enough.</q>
 					</p>
 					<table>
 						<tr>
@@ -1165,7 +1165,7 @@
 				</section>
 				<section>
 					<h4>The default <code>background-blend-mode</code> value for the <code>background</code> shorthand is 'normal' </h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>If the ‘background’ [CSS3BG] shorthand is used, the ‘background-blend-mode’ property for that element must be reset to its initial value.</q>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#background-blend-mode">spec</a>: <q>If the ‘background’ [CSS3BG] shorthand is used, the ‘background-blend-mode’ property for that element must be reset to its initial value.</q>
 					</p>
 					<table>
 						<tr>
@@ -1442,7 +1442,7 @@
 				<h3>Test cases for <code>isolation</code></h3>
 				<section>
 					<h4>An element with <code>isolation:isolate</code> creates a stacking context</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q>For CSS, setting ‘isolation’ to ‘isolate’ will turn the element into a stacking context [CSS21].</q></p>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q>For CSS, setting ‘isolation’ to ‘isolate’ will turn the element into a stacking context [CSS21].</q></p>
 					<table>
 						<tr>
 							<th>Test name</th>
@@ -1550,7 +1550,7 @@
 				<h4>Test cases for <code>isolation</code> in SVG</h4>
 				<section>
 					<h4>In SVG, an element with <code>isolation:isolate</code> creates an isolated group for blended children</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#isolation">spec</a>: <q>In SVG, this defines whether an element is isolated or not.</q></p>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#isolation">spec</a>: <q>In SVG, this defines whether an element is isolated or not.</q></p>
 					<table>
 						<tr>
 							<th>Test name</th>

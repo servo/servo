@@ -22,7 +22,7 @@ use crate::dom::dompoint::DOMPoint;
 use crate::dom::domrect::DOMRect;
 use crate::dom::globalscope::GlobalScope;
 
-/// <https://drafts.fxtf.org/geometry/#DOMQuad>
+/// <https://drafts.csswg.org/geometry/#DOMQuad>
 #[dom_struct]
 pub(crate) struct DOMQuad {
     reflector_: Reflector,
@@ -73,7 +73,7 @@ impl DOMQuad {
 }
 
 impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
-    /// <https://drafts.fxtf.org/geometry/#dom-domquad-domquad>
+    /// <https://drafts.csswg.org/geometry/#dom-domquad-domquad>
     fn Constructor(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -92,7 +92,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
         ))
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domquad-fromrect>
+    /// <https://drafts.csswg.org/geometry/#dom-domquad-fromrect>
     fn FromRect(cx: &mut JSContext, global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMQuad> {
         let p1 = DOMPoint::new(cx, global, other.x, other.y, 0f64, 1f64);
         let p2 = DOMPoint::new(cx, global, other.x + other.width, other.y, 0f64, 1f64);
@@ -108,7 +108,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
         DOMQuad::new(cx, global, &p1, &p2, &p3, &p4)
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domquad-fromquad>
+    /// <https://drafts.csswg.org/geometry/#dom-domquad-fromquad>
     fn FromQuad(cx: &mut JSContext, global: &GlobalScope, other: &DOMQuadInit) -> DomRoot<DOMQuad> {
         let p1 = DOMPoint::new_from_init(cx, global, &other.p1);
         let p2 = DOMPoint::new_from_init(cx, global, &other.p2);
@@ -117,29 +117,29 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
         DOMQuad::new(cx, global, &p1, &p2, &p3, &p4)
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domquad-p1>
+    /// <https://drafts.csswg.org/geometry/#dom-domquad-p1>
     fn P1(&self) -> DomRoot<DOMPoint> {
         DomRoot::from_ref(&self.p1)
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domquad-p2>
+    /// <https://drafts.csswg.org/geometry/#dom-domquad-p2>
     fn P2(&self) -> DomRoot<DOMPoint> {
         DomRoot::from_ref(&self.p2)
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domquad-p3>
+    /// <https://drafts.csswg.org/geometry/#dom-domquad-p3>
     fn P3(&self) -> DomRoot<DOMPoint> {
         DomRoot::from_ref(&self.p3)
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domquad-p4>
+    /// <https://drafts.csswg.org/geometry/#dom-domquad-p4>
     fn P4(&self) -> DomRoot<DOMPoint> {
         DomRoot::from_ref(&self.p4)
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-domquad-getbounds>
+    /// <https://drafts.csswg.org/geometry/#dom-domquad-getbounds>
     fn GetBounds(&self, cx: &mut JSContext) -> DomRoot<DOMRect> {
-        // https://drafts.fxtf.org/geometry/#nan-safe-minimum
+        // https://drafts.csswg.org/geometry/#nan-safe-minimum
         let nan_safe_minimum = |a: f64, b: f64| {
             if a.is_nan() || b.is_nan() {
                 f64::NAN
@@ -148,7 +148,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
             }
         };
 
-        // https://drafts.fxtf.org/geometry/#nan-safe-maximum
+        // https://drafts.csswg.org/geometry/#nan-safe-maximum
         let nan_safe_maximum = |a: f64, b: f64| {
             if a.is_nan() || b.is_nan() {
                 f64::NAN

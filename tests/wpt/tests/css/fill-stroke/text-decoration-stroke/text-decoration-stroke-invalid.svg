@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Text: parsing text-decoration-stroke with invalid values</title>
   <metadata>
-    <h:link rel="help" href="https://drafts.fxtf.org/fill-stroke/#text-decor"/>
+    <h:link rel="help" href="https://drafts.csswg.org/fill-stroke/#text-decor"/>
     <h:meta name="assert" content="text-decoration-stroke supports only the paint grammar 'none | color | url [none | color]? | context-fill | context-stroke'."/>
   </metadata>
   <g id="target"></g>

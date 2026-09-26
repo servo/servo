@@ -87,7 +87,7 @@ return fragColor;
 
       // The blending behavior here is to mimic 2d context blending behavior
       // of drawing rects in order
-      // https://drafts.fxtf.org/compositing/#porterduffcompositingoperators_srcover
+      // https://drafts.csswg.org/compositing/#porterduffcompositingoperators_srcover
       const kBlendStateSourceOver = {
         color: {
           srcFactor: 'src-alpha',
