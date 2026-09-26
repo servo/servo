@@ -22,7 +22,7 @@ use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 
-// https://dom.spec.whatwg.org/#interface-attr
+/// <https://dom.spec.whatwg.org/#interface-attr>
 #[dom_struct]
 pub(crate) struct Attr {
     node_: Node,

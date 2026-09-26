@@ -29,7 +29,7 @@ use crate::dom::types::Element;
 use crate::dom::xmldocument::XMLDocument;
 use crate::event_loop::document_loader::DocumentLoader;
 
-// https://dom.spec.whatwg.org/#domimplementation
+/// <https://dom.spec.whatwg.org/#domimplementation>
 #[dom_struct]
 pub(crate) struct DOMImplementation {
     reflector_: Reflector,

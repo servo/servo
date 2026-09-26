@@ -19,7 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 
-// https://dom.spec.whatwg.org/#interface-customevent
+/// <https://dom.spec.whatwg.org/#interface-customevent>
 #[dom_struct]
 pub(crate) struct CustomEvent {
     event: Event,

@@ -297,7 +297,7 @@ impl ResourceTimingListener for ScriptFetchContext {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
+/// <https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface>
 #[dom_struct]
 pub(crate) struct WorkerGlobalScope {
     globalscope: GlobalScope,

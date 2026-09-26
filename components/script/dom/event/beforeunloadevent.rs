@@ -16,7 +16,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
 
-// https://html.spec.whatwg.org/multipage/#beforeunloadevent
+/// <https://html.spec.whatwg.org/multipage/#beforeunloadevent>
 #[dom_struct]
 pub(crate) struct BeforeUnloadEvent {
     event: Event,

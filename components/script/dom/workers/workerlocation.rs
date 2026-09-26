@@ -13,7 +13,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 
-// https://html.spec.whatwg.org/multipage/#worker-locations
+/// <https://html.spec.whatwg.org/multipage/#worker-locations>
 #[dom_struct]
 pub(crate) struct WorkerLocation {
     reflector_: Reflector,

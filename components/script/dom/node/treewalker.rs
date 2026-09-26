@@ -19,7 +19,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
 use crate::dom::document::Document;
 use crate::dom::node::Node;
 
-// https://dom.spec.whatwg.org/#interface-treewalker
+/// <https://dom.spec.whatwg.org/#interface-treewalker>
 #[dom_struct]
 pub(crate) struct TreeWalker {
     reflector_: Reflector,

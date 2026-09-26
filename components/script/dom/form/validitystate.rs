@@ -73,7 +73,7 @@ impl fmt::Display for ValidationFlags {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#validitystate
+/// <https://html.spec.whatwg.org/multipage/#validitystate>
 #[dom_struct]
 pub(crate) struct ValidityState {
     reflector_: Reflector,

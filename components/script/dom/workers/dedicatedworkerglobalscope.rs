@@ -205,7 +205,7 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
 
 unsafe_no_jsmanaged_fields!(TaskQueue<DedicatedWorkerScriptMsg>);
 
-// https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
+/// <https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope>
 #[dom_struct]
 pub(crate) struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,

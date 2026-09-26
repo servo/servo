@@ -30,7 +30,7 @@ pub(crate) enum NodeListType {
     ElementsByName(ElementsByNameList),
 }
 
-// https://dom.spec.whatwg.org/#interface-nodelist
+/// <https://dom.spec.whatwg.org/#interface-nodelist>
 #[dom_struct]
 pub(crate) struct NodeList {
     reflector_: Reflector,
