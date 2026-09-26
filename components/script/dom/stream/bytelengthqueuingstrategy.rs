@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::error::throw_type_error;
 use js::jsapi::CallArgs;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleObject;
+use script_bindings::callback::RootedCallback;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -63,7 +62,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
     }
 
     /// <https://streams.spec.whatwg.org/#blqs-size>
-    fn GetSize(&self, cx: &mut js::context::JSContext) -> Fallible<Rc<Function>> {
+    fn GetSize(&self, cx: &mut js::context::JSContext) -> Fallible<RootedCallback<Function>> {
         let global = self.global();
         // Return this's relevant global object's byte length queuing strategy
         // size function.
@@ -76,7 +75,13 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
 
         // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
         // globalObject’s relevant Realm).
-        let fun = native_fn!(cx, byte_length_queuing_strategy_size, c"size", 1, 0);
+        let fun = RootedCallback::from(native_fn!(
+            cx,
+            byte_length_queuing_strategy_size,
+            c"size",
+            1,
+            0
+        ));
         // Step 3. Set globalObject’s byte length queuing strategy size function to
         // a Function that represents a reference to F,
         // with callback context equal to globalObject's relevant settings object.

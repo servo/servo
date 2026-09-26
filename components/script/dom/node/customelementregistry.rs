@@ -252,9 +252,9 @@ impl CustomElementRegistry {
         &self,
         cx: &mut JSContext,
         prototype: HandleObject,
-    ) -> Fallible<LifecycleCallbacks> {
+    ) -> Fallible<RootedLifecycleCallbacks> {
         // Step 4
-        Ok(LifecycleCallbacks {
+        Ok(RootedLifecycleCallbacks {
             connected_callback: get_callback(cx, prototype, c"connectedCallback")?,
             disconnected_callback: get_callback(cx, prototype, c"disconnectedCallback")?,
             connected_move_callback: get_callback(cx, prototype, c"connectedMoveCallback")?,
@@ -275,7 +275,7 @@ impl CustomElementRegistry {
         &self,
         cx: &mut JSContext,
         prototype: HandleObject,
-        callbacks: &mut LifecycleCallbacks,
+        callbacks: &mut RootedLifecycleCallbacks,
     ) -> ErrorResult {
         callbacks.form_associated_callback =
             get_callback(cx, prototype, c"formAssociatedCallback")?;
@@ -345,7 +345,7 @@ fn get_callback(
     cx: &mut JSContext,
     prototype: HandleObject,
     name: &CStr,
-) -> Fallible<Option<Rc<Function>>> {
+) -> Fallible<Option<RootedCallback<Function>>> {
     rooted!(&in(cx) let mut callback = UndefinedValue());
     unsafe {
         // Step 10.4.1
@@ -360,7 +360,10 @@ fn get_callback(
                     c"Lifecycle callback is not callable".to_owned(),
                 ));
             }
-            Ok(Some(Function::new(cx, callback.to_object())))
+            Ok(Some(RootedCallback::from(Function::new(
+                cx,
+                callback.to_object(),
+            ))))
         } else {
             Ok(None)
         }
@@ -802,33 +805,63 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct LifecycleCallbacks {
-    #[conditional_malloc_size_of]
-    connected_callback: Option<Rc<Function>>,
+    connected_callback: Option<TracedCallback<Function>>,
+    connected_move_callback: Option<TracedCallback<Function>>,
+    disconnected_callback: Option<TracedCallback<Function>>,
+    adopted_callback: Option<TracedCallback<Function>>,
+    attribute_changed_callback: Option<TracedCallback<Function>>,
+    form_associated_callback: Option<TracedCallback<Function>>,
+    form_reset_callback: Option<TracedCallback<Function>>,
+    form_disabled_callback: Option<TracedCallback<Function>>,
+    form_state_restore_callback: Option<TracedCallback<Function>>,
+}
 
-    #[conditional_malloc_size_of]
-    connected_move_callback: Option<Rc<Function>>,
+struct RootedLifecycleCallbacks {
+    connected_callback: Option<RootedCallback<Function>>,
+    connected_move_callback: Option<RootedCallback<Function>>,
+    disconnected_callback: Option<RootedCallback<Function>>,
+    adopted_callback: Option<RootedCallback<Function>>,
+    attribute_changed_callback: Option<RootedCallback<Function>>,
+    form_associated_callback: Option<RootedCallback<Function>>,
+    form_reset_callback: Option<RootedCallback<Function>>,
+    form_disabled_callback: Option<RootedCallback<Function>>,
+    form_state_restore_callback: Option<RootedCallback<Function>>,
+}
 
-    #[conditional_malloc_size_of]
-    disconnected_callback: Option<Rc<Function>>,
-
-    #[conditional_malloc_size_of]
-    adopted_callback: Option<Rc<Function>>,
-
-    #[conditional_malloc_size_of]
-    attribute_changed_callback: Option<Rc<Function>>,
-
-    #[conditional_malloc_size_of]
-    form_associated_callback: Option<Rc<Function>>,
-
-    #[conditional_malloc_size_of]
-    form_reset_callback: Option<Rc<Function>>,
-
-    #[conditional_malloc_size_of]
-    form_disabled_callback: Option<Rc<Function>>,
-
-    #[conditional_malloc_size_of]
-    form_state_restore_callback: Option<Rc<Function>>,
+impl From<RootedLifecycleCallbacks> for LifecycleCallbacks {
+    fn from(callbacks: RootedLifecycleCallbacks) -> Self {
+        Self {
+            connected_callback: callbacks
+                .connected_callback
+                .map(|callback| callback.to_traced()),
+            connected_move_callback: callbacks
+                .connected_move_callback
+                .map(|callback| callback.to_traced()),
+            disconnected_callback: callbacks
+                .disconnected_callback
+                .map(|callback| callback.to_traced()),
+            adopted_callback: callbacks
+                .adopted_callback
+                .map(|callback| callback.to_traced()),
+            attribute_changed_callback: callbacks
+                .attribute_changed_callback
+                .map(|callback| callback.to_traced()),
+            form_associated_callback: callbacks
+                .form_associated_callback
+                .map(|callback| callback.to_traced()),
+            form_reset_callback: callbacks
+                .form_reset_callback
+                .map(|callback| callback.to_traced()),
+            form_disabled_callback: callbacks
+                .form_disabled_callback
+                .map(|callback| callback.to_traced()),
+            form_state_restore_callback: callbacks
+                .form_state_restore_callback
+                .map(|callback| callback.to_traced()),
+        }
+    }
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -882,7 +915,7 @@ impl CustomElementDefinition {
         local_name: LocalName,
         constructor: RootedCallback<CustomElementConstructor>,
         observed_attributes: Vec<DOMString>,
-        callbacks: LifecycleCallbacks,
+        callbacks: RootedLifecycleCallbacks,
         form_associated: bool,
         disable_internals: bool,
         disable_shadow: bool,
@@ -892,7 +925,7 @@ impl CustomElementDefinition {
             local_name,
             constructor: constructor.to_traced(),
             observed_attributes,
-            callbacks,
+            callbacks: callbacks.into(),
             construction_stack: Default::default(),
             form_associated,
             disable_internals,
@@ -1215,7 +1248,7 @@ pub(crate) fn try_upgrade_element(cx: &JSContext, element: &Element) {
 pub(crate) enum CustomElementReaction {
     Upgrade(#[conditional_malloc_size_of] Rc<CustomElementDefinition>),
     Callback(
-        #[conditional_malloc_size_of] Rc<Function>,
+        TracedCallback<Function>,
         #[ignore_malloc_size_of = "mozjs"] Box<[Heap<JSVal>]>,
     ),
 }
@@ -1464,7 +1497,7 @@ impl CustomElementReactionStack {
                     // disconnectedCallback with no arguments.
                     if let Some(disconnected_callback) = disconnected_callback {
                         element.push_callback_reaction(
-                            disconnected_callback,
+                            disconnected_callback.root(),
                             Box::new([]),
                             cx.no_gc(),
                         );
@@ -1473,7 +1506,7 @@ impl CustomElementReactionStack {
                     // connectedCallback with no arguments.
                     if let Some(connected_callback) = connected_callback {
                         element.push_callback_reaction(
-                            connected_callback,
+                            connected_callback.root(),
                             Box::new([]),
                             cx.no_gc(),
                         );
@@ -1495,7 +1528,7 @@ impl CustomElementReactionStack {
 
         // Step 6. Add a new callback reaction to element's custom element reaction queue, with
         // callback function callback and arguments args.
-        element.push_callback_reaction(callback, args.into_boxed_slice(), cx.no_gc());
+        element.push_callback_reaction(callback.root(), args.into_boxed_slice(), cx.no_gc());
 
         // Step 7. Enqueue an element on the appropriate element queue given element.
         self.enqueue_element(cx, element);
