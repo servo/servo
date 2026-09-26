@@ -51,7 +51,7 @@ use profile_traits::{
     mem as profile_mem, time as profile_time,
 };
 use rustc_hash::{FxBuildHasher, FxHashMap};
-use script_bindings::callback::OwnerWindow;
+use script_bindings::callback::{OwnerWindow, RootedCallback};
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use script_bindings::reflector::DomObject;
@@ -316,14 +316,14 @@ pub(crate) struct GlobalScope {
     ///
     /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
     #[ignore_malloc_size_of = "callbacks are hard"]
-    byte_length_queuing_strategy_size_function: OnceCell<Rc<Function>>,
+    byte_length_queuing_strategy_size_function: OnceCell<RootedCallback<Function>>,
 
     /// The count queuing strategy size function that will be initialized once
     /// `size` getter of `CountQueuingStrategy` is called.
     ///
     /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
     #[ignore_malloc_size_of = "callbacks are hard"]
-    count_queuing_strategy_size_function: OnceCell<Rc<Function>>,
+    count_queuing_strategy_size_function: OnceCell<RootedCallback<Function>>,
 
     #[ignore_malloc_size_of = "callbacks are hard"]
     notification_permission_request_callback_map:
@@ -3025,7 +3025,7 @@ impl GlobalScope {
         self.unminified_js_dir.clone()
     }
 
-    pub(crate) fn set_byte_length_queuing_strategy_size(&self, function: Rc<Function>) {
+    pub(crate) fn set_byte_length_queuing_strategy_size(&self, function: RootedCallback<Function>) {
         if self
             .byte_length_queuing_strategy_size_function
             .set(function)
@@ -3035,13 +3035,13 @@ impl GlobalScope {
         };
     }
 
-    pub(crate) fn get_byte_length_queuing_strategy_size(&self) -> Option<Rc<Function>> {
+    pub(crate) fn get_byte_length_queuing_strategy_size(&self) -> Option<RootedCallback<Function>> {
         self.byte_length_queuing_strategy_size_function
             .get()
             .cloned()
     }
 
-    pub(crate) fn set_count_queuing_strategy_size(&self, function: Rc<Function>) {
+    pub(crate) fn set_count_queuing_strategy_size(&self, function: RootedCallback<Function>) {
         if self
             .count_queuing_strategy_size_function
             .set(function)
@@ -3051,7 +3051,7 @@ impl GlobalScope {
         };
     }
 
-    pub(crate) fn get_count_queuing_strategy_size(&self) -> Option<Rc<Function>> {
+    pub(crate) fn get_count_queuing_strategy_size(&self) -> Option<RootedCallback<Function>> {
         self.count_queuing_strategy_size_function.get().cloned()
     }
 
