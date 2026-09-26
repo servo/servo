@@ -1220,10 +1220,16 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         callback = type.unroll().callback
         declType = CGGeneric(f"{callback.identifier.name}<D>")
         useRc = descriptorProvider.callbackUsesRc(callback.identifier.name)
-        typeName = "Rc" if useRc else "RootedCallback"
+        needTraced = isMember == "Dictionary"
+        if useRc:
+            typeName = "Rc"
+        elif needTraced:
+            typeName = "TracedCallback"
+        else:
+            typeName = "RootedCallback"
         finalDeclType = CGTemplatedType(typeName, declType)
 
-        conversion = CGCallbackTempRoot(declType.define(), useRc)
+        conversion = CGCallbackTempRoot(declType.define(), useRc, needTraced)
 
         if type.nullable():
             declType = CGTemplatedType("Option", declType)
@@ -2880,10 +2886,15 @@ class CGGeneric(CGThing):
 
 
 class CGCallbackTempRoot(CGGeneric):
-    def __init__(self, name: str, useRc: bool) -> None:
+    def __init__(self, name: str, useRc: bool, needTraced: bool) -> None:
         inner = CGGeneric(f"unsafe {{ {name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object()) }}")
         pre = "RootedCallback::from(" if not useRc else ""
-        post = ")" if not useRc else ""
+        if not useRc:
+            post = ")"
+            if needTraced:
+                post += ".to_traced()"
+        else:
+            post = ""
         CGGeneric.__init__(self, CGWrapper(inner, pre, post).define())
 
 
@@ -8334,17 +8345,17 @@ class CGBindingRoot(CGThing):
         return stripTrailingWhitespace(self.root.define())
 
 
-def type_needs_tracing(t: IDLObject) -> bool:
+def type_needs_tracing(t: IDLObject, isMember: Optional[str] = None) -> bool:
     assert isinstance(t, IDLObject), (t, type(t))
 
     if t.isType():
         assert isinstance(t, IDLType)
         if isinstance(t, IDLWrapperType):
-            return type_needs_tracing(t.inner)
+            return type_needs_tracing(t.inner, isMember)
 
         if t.nullable():
             assert isinstance(t, IDLNullableType)
-            return type_needs_tracing(t.inner)
+            return type_needs_tracing(t.inner, isMember)
 
         if t.isAny():
             return True
@@ -8354,23 +8365,26 @@ def type_needs_tracing(t: IDLObject) -> bool:
 
         if t.isSequence() :
             assert isinstance(t, IDLSequenceType)
-            return type_needs_tracing(t.inner)
+            return type_needs_tracing(t.inner, isMember)
 
         if t.isUnion():
             assert isinstance(t, IDLUnionType) and t.flatMemberTypes is not None
-            return any(type_needs_tracing(member) for member in t.flatMemberTypes)
+            return any(type_needs_tracing(member, isMember) for member in t.flatMemberTypes)
 
         if is_typed_array(t):
             return True
+
+        if t.isCallback():
+            return isMember == "Dictionary"
 
         return False
 
     if t.isDictionary():
         assert isinstance(t, IDLDictionary)
-        if t.parent and type_needs_tracing(t.parent):
+        if t.parent and type_needs_tracing(t.parent, isMember):
             return True
 
-        if any(type_needs_tracing(member.type) for member in t.members):
+        if any(type_needs_tracing(member.type, 'Dictionary') for member in t.members):
             return True
 
         return False

@@ -392,6 +392,8 @@ impl WindowProxy {
                 // Use the current `WebView`'s theme initially, but the embedder may change
                 // this later.
                 theme: Cell::new(window.webview_theme()),
+                // WebViews start focused by default for now.
+                has_system_focus: Cell::new(true),
             },
             parent_info: None,
             new_pipeline_id: response.new_pipeline_id,
@@ -1856,20 +1858,22 @@ impl WindowOrDissimilarOriginWindow {
         &self,
         index: u32,
     ) -> Option<DomRoot<WindowProxy>> {
-        let browsing_context_id = self.window_proxy().browsing_context_id();
-        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
-        let _ = self.global_scope().script_to_constellation_chan().send(
-            ScriptToConstellationMessage::GetChildBrowsingContextId(
-                browsing_context_id,
-                index as usize,
-                result_sender,
-            ),
-        );
-        result_receiver
-            .recv()
-            .ok()
-            .flatten()
-            .and_then(|id| ScriptThread::window_proxies().find_window_proxy(id))
+        let window_proxy = self.window_proxy();
+        let browsing_context_id = if let Some(document) = window_proxy.document() {
+            document.iframes().at_insertion_index(index as usize)?
+        } else {
+            let parent_browsing_context_id = window_proxy.browsing_context_id();
+            let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+            let _ = self.global_scope().script_to_constellation_chan().send(
+                ScriptToConstellationMessage::GetChildBrowsingContextId(
+                    parent_browsing_context_id,
+                    index as usize,
+                    result_sender,
+                ),
+            );
+            result_receiver.recv().ok().flatten()?
+        };
+        ScriptThread::window_proxies().find_window_proxy(browsing_context_id)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#document-tree-child-navigable-target-name-property-set>

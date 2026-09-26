@@ -127,5 +127,5 @@ pub(crate) fn extract_size_algorithm(
             return RootedCallback::from(QueuingStrategySize::new(cx, fun_obj));
         };
     }
-    strategy.size.as_ref().unwrap().clone()
+    strategy.size.as_ref().unwrap().root()
 }

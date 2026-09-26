@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -30,7 +29,7 @@ use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback};
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::{
     NotificationAction, NotificationDirection, NotificationMethods, NotificationOptions,
     NotificationPermission, NotificationPermissionCallback,
@@ -400,7 +399,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     fn RequestPermission(
         cx: &mut JSContext,
         global: &GlobalScope,
-        permission_callback: Option<Rc<NotificationPermissionCallback>>,
+        permission_callback: Option<RootedCallback<NotificationPermissionCallback>>,
     ) -> RootedPromise {
         // Step 2: Let promise be a new promise in this’s relevant Realm.
         let promise = Promise::new(cx, global);
@@ -425,7 +424,10 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
                 // Step 3.2.1: If deprecatedCallback is given,
                 //             then invoke deprecatedCallback with « permissionState » and "report".
-                if let Some(callback) = global.remove_notification_permission_request_callback(uuid_) {
+                if let Some(callback) = global
+                    .remove_notification_permission_request_callback(uuid_)
+                    .as_deref()
+                {
                     let _ = callback.Call__(cx, notification_permission, ExceptionHandling::Report);
                 }
 

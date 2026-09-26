@@ -46,7 +46,7 @@ use embedder_traits::user_contents::{UserContentManagerId, UserContents, UserScr
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FocusSequenceNumber,
     InputEventOutcome, JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, ViewportDetails, WebDriverScriptCommand,
+    ViewportDetails, WebDriverScriptCommand,
 };
 use encoding_rs::Encoding;
 use fonts::{FontContext, SystemFontServiceProxy, WebFontLoadEvent};
@@ -1756,8 +1756,8 @@ impl ScriptThread {
             ScriptThreadMessage::ResizeInactive(id, new_size) => {
                 self.handle_resize_inactive_msg(id, new_size)
             },
-            ScriptThreadMessage::ThemeChange(webview_id, theme) => {
-                self.handle_theme_change_msg(webview_id, theme);
+            ScriptThreadMessage::UpdateWebViewState(state) => {
+                self.handle_update_webview_state(cx, state);
             },
             ScriptThreadMessage::GetDocumentOrigin(pipeline_id, result_sender) => {
                 self.handle_get_document_origin(pipeline_id, result_sender);
@@ -2689,24 +2689,45 @@ impl ScriptThread {
     }
 
     /// Handle changes to the theme, triggering reflow if the theme actually changed.
-    fn handle_theme_change_msg(&self, webview_id: WebViewId, theme: Theme) {
+    fn handle_update_webview_state(&self, cx: &mut JSContext, new_state: WebViewState) {
         let Some(webview_state) = self
             .webview_states
             .borrow()
-            .get(&webview_id)
+            .get(&new_state.id)
             .and_then(Weak::upgrade)
         else {
             return;
         };
 
-        let old_theme = webview_state.theme.replace(theme);
-        if old_theme == theme {
+        let new_theme = new_state.theme.get();
+        let theme_changed = webview_state.theme.replace(new_theme) != new_theme;
+        let new_has_system_focus = new_state.has_system_focus.get();
+        let system_focus_changed =
+            webview_state.has_system_focus.replace(new_has_system_focus) != new_has_system_focus;
+
+        if !theme_changed && !system_focus_changed {
             return;
         }
 
-        for (_, document) in self.documents.borrow().iter() {
-            if document.webview_id() == webview_id {
+        // We need to clone the documents here, because the subsequent updates fire DOM events
+        // and can then modify the document list. WebViewState updates aren't very common so
+        // the overhead here isn't much of a concern.
+        let documents: Vec<_> = self
+            .documents
+            .borrow()
+            .iter()
+            .map(|(_, document)| document)
+            .collect();
+
+        for document in documents {
+            if document.webview_id() != new_state.id {
+                continue;
+            }
+            if theme_changed {
                 document.window().refresh_theme();
+            }
+            if system_focus_changed {
+                document.gained_or_lost_system_focus(cx, new_has_system_focus);
             }
         }
     }
@@ -2891,7 +2912,15 @@ impl ScriptThread {
         rooted!(&in(cx) let new_focus_chain = focusable_area.focus_chain());
         rooted!(&in(cx) let old_focus_chain = focus_handler.current_focus_chain());
 
-        focus_handler.focus_update_steps(cx, new_focus_chain, old_focus_chain, &focusable_area);
+        focus_handler.focus_update_steps(
+            cx,
+            new_focus_chain,
+            old_focus_chain,
+            &focusable_area,
+            false, /* for_system_focus_change */
+        );
+
+        document.refresh_focus_rendering();
     }
 
     fn handle_focus_document(
@@ -2949,7 +2978,10 @@ impl ScriptThread {
             new_focus_chain,
             old_focus_chain,
             &FocusableArea::Viewport,
+            false, /* for_system_focus_change */
         );
+
+        document.refresh_focus_rendering();
     }
 
     #[expect(clippy::too_many_arguments)]

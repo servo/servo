@@ -16,8 +16,6 @@ pub enum ConstellationToEmbedderMsg {
     /// Required because the constellation can have pending calls to make
     /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
     ShutdownComplete,
-    /// All `WebView`s lost focus for keyboard events.
-    WebViewBlurred,
     /// A history traversal operation completed.
     HistoryTraversalComplete(WebViewId, TraversalId),
     /// Notifies the embedder about media session events
@@ -25,9 +23,6 @@ pub enum ConstellationToEmbedderMsg {
     MediaSessionEvent(WebViewId, MediaSessionEvent),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(WebViewId, String, Option<String>),
-    /// A `WebView` potentially gained focus for keyboard events.
-    /// If the boolean value is false, the `WebView` could not be focused.
-    WebViewFocused(WebViewId, bool),
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
     /// and the embedder can continue processing it, if necessary.
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
