@@ -371,8 +371,8 @@ impl VirtualMethods for HTMLButtonElement {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(Some(_), _) => {},
-                    AttributeMutation::Set(None, _) => {
+                    AttributeMutation::Set(Some(_)) => {},
+                    AttributeMutation::Set(None) => {
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
                     },

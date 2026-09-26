@@ -169,7 +169,7 @@ impl VirtualMethods for HTMLObjectElement {
             .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("data") => {
-                if let AttributeMutation::Set(..) = mutation {
+                if let AttributeMutation::Set(_) = mutation {
                     self.process_data_url();
                 }
             },

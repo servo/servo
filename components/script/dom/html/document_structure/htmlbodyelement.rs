@@ -152,7 +152,7 @@ impl VirtualMethods for HTMLBodyElement {
         mutation: AttributeMutation,
     ) {
         let do_super_mutate = match (attr.local_name(), mutation) {
-            (name, AttributeMutation::Set(..)) if name.starts_with("on") => {
+            (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let document = self.owner_document();
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-6

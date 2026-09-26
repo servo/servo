@@ -1301,7 +1301,7 @@ impl VirtualMethods for HTMLElement {
                 self.form_attribute_mutated(cx, mutation);
             },
             // Adding a "disabled" attribute disables an enabled form element.
-            (&local_name!("disabled"), AttributeMutation::Set(..))
+            (&local_name!("disabled"), AttributeMutation::Set(_))
                 if self.is_form_associated_custom_element() && element.enabled_state() =>
             {
                 element.set_disabled_state(true);
@@ -1332,7 +1332,7 @@ impl VirtualMethods for HTMLElement {
             },
             (&local_name!("readonly"), mutation) if self.is_form_associated_custom_element() => {
                 match mutation {
-                    AttributeMutation::Set(..) => {
+                    AttributeMutation::Set(_) => {
                         element.set_read_write_state(true);
                     },
                     AttributeMutation::Removed => {
@@ -1341,7 +1341,7 @@ impl VirtualMethods for HTMLElement {
                 }
             },
             (&local_name!("nonce"), mutation) => match mutation {
-                AttributeMutation::Set(..) => {
+                AttributeMutation::Set(_) => {
                     let nonce = &**attr.value();
                     element.update_nonce_internal_slot(nonce.to_owned(), cx.no_gc());
                 },
