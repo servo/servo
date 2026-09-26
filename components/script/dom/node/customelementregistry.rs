@@ -20,7 +20,6 @@ use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::{FxBuildHasher, FxHashSet};
-use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
