@@ -28,8 +28,8 @@ fun Servo(
     modifier: Modifier = Modifier,
 ) {
     LifecycleResumeEffect(servoView) {
-        servoView.onResume()
-        onPauseOrDispose { servoView.onPause() }
+        servoView.servo?.suspend(false)
+        onPauseOrDispose { servoView.servo?.suspend(true) }
     }
     AndroidView(
         factory = { _ -> servoView },
