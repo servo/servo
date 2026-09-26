@@ -9,7 +9,7 @@
             "mitmproxy": true,   // Use mitmproxy in forwarding mode
             //"trace_buffer": 524288,   // trace_buffer size of hitrace
             //"sleep": 10,  // how long should we wait for servo to load the page
-            "commands": ["--psn=--ignore-certificate-errors"]
+            "commands": ["--psn=--ignore-certificate-errors", "--psn=--memory-output"]
         },
         "filters": [
             // Filters are currently given via the simple serialize of `filters::JsonValueFilter`.
@@ -67,7 +67,7 @@
             "url": "https://www.servo.org",
             "tries": 5,
             "mitmproxy": true,
-            "commands": ["--psn=--ignore-certificate-errors"]
+            "commands": ["--psn=--ignore-certificate-errors", "--psn=--memory-output"]
         },
         "filters": [
             {
@@ -116,6 +116,7 @@
     {
         "run_args": {
             "url": "file:///parse_from_string.html",
+            "commands": ["--psn=--memory-output"],
             "tries": 5
         },
         "filters": [
