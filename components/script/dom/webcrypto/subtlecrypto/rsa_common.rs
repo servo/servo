@@ -48,12 +48,12 @@ pub(crate) fn generate_key(
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
             // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
             // SyntaxError.
-            usages.only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
         },
         RsaAlgorithm::RsaOaep => {
             // Step 1. If usages contains an entry which is not "encrypt", "decrypt", "wrapKey" or
             // "unwrapKey", then throw a SyntaxError.
-            usages.only_contain_entries_from(&[
+            usages.ensure_only_contain_entries_from(&[
                 KeyUsage::Encrypt,
                 KeyUsage::Decrypt,
                 KeyUsage::WrapKey,
@@ -191,12 +191,15 @@ pub(crate) fn import_key(
                 RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
                     // Step 2.1. If usages contains an entry which is not "verify" then throw a
                     // SyntaxError.
-                    usages.only_contain_entries_from(&[KeyUsage::Verify])?;
+                    usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
                 },
                 RsaAlgorithm::RsaOaep => {
                     // Step 2.1. If usages contains an entry which is not "encrypt" or "wrapKey",
                     // then throw a SyntaxError.
-                    usages.only_contain_entries_from(&[KeyUsage::Encrypt, KeyUsage::WrapKey])?;
+                    usages.ensure_only_contain_entries_from(&[
+                        KeyUsage::Encrypt,
+                        KeyUsage::WrapKey,
+                    ])?;
                 },
             }
 
@@ -232,12 +235,15 @@ pub(crate) fn import_key(
                 RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
                     // Step 2.1. If usages contains an entry which is not "sign" then throw a
                     // SyntaxError.
-                    usages.only_contain_entries_from(&[KeyUsage::Sign])?;
+                    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?;
                 },
                 RsaAlgorithm::RsaOaep => {
                     // Step 2.1. If usages contains an entry which is not "decrypt" or "unwrapKey",
                     // then throw a SyntaxError.
-                    usages.only_contain_entries_from(&[KeyUsage::Decrypt, KeyUsage::UnwrapKey])?;
+                    usages.ensure_only_contain_entries_from(&[
+                        KeyUsage::Decrypt,
+                        KeyUsage::UnwrapKey,
+                    ])?;
                 },
             }
 
@@ -282,8 +288,8 @@ pub(crate) fn import_key(
                     // which is not "sign", or, if the d field of jwk is not present and usages
                     // contains an entry which is not "verify" then throw a SyntaxError.
                     match jwk.d.as_ref() {
-                        Some(_) => usages.only_contain_entries_from(&[KeyUsage::Sign])?,
-                        None => usages.only_contain_entries_from(&[KeyUsage::Verify])?,
+                        Some(_) => usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?,
+                        None => usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?,
                     }
                 },
                 RsaAlgorithm::RsaOaep => {
@@ -293,10 +299,14 @@ pub(crate) fn import_key(
                     // * If the d field of jwk is not present and usages contains an entry which is
                     // not "encrypt" or "wrapKey", then throw a SyntaxError.
                     match jwk.d.as_ref() {
-                        Some(_) => usages
-                            .only_contain_entries_from(&[KeyUsage::Decrypt, KeyUsage::UnwrapKey])?,
-                        None => usages
-                            .only_contain_entries_from(&[KeyUsage::Encrypt, KeyUsage::WrapKey])?,
+                        Some(_) => usages.ensure_only_contain_entries_from(&[
+                            KeyUsage::Decrypt,
+                            KeyUsage::UnwrapKey,
+                        ])?,
+                        None => usages.ensure_only_contain_entries_from(&[
+                            KeyUsage::Encrypt,
+                            KeyUsage::WrapKey,
+                        ])?,
                     }
                 },
             }
@@ -933,10 +943,10 @@ pub(crate) fn get_public_key(
     // NOTE: See "importKey" operation for supported usages
     match rsa_algorithm {
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
-            usages.only_contain_entries_from(&[KeyUsage::Verify])?;
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
         },
         RsaAlgorithm::RsaOaep => {
-            usages.only_contain_entries_from(&[KeyUsage::Encrypt, KeyUsage::WrapKey])?;
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Encrypt, KeyUsage::WrapKey])?;
         },
     }
 

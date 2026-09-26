@@ -46,12 +46,13 @@ pub(crate) fn generate_key(
         EcAlgorithm::Ecdsa => {
             // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw
             // a SyntaxError.
-            usages.only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
         },
         EcAlgorithm::Ecdh => {
             // Step 1. If usages contains an entry which is not "deriveKey" or "deriveBits" then
             // throw a SyntaxError.
-            usages.only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
+            usages
+                .ensure_only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
         },
     }
 
@@ -221,11 +222,11 @@ pub(crate) fn import_key(
                 EcAlgorithm::Ecdsa => {
                     // Step 3.1. If usages contains a value which is not "verify" then throw a
                     // SyntaxError.
-                    usages.only_contain_entries_from(&[KeyUsage::Verify])?;
+                    usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
                 },
                 EcAlgorithm::Ecdh => {
                     // Step 3.1. If usages is not empty then throw a SyntaxError.
-                    usages.only_contain_entries_from(&[])?;
+                    usages.ensure_only_contain_entries_from(&[])?;
                 },
             }
 
@@ -332,13 +333,15 @@ pub(crate) fn import_key(
                 EcAlgorithm::Ecdsa => {
                     // Step 3.1. If usages contains a value which is not "sign" then throw a
                     // SyntaxError.
-                    usages.only_contain_entries_from(&[KeyUsage::Sign])?;
+                    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?;
                 },
                 EcAlgorithm::Ecdh => {
                     // Step 3.1. If usages contains an entry which is not "deriveKey" or
                     // "deriveBits" then throw a SyntaxError.
-                    usages
-                        .only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
+                    usages.ensure_only_contain_entries_from(&[
+                        KeyUsage::DeriveKey,
+                        KeyUsage::DeriveBits,
+                    ])?;
                 },
             }
 
@@ -460,8 +463,8 @@ pub(crate) fn import_key(
                     // "sign", or, if the d field is not present and usages contains a value which
                     // is not "verify" then throw a SyntaxError.
                     match jwk.d.as_ref() {
-                        Some(_) => usages.only_contain_entries_from(&[KeyUsage::Sign])?,
-                        None => usages.only_contain_entries_from(&[KeyUsage::Verify])?,
+                        Some(_) => usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?,
+                        None => usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?,
                     }
                 },
                 EcAlgorithm::Ecdh => {
@@ -469,11 +472,11 @@ pub(crate) fn import_key(
                     // not "deriveKey" or "deriveBits" then throw a SyntaxError. If the d field is
                     // not present and if usages is not empty then throw a SyntaxError.
                     match jwk.d.as_ref() {
-                        Some(_) => usages.only_contain_entries_from(&[
+                        Some(_) => usages.ensure_only_contain_entries_from(&[
                             KeyUsage::DeriveKey,
                             KeyUsage::DeriveBits,
                         ])?,
-                        None => usages.only_contain_entries_from(&[])?,
+                        None => usages.ensure_only_contain_entries_from(&[])?,
                     }
                 },
             }
@@ -731,11 +734,11 @@ pub(crate) fn import_key(
                 EcAlgorithm::Ecdsa => {
                     // Step 3.2. If usages contains a value which is not "verify" then throw a
                     // SyntaxError.
-                    usages.only_contain_entries_from(&[KeyUsage::Verify])?;
+                    usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
                 },
                 EcAlgorithm::Ecdh => {
                     // Step 3.2. If usages is not the empty list, then throw a SyntaxError.
-                    usages.only_contain_entries_from(&[])?;
+                    usages.ensure_only_contain_entries_from(&[])?;
                 },
             }
 
@@ -1183,10 +1186,10 @@ pub(crate) fn get_public_key(
     // NOTE: See "importKey" operation for supported usages
     match ec_algorithm {
         EcAlgorithm::Ecdsa => {
-            usages.only_contain_entries_from(&[KeyUsage::Verify])?;
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
         },
         EcAlgorithm::Ecdh => {
-            usages.only_contain_entries_from(&[])?;
+            usages.ensure_only_contain_entries_from(&[])?;
         },
     }
 

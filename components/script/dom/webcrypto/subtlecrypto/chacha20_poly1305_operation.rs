@@ -164,7 +164,7 @@ pub(crate) fn generate_key(
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt", "wrapKey" or
     // "unwrapKey", then throw a SyntaxError.
-    usages.only_contain_entries_from(&[
+    usages.ensure_only_contain_entries_from(&[
         KeyUsage::Encrypt,
         KeyUsage::Decrypt,
         KeyUsage::WrapKey,
@@ -213,7 +213,7 @@ pub(crate) fn import_key(
 
     // Step 2. If usages contains an entry which is not one of "encrypt", "decrypt", "wrapKey" or
     // "unwrapKey", then throw a SyntaxError.
-    usages.only_contain_entries_from(&[
+    usages.ensure_only_contain_entries_from(&[
         KeyUsage::Encrypt,
         KeyUsage::Decrypt,
         KeyUsage::WrapKey,

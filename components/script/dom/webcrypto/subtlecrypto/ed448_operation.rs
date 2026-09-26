@@ -145,7 +145,7 @@ pub(crate) fn generate_key(
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw a
     // SyntaxError.
-    usages.only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 2. Generate an Ed448 key pair, as defined in [RFC8032], section 5.1.5.
     let private_key = SigningKey::try_generate()
@@ -222,7 +222,7 @@ pub(crate) fn import_key(
         // If format is "spki":
         KeyFormat::Spki => {
             // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
-            usages.only_contain_entries_from(&[KeyUsage::Verify])?;
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData.
@@ -262,7 +262,7 @@ pub(crate) fn import_key(
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
             // Step 2.1. If usages contains a value which is not "sign" then throw a SyntaxError.
-            usages.only_contain_entries_from(&[KeyUsage::Sign])?;
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?;
 
             // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
             // algorithm over keyData.
@@ -316,8 +316,8 @@ pub(crate) fn import_key(
             // or, if the d field is not present and usages contains a value which is not "verify"
             // then throw a SyntaxError.
             match jwk.d.as_ref() {
-                Some(_) => usages.only_contain_entries_from(&[KeyUsage::Sign])?,
-                None => usages.only_contain_entries_from(&[KeyUsage::Verify])?,
+                Some(_) => usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?,
+                None => usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?,
             }
 
             // Step 2.3. If the kty field of jwk is not "OKP", then throw a DataError.
@@ -446,7 +446,7 @@ pub(crate) fn import_key(
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
-            usages.only_contain_entries_from(&[KeyUsage::Verify])?;
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
             // Step 2.2. Let data be keyData.
             let data = key_data;
@@ -714,7 +714,7 @@ pub(crate) fn get_public_key(
     // identified by algorithm, then throw a SyntaxError.
     //
     // NOTE: See "importKey" operation for supported usages
-    usages.only_contain_entries_from(&[KeyUsage::Verify])?;
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
     // private key represented by the [[handle]] internal slot of key.

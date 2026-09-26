@@ -53,7 +53,7 @@ pub(crate) fn generate_key(
         AesAlgorithm::AesOcb => {
             // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt",
             // "wrapKey" or "unwrapKey", then throw a SyntaxError.
-            usages.only_contain_entries_from(&[
+            usages.ensure_only_contain_entries_from(&[
                 KeyUsage::Encrypt,
                 KeyUsage::Decrypt,
                 KeyUsage::WrapKey,
@@ -63,7 +63,7 @@ pub(crate) fn generate_key(
         AesAlgorithm::AesKw => {
             // Step 1. If usages contains any entry which is not one of "wrapKey" or "unwrapKey",
             // then throw a SyntaxError.
-            usages.only_contain_entries_from(&[KeyUsage::WrapKey, KeyUsage::UnwrapKey])?;
+            usages.ensure_only_contain_entries_from(&[KeyUsage::WrapKey, KeyUsage::UnwrapKey])?;
         },
     }
 
@@ -170,7 +170,7 @@ pub(crate) fn import_key(
         AesAlgorithm::AesOcb => {
             // Step 1. If usages contains an entry which is not one of "encrypt", "decrypt",
             // "wrapKey" or "unwrapKey", then throw a SyntaxError.
-            usages.only_contain_entries_from(&[
+            usages.ensure_only_contain_entries_from(&[
                 KeyUsage::Encrypt,
                 KeyUsage::Decrypt,
                 KeyUsage::WrapKey,
@@ -180,7 +180,7 @@ pub(crate) fn import_key(
         AesAlgorithm::AesKw => {
             // Step 1. If usages contains an entry which is not one of "wrapKey" or "unwrapKey",
             // then throw a SyntaxError.
-            usages.only_contain_entries_from(&[KeyUsage::WrapKey, KeyUsage::UnwrapKey])?;
+            usages.ensure_only_contain_entries_from(&[KeyUsage::WrapKey, KeyUsage::UnwrapKey])?;
         },
     }
 

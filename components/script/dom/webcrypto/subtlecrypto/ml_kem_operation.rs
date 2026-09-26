@@ -187,7 +187,7 @@ pub(crate) fn generate_key(
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains any entry which is not one of "encapsulateKey",
     // "encapsulateBits", "decapsulateKey" or "decapsulateBits", then throw a SyntaxError.
-    usages.only_contain_entries_from(&[
+    usages.ensure_only_contain_entries_from(&[
         KeyUsage::EncapsulateKey,
         KeyUsage::EncapsulateBits,
         KeyUsage::DecapsulateKey,
@@ -300,7 +300,7 @@ pub(crate) fn import_key(
         KeyFormat::Spki => {
             // Step 2.1. If usages contains an entry which is not "encapsulateKey" or
             // "encapsulateBits" then throw a SyntaxError.
-            usages.only_contain_entries_from(&[
+            usages.ensure_only_contain_entries_from(&[
                 KeyUsage::EncapsulateKey,
                 KeyUsage::EncapsulateBits,
             ])?;
@@ -641,11 +641,11 @@ pub(crate) fn import_key(
             // Step 2.3. If the priv field of jwk is not present and if usages contains an entry
             // which is not "encapsulateKey" or "encapsulateBits" then throw a SyntaxError.
             match jwk.priv_.as_ref() {
-                Some(_) => usages.only_contain_entries_from(&[
+                Some(_) => usages.ensure_only_contain_entries_from(&[
                     KeyUsage::DecapsulateKey,
                     KeyUsage::DecapsulateBits,
                 ])?,
-                None => usages.only_contain_entries_from(&[
+                None => usages.ensure_only_contain_entries_from(&[
                     KeyUsage::EncapsulateKey,
                     KeyUsage::EncapsulateBits,
                 ])?,
@@ -1301,7 +1301,8 @@ pub(crate) fn get_public_key(
     // identified by algorithm, then throw a SyntaxError.
     //
     // NOTE: See "importKey" operation for supported usages
-    usages.only_contain_entries_from(&[KeyUsage::EncapsulateKey, KeyUsage::EncapsulateBits])?;
+    usages
+        .ensure_only_contain_entries_from(&[KeyUsage::EncapsulateKey, KeyUsage::EncapsulateBits])?;
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
     // private key represented by the [[handle]] internal slot of key.

@@ -667,10 +667,10 @@ pub(crate) trait KeyUsageSliceHelper {
     /// <https://w3c.github.io/webcrypto/#concept-normalized-usages>
     fn normalized_value(&self) -> Vec<KeyUsage>;
 
-    /// Verify that the key usage list only contains entries which are in `allowed`. If the key
+    /// Ensure that the key usage list only contains entries which are in `allowed`. If the key
     /// usage list contains an entry which is not in `allowed`, then throw a SyntaxError. Note that,
     /// if `allowed` is set to empty, it throws a SyntaxError when the key usage list is not empty.
-    fn only_contain_entries_from(&self, allowed: &[KeyUsage]) -> ErrorResult;
+    fn ensure_only_contain_entries_from(&self, allowed: &[KeyUsage]) -> ErrorResult;
 }
 
 impl KeyUsageSliceHelper for [KeyUsage] {
@@ -698,7 +698,7 @@ impl KeyUsageSliceHelper for [KeyUsage] {
         self.usage_intersection(KeyUsage::VARIANTS)
     }
 
-    fn only_contain_entries_from(&self, allowed: &[KeyUsage]) -> ErrorResult {
+    fn ensure_only_contain_entries_from(&self, allowed: &[KeyUsage]) -> ErrorResult {
         if self.iter().all(|usage| allowed.contains(usage)) {
             Ok(())
         } else {

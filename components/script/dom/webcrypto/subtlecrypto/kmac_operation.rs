@@ -158,7 +158,7 @@ pub(crate) fn generate_key(
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
     // SyntaxError.
-    usages.only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 2.
     // If the length member of normalizedAlgorithm is present:
@@ -239,7 +239,7 @@ pub(crate) fn import_key(
 
     // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a
     // SyntaxError.
-    usages.only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 3.
     let mut data: Zeroizing<Vec<u8>>;
