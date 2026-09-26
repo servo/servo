@@ -5354,6 +5354,8 @@ impl Element {
     }
 }
 
+// TODO: Remove this as it is no longer required by the media element
+// (which was the only usage)
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum AttributeMutationReason {
     ByCloning,
@@ -5365,7 +5367,10 @@ pub(crate) enum AttributeMutationReason {
 pub(crate) enum AttributeMutation<'a> {
     /// The attribute is set, keep track of old value.
     /// <https://dom.spec.whatwg.org/#attribute-is-set>
-    Set(Option<&'a AttrValue>, AttributeMutationReason),
+    Set(
+        Option<&'a AttrValue>,
+        #[expect(unused)] AttributeMutationReason,
+    ),
 
     /// The attribute is removed.
     /// <https://dom.spec.whatwg.org/#attribute-is-removed>
