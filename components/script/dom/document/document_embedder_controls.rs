@@ -466,7 +466,7 @@ impl ContextMenuNodes {
                 let _ = window.History(cx).Forward();
             },
             ContextMenuAction::Reload => {
-                window.Location(cx).reload_without_origin_check(cx);
+                window.Location(cx).reload_without_origin_check(cx, &window);
             },
             ContextMenuAction::CopyLink => {
                 let Some(anchor_element) = &self.anchor_element else {
