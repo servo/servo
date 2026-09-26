@@ -13976,15 +13976,6 @@
      ]
     ],
     "cross-origin-objects": {
-     "cross-origin-objects.html": [
-      "2ad24df66cfa8d2571c1ab25a2dd2dfcb2c1ae4e",
-      [
-       null,
-       {
-        "timeout": "long"
-       }
-      ]
-     ],
      "cross-origin-postMessage.html": [
       "143240c97aa60b52c8d2e0067c25e4509bf6481d",
       [
