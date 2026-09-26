@@ -78,10 +78,6 @@ class ServoView(
         Choreographer.getInstance().postFrameCallback(this)
     }
 
-    fun reload() {
-        servo!!.reload()
-    }
-
     fun stop() {
         servo!!.stop()
     }
