@@ -6,7 +6,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::ops::Deref;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, OnceLock, RwLock};
 use std::{iter, str};
 
 use app_units::Au;
@@ -20,7 +20,6 @@ use icu_locale_core::subtags::Language;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
-use parking_lot::RwLock;
 use read_fonts::collections::int_set::Domain;
 use read_fonts::tables::fvar::Fvar;
 use read_fonts::tables::name::Name as NameTable;
@@ -331,9 +330,10 @@ impl malloc_size_of::MallocSizeOf for Font {
         let metrics_size = self.metrics.get().map_or(0, |metrics| metrics.size_of(ops));
         metrics_size +
             self.descriptor.size_of(ops) +
-            self.cached_shape_data.read().size_of(ops) +
+            self.cached_shape_data.read().unwrap().size_of(ops) +
             self.font_instance_key
                 .read()
+                .unwrap()
                 .values()
                 .map(|key| key.size_of(ops))
                 .sum::<usize>()
@@ -412,9 +412,13 @@ impl Font {
     }
 
     pub fn key(&self, painter_id: PainterId, font_context: &FontContext) -> FontInstanceKey {
+        if let Some(key) = self.font_instance_key.read().unwrap().get(&painter_id) {
+            return *key;
+        }
         *self
             .font_instance_key
             .write()
+            .unwrap()
             .entry(painter_id)
             .or_insert_with(|| font_context.create_font_instance_key(self, painter_id))
     }
@@ -524,7 +528,13 @@ impl Font {
             font_features,
         };
 
-        if let Some(shaped_text) = self.cached_shape_data.read().shaped_text.get(&lookup_key) {
+        if let Some(shaped_text) = self
+            .cached_shape_data
+            .read()
+            .unwrap()
+            .shaped_text
+            .get(&lookup_key)
+        {
             return shaped_text.clone();
         }
 
@@ -541,7 +551,7 @@ impl Font {
         };
 
         let shaped_text = Arc::new(glyphs);
-        let mut cache = self.cached_shape_data.write();
+        let mut cache = self.cached_shape_data.write().unwrap();
         cache.shaped_text.insert(lookup_key, shaped_text.clone());
 
         shaped_text
@@ -613,7 +623,7 @@ impl Font {
     #[inline]
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         {
-            let cache = self.cached_shape_data.read();
+            let cache = self.cached_shape_data.read().unwrap();
             if let Some(glyph) = cache.glyph_indices.get(&codepoint) {
                 return *glyph;
             }
@@ -624,7 +634,7 @@ impl Font {
         };
         let glyph_index = self.handle.glyph_index(codepoint);
 
-        let mut cache = self.cached_shape_data.write();
+        let mut cache = self.cached_shape_data.write().unwrap();
         cache.glyph_indices.insert(codepoint, glyph_index);
         glyph_index
     }
@@ -643,7 +653,7 @@ impl Font {
 
     pub fn glyph_h_advance(&self, glyph_id: GlyphId) -> FractionalPixel {
         {
-            let cache = self.cached_shape_data.read();
+            let cache = self.cached_shape_data.read().unwrap();
             if let Some(width) = cache.glyph_advances.get(&glyph_id) {
                 return *width;
             }
@@ -653,7 +663,7 @@ impl Font {
             .handle
             .glyph_h_advance(glyph_id)
             .unwrap_or(LAST_RESORT_GLYPH_ADVANCE as FractionalPixel);
-        let mut cache = self.cached_shape_data.write();
+        let mut cache = self.cached_shape_data.write().unwrap();
         cache.glyph_advances.insert(glyph_id, new_width);
         new_width
     }
@@ -858,7 +868,7 @@ impl FontGroup {
         }
 
         let fallback_key = FallbackKey::new(&options);
-        if let Some(fallback) = self.fallbacks.read().get(&fallback_key) &&
+        if let Some(fallback) = self.fallbacks.read().unwrap().get(&fallback_key) &&
             char_in_template(fallback.template.clone()) &&
             font_has_glyph_and_presentation(fallback)
         {
@@ -873,7 +883,10 @@ impl FontGroup {
         ) {
             let fallback = font_or_synthesized_small_caps(font);
             if let Some(fallback) = fallback.clone() {
-                self.fallbacks.write().insert(fallback_key, fallback);
+                self.fallbacks
+                    .write()
+                    .unwrap()
+                    .insert(fallback_key, fallback);
             }
             return fallback;
         }
