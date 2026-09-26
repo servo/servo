@@ -31,8 +31,8 @@ use crate::async_runtime::{
 };
 pub use crate::hosts::replace_host_table;
 
-static CRT_FILE: &[u8] = include_bytes!("../../resources/self_signed_certificate_for_testing.crt");
-static PEM_FILE: &[u8] = include_bytes!("../../resources/privatekey_for_testing.key");
+static CRT_FILE: &[u8] = include_bytes!("tests/self_signed_certificate_for_testing.crt");
+static PEM_FILE: &[u8] = include_bytes!("tests/privatekey_for_testing.key");
 
 static ASYNC_RUNTIME: LazyLock<Arc<Mutex<Box<dyn AsyncRuntime>>>> =
     LazyLock::new(|| Arc::new(Mutex::new(init_async_runtime())));
