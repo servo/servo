@@ -315,15 +315,13 @@ pub(crate) struct GlobalScope {
     /// `size` getter of `ByteLengthQueuingStrategy` is called.
     ///
     /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
-    #[ignore_malloc_size_of = "callbacks are hard"]
-    byte_length_queuing_strategy_size_function: OnceCell<RootedCallback<Function>>,
+    byte_length_queuing_strategy_size_function: OnceCell<TracedCallback<Function>>,
 
     /// The count queuing strategy size function that will be initialized once
     /// `size` getter of `CountQueuingStrategy` is called.
     ///
     /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
-    #[ignore_malloc_size_of = "callbacks are hard"]
-    count_queuing_strategy_size_function: OnceCell<RootedCallback<Function>>,
+    count_queuing_strategy_size_function: OnceCell<TracedCallback<Function>>,
 
     notification_permission_request_callback_map:
         DomRefCell<HashMap<String, TracedCallback<NotificationPermissionCallback>>>,
@@ -3027,7 +3025,7 @@ impl GlobalScope {
     pub(crate) fn set_byte_length_queuing_strategy_size(&self, function: RootedCallback<Function>) {
         if self
             .byte_length_queuing_strategy_size_function
-            .set(function)
+            .set(function.to_traced())
             .is_err()
         {
             warn!("byte length queuing strategy size function is set twice.");
@@ -3038,12 +3036,13 @@ impl GlobalScope {
         self.byte_length_queuing_strategy_size_function
             .get()
             .cloned()
+            .map(|f| f.root())
     }
 
     pub(crate) fn set_count_queuing_strategy_size(&self, function: RootedCallback<Function>) {
         if self
             .count_queuing_strategy_size_function
-            .set(function)
+            .set(function.to_traced())
             .is_err()
         {
             warn!("count queuing strategy size function is set twice.");
@@ -3051,7 +3050,10 @@ impl GlobalScope {
     }
 
     pub(crate) fn get_count_queuing_strategy_size(&self) -> Option<RootedCallback<Function>> {
-        self.count_queuing_strategy_size_function.get().cloned()
+        self.count_queuing_strategy_size_function
+            .get()
+            .cloned()
+            .map(|f| f.root())
     }
 
     pub(crate) fn add_notification_permission_request_callback(
