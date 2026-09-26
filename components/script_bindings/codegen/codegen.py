@@ -991,12 +991,27 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         #    once again be providing a Promise to signal completion of an
         #    operation, which would then not be exposed to anyone other than
         #    our own implementation code.
-        templateBody = fromJSValTemplate("()", failOrPropagate, exceptionCode)
+
+        needsToBeTraced = isMember == "Dictionary"
 
         if isArgument:
             declType = CGGeneric("&D::Promise")
+        elif needsToBeTraced:
+            declType = CGGeneric("<D::Promise as PromiseHelpers<D>>::HeapTraced")
         else:
             declType = CGGeneric("<D::Promise as PromiseHelpers<D>>::StackRoot")
+
+        returnValue = "value.to_traced()" if needsToBeTraced else "value"
+        templateBody = f"""match <<D::Promise as PromiseHelpers<D>>::StackRoot>::from_jsval(cx, ${{val}}, ()) {{
+    Ok(ConversionResult::Success(value)) => {returnValue},
+    Ok(ConversionResult::Failure(error)) => {{
+        {failOrPropagate}
+    }}
+    _ => {{
+        {exceptionCode}
+    }},
+}}
+"""
         return handleOptional(templateBody, declType, handleDefault("None"))
 
     if type.isGeckoInterface():
@@ -8374,7 +8389,7 @@ def type_needs_tracing(t: IDLObject, isMember: Optional[str] = None) -> bool:
         if is_typed_array(t):
             return True
 
-        if t.isCallback():
+        if t.isCallback() or t.isPromise():
             return isMember == "Dictionary"
 
         return False
