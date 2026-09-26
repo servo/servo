@@ -75,7 +75,7 @@ impl DOMPointReadOnly {
 }
 
 impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
-    /// <https://drafts.fxtf.org/geometry/#dom-dompoint-dompoint>
+    /// <https://drafts.csswg.org/geometry/#dom-dompoint-dompoint>
     fn Constructor(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -90,7 +90,7 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
         ))
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint>
+    /// <https://drafts.csswg.org/geometry/#dom-dompointreadonly-frompoint>
     fn FromPoint(cx: &mut JSContext, global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
         Self::new(cx, global, init.x, init.y, init.z, init.w)
     }
@@ -116,7 +116,7 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
     }
 
     /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-matrixtransform>
-    /// <https://drafts.fxtf.org/geometry/Overview.html#transform-a-point-with-a-matrix>
+    /// <https://drafts.csswg.org/geometry/Overview.html#transform-a-point-with-a-matrix>
     fn MatrixTransform(
         &self,
         cx: &mut JSContext,

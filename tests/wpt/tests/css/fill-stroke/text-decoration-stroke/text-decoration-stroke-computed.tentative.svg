@@ -3,7 +3,7 @@
      xmlns:h="http://www.w3.org/1999/xhtml">
   <title>SVG Text CSS Decoration Test: getComputedStyle().textDecorationStroke</title>
   <metadata>
-    <h:link rel="help" ref="https://drafts.fxtf.org/fill-stroke/#text-decor"/>
+    <h:link rel="help" ref="https://drafts.csswg.org/fill-stroke/#text-decor"/>
     <h:meta name="assert" content="SVG text-decoration-stroke computed value is as specified."/>
   </metadata>
   <g id="target"></g>

@@ -70,7 +70,7 @@ impl DOMPoint {
 }
 
 impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
-    /// <https://drafts.fxtf.org/geometry/#dom-dompointreadonly-dompointreadonly>
+    /// <https://drafts.csswg.org/geometry/#dom-dompointreadonly-dompointreadonly>
     fn Constructor(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -83,7 +83,7 @@ impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
         Ok(DOMPoint::new_with_proto(cx, global, proto, x, y, z, w))
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-dompoint-frompoint>
+    /// <https://drafts.csswg.org/geometry/#dom-dompoint-frompoint>
     fn FromPoint(cx: &mut JSContext, global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
         Self::new_from_init(cx, global, init)
     }

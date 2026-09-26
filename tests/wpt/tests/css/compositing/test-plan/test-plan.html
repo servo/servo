@@ -319,7 +319,7 @@ table.simple {
 					</p><p></p>
 					<section id="an-element-with-mix-blend-mode-other-than-normal-creates-a-stacking-context">
 						<h4 aria-level="3" role="heading" id="h4_an-element-with-mix-blend-mode-other-than-normal-creates-a-stacking-context"><span class="secno">4.1.1 </span>An element with <code>mix-blend-mode</code> other than normal creates a stacking context</h4>
-						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">spec</a>: <q>Applying a blendmode other than ‘normal’ to the element must establish a new stacking context [CSS21].</q></p>
+						<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#mix-blend-mode">spec</a>: <q>Applying a blendmode other than ‘normal’ to the element must establish a new stacking context [CSS21].</q></p>
 						<table>
 							<tbody><tr>
 								<th>Test name</th>
@@ -337,7 +337,7 @@ table.simple {
 					</section>
 					<section id="an-element-with-mix-blend-mode-blends-with-the-content-within-the-current-stacking-context">
 						<h4 aria-level="3" role="heading" id="h4_an-element-with-mix-blend-mode-blends-with-the-content-within-the-current-stacking-context"><span class="secno">4.1.2 </span>An element with <code>mix-blend-mode</code> blends with the content within the current stacking context</h4>
-						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q>An element that has blending applied, must blend with all the underlying content of the stacking context [CSS21] that that element belongs to.</q><br>
+						<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q>An element that has blending applied, must blend with all the underlying content of the stacking context [CSS21] that that element belongs to.</q><br>
 						This section tests if the blending operation is performed. </p>
 						<table>
 							<tbody><tr>
@@ -376,7 +376,7 @@ table.simple {
 					</section>
 					<section id="an-element-with-mix-blend-mode-doesn-t-blend-with-anything-outside-the-current-stacking-context">
 						<h4 aria-level="3" role="heading" id="h4_an-element-with-mix-blend-mode-doesn-t-blend-with-anything-outside-the-current-stacking-context"><span class="secno">4.1.3 </span>An element with <code>mix-blend-mode</code> doesn't blend with anything outside the current stacking context</h4>
-						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q> An element that has blending applied, must blend with all the underlying content of the stacking context [CSS21] that that element belongs to.</q> <br>
+						<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q> An element that has blending applied, must blend with all the underlying content of the stacking context [CSS21] that that element belongs to.</q> <br>
 						This section tests if the isolation is performed. </p>
 						<table>
 							<tbody><tr>
@@ -420,7 +420,7 @@ table.simple {
 					</section>
 					<section id="an-element-with-mix-blend-mode-other-than-normal-must-cause-a-group-to-be-isolated">
 						<h4 aria-level="3" role="heading" id="h4_an-element-with-mix-blend-mode-other-than-normal-must-cause-a-group-to-be-isolated"><span class="secno">4.1.4 </span>An element with <code>mix-blend-mode</code> other than normal must cause a group to be isolated</h4>
-						<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#isolation">spec</a>: <q>operations that cause the creation of stacking context [CSS21] must cause a group to be isolated.</q> <br>
+						<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#isolation">spec</a>: <q>operations that cause the creation of stacking context [CSS21] must cause a group to be isolated.</q> <br>
 						The following section also tests that mix-blend-mode is not inheritable. If you set mix-blend-mode on a parent, the child should not blend with the parent. Instead, the whole group should blend as a whole, using the parent's blending operator.</p>
 						<table>
 							<tbody><tr>
@@ -826,7 +826,7 @@ table.simple {
 				<h3 aria-level="2" role="heading" id="h3_test-cases-for-svg-elements-with-mix-blend-mode"><span class="secno">4.2 </span>Test cases for SVG elements with <code>mix-blend-mode</code></h3>
 				<section id="mix-blend-mode-with-simple-svg-graphical-elements">
 					<h4 aria-level="3" role="heading" id="h4_mix-blend-mode-with-simple-svg-graphical-elements"><span class="secno">4.2.1 </span><code>mix-blend-mode</code> with simple SVG graphical elements</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">spec</a> : <q><code>mix-blend-mode</code> applies to svg, g, use, image, path, rect, circle, ellipse, line, polyline, polygon, text, tspan, and marker.</q></p>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#mix-blend-mode">spec</a> : <q><code>mix-blend-mode</code> applies to svg, g, use, image, path, rect, circle, ellipse, line, polyline, polygon, text, tspan, and marker.</q></p>
 					<table>
 						<tbody><tr>
 							<th>Test name</th>
@@ -964,7 +964,7 @@ table.simple {
 				</section>
 				<section id="mix-blend-mode-with-isolated-groups">
 					<h4 aria-level="3" role="heading" id="h4_mix-blend-mode-with-isolated-groups"><span class="secno">4.2.3 </span><code>mix-blend-mode</code> with isolated groups</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">spec</a>:
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#mix-blend-mode">spec</a>:
 					<br><q>By default, every element must create a non-isolated group.<br>
 						However, certain operations in SVG will create isolated groups.<br>
 						If one of the following features is used, the group must become isolated:
@@ -1131,7 +1131,7 @@ table.simple {
 				<h3 aria-level="2" role="heading" id="h3_test-cases-for-background-blend-mode"><span class="secno">4.3 </span>Test cases for <code>background-blend-mode</code></h3>
 				<section id="blending-between-the-background-layers-and-the-background-color-for-an-element-with-background-blend-mode">
 					<h4 aria-level="3" role="heading" id="h4_blending-between-the-background-layers-and-the-background-color-for-an-element-with-background-blend-mode"><span class="secno">4.3.1 </span>Blending between the background layers and the background color for an element with <code>background-blend-mode</code> </h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>Each background layer must blend with the element's background layer that are below it and the element's background color.</q></p>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#background-blend-mode">spec</a>: <q>Each background layer must blend with the element's background layer that are below it and the element's background color.</q></p>
 					<table>
 						<tbody><tr>
 							<th>Test name</th>
@@ -1273,7 +1273,7 @@ table.simple {
 				</section>
 				<section id="background-layers-do-not-blend-with-content-outside-the-background-or-behind-the-element">
 					<h4 aria-level="3" role="heading" id="h4_background-layers-do-not-blend-with-content-outside-the-background-or-behind-the-element"><span class="secno">4.3.2 </span>Background layers do not blend with content outside the background (or behind the element)</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>Background layer must not blend with the content that is behind the element instead they must act as if they are rendered into an isolated group.</q>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#background-blend-mode">spec</a>: <q>Background layer must not blend with the content that is behind the element instead they must act as if they are rendered into an isolated group.</q>
 					</p>
 					<table>
 						<tbody><tr>
@@ -1320,7 +1320,7 @@ table.simple {
 				</section>
 				<section id="background-blend-mode-list-values-apply-to-the-corresponding-background-layer">
 					<h4 aria-level="3" role="heading" id="h4_background-blend-mode-list-values-apply-to-the-corresponding-background-layer"><span class="secno">4.3.3 </span> <code>background-blend-mode</code> list values apply to the corresponding background layer</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>The ‘background-blend-mode’ list must be applied in the same order as ‘background-image’[CSS3BG]. This means that the first element in the list will apply to the layer that is on top.</q>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#background-blend-mode">spec</a>: <q>The ‘background-blend-mode’ list must be applied in the same order as ‘background-image’[CSS3BG]. This means that the first element in the list will apply to the layer that is on top.</q>
 					</p>
 					<table>
 						<tbody><tr>
@@ -1343,7 +1343,7 @@ table.simple {
 				</section>
 				<section id="background-blend-mode-list-values-are-repeated-if-the-list-is-shorter-than-the-background-layer-list">
 					<h4 aria-level="3" role="heading" id="h4_background-blend-mode-list-values-are-repeated-if-the-list-is-shorter-than-the-background-layer-list"><span class="secno">4.3.4 </span><code>background-blend-mode</code> list values are repeated if the list is shorter than the background layer list</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>If a property doesn't have enough comma-separated values to match the number of layers, the UA must calculate its used value by repeating the list of values until there are enough.</q>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#background-blend-mode">spec</a>: <q>If a property doesn't have enough comma-separated values to match the number of layers, the UA must calculate its used value by repeating the list of values until there are enough.</q>
 					</p>
 					<table>
 						<tbody><tr>
@@ -1364,7 +1364,7 @@ table.simple {
 				</section>
 				<section id="the-default-background-blend-mode-value-for-the-background-shorthand-is-normal">
 					<h4 aria-level="3" role="heading" id="h4_the-default-background-blend-mode-value-for-the-background-shorthand-is-normal"><span class="secno">4.3.5 </span>The default <code>background-blend-mode</code> value for the <code>background</code> shorthand is 'normal' </h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#background-blend-mode">spec</a>: <q>If the ‘background’ [CSS3BG] shorthand is used, the ‘background-blend-mode’ property for that element must be reset to its initial value.</q>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#background-blend-mode">spec</a>: <q>If the ‘background’ [CSS3BG] shorthand is used, the ‘background-blend-mode’ property for that element must be reset to its initial value.</q>
 					</p>
 					<table>
 						<tbody><tr>
@@ -1641,7 +1641,7 @@ table.simple {
 				<h3 aria-level="2" role="heading" id="h3_test-cases-for-isolation"><span class="secno">4.4 </span>Test cases for <code>isolation</code></h3>
 				<section id="an-element-with-isolation-isolate-creates-a-stacking-context">
 					<h4 aria-level="3" role="heading" id="h4_an-element-with-isolation-isolate-creates-a-stacking-context"><span class="secno">4.4.1 </span>An element with <code>isolation:isolate</code> creates a stacking context</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q>For CSS, setting ‘isolation’ to ‘isolate’ will turn the element into a stacking context [CSS21].</q></p>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#csscompositingrules_CSS">spec</a>: <q>For CSS, setting ‘isolation’ to ‘isolate’ will turn the element into a stacking context [CSS21].</q></p>
 					<table>
 						<tbody><tr>
 							<th>Test name</th>
@@ -1749,7 +1749,7 @@ table.simple {
 				<h3 aria-level="2" role="heading" id="h3_test-cases-for-isolation-in-svg"><span class="secno">4.5 </span>Test cases for <code>isolation</code> in SVG</h3>
 				<section id="in-svg-an-element-with-isolation-isolate-creates-an-isolated-group-for-blended-children">
 					<h4 aria-level="3" role="heading" id="h4_in-svg-an-element-with-isolation-isolate-creates-an-isolated-group-for-blended-children"><span class="secno">4.5.1 </span>In SVG, an element with <code>isolation:isolate</code> creates an isolated group for blended children</h4>
-					<p>Refers to the following assertion in the <a href="https://drafts.fxtf.org/compositing-1/#isolation">spec</a>: <q>In SVG, this defines whether an element is isolated or not.</q></p>
+					<p>Refers to the following assertion in the <a href="https://drafts.csswg.org/compositing-1/#isolation">spec</a>: <q>In SVG, this defines whether an element is isolated or not.</q></p>
 					<table>
 						<tbody><tr>
 							<th>Test name</th>

@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>Filter Effects Module Level 1: parsing flood-opacity with invalid values</title>
   <metadata>
-    <h:link rel="help" href="https://drafts.fxtf.org/filter-effects/#propdef-flood-opacity"/>
+    <h:link rel="help" href="https://drafts.csswg.org/filter-effects/#propdef-flood-opacity"/>
     <h:meta name="assert" content="flood-opacity supports only the grammar 'alpha-value'."/>
   </metadata>
   <g id="target"></g>

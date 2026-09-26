@@ -1,10 +1,10 @@
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 
-// https://drafts.fxtf.org/geometry/#DOMPoint
-// https://drafts.fxtf.org/geometry/#DOMRect
-// https://drafts.fxtf.org/geometry/#DOMQuad
-// https://drafts.fxtf.org/geometry/#DOMMatrix
+// https://drafts.csswg.org/geometry/#DOMPoint
+// https://drafts.csswg.org/geometry/#DOMRect
+// https://drafts.csswg.org/geometry/#DOMQuad
+// https://drafts.csswg.org/geometry/#DOMMatrix
 
 "use strict";
 
