@@ -90,7 +90,7 @@ impl HTMLTableElement {
         n
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-thead>
     /// <https://html.spec.whatwg.org/multipage/#dom-table-tfoot>
     fn get_first_section_of_type(
         &self,
@@ -102,7 +102,7 @@ impl HTMLTableElement {
             .and_then(|n| n.downcast().map(DomRoot::from_ref))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-thead>
     /// <https://html.spec.whatwg.org/multipage/#dom-table-tfoot>
     fn set_first_section_of_type<P>(
         &self,

@@ -236,7 +236,7 @@ impl HTMLInputElement {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-value
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
     /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
     pub(crate) fn value_mode(&self) -> ValueMode {
         match *self.input_type() {
@@ -742,7 +742,7 @@ impl HTMLInputElement {
             .suffers_from_bad_input(value)
     }
 
-    // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long
+    /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long>
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short>
     fn suffers_from_length_issues(&self, value: &DOMString) -> ValidationFlags {
         // https://html.spec.whatwg.org/multipage/#limiting-user-input-length%3A-the-maxlength-attribute%3Asuffering-from-being-too-long
