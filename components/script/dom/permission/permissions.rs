@@ -79,9 +79,9 @@ impl Permissions {
         reflect_dom_object_with_cx(Box::new(Permissions::new_inherited()), global, cx)
     }
 
-    // https://w3c.github.io/permissions/#dom-permissions-query
-    // https://w3c.github.io/permissions/#dom-permissions-request
-    // https://w3c.github.io/permissions/#dom-permissions-revoke
+    /// <https://w3c.github.io/permissions/#dom-permissions-query>
+    /// <https://w3c.github.io/permissions/#dom-permissions-request>
+    /// <https://w3c.github.io/permissions/#dom-permissions-revoke>
     fn manipulate(
         &self,
         cx: &mut CurrentRealm,

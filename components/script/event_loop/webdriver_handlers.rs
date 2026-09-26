@@ -1463,7 +1463,7 @@ pub(crate) fn handle_get_cookies(
         .unwrap();
 }
 
-// https://w3c.github.io/webdriver/webdriver-spec.html#get-cookie
+/// <https://w3c.github.io/webdriver/webdriver-spec.html#get-cookie>
 pub(crate) fn handle_get_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1494,7 +1494,7 @@ pub(crate) fn handle_get_cookie(
         .unwrap();
 }
 
-// https://w3c.github.io/webdriver/webdriver-spec.html#add-cookie
+/// <https://w3c.github.io/webdriver/webdriver-spec.html#add-cookie>
 pub(crate) fn handle_add_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1545,7 +1545,7 @@ pub(crate) fn handle_add_cookie(
         .unwrap();
 }
 
-// https://w3c.github.io/webdriver/#delete-all-cookies
+/// <https://w3c.github.io/webdriver/#delete-all-cookies>
 pub(crate) fn handle_delete_cookies(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1567,7 +1567,7 @@ pub(crate) fn handle_delete_cookies(
     reply.send(Ok(())).unwrap();
 }
 
-// https://w3c.github.io/webdriver/#delete-cookie
+/// <https://w3c.github.io/webdriver/#delete-cookie>
 pub(crate) fn handle_delete_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1978,7 +1978,7 @@ fn get_container(element: &Element) -> Option<DomRoot<Element>> {
     Some(DomRoot::from_ref(element))
 }
 
-// https://w3c.github.io/webdriver/#element-click
+/// <https://w3c.github.io/webdriver/#element-click>
 pub(crate) fn handle_element_click(
     cx: &mut JSContext,
     documents: &DocumentCollection,

@@ -174,7 +174,7 @@ impl ServiceWorkerRegistration {
         }
     }
 
-    // https://w3c.github.io/ServiceWorker/#get-newest-worker-algorithm
+    /// <https://w3c.github.io/ServiceWorker/#get-newest-worker-algorithm>
     pub(crate) fn get_newest_worker(&self) -> Option<DomRoot<ServiceWorker>> {
         let installing = self.installing.borrow();
         let waiting = self.waiting.borrow();
