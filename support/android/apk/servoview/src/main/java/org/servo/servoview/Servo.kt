@@ -104,6 +104,8 @@ fun Servo(
 @Stable
 class ServoNavigator {
     private sealed interface NavigationEvent : Interaction {
+        data class Navigate(val uri: String) : NavigationEvent
+
         data object Back : NavigationEvent
 
         data object Forward : NavigationEvent
@@ -117,6 +119,7 @@ class ServoNavigator {
     internal suspend fun consumeNavigationEvents(servo: Servo) {
         navigationEvents.collect { navigationEvent ->
             when (navigationEvent) {
+                is NavigationEvent.Navigate -> servo.loadUri(navigationEvent.uri)
                 NavigationEvent.Back -> servo.goBack()
                 NavigationEvent.Forward -> servo.goForward()
                 NavigationEvent.Reload -> servo.reload()
@@ -129,6 +132,10 @@ class ServoNavigator {
 
     var canGoForwardState = mutableStateOf(false)
         internal set
+
+    fun navigate(uri: String) {
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Navigate(uri)) }
+    }
 
     fun back() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.Back) }
