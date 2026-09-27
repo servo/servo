@@ -1137,7 +1137,6 @@ pub(crate) struct LayoutRootLayoutInputs {
     /// to access than the parent box.
     #[conditional_malloc_size_of]
     containing_block_style: ServoArc<ComputedValues>,
-
     /// This is the writing mode of the absolute's tree parent.
     original_parent_writing_mode: WritingMode,
 }
