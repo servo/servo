@@ -20,7 +20,7 @@ use read_fonts::{FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
 use skrifa::attribute::Weight;
 use style::Zero;
-use webrender_api::{FontInstanceFlags, FontVariation};
+use webrender_api::{FontHinting, FontInstanceFlags, FontInstancePlatformOptions, FontVariation};
 
 use super::library_handle::FreeTypeLibraryHandle;
 use crate::FontData;
@@ -393,6 +393,13 @@ impl PlatformFontMethods for PlatformFont {
         }
 
         flags
+    }
+
+    fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {
+        FontInstancePlatformOptions {
+            hinting: FontHinting::Light,
+            ..Default::default()
+        }
     }
 
     fn variations(&self) -> &[FontVariation] {

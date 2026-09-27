@@ -51,7 +51,9 @@ use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFont
 use style::values::specified::font::VariantAlternates;
 use url::Url;
 use uuid::Uuid;
-use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
+use webrender_api::{
+    FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey, FontVariation,
+};
 
 use crate::font::{Font, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope};
 use crate::font_feature_values::{
@@ -70,6 +72,7 @@ pub(crate) struct FontParameters {
     pub(crate) pt_size: Au,
     pub(crate) variations: Vec<FontVariation>,
     pub(crate) flags: FontInstanceFlags,
+    pub(crate) platform_options: FontInstancePlatformOptions,
 }
 
 pub type FontGroupRef = Arc<FontGroup>;
@@ -382,6 +385,7 @@ impl FontContext {
                 font.template.identifier().to_owned(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
+                font.webrender_font_instance_platform_options(),
                 font.variations().to_owned(),
                 painter_id,
             ),
@@ -390,6 +394,7 @@ impl FontContext {
                     font.template.clone(),
                     font.descriptor.pt_size,
                     font.webrender_font_instance_flags(),
+                    font.webrender_font_instance_platform_options(),
                     font.variations().to_owned(),
                     painter_id,
                 ),
@@ -401,6 +406,7 @@ impl FontContext {
         font_template: FontTemplateRef,
         pt_size: Au,
         flags: FontInstanceFlags,
+        platform_options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
         painter_id: PainterId,
     ) -> FontInstanceKey {
@@ -427,6 +433,7 @@ impl FontContext {
             pt_size,
             variations: variations.clone(),
             flags,
+            platform_options,
         };
         *self
             .webrender_font_instance_keys
@@ -441,6 +448,7 @@ impl FontContext {
                     font_key,
                     pt_size.to_f32_px(),
                     flags,
+                    platform_options,
                     variations,
                 );
                 font_instance_key

@@ -51,9 +51,10 @@ use webrender_api::units::{
 use webrender_api::{
     self, BuiltDisplayList, BuiltDisplayListDescriptor, ColorF, DirtyRect, DisplayListPayload,
     DocumentId, DynamicProperties, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags,
-    FontInstanceKey, FontInstanceOptions, FontKey, FontVariation, ImageData, ImageKey,
-    NativeFontHandle, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
-    RenderReasons, SampledScrollOffset, SpaceAndClipInfo, SpatialId, TransformStyle,
+    FontInstanceKey, FontInstanceOptions, FontInstancePlatformOptions, FontKey, FontVariation,
+    ImageData, ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId, PropertyBinding,
+    ReferenceFrameKind, RenderReasons, SampledScrollOffset, SpaceAndClipInfo, SpatialId,
+    TransformStyle,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -1189,6 +1190,7 @@ impl Painter {
         font_key: FontKey,
         size: f32,
         flags: FontInstanceFlags,
+        platform_options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
     ) {
         let variations = if pref!(layout_variable_fonts_enabled) {
@@ -1208,7 +1210,7 @@ impl Painter {
             font_key,
             size,
             Some(font_instance_options),
-            None,
+            Some(platform_options),
             variations,
         );
 
