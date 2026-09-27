@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Application hamburger menu. Add new entries in [`AppMenu::contents`].
+//! Application hamburger menu. Add new entries in [`AppMenu::root_page`].
 
 use egui::{
-    Button, CornerRadius, Id, Popup, RectAlign, Sense, Stroke, TextWrapMode, Vec2, WidgetInfo,
-    WidgetType, vec2,
+    Button, CornerRadius, Id, Label, Popup, PopupCloseBehavior, RectAlign, Sense, Stroke,
+    TextWrapMode, Vec2, WidgetInfo, WidgetType, vec2,
 };
 use euclid::Point2D;
 use servo::DeviceIndependentPixel;
+
+use crate::desktop::icons::{ToolbarIcon, ToolbarIconCache};
 
 /// Matches other chrome menus (see `dialog.rs`).
 const APP_MENU_MIN_WIDTH: f32 = 350.0;
@@ -33,12 +35,25 @@ pub(crate) enum AppMenuAction {
     NewTab,
     NewWindow,
     History,
+    Processes,
+}
+
+/// Which page of the hamburger menu is showing.
+///
+/// Nested pages replace the menu body in place. The popup stays open.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum AppMenuPage {
+    Root,
+    MoreTools,
 }
 
 /// Application menu opened from the toolbar hamburger button.
 pub(crate) struct AppMenu {
     open: bool,
     rect: egui::Rect,
+    page: AppMenuPage,
+    /// Content height of the root page, so nested pages keep the same panel size.
+    root_content_height: f32,
 }
 
 impl Default for AppMenu {
@@ -46,6 +61,8 @@ impl Default for AppMenu {
         Self {
             open: false,
             rect: egui::Rect::NOTHING,
+            page: AppMenuPage::Root,
+            root_content_height: 0.0,
         }
     }
 }
@@ -58,6 +75,8 @@ impl AppMenu {
     pub(crate) fn close(&mut self) {
         self.open = false;
         self.rect = egui::Rect::NOTHING;
+        self.page = AppMenuPage::Root;
+        self.root_content_height = 0.0;
     }
 
     pub(crate) fn close_ui(&mut self, ctx: &egui::Context) {
@@ -69,16 +88,36 @@ impl AppMenu {
         self.open && self.rect.contains(egui::pos2(position.x, position.y))
     }
 
+    /// Height of the menu body. Nested pages reuse the root page's height.
+    fn content_min_height(&self) -> f32 {
+        match self.page {
+            AppMenuPage::Root => APP_MENU_MIN_HEIGHT,
+            AppMenuPage::MoreTools => self.root_content_height.max(APP_MENU_MIN_HEIGHT),
+        }
+    }
+
     /// Toggle the panel from the toolbar button and draw it when open.
-    pub(crate) fn update(&mut self, button: &egui::Response) -> Option<AppMenuAction> {
+    pub(crate) fn update(
+        &mut self,
+        button: &egui::Response,
+        icons: &mut ToolbarIconCache,
+    ) -> Option<AppMenuAction> {
+        let drawn_page = self.page;
+        let min_height = self.content_min_height();
         let inner = Popup::menu(button)
             .id(Id::new(APP_MENU_ID))
             .align(RectAlign::BOTTOM_END)
             .gap(APP_MENU_OFFSET)
             .width(APP_MENU_MIN_WIDTH)
+            // Stay open while switching pages. Actions still call `ui.close()`.
+            .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
             .show(|ui| {
-                ui.set_min_size(vec2(APP_MENU_MIN_WIDTH, APP_MENU_MIN_HEIGHT));
-                Self::contents(ui)
+                ui.set_min_size(vec2(APP_MENU_MIN_WIDTH, min_height));
+                let action = self.contents(ui, icons);
+                if drawn_page == AppMenuPage::Root {
+                    self.root_content_height = ui.min_rect().height();
+                }
+                action
             });
 
         match inner {
@@ -94,14 +133,29 @@ impl AppMenu {
         }
     }
 
-    /// Menu body. Insert new items with [`Self::item`].
-    fn contents(ui: &mut egui::Ui) -> Option<AppMenuAction> {
+    /// Menu body. Insert new root items in [`Self::root_page`].
+    fn contents(
+        &mut self,
+        ui: &mut egui::Ui,
+        icons: &mut ToolbarIconCache,
+    ) -> Option<AppMenuAction> {
         ui.set_min_width(APP_MENU_MIN_WIDTH);
         ui.spacing_mut().item_spacing.y = 2.0;
         ui.spacing_mut().button_padding = vec2(APP_MENU_ITEM_PADDING, APP_MENU_ITEM_PADDING);
         ui.style_mut().visuals.widgets.inactive.weak_bg_fill = ui.visuals().panel_fill;
         ui.style_mut().visuals.widgets.inactive.bg_fill = ui.visuals().panel_fill;
 
+        match self.page {
+            AppMenuPage::Root => self.root_page(ui, icons),
+            AppMenuPage::MoreTools => self.more_tools_page(ui, icons),
+        }
+    }
+
+    fn root_page(
+        &mut self,
+        ui: &mut egui::Ui,
+        icons: &mut ToolbarIconCache,
+    ) -> Option<AppMenuAction> {
         if let Some(action) = Self::action_item(ui, "New Tab", AppMenuAction::NewTab) {
             return Some(action);
         }
@@ -109,6 +163,25 @@ impl AppMenu {
             return Some(action);
         }
         if let Some(action) = Self::action_item(ui, "History", AppMenuAction::History) {
+            return Some(action);
+        }
+        if Self::submenu_item(ui, icons, "More Tools") {
+            self.page = AppMenuPage::MoreTools;
+        }
+
+        None
+    }
+
+    fn more_tools_page(
+        &mut self,
+        ui: &mut egui::Ui,
+        icons: &mut ToolbarIconCache,
+    ) -> Option<AppMenuAction> {
+        if Self::back_title(ui, icons, "More tools") {
+            self.page = AppMenuPage::Root;
+            return None;
+        }
+        if let Some(action) = Self::action_item(ui, "Processes", AppMenuAction::Processes) {
             return Some(action);
         }
 
@@ -128,6 +201,51 @@ impl AppMenu {
         } else {
             None
         }
+    }
+
+    /// Full-width row that opens another page of this menu. The label and the
+    /// trailing chevron are one click target, and the popup stays open.
+    fn submenu_item(ui: &mut egui::Ui, icons: &mut ToolbarIconCache, label: &str) -> bool {
+        let mut button = Button::new(label)
+            .corner_radius(CornerRadius::same(APP_MENU_ITEM_CORNER_RADIUS))
+            .stroke(Stroke::NONE)
+            .wrap_mode(TextWrapMode::Extend)
+            .min_size(Vec2 {
+                x: APP_MENU_MIN_WIDTH,
+                y: 0.0,
+            })
+            .sense(Sense::click());
+        if let Some(icon) = icons.image(ui, ToolbarIcon::ChevronRight) {
+            button = button.right_text(icon).image_tint_follows_text_color(true);
+        }
+        let response = ui.add(button);
+        response.widget_info(|| {
+            let mut info = WidgetInfo::new(WidgetType::Button);
+            info.label = Some(label.into());
+            info
+        });
+        response.clicked()
+    }
+
+    /// Nested-page heading. Only the leading arrow is a button; the title is not.
+    fn back_title(ui: &mut egui::Ui, icons: &mut ToolbarIconCache, title: &str) -> bool {
+        ui.horizontal(|ui| {
+            let response = ui.add(
+                icons
+                    .image_button(ui, ToolbarIcon::ChevronLeft)
+                    .corner_radius(CornerRadius::same(APP_MENU_ITEM_CORNER_RADIUS))
+                    .stroke(Stroke::NONE)
+                    .min_size(Vec2::ZERO),
+            );
+            response.widget_info(|| {
+                let mut info = WidgetInfo::new(WidgetType::Button);
+                info.label = Some("Back".into());
+                info
+            });
+            ui.add(Label::new(title).selectable(false));
+            response.clicked()
+        })
+        .inner
     }
 
     /// A full-width row ready to host a menu action.
@@ -165,6 +283,29 @@ mod tests {
         menu.close();
         assert!(!menu.is_open());
         assert!(!menu.contains_pointer(Point2D::new(0.0, 0.0)));
+    }
+
+    #[test]
+    fn close_returns_to_the_root_page() {
+        let mut menu = AppMenu::default();
+        menu.page = AppMenuPage::MoreTools;
+        menu.root_content_height = 180.0;
+        menu.close();
+        assert_eq!(menu.page, AppMenuPage::Root);
+        assert_eq!(menu.root_content_height, 0.0);
+    }
+
+    #[test]
+    fn child_page_keeps_the_root_menu_height() {
+        let mut menu = AppMenu::default();
+        assert_eq!(menu.content_min_height(), APP_MENU_MIN_HEIGHT);
+
+        menu.root_content_height = 180.0;
+        menu.page = AppMenuPage::MoreTools;
+        assert_eq!(menu.content_min_height(), 180.0);
+
+        menu.page = AppMenuPage::Root;
+        assert_eq!(menu.content_min_height(), APP_MENU_MIN_HEIGHT);
     }
 
     #[test]

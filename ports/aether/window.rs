@@ -34,6 +34,13 @@ pub(crate) fn history_url() -> Url {
     Url::parse(HISTORY_URL).expect("Should always be able to parse 'servo:history' as URL")
 }
 
+/// The process list opened from More Tools.
+pub(crate) const PROCESSES_URL: &str = "servo:processes";
+
+pub(crate) fn processes_url() -> Url {
+    Url::parse(PROCESSES_URL).expect("Should always be able to parse 'servo:processes' as URL")
+}
+
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
 pub(crate) const LINE_HEIGHT: f32 = 76.0;

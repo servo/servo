@@ -85,6 +85,8 @@ fn toolbar_button_fill_color(
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) enum ToolbarIcon {
     Back,
+    ChevronLeft,
+    ChevronRight,
     Close,
     Forward,
     Home,
@@ -98,6 +100,8 @@ impl ToolbarIcon {
     fn svg_bytes(self) -> &'static [u8] {
         match self {
             Self::Back => include_bytes!("../../../resources/icons/back.svg"),
+            Self::ChevronLeft => include_bytes!("../../../resources/icons/chevron-left.svg"),
+            Self::ChevronRight => include_bytes!("../../../resources/icons/chevron-right.svg"),
             Self::Close => include_bytes!("../../../resources/icons/close.svg"),
             Self::Forward => include_bytes!("../../../resources/icons/forward.svg"),
             Self::Home => include_bytes!("../../../resources/icons/home.svg"),
@@ -111,6 +115,8 @@ impl ToolbarIcon {
     fn texture_name(self) -> &'static str {
         match self {
             Self::Back => "toolbar-back",
+            Self::ChevronLeft => "toolbar-chevron-left",
+            Self::ChevronRight => "toolbar-chevron-right",
             Self::Close => "toolbar-close",
             Self::Forward => "toolbar-forward",
             Self::Home => "toolbar-home",
@@ -136,19 +142,28 @@ impl ToolbarIconCache {
 
     /// Icon button without the toolbar hover square, for chrome that paints its own background.
     pub(crate) fn image_button(&mut self, ui: &egui::Ui, icon: ToolbarIcon) -> egui::Button<'_> {
-        let pixel_size = (TOOLBAR_ICON_SIZE * ui.pixels_per_point()).round().max(1.0) as u32;
-        let button = match self.texture(ui.ctx(), icon, pixel_size) {
-            Some(handle) => {
-                let image = egui::Image::from_texture(SizedTexture::new(
-                    handle.id(),
-                    egui::vec2(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE),
-                ))
-                .fit_to_exact_size(egui::vec2(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE));
-                egui::Button::new(image)
-            },
+        let button = match self.image(ui, icon) {
+            Some(image) => egui::Button::new(image),
             None => egui::Button::new(""),
         };
         button.image_tint_follows_text_color(true)
+    }
+
+    /// A tintable icon image for embedding in another widget, such as a menu row.
+    pub(crate) fn image(
+        &mut self,
+        ui: &egui::Ui,
+        icon: ToolbarIcon,
+    ) -> Option<egui::Image<'static>> {
+        let pixel_size = (TOOLBAR_ICON_SIZE * ui.pixels_per_point()).round().max(1.0) as u32;
+        let handle = self.texture(ui.ctx(), icon, pixel_size)?;
+        Some(
+            egui::Image::from_texture(SizedTexture::new(
+                handle.id(),
+                egui::vec2(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE),
+            ))
+            .fit_to_exact_size(egui::vec2(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE)),
+        )
     }
 
     fn texture(
@@ -223,6 +238,18 @@ mod tests {
             image.pixels.iter().any(|pixel| pixel.a() > 0),
             "back icon should not be fully transparent"
         );
+    }
+
+    #[test]
+    fn chevron_svgs_rasterize() {
+        for icon in [ToolbarIcon::ChevronLeft, ToolbarIcon::ChevronRight] {
+            let image = rasterize_svg(icon.svg_bytes(), 32).expect("chevron should rasterize");
+            assert_eq!(image.size, [32, 32]);
+            assert!(
+                image.pixels.iter().any(|pixel| pixel.a() > 0),
+                "chevron icon should not be fully transparent"
+            );
+        }
     }
 
     #[test]
