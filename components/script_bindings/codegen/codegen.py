@@ -1006,11 +1006,8 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
-            pre = "Rc" if descriptor.useRcCallback else "RootedCallback"
-            declType = CGWrapper(CGGeneric(f"{name}<D>"), pre=f"{pre}<", post=">")
-            template = f"{name}::new(cx, ${{val}}.get().to_object())"
-            if not descriptor.useRcCallback:
-                template = f"RootedCallback::from({template})"
+            declType = CGWrapper(CGGeneric(f"{name}<D>"), pre="RootedCallback<", post=">")
+            template = f"RootedCallback::from({name}::new(cx, ${{val}}.get().to_object()))"
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
                 template = wrapObjectTemplate(f"Some({template})", "None",
@@ -1219,17 +1216,14 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         # pyrefly: ignore  # missing-attribute
         callback = type.unroll().callback
         declType = CGGeneric(f"{callback.identifier.name}<D>")
-        useRc = descriptorProvider.callbackUsesRc(callback.identifier.name)
         needTraced = isMember == "Dictionary"
-        if useRc:
-            typeName = "Rc"
-        elif needTraced:
+        if needTraced:
             typeName = "TracedCallback"
         else:
             typeName = "RootedCallback"
         finalDeclType = CGTemplatedType(typeName, declType)
 
-        conversion = CGCallbackTempRoot(declType.define(), useRc, needTraced)
+        conversion = CGCallbackTempRoot(declType.define(), needTraced)
 
         if type.nullable():
             declType = CGTemplatedType("Option", declType)
@@ -1680,8 +1674,7 @@ def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: 
     if returnType.isCallback():
         # pyrefly: ignore  # missing-attribute
         callback = returnType.unroll().callback
-        typeName = "Rc" if descriptorProvider.callbackUsesRc(callback.identifier.name) else "RootedCallback"
-        result = CGGeneric(f'{typeName}<{getModuleFromObject(callback)}::{callback.identifier.name}<D>>')
+        result = CGGeneric(f'RootedCallback<{getModuleFromObject(callback)}::{callback.identifier.name}<D>>')
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -2886,16 +2879,10 @@ class CGGeneric(CGThing):
 
 
 class CGCallbackTempRoot(CGGeneric):
-    def __init__(self, name: str, useRc: bool, needTraced: bool) -> None:
+    def __init__(self, name: str, needTraced: bool) -> None:
         inner = CGGeneric(f"unsafe {{ {name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object()) }}")
-        pre = "RootedCallback::from(" if not useRc else ""
-        if not useRc:
-            post = ")"
-            if needTraced:
-                post += ".to_traced()"
-        else:
-            post = ""
-        CGGeneric.__init__(self, CGWrapper(inner, pre, post).define())
+        post = ").to_traced()" if needTraced else ")"
+        CGGeneric.__init__(self, CGWrapper(inner, "RootedCallback::from(", post).define())
 
 
 def getAllTypes(
@@ -5649,7 +5636,7 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
             if type_needs_tracing(t):
                 return "RootedTraceableBox"
             if t.isCallback():
-                return "Rc" if self.descriptorProvider.callbackUsesRc(t.name) else "RootedCallback"
+                return "RootedCallback"
             return ""
 
         assert self.type.flatMemberTypes is not None
@@ -5869,8 +5856,7 @@ class CGUnionConversionStruct(CGThing):
         if type_needs_tracing(t):
             actualType = f"RootedTraceableBox<{actualType}>"
         if t.isCallback():
-            typeName = "Rc" if self.descriptorProvider.callbackUsesRc(t.name) else "RootedCallback"
-            actualType = f"{typeName}<{actualType}>"
+            actualType = f"RootedCallback<{actualType}>"
         returnType = f"Result<Option<{actualType}>, ()>"
         jsConversion = templateVars["jsConversion"]
 
@@ -6023,7 +6009,7 @@ class ClassConstructor(ClassItem):
 
     body contains a string with the code for the constructor, defaults to empty.
     """
-    def __init__(self, args: list[Argument], useRc: bool, inline: bool = False, bodyInHeader: bool = False,
+    def __init__(self, args: list[Argument], inline: bool = False, bodyInHeader: bool = False,
                  visibility: str = "priv", explicit: bool = False, baseConstructors: list[str] | None = None,
                  body: str = "") -> None:
         self.args = args
@@ -6032,7 +6018,6 @@ class ClassConstructor(ClassItem):
         self.explicit = explicit
         self.baseConstructors = baseConstructors or []
         self.body = body
-        self.useRc = useRc
         ClassItem.__init__(self, None, visibility)
 
     def getDecorators(self, declaring: bool) -> str:
@@ -8552,7 +8537,6 @@ class CGCallback(CGClass):
         self.baseName = baseName
         self._deps = idlObject.getDeps()
         name = idlObject.identifier.name
-        self.useRc = descriptorProvider.callbackUsesRc(name)
         # For our public methods that needThisHandling we want most of the
         # same args and the same return type as what CallbackMember
         # generates.  So we want to take advantage of all its
@@ -8577,7 +8561,6 @@ class CGCallback(CGClass):
     def getConstructors(self) -> list[ClassConstructor]:
         return [ClassConstructor(
             [Argument("&JSContext", "cx"), Argument("*mut JSObject", "aCallback")],
-            useRc=self.useRc,
             bodyInHeader=True,
             visibility="pub",
             explicit=False,
