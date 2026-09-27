@@ -689,6 +689,9 @@ impl Gui {
                                 TopLevelWebViewCreationRequest::WithUrl(processes_url()),
                             ));
                         },
+                        Some(AppMenuAction::Exit) => {
+                            state.schedule_exit();
+                        },
                         None => {},
                     }
                 }
