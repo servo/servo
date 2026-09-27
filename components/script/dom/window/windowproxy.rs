@@ -1640,11 +1640,7 @@ unsafe extern "C" fn own_property_keys(
     rooted!(&in(cx) let target = window_proxy_target(proxy));
     let window = WindowOrDissimilarOriginWindow::new(cx, target.handle());
 
-    // Step 2. Let maxProperties be W's associated Document's document-tree child navigables's
-    // size.
-    //
-    // TODO: DissimilarOriginWindow currently always returns 0 for the length,
-    // so this has the effect of not exposing any indexable attributes.
+    // Step 2. Let maxProperties be W's associated Document's document-tree child navigables's size.
     let max_properties = window.iframe_count();
 
     // Step 3. Let keys be the range 0 to maxProperties, exclusive.
@@ -1671,13 +1667,69 @@ unsafe extern "C" fn own_property_keys(
     cross_origin_own_property_keys(cx, proxy, window.cross_origin_properties(), property_keys)
 }
 
+/// A version of <https://html.spec.whatwg.org/multipage#windowproxy-ownpropertykeys>
+/// that hands back only the enumerable properties. This is necessary because the
+/// default implementation of this method returns all enumerable properties which
+/// isn't correct in the cross-origin case.
+#[expect(unsafe_code)]
+unsafe extern "C" fn get_own_enumerable_property_keys(
+    cx: *mut RawJSContext,
+    proxy: RawHandleObject,
+    property_keys: RawMutableHandleIdVector,
+) -> bool {
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut cx = CurrentRealm::assert(&mut cx);
+    let cx = &mut cx;
+    let proxy = unsafe { Handle::from_raw(proxy) };
+
+    // Step 1. Let W be the value of the [[Window]] internal slot of this.
+    rooted!(&in(cx) let target = window_proxy_target(proxy));
+    let window = WindowOrDissimilarOriginWindow::new(cx, target.handle());
+
+    // Step 2. Let maxProperties be W's associated Document's document-tree child navigables's size.
+    let max_properties = window.iframe_count();
+
+    // Step 3. Let keys be the range 0 to maxProperties, exclusive.
+    rooted!(&in(cx) let mut rooted_index_jsid: jsid);
+    for index in 0..max_properties {
+        unsafe { int_to_jsid(index as i32, rooted_index_jsid.handle_mut()) };
+        unsafe { AppendToIdVector(property_keys, rooted_index_jsid.handle()) };
+    }
+
+    if is_platform_object_same_origin(cx, proxy) {
+        // Step 4. If IsPlatformObjectSameOrigin(W) is true, then return the concatenation of keys and
+        // OrdinaryOwnPropertyKeys(W).
+        return unsafe { GetPropertyKeys(cx, target.handle(), JSITER_OWNONLY, property_keys) };
+    }
+
+    // There are no other enumerable property keys for cross-origin WindowProxy other than
+    // the child navigable indices.
+    true
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn enumerate(
+    cx: *mut RawJSContext,
+    proxy: RawHandleObject,
+    property_keys: RawMutableHandleIdVector,
+) -> bool {
+    // Just get the property keys from ourselves, in whatever Realm we happen to
+    // be in. It's important to not enter the Realm of "proxy" here, because that
+    // would affect the list of keys we claim to have.
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let cx = &mut cx;
+    let proxy = unsafe { Handle::from_raw(proxy) };
+
+    unsafe { GetPropertyKeys(cx, proxy, 0, property_keys) }
+}
+
 static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(get_own_property_descriptor),
     defineProperty: Some(define_property),
     ownPropertyKeys: Some(own_property_keys),
     delete_: Some(delete),
-    enumerate: None,
+    enumerate: Some(enumerate),
     getPrototypeIfOrdinary: Some(get_prototype_if_ordinary),
     getPrototype: Some(get_prototype),
     setPrototype: Some(maybe_cross_origin_set_prototype_rawcx),
@@ -1690,7 +1742,7 @@ static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     call: None,
     construct: None,
     hasOwn: Some(has_own),
-    getOwnEnumerablePropertyKeys: None,
+    getOwnEnumerablePropertyKeys: Some(get_own_enumerable_property_keys),
     nativeCall: None,
     objectClassIs: None,
     className: None,

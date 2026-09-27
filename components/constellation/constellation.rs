@@ -1878,6 +1878,21 @@ where
                     );
                 }
             },
+            ScriptToConstellationMessage::GetChildBrowsingContextCount(
+                browsing_context_id,
+                response_sender,
+            ) => {
+                let count = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .and_then(|browsing_context| self.pipelines.get(&browsing_context.pipeline_id))
+                    .map(|pipeline| pipeline.children.len())
+                    .unwrap_or_default();
+                if let Err(error) = response_sender.send(count) {
+                    warn!("Sending reply to get child browsing context count failed ({error:?}).",);
+                }
+            },
+
             ScriptToConstellationMessage::GetChildBrowsingContextId(
                 browsing_context_id,
                 index,
@@ -1889,11 +1904,8 @@ where
                     .and_then(|bc| self.pipelines.get(&bc.pipeline_id))
                     .and_then(|pipeline| pipeline.children.get(index))
                     .copied();
-                if let Err(e) = response_sender.send(result) {
-                    warn!(
-                        "Sending reply to get child browsing context ID failed ({:?}).",
-                        e
-                    );
+                if let Err(error) = response_sender.send(result) {
+                    warn!("Sending reply to get child browsing context ID failed ({error:?}).",);
                 }
             },
             ScriptToConstellationMessage::IsCurrentlyFullyActive(pipeline_id, response_sender) => {

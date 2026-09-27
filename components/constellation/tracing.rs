@@ -165,6 +165,7 @@ mod from_script {
                 Self::GetDocumentOriginDetails(..) => {
                     target!("GetDocumentOriginDetails")
                 },
+                Self::GetChildBrowsingContextCount(..) => target!("GetChildBrowsingContextCount"),
                 Self::GetChildBrowsingContextId(..) => target!("GetChildBrowsingContextId"),
                 Self::LoadComplete => target!("LoadComplete"),
                 Self::LoadUrl(..) => target!("LoadUrl"),
