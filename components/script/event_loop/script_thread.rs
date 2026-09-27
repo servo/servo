@@ -424,6 +424,9 @@ pub struct ScriptThread {
     devtools_state: DevtoolsState,
 
     /// Switch offline and online events
+    ///
+    /// online event: <https://html.spec.whatwg.org/multipage/indices.html#event-online>
+    /// offline event: <https://html.spec.whatwg.org/multipage/indices.html#event-offline>
     is_online: Cell<bool>,
 }
 
