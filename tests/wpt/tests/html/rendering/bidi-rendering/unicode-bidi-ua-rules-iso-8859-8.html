@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset=ISO-8859-8>
+<title>unicode-bidi UA stylesheet rules for ISO-8859-8 documents</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#bidi-rendering:iso-8859-8">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src='../../resources/common.js'></script>
+
+<body>
+<script>
+  function getUnicodeBidi(el) {
+    return window.getComputedStyle(el, "").unicodeBidi;
+  }
+
+  test(() => {
+    assert_equals(document.characterSet, "ISO-8859-8");
+  }, "Verify document.characterSet is ISO-8859-8");
+
+  const overrideElements = ['address', 'blockquote', 'center', 'div', 'figure',
+      'figcaption', 'footer', 'form', 'header', 'hr', 'legend', 'listing',
+      'main', 'p', 'plaintext', 'pre', 'summary', 'xmp', 'article', 'aside',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hgroup', 'nav', 'search',
+      'section', 'table', 'caption', 'colgroup', 'col', 'thead', 'tbody',
+      'tfoot', 'tr', 'td', 'th', 'dir', 'dd', 'dl', 'dt', 'menu', 'ol', 'ul',
+      'li'];
+
+  for(let tagname of overrideElements) {
+    test((t) => {
+      const element = document.createElement(tagname);
+      t.add_cleanup(() => element.remove());
+      document.body.appendChild(element);
+      assert_equals(getUnicodeBidi(element),'bidi-override');
+
+      element.setAttribute('dir','rtl');
+      assert_equals(getUnicodeBidi(element),'bidi-override','with dir=rtl');
+    },`ISO-8859-8 UA stylesheet rule for unicode-bidi, for <${tagname}>`);
+  }
+
+  test((t) => {
+    const element = document.createElement('span');
+    t.add_cleanup(() => element.remove());
+    document.body.appendChild(element);
+    assert_equals(getUnicodeBidi(element),'bidi-override');
+  },`ISO-8859-8 UA stylesheet rule for unicode-bidi, for elements not listed in the spec`);
+
+  const normalInputTypes =
+      HTML5_INPUT_TYPES.filter(type => (!['submit','reset','button'].includes(type)));
+  for(let type of normalInputTypes) {
+    test((t) => {
+      const element = document.createElement('input');
+      t.add_cleanup(() => element.remove());
+      element.type = type;
+      document.body.appendChild(element);
+      assert_equals(getUnicodeBidi(element),'normal');
+
+      element.setAttribute('dir','rtl');
+      assert_equals(getUnicodeBidi(element),'normal','with dir=rtl');
+    },`ISO-8859-8 UA stylesheet rule for unicode-bidi, for <input type=${type}>`);
+  }
+
+  test((t) => {
+    const element = document.createElement('textarea');
+    t.add_cleanup(() => element.remove());
+    document.body.appendChild(element);
+    assert_equals(getUnicodeBidi(element),'normal');
+  },`ISO-8859-8 UA stylesheet rule for unicode-bidi, for <textarea>`);
+</script>

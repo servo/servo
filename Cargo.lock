@@ -8691,6 +8691,7 @@ dependencies = [
  "atomic_refcell",
  "bitflags 2.13.2",
  "data-url",
+ "encoding_rs",
  "euclid",
  "icu_locale_core",
  "icu_properties",

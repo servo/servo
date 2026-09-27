@@ -26,6 +26,7 @@ atomic_refcell = { workspace = true }
 bitflags = { workspace = true }
 data-url = { workspace = true }
 embedder_traits = { workspace = true }
+encoding_rs = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }
 fonts_traits = { workspace = true }
