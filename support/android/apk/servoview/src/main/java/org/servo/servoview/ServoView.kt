@@ -12,7 +12,6 @@ import android.os.Looper
 import android.util.Log
 import android.util.Size
 import android.view.Choreographer
-import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 
@@ -50,27 +49,6 @@ class ServoView(
 
     override fun inUIThread(r: Runnable) {
         post(r)
-    }
-
-    override fun onTouchEvent(motionEvent: MotionEvent): Boolean {
-        requestFocus()
-
-        val action = motionEvent.actionMasked
-        val pointerIndex = motionEvent.actionIndex
-        val pointerId = motionEvent.getPointerId(pointerIndex)
-        val x = motionEvent.getX(pointerIndex)
-        val y = motionEvent.getY(pointerIndex)
-
-        when (action) {
-            MotionEvent.ACTION_DOWN,
-            MotionEvent.ACTION_POINTER_DOWN -> servo!!.touchDown(x, y, pointerId)
-            MotionEvent.ACTION_MOVE -> servo!!.touchMove(x, y, pointerId)
-            MotionEvent.ACTION_UP,
-            MotionEvent.ACTION_POINTER_UP -> servo!!.touchUp(x, y, pointerId)
-            MotionEvent.ACTION_CANCEL -> servo!!.touchCancel(x, y, pointerId)
-        }
-
-        return true
     }
 
     override fun doFrame(frameTimeNanos: Long) {
