@@ -59,7 +59,6 @@ class Configuration:
         self.enumConfig = glbl['Enums']
         self.dictConfig = glbl['Dictionaries']
         self.unionConfig = glbl['Unions']
-        self.callbackConfig = glbl['Callbacks']
         self.sub_crates = glbl['SubCrates']
 
         # Build descriptors for all the interfaces we have in the parse data.
@@ -180,9 +179,6 @@ class Configuration:
     def getCallbacks(self, webIDLFile: str = "") -> list[IDLCallback]:
         return self._filterForFile(self.callbacks, webIDLFile=webIDLFile)
 
-    def getCallbackConfig(self, name: str) -> dict[str, Any]:
-        return self.callbackConfig.get(name, {})
-
     def getDescriptor(self, interfaceName: str) -> Descriptor:
         """
         Gets the appropriate descriptor for the given interface name.
@@ -221,9 +217,6 @@ class DescriptorProvider:
         context of the current descriptor.
         """
         return self.config.getDescriptor(interfaceName)
-
-    def callbackUsesRc(self, callbackIdentifier: str) -> bool:
-        return self.config.getCallbackConfig(callbackIdentifier).get('rc', False)
 
 def MemberIsLegacyUnforgeable(member: IDLAttribute | IDLMethod, descriptor: Descriptor) -> bool:
     return ((member.isAttr() or member.isMethod())
@@ -281,8 +274,7 @@ class Descriptor(DescriptorProvider):
         elif self.interface.isCallback():
             ty = 'crate::codegen::GenericBindings::%sBinding::%s' % (ifaceName, ifaceName)
             pathDefault = ty
-            callback_type = "Rc" if desc.get('useRcCallback', False) else "RootedCallback"
-            self.returnType = "%s<%s<D>>" % (callback_type, ty)
+            self.returnType = "RootedCallback<%s<D>>" % ty
             self.argumentType = "???"
             self.nativeType = ty
         else:
@@ -322,7 +314,6 @@ class Descriptor(DescriptorProvider):
         self.weakReferenceable = desc.get('weakReferenceable', False)
         self.useSystemCompartment = desc.get('useSystemCompartment', False)
         self.allowDropImpl = desc.get('allowDropImpl', False)
-        self.useRcCallback = self.interface.isCallback() and desc.get('useRcCallback', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
