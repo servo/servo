@@ -494,13 +494,13 @@ fn is_field_name(name: &ByteString) -> bool {
 }
 
 // As of December 2019, WHATWG has no formal grammar production for value;
-// https://fetch.spec.whatg.org/#concept-header-value just says not to have
+// https://fetch.spec.whatwg.org/#concept-header-value just says not to have
 // newlines, nulls, or leading/trailing whitespace. It even allows
 // octets that aren't a valid UTF-8 encoding, and WPT tests reflect this.
 // The HeaderValue class does not fully reflect this, so headers
 // containing bytes with values 1..31 or 127 can't be created, failing
 // WPT tests but probably not affecting anything important on the real Internet.
-/// <https://fetch.spec.whatg.org/#concept-header-value>
+/// <https://fetch.spec.whatwg.org/#concept-header-value>
 fn is_legal_header_value(value: &[u8]) -> bool {
     let value_len = value.len();
     if value_len == 0 {
