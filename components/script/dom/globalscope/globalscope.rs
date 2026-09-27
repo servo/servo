@@ -3162,7 +3162,7 @@ impl GlobalScope {
     }
 
     pub(crate) fn set_network_online_state_on_dedicated_workers(&self, is_online: bool) {
-        for worker in &*self.list_auto_close_worker.borrow_mut() {
+        for worker in &*self.list_auto_close_worker.borrow() {
             _ = worker
                 .control_sender
                 .send(DedicatedWorkerControlMsg::SetNetworkOnlineState(is_online));

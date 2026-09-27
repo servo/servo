@@ -391,6 +391,10 @@ pub(crate) struct WorkerGlobalScope {
     #[ignore_malloc_size_of = "mozjs"]
     module_map: DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>,
 
+    /// Switch offline and online events
+    ///
+    /// online event: <https://html.spec.whatwg.org/multipage/indices.html#event-online>
+    /// offline event: <https://html.spec.whatwg.org/multipage/indices.html#event-offline>
     is_online: Cell<bool>,
 }
 

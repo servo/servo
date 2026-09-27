@@ -82,7 +82,7 @@ mod from_embedder {
                 Self::UpdatePinchZoomInfos(..) => target!("UpdatePinchZoomInfos"),
                 Self::SetAccessibilityActive(..) => target!("SetAccessibilityActive"),
                 Self::ClearSessionHistory(..) => target!("ClearHistory"),
-                Self::SetNetworkOnlineState(..) => target!("OnlineChanged"),
+                Self::SetNetworkOnlineState(..) => target!("SetNetworkOnlineState"),
             }
         }
     }
