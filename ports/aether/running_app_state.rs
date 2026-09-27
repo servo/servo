@@ -166,7 +166,7 @@ pub(crate) enum UserInterfaceCommand {
     Reload,
     ReloadAll,
     Home,
-    NewWebView,
+    NewWebView(TopLevelWebViewCreationRequest),
     CloseWebView(WebViewId),
     NewWindow(TopLevelWebViewCreationRequest),
 }

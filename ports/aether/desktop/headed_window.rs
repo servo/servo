@@ -326,6 +326,25 @@ impl HeadedWindow {
         webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point.into())));
     }
 
+    /// The menu is painted over the page, so a pointer resting on it must not keep the page
+    /// hovered or change the cursor to whatever is underneath.
+    fn clear_page_hover_under_menu(&self, window: &ServoShellWindow) {
+        self.set_cursor(Cursor::Default);
+        let Some(webview) = window.active_webview() else {
+            return;
+        };
+        let point = self.webview_relative_mouse_point.get();
+        let webview_rect: Rect<_, _> = webview.size().into();
+        if !webview_rect.contains(point) {
+            return;
+        }
+        webview.notify_input_event(InputEvent::MouseLeftViewport(
+            MouseLeftViewportEvent::default(),
+        ));
+        self.webview_relative_mouse_point
+            .set(Point2D::new(-1.0, -1.0));
+    }
+
     /// Handle key events before sending them to Servo.
     fn handle_intercepted_key_bindings(
         &self,
@@ -644,10 +663,19 @@ impl HeadedWindow {
                     // Note that servo doesn’t yet support tabbing through links and inputs
                     consumed = response.consumed;
                 }
-                // Clicks and Escape while the menu is open must not reach the page.
+                // Clicks, hover, and Escape while the menu is open must not reach the page.
+                // Cursor moves are still delivered to egui above so menu rows can highlight.
                 if self.gui.borrow().is_app_menu_open() {
                     match event {
                         WindowEvent::MouseInput { .. } => consumed = true,
+                        WindowEvent::CursorMoved { .. }
+                            if self.last_mouse_position.get().is_some_and(|point| {
+                                self.gui.borrow().app_menu_contains_pointer(point)
+                            }) =>
+                        {
+                            consumed = true;
+                            self.clear_page_hover_under_menu(&window);
+                        },
                         WindowEvent::KeyboardInput {
                             event: key_event, ..
                         } if key_event.logical_key == LogicalKey::Named(WinitNamedKey::Escape) => {

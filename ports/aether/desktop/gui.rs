@@ -60,7 +60,7 @@ use crate::desktop::headed_window;
 use crate::desktop::icons::{ToolbarIcon, ToolbarIconCache};
 use crate::desktop::menu::{AppMenu, AppMenuAction};
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
-use crate::window::{ServoShellWindow, TopLevelWebViewCreationRequest, new_tab_url};
+use crate::window::{ServoShellWindow, TopLevelWebViewCreationRequest, history_url, new_tab_url};
 
 /// The user interface of a headed servoshell. Currently this is implemented via
 /// egui.
@@ -314,6 +314,14 @@ impl Gui {
 
     pub(crate) fn is_app_menu_open(&self) -> bool {
         self.app_menu.is_open()
+    }
+
+    /// Whether the pointer is over the open application menu, which overlays the page.
+    pub(crate) fn app_menu_contains_pointer(
+        &self,
+        position: Point2D<f32, DeviceIndependentPixel>,
+    ) -> bool {
+        self.app_menu.contains_pointer(position)
     }
 
     /// Draws a browser tab, checking for clicks and queues appropriate [`UserInterfaceCommand`]s.
@@ -643,7 +651,11 @@ impl Gui {
                                     });
                                     if new_tab_button.clicked() {
                                         window.queue_user_interface_command(
-                                            UserInterfaceCommand::NewWebView,
+                                            UserInterfaceCommand::NewWebView(
+                                                TopLevelWebViewCreationRequest::WithUrl(
+                                                    new_tab_url(),
+                                                ),
+                                            ),
                                         );
                                     }
                                 },
@@ -656,11 +668,18 @@ impl Gui {
                 if let Some(button) = &menu_button {
                     match app_menu.update(button) {
                         Some(AppMenuAction::NewTab) => {
-                            window.queue_user_interface_command(UserInterfaceCommand::NewWebView);
+                            window.queue_user_interface_command(UserInterfaceCommand::NewWebView(
+                                TopLevelWebViewCreationRequest::WithUrl(new_tab_url()),
+                            ));
                         },
                         Some(AppMenuAction::NewWindow) => {
                             window.queue_user_interface_command(UserInterfaceCommand::NewWindow(
                                 TopLevelWebViewCreationRequest::WithUrl(new_tab_url()),
+                            ));
+                        },
+                        Some(AppMenuAction::History) => {
+                            window.queue_user_interface_command(UserInterfaceCommand::NewWebView(
+                                TopLevelWebViewCreationRequest::WithUrl(history_url()),
                             ));
                         },
                         None => {},

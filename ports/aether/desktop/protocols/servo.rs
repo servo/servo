@@ -11,6 +11,7 @@
 //! - servo:preferences
 //! - servo:processes
 //! - servo:process-list
+//! - servo:history
 
 use std::future::Future;
 use std::pin::Pin;
@@ -89,6 +90,13 @@ impl ProtocolHandler for ServoProtocolHandler {
                 done_chan,
                 context,
                 "/processes.html",
+            ),
+
+            "history" => ResourceProtocolHandler::response_for_path(
+                request,
+                done_chan,
+                context,
+                "/history.html",
             ),
 
             "process-list" => {

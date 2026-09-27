@@ -341,6 +341,23 @@ fn test_location_bar_accepts_processes_url() {
 }
 
 #[test]
+fn test_history_url_is_history_page() {
+    let history = crate::window::history_url();
+    assert_eq!(history.as_str(), crate::window::HISTORY_URL);
+    assert_eq!(history.as_str(), "servo:history");
+}
+
+#[test]
+fn test_location_bar_accepts_history_url() {
+    let url = location_bar_input_to_url(
+        crate::window::HISTORY_URL,
+        "https://duckduckgo.com/html/?q=%s",
+    )
+    .expect("history URL should parse");
+    assert_eq!(url.as_str(), "servo:history");
+}
+
+#[test]
 fn processes_page_lists_sortable_columns_and_json_endpoint() {
     let html = include_str!("../../resources/resource_protocol/processes.html");
     assert!(html.contains("data-sort=\"name\""));

@@ -32,6 +32,7 @@ const APP_MENU_ID: &str = "app_menu";
 pub(crate) enum AppMenuAction {
     NewTab,
     NewWindow,
+    History,
 }
 
 /// Application menu opened from the toolbar hamburger button.
@@ -107,6 +108,9 @@ impl AppMenu {
         if let Some(action) = Self::action_item(ui, "New Window", AppMenuAction::NewWindow) {
             return Some(action);
         }
+        if let Some(action) = Self::action_item(ui, "History", AppMenuAction::History) {
+            return Some(action);
+        }
 
         None
     }
@@ -161,5 +165,24 @@ mod tests {
         menu.close();
         assert!(!menu.is_open());
         assert!(!menu.contains_pointer(Point2D::new(0.0, 0.0)));
+    }
+
+    #[test]
+    fn open_menu_contains_pointer_only_inside_its_rect() {
+        let mut menu = AppMenu::default();
+        menu.open = true;
+        menu.rect = egui::Rect::from_min_max(egui::pos2(10.0, 20.0), egui::pos2(110.0, 80.0));
+
+        // egui rects are closed: min and max edges are inside.
+        assert!(menu.contains_pointer(Point2D::new(10.0, 20.0)));
+        assert!(menu.contains_pointer(Point2D::new(60.0, 40.0)));
+        assert!(menu.contains_pointer(Point2D::new(110.0, 40.0)));
+        assert!(menu.contains_pointer(Point2D::new(60.0, 80.0)));
+        assert!(!menu.contains_pointer(Point2D::new(0.0, 0.0)));
+        assert!(!menu.contains_pointer(Point2D::new(110.1, 40.0)));
+        assert!(!menu.contains_pointer(Point2D::new(60.0, 80.1)));
+
+        menu.open = false;
+        assert!(!menu.contains_pointer(Point2D::new(60.0, 40.0)));
     }
 }

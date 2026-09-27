@@ -27,6 +27,13 @@ pub(crate) fn new_tab_url() -> Url {
     Url::parse(NEW_TAB_URL).expect("Should always be able to parse 'servo:newtab' as URL")
 }
 
+/// The history page opened from the application menu.
+pub(crate) const HISTORY_URL: &str = "servo:history";
+
+pub(crate) fn history_url() -> Url {
+    Url::parse(HISTORY_URL).expect("Should always be able to parse 'servo:history' as URL")
+}
+
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
 pub(crate) const LINE_HEIGHT: f32 = 76.0;
@@ -379,12 +386,9 @@ impl ServoShellWindow {
                         active_webview.load(new_tab_url());
                     }
                 },
-                UserInterfaceCommand::NewWebView => {
+                UserInterfaceCommand::NewWebView(creation_request) => {
                     self.set_needs_update();
-                    self.create_and_activate_toplevel_webview(
-                        state.clone(),
-                        TopLevelWebViewCreationRequest::WithUrl(new_tab_url()),
-                    );
+                    self.create_and_activate_toplevel_webview(state.clone(), creation_request);
                 },
                 UserInterfaceCommand::CloseWebView(id) => {
                     self.set_needs_update();
