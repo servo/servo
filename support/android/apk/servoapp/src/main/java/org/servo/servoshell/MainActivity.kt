@@ -121,7 +121,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             IconButton(
                                 onClick = {
                                     if (isRefreshingState.value) onCancelMenuItemClicked()
-                                    else onRefreshMenuItemClicked()
+                                    else onRefreshMenuItemClicked(navigator)
                                 }
                             ) {
                                 if (isRefreshingState.value) {
@@ -193,7 +193,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             } else {
                                 NavigationBarItem(
                                     selected = false,
-                                    onClick = ::onRefreshMenuItemClicked,
+                                    onClick = { onRefreshMenuItemClicked(navigator) },
                                     icon = { Icon(painterResource(R.drawable.refresh), null) },
                                     label = { Text(stringResource(R.string.refresh)) },
                                 )
@@ -257,8 +257,8 @@ class MainActivity : ComponentActivity(), Servo.Client {
         navigator.forward()
     }
 
-    private fun onRefreshMenuItemClicked() {
-        servoView.reload()
+    private fun onRefreshMenuItemClicked(navigator: ServoNavigator) {
+        navigator.reload()
     }
 
     private fun onCancelMenuItemClicked() {
