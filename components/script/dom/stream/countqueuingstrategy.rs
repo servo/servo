@@ -65,7 +65,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
         let global = self.global();
         // Return this's relevant global object's count queuing strategy
         // size function.
-        if let Some(fun) = global.get_count_queuing_strategy_size() {
+        if let Some(fun) = global.get_count_queuing_strategy_size(cx) {
             return Ok(fun);
         }
 

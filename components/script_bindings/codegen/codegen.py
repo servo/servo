@@ -8287,10 +8287,7 @@ class CGBindingRoot(CGThing):
 
         # Do codegen for all the callbacks.
         cgthings.extend(CGList([CGCallbackFunction(c, config.getDescriptorProvider()),
-                                CGCallbackFunctionImpl(
-                                    c,
-                                    config.getDescriptorProvider().callbackUsesRc(c.identifier.name),
-                                )], "\n")
+                                CGCallbackFunctionImpl(c)], "\n")
                         for c in mainCallbacks)
 
         # Do codegen for all the descriptors
@@ -8300,10 +8297,7 @@ class CGBindingRoot(CGThing):
         cgthings.extend(CGList(
             [
                 CGCallbackInterface(x),
-                CGCallbackFunctionImpl(
-                    assert_type(x.interface, IDLInterface),
-                    config.getDescriptorProvider().callbackUsesRc(x.interface.identifier.name),
-                )
+                CGCallbackFunctionImpl(assert_type(x.interface, IDLInterface))
             ],
             "\n"
         ) for x in callbackDescriptors)

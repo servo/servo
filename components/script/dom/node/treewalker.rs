@@ -91,10 +91,10 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-treewalker-filter>
-    fn GetFilter(&self) -> Option<RootedCallback<NodeFilter>> {
+    fn GetFilter(&self, cx: &JSContext) -> Option<RootedCallback<NodeFilter>> {
         match self.filter {
             Filter::None => None,
-            Filter::Dom(ref nf) => Some(nf.root()),
+            Filter::Dom(ref nf) => Some(nf.root(cx)),
         }
     }
 

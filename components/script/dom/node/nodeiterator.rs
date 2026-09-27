@@ -92,10 +92,10 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nodeiterator-filter>
-    fn GetFilter(&self) -> Option<RootedCallback<NodeFilter>> {
+    fn GetFilter(&self, cx: &JSContext) -> Option<RootedCallback<NodeFilter>> {
         match self.filter {
             Filter::None => None,
-            Filter::Callback(ref nf) => Some(nf.root()),
+            Filter::Callback(ref nf) => Some(nf.root(cx)),
         }
     }
 

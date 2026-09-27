@@ -128,22 +128,6 @@ impl<T> std::ops::Deref for TracedCallback<T> {
 }
 
 #[expect(unsafe_code)]
-pub(crate) unsafe fn create_callback<D: DomTypes, T: HasCallbackHolder<D = D>>(
-    cx: &JSContext,
-    obj: T,
-    callback: *mut JSObject,
-) -> Rc<T> {
-    let mut ret = Rc::new(obj);
-    unsafe {
-        Rc::get_mut(&mut ret)
-            .unwrap()
-            .callback_holder_mut()
-            .init(cx, callback)
-    };
-    ret
-}
-
-#[expect(unsafe_code)]
 pub(crate) unsafe fn create_callback_rooted<D: DomTypes, T: HasCallbackHolder<D = D>>(
     cx: &JSContext,
     obj: T,
@@ -191,14 +175,6 @@ pub struct CallbackObject<D: DomTypes> {
 }
 
 impl<D: DomTypes> CallbackObject<D> {
-    fn new_with_interior_root() -> Self {
-        Self {
-            callback: Heap::default(),
-            permanent_js_root: Some(Default::default()),
-            incumbent: D::GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
-        }
-    }
-
     fn new_from_existing(other: &CallbackObject<D>) -> Self {
         Self {
             callback: Heap::default(),
@@ -222,18 +198,6 @@ impl<D: DomTypes> CallbackObject<D> {
     #[expect(unsafe_code)]
     unsafe fn init_callback(&mut self, callback: *mut JSObject) {
         self.callback.set(callback);
-    }
-
-    #[expect(unsafe_code)]
-    unsafe fn init(&mut self, cx: &JSContext, callback: *mut JSObject) {
-        unsafe {
-            self.init_callback(callback);
-        }
-        if let Some(ref permanent_root) = self.permanent_js_root {
-            unsafe {
-                permanent_root.init(cx, self.callback.get(), c"CallbackObject::root");
-            }
-        }
     }
 }
 
@@ -298,13 +262,6 @@ impl<'a, D: DomTypes> From<&'a CallbackObject<D>> for CallbackFunction<D> {
 }
 
 impl<D: DomTypes> CallbackFunction<D> {
-    /// Create a new `CallbackFunction` for this object.
-    pub(crate) fn new_with_interior_root() -> Self {
-        Self {
-            object: CallbackObject::new_with_interior_root(),
-        }
-    }
-
     /// Create a new `CallbackFunction` for this object, with rooting provided
     /// by the caller.
     pub(crate) fn new_with_exterior_root() -> Self {
@@ -354,13 +311,6 @@ impl<D: DomTypes> HasCallbackHolder for CallbackInterface<D> {
 }
 
 impl<D: DomTypes> CallbackInterface<D> {
-    /// Create a new CallbackInterface object.
-    pub(crate) fn new_with_interior_root() -> Self {
-        Self {
-            object: CallbackObject::new_with_interior_root(),
-        }
-    }
-
     /// Create a new CallbackInterface object with rooting provided by the caller.
     pub(crate) fn new_with_exterior_root() -> Self {
         Self {

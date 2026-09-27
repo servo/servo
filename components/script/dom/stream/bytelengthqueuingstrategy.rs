@@ -66,7 +66,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
         let global = self.global();
         // Return this's relevant global object's byte length queuing strategy
         // size function.
-        if let Some(fun) = global.get_byte_length_queuing_strategy_size() {
+        if let Some(fun) = global.get_byte_length_queuing_strategy_size(cx) {
             return Ok(fun);
         }
 
