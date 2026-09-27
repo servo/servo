@@ -44,6 +44,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import androidx.window.core.layout.WindowSizeClass
 import kotlinx.coroutines.launch
@@ -86,6 +87,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                 initialUri =
                     if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
                 navigator = navigator,
+                scope = lifecycleScope,
             )
 
         historyManager = HistoryManager(this)
