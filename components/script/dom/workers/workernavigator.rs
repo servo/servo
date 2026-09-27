@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
+use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_config::pref;
 
@@ -110,7 +111,10 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
     fn OnLine(&self) -> bool {
-        self.global().is_online().get()
+        self.global()
+            .downcast::<WorkerGlobalScope>()
+            .unwrap()
+            .is_online()
     }
 
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>

@@ -279,6 +279,7 @@ pub enum ServiceWorkerMsg {
     },
     /// <https://w3c.github.io/ServiceWorker/#algorithms>
     HandleAlgorithm(ServiceWorkerAlgorithm),
+    SetNetworkOnlineState(bool),
     /// Exit the service worker manager
     Exit,
 }

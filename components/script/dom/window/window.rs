@@ -3915,7 +3915,6 @@ impl Window {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         weak_script_thread: Weak<ScriptThread>,
-        is_online: Rc<Cell<bool>>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -3938,7 +3937,6 @@ impl Window {
                 gpu_id_hub,
                 inherited_secure_context,
                 unminify_js,
-                is_online,
             ),
             caches: Default::default(),
             ongoing_navigation: Default::default(),

@@ -338,10 +338,6 @@ pub(crate) struct GlobalScope {
     /// <https://fetch.spec.whatwg.org/#environment-settings-object-fetch-group>
     #[no_trace]
     fetch_group: RefCell<FetchGroup>,
-
-    /// Switch offline and online events
-    #[conditional_malloc_size_of]
-    is_online: Rc<Cell<bool>>,
 }
 
 impl GlobalScope {
@@ -400,7 +396,6 @@ impl GlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
-        is_online: Rc<Cell<bool>>,
     ) -> Self {
         let fetch_group = RefCell::new(FetchGroup::new(resource_threads.sender()));
         Self {
@@ -444,7 +439,6 @@ impl GlobalScope {
             import_map: Default::default(),
             resolved_module_set: Default::default(),
             fetch_group,
-            is_online,
         }
     }
 
@@ -3167,8 +3161,12 @@ impl GlobalScope {
         timer_key
     }
 
-    pub(crate) fn is_online(&self) -> Rc<Cell<bool>> {
-        self.is_online.clone()
+    pub(crate) fn set_network_online_state_on_dedicated_workers(&self, is_online: bool) {
+        for worker in &*self.list_auto_close_worker.borrow_mut() {
+            _ = worker
+                .control_sender
+                .send(DedicatedWorkerControlMsg::SetNetworkOnlineState(is_online));
+        }
     }
 }
 

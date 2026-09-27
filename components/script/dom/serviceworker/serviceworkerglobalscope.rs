@@ -77,6 +77,8 @@ pub(crate) enum ServiceWorkerScriptMsg {
     Response(CustomResponseMediator),
     /// Wake-up call from the task queue.
     WakeUp,
+    /// Message to set online state on service worker
+    SetNetworkOnlineState(bool),
 }
 
 impl QueuedTaskConversion for ServiceWorkerScriptMsg {
@@ -577,6 +579,10 @@ impl ServiceWorkerGlobalScope {
                 let _ = mediator.response_chan.send(None);
             },
             WakeUp => {},
+            SetNetworkOnlineState(is_online) => {
+                self.upcast::<WorkerGlobalScope>()
+                    .set_network_online_state(cx, is_online);
+            },
         }
     }
 
