@@ -130,16 +130,20 @@ impl GLState {
 
     // We maintain invariants between the GLState object and the GL state.
     fn restore_invariant(&self, gl: &Gl) {
-        self.restore_clear_color_invariant(gl);
+        self.restore_clear_invariant(gl);
         self.restore_scissor_invariant(gl);
         self.restore_alpha_invariant(gl);
         self.restore_depth_invariant(gl);
         self.restore_stencil_invariant(gl);
     }
 
-    fn restore_clear_color_invariant(&self, gl: &Gl) {
+    fn restore_clear_invariant(&self, gl: &Gl) {
         let (r, g, b, a) = self.clear_color;
-        unsafe { gl.clear_color(r, g, b, a) };
+        unsafe {
+            gl.clear_color(r, g, b, a);
+            gl.clear_depth(self.depth_clear_value);
+            gl.clear_stencil(self.stencil_clear_value);
+        }
     }
 
     fn restore_scissor_invariant(&self, gl: &Gl) {
@@ -203,8 +207,8 @@ impl Default for GLState {
             color_write_mask: [true, true, true, true],
             clear_color: (0., 0., 0., 0.),
             scissor_test_enabled: false,
-            // Should these be 0xFFFF_FFFF?
-            stencil_write_mask: (0, 0),
+            // GL's initial stencil writemask is all ones.
+            stencil_write_mask: (u32::MAX, u32::MAX),
             stencil_test_enabled: false,
             stencil_clear_value: 0,
             depth_write_mask: true,
