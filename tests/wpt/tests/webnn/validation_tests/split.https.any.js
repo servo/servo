@@ -137,3 +137,7 @@ tests.forEach(
             () => builder.split(input, test.splits, test.options), regrexp);
       }
     }, test.name));
+
+validateOperandRank('split', 'input', (builder, input) => {
+  return builder.split(input, kExampleDimSize, {axis: 0})[0];
+});

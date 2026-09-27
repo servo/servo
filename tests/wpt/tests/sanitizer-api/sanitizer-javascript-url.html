@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/html5lib-testcase-support.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
 
 <script id="built-in-navigating-url-attributes-list" type="html5lib-testcases">
 #data
@@ -42,33 +43,6 @@
 #document
 | <svg svg>
 |   <svg a>
-</script>
-
-<script id="mathml" type="html5lib-testcases">
-#data
-<math><mrow href="javascript:alert(1)"></mrow></math>
-#document
-| <math math>
-|   <math mrow>
-
-#data
-<math><msqrt href="javascript:alert(1)"></msqrt></math>
-#document
-| <math math>
-|   <math msqrt>
-
-#data
-<math><mtext href="javascript:alert(1)">Test</mtext></math>
-#document
-| <math math>
-|   <math mtext>
-|     "Test"
-
-#data
-<math><mrow xlink:href="javascript:alert(1)"></mrow></math>
-#document
-| <math math>
-|   <math mrow>
 </script>
 
 <script id="built-in-animating-url-attributes-list" type="html5lib-testcases">
@@ -190,8 +164,27 @@
 </script>
 
 <script>
-for (const group of document.querySelectorAll("script[type='html5lib-testcases']")) {
-  parse_html5lib_testcases(group.textContent).forEach((testcase, index) => {
+const mathmlDynamicCasesText = Object.keys(MathMLFragments).map(tag => `
+#data
+<math><${tag} href="javascript:alert(1)"></${tag}></math>
+#document
+| <math math>
+|   <math ${tag}>
+
+#data
+<math><${tag} xlink:href="javascript:alert(1)"></${tag}></math>
+#document
+| <math math>
+|   <math ${tag}>
+`).join("");
+
+const testcaseGroups = [
+  ...Array.from(document.querySelectorAll("script[type='html5lib-testcases']")).map(el => ({ id: el.id, text: el.textContent })),
+  { id: "mathml-all-elements", text: mathmlDynamicCasesText }
+];
+
+for (const group of testcaseGroups) {
+  parse_html5lib_testcases(group.text).forEach((testcase, index) => {
     // 1. Safe methods: javascript URLs must always be removed regardless of config.
     const safeConfigs = [
       ["{ sanitizer: {} }", { sanitizer: {} }],
@@ -249,6 +242,7 @@ for (const group of document.querySelectorAll("script[type='html5lib-testcases']
 const defaultConfigTestcases = [
   { selector: "a", markup: (url) => `<a href="${url}"></a>` },
   { selector: "svg a", markup: (url) => `<svg><a href="${url}"></a></svg>` },
+  { selector: "math a", markup: (url) => `<math><a href="${url}"></a></math>` },
 ];
 
 const javascriptURL = "javascript:alert(1)";
@@ -306,7 +300,7 @@ test(() => {
     ["{ sanitizer: new Sanitizer({}) }", { sanitizer: new Sanitizer({}) }],
   ];
 
-  const probes = [
+  const baseProbes = [
     '<a href="javascript:alert(1)"></a>',
     '<area href="javascript:alert(1)"></area>',
     '<button formaction="javascript:alert(1)"></button>',
@@ -314,10 +308,6 @@ test(() => {
     '<input formaction="javascript:alert(1)"></input>',
     '<svg><a href="javascript:alert(1)"></a></svg>',
     '<svg><a xlink:href="javascript:alert(1)"></a></svg>',
-    '<math><mrow href="javascript:alert(1)"></mrow></math>',
-    '<math><mrow xlink:href="javascript:alert(1)"></mrow></math>',
-    '<math><msqrt href="javascript:alert(1)"></msqrt></math>',
-    '<math><mtext href="javascript:alert(1)">Test</mtext></math>',
     '<svg><animate attributeName="href"></svg>',
     '<svg><animate attributeName="xlink:href"></svg>',
     '<svg><animateMotion attributeName="href"></svg>',
@@ -333,6 +323,13 @@ test(() => {
     '<svg><a xlink:href="java&#9;script:alert(1)"></a></svg>',
   ];
 
+  const mathmlProbes = Object.keys(MathMLFragments).flatMap(tag => [
+    `<math><${tag} href="javascript:alert(1)"></${tag}></math>`,
+    `<math><${tag} xlink:href="javascript:alert(1)"></${tag}></math>`
+  ]);
+
+  const probes = [...baseProbes, ...mathmlProbes];
+
   for (const [configName, config] of unsafeAllowedConfigs) {
     for (const probe of probes) {
       const div = document.createElement("div");
@@ -345,7 +342,7 @@ test(() => {
       } else if (probe.includes("formaction")) {
         assert_true(div.querySelector("[formaction]") !== null, `setHTMLUnsafe ${configName}: retains formaction in ${probe}`);
         assert_true(parsed.body.querySelector("[formaction]") !== null, `parseHTMLUnsafe ${configName}: retains formaction in ${probe}`);
-      } else if (probe.includes("action")) {
+      } else if (probe.includes("action=")) {
         assert_true(div.querySelector("[action]") !== null, `setHTMLUnsafe ${configName}: retains action in ${probe}`);
         assert_true(parsed.body.querySelector("[action]") !== null, `parseHTMLUnsafe ${configName}: retains action in ${probe}`);
       } else if (probe.includes("xlink:href")) {

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow reference</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+@font-face {
+  font-family: mplus-test;
+  src: url("/fonts/mplus-1p-regular.woff");
+}
+.clamp {
+  font: 10px / 40px mplus-test;
+  width: calc(90px + 20px + 1px);
+}
+.ahem {
+  font: 30px / 40px Ahem;
+}
+bdo {
+  font: 21px / 40px Ahem;
+}
+.hidden {
+  color: red;
+}
+</style>
+<div class="clamp" dir="ltr">
+  <span class="ahem">XXX</span><bdi dir="ltr">ום A</bdi><br>
+  <bdo dir="rtl">XX</bdo><bdi dir="ltr">…</bdi>
+</div>

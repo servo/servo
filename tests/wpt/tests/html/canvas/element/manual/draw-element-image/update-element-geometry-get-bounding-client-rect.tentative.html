@@ -157,7 +157,7 @@
 
         // Apply a canvas clip to target.
         canvas.updateElementGeometry(target, {
-          clip: { x: 10, y: 10, width: 20, height: 20 }
+          canvasClip: { x: 10, y: 10, width: 20, height: 20 }
         });
         let rect = target.getBoundingClientRect();
         assert_equals(rect.left, 10);

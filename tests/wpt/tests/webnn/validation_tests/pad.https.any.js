@@ -155,3 +155,8 @@ tests.forEach(
             regrexp);
       }
     }, test.name));
+
+validateOperandRank('pad', 'input', (builder, input) => {
+  const rank = input.shape.length;
+  return builder.pad(input, Array(rank).fill(1), Array(rank).fill(1));
+});

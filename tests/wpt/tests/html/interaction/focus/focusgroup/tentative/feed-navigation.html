@@ -102,18 +102,23 @@ promise_test(async () => {
   assert_equals(document.activeElement, rf2, "Feed does not wrap backward at reading-flow start");
 }, "Feed respects reading-flow ordering for arrow navigation");
 
-promise_test(async () => {
+promise_test(async t => {
   const inserted = document.createElement("button");
+  const removed = rf3;
   inserted.style.readingOrder = "2";
   inserted.textContent = "inserted";
   rfeed.appendChild(inserted);
+  t.add_cleanup(() => {
+    inserted.remove();
+    rfeed.appendChild(removed);
+  });
 
   await focusAndSendDirectionalInput(rf1, kDown);
   assert_equals(document.activeElement, inserted,
     "Dynamically inserted item appears at correct reading-flow position");
 
   inserted.remove();
-  rf3.remove();
+  removed.remove();
 
   await focusAndSendDirectionalInput(rf2, kDown);
   assert_equals(document.activeElement, rf1,

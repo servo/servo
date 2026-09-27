@@ -224,7 +224,9 @@ SET TIMEOUT: html/canvas/resources/draw-element-image-utils.js
 SET TIMEOUT: html/canvas/element/manual/draw-element-image/intersection-observer-visibility.tentative.html
 SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint.tentative.html
 SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint-css-animation.tentative.html
+SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint-display-none.tentative.html
 SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint-iframe-nested-invalidation.tentative.html
+SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint-post-tree-order-shadow-dom.tentative.html
 SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint-post-tree-order.tentative.html
 SET TIMEOUT: html/canvas/element/manual/draw-element-image/requestPaint.tentative.html
 SET TIMEOUT: html/cross-origin-opener-policy/resources/fully-loaded.js

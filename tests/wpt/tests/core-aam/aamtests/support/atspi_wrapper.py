@@ -45,6 +45,28 @@ class AtspiWrapper(ApiWrapper[Atspi.Accessible, Atspi.Event]):
 
         return relations_dict
 
+    def get_interface(self, node, interface_name):
+        """ Retrieves an interface object based on the provided name.
+
+        :returns: An interface object returned by corresponding Accessible API.
+        """
+        interface_map = {
+            # NOTE: Please add new ATK/ATSPI interfaces and their corresponding
+            # Accessible API functions here as needed for testing.
+            "AtkTable": Atspi.Accessible.get_table_iface,
+            "AtkTableCell": Atspi.Accessible.get_table_cell,
+        }
+
+        if interface_name not in interface_map:
+            raise ValueError(
+                f"Unknown or unsupported interface: '{interface_name}'. "
+                f"If this is a valid interface, please register it in the "
+                f"`interface_map` inside `atspi_wrapper.py`."
+            )
+
+        get_interface_fn = interface_map[interface_name]
+        return get_interface_fn(node)
+
     def get_state_list_helper(self, node: Atspi.Accessible) -> List[str]:
         """
         :returns: A list of states for this Atspi.Accessible.

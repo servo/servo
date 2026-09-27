@@ -553,6 +553,34 @@ if (rest) {
     assert_equals(iceTransport1.role, 'controlling', 'offerer role should not change after answerer-initiated ICE restart');
     assert_equals(iceTransport2.role, 'controlled', 'answerer role should not change after answerer-initiated ICE restart');
   }, 'RTCIceTransport.role should not change when the answerer initiates an ICE restart');
+
+  // The role is set for a description of type "answer" or "pranswer" alike; a
+  // provisional answer starts ICE, so the role has to be known by then.
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const {sender} = pc1.addTransceiver('audio');
+
+    await pc1.setLocalDescription();
+    const {iceTransport: iceTransport1} = sender.transport;
+    await pc2.setRemoteDescription(pc1.localDescription);
+    const {sdp} = await pc2.createAnswer();
+
+    await pc2.setLocalDescription({type: 'pranswer', sdp});
+    const {iceTransport: iceTransport2} = pc2.getTransceivers()[0].sender.transport;
+    assert_equals(iceTransport2.role, 'controlled', 'answerer role after setLocalDescription(pranswer)');
+    assert_equals(iceTransport1.role, 'unknown', 'offerer role before setRemoteDescription(pranswer)');
+
+    await pc1.setRemoteDescription({type: 'pranswer', sdp});
+    assert_equals(iceTransport1.role, 'controlling', 'offerer role after setRemoteDescription(pranswer)');
+
+    await pc2.setLocalDescription({type: 'answer', sdp});
+    await pc1.setRemoteDescription({type: 'answer', sdp});
+    assert_equals(iceTransport1.role, 'controlling', 'offerer role after the final answer');
+    assert_equals(iceTransport2.role, 'controlled', 'answerer role after the final answer');
+  }, 'RTCIceTransport.role is set by a pranswer');
 }
 
 </script>

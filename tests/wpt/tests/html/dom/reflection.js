@@ -1061,6 +1061,7 @@ for (var element in elements) {
     ReflectionTests.reflects("tokenlist", "classList", element, "class");
     ReflectionTests.reflects("boolean", "autofocus", element);
     ReflectionTests.reflects("boolean", "hidden", element);
+    ReflectionTests.reflects("boolean", "inert", element);
     ReflectionTests.reflects("string", "accessKey", element);
     // Don't try to test the defaultVal -- it should be either 0 or -1, but the
     // rules are complicated, and a lot of them are SHOULDs.

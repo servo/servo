@@ -16,9 +16,8 @@
     test(() => {
       let tspan = document.querySelector('tspan');
       let bbox = tspan.getBBox();
-      for (let [property, epsilon] of Object.entries({x: 2, y: 0, width: 4, height: 0}))
-        assert_approx_equals(bbox[property], 100, epsilon, property);
-    }, 'tspan bbox');
-    done();
+      for (let property of ['x', 'y', 'width', 'height'])
+        assert_equals(bbox[property], 100, property);
+    });
   });
 </script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Zoom property on elements with a translation and animation used</title>
+<link rel="author" href="mailto:salipov@mozilla.com" title="Seva Alipov">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2045846">
+<link rel="match" href="reference/translate-zoom-anim-ref.html">
+
+<style>
+.container {
+  width: 200px;
+  height: 200px;
+  border: 1px solid;
+}
+
+@keyframes kf {
+  from { transform: translate(50px, 50px); }
+  to { transform: translate(0px, 0px); }
+}
+
+#foo {
+  width: 50px;
+  height: 50px;
+  background: purple;
+  animation: kf 99999s steps(5) infinite alternate;
+}
+</style>
+
+<div class="container">
+  <div style="zoom: 2">
+    <div id="foo"></div>
+  </div>
+</div>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>View-timeline repaint after finished</title>
+  <style>
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items:
+      flex-start;
+    }
+    .scroll-self, .scroll, .view {
+      background-color: red;
+      width: 100px;
+      height: 100px;
+      margin: 10px;
+      overflow: auto;
+    }
+    .scroll-self {
+      display: grid;
+      grid-template-columns: 200px;
+    }
+    .scroll::after, .view::after {
+      content: '';
+      height: 100px;
+      display: grid;
+      grid-template-columns: 200px;
+    }
+  </style>
+</head>
+<div class="row bg">
+  <div id="t1" class="scroll-self"></div>
+  <div id="t2" class="scroll"></div>
+  <div id="t3" class="view"></div>
+</div>
+</html>

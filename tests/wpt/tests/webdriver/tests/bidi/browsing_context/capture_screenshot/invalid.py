@@ -119,11 +119,16 @@ async def test_params_clip_box_height_invalid_type(bidi_session, top_context, va
         )
 
 
-async def test_params_clip_box_dimensions_invalid_value(bidi_session, top_context):
+@pytest.mark.parametrize(
+    "width,height", [(0, 100), (100, 0), (0, 0)], ids=["x", "y", "x_y"]
+)
+async def test_params_clip_box_dimensions_invalid_value(
+    bidi_session, top_context, width, height
+):
     with pytest.raises(error.UnableToCaptureScreenException):
         await bidi_session.browsing_context.capture_screenshot(
             context=top_context["context"],
-            clip=BoxOptions(x=0, y=0, width=0, height=0),
+            clip=BoxOptions(x=0, y=0, width=width, height=height),
         )
 
 
@@ -180,4 +185,52 @@ async def test_params_format_quality_invalid_value(bidi_session, top_context, va
         await bidi_session.browsing_context.capture_screenshot(
             context=top_context["context"], format=FormatOptions(
                 type="image/jpeg", quality=value)
+        )
+
+
+@pytest.mark.parametrize("value", [False, 42, "foo", []])
+async def test_params_image_size_invalid_type(bidi_session, top_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"], image_size=value
+        )
+
+
+@pytest.mark.parametrize("value", [False, 1.5, "foo", [], {}])
+async def test_params_image_size_max_height_invalid_type(
+    bidi_session, top_context, value
+):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"], image_size={"maxHeight": value}
+        )
+
+
+@pytest.mark.parametrize("value", [-1, 0, 2**53])
+async def test_params_image_size_max_height_invalid_value(
+    bidi_session, top_context, value
+):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"], image_size={"maxHeight": value}
+        )
+
+
+@pytest.mark.parametrize("value", [False, 1.5, "foo", [], {}])
+async def test_params_image_size_max_width_invalid_type(
+    bidi_session, top_context, value
+):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"], image_size={"maxWidth": value}
+        )
+
+
+@pytest.mark.parametrize("value", [-1, 0, 2**53])
+async def test_params_image_size_max_width_invalid_value(
+    bidi_session, top_context, value
+):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"], image_size={"maxWidth": value}
         )

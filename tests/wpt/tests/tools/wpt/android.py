@@ -1,5 +1,4 @@
 # mypy: allow-untyped-defs
-
 import argparse
 import logging
 import os
@@ -8,9 +7,14 @@ import signal
 import shutil
 import subprocess
 import threading
+from xml.etree import ElementTree
 
-import requests
+from mozlog import structuredlog
+
+from .httputils import get_download_to_descriptor
+from .utils import unzip
 from .wpt import venv_dir
+
 
 android_device = None
 
@@ -85,6 +89,46 @@ def get_parser_start():
     return parser
 
 
+def install_fixed_emulator_version(logger, paths):
+    # Downgrade to a pinned emulator version
+    # See https://developer.android.com/studio/emulator_archive for what we're doing here
+
+    version = "36.3.10"
+    urls = {
+        "linux": "https://edgedl.me.gvt1.com/edgedl/android/repository/emulator-linux_x64-14472402.zip",
+        "darwin": "https://edgedl.me.gvt1.com/edgedl/android/repository/emulator-darwin_aarch64-14472402.zip",
+        "windows": "https://edgedl.me.gvt1.com/edgedl/android/repository/emulator-windows_x64-14472402.zip"
+    }
+
+    os_name = platform.system().lower()
+    if os_name not in urls:
+        logger.error(f"Don't know how to install old emulator for {os_name}, using latest version")
+        # For now try with the latest version if this fails
+        return
+
+    logger.info(f"Downgrading emulator to {version}")
+    url = urls[os_name]
+
+    emulator_path = os.path.join(paths["sdk"], "emulator")
+    latest_emulator_path = os.path.join(paths["sdk"], "emulator_latest")
+    os.rename(emulator_path, latest_emulator_path)
+
+    download_and_extract(logger, url, paths["sdk"])
+    package_path = os.path.join(emulator_path, "package.xml")
+    shutil.copyfile(os.path.join(latest_emulator_path, "package.xml"),
+                    package_path)
+
+    with open(package_path) as f:
+        tree = ElementTree.parse(f)
+    node = tree.find("localPackage").find("revision")
+    assert len(node) == 3
+    parts = version.split(".")
+    for version_part, node in zip(parts, node):
+        node.text = version_part
+    with open(package_path, "wb") as f:
+        tree.write(f, encoding="utf8")
+
+
 def get_paths(dest):
     os_name = platform.system().lower()
 
@@ -138,20 +182,16 @@ def get_os_tag(logger):
     raise NotImplementedError
 
 
-def download_and_extract(url, path):
+def download_and_extract(logger: structuredlog.StructuredLogger, url: str, path: str) -> None:
     if not os.path.exists(path):
         os.makedirs(path)
     temp_path = os.path.join(path, url.rsplit("/", 1)[1])
+    logger.debug(f"Downloading {url} to {temp_path}")
     try:
         with open(temp_path, "wb") as f:
-            with requests.get(url, stream=True) as resp:
-                resp.raise_for_status()
-                for chunk in resp.iter_content(2**16):
-                    f.write(chunk)
-        if not os.path.exists(temp_path):
-            raise ValueError(f"Failed to download {url}, output path doesn't exist")
-        # Python's zipfile module doesn't seem to work here
-        subprocess.check_call(["unzip", temp_path], cwd=path)
+            get_download_to_descriptor(f, url, max_retries=5)
+        with open(temp_path, "rb") as f:
+            unzip(f, dest=path)
     finally:
         if os.path.exists(temp_path):
             os.unlink(temp_path)
@@ -168,9 +208,8 @@ def install_sdk(logger, paths):
     download_path = os.path.dirname(paths["sdk_tools"])
 
     url = f'https://dl.google.com/android/repository/commandlinetools-{get_os_tag(logger)}-{CMDLINE_TOOLS_VERSION}_latest.zip'
-    logger.info("Getting SDK from %s" % url)
-
-    download_and_extract(url, download_path)
+    logger.info("Getting SDK")
+    download_and_extract(logger, url, download_path)
     os.rename(os.path.join(download_path, "cmdline-tools"), paths["sdk_tools"])
 
     return True
@@ -274,12 +313,14 @@ def install(logger, dest=None, reinstall=False, prompt=True):
         if new_install:
             packages = ["platform-tools",
                         "build-tools;37.0.0",
-                        "platforms;android-37.1",
+                        "platforms;android-37.2",
                         "emulator"]
 
             install_android_packages(logger, paths, packages, prompt=prompt)
 
             install_avd(logger, paths, prompt=prompt)
+
+            install_fixed_emulator_version(logger, paths)
 
         emulator = get_emulator(paths)
     return emulator
@@ -287,7 +328,7 @@ def install(logger, dest=None, reinstall=False, prompt=True):
 
 def cancel_start(thread_id):
     def cancel_func():
-        raise signal.pthread_kill(thread_id, signal.SIGINT)
+        signal.pthread_kill(thread_id, signal.SIGINT)
     return cancel_func
 
 

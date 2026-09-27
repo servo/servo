@@ -86,3 +86,12 @@ promise_test(async t => {
   assert_throws_with_label(
       () => builder.tile(input, repetitions, options), regrexp);
 }, '[tile] throw if the output tensor byte length exceeds limit');
+
+validateOperandRank('tile', 'input', (builder, input) => {
+  const rank = input.shape.length;
+  const repetitions = Array(rank).fill(1);
+  if (rank > 0) {
+    repetitions[rank - 1] = kExampleDimSize;
+  }
+  return builder.tile(input, repetitions);
+});

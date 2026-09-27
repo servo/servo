@@ -10,6 +10,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/color-testcommon.js"></script>
 </head>
 <body>
 <div id="container">
@@ -3782,14 +3783,14 @@ tests = [
 ];
 
 for (const test of tests) {
-    test_computed_value("color", test[0], test[1], test[2] ? `[${test[2]}]` : undefined);
+    fuzzy_test_computed_color(test[0], test[1], undefined /* epsilon */, test[2] ? `[${test[2]}]` : undefined);
 }
 
 // Ensure that `calc` values work with dynamically changing relative units (slighly different alpha values to make test harness not complain about duplicate tests).
 document.getElementById("container").style.width = "1000px";
-test_computed_value("color", "hsla(calc(50deg + (sign(2cqw - 10px) * 10deg)), 100%, 37.5%, 51%)", "rgba(191, 191, 0, 0.51)");
+fuzzy_test_computed_color("hsla(calc(50deg + (sign(2cqw - 10px) * 10deg)), 100%, 37.5%, 51%)", "rgba(191, 191, 0, 0.51)");
 document.getElementById("container").style.width = "100px";
-test_computed_value("color", "hsla(calc(50deg + (sign(2cqw - 10px) * 10deg)), 100%, 37.5%, 52%)", "rgba(191, 128, 0, 0.52)");
+fuzzy_test_computed_color("hsla(calc(50deg + (sign(2cqw - 10px) * 10deg)), 100%, 37.5%, 52%)", "rgba(191, 128, 0, 0.52)");
 
 </script>
 </body>

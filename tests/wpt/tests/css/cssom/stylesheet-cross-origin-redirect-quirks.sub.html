@@ -1,16 +1,8 @@
 <!--
   No DOCTYPE: this test must run in quirks mode.
 
-  https://html.spec.whatwg.org/#link-type-stylesheet
-
-     Quirk: If the document has been set to quirks mode, has the same origin as
-     the URL of the external resource, and the Content-Type metadata of the
-     external resource is not a supported style sheet type, the user agent must
-     instead assume it to be text/css.
-
-  This tests direct cross-origin URLs but also cross-origin to same-origin
-  redirects, which are tainted and already get blocked from e.g. accessing
-  .cssRules across browsers.
+  None of these responses are CORS-same-origin, so the quirks-mode MIME type
+  quirk in https://html.spec.whatwg.org/#link-type-stylesheet does not apply.
 -->
 <meta charset="utf-8">
 <title>CSSOM - Cross-origin redirects and MIME type in quirks mode</title>

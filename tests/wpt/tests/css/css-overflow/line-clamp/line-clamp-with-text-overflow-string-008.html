@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: isolating a text-overflow string from surrounding neutrals</title>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12617">
+<link rel="match" href="reference/line-clamp-with-text-overflow-string-008-ref.html">
+<meta name="assert" content="The RTL text-overflow string must not reorder an adjacent quotation mark.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+@font-face {
+  font-family: mplus-test;
+  src: url("/fonts/mplus-1p-regular.woff");
+}
+.clamp {
+  font: 10px / 40px mplus-test;
+  /* 60px for two Ahem glyphs + 10px for "ום" +
+     4px for the quotation mark + 20px for "ום A" + 1px of slack.
+     The next 6.5px-wide "X" must not fit. */
+  width: calc(60px + 10px + 4px + 20px + 1px);
+  white-space: pre;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  text-overflow: "ום A";
+}
+.ahem {
+  font: 30px / 40px Ahem;
+}
+</style>
+<div class="clamp" dir="ltr"><span class="ahem">XX</span>ום"XXXXXXXXXXXXXXXXXXXX
+אבג
+This third line must be hidden.</div>

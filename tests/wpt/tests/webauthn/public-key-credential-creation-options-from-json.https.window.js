@@ -243,7 +243,7 @@ test(() => {
         alg: -7,
       },
     ],
-    hints: ["duplicated-value", "duplicated-value"]
+    hints: ["duplicated-value", "duplicated-value", "hybrid", "hybrid"]
   });
   let expected = {
     rp: {
@@ -263,7 +263,7 @@ test(() => {
       },
     ],
     attestation: "none",
-    hints: ["duplicated-value", "duplicated-value"]
+    hints: ["duplicated-value", "duplicated-value", "hybrid", "hybrid"]
   };
 
   assert_equals(actual.attestation, expected.attestation);

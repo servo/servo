@@ -7,9 +7,10 @@ description: >
     Tests that the options numberingSystem and calendar can be  set through
     either the locale or the options.
 author: Norbert Lindenberg, Daniel Ehrenberg
+includes: [testIntl.js]
 ---*/
 
-let defaultLocale = new Intl.NumberFormat().resolvedOptions().locale;
+let defaultLocale = getLocaleBaseName(new Intl.NumberFormat().resolvedOptions().locale);
 
 let supportedNumberingSystems = ["latn", "arab"].filter(nu =>
   new Intl.NumberFormat(defaultLocale + "-u-nu-" + nu)

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:lwarlow@igalia.com">
+<link rel=help href="https://drafts.csswg.org/css-forms-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+    color: rgb(0, 128, 0);
+    font-size: 20px;
+    font-family: monospace;
+    font-weight: 700;
+    font-style: italic;
+}
+
+.base {
+    appearance: base;
+}
+</style>
+
+<input class=base id=input-file type=file>
+<script>
+const bodyStyle = getComputedStyle(document.body);
+test(() => {
+    const el = document.getElementById("input-file");
+    const style = getComputedStyle(el);
+    const fileSelectorButtonStyle = getComputedStyle(el, "::file-selector-button");
+    assert_equals(style.color, bodyStyle.color, "color should inherit");
+    assert_equals(style.fontSize, bodyStyle.fontSize, "font-size should inherit");
+    assert_equals(style.fontFamily, bodyStyle.fontFamily, "font-family should inherit");
+    assert_equals(style.fontWeight, bodyStyle.fontWeight, "font-weight should inherit");
+    assert_equals(style.fontStyle, bodyStyle.fontStyle, "font-style should inherit");
+    assert_equals(style.boxSizing, "border-box", "box-sizing should be border-box");
+    assert_equals(style.backgroundColor, "rgba(0, 0, 0, 0)", "background-color should be transparent");
+    assert_equals(fileSelectorButtonStyle.color, bodyStyle.color, "button color should inherit");
+    assert_equals(fileSelectorButtonStyle.fontSize, bodyStyle.fontSize, "button font-size should inherit");
+    assert_equals(fileSelectorButtonStyle.fontFamily, bodyStyle.fontFamily, "button font-family should inherit");
+    assert_equals(fileSelectorButtonStyle.fontWeight, bodyStyle.fontWeight, "button font-weight should inherit");
+    assert_equals(fileSelectorButtonStyle.fontStyle, bodyStyle.fontStyle, "button font-style should inherit");
+    assert_equals(fileSelectorButtonStyle.boxSizing, "border-box", "button box-sizing should be border-box");
+    assert_equals(fileSelectorButtonStyle.backgroundColor, "rgba(0, 0, 0, 0)", "button background-color should be transparent");
+    assert_equals(fileSelectorButtonStyle.border, "1px solid " + bodyStyle.color, "button border should be 1px solid currentColor");
+    assert_equals(fileSelectorButtonStyle.borderRadius, "10px", "button border-radius should be 0.25em");
+    assert_equals(fileSelectorButtonStyle.paddingBlock, "5px", "button padding-block should be 0.25em");
+    assert_equals(fileSelectorButtonStyle.paddingInline, "10px", "button padding-inline should be 0.5em");
+    assert_equals(fileSelectorButtonStyle.display, "inline-flex", "button display should be inline-flex");
+}, `Basic appearance stylesheet properties for input type=file`);
+</script>

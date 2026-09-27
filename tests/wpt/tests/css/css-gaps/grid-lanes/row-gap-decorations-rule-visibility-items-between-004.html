@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: rule-visibility-items between uses whole-row occupancy in grid lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-model">
+<link rel="match" href="row-gap-decorations-rule-visibility-items-between-004-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(3, 60px);
+    grid-lanes-direction: row;
+    gap: 20px;
+    width: max-content;
+    background: #cdd5e0;
+    row-rule: 4px solid blue;
+    row-rule-break: none;
+    row-rule-visibility-items: between;
+  }
+  .lanes > div {
+    width: 40px;
+    height: 60px;
+    background: #5b8def;
+  }
+  .track-one { grid-row: 1; }
+  .track-two { grid-row: 2; }
+</style>
+<div class="lanes">
+  <div class="track-one"></div>
+  <div class="track-one"></div>
+  <div class="track-one"></div>
+  <div class="track-one"></div>
+  <div class="track-one"></div>
+  <div class="track-two"></div>
+</div>

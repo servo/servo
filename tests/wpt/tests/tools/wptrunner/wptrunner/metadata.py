@@ -6,7 +6,7 @@ import os
 from collections import defaultdict, namedtuple
 from typing import Dict, List, Tuple
 
-from mozlog import structuredlog
+from mozlog.structuredlog import StructuredLogger
 from sys import intern
 
 from . import manifestupdate
@@ -17,7 +17,7 @@ from .expected import expected_path
 manifest = None  # Module that will be imported relative to test_root
 manifestitem = None
 
-logger = structuredlog.StructuredLogger("web-platform-tests")
+logger = StructuredLogger("web-platform-tests")
 
 try:
     import ujson as json
@@ -284,7 +284,7 @@ def unpack_result(data):
 
 
 def load_test_data(test_paths):
-    manifest_loader = testloader.ManifestLoader(test_paths, False)
+    manifest_loader = testloader.ManifestLoader(logger, test_paths, False)
     manifests = manifest_loader.load()
 
     id_test_map = {}
