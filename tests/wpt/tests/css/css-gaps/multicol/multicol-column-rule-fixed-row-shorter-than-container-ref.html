@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segment-endpoints">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#ch">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#column-gaps-and-rules">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-column-wrap">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .container {
+    position: relative;
+    width: 200px;
+    height: 100px;
+    border: 2px solid black;
+  }
+
+  .item {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: orange;
+  }
+
+  .rule {
+    position: absolute;
+    width: 4px;
+    height: 60px;
+    background: blue;
+  }
+
+  .second-column {
+    left: 70px;
+  }
+
+  .third-column {
+    left: 140px;
+  }
+
+  .first-gap {
+    left: 63px;
+  }
+
+  .second-gap {
+    left: 133px;
+  }
+</style>
+<div class="container">
+  <div class="item"></div>
+  <div class="item second-column"></div>
+  <div class="item third-column"></div>
+  <div class="rule first-gap"></div>
+  <div class="rule second-gap"></div>
+</div>

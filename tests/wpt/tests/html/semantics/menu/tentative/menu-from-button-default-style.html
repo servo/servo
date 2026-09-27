@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel=author href=mailto:dom@chromium.org>
+<link rel=author href="https://dbaron.org/">
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+<link rel="match" href="menu-from-button-default-style-ref.html">
+
+<style>
+body { background-color: orange; }
+</style>
+
+<button style="position: absolute; top: 37px; left: 173px">Show menu</button>
+
+<menulist>
+  <menuitem>Menulist item A</menuitem>
+  <menuitem>Menulist item B</menuitem>
+  <hr>
+  <menuitem>Menulist item C</menuitem>
+</menulist>
+
+<script>
+const menulist = document.querySelector('menulist');
+const invoker = document.querySelector('button');
+menulist.showPopover({source: invoker});
+</script>

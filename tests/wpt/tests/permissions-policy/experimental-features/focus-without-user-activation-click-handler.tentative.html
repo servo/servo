@@ -1,0 +1,86 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Focus policy uses the click handler's document</title>
+<link rel="help" href="https://html.spec.whatwg.org/#allow-focus-steps">
+<link rel="help" href="https://html.spec.whatwg.org/#incumbent">
+<link rel="help" href="https://github.com/whatwg/html/issues/12032">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+const feature = "focus-without-user-activation";
+
+async function openFocusWindow(t, policy) {
+  const url = new URL(
+      "resources/focus-without-user-activation-click-handler.html",
+      location.href);
+  url.searchParams.set(
+      "pipe", `header(Permissions-Policy,${feature}=${policy})`);
+  const popup = await test_driver.bless("Open a focus test window",
+      () => window.open(url));
+  assert_not_equals(popup, null, "The auxiliary window must open");
+  t.add_cleanup(() => popup.close());
+  await t.step_wait(() => popup.focusTestReady === true);
+  return popup;
+}
+
+for (const handlerInRecipient of [true, false]) {
+  promise_test(async t => {
+    const caller = await openFocusWindow(t, "\\(\\)");
+    const recipient = await openFocusWindow(t, "*");
+    const button = recipient.document.querySelector("button");
+    const target = recipient.document.getElementById("target");
+    const recipientParking = recipient.document.getElementById("parking");
+
+    assert_false(caller.document.featurePolicy.allowsFeature(feature),
+        "The caller's policy must be denied");
+    assert_true(recipient.document.featurePolicy.allowsFeature(feature),
+        "The recipient's policy must be allowed");
+
+    recipient.focusElement(recipientParking);
+    assert_equals(recipient.document.activeElement, recipientParking);
+    // Focus the recipient without activating either tested window.
+    await test_driver.bless(
+        "Focus the recipient window", () => recipient.focus());
+    await t.step_wait(
+        () => recipient.document.hasFocus() && !caller.document.hasFocus(),
+        "The recipient should have focus and the caller should not");
+
+    assert_false(caller.document.hasFocus(), "The caller must not have focus");
+    assert_true(recipient.document.hasFocus(),
+        "The recipient must have focus");
+    assert_false(caller.navigator.userActivation.isActive,
+        "The caller must not have transient activation");
+    assert_false(recipient.navigator.userActivation.isActive,
+        "The recipient must not have transient activation");
+
+    caller.focusElement(target);
+    assert_equals(recipient.document.activeElement, recipientParking,
+        "The denied caller cannot directly focus the recipient's element");
+
+    const handlerWindow = handlerInRecipient ? recipient : caller;
+    const result = handlerWindow.installFocusHandler(button, target);
+    caller.clickElement(button);
+
+    assert_equals(result.calls, 1, "The click handler must run");
+    assert_false(result.isTrusted, "The click must be synthetic");
+    assert_false(result.hadActivation,
+        "The synthetic click must not grant the handler activation");
+    assert_equals(result.hadFocus, handlerInRecipient,
+        "Only the recipient-defined handler should have a focused document");
+    assert_false(caller.navigator.userActivation.isActive,
+        "The synthetic click must not activate the caller");
+    assert_equals(recipient.document.activeElement,
+        handlerInRecipient ? target : recipientParking,
+        "Focus permission must follow the handler's document, not the click " +
+        "initiator or the button's document");
+  }, handlerInRecipient
+      ? "A denied window can trigger focus through an allowed window's own " +
+        "click handler"
+      : "A click handler defined in a denied window cannot borrow the " +
+        "button owner's focus permission");
+}
+</script>

@@ -85,3 +85,7 @@ promise_test(async t => {
     assert_throws_js(TypeError, () => builder.clamp(input, options));
   }
 }, '[clamp] Throw if BigInt is used for data types other than int64 and uint64');
+
+validateOperandRank('clamp', 'input', (builder, input) => {
+  return builder.clamp(input);
+});

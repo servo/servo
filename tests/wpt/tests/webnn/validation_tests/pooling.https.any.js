@@ -408,3 +408,9 @@ promise_test(async t => {
       builder.input('input', {dataType: 'uint8', shape: [1, 2, 4, 4]});
   assert_throws_js(TypeError, () => builder.l2Pool2d(input));
 }, '[l2Pool2d] Throw if the input data type is not floating point');
+
+kPoolingOperators.forEach((operatorName) => {
+  validateOperandRank(operatorName, 'input', (builder, input) => {
+    return builder[operatorName](input);
+  });
+});

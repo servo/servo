@@ -11,3 +11,7 @@ validateInputFromAnotherBuilder('softsign');
 
 const label = 'softsign_xxx';
 validateSingleInputOperation('softsign', label);
+
+validateOperandRank('softsign', 'input', (builder, input) => {
+  return builder.softsign(input);
+});

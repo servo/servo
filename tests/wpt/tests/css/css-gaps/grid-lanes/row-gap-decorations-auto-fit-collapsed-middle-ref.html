@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#repeat-auto-fit">
+<style>
+  body { margin: 0; }
+  .stage {
+    position: relative;
+    width: 170px;
+    height: 350px;
+  }
+  .lanes {
+    display: grid-lanes;
+    grid-lanes-direction: row;
+    grid-template-rows: [top] 80px [fit-start] repeat(auto-fit, 80px) [fit-end] 80px [bottom];
+    gap: 10px;
+    width: max-content;
+    height: 350px;
+    background: #cdd5e0;
+  }
+  .lanes > div {
+    width: 80px;
+    background: #5b8def;
+  }
+  .top { grid-row: top / fit-start; }
+  .bottom { grid-row: fit-end / bottom; }
+  .col-rule {
+    position: absolute;
+    left: 83px;
+    width: 0;
+    height: 80px;
+    border-left: 4px solid blue;
+  }
+  .row-rule {
+    position: absolute;
+    left: 0;
+    top: 83px;
+    width: 170px;
+    height: 0;
+    border-top: 4px solid gold;
+  }
+</style>
+<div class="stage">
+  <div class="lanes">
+    <div class="top"></div>
+    <div class="top"></div>
+    <div class="bottom"></div>
+    <div class="bottom"></div>
+  </div>
+  <div class="col-rule" style="top: 0;"></div>
+  <div class="col-rule" style="top: 90px;"></div>
+  <div class="row-rule"></div>
+</div>

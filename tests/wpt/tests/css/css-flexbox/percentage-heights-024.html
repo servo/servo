@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: Percentage height on inline replaced element inside flex item with indefinite height and a tall sibling</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#definite-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1938264">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The flex item's block-size is indefinite, so the <canvas> percentage height behaves as auto, and its size is 100 x 100">
+
+<style>
+#flex {
+  display: flex;
+  flex-direction: column;
+}
+#target {
+  height: 100%;
+  background: green;
+}
+#sibling {
+  height: 300px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="flex">
+  <div>
+    <canvas id="target" width="100" height="100"></canvas>
+    <div id="sibling"></div>
+  </div>
+</div>

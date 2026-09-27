@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Install element: invalid install targets</title>
+<link rel="help" href="https://github.com/WICG/install-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../usermedia/resources/pepc-helper.js"></script>
+<body>
+
+<script>
+async function expectInvalidData(t, attributes) {
+  const install = document.createElement("install");
+  for (const [name, value] of Object.entries(attributes)) {
+    install.setAttribute(name, value);
+  }
+  document.body.appendChild(install);
+  t.add_cleanup(() => install.remove());
+
+  const result = new Promise(resolve => {
+    install.addEventListener("installresult", resolve, {once: true});
+  });
+
+  await new Promise(resolve => t.step_timeout(resolve, PEPC_CLICK_DELAY));
+  await test_driver.click(install);
+  assert_equals((await result).result, "invalid_data");
+}
+
+promise_test(t => expectInvalidData(t, {manifest: ""}),
+    "An empty manifest attribute returns invalid_data");
+
+promise_test(t => expectInvalidData(t, {manifest: " \t\n "}),
+    "A whitespace-only manifest attribute returns invalid_data");
+
+promise_test(t => expectInvalidData(t, {manifest: "https://["}),
+    "A malformed non-empty manifest attribute returns invalid_data");
+
+promise_test(t => expectInvalidData(t, {manifestid: ""}),
+    "An empty manifestid attribute without a manifest returns invalid_data");
+
+promise_test(t => expectInvalidData(t, {manifestid: " \t\n "}),
+    "A whitespace-only manifestid attribute without a manifest returns invalid_data");
+
+promise_test(t => expectInvalidData(t, {manifestid: "app-id"}),
+    "A manifestid attribute without a manifest returns invalid_data");
+
+promise_test(t => expectInvalidData(t, {
+  manifest: "/common/manifest.webmanifest",
+  manifestid: "",
+}), "An empty manifestid attribute with a manifest returns invalid_data");
+
+promise_test(t => expectInvalidData(t, {
+  manifest: "/common/manifest.webmanifest",
+  manifestid: " \t\n ",
+}), "A whitespace-only manifestid attribute with a manifest returns invalid_data");
+
+promise_test(t => expectInvalidData(t, {
+  manifest: "/common/manifest.webmanifest",
+  manifestid: "https://[",
+}), "A malformed non-empty manifestid attribute returns invalid_data");
+</script>

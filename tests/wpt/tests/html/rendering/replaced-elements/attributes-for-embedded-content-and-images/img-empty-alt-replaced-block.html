@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Block-level images with an empty alt attribute have an intrinsic size of zero</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#images-3">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#the-image-is-not-available">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  img {
+    display: block;
+    width: 13.75px;
+    height: auto;
+  }
+</style>
+<!-- The bytes are not a decodable PNG, so the image data cannot be obtained:
+     the image is complete with naturalWidth === naturalHeight === 0. -->
+<img src="data:image/png;base64,Zm9vYmFy" alt="">
+<script>
+const t = async_test("Block-level images with an empty alt attribute have an intrinsic size of zero");
+onload = t.step_func_done(function() {
+  const img = document.querySelector("img");
+  assert_true(img.complete, "the image load has finished");
+  assert_equals(img.naturalWidth, 0, "the image data could not be obtained");
+  // The element represents nothing, so it has no intrinsic size, and the auto
+  // block size resolves to zero just as it does for an inline image. Only the
+  // block size is asserted: the specified inline size is still honoured.
+  assert_equals(img.getBoundingClientRect().height, 0, `height: ${img.outerHTML}`);
+});
+</script>

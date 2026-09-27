@@ -1,0 +1,178 @@
+<!doctype html>
+<title>focusing first item in menu respects focus-without-user-activation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<body>
+  <input type="text" id="top-input" />
+  <script>
+    const tabKey = "\uE004";
+    const enterKey = "\uE007";
+    const shiftKey = "\uE008";
+
+    const waitForMessage = (expectedAction) => {
+      return new Promise((resolve) => {
+        const handler = (e) => {
+          if (e.data && e.data.action === expectedAction) {
+            window.removeEventListener("message", handler);
+            resolve(e.data);
+          }
+        };
+        window.addEventListener("message", handler);
+      });
+    };
+
+    function createTestIframe(t, target) {
+      const iframe = document.createElement("iframe");
+      iframe.allow = "focus-without-user-activation 'none'";
+      iframe.src = `/html/semantics/menu/tentative/resources/focus-without-user-activation-helper.html?target=${target}`;
+      document.body.appendChild(iframe);
+      t.add_cleanup(() => iframe.remove());
+      return iframe;
+    }
+
+    // Test 1: Script click during key event on button commandfor menulist
+    promise_test(async (t) => {
+      const topInput = document.querySelector("#top-input");
+      const iframe = createTestIframe(t, "button");
+      await waitForMessage("ready");
+
+      const trigger = iframe.contentDocument.getElementById("trigger");
+      trigger.focus();
+      assert_equals(iframe.contentDocument.activeElement, trigger, "Trigger should have initial focus");
+
+      const shiftCompletePromise = waitForMessage("shift-click-complete");
+
+      // Press Shift key on the trigger in iframe.
+      // The Shift key handler will park focus on topInput and call trigger.click().
+      await new test_driver.Actions()
+        .keyDown(shiftKey)
+        .keyUp(shiftKey)
+        .send();
+
+      const msg = await shiftCompletePromise;
+
+      assert_true(msg.isPopoverOpen, "Popover should have opened");
+      assert_equals(
+        document.activeElement,
+        topInput,
+        "Top-level document should not lose focus on script click during key event",
+      );
+      assert_not_equals(
+        msg.activeElementId,
+        "first-item",
+        "First item should not have gained focus without user activation",
+      );
+    }, "Script click during key event on button commandfor menulist does not bypass focus-without-user-activation");
+
+    // Test 2: Script click during key event on menuitem activating submenu
+    promise_test(async (t) => {
+      const topInput = document.querySelector("#top-input");
+      const iframe = createTestIframe(t, "menuitem");
+      await waitForMessage("ready");
+
+      const trigger = iframe.contentDocument.getElementById("trigger");
+      trigger.focus();
+      assert_equals(iframe.contentDocument.activeElement, trigger, "Trigger should have initial focus");
+
+      const shiftCompletePromise = waitForMessage("shift-click-complete");
+
+      // Press Shift key on the trigger in iframe.
+      // The Shift key handler will park focus on topInput and call trigger.click().
+      await new test_driver.Actions()
+        .keyDown(shiftKey)
+        .keyUp(shiftKey)
+        .send();
+
+      const msg = await shiftCompletePromise;
+
+      assert_true(msg.isPopoverOpen, "Submenu should have opened");
+      assert_equals(
+        document.activeElement,
+        topInput,
+        "Top-level document should not lose focus on script click during key event",
+      );
+      assert_not_equals(
+        msg.activeElementId,
+        "first-item",
+        "Submenu first item should not have gained focus without user activation",
+      );
+    }, "Script click during key event on menuitem activating submenu does not bypass focus-without-user-activation");
+
+    // Test 3: Trusted key event on button commandfor menulist
+    promise_test(async (t) => {
+      const topInput = document.querySelector("#top-input");
+      const iframe = createTestIframe(t, "button");
+      await waitForMessage("ready");
+
+      topInput.focus();
+      assert_equals(document.activeElement, topInput, "Top input should have focus");
+
+      const itemFocusedPromise = waitForMessage("item-focused");
+
+      // Press Tab to navigate focus into the iframe's trigger button
+      await new test_driver.Actions()
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .send();
+
+      // Press Enter on the focused trigger button
+      await new test_driver.Actions()
+        .keyDown(enterKey)
+        .keyUp(enterKey)
+        .send();
+
+      const msg = await itemFocusedPromise;
+      assert_true(msg.isPopoverOpen, "Popover should have opened");
+      assert_equals(
+        msg.activeElementId,
+        "first-item",
+        "First item in menulist should receive focus from trusted key event",
+      );
+      assert_equals(
+        document.activeElement,
+        iframe,
+        "Iframe should have focus after trusted key event",
+      );
+    }, "Trusted key event on button commandfor menulist focuses first item");
+
+    // Test 4: Trusted key event on menuitem activating submenu
+    promise_test(async (t) => {
+      const topInput = document.querySelector("#top-input");
+      const iframe = createTestIframe(t, "menuitem");
+      await waitForMessage("ready");
+
+      topInput.focus();
+      assert_equals(document.activeElement, topInput, "Top input should have focus");
+
+      const itemFocusedPromise = waitForMessage("item-focused");
+
+      // Press Tab to navigate focus into the iframe's trigger menuitem
+      await new test_driver.Actions()
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .send();
+
+      // Press Enter on the focused trigger menuitem
+      await new test_driver.Actions()
+        .keyDown(enterKey)
+        .keyUp(enterKey)
+        .send();
+
+      const msg = await itemFocusedPromise;
+      assert_true(msg.isPopoverOpen, "Submenu should have opened");
+      assert_equals(
+        msg.activeElementId,
+        "first-item",
+        "First item in submenu should receive focus from trusted key event",
+      );
+      assert_equals(
+        document.activeElement,
+        iframe,
+        "Iframe should have focus after trusted key event",
+      );
+    }, "Trusted key event on menuitem activating submenu focuses first item");
+  </script>
+</body>

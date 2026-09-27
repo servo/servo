@@ -5,6 +5,7 @@ const kAvailableAvailabilities = ['downloadable', 'downloading', 'available'];
 const kAudioPrompt = 'transcribe this';
 const kImagePrompt = 'describe this';
 const kTestPrompt = 'Please write a sentence in English.';
+const kTestPrompt2 = 'Please write another sentence in English.';
 
 const kTestContext = 'This is a test; this is only a test.';
 
@@ -393,4 +394,9 @@ function createColorGridCanvas(width, height, isOffscreen = false) {
   context.fillRect(w2, h2, w2, h2);
 
   return canvas;
+}
+
+// Drains a ReadableStream and returns the concatenated string.
+async function readStream(stream) {
+  return (await Array.fromAsync(stream)).join('');
 }

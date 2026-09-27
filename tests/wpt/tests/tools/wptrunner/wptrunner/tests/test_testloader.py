@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-from mozlog import structured
+from mozlog.structuredlog import StructuredLogger
 from ..testloader import (
     DirectoryHashChunker,
     IDHashChunker,
@@ -23,7 +23,6 @@ here = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(here, os.pardir, os.pardir, os.pardir))
 from manifest.manifest import Manifest as WPTManifest
 
-structured.set_default_logger(structured.structuredlog.StructuredLogger("TestLoader"))
 
 TestFilter.__test__ = False
 TestLoader.__test__ = False
@@ -60,7 +59,7 @@ def manifest():
 
 
 
-def test_loader_h2_tests():
+def test_loader_h2_tests(logger):
     manifest_json = {
         "items": {
             "testharness": {
@@ -84,13 +83,13 @@ def test_loader_h2_tests():
     subsuites[""] = Subsuite("", config={})
 
     # By default, the loader should include the h2 test.
-    loader = TestLoader({manifest: {"metadata_path": ""}}, ["testharness"], None, subsuites)
+    loader = TestLoader(logger, {manifest: {"metadata_path": ""}}, ["testharness"], None, subsuites)
     assert "testharness" in loader.tests[""]
     assert len(loader.tests[""]["testharness"]) == 2
     assert len(loader.disabled_tests[""]) == 0
 
     # We can also instruct it to skip them.
-    loader = TestLoader({manifest: {"metadata_path": ""}}, ["testharness"], None, subsuites, include_h2=False)
+    loader = TestLoader(logger, {manifest: {"metadata_path": ""}}, ["testharness"], None, subsuites, include_h2=False)
     assert "testharness" in loader.tests[""]
     assert len(loader.tests[""]["testharness"]) == 1
     assert "testharness" in loader.disabled_tests[""]
@@ -201,7 +200,7 @@ def test_tag_filter():
     assert not filter(Tagged({'b'}))
 
 
-def test_loader_filter_tags():
+def test_loader_filter_tags(logger):
     manifest_json = {
         "items": {
             "testharness": {
@@ -251,11 +250,11 @@ def test_loader_filter_tags():
 
 
         # Check: no filter loads all tests
-        loader = TestLoader({manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites)
+        loader = TestLoader(logger, {manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites)
         assert len(loader.tests[""]["testharness"]) == 4
 
         # Check: specifying a single `test-include` inclusion yields `/a/bar` and `/b/baz`
-        loader = TestLoader({manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites,
+        loader = TestLoader(logger, {manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites,
                             test_filters=[TagFilter({"test-include"}, {})])
         assert len(loader.tests[""]["testharness"]) == 2
         assert loader.tests[""]["testharness"][0].id == "/a/bar.html"
@@ -264,13 +263,13 @@ def test_loader_filter_tags():
         assert loader.tests[""]["testharness"][1].tags == {"dir:b", "test-include", "test-exclude"}
 
         # Check: specifying a single `test-exclude` exclusion rejects only `/b/baz`
-        loader = TestLoader({manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites,
+        loader = TestLoader(logger, {manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites,
                             test_filters=[TagFilter({}, {"test-exclude"})])
         assert len(loader.tests[""]["testharness"]) == 3
         assert all(test.id != "/b/baz.html" for test in loader.tests[""]["testharness"])
 
         # Check: including `test-include` and excluding `test-exclude` yields only `/a/bar`
-        loader = TestLoader({manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites,
+        loader = TestLoader(logger, {manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites,
                             test_filters=[TagFilter({"test-include"}, {"test-exclude"})])
         assert len(loader.tests[""]["testharness"]) == 1
         assert loader.tests[""]["testharness"][0].id == "/a/bar.html"
@@ -278,18 +277,18 @@ def test_loader_filter_tags():
 
         # Check: non-empty intersection of inclusion and exclusion yield zero tests
 
-        loader = TestLoader({manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites,
+        loader = TestLoader(logger, {manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites,
                             test_filters=[TagFilter({"test-include"}, {"test-include"})])
         assert len(loader.tests[""]["testharness"]) == 0
 
-        loader = TestLoader({manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites,
+        loader = TestLoader(logger, {manifest: {"metadata_path": metadata_path}}, ["testharness"], None, subsuites,
                             test_filters=[TagFilter({"test-include", "test-exclude"}, {"test-include"})])
         assert len(loader.tests[""]["testharness"]) == 0
 
 
-def test_chunk_hash(manifest):
-    chunker1 = PathHashChunker(total_chunks=2, chunk_number=1)
-    chunker2 = PathHashChunker(total_chunks=2, chunk_number=2)
+def test_chunk_hash(manifest, logger: StructuredLogger):
+    chunker1 = PathHashChunker(logger, total_chunks=2, chunk_number=1)
+    chunker2 = PathHashChunker(logger, total_chunks=2, chunk_number=2)
     # Check that the chunkers partition the manifest (i.e., each item is
     # assigned to exactly one chunk).
     items = sorted([*chunker1(manifest), *chunker2(manifest)],
@@ -305,9 +304,9 @@ def test_chunk_hash(manifest):
     assert {test.id for test in tests} == {"/a/foo.html?b", "/a/foo.html?c"}
 
 
-def test_chunk_id_hash(manifest):
-    chunker1 = IDHashChunker(total_chunks=2, chunk_number=1)
-    chunker2 = IDHashChunker(total_chunks=2, chunk_number=2)
+def test_chunk_id_hash(manifest, logger: StructuredLogger):
+    chunker1 = IDHashChunker(logger, total_chunks=2, chunk_number=1)
+    chunker2 = IDHashChunker(logger, total_chunks=2, chunk_number=2)
     items = []
     for test_type, test_path, tests in [*chunker1(manifest), *chunker2(manifest)]:
         assert len(tests) > 0
@@ -328,9 +327,9 @@ def test_chunk_id_hash(manifest):
     assert test.id == "/a/foo.html?c"
 
 
-def test_chunk_dir_hash(manifest):
-    chunker1 = DirectoryHashChunker(total_chunks=2, chunk_number=1)
-    chunker2 = DirectoryHashChunker(total_chunks=2, chunk_number=2)
+def test_chunk_dir_hash(manifest, logger: StructuredLogger):
+    chunker1 = DirectoryHashChunker(logger, total_chunks=2, chunk_number=1)
+    chunker2 = DirectoryHashChunker(logger, total_chunks=2, chunk_number=2)
     # Check that tests in the same directory are located in the same chunk
     # (which particular chunk is irrelevant).
     empty_chunk, chunk_a = sorted([

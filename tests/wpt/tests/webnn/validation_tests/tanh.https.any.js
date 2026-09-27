@@ -11,3 +11,7 @@ validateInputFromAnotherBuilder('tanh');
 
 const label = 'tanh-xxx';
 validateSingleInputOperation('tanh', label);
+
+validateOperandRank('tanh', 'input', (builder, input) => {
+  return builder.tanh(input);
+});

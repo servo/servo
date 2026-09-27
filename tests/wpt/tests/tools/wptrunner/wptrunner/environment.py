@@ -59,8 +59,8 @@ class TestEnvironmentError(Exception):
     pass
 
 
-def get_server_logger():
-    logger = get_default_logger(component="wptserve")
+def get_server_logger(default_logger: Optional[StructuredLogger]) -> StructuredLogger:
+    logger = get_default_logger(component="wptserve") or default_logger or StructuredLogger("wptserve")
     log_filter = handlers.LogLevelFilter(lambda x: x, "info")
     # Downgrade errors to warnings for the server
     log_filter = LogLevelRewriter(log_filter, ["error"], "warning")
@@ -94,13 +94,14 @@ class TestEnvironment:
     def __init__(self, test_paths, testharness_timeout_multipler,
                  pause_after_test, debug_test, debug_info, options, ssl_config, env_extras,
                  enable_webtransport=None, enable_dns=None, mojojs_path=None, inject_script=None,
-                 suppress_handler_traceback=None, ws_extra=None):
+                 suppress_handler_traceback=None, ws_extra=None, logger=None):
 
+        self.logger = logger or StructuredLogger("TestEnvironment")
         self.test_paths = test_paths
         self.server = None
         self.config_ctx = None
         self.config = None
-        self.server_logger = get_server_logger()
+        self.server_logger = get_server_logger(self.logger)
         self.server_logging_ctx = ProxyLoggingContext(self.server_logger)
         self.testharness_timeout_multipler = testharness_timeout_multipler
         self.pause_after_test = pause_after_test

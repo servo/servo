@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<section>
+  <div class="meter sub-sub-optimum"><div class="track"><div class="fill"></div></div></div>
+  <div class="meter sub-optimum"><div class="track"><div class="fill"></div></div></div>
+  <div class="meter optimum"><div class="track"><div class="fill"></div></div></div>
+</section>
+
+<style>
+body {
+  font-family: monospace;
+  background-color: black;
+  color: green;
+}
+
+section {
+  display: flex;
+  flex-direction: column;
+  gap: 2em;
+}
+
+.meter {
+  box-sizing: border-box;
+  background-color: transparent;
+  width: 100%;
+}
+
+.track {
+  box-sizing: border-box;
+  background-color: transparent;
+  border: 1px solid green;
+  height: 1em;
+}
+
+.sub-sub-optimum .fill {
+  background-color: red;
+  width: 20%;
+}
+
+.sub-optimum .fill {
+  background-color: orange;
+  width: 45%;
+}
+
+.optimum .fill {
+  background-color: green;
+  width: 75%;
+}
+
+.fill {
+  box-sizing: border-box;
+  height: 100%;
+}
+</style>

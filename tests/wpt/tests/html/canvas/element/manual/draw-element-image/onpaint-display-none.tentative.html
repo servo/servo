@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Canvas paint events on display:none canvas should fire in reverse shadow-including tree order</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<style>
+  canvas {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+
+<canvas id="before" content="drawable"></canvas>
+<canvas id="displaynone" content="drawable" style="display: none;"></canvas>
+<canvas id="after" content="drawable"></canvas>
+
+<script>
+  'use strict';
+
+  function waitForOneFrame() {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 0);
+      });
+    });
+  }
+
+  promise_test(async t => {
+    await waitForOneFrame();
+    let paint_order = [];
+
+    before.addEventListener('paint', () => paint_order.push('before'), {once: true});
+    displaynone.addEventListener('paint', () => paint_order.push('displaynone'), {once: true});
+    after.addEventListener('paint', () => paint_order.push('after'), {once: true});
+
+    await Promise.all([
+      waitForCanvasPaint(before),
+      waitForCanvasPaint(displaynone),
+      waitForCanvasPaint(after),
+    ]);
+
+    assert_array_equals(
+        paint_order,
+        ['after', 'displaynone', 'before'],
+        'Paint events including display:none canvas should fire in reverse shadow-including tree order');
+  }, 'Canvas paint events on display:none canvas fire in reverse shadow-including tree order');
+</script>

@@ -1,8 +1,17 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-page-3/#populating-margin-boxes">
 <meta name="assert" content="Test image in the content property inside page margin boxes.">
 <link rel="match" href="content-003-print-ref.html">
+<script src="/common/reftest-wait.js"></script>
+
+<!--
+  Wait for the preloaded image before taking the reftest snapshot, since the
+  image is otherwise only referenced in the @page margin box rule.
+-->
+<link rel="preload" as="image" href="/images/green.png" onload="takeScreenshot()">
+
 <style>
   @page {
     margin: 0;

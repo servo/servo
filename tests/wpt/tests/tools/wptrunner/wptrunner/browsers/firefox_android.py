@@ -313,13 +313,17 @@ class FirefoxAndroidBrowser(Browser):
         self.leak_report_file = None
 
         args = self.binary_args[:] if self.binary_args else []
-        args += [cmd_arg("marionette"),
-                 cmd_arg("remote-allow-system-access"), "about:blank"]
+        args += [cmd_arg("marionette"), "about:blank"]
 
         debug_args, cmd = browser_command(
             self.package_name, args, self.debug_info)
 
         env = get_environ(self.chaos_mode_flags, self.env_extras)
+        # Allow Marionette to execute commands in the chrome scope of the
+        # application. Not set in get_environ() because for wdspec tests the
+        # environment is forwarded to geckodriver via capabilities, which
+        # rejects this variable.
+        env["MOZ_REMOTE_ALLOW_SYSTEM_ACCESS"] = "1"
 
         self.runner = FennecEmulatorRunner(app=self.package_name,
                                            profile=self.profile,
@@ -362,7 +366,10 @@ class FirefoxAndroidBrowser(Browser):
                     self.logger.warning("Failed to remove forwarded or reversed ports: %s" % e)
             # We assume that stopping the runner prompts the
             # browser to shut down.
-            self.runner.cleanup()
+            try:
+                self.runner.cleanup()
+            except Exception as e:
+                self.logger.warning(f"Failed to cleanup runner: {e}")
         self.logger.debug("stopped")
 
     @property

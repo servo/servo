@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>link-parameters: a value that is not of its declared type invalidates only that parameter</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#funcdef-param">
+<link rel="match" href="link-parameters-invalid-typed-value-ref.html">
+<style>
+  body { margin: 0; }
+  img { display: block; width: 100px; height: 100px; }
+  #a { link-parameters: param(--bg <color>, notacolor); }
+  #b { link-parameters: param(--bg <color>, #0a5c2e), param(--bg <color>, notacolor); }
+</style>
+<img id="a" src="resources/solid.svg">
+<img id="b" src="resources/solid.svg">

@@ -38,6 +38,38 @@ async def test_params_context_non_top_level(
 
 
 @pytest.mark.parametrize("value", get_invalid_cases("string", nullable=True))
+async def test_params_destination_folder_invalid_type(
+    bidi_session, top_context, value
+):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.start_screencast(
+            context=top_context["context"], destination_folder=value
+        )
+
+
+async def test_params_destination_folder_not_existing(
+    bidi_session, top_context, tmp_path
+):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.start_screencast(
+            context=top_context["context"],
+            destination_folder=str(tmp_path / "not_existing_folder"),
+        )
+
+
+async def test_params_destination_folder_not_a_directory(
+    bidi_session, top_context, tmp_path
+):
+    file_path = tmp_path / "not_a_directory.txt"
+    file_path.write_text("foo")
+
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.start_screencast(
+            context=top_context["context"], destination_folder=str(file_path)
+        )
+
+
+@pytest.mark.parametrize("value", get_invalid_cases("string", nullable=True))
 async def test_params_mime_type_invalid_type(bidi_session, top_context, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.browsing_context.start_screencast(

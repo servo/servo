@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: class prefix selector matching</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#class-prefix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="target1" class="foo-bar-baz"></div>
+<div id="target2" class="foo--bar"></div>
+<div id="target3" class="foo-bar-"></div>
+<div id="target4" class="foobar"></div>
+<div id="target5" class="foo-"></div>
+<div id="target6" class="foo-a"></div>
+<div id="target7" class="bar foo-baz"></div>
+<div id="target8"></div>
+<div id="target9" class="foo-bar active"></div>
+<span id="target10" class="foo-bar"></span>
+<div id="target11" class="baz"></div>
+<div id="target12" class="quux"></div>
+<div id="target13" class="foo---baz"></div>
+<div id="target14" class="foo----qux"></div>
+<script>
+const target1 = document.getElementById('target1');
+const target2 = document.getElementById('target2');
+const target3 = document.getElementById('target3');
+const target4 = document.getElementById('target4');
+const target5 = document.getElementById('target5');
+const target6 = document.getElementById('target6');
+const target7 = document.getElementById('target7');
+const target8 = document.getElementById('target8');
+const target9 = document.getElementById('target9');
+const target10 = document.getElementById('target10');
+const target11 = document.getElementById('target11');
+const target12 = document.getElementById('target12');
+const target13 = document.getElementById('target13');
+const target14 = document.getElementById('target14');
+
+test(() => {
+  assert_true(target1.matches('.foo-*'));
+}, 'class="foo-bar-baz" matches .foo-*');
+
+test(() => {
+  assert_true(target1.matches('.foo-bar-*'));
+}, 'class="foo-bar-baz" matches .foo-bar-*');
+
+test(() => {
+  assert_true(target2.matches('.foo--*'));
+}, 'class="foo--bar" matches .foo--*');
+
+test(() => {
+  assert_false(target2.matches('.foo-*'));
+}, 'class="foo--bar" does not match .foo-* (the separator is "--", not "-")');
+
+test(() => {
+  assert_true(target3.matches('.foo-*'));
+}, 'class="foo-bar-" (ends in a dash) matches .foo-*');
+
+test(() => {
+  assert_false(target3.matches('.foo-bar-*'));
+}, 'class="foo-bar-" does not match .foo-bar-* (nothing left after the prefix)');
+
+test(() => {
+  assert_false(target4.matches('.foo-*'));
+}, 'class="foobar" does not match .foo-* (no "-" separator)');
+
+test(() => {
+  assert_false(target5.matches('.foo-*'));
+}, 'class="foo-" does not match .foo-* (no character beyond the prefix)');
+
+test(() => {
+  assert_true(target6.matches('.foo-*'));
+}, 'class="foo-a" matches .foo-* (exactly one character beyond the prefix)');
+
+test(() => {
+  assert_true(target7.matches('.foo-*'));
+}, 'a class matching the prefix among several space-separated classes still matches');
+
+test(() => {
+  assert_false(target8.matches('.foo-*'));
+}, 'an element with no class attribute does not match .foo-*');
+
+test(() => {
+  assert_true(target10.matches('span.foo-*'));
+  assert_false(target10.matches('div.foo-*'));
+}, 'class prefix selector combines with a type selector in a compound');
+
+test(() => {
+  assert_true(target9.matches('.active.foo-*'));
+}, 'class prefix selector combines with another class selector in a compound');
+
+test(() => {
+  assert_false(target1.matches(':not(.foo-*)'));
+  assert_true(target11.matches(':not(.foo-*)'));
+}, 'class prefix selector works as a :not() argument');
+
+test(() => {
+  assert_true(target1.matches(':is(.foo-*, .qux)'));
+  assert_false(target12.matches(':is(.foo-*, .qux)'));
+}, 'class prefix selector works inside :is()');
+
+test(() => {
+  assert_true(target13.matches('.foo---*'));
+}, 'class="foo---baz" matches .foo---* (a three-hyphen prefix works the same way as one or two hyphens)');
+
+test(() => {
+  assert_false(target13.matches('.foo--*'));
+}, 'class="foo---baz" does not match .foo--* (the separator is "---", not "--")');
+
+test(() => {
+  assert_false(target14.matches('.foo---*'));
+  assert_true(target14.matches('.foo----*'));
+}, 'class="foo----qux" does not match .foo---* but does match .foo----* (an extra hyphen right after the prefix disqualifies a shorter prefix match)');
+</script>

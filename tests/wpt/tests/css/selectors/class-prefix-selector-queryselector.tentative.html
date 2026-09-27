@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: class prefix selector in querySelector(All) and closest()</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#class-prefix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container">
+  <div id="a" class="foo-alpha"></div>
+  <div id="b" class="bar-beta"></div>
+  <div id="c" class="foo-gamma">
+    <div id="d" class="unrelated"></div>
+  </div>
+  <div id="e" class="foobar"></div>
+  <div id="f" class="foo-"></div>
+  <div id="g" class="foo-delta bar-epsilon"></div>
+</div>
+<script>
+test(() => {
+  assert_array_equals(Array.from(document.querySelectorAll('.foo-*'), e => e.id), ['a', 'c', 'g']);
+}, 'querySelectorAll(".foo-*") returns matching elements in document order and excludes non-matches (foobar, foo-)');
+
+test(() => {
+  assert_equals(document.querySelector('.foo-*').id, 'a');
+}, 'querySelector(".foo-*") returns the first matching element in document order');
+
+test(() => {
+  assert_array_equals(Array.from(document.querySelectorAll('.foo-*, .bar-*'), e => e.id), ['a', 'b', 'c', 'g']);
+}, 'querySelectorAll with a selector list containing a class prefix selector does not duplicate an element that matches more than one branch');
+
+test(() => {
+  assert_equals(document.getElementById('d').closest('.foo-*').id, 'c');
+}, 'Element.closest() finds an ancestor via the class prefix selector');
+
+test(() => {
+  assert_equals(document.getElementById('a').closest('.foo-*').id, 'a');
+}, 'Element.closest() matches the element itself first');
+
+test(() => {
+  assert_equals(document.getElementById('d').closest('.bar-*'), null);
+}, 'Element.closest() returns null when no ancestor matches the class prefix selector');
+</script>

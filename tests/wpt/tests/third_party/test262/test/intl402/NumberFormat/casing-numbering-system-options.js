@@ -7,9 +7,10 @@ description: >
     Tests that the options numberingSystem are mapped to lower case.
 author: Caio Lima
 features: [Array.prototype.includes]
+includes: [testIntl.js]
 ---*/
 
-let defaultLocale = new Intl.NumberFormat().resolvedOptions().locale;
+let defaultLocale = getLocaleBaseName(new Intl.NumberFormat().resolvedOptions().locale);
 
 let supportedNumberingSystems = ["latn", "arab"].filter(nu =>
   new Intl.NumberFormat(defaultLocale + "-u-nu-" + nu)

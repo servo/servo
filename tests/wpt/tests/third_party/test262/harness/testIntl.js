@@ -16,6 +16,7 @@ defines:
   - getLocaleSupportInfo
   - getInvalidLanguageTags
   - isCanonicalizedStructurallyValidLanguageTag
+  - getLocaleBaseName
   - getInvalidLocaleArguments
   - testOption
   - testForUnwantedRegExpChanges
@@ -1814,6 +1815,28 @@ function isCanonicalizedStructurallyValidLanguageTag(locale) {
 
 
 /**
+ * Returns the given language tag without any extension or private use
+ * subtags, like Intl.Locale.prototype.baseName. Use this before appending a
+ * Unicode extension sequence to a locale obtained from resolvedOptions():
+ * some hosts report a default locale that already carries one, such as
+ * "en-US-u-va-posix" under the POSIX locale, and a language tag with two "-u-"
+ * singletons is not structurally valid.
+ * @param {string} locale a canonicalized language tag
+ * @return {string} the language, script, region and variant subtags of locale
+ */
+function getLocaleBaseName(locale) {
+  var subtags = locale.split("-");
+  // Every subtag after the language is at least two characters long, except
+  // for the singletons that introduce extension and private use sequences.
+  for (var i = 1; i < subtags.length; i++) {
+    if (subtags[i].length === 1) {
+      return subtags.slice(0, i).join("-");
+    }
+  }
+  return locale;
+}
+
+/**
  * Returns an array of error cases handled by CanonicalizeLocaleList().
  */
 function getInvalidLocaleArguments() {
@@ -2387,7 +2410,7 @@ function testNumberFormat(locales, numberingSystems, options, testData) {
   locales.forEach(function (locale) {
     numberingSystems.forEach(function (numbering) {
       var digits = numberingSystemDigits[numbering];
-      var format = new Intl.NumberFormat([locale + "-u-nu-" + numbering], options);
+      var format = new Intl.NumberFormat([getLocaleBaseName(locale) + "-u-nu-" + numbering], options);
 
       function getPatternParts(positive) {
         var n = positive ? 1.1 : -1.1;

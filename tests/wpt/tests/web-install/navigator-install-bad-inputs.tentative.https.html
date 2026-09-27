@@ -71,14 +71,25 @@ promise_test(async function(t) {
    'empty manifestId.');
 
 promise_test(async function(t) {
+  await test_driver.bless('install with whitespace-only id in dict');
+  return promise_rejects_js(t, TypeError,
+      navigator.install({
+        manifest: 'https://example.com/manifest.json',
+        manifestId: ' \t\n ',
+      }),
+      'Whitespace-only id should reject with TypeError');
+}, 'navigator.install({manifest, manifestId: " \\t\\n "}) rejects with ' +
+   'TypeError for whitespace-only manifestId.');
+
+promise_test(async function(t) {
   await test_driver.bless('install with invalid id in dict');
   return promise_rejects_js(t, TypeError,
       navigator.install({
         manifest: 'https://example.com/manifest.json',
-        manifestId: '://invalid',
+        manifestId: 'https://[',
       }),
       'Invalid id should reject with TypeError');
-}, 'navigator.install({manifest, manifestId: "://invalid"}) rejects with ' +
+}, 'navigator.install({manifest, manifestId: "https://["}) rejects with ' +
    'TypeError for invalid manifestId.');
 
 promise_test(function(t) {
