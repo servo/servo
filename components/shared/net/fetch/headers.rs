@@ -27,10 +27,9 @@ pub fn get_value_from_header_list(name: &str, headers: &HeaderMap) -> Option<Vec
 
 /// <https://fetch.spec.whatwg.org/#forbidden-method>
 pub fn is_forbidden_method(method: &[u8]) -> bool {
-    matches!(
-        method.to_ascii_lowercase().as_slice(),
-        b"connect" | b"trace" | b"track"
-    )
+    method.eq_ignore_ascii_case(b"connect") ||
+        method.eq_ignore_ascii_case(b"trace") ||
+        method.eq_ignore_ascii_case(b"track")
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-header-list-get-decode-split>
