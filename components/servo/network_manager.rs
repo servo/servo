@@ -86,7 +86,7 @@ impl NetworkManager {
     /// Set the network online state. This controls the value of [`navigator.onLine`]
     /// and may fire `online` and `offline` events in web content.
     ///
-    /// [`navigator.onLine`]: https://html.spec.whatwg.org/multipage/system-state.html#dom-navigator-online
+    /// [`navigator.onLine`]: https://html.spec.whatwg.org/multipage/#dom-navigator-online
     pub fn set_online_state(&self, online: bool) {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::SetNetworkOnlineState(
