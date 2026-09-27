@@ -19,7 +19,7 @@ use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 use crate::dom::globalscope::GlobalScope;
 
-// http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
+// http://dev.w3.org/csswg/geometry/Overview.html#dompoint
 #[dom_struct]
 pub(crate) struct DOMPoint {
     point: DOMPointReadOnly,
@@ -88,42 +88,42 @@ impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
         Self::new_from_init(cx, global, init)
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-x>
     fn X(&self) -> f64 {
         self.point.X()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-x>
     fn SetX(&self, value: f64) {
         self.point.SetX(value);
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-y>
     fn Y(&self) -> f64 {
         self.point.Y()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-y>
     fn SetY(&self, value: f64) {
         self.point.SetY(value);
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-z>
     fn Z(&self) -> f64 {
         self.point.Z()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-z>
     fn SetZ(&self, value: f64) {
         self.point.SetZ(value);
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-w>
     fn W(&self) -> f64 {
         self.point.W()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-w>
     fn SetW(&self, value: f64) {
         self.point.SetW(value);
     }

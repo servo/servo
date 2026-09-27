@@ -24,7 +24,7 @@ use crate::dom::dommatrixreadonly::dommatrixinit_to_matrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::DOMPoint;
 
-/// <http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly>
+/// <http://dev.w3.org/csswg/geometry/Overview.html#dompointreadonly>
 #[dom_struct]
 pub(crate) struct DOMPointReadOnly {
     reflector_: Reflector,
@@ -95,27 +95,27 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
         Self::new(cx, global, init.x, init.y, init.z, init.w)
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-x>
     fn X(&self) -> f64 {
         self.x.get()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-y>
     fn Y(&self) -> f64 {
         self.y.get()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-z>
     fn Z(&self) -> f64 {
         self.z.get()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-w>
     fn W(&self) -> f64 {
         self.w.get()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-matrixtransform>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-matrixtransform>
     /// <https://drafts.csswg.org/geometry/Overview.html#transform-a-point-with-a-matrix>
     fn MatrixTransform(
         &self,
