@@ -249,22 +249,11 @@ class MainActivity : ComponentActivity(), Servo.Client {
         mediaSession?.hideMediaSessionControls()
     }
 
-    /**
-     * We’re unsetting all the loading UI just in case loading got stuck, and we’re navigating to a
-     * cached page, which doesn’t trigger [onLoadEnded]. The "stop loading" button is implemented by
-     * [onCancelMenuItemClicked], but the underlying Servo view can’t actually [ServoView.stop] yet.
-     */
-    private fun onHistoryItemClicked() {
-        onLoadEnded()
-    }
-
     private fun onHistoryBackMenuItemClicked(navigator: ServoNavigator) {
-        onHistoryItemClicked()
         navigator.back()
     }
 
     private fun onHistoryForwardMenuItemClicked(navigator: ServoNavigator) {
-        onHistoryItemClicked()
         navigator.forward()
     }
 
