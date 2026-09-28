@@ -15,6 +15,10 @@ use crate::platform::freetype::ohos::font_list::FontList;
 
 const CACHE_FILENAME_SUFFIX: &str = "_font-cache.bin";
 
+/// If there is any change in the fields of `FontList`, this value should be updated.
+/// Currently, the convention is to set it to current date in DDMMYYYY format.
+const CACHE_REVISION: &str = "_28092026";
+
 /// Checks if the font file has been cached on the disk. If no such file is found,
 /// or for whatever reason Servo fails to parse the file path, return false.
 /// Additionally, this function also spawns a detached thread to execute `remove_redundant_cache_files`.
@@ -119,10 +123,10 @@ fn get_directory() -> Result<PathBuf, Box<dyn Error>> {
 }
 
 /// Helper function to parse the filename.
-/// Currently, the naming format is <OS_VERSION>_font-cache.bin"
+/// Currently, the naming format is <OS_VERSION>_<revision date>_font-cache.bin"
 fn parse_filename() -> Result<String, Box<dyn Error>> {
     let filename = ohos_deviceinfo::get_incremental_version()
-        .map(|os_version| [os_version, CACHE_FILENAME_SUFFIX].concat())
+        .map(|os_version| [os_version, CACHE_REVISION, CACHE_FILENAME_SUFFIX].concat())
         .ok_or("OH_get_incremental_version failed")?;
     Ok(filename)
 }
