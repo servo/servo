@@ -8,9 +8,7 @@ use rsa::traits::{Decryptor, RandomizedEncryptor};
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
-};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyPair, KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
@@ -30,11 +28,7 @@ pub(crate) fn encrypt(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".to_string(),
-        )));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. Let label be the label member of normalizedAlgorithm or the empty byte sequence if
     // the label member of normalizedAlgorithm is not present.
@@ -96,11 +90,7 @@ pub(crate) fn decrypt(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".to_string(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Let label be the label member of normalizedAlgorithm or the empty byte sequence if
     // the label member of normalizedAlgorithm is not present.

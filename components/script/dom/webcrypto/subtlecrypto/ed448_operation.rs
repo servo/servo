@@ -38,11 +38,7 @@ pub(crate) fn sign(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Let context be the contents of the context member of normalizedAlgorithm or the empty
     // octet string if the context member of normalizedAlgorithm is not present.
@@ -84,11 +80,7 @@ pub(crate) fn verify(
 ) -> Result<bool, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. Let context be the contents of the context member of normalizedAlgorithm or the empty
     // octet string if the context member of normalizedAlgorithm is not present.
@@ -512,11 +504,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Spki => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let data be an instance of the subjectPublicKeyInfo ASN.1 structure defined
             // in [RFC5280] with the following properties:
@@ -546,11 +534,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Pkcs8 => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 3.2. Let data be an instance of the privateKeyInfo ASN.1 structure defined in
             // [RFC5208] with the following properties:
@@ -668,11 +652,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let data be an octet string representing the Ed448 public key represented
             // by the [[handle]] internal slot of key.

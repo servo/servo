@@ -8,9 +8,7 @@ use rsa::signature::{SignatureEncoding, Signer, Verifier};
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
-};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyPair, KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
@@ -26,11 +24,7 @@ use crate::dom::subtlecrypto::{
 pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".to_string(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Perform the signature generation operation defined in Section 8.2 of [RFC3447] with
     // the key represented by the [[handle]] internal slot of key as the signer's private key and
@@ -83,11 +77,7 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
 pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".to_string(),
-        )));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. Perform the signature verification operation defined in Section 8.2 of [RFC3447]
     // with the key represented by the [[handle]] internal slot of key as the signer's RSA public

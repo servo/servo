@@ -27,11 +27,7 @@ use crate::dom::subtlecrypto::{
 pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Let result be the result of performing the Ed25519 signing process, as specified in
     // [RFC8032], Section 5.1.6, with message as M, using the Ed25519 private key associated with
@@ -55,11 +51,7 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
 pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. If the key data of key represents an invalid point or a small-order element on the
     // Elliptic Curve of Ed25519, return false.
@@ -437,11 +429,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Spki => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let data be an instance of the SubjectPublicKeyInfo ASN.1 structure
             // defined in [RFC5280] with the following properties:
@@ -468,11 +456,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Pkcs8 => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 3.2. Let data be an instance of the PrivateKeyInfo ASN.1 structure defined in
             // [RFC5208] with the following properties:
@@ -565,11 +549,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let data be a byte sequence representing the Ed25519 public key
             // represented by the [[handle]] internal slot of key.

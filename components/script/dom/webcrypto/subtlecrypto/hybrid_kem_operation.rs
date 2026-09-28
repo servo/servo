@@ -29,11 +29,7 @@ pub(crate) fn encapsulate(
 ) -> Result<EncapsulatedBits, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. Let sharedKey and ciphertext be the outputs that result from performing the Encaps
     // function for the hybrid KEM instance indicated by the name member of algorithm in Section 4
@@ -80,11 +76,7 @@ pub(crate) fn decapsulate(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Let sharedKey be the output that results from performing the Decaps function for the
     // hybrid KEM instance indicated by the name member of algorithm in Section 4 of
@@ -568,11 +560,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw_public => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let data be a byte sequence containing the raw octets of the key
             // represented by the [[handle]] internal slot of key.
@@ -592,11 +580,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw_seed => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 3.2. Let data be a byte sequence containing the 32-byte seed represented by the
             // [[handle]] internal slot of key.

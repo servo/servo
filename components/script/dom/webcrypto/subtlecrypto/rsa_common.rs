@@ -624,11 +624,7 @@ pub(crate) fn export_key(
         KeyFormat::Spki => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "The [[type]] internal slot of key is not \"public\"".to_string(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2.
             // Let data be an instance of the SubjectPublicKeyInfo ASN.1 structure defined in
@@ -662,11 +658,7 @@ pub(crate) fn export_key(
         KeyFormat::Pkcs8 => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "The [[type]] internal slot of key is not \"private\"".to_string(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 3.2.
             // Let data be an instance of the PrivateKeyInfo ASN.1 structure defined in [RFC5208]
