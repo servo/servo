@@ -17,7 +17,6 @@ use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
-use ipc_channel::ipc::IpcSender;
 use log::{debug, trace, warn};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::blob_url_store::{BlobTokenCommunicator, parse_blob_url};
@@ -45,7 +44,7 @@ use rustls_pki_types::pem::PemObject;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{
     self, CallbackSetter, GenericCallback, GenericReceiver, GenericReceiverSet,
-    GenericSelectionResult,
+    GenericSelectionResult, GenericSender,
 };
 use servo_base::id::CookieStoreId;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -709,7 +708,7 @@ pub struct AuthCache {
 
 pub struct CoreResourceManager {
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
-    sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
+    sw_managers: HashMap<ImmutableOrigin, GenericSender<CustomResponseMediator>>,
     filemanager: FileManager,
     request_interceptor: RequestInterceptor,
     ca_certificates: CACertificates<'static>,

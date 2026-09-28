@@ -16,7 +16,6 @@ use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader}
 use http::{HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Error as HyperError;
-use ipc_channel::ipc::IpcSender;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
@@ -120,7 +119,7 @@ impl CustomResponse {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CustomResponseMediator {
-    pub response_chan: IpcSender<Option<CustomResponse>>,
+    pub response_chan: GenericCallback<Option<CustomResponse>>,
     pub load_url: ServoUrl,
 }
 
@@ -829,7 +828,7 @@ pub enum CoreResourceMsg {
     /// Clear the network cache.
     ClearCache(Option<GenericSender<()>>),
     /// Send the service worker network mediator for an origin to CoreResourceThread
-    NetworkMediator(IpcSender<CustomResponseMediator>, ImmutableOrigin),
+    NetworkMediator(GenericSender<CustomResponseMediator>, ImmutableOrigin),
     /// Message forwarded to file manager's handler
     ToFileManager(FileManagerThreadMsg),
     TotalSizeOfInFlightKeepAliveRecords(PipelineId, GenericSender<u64>),
