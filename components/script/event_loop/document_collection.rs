@@ -58,12 +58,8 @@ impl DocumentCollection {
         pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
     ) -> Option<DomRoot<HTMLIFrameElement>> {
-        self.find_document(pipeline_id).and_then(|document| {
-            document
-                .iframes()
-                .get(browsing_context_id)
-                .map(|iframe| iframe.element.as_rooted())
-        })
+        self.find_document(pipeline_id)
+            .and_then(|document| document.iframes().element(browsing_context_id))
     }
 
     pub(crate) fn iter(&self) -> DocumentsIter<'_> {

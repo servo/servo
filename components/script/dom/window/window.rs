@@ -2772,7 +2772,7 @@ impl Window {
 
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
             document
-                .iframes_mut()
+                .iframes()
                 .handle_new_iframe_sizes_after_layout(cx, self, iframe_sizes);
         }
 
@@ -3155,8 +3155,7 @@ impl Window {
         self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery);
         self.Document()
             .iframes()
-            .get(browsing_context_id)
-            .and_then(|iframe| iframe.size)
+            .viewport_details(browsing_context_id)
     }
 
     #[expect(unsafe_code)]

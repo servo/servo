@@ -2892,12 +2892,8 @@ impl ScriptThread {
 
         // This is separate from the next few lines in order to drop the borrow
         // on `document.iframes()`.
-        let iframe_element = browsing_context_id.and_then(|browsing_context_id| {
-            document
-                .iframes()
-                .get(browsing_context_id)
-                .map(|iframe| iframe.element.as_rooted())
-        });
+        let iframe_element = browsing_context_id
+            .and_then(|browsing_context_id| document.iframes().element(browsing_context_id));
 
         rooted!(&in(cx) let focusable_area = iframe_element
             .map(|iframe_element| FocusableArea::IFrameViewport {
