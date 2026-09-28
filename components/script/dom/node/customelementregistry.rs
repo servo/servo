@@ -359,10 +359,7 @@ fn get_callback(
                     c"Lifecycle callback is not callable".to_owned(),
                 ));
             }
-            Ok(Some(RootedCallback::from(Function::new(
-                cx,
-                callback.to_object(),
-            ))))
+            Ok(Some(Function::new(cx, callback.to_object())))
         } else {
             Ok(None)
         }
