@@ -1797,7 +1797,7 @@ impl InlineFormattingContextLayout<'_> {
         )
     }
 
-    /// Process a soft wrap opportunity. This will either commit the current unbreakble
+    /// Process a soft wrap opportunity. This will either commit the current unbreakable
     /// segment to the current line, if it fits within the containing block and float
     /// placement boundaries, or do a line break and then commit the segment.
     fn process_soft_wrap_opportunity(&mut self) {
@@ -1816,7 +1816,7 @@ impl InlineFormattingContextLayout<'_> {
         self.commit_current_segment_to_line();
     }
 
-    /// Commit the current unbrekable segment to the current line. In addition, this will
+    /// Commit the current unbreakable segment to the current line. In addition, this will
     /// place all floats in the unbreakable segment and expand the line dimensions.
     fn commit_current_segment_to_line(&mut self) {
         // The line segments might have no items and have content after processing a forced
@@ -2859,6 +2859,8 @@ struct ContentSizesComputation<'layout_data> {
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
     ending_inline_pbm_stack: Vec<Au>,
+    /// Stack of [`TextWrapMode`] of ongoing inline boxes.
+    text_wrap_mode_stack: Vec<TextWrapMode>,
     /// Whether the inline content size depends on block constraints.
     depends_on_block_constraints: bool,
 }
@@ -2911,10 +2913,14 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 let pbm = margin + padding + border;
                 self.add_inline_size(pbm.inline_start);
                 self.ending_inline_pbm_stack.push(pbm.inline_end);
+
+                self.text_wrap_mode_stack
+                    .push(layout_style.style().clone_text_wrap_mode());
             },
             InlineItem::EndInlineBox(..) => {
                 let length = self.ending_inline_pbm_stack.pop().unwrap_or_else(Au::zero);
                 self.add_inline_size(length);
+                self.text_wrap_mode_stack.pop();
             },
             InlineItem::TextRun(text_run) => {
                 let text_run = &*text_run.borrow();
@@ -2936,8 +2942,9 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 }
             },
             InlineItem::Atomic(atomic, offset_in_text, _level) => {
-                // TODO: need to handle TextWrapMode::Nowrap.
-                if self.had_content_yet_for_min_content &&
+                let can_wrap = self.text_wrap_mode() == TextWrapMode::Wrap;
+                if can_wrap &&
+                    self.had_content_yet_for_min_content &&
                     !inline_formatting_context
                         .previous_character_prevents_soft_wrap_opportunity(*offset_in_text)
                 {
@@ -2948,9 +2955,9 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 let outer = self.outer_inline_content_sizes_of_float_or_atomic(&atomic.borrow());
                 self.current_line += outer;
 
-                // TODO: need to handle TextWrapMode::Nowrap.
-                if !inline_formatting_context
-                    .next_character_prevents_soft_wrap_opportunity(*offset_in_text)
+                if can_wrap &&
+                    !inline_formatting_context
+                        .next_character_prevents_soft_wrap_opportunity(*offset_in_text)
                 {
                     self.line_break_opportunity();
                 }
@@ -3137,6 +3144,13 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         self.paragraph.union_assign(&end_floats);
     }
 
+    fn text_wrap_mode(&self) -> TextWrapMode {
+        self.text_wrap_mode_stack
+            .last()
+            .cloned()
+            .unwrap_or_else(|| self.constraint_space.style.clone_text_wrap_mode())
+    }
+
     /// Compute the [`ContentSizes`] of the given [`InlineFormattingContext`].
     fn compute(
         inline_formatting_context: &InlineFormattingContext,
@@ -3154,6 +3168,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             had_content_yet_for_min_content: false,
             had_content_yet_for_max_content: false,
             ending_inline_pbm_stack: Vec::new(),
+            text_wrap_mode_stack: Vec::new(),
             depends_on_block_constraints: false,
         }
         .traverse(inline_formatting_context)
@@ -3172,7 +3187,7 @@ impl BidiLevels<'_> {
     }
 }
 
-/// Whether or not this character will rpevent a soft wrap opportunity when it
+/// Whether or not this character will prevent a soft wrap opportunity when it
 /// comes before or after an atomic inline element.
 ///
 /// From <https://www.w3.org/TR/css-text-3/#line-break-details>:
