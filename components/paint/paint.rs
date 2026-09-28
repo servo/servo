@@ -550,13 +550,21 @@ impl Paint {
                 font_key,
                 size,
                 flags,
+                platform_options,
                 variations,
             ) => {
                 debug_assert!(painter_id == font_key.into());
                 debug_assert!(painter_id == font_instance_key.into());
 
                 if let Some(mut painter) = self.maybe_painter_mut(painter_id) {
-                    painter.add_font_instance(font_instance_key, font_key, size, flags, variations);
+                    painter.add_font_instance(
+                        font_instance_key,
+                        font_key,
+                        size,
+                        flags,
+                        platform_options,
+                        variations,
+                    );
                 }
             },
             PaintMessage::RemoveFonts(painter_id, keys, instance_keys) => {

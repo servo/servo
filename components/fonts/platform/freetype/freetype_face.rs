@@ -11,15 +11,43 @@ use fonts_traits::FontData;
 use freetype_sys::{
     FT_Done_Face, FT_Done_MM_Var, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
     FT_FACE_FLAG_SCALABLE, FT_Face, FT_FaceRec, FT_Fixed, FT_Get_MM_Var, FT_HAS_MULTIPLE_MASTERS,
-    FT_Int32, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_TARGET_LIGHT, FT_Long, FT_MM_Var,
-    FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Set_Var_Design_Coordinates,
-    FTErrorMethods,
+    FT_Int32, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_LOAD_TARGET_LIGHT,
+    FT_LOAD_TARGET_MONO, FT_LOAD_TARGET_NORMAL, FT_Long, FT_MM_Var, FT_New_Memory_Face, FT_Pos,
+    FT_Select_Size, FT_Set_Char_Size, FT_Set_Var_Design_Coordinates, FTErrorMethods,
 };
 use memmap2::Mmap;
 use servo_arc::Arc;
-use webrender_api::FontVariation;
+use webrender_api::{FontHinting, FontVariation};
 
 use crate::platform::freetype::library_handle::FreeTypeLibraryHandle;
+
+/// The fallback hinting style to use when there is no user-specified default
+/// hinting style.
+///
+/// This defaults to slight hinting, which is what most Linux distros use by
+/// default, and is a better default than no hinting.
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
+pub(crate) const FALLBACK_HINTING_STYLE: FontHinting = FontHinting::Light;
+
+/// The fallback hinting style to use when there is no user-specified default
+/// hinting style.
+///
+/// This defaults to no hinting, as embedded devices such as Android and OHOS
+/// typically have high density screens.
+#[cfg(any(target_os = "android", target_env = "ohos"))]
+pub(crate) const FALLBACK_HINTING_STYLE: FontHinting = FontHinting::None;
+
+fn fallback_free_type_hinting_load_flags() -> FT_Int32 {
+    match FALLBACK_HINTING_STYLE {
+        FontHinting::None => FT_LOAD_NO_HINTING,
+        FontHinting::Mono => FT_LOAD_TARGET_MONO,
+        FontHinting::Light => FT_LOAD_TARGET_LIGHT,
+        // TODO: When LCD is supported (specified by Fontconfig), we need to
+        // properly set the FT_LOAD_TARGET_LCD/FT_LOAD_TARGET_LCDV flags and
+        // read the autohint settings from Fontconfig as well.
+        FontHinting::LCD | FontHinting::Normal => FT_LOAD_TARGET_NORMAL,
+    }
+}
 
 /// A safe wrapper around [FT_Face].
 #[derive(Debug)]
@@ -164,14 +192,7 @@ impl FreeTypeFace {
 
     /// Select a reasonable set of glyph loading flags for the font.
     pub(crate) fn glyph_load_flags(&self) -> FT_Int32 {
-        let mut load_flags = FT_LOAD_DEFAULT;
-
-        // Default to slight hinting, which is what most
-        // Linux distros use by default, and is a better
-        // default than no hinting.
-        // TODO(gw): Make this configurable.
-        load_flags |= FT_LOAD_TARGET_LIGHT;
-
+        let mut load_flags = FT_LOAD_DEFAULT | fallback_free_type_hinting_load_flags();
         let face_flags = self.as_ref().face_flags;
         if (face_flags & (FT_FACE_FLAG_FIXED_SIZES as FT_Long)) != 0 {
             // We only set FT_LOAD_COLOR if there are bitmap strikes; COLR (color-layer) fonts
