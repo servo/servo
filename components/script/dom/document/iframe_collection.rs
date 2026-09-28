@@ -4,6 +4,7 @@
 
 use std::cell::Ref;
 use std::default::Default;
+use std::iter;
 
 use embedder_traits::ViewportDetails;
 use js::context::{JSContext, NoGC};
@@ -230,7 +231,7 @@ impl IFrameCollection {
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = DomRoot<HTMLIFrameElement>> + use<'_> {
         let mut items = Some(Ref::map(self.iframes.borrow(), |vec| &vec[..]));
-        Box::new(std::iter::from_fn(move || {
+        iter::from_fn(move || {
             let mut item = None;
             let rest = Ref::map(items.take()?, |items| {
                 let mut iter = items.iter();
@@ -241,6 +242,6 @@ impl IFrameCollection {
                 items = Some(rest);
             }
             item
-        }))
+        })
     }
 }
