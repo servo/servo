@@ -124,18 +124,28 @@ impl IFrameCollection {
             .count()
     }
 
-    pub(crate) fn get<'a, 'b: 'a>(
-        &'b self,
+    /// Get an iframe elment matching the provided browsing context id, if it exists.
+    pub(crate) fn element(
+        &self,
         browsing_context_id: BrowsingContextId,
-    ) -> Option<IFrameRef<'a>> {
-        let iframes = self.iframes.borrow();
-        let index = iframes
+    ) -> Option<DomRoot<HTMLIFrameElement>> {
+        self.iframes
+            .borrow()
             .iter()
-            .position(|iframe| iframe.element.browsing_context_id() == Some(browsing_context_id))?;
-        Some(IFrameRef {
-            collection: iframes,
-            index,
-        })
+            .find(|iframe| iframe.element.browsing_context_id() == Some(browsing_context_id))
+            .map(|iframe| iframe.element.as_rooted())
+    }
+
+    /// Get the viewport details for the iframe matching the provided browsing context id, if it exists.
+    pub(crate) fn viewport_details(
+        &self,
+        browsing_context_id: BrowsingContextId,
+    ) -> Option<ViewportDetails> {
+        self.iframes
+            .borrow()
+            .iter()
+            .find(|iframe| iframe.element.browsing_context_id() == Some(browsing_context_id))
+            .and_then(|iframe| iframe.size)
     }
 
     /// Set the size of an `<iframe>` in the collection given its `BrowsingContextId` and
@@ -232,16 +242,5 @@ impl IFrameCollection {
             }
             item
         }))
-    }
-}
-
-pub(crate) struct IFrameRef<'a> {
-    collection: Ref<'a, Vec<IFrame>>,
-    index: usize,
-}
-
-impl<'a> IFrameRef<'a> {
-    pub(crate) fn get(&'a self) -> &'a IFrame {
-        self.collection.get(self.index).unwrap()
     }
 }

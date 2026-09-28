@@ -3155,8 +3155,7 @@ impl Window {
         self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery);
         self.Document()
             .iframes()
-            .get(browsing_context_id)
-            .and_then(|iframe| iframe.get().size)
+            .viewport_details(browsing_context_id)
     }
 
     #[expect(unsafe_code)]
