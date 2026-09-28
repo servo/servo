@@ -98,6 +98,8 @@ pub struct GLState {
     scissor_test_enabled: bool,
     // The WebGL view of the stencil write mask (see comment re `color_write_mask`)
     stencil_write_mask: (u32, u32),
+    // Kept here rather than read back: glGetIntegerv cannot return a full GLuint.
+    stencil_value_mask: (u32, u32),
     stencil_test_enabled: bool,
     stencil_clear_value: i32,
     // The WebGL view of the depth write mask (see comment re `color_write_mask`)
@@ -209,6 +211,7 @@ impl Default for GLState {
             scissor_test_enabled: false,
             // GL's initial stencil writemask is all ones.
             stencil_write_mask: (u32::MAX, u32::MAX),
+            stencil_value_mask: (u32::MAX, u32::MAX),
             stencil_test_enabled: false,
             stencil_clear_value: 0,
             depth_write_mask: true,
@@ -1323,11 +1326,18 @@ impl WebGLImpl {
                 // that can happen in the real world.
                 unsafe { gl.scissor(x, y, width as i32, height as i32) };
             },
-            WebGLCommand::StencilFunc(func, ref_, mask) => unsafe {
-                gl.stencil_func(func, ref_, mask)
+            WebGLCommand::StencilFunc(func, ref_, mask) => {
+                state.stencil_value_mask = (mask, mask);
+                unsafe { gl.stencil_func(func, ref_, mask) }
             },
-            WebGLCommand::StencilFuncSeparate(face, func, ref_, mask) => unsafe {
-                gl.stencil_func_separate(face, func, ref_, mask)
+            WebGLCommand::StencilFuncSeparate(face, func, ref_, mask) => {
+                if face != gl::BACK {
+                    state.stencil_value_mask.0 = mask;
+                }
+                if face != gl::FRONT {
+                    state.stencil_value_mask.1 = mask;
+                }
+                unsafe { gl.stencil_func_separate(face, func, ref_, mask) }
             },
             WebGLCommand::StencilMask(mask) => {
                 state.stencil_write_mask = (mask, mask);
@@ -1931,9 +1941,16 @@ impl WebGLImpl {
                     webgl::ParameterInt::AlphaBits if state.fake_no_alpha() => 0,
                     webgl::ParameterInt::DepthBits if state.fake_no_depth() => 0,
                     webgl::ParameterInt::StencilBits if state.fake_no_stencil() => 0,
-                    webgl::ParameterInt::StencilWritemask => state.stencil_write_mask.0 as i32,
-                    webgl::ParameterInt::StencilBackWritemask => state.stencil_write_mask.1 as i32,
                     _ => unsafe { gl.get_parameter_i32(param as u32) },
+                };
+                sender.send(value).unwrap()
+            },
+            WebGLCommand::GetParameterUInt(param, ref sender) => {
+                let value = match param {
+                    webgl::ParameterUInt::StencilWritemask => state.stencil_write_mask.0,
+                    webgl::ParameterUInt::StencilBackWritemask => state.stencil_write_mask.1,
+                    webgl::ParameterUInt::StencilValueMask => state.stencil_value_mask.0,
+                    webgl::ParameterUInt::StencilBackValueMask => state.stencil_value_mask.1,
                 };
                 sender.send(value).unwrap()
             },
