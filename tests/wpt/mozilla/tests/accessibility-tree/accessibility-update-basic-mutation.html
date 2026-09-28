@@ -24,8 +24,8 @@
       let update = ServoTestUtils.forceAccessibilityUpdate();
 
       // Only the <section> is updated from the DOM
-      // But we need to walk all the nodes to make sure we can update bounds.
-      assert_equals(update.nodesUpdatedFromDom, 17, "nodesUpdatedFromDom");
+      // But we need to walk all the elements to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 8, "nodesUpdatedFromDom");
 
       // The <section>, its parent <body> and the document are checked for changes as their subtrees
       // changed

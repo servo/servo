@@ -30,8 +30,8 @@
       // - div1 (child added)
       // - div2 (child added)
       // - <section> (children removed)
-      // But we need to walk all the nodes to make sure we can update bounds.
-      assert_equals(update.nodesUpdatedFromDom, 23, "nodesUpdatedFromDom");
+      // But we need to walk all the elements to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 11, "nodesUpdatedFromDom");
 
       // Nodes checked for changes based on the tree:
       // - the document
