@@ -11,17 +11,17 @@ use elliptic_curve::{
     Curve, CurveArithmetic, PublicKey as GroupPublicKey, ScalarValue, SecretKey as GroupPrivateKey,
 };
 use kem::common::OutputSizeUser;
+use kem::common::array::sizes::{U32, U48, U128, U1153, U1249, U1665};
+pub(crate) use kem::common::array::typenum::Unsigned;
+use kem::common::array::{Array, ArraySize};
 use kem::common::rand_core::{CryptoRng, TryCryptoRng};
 pub(crate) use kem::{
     Ciphertext, Decapsulate, DecapsulationKey, Decapsulator, Encapsulate, EncapsulationKey,
     Generate, InvalidKey, Kem, Key, KeyExport, KeyInit, KeySizeUser, SharedKey, TryDecapsulate,
     TryKeyInit,
 };
-use ml_kem::array::Array;
-use ml_kem::array::sizes::{U32, U48, U128, U1153, U1249, U1665};
-use ml_kem::array::typenum::Unsigned;
 use ml_kem::{
-    ArraySize, EncapsulationKey768 as MlKem768EncapsulationKey,
+    EncapsulationKey768 as MlKem768EncapsulationKey,
     EncapsulationKey1024 as MlKem1024EncapsulationKey, MlKem768, MlKem1024,
 };
 use p256::NistP256;
@@ -455,7 +455,6 @@ pub(crate) trait RandomScalar: Curve {
         //       raise Exception("Rejection sampling failed")
         //   sk = OS2IP(seed[start : end])
         // return sk
-        #[expect(clippy::chunks_exact_to_as_chunks)]
         for chunk in seed.chunks_exact(Self::FieldBytesSize::USIZE) {
             if let Some(secret_key) = Array::try_from(chunk)
                 .ok()
