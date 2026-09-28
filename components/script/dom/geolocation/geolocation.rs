@@ -263,6 +263,7 @@ impl Geolocation {
 
     /// Stop every ongoing watch. Called when the `Window` is torn down, so that the embedder does
     /// not keep a location subscription alive for a pipeline that no longer exists.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn stop_all_watches(&self) {
         self.deferred_until_visible.borrow_mut().clear();
         self.watch_ids.borrow_mut().clear();
