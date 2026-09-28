@@ -66,7 +66,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
         let global = self.global();
         // Return this's relevant global object's byte length queuing strategy
         // size function.
-        if let Some(fun) = global.get_byte_length_queuing_strategy_size() {
+        if let Some(fun) = global.get_byte_length_queuing_strategy_size(cx) {
             return Ok(fun);
         }
 
@@ -75,13 +75,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
 
         // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
         // globalObject’s relevant Realm).
-        let fun = RootedCallback::from(native_fn!(
-            cx,
-            byte_length_queuing_strategy_size,
-            c"size",
-            1,
-            0
-        ));
+        let fun = native_fn!(cx, byte_length_queuing_strategy_size, c"size", 1, 0);
         // Step 3. Set globalObject’s byte length queuing strategy size function to
         // a Function that represents a reference to F,
         // with callback context equal to globalObject's relevant settings object.

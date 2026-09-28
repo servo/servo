@@ -20,15 +20,14 @@ use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::{FxBuildHasher, FxHashSet};
+use script_bindings::callback::HasCallbackHolder;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
 
 use crate::DomTypeHolder;
-use crate::dom::bindings::callback::{
-    CallbackContainer, ExceptionHandling, RootedCallback, TracedCallback,
-};
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
     CustomElementConstructor, CustomElementRegistryMethods, ElementDefinitionOptions,
 };
@@ -360,10 +359,7 @@ fn get_callback(
                     c"Lifecycle callback is not callable".to_owned(),
                 ));
             }
-            Ok(Some(RootedCallback::from(Function::new(
-                cx,
-                callback.to_object(),
-            ))))
+            Ok(Some(Function::new(cx, callback.to_object())))
         } else {
             Ok(None)
         }
@@ -1497,7 +1493,7 @@ impl CustomElementReactionStack {
                     // disconnectedCallback with no arguments.
                     if let Some(disconnected_callback) = disconnected_callback {
                         element.push_callback_reaction(
-                            disconnected_callback.root(),
+                            disconnected_callback.root(cx),
                             Box::new([]),
                             cx.no_gc(),
                         );
@@ -1506,7 +1502,7 @@ impl CustomElementReactionStack {
                     // connectedCallback with no arguments.
                     if let Some(connected_callback) = connected_callback {
                         element.push_callback_reaction(
-                            connected_callback.root(),
+                            connected_callback.root(cx),
                             Box::new([]),
                             cx.no_gc(),
                         );
@@ -1528,7 +1524,7 @@ impl CustomElementReactionStack {
 
         // Step 6. Add a new callback reaction to element's custom element reaction queue, with
         // callback function callback and arguments args.
-        element.push_callback_reaction(callback.root(), args.into_boxed_slice(), cx.no_gc());
+        element.push_callback_reaction(callback.root(cx), args.into_boxed_slice(), cx.no_gc());
 
         // Step 7. Enqueue an element on the appropriate element queue given element.
         self.enqueue_element(cx, element);

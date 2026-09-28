@@ -149,7 +149,7 @@ pub struct GPUDevice<D: DomTypes> {
 impl<D> GPUDevice<D>
 where
     D: Equivalence,
-    EventHandlerNonNull<D>: CallbackContainer<D>,
+    EventHandlerNonNull<D>: CallbackContainer,
 {
     #[expect(clippy::too_many_arguments)]
     fn new_inherited(
@@ -222,7 +222,7 @@ impl<D> GPUDevice<D>
 where
     D: Equivalence,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
-    EventHandlerNonNull<D>: CallbackContainer<D>,
+    EventHandlerNonNull<D>: CallbackContainer,
 {
     pub fn id(&self) -> WebGPUDevice {
         self.droppable.device

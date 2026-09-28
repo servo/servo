@@ -65,7 +65,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
         let global = self.global();
         // Return this's relevant global object's count queuing strategy
         // size function.
-        if let Some(fun) = global.get_count_queuing_strategy_size() {
+        if let Some(fun) = global.get_count_queuing_strategy_size(cx) {
             return Ok(fun);
         }
 
@@ -74,7 +74,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
 
         // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
         // globalObject’s relevant Realm).
-        let fun = RootedCallback::from(native_fn!(cx, count_queuing_strategy_size, c"size", 0, 0));
+        let fun = native_fn!(cx, count_queuing_strategy_size, c"size", 0, 0);
         // Step 3. Set globalObject’s count queuing strategy size function to
         // a Function that represents a reference to F,
         // with callback context equal to globalObject’s relevant settings object.
@@ -124,8 +124,8 @@ pub(crate) fn extract_size_algorithm(
         let fun_obj = native_raw_obj_fn!(cx, count_queuing_strategy_size, c"size", 0, 0);
         #[expect(unsafe_code)]
         unsafe {
-            return RootedCallback::from(QueuingStrategySize::new(cx, fun_obj));
+            return QueuingStrategySize::new(cx, fun_obj);
         };
     }
-    strategy.size.as_ref().unwrap().root()
+    strategy.size.as_ref().unwrap().root(cx)
 }
