@@ -220,14 +220,14 @@ rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
 sea-query = { version = "1.0.1", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = "0.8.0"
-selectors = { git = "https://github.com/servo/stylo", rev = "46df848bddebb1b92e73db2b57c71e5625a557ac" }
+selectors = { git = "https://github.com/servo/stylo", rev = "refs/pull/471/head" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
 serde_test = "1.0"
 serde_with = "3.13"
-servo_arc = { git = "https://github.com/servo/stylo", rev = "46df848bddebb1b92e73db2b57c71e5625a557ac" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "refs/pull/471/head" }
 sha1 = "0.11"
 sha2 = "0.11"
 sha3 = "0.12"
@@ -238,12 +238,12 @@ speexdsp-resampler = "0.1.0"
 sponge-cursor = "0.1"
 string_cache = "0.11"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "46df848bddebb1b92e73db2b57c71e5625a557ac" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "46df848bddebb1b92e73db2b57c71e5625a557ac" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "46df848bddebb1b92e73db2b57c71e5625a557ac" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "46df848bddebb1b92e73db2b57c71e5625a557ac" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "46df848bddebb1b92e73db2b57c71e5625a557ac" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "46df848bddebb1b92e73db2b57c71e5625a557ac" }
+stylo = { git = "https://github.com/servo/stylo", rev = "refs/pull/471/head" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "refs/pull/471/head" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "refs/pull/471/head" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "refs/pull/471/head" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "refs/pull/471/head" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "refs/pull/471/head" }
 surfman = "0.14.0"
 swapper = "0.1"
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
