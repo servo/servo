@@ -347,7 +347,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
-        abort_controller: DomRoot<AbortController>,
+        abort_controller: &AbortController,
         underlying_sink_type: UnderlyingSinkType,
         strategy_hwm: f64,
         strategy_size: RootedCallback<QueuingStrategySize>,
@@ -361,7 +361,7 @@ impl WritableStreamDefaultController {
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size.to_traced())),
             started: Default::default(),
-            abort_controller: abort_controller.as_traced(),
+            abort_controller: Dom::from_ref(abort_controller),
         }
     }
 
@@ -374,13 +374,16 @@ impl WritableStreamDefaultController {
         strategy_size: RootedCallback<QueuingStrategySize>,
     ) -> DomRoot<WritableStreamDefaultController> {
         let abort_controller = AbortController::new_with_proto(cx, global, None);
-        let obj = Box::new(WritableStreamDefaultController::new_inherited(
-            abort_controller,
-            underlying_sink_type,
-            strategy_hwm,
-            strategy_size,
-        ));
-        reflect_dom_object(cx, obj, global)
+        reflect_dom_object(
+            cx,
+            Box::new(WritableStreamDefaultController::new_inherited(
+                &*abort_controller,
+                underlying_sink_type,
+                strategy_hwm,
+                strategy_size,
+            )),
+            global,
+        )
     }
 
     pub(crate) fn started(&self) -> bool {
