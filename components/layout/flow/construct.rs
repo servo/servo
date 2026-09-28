@@ -31,6 +31,7 @@ use crate::formatting_contexts::{
 };
 use crate::fragment_tree::FragmentFlags;
 use crate::layout_box_base::LayoutBoxBase;
+use crate::lists::ListNumbering;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use crate::table::{AnonymousTableContent, Table};
@@ -179,6 +180,9 @@ pub(crate) struct BlockContainerBuilder<'dom, 'style> {
     /// The propagated data to use for BoxTree construction.
     propagated_data: PropagatedBoxTreeData,
 
+    /// The numbers to give to the list items in this container, if it is a list.
+    list_numbering: ListNumbering,
+
     /// The [`InlineFormattingContextBuilder`] if we have encountered any inline items,
     /// otherwise None.
     ///
@@ -211,7 +215,8 @@ impl BlockContainer {
         let mut builder = BlockContainerBuilder::new(context, info, propagated_data);
 
         if is_list_item &&
-            let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info)
+            let Some((marker_info, marker_contents)) =
+                crate::lists::make_marker(context, info, propagated_data.list_item_ordinal)
         {
             match marker_info.style.clone_list_style_position() {
                 ListStylePosition::Inside => {
@@ -241,6 +246,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
             info,
             block_level_boxes: Vec::new(),
             propagated_data,
+            list_numbering: ListNumbering::of_list(info.node),
             have_already_seen_first_line_for_text_indent: false,
             anonymous_box_info: None,
             anonymous_table_content: Vec::new(),
@@ -556,8 +562,11 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         box_slot.set(LayoutBox::InlineLevel(inline_item));
 
         if is_list_item &&
-            let Some((marker_info, marker_contents)) =
-                crate::lists::make_marker(self.context, info)
+            let Some((marker_info, marker_contents)) = crate::lists::make_marker(
+                self.context,
+                info,
+                self.list_numbering.next(info.node),
+            )
         {
             // Ignore `list-style-position` here:
             // “If the list item is an inline box: this value is equivalent to `inside`.”
@@ -582,7 +591,12 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        let propagated_data = self.propagated_data;
+        let propagated_data = match display_inside.is_list_item() {
+            true => self
+                .propagated_data
+                .for_list_item(self.list_numbering.next(info.node)),
+            false => self.propagated_data,
+        };
         let kind = BlockLevelCreator::new_for_inflow_block_level_element(
             info,
             display_inside,

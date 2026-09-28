@@ -136,6 +136,15 @@ pub(crate) enum DisplayInside {
     Table,
 }
 
+impl DisplayInside {
+    pub(crate) fn is_list_item(&self) -> bool {
+        matches!(
+            self,
+            Self::Flow { is_list_item: true } | Self::FlowRoot { is_list_item: true }
+        )
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[expect(clippy::enum_variant_names)]
 /// <https://drafts.csswg.org/css-display-3/#layout-specific-display>
