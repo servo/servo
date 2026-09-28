@@ -11,3 +11,6 @@ rust-version.workspace = true
 
 [dependencies]
 svgtypes = { workspace = true }
+
+[lints]
+workspace = true
