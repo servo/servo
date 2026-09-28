@@ -420,7 +420,6 @@ struct CmdArgs {
 
     /// Start remote devtools server on port listening on this address. <address>:<port> and <port> are valid values.
     #[bpaf(argument("127.0.0.1:7000"))]
-    #[cfg(feature = "devtools")]
     devtools: Option<String>,
 
     ///
