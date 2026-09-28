@@ -23,26 +23,29 @@ class ServoView(
     client: Servo.Client,
     servoArgs: String?,
     servoLog: String?,
-    private val experimentalMode: Boolean,
-    private val initialUri: String?,
+    experimentalMode: Boolean,
+    initialUri: String?,
     internal val navigator: ServoNavigator,
     private val scope: CoroutineScope,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     internal val glDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-    internal var servo: Servo? = null
+    internal val servo =
+        Servo(
+            servoArgs,
+            initialUri,
+            servoLog,
+            experimentalMode,
+            this,
+            client,
+            context,
+            navigator,
+        )
 
     init {
         isFocusable = true
         isFocusableInTouchMode = true
         addTouchables(arrayListOf(this))
-        val surfaceHolderCallback =
-            SurfaceHolderCallback(
-                servoView = this,
-                client = client,
-                servoArgs = servoArgs,
-                servoLog = servoLog,
-                navigator = navigator,
-            )
+        val surfaceHolderCallback = SurfaceHolderCallback(servoView = this)
         holder.addCallback(surfaceHolderCallback)
     }
 
@@ -55,33 +58,27 @@ class ServoView(
     }
 
     override fun doFrame(frameTimeNanos: Long) {
-        servo?.onDoFrame()
+        servo.onDoFrame()
         Choreographer.getInstance().postFrameCallback(this)
     }
 
     fun stop() {
-        servo!!.stop()
+        servo.stop()
     }
 
     fun loadUri(uri: String) {
-        servo!!.loadUri(uri)
+        servo.loadUri(uri)
     }
 
     fun mediaSessionAction(action: Int) {
-        servo!!.mediaSessionAction(action)
+        servo.mediaSessionAction(action)
     }
 
     fun setExperimentalMode(enable: Boolean) {
-        servo!!.setExperimentalMode(enable)
+        servo.setExperimentalMode(enable)
     }
 
-    private class SurfaceHolderCallback(
-        private val servoView: ServoView,
-        private val client: Servo.Client,
-        private val servoArgs: String?,
-        private val servoLog: String?,
-        private val navigator: ServoNavigator,
-    ) : SurfaceHolder.Callback {
+    private class SurfaceHolderCallback(private val servoView: ServoView) : SurfaceHolder.Callback {
         private var paused = false
 
         override fun surfaceCreated(holder: SurfaceHolder) {
@@ -91,24 +88,16 @@ class ServoView(
 
             val surface = holder.surface
 
-            if (servoView.servo == null && !paused) {
-                servoView.servo =
-                    Servo(
-                        servoArgs,
-                        servoView.initialUri,
-                        size,
-                        servoView.resources.displayMetrics.density,
-                        servoLog,
-                        servoView.experimentalMode,
-                        servoView,
-                        client,
-                        servoView.context,
-                        surface,
-                        navigator,
-                    )
+            if (!paused) {
+                servoView.servo.addPlatformWindow(
+                    size,
+                    servoView.resources.displayMetrics.density,
+                    servoView,
+                    surface,
+                )
             } else {
                 paused = false
-                servoView.servo!!.resumePainting(surface, size)
+                servoView.servo.resumePainting(surface, size)
             }
 
             Choreographer.getInstance().postFrameCallback(servoView)
@@ -116,13 +105,13 @@ class ServoView(
 
         override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
             Log.d(LOGTAG, "GLThread::surfaceChanged")
-            servoView.servo!!.resize(Size(width, height))
+            servoView.servo.resize(Size(width, height))
         }
 
         override fun surfaceDestroyed(holder: SurfaceHolder) {
             Log.d(LOGTAG, "GLThread::surfaceDestroyed")
             paused = true
-            servoView.servo!!.pausePainting()
+            servoView.servo.pausePainting()
         }
     }
 

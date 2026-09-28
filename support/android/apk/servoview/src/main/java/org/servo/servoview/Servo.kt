@@ -39,8 +39,8 @@ fun Servo(
     modifier: Modifier = Modifier,
 ) {
     LifecycleResumeEffect(servoView) {
-        servoView.servo?.suspend(false)
-        onPauseOrDispose { servoView.servo?.suspend(true) }
+        servoView.servo.suspend(false)
+        onPauseOrDispose { servoView.servo.suspend(true) }
     }
     // TODO Key off of and pass `servo` instead of `servoView` once `servo` is non-null.
     LaunchedEffect(servoView, servoView.navigator) {
@@ -56,7 +56,7 @@ fun Servo(
                 .onKeyEvent { keyEvent ->
                     when (keyEvent.type) {
                         KeyEventType.KeyDown if keyEvent.key != Key.Back -> {
-                            servoView.servo!!.onKeyDown(
+                            servoView.servo.onKeyDown(
                                 keyEvent.key.nativeKeyCode,
                                 keyEvent.nativeKeyEvent,
                             )
@@ -64,7 +64,7 @@ fun Servo(
                         }
 
                         KeyEventType.KeyUp if keyEvent.key != Key.Back -> {
-                            servoView.servo!!.onKeyUp(
+                            servoView.servo.onKeyUp(
                                 keyEvent.key.nativeKeyCode,
                                 keyEvent.nativeKeyEvent,
                             )
@@ -86,11 +86,11 @@ fun Servo(
                     when (action) {
                         MotionEvent.ACTION_DOWN,
                         MotionEvent.ACTION_POINTER_DOWN ->
-                            servoView.servo!!.touchDown(x, y, pointerId)
-                        MotionEvent.ACTION_MOVE -> servoView.servo!!.touchMove(x, y, pointerId)
+                            servoView.servo.touchDown(x, y, pointerId)
+                        MotionEvent.ACTION_MOVE -> servoView.servo.touchMove(x, y, pointerId)
                         MotionEvent.ACTION_UP,
-                        MotionEvent.ACTION_POINTER_UP -> servoView.servo!!.touchUp(x, y, pointerId)
-                        MotionEvent.ACTION_CANCEL -> servoView.servo!!.touchCancel(x, y, pointerId)
+                        MotionEvent.ACTION_POINTER_UP -> servoView.servo.touchUp(x, y, pointerId)
+                        MotionEvent.ACTION_CANCEL -> servoView.servo.touchCancel(x, y, pointerId)
                     }
 
                     true
@@ -115,9 +115,9 @@ class ServoNavigator {
     internal suspend fun consumeNavigationEvents(servoView: ServoView) {
         navigationEvents.collect { navigationEvent ->
             when (navigationEvent) {
-                NavigationEvent.Back -> servoView.servo!!.goBack()
-                NavigationEvent.Forward -> servoView.servo!!.goForward()
-                NavigationEvent.Reload -> servoView.servo!!.reload()
+                NavigationEvent.Back -> servoView.servo.goBack()
+                NavigationEvent.Forward -> servoView.servo.goForward()
+                NavigationEvent.Reload -> servoView.servo.reload()
             }
         }
     }
@@ -144,14 +144,11 @@ class ServoNavigator {
 class Servo(
     args: String?,
     url: String?,
-    size: Size,
-    density: Float,
     logStr: String?,
     experimentalMode: Boolean,
     private val runCallback: RunCallback,
     client: Client,
     context: Context,
-    surface: Surface,
     navigator: ServoNavigator,
 ) {
     private val jni = JNIServo()
@@ -163,11 +160,23 @@ class Servo(
                 context,
                 args,
                 url,
-                size,
-                density,
                 logStr,
                 experimentalMode,
                 servoCallbacks,
+            )
+        }
+    }
+
+    fun addPlatformWindow(
+        size: Size,
+        density: Float,
+        runCallback: RunCallback,
+        surface: Surface,
+    ) {
+        runCallback.inGLThread {
+            jni.addPlatformWindow(
+                size,
+                density,
                 surface,
             )
         }
