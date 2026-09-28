@@ -16,7 +16,7 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::{CookieSource, ends_with_ignore_ascii_case};
 use nom::branch::alt;
 use nom::bytes::complete::{tag, tag_no_case, take, take_while_m_n};
-use nom::combinator::{opt, recognize};
+use nom::combinator::{opt, recognize, value};
 use nom::multi::{many0, many1, separated_list1};
 use nom::sequence::{delimited, preceded, terminated};
 use nom::{IResult, Parser};
@@ -461,18 +461,18 @@ impl ServoCookie {
         let month = |input| {
             terminated(
                 alt((
-                    tag_no_case("jan"),
-                    tag_no_case("feb"),
-                    tag_no_case("mar"),
-                    tag_no_case("apr"),
-                    tag_no_case("may"),
-                    tag_no_case("jun"),
-                    tag_no_case("jul"),
-                    tag_no_case("aug"),
-                    tag_no_case("sep"),
-                    tag_no_case("oct"),
-                    tag_no_case("nov"),
-                    tag_no_case("dec"),
+                    value(Month::January, tag_no_case("jan")),
+                    value(Month::February, tag_no_case("feb")),
+                    value(Month::March, tag_no_case("mar")),
+                    value(Month::April, tag_no_case("apr")),
+                    value(Month::May, tag_no_case("may")),
+                    value(Month::June, tag_no_case("jun")),
+                    value(Month::July, tag_no_case("jul")),
+                    value(Month::August, tag_no_case("aug")),
+                    value(Month::September, tag_no_case("sep")),
+                    value(Month::October, tag_no_case("oct")),
+                    value(Month::November, tag_no_case("nov")),
+                    value(Month::December, tag_no_case("dec")),
                 )),
                 any_octets,
             )
@@ -537,25 +537,7 @@ impl ServoCookie {
                 let Ok((_, result)) = month(date_token)
             {
                 // set the found-month flag and set the month-value to the month denoted by the date-token.
-                month_value = match std::str::from_utf8(result)
-                    .unwrap()
-                    .to_ascii_lowercase()
-                    .as_str()
-                {
-                    "jan" => Some(Month::January),
-                    "feb" => Some(Month::February),
-                    "mar" => Some(Month::March),
-                    "apr" => Some(Month::April),
-                    "may" => Some(Month::May),
-                    "jun" => Some(Month::June),
-                    "jul" => Some(Month::July),
-                    "aug" => Some(Month::August),
-                    "sep" => Some(Month::September),
-                    "oct" => Some(Month::October),
-                    "nov" => Some(Month::November),
-                    "dec" => Some(Month::December),
-                    _ => None,
-                };
+                month_value = Some(result);
                 // Skip the remaining sub-steps and continue to the next date-token.
                 continue;
             }
