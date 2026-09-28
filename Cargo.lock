@@ -10437,7 +10437,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "svg_engine"
+name = "svg"
 version = "0.6.0"
 dependencies = [
  "svgtypes",

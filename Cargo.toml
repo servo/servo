@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "components/media/examples",
-    "components/svg_engine",
+    "components/svg",
     "components/xpath",
     "ffi/capi",
     "ports/servoshell",
