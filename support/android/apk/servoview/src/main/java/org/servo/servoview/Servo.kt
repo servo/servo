@@ -95,6 +95,7 @@ fun Servo(
 
                     true
                 },
+        onRelease = { servoView.glDispatcher.close() },
     )
 }
 

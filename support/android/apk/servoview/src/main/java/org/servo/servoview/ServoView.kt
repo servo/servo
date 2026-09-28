@@ -7,13 +7,15 @@ package org.servo.servoview
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.util.Size
 import android.view.Choreographer
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import java.util.concurrent.Executors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
 
 @SuppressLint("ViewConstructor")
 class ServoView(
@@ -24,8 +26,9 @@ class ServoView(
     private val experimentalMode: Boolean,
     private val initialUri: String?,
     internal val navigator: ServoNavigator,
+    private val scope: CoroutineScope,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
-    private val glThread = GLThread().apply { start() }
+    internal val glDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
     internal var servo: Servo? = null
 
     init {
@@ -44,11 +47,11 @@ class ServoView(
     }
 
     override fun inGLThread(r: Runnable) {
-        glThread.glLooperHandler!!.post(r)
+        scope.launch(glDispatcher) { r.run() }
     }
 
     override fun inUIThread(r: Runnable) {
-        post(r)
+        scope.launch { r.run() }
     }
 
     override fun doFrame(frameTimeNanos: Long) {
@@ -70,18 +73,6 @@ class ServoView(
 
     fun setExperimentalMode(enable: Boolean) {
         servo!!.setExperimentalMode(enable)
-    }
-
-    private class GLThread : Thread() {
-        var glLooperHandler: Handler? = null
-
-        override fun run() {
-            Looper.prepare()
-
-            glLooperHandler = Handler(Looper.myLooper()!!)
-
-            Looper.loop()
-        }
     }
 
     private class SurfaceHolderCallback(
