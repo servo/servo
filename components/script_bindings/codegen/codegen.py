@@ -885,9 +885,12 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         return templateBody
 
     # A helper function for types that implement FromJSValConvertible trait
-    def fromJSValTemplate(config: str, errorHandler: str, exceptionCode: str) -> str:
-        return f"""match FromJSValConvertible::from_jsval(cx, ${{val}}, {config}) {{
-    Ok(ConversionResult::Success(value)) => value,
+    def fromJSValTemplate(config: str, errorHandler: str, exceptionCode: str, type_name: str = "FromJSValConvertible",
+                          needsToBeTraced: bool = False) -> str:
+        returnValue = "value.to_traced()" if needsToBeTraced else "value"
+
+        return f"""match {type_name}::from_jsval(cx, ${{val}}, {config}) {{
+    Ok(ConversionResult::Success(value)) => {returnValue},
     Ok(ConversionResult::Failure(error)) => {{
         {errorHandler}
     }}
@@ -993,6 +996,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         #    our own implementation code.
 
         needsToBeTraced = isMember == "Dictionary"
+        templateBody = fromJSValTemplate("()", failOrPropagate, exceptionCode, "<<D::Promise as PromiseHelpers<D>>::StackRoot>", needsToBeTraced)
 
         if isArgument:
             declType = CGGeneric("&D::Promise")
@@ -1000,18 +1004,6 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             declType = CGGeneric("<D::Promise as PromiseHelpers<D>>::HeapTraced")
         else:
             declType = CGGeneric("<D::Promise as PromiseHelpers<D>>::StackRoot")
-
-        returnValue = "value.to_traced()" if needsToBeTraced else "value"
-        templateBody = f"""match <<D::Promise as PromiseHelpers<D>>::StackRoot>::from_jsval(cx, ${{val}}, ()) {{
-    Ok(ConversionResult::Success(value)) => {returnValue},
-    Ok(ConversionResult::Failure(error)) => {{
-        {failOrPropagate}
-    }}
-    _ => {{
-        {exceptionCode}
-    }},
-}}
-"""
         return handleOptional(templateBody, declType, handleDefault("None"))
 
     if type.isGeckoInterface():
