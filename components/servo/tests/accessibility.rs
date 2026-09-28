@@ -918,7 +918,7 @@ fn test_accessibility_build_initial_tree_after_scroll() {
 
 #[test]
 fn test_accessibility_unchanged_bounds_are_not_resent() {
-    // Absolutely positioned divs; resizing one doesn't affect the other
+    // Absolutely positioned elements; resizing one doesn't affect the other
     let url = "data:text/html,<!DOCTYPE html>\
                <section id='a' style='position:absolute;left:0;top:0;width:10px;height:10px'>\
                  <article id='c'></article>\
@@ -1005,7 +1005,7 @@ fn test_accessibility_update_failed_layout_from_layout_root() {
         Rect::new(0.0, 0.0, 10.0, 10.0),
     );
     assert_rect_eq(
-        node_c.raw_bounds().expect("b should have bounds"),
+        node_c.raw_bounds().expect("c should have bounds"),
         Rect::new(100.0, 100.0, 110.0, 110.0),
     );
     let node_a_id = node_a.locate().0;
@@ -1013,7 +1013,7 @@ fn test_accessibility_update_failed_layout_from_layout_root() {
     let a_children: Vec<_> = node_a.children().collect();
     let node_b = a_children[0];
     assert_rect_eq(
-        node_b.raw_bounds().expect("c should have bounds"),
+        node_b.raw_bounds().expect("b should have bounds"),
         Rect::new(20.0, 20.0, 40.0, 40.0),
     );
     let node_b_id = node_b.locate().0;
@@ -1163,17 +1163,19 @@ fn find_node_with_role(update: &TreeUpdate, role: Role) -> &accesskit::Node {
     find_node_matching(update, |_, node| node.role() == role)
 }
 
-/// Find the single node matching the given predicte in a [`TreeUpdate`].
+/// Find the single node matching the given predicate in a [`TreeUpdate`].
 #[track_caller]
 fn find_node_matching(
     update: &TreeUpdate,
-    mut pred: impl FnMut(&NodeId, &accesskit::Node) -> bool,
+    mut predicate: impl FnMut(&NodeId, &accesskit::Node) -> bool,
 ) -> &accesskit::Node {
-    let mut matches = update.nodes.iter().filter(|(id, node)| pred(id, node));
-    let node = matches.next().expect("Exactly one node should match pred");
+    let mut matches = update.nodes.iter().filter(|(id, node)| predicate(id, node));
+    let node = matches
+        .next()
+        .expect("Exactly one node should match predicate");
     assert!(
         matches.next().is_none(),
-        "Exactly one node should match pred"
+        "Exactly one node should match predicate"
     );
     &node.1
 }
@@ -1308,11 +1310,11 @@ fn assert_tree_structure_and_get_root_web_area<'tree>(
 
 fn find_first_matching_node(
     root_node: accesskit_consumer::Node<'_>,
-    mut pred: impl FnMut(&accesskit_consumer::Node) -> bool,
+    mut predicate: impl FnMut(&accesskit_consumer::Node) -> bool,
 ) -> Option<accesskit_consumer::Node<'_>> {
     let mut children = root_node.children().collect::<VecDeque<_>>();
     while let Some(candidate) = children.pop_front() {
-        if pred(&candidate) {
+        if predicate(&candidate) {
             return Some(candidate);
         }
         for child in candidate.children() {
@@ -1324,12 +1326,12 @@ fn find_first_matching_node(
 
 fn find_all_matching_nodes(
     root_node: accesskit_consumer::Node<'_>,
-    mut pred: impl FnMut(&accesskit_consumer::Node) -> bool,
+    mut predicate: impl FnMut(&accesskit_consumer::Node) -> bool,
 ) -> Vec<accesskit_consumer::Node<'_>> {
     let mut children = root_node.children().collect::<VecDeque<_>>();
     let mut result = vec![];
     while let Some(candidate) = children.pop_front() {
-        if pred(&candidate) {
+        if predicate(&candidate) {
             result.push(candidate);
         }
         for child in candidate.children() {

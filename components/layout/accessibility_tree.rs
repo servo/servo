@@ -961,11 +961,11 @@ impl AccessibilityNode {
     fn update_node_from_layout(
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
-        dom_damage: AccessibilityDamage,
+        layout_damage: AccessibilityDamage,
         context: &AccessibilityContext,
         update: &mut AccessibilityUpdate,
     ) {
-        if !dom_damage.contains(AccessibilityDamage::Layout) {
+        if !layout_damage.contains(AccessibilityDamage::Layout) {
             return;
         }
 
