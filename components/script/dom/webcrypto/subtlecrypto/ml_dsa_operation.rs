@@ -44,11 +44,7 @@ pub(crate) fn sign(
 
     // Step 2. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 3. Let context be the context member of normalizedAlgorithm or the empty octet string
     // if the context member of normalizedAlgorithm is not present.
@@ -129,11 +125,7 @@ pub(crate) fn verify(
 
     // Step 2. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 3. Let context be the context member of normalizedAlgorithm or the empty octet string
     // if the context member of normalizedAlgorithm is not present.
@@ -837,11 +829,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Spki => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
@@ -908,11 +896,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Pkcs8 => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 3.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
@@ -1006,11 +990,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw_public => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let data be a byte sequence containing the ML-DSA public key represented
             // by the [[handle]] internal slot of key.
@@ -1032,11 +1012,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw_seed => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 3.2. Let data be a byte sequence containing the ξ seed variable of the key
             // represented by the [[handle]] internal slot of key.

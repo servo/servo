@@ -2226,10 +2226,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
                 // Step 8. If the [[type]] internal slot of key is not "private", then throw an
                 // InvalidAccessError.
-                if key.Type() != KeyType::Private {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
-                        "[[type]] internal slot of key is not \"private\"".to_string()
-                    )));
+                if let Err(error) = key.ensure_type(KeyType::Private) {
+                    subtle.reject_promise_with_error(promise, error);
                     return;
                 }
 

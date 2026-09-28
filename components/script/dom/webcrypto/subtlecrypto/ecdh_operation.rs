@@ -12,9 +12,7 @@ use p384::ecdh::diffie_hellman as p384_diffie_hellman;
 use p521::NistP521;
 use p521::ecdh::diffie_hellman as p521_diffie_hellman;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
-};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyPair, KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
@@ -55,11 +53,7 @@ pub(crate) fn derive_bits(
 
     // Step 2. If the [[type]] internal slot of publicKey is not "public", then throw an
     // InvalidAccessError.
-    if public_key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of publicKey is not \"public\"".into(),
-        )));
-    }
+    public_key.ensure_type(KeyType::Public)?;
 
     // Step 3. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal to
     // the name member of normalizedAlgorithm, then throw an InvalidAccessError.
@@ -87,11 +81,7 @@ pub(crate) fn derive_bits(
 
     // Step 6. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".to_string(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 7. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal
     // to the name property of the [[algorithm]] internal slot of key, then throw an

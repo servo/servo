@@ -9,9 +9,7 @@ use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
-};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyPair, KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
@@ -31,11 +29,7 @@ pub(crate) fn sign(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "The key type is not private.".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Let hashAlgorithm be the hash member of normalizedAlgorithm.
     let hash_algorithm = &normalized_algorithm.hash;
@@ -127,9 +121,7 @@ pub(crate) fn verify(
 ) -> Result<bool, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some("Key type is not public".into())));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. Let hashAlgorithm be the hash member of normalizedAlgorithm.
     let hash_algorithm = &normalized_algorithm.hash;

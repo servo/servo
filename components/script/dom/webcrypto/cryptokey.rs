@@ -185,6 +185,20 @@ impl CryptoKey {
     pub(crate) fn handle(&self) -> &Handle {
         &self.handle
     }
+
+    /// Ensure that the [[type]] internal slot of key is same as `expected`. If the [[type]]
+    /// internal slot of key is not same as `expected`, then throw an InvalidAccessError.
+    pub(crate) fn ensure_type(&self, expected: KeyType) -> ErrorResult {
+        if self.key_type == expected {
+            Ok(())
+        } else {
+            Err(Error::InvalidAccess(Some(match expected {
+                KeyType::Public => "The key is not a public key".into(),
+                KeyType::Private => "The key is not a private key".into(),
+                KeyType::Secret => "The key is not a secret key".into(),
+            })))
+        }
+    }
 }
 
 impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
