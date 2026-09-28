@@ -1320,6 +1320,15 @@ impl LayoutThread {
             self.need_new_display_list.set(true);
         }
 
+        let mut insert_accessibility_damage_if_necessary = |node: ServoLayoutNode<'dom>| {
+            if let Some(map) = accessibility_damage.as_mut() {
+                map.entry(node.opaque())
+                    .or_insert((node, AccessibilityDamage::empty()))
+                    .1
+                    .insert(AccessibilityDamage::Layout);
+            }
+        };
+
         if !damage.contains(LayoutDamage::Relayout) {
             if damage.contains(LayoutDamage::RecalculateOverflow) {
                 assert!(self.need_new_display_list.get());
@@ -1342,14 +1351,8 @@ impl LayoutThread {
 
             debug_assert!(!layout_roots.is_empty());
 
-            if let Some(map) = accessibility_damage.as_mut() {
-                for layout_root in &layout_roots {
-                    let node = layout_root.node();
-                    map.entry(node.opaque())
-                        .or_insert((node, AccessibilityDamage::empty()))
-                        .1
-                        .insert(AccessibilityDamage::Layout);
-                }
+            for layout_root in &layout_roots {
+                insert_accessibility_damage_if_necessary(layout_root.node());
             }
 
             if layout_roots
@@ -1372,12 +1375,7 @@ impl LayoutThread {
             }
         }
 
-        if let Some(map) = accessibility_damage.as_mut() {
-            map.entry(root_node.opaque())
-                .or_insert((root_node, AccessibilityDamage::empty()))
-                .1
-                .insert(AccessibilityDamage::Layout);
-        }
+        insert_accessibility_damage_if_necessary(root_node);
 
         let box_tree = &*box_tree;
         let viewport_size = self.stylist.device().au_viewport_size();

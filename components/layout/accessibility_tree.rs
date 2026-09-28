@@ -368,9 +368,12 @@ impl AccessibilityTree {
 
     /// Given an iterator of `NodeId`s corresponding to nodes which have received some damage from
     /// the DOM:
-    /// - mark each node as `dirty`;
-    /// - mark all of each node's ancestors as `has_dirty_descendants`;
-    /// - return the lowest common ancestor node of all the damaged nodes.
+    /// - mark each node as [`DirtyState::Dirty`];
+    /// - mark all of each node's ancestors as [`DirtyState::HasDirtyDescendants`];
+    /// - find the lowest common ancestor node of all the damaged nodes;
+    /// - remove the [`DirtyState::HasDirtyDescendants`] flag on nodes between the common ancestor
+    ///   and the root;
+    /// - return the common ancestor.
     fn mark_nodes_and_ancestors_dirty(
         &mut self,
         update: &mut AccessibilityUpdate,
@@ -843,6 +846,9 @@ impl AccessibilityNode {
             return local_damage;
         }
 
+        // We check for layout damage here because we need to walk the DOM children of nodes with
+        // layout damage in order to be able to recompute their bounds. Text nodes have neither
+        // bounds nor child nodes, so if the only damage is layout, we can early return here.
         if dom_damage == AccessibilityDamage::Layout && dom_node.is_text_node() {
             return local_damage;
         }
