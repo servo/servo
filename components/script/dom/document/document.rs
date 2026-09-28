@@ -2412,10 +2412,6 @@ impl Document {
 
         // Step 20. If oldDocument's salvageable state is false, then destroy oldDocument.
         // TODO
-        if !self.salvageable() {
-            // 2. Clear window's map of active timers.
-            self.timers.clear()
-        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#completely-finish-loading>
