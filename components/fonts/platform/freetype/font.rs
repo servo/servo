@@ -20,13 +20,15 @@ use read_fonts::{FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
 use skrifa::attribute::Weight;
 use style::Zero;
-use webrender_api::{FontHinting, FontInstanceFlags, FontInstancePlatformOptions, FontVariation};
+use webrender_api::{FontInstanceFlags, FontInstancePlatformOptions, FontVariation};
 
 use super::library_handle::FreeTypeLibraryHandle;
 use crate::FontData;
 use crate::font::{FontMetrics, FontTableMethods, FractionalPixel, PlatformFontMethods};
 use crate::glyph::GlyphId;
-use crate::platform::freetype::freetype_face::{FontBackingStore, FreeTypeFace};
+use crate::platform::freetype::freetype_face::{
+    FALLBACK_HINTING_STYLE, FontBackingStore, FreeTypeFace,
+};
 
 const SEMI_BOLD_U16: u16 = Weight::SEMI_BOLD.value() as u16;
 
@@ -397,7 +399,9 @@ impl PlatformFontMethods for PlatformFont {
 
     fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {
         FontInstancePlatformOptions {
-            hinting: FontHinting::Light,
+            // TODO: We should eventually read the hinting style from the system when
+            // possible such as from Fontconfig.
+            hinting: FALLBACK_HINTING_STYLE,
             ..Default::default()
         }
     }
