@@ -157,6 +157,11 @@ impl IDBIndex {
         )
         .inspect(|request| cursor.set_request(request))
     }
+
+    /// Placeholder for implementation from <https://github.com/servo/servo/pull/44249>
+    pub(crate) fn verify_not_deleted(&self) -> ErrorResult {
+        Ok(())
+    }
 }
 
 impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
