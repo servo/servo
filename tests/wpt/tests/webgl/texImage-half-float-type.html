@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Texture uploads accept the half-float type of their WebGL version</title>
+<link rel="author" title="mxmgorin" href="mailto:102797145+mxmgorin@users.noreply.github.com">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/2.0/">
+<link rel="help" href="https://registry.khronos.org/webgl/extensions/OES_texture_half_float/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+const HALF_FLOAT = 0x140B;
+const HALF_FLOAT_OES = 0x8D61;
+
+function createTexture(gl, target) {
+    gl.bindTexture(target, gl.createTexture());
+}
+
+test(function() {
+    var gl = document.createElement("canvas").getContext("webgl2");
+    createTexture(gl, gl.TEXTURE_2D);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, 1, 1, 0, gl.RGBA, HALF_FLOAT, new Uint16Array(4));
+    assert_equals(gl.getError(), gl.NO_ERROR);
+}, "WebGL 2 texImage2D accepts HALF_FLOAT");
+
+test(function() {
+    var gl = document.createElement("canvas").getContext("webgl2");
+    createTexture(gl, gl.TEXTURE_3D);
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA16F, 1, 1, 1, 0, gl.RGBA, HALF_FLOAT, new Uint16Array(4));
+    assert_equals(gl.getError(), gl.NO_ERROR);
+}, "WebGL 2 texImage3D accepts HALF_FLOAT");
+
+test(function() {
+    var gl = document.createElement("canvas").getContext("webgl2");
+    createTexture(gl, gl.TEXTURE_2D);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, 1, 1, 0, gl.RGBA, HALF_FLOAT_OES, new Uint16Array(4));
+    assert_equals(gl.getError(), gl.INVALID_ENUM);
+}, "WebGL 2 texImage2D rejects HALF_FLOAT_OES");
+
+test(function() {
+    var gl = document.createElement("canvas").getContext("webgl");
+    createTexture(gl, gl.TEXTURE_2D);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, HALF_FLOAT, new Uint16Array(4));
+    assert_equals(gl.getError(), gl.INVALID_ENUM);
+}, "WebGL 1 texImage2D rejects HALF_FLOAT");
+</script>
