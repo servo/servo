@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A blitFramebuffer into the drawing buffer is presented</title>
+<link rel="author" title="mxmgorin" href="mailto:102797145+mxmgorin@users.noreply.github.com">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/1.0/#THE_DRAWING_BUFFER">
+<link rel="match" href="drawing-buffer-presented-ref.html">
+<style>
+  body { margin: 0 }
+  canvas { display: block }
+</style>
+<canvas width="100" height="100"></canvas>
+<script>
+// The blit is the only call that writes to the drawing buffer.
+var gl = document.querySelector("canvas").getContext("webgl2", { antialias: false });
+
+var framebuffer = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+var renderbuffer = gl.createRenderbuffer();
+gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, 100, 100);
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, renderbuffer);
+gl.clearColor(0, 1, 0, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+gl.blitFramebuffer(0, 0, 100, 100, 0, 0, 100, 100, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+</script>
