@@ -1473,8 +1473,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
-    fn Select(&self) {
-        self.dom_select();
+    fn Select(&self, cx: &mut JSContext) {
+        self.dom_select(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
