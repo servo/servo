@@ -13,6 +13,7 @@ use js::context::{JSContext, NoGC};
 use keyboard_types::{
     Key, KeyState, KeyboardEvent as KeyboardTypesEvent, Modifiers, NamedKey, ShortcutMatcher,
 };
+use layout_api::QueryMsg;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
@@ -573,6 +574,17 @@ impl EditingContext {
     }
 
     pub(crate) fn perform_editing_action(&self, cx: &mut JSContext, action: EditingAction) -> bool {
+        if let Some(node) = self.event_target().downcast::<Node>() {
+            // A previous event listener, such as keydown or beforeinput, might have
+            // hidden the event target. So we should re-check the layout and see if
+            // the node is still being rendered before performing an editing action
+            // on it.
+            node.owner_window().layout_reflow(QueryMsg::StyleQuery);
+            if !node.is_being_rendered_or_delegates_rendering(None) {
+                return false;
+            }
+        }
+
         // A couple editing actions can be performed via the external interface of
         // `EditingContext`. If that's the case we want to do that so that the same
         // code path is used regardless of how the action was executed.
