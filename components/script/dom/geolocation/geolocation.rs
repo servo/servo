@@ -267,25 +267,11 @@ impl Geolocation {
         self.deferred_until_visible.borrow_mut().clear();
         self.watch_ids.borrow_mut().clear();
 
-        let outstanding: Vec<_> = self
-            .requests
-            .borrow()
-            .values()
-            .map(|request| {
-                (
-                    request.timeout_handle.take(),
-                    request.watch_id,
-                    request.watching.get(),
-                )
-            })
-            .collect();
-        self.requests.borrow_mut().clear();
-
-        for (timeout_handle, watch_id, watching) in outstanding {
-            if let Some(handle) = timeout_handle {
+        for (_, request) in self.requests.borrow_mut().drain() {
+            if let Some(handle) = request.timeout_handle.take() {
                 self.global().unschedule_callback(handle);
             }
-            if let (Some(watch_id), true) = (watch_id, watching) {
+            if let (Some(watch_id), true) = (request.watch_id, request.watching.get()) {
                 self.stop_embedder_watch(watch_id);
             }
         }
@@ -370,9 +356,11 @@ impl Geolocation {
             return;
         };
         self.disarm_timeout(request_id);
-        self.remove_watch_id(watch_id);
-        if let (Some(watch_id), true) = (watch_id, was_watching) {
-            self.stop_embedder_watch(watch_id);
+        if let Some(watch_id) = watch_id {
+            self.watch_ids.borrow_mut().remove(&watch_id);
+            if was_watching {
+                self.stop_embedder_watch(watch_id);
+            }
         }
         self.queue_completion(request_id, Completion::Failure(error));
     }
@@ -728,12 +716,6 @@ impl Geolocation {
         }
     }
 
-    fn remove_watch_id(&self, watch_id: Option<u32>) {
-        if let Some(watch_id) = watch_id {
-            self.watch_ids.borrow_mut().remove(&watch_id);
-        }
-    }
-
     /// The geolocation part of the page visibility change steps: resume the requests parked by
     /// step 5 of "request a position".
     ///
@@ -811,8 +793,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
         let Ok(watch_id) = u32::try_from(watch_id) else {
             return;
         };
-        // Remove watchId from this's [[watchIDs]].
-        self.remove_watch_id(Some(watch_id));
+        self.watch_ids.borrow_mut().remove(&watch_id);
 
         let request_id = self
             .requests
