@@ -41,6 +41,7 @@ pub trait IDLInterface {
     /// Returns whether the given DOM class derives that interface.
     fn derives(_: &'static DOMClass) -> bool;
 
+    /// The concrete type represented by this interface instance.
     const PROTO_ID: PrototypeList::ID;
 
     /// First prototype ID in the DFS-ordered range for this interface and its descendants.
