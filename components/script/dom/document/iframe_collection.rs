@@ -6,7 +6,7 @@ use std::cell::Ref;
 use std::default::Default;
 
 use embedder_traits::ViewportDetails;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use layout_api::IFrameSizes;
 use paint_api::PinchZoomInfos;
 use script_bindings::cell::DomRefCell;
@@ -49,13 +49,13 @@ impl IFrameCollection {
         }
     }
 
-    pub(crate) fn add(&self, iframe_element: &HTMLIFrameElement) {
+    pub(crate) fn add(&self, no_gc: &NoGC, iframe_element: &HTMLIFrameElement) {
         let iframe_node = iframe_element.upcast::<Node>();
 
         // During `moveBefore`, nodes are attached to the tree again without detaching
         // them in order to preserve state. Here we remove any pre-existing entry for
         // this iframe element from the collection and preserve its old size.
-        let size = self.remove(iframe_element);
+        let size = self.remove(no_gc, iframe_element);
 
         // Look forward for the next `<iframe>` in the document in order to find the new
         // insertion point in the DOM-ordered list of frames. This optimizes for the parser
@@ -75,7 +75,7 @@ impl IFrameCollection {
             })
             .unwrap_or(self.iframes.borrow().len());
 
-        self.iframes.borrow_mut().insert(
+        self.iframes.safe_borrow_mut(no_gc).insert(
             insertion_index,
             IFrame {
                 element: Dom::from_ref(iframe_element),
@@ -84,15 +84,19 @@ impl IFrameCollection {
         );
 
         self.iframes_in_insertion_order
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .push(Dom::from_ref(iframe_element));
     }
 
-    pub(crate) fn remove(&self, iframe_element: &HTMLIFrameElement) -> Option<ViewportDetails> {
+    pub(crate) fn remove(
+        &self,
+        no_gc: &NoGC,
+        iframe_element: &HTMLIFrameElement,
+    ) -> Option<ViewportDetails> {
         self.iframes_in_insertion_order
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .retain(|iframe| *iframe != iframe_element);
-        let mut iframes = self.iframes.borrow_mut();
+        let mut iframes = self.iframes.safe_borrow_mut(no_gc);
         iframes
             .iter()
             .position(|iframe| &*iframe.element == iframe_element)
@@ -138,13 +142,14 @@ impl IFrameCollection {
     /// the new size. Returns the old size.
     fn set_viewport_details(
         &self,
+        no_gc: &NoGC,
         browsing_context_id: BrowsingContextId,
         new_size: ViewportDetails,
     ) -> Option<ViewportDetails> {
         // Top-level document destruction can destroy an entire tree of frames, which
         // means that the the `<iframe>` we are targeting at this moment might not exist.
         self.iframes
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .iter_mut()
             .find(|iframe| iframe.element.browsing_context_id() == Some(browsing_context_id))
             .and_then(|iframe| iframe.size.replace(new_size))
@@ -188,7 +193,7 @@ impl IFrameCollection {
                 });
 
                 let old_viewport_details =
-                    self.set_viewport_details(browsing_context_id, viewport_details);
+                    self.set_viewport_details(cx.no_gc(), browsing_context_id, viewport_details);
                 // The `Constellation` should be up-to-date even when the in-ScriptThread pipelines
                 // might not be.
                 if old_viewport_details == Some(viewport_details) {
