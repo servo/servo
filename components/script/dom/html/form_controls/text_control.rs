@@ -11,6 +11,7 @@ use std::cell::{Ref, RefMut};
 
 use embedder_traits::EditingAction;
 use js::context::JSContext;
+use layout_api::QueryMsg;
 use script_bindings::inheritance::Castable;
 use script_bindings::refcounted::Trusted;
 use servo_base::text::Utf16CodeUnits;
@@ -19,9 +20,11 @@ use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMo
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{EventBubbles, EventCancelable};
+use crate::dom::event::{EventBubbles, EventCancelable, EventFlags};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::html::form_controls::text_input::{SelectionDirection, SelectionState, TextInput};
+use crate::dom::html::form_controls::text_input::{
+    Lines, SelectionDirection, SelectionState, TextInput,
+};
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::text_input::{EmbedderClipboardProvider, InputEventType, IsComposing, KeyReaction};
@@ -58,6 +61,41 @@ pub(crate) trait TextControlElement {
     }
 
     fn perform_editing_action(&self, cx: &mut JSContext, action: EditingAction) -> bool {
+        let canceled = match action {
+            EditingAction::InsertText(ref text) => self.fire_beforeinput_event(
+                cx,
+                Some(text),
+                IsComposing::NotComposing,
+                InputEventType::InsertText,
+            ),
+            EditingAction::Backspace(_) => self.fire_beforeinput_event(
+                cx,
+                None,
+                IsComposing::NotComposing,
+                InputEventType::DeleteContentBackward,
+            ),
+            EditingAction::Delete => self.fire_beforeinput_event(
+                cx,
+                None,
+                IsComposing::NotComposing,
+                InputEventType::DeleteContentForward,
+            ),
+            EditingAction::InsertNewline | EditingAction::InsertParagraph
+                if self.text_input().mode() == Lines::Multiple =>
+            {
+                self.fire_beforeinput_event(
+                    cx,
+                    None,
+                    IsComposing::NotComposing,
+                    InputEventType::InsertLineBreak,
+                )
+            },
+            _ => false,
+        };
+        if canceled {
+            return false;
+        }
+
         let key_reaction = self.text_input_mut().perform_editing_action(action);
         if key_reaction == KeyReaction::Nothing {
             return false;
@@ -65,6 +103,44 @@ pub(crate) trait TextControlElement {
 
         self.handle_key_reaction(cx, key_reaction);
         true // TODO: Return true if the action can have any effect.
+    }
+
+    /// <https://w3c.github.io/uievents/#event-type-beforeinput>
+    /// Returns true if and only if the beforeinput event flags indicate cancelation or the text
+    /// control was hidden in the event listener.
+    fn fire_beforeinput_event(
+        &self,
+        cx: &mut JSContext,
+        data: Option<&str>,
+        is_composing: IsComposing,
+        input_type: InputEventType,
+    ) -> bool {
+        let target = self.as_element().upcast::<EventTarget>();
+        let global = target.global();
+        let window = global.as_window();
+        let event = InputEvent::new(
+            cx,
+            window,
+            None,
+            atom!("beforeinput"),
+            true,
+            true,
+            Some(window),
+            0,
+            data.map(DOMString::from),
+            is_composing.into(),
+            input_type.as_str().into(),
+        );
+        let event = event.upcast::<Event>();
+        event.set_composed(true);
+        event.fire(cx, target);
+        let flags = event.flags();
+        // We need to check if the event listener hid the text control during execution, so we
+        // do a layout reflow.
+        window.layout_reflow(QueryMsg::StyleQuery);
+        let node = self.as_element().upcast::<Node>();
+        flags.intersects(EventFlags::Canceled) ||
+            !node.is_being_rendered_or_delegates_rendering(None)
     }
 
     /// <https://w3c.github.io/uievents/#event-type-input>
