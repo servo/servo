@@ -1344,10 +1344,14 @@ impl WebGLImpl {
                 state.restore_stencil_invariant(gl);
             },
             WebGLCommand::StencilMaskSeparate(face, mask) => {
-                if face == gl::FRONT {
-                    state.stencil_write_mask.0 = mask;
-                } else {
-                    state.stencil_write_mask.1 = mask;
+                match face {
+                    gl::FRONT => state.stencil_write_mask.0 = mask,
+                    gl::BACK => state.stencil_write_mask.1 = mask,
+                    gl::FRONT_AND_BACK => state.stencil_write_mask = (mask, mask),
+                    _ => debug_assert!(
+                        false,
+                        "stencilMaskSeparate face {face:#x} should have been rejected by the DOM"
+                    ),
                 }
                 state.restore_stencil_invariant(gl);
             },
