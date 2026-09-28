@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use paint_api::display_list::PaintTimingInfo;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_traits::ProgressiveWebMetricType;
 use time::Duration;
 
@@ -60,7 +60,7 @@ impl PerformancePaintTiming {
         paint_timing_info: PaintTimingInfo,
     ) -> DomRoot<PerformancePaintTiming> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, paint_timing_info);
-        reflect_dom_object_with_cx(Box::new(entry), global, cx)
+        reflect_dom_object(cx, Box::new(entry), global)
     }
 }
 

@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
@@ -39,7 +39,7 @@ impl ReadableStreamBYOBRequest {
         cx: &mut JSContext,
         global: &GlobalScope,
     ) -> DomRoot<ReadableStreamBYOBRequest> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited()), global)
     }
 
     pub(crate) fn set_controller(&self, controller: Option<&ReadableByteStreamController>) {

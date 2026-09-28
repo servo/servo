@@ -10,7 +10,7 @@ use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel;
 use servo_config::pref;
 
@@ -76,7 +76,7 @@ impl Permissions {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Permissions> {
-        reflect_dom_object_with_cx(Box::new(Permissions::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(Permissions::new_inherited()), global)
     }
 
     /// <https://w3c.github.io/permissions/#dom-permissions-query>

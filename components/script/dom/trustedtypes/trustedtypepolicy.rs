@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::rust::HandleValue;
 use script_bindings::callback::TracedCallback;
-use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use strum::AsRefStr;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -76,7 +76,7 @@ impl TrustedTypePolicy {
         options: &TrustedTypePolicyOptions,
         global: &GlobalScope,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(name, options)), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited(name, options)), global)
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-policy-value-algorithm>

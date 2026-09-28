@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use profile_traits::generic_channel;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::{GenericSend, SendResult};
 use servo_base::id::WebViewId;
 use servo_constellation_traits::ScriptToConstellationMessage;
@@ -43,7 +43,7 @@ impl Storage {
         global: &Window,
         storage_type: WebStorageType,
     ) -> DomRoot<Storage> {
-        reflect_dom_object_with_cx(Box::new(Storage::new_inherited(storage_type)), global, cx)
+        reflect_dom_object(cx, Box::new(Storage::new_inherited(storage_type)), global)
     }
 
     fn webview_id(&self) -> WebViewId {

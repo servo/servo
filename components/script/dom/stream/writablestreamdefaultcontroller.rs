@@ -12,7 +12,7 @@ use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
@@ -374,17 +374,14 @@ impl WritableStreamDefaultController {
         strategy_hwm: f64,
         strategy_size: RootedCallback<QueuingStrategySize>,
     ) -> DomRoot<WritableStreamDefaultController> {
-        reflect_dom_object_with_cx(
-            Box::new(WritableStreamDefaultController::new_inherited(
-                cx,
-                global,
-                underlying_sink_type,
-                strategy_hwm,
-                strategy_size,
-            )),
-            global,
+        let obj = Box::new(WritableStreamDefaultController::new_inherited(
             cx,
-        )
+            global,
+            underlying_sink_type,
+            strategy_hwm,
+            strategy_size,
+        ));
+        reflect_dom_object(cx, obj, global)
     }
 
     pub(crate) fn started(&self) -> bool {

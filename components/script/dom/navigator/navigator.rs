@@ -24,7 +24,7 @@ use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use regex::Regex;
 #[cfg(feature = "gamepad")]
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -173,7 +173,7 @@ impl Navigator {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<Navigator> {
-        reflect_dom_object_with_cx(Box::new(Navigator::new_inherited()), window, cx)
+        reflect_dom_object(cx, Box::new(Navigator::new_inherited()), window)
     }
 
     #[cfg(feature = "webxr")]

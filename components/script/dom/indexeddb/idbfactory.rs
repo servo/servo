@@ -10,7 +10,7 @@ use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSend;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::client_storage::{StorageIdentifier, StorageProxyMap, StorageType};
@@ -198,7 +198,7 @@ impl IDBFactory {
     }
 
     pub fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<IDBFactory> {
-        reflect_dom_object_with_cx(Box::new(IDBFactory::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(IDBFactory::new_inherited()), global)
     }
 
     /// Setup the callback to the backend service, if this hasn't been done already.

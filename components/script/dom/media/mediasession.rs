@@ -10,7 +10,7 @@ use embedder_traits::{
 use js::context::JSContext;
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::conversions::Convert;
@@ -65,7 +65,7 @@ impl MediaSession {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<MediaSession> {
-        reflect_dom_object_with_cx(Box::new(MediaSession::new_inherited()), window, cx)
+        reflect_dom_object(cx, Box::new(MediaSession::new_inherited()), window)
     }
 
     pub(crate) fn register_media_instance(&self, media_instance: &HTMLMediaElement) {
