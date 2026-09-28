@@ -34,6 +34,9 @@ mod turboshake_operation;
 mod x25519_operation;
 mod x448_operation;
 
+/// Hybrid KEM implementation
+pub(crate) mod hybrid_kem;
+
 use std::fmt::Display;
 use std::ptr;
 use std::str::FromStr;
