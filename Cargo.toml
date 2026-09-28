@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "components/media/examples",
+    "components/svg_engine",
     "components/xpath",
     "ffi/capi",
     "ports/servoshell",
@@ -245,6 +246,7 @@ stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "9e2238d5
 stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "9e2238d5cef5863c2857e9c95887fcdad010092d" }
 stylo_traits = { git = "https://github.com/servo/stylo", rev = "9e2238d5cef5863c2857e9c95887fcdad010092d" }
 surfman = "0.14.0"
+svgtypes = "0.16"
 swapper = "0.1"
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
