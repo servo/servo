@@ -42,9 +42,8 @@ fun Servo(
         servoView.servo.suspend(false)
         onPauseOrDispose { servoView.servo.suspend(true) }
     }
-    // TODO Key off of and pass `servo` instead of `servoView` once `servo` is non-null.
-    LaunchedEffect(servoView, servoView.navigator) {
-        servoView.navigator.consumeNavigationEvents(servoView)
+    LaunchedEffect(servoView.servo, servoView.navigator) {
+        servoView.navigator.consumeNavigationEvents(servoView.servo)
     }
 
     val focusRequester = remember { FocusRequester() }
@@ -112,12 +111,12 @@ class ServoNavigator {
     private val coroutineScope = CoroutineScope(EmptyCoroutineContext)
     private val navigationEvents = MutableSharedFlow<NavigationEvent>()
 
-    internal suspend fun consumeNavigationEvents(servoView: ServoView) {
+    internal suspend fun consumeNavigationEvents(servo: Servo) {
         navigationEvents.collect { navigationEvent ->
             when (navigationEvent) {
-                NavigationEvent.Back -> servoView.servo.goBack()
-                NavigationEvent.Forward -> servoView.servo.goForward()
-                NavigationEvent.Reload -> servoView.servo.reload()
+                NavigationEvent.Back -> servo.goBack()
+                NavigationEvent.Forward -> servo.goForward()
+                NavigationEvent.Reload -> servo.reload()
             }
         }
     }
