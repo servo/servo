@@ -209,7 +209,7 @@ impl PannerNode {
         if source_orientation == Vector3D::zero() ||
             (self.cone_inner_angle == 360. && self.cone_outer_angle == 360.)
         {
-            return 0.;
+            return 1.;
         }
 
         let normalized_source_orientation = normalize_zero(source_orientation);
