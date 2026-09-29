@@ -36,6 +36,7 @@ pub(crate) enum AppMenuAction {
     NewWindow,
     History,
     Processes,
+    Exit,
 }
 
 /// Which page of the hamburger menu is showing.
@@ -167,6 +168,10 @@ impl AppMenu {
         }
         if Self::submenu_item(ui, icons, "More Tools") {
             self.page = AppMenuPage::MoreTools;
+        }
+        ui.separator();
+        if let Some(action) = Self::action_item(ui, "Exit", AppMenuAction::Exit) {
+            return Some(action);
         }
 
         None
