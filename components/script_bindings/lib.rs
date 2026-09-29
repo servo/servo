@@ -39,6 +39,7 @@ mod lock;
 mod mem;
 mod namespace;
 pub mod num;
+pub mod observablearray;
 pub mod permanent_root;
 pub mod principals;
 pub mod proxyhandler;
