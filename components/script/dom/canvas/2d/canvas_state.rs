@@ -2339,11 +2339,12 @@ impl CanvasState {
         y: f64,
         width: f64,
         height: f64,
-        radii: &[RoundRectRadius],
+        radii: UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
     ) -> ErrorResult {
+        let radii = round_rect_radii(&radii);
         self.current_default_path
             .borrow_mut()
-            .round_rect(x, y, width, height, radii)
+            .round_rect(x, y, width, height, &radii)
             .map_err(round_rect_error)
     }
 

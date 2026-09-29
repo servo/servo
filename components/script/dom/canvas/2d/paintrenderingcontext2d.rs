@@ -312,8 +312,7 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
         height: f64,
         radii: UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
     ) -> ErrorResult {
-        let radii = super::canvas_state::round_rect_radii(&radii);
-        self.canvas_state.round_rect(x, y, width, height, &radii)
+        self.canvas_state.round_rect(x, y, width, height, radii)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-quadraticcurveto>
