@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::f32::consts::PI as PI32;
 use std::f64::consts::PI;
 
 use euclid::default::Vector3D;
@@ -211,14 +212,12 @@ impl PannerNode {
             self.position_x.value(),
             self.position_y.value(),
             self.position_z.value(),
-        )
-        .to_f64();
+        );
         let source_orientation = Vector3D::new(
             self.orientation_x.value(),
             self.orientation_y.value(),
             self.orientation_z.value(),
-        )
-        .to_f64();
+        );
 
         if source_orientation.length().is_zero() ||
             (self.cone_inner_angle == 360. && self.cone_outer_angle == 360.)
@@ -228,10 +227,10 @@ impl PannerNode {
 
         let normalized_source_orientation = normalize_zero(source_orientation);
 
-        let source_to_listener = normalize_zero(source_position - listener_position.to_f64());
+        let source_to_listener = normalize_zero(source_position - listener_position);
         // Angle between the source orientation vector and the source-listener vector
-        let angle = 180. * source_to_listener.dot(normalized_source_orientation).acos() / PI;
-        let abs_angle = angle.abs();
+        let angle = 180. * source_to_listener.dot(normalized_source_orientation).acos() / PI32;
+        let abs_angle = angle.abs() as f64;
 
         // Divide by 2 here since API is entire angle (not half-angle)
         let abs_inner_angle = self.cone_inner_angle.abs() / 2.;
