@@ -17,6 +17,7 @@ use layout_api::QueryMsg;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
+use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods as _;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
@@ -32,7 +33,7 @@ use crate::dom::text_control::TextControlElement;
 use crate::dom::text_input::{InputEventType, IsComposing};
 use crate::dom::types::{
     ClipboardEvent, DataTransfer, Event, EventTarget, HTMLInputElement, HTMLTextAreaElement,
-    MouseEvent,
+    MouseEvent, UIEvent,
 };
 use crate::dom::{Document, Node, NodeTraits};
 use crate::drag::document_selection_drag::{
@@ -50,6 +51,44 @@ pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 pub(crate) const ALT_OR_CONTROL: Modifiers = Modifiers::ALT;
 #[cfg(not(target_os = "macos"))]
 pub(crate) const ALT_OR_CONTROL: Modifiers = Modifiers::CONTROL;
+
+/// How to set selection for mouse/pointer events
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum SelectionTarget {
+    /// Single primary click or middle click
+    Position,
+    /// Double primary click
+    Word,
+    /// Triple primary click
+    Line,
+}
+
+impl SelectionTarget {
+    pub(crate) fn from_mouse_event(mouse_event: &MouseEvent) -> Option<Self> {
+        match mouse_event.button() {
+            MouseButton::Primary => {},
+            MouseButton::Auxiliary => return Some(Self::Position),
+            _ => return None,
+        }
+        // Primary button
+
+        // We currently don't do anything for higher click counts, but some platforms do.
+        // For example on desktop linux, 4+ click cycle back starting at same as single click:
+        // ```
+        // const MAX_CLICKS: i32 = 3;
+        // let click_count = (click_count - 1) % MAX_CLICKS + 1;
+        // ```
+        // We should re-examine this when implementing support for platform-specific editing
+        // behaviors.
+        let click_count = mouse_event.upcast::<UIEvent>().Detail();
+        match click_count {
+            1 => Some(Self::Position),
+            2 => Some(Self::Word),
+            3 => Some(Self::Line),
+            _ => None,
+        }
+    }
+}
 
 impl Document {
     pub(crate) fn editing_context(&self, no_gc: &NoGC, node: &Node) -> EditingContext {
@@ -399,10 +438,11 @@ impl Document {
     ) {
         assert_eq!(mouse_event.upcast::<Event>().type_(), atom!("mousedown"));
 
+        let Some(selection) = self.GetSelection(cx) else {
+            return;
+        };
+
         if mouse_event.button() == MouseButton::Auxiliary {
-            let Some(selection) = self.selection() else {
-                return;
-            };
             let _ = selection.Collapse(cx, None, 0);
             mouse_event.upcast::<Event>().mark_as_handled();
             return;
@@ -411,9 +451,9 @@ impl Document {
         if mouse_event.button() != MouseButton::Primary {
             return;
         }
-        let Some(selection) = self.GetSelection(cx) else {
-            return;
-        };
+
+        // TODO: handle double/triple click:
+        // match SelectionTarget::from_mouse_event(mouse_event) {…}
 
         // When the hit test cannot find a suitable DOM position for selection, just
         // use the first offset within the target node of the `mousedown` event. This
