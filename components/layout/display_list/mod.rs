@@ -1122,6 +1122,8 @@ impl Fragment {
             .to_webrender();
         let common = builder.common_properties(state, glyph_bounds, &parent_style);
 
+        Self::build_display_list_for_text_selection(fragment, builder, state, line_box_rect);
+
         // Shadows. According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front to
         // back).
         let shadows = &parent_style.get_inherited_text().text_shadow;
@@ -1139,8 +1141,6 @@ impl Fragment {
                 true, /* should_inflate */
             );
         }
-
-        Self::build_display_list_for_text_selection(fragment, builder, state, line_box_rect);
 
         for text_decoration in state.text_decorations.iter() {
             if text_decoration.line.contains(TextDecorationLine::UNDERLINE) {
