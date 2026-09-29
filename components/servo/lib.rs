@@ -59,6 +59,7 @@ mod webview_delegate;
 
 // These are Servo's public exports. Everything (apart from a couple exceptions below)
 // should be exported at the root. See <https://github.com/servo/servo/issues/18475>.
+pub const SERVO_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub use accesskit;
 pub use embedder_traits::user_contents::UserScript;
 pub use embedder_traits::{submit_resource_reader, *};

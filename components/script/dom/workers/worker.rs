@@ -50,7 +50,7 @@ use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 pub(crate) type TrustedWorkerAddress = Trusted<Worker>;
 
-// https://html.spec.whatwg.org/multipage/#worker
+/// <https://html.spec.whatwg.org/multipage/#worker>
 #[dom_struct]
 pub(crate) struct Worker {
     eventtarget: EventTarget,
@@ -319,7 +319,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
         &self,
         cx: &mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<StructuredSerializeOptions>,
+        options: &StructuredSerializeOptions,
     ) -> ErrorResult {
         auto_root!(&in(cx) let guard =
             options

@@ -47,7 +47,7 @@ pub struct WebVTTTimestamp(f64);
 impl fmt::Display for WebVTTTimestamp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Step 1. Optionally (required if hours is non-zero):
-        let time = if self.0 > 60. * 60. {
+        let time = if self.0 >= 60. * 60. {
             let hours = self.0.div_euclid(60. * 60.);
             // Step 1.1. Two or more ASCII digits,
             // representing the hours as a base ten integer.
@@ -68,7 +68,7 @@ impl fmt::Display for WebVTTTimestamp {
         // Step 2. Two ASCII digits, representing the minutes as
         // a base ten integer in the range 0 ≤ minutes ≤ 59.
         let minutes = time.div_euclid(60.);
-        debug_assert!(minutes < 60.);
+        debug_assert!(minutes < 60., "{minutes} minutes is 60 or more");
         if minutes < 10. {
             write!(f, "0")?;
         }
@@ -80,6 +80,7 @@ impl fmt::Display for WebVTTTimestamp {
         // Step 6. Three ASCII digits, representing the thousandths
         // of a second seconds-frac as a base ten integer.
         let seconds = time.rem_euclid(60.);
+        debug_assert!(seconds < 60., "{seconds} seconds is 60 or more");
         if seconds < 10. {
             write!(f, "0")?;
         }
@@ -767,5 +768,25 @@ impl WebVTTNodeObjectIterator {
             unreachable!("Must have a new item");
         };
         iterator_direction == WebVTTNodeObjectIteratorDirection::BackToParent
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::cue::text::WebVTTTimestamp;
+    use crate::shared_test_setup::compute_result_in_seconds;
+
+    #[test]
+    fn test_formats_timestamp_exact_hour_correctly() {
+        let timestamp = WebVTTTimestamp(compute_result_in_seconds(1., 0., 0., 0.));
+
+        assert_eq!(format!("{timestamp}"), "01:00:00.000");
+    }
+
+    #[test]
+    fn test_formats_timestamp_hour_plus_one_minute_correctly() {
+        let timestamp = WebVTTTimestamp(compute_result_in_seconds(1., 1., 0., 0.));
+
+        assert_eq!(format!("{timestamp}"), "01:01:00.000");
     }
 }

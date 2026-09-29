@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: rules skip leading collapsed auto-fit rows in grid
+  lanes
+</title>
+<link rel="author" title="Javier Contreras"
+      href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#repeat-auto-fit">
+<link rel="match"
+      href="row-gap-decorations-auto-fit-collapsed-leading-ref.html">
+<style>
+  body { margin: 0; }
+  .stage {
+    position: relative;
+    width: 90px;
+    height: 350px;
+  }
+  /* Six rows fit; rows 3-6 are occupied; rows 1-2 collapse. */
+  .lanes {
+    display: grid-lanes;
+    grid-lanes-direction: row;
+    grid-template-rows: repeat(auto-fit, 50px);
+    gap: 10px;
+    width: max-content;
+    height: 350px;
+    background: #cdd5e0;
+    column-rule: 4px solid gold;
+    row-rule-width: 4px;
+    row-rule-style: solid;
+    row-rule-color: red, blue, green;
+  }
+  .lanes > div {
+    width: 40px;
+    background: #5b8def;
+  }
+  .t3 { grid-row: 3; }
+  .t4 { grid-row: 4; }
+  .t5 { grid-row: 5; }
+  .t6 { grid-row: 6; }
+</style>
+<div class="stage">
+  <div class="lanes">
+    <div class="t3"></div>
+    <div class="t3"></div>
+    <div class="t4"></div>
+    <div class="t4"></div>
+    <div class="t5"></div>
+    <div class="t5"></div>
+    <div class="t6"></div>
+    <div class="t6"></div>
+  </div>
+</div>

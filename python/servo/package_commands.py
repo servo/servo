@@ -466,11 +466,11 @@ class PackageCommands(CommandBase):
             print("Creating tarball")
             tar_path = path.join(target_dir, "servo-tech-demo.tar.gz")
 
-            archive_deterministically(dir_to_temp, tar_path, prepend_path="servo/")
+            archive_deterministically(dir_to_temp, tar_path, prepend_path="aether/")
 
             print("Cleaning up")
             delete(dir_to_temp)
-            print("Packaged Servo into " + tar_path)
+            print("Packaged Aether into " + tar_path)
 
     @Command("install", description="Install Servo (currently, Android and Windows only)", category="package")
     @CommandArgument("--android", action="store_true", help="Install on Android")

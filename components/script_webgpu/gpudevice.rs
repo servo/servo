@@ -34,7 +34,7 @@ use script_bindings::interfaces::{
     HeapTracedPromiseHelpers, PromiseHelpers, StackRootPromiseHelpers,
 };
 use script_bindings::reflector::{
-    DomGlobalGeneric, reflect_weak_referenceable_dom_object_with_cx_and_wrap,
+    DomGlobalGeneric, reflect_weak_referenceable_dom_object_with_wrap,
 };
 use script_bindings::routed_promise::RoutedPromiseListener;
 use script_bindings::traits::{DomEventTrait, DomExceptionTrait};
@@ -55,7 +55,6 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::gpuadapter::GPUAdapter;
 use crate::gpuadapterinfo::GPUAdapterInfo;
 use crate::gpubindgroup::GPUBindGroup;
@@ -150,9 +149,9 @@ pub struct GPUDevice<D: DomTypes> {
 impl<D> GPUDevice<D>
 where
     D: Equivalence,
-    EventHandlerNonNull<D>: CallbackContainer<D>,
+    EventHandlerNonNull<D>: CallbackContainer,
 {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_inherited(
         channel: WebGPU,
         adapter: &GPUAdapter<D>,
@@ -196,8 +195,8 @@ where
         let limits = GPUSupportedLimits::new(cx, global, limits);
         let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
         let adapter_info = GPUAdapterInfo::clone_from(cx, global, &adapter.info());
-        let lost_promise = D::Promise::new_rooted(cx, global);
-        let device = reflect_weak_referenceable_dom_object_with_cx_and_wrap::<D, _, _>(
+        let lost_promise = D::Promise::new(cx, global);
+        let device = reflect_weak_referenceable_dom_object_with_wrap::<D, _, _>(
             cx,
             Rc::new(GPUDevice::new_inherited(
                 channel,
@@ -223,7 +222,7 @@ impl<D> GPUDevice<D>
 where
     D: Equivalence,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
-    EventHandlerNonNull<D>: CallbackContainer<D>,
+    EventHandlerNonNull<D>: CallbackContainer,
 {
     pub fn id(&self) -> WebGPUDevice {
         self.droppable.device
@@ -531,7 +530,7 @@ where
     fn CreateShaderModule(
         &self,
         cx: &mut CurrentRealm<'_>,
-        descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
+        descriptor: &GPUShaderModuleDescriptor,
     ) -> DomRoot<GPUShaderModule<D>> {
         GPUShaderModule::create(cx, self, descriptor)
     }
@@ -558,7 +557,7 @@ where
         cx: &mut CurrentRealm<'_>,
         descriptor: &GPUComputePipelineDescriptor<D>,
     ) -> <<D as script_bindings::DomTypes>::Promise as script_bindings::interfaces::PromiseHelpers<D>>::StackRoot{
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         let callback =
             <D::Promise as PromiseHelpers<D>>::StackRoot::callback_promise_dom_manipulation_task_source(&promise, self);
         GPUComputePipeline::create(self, descriptor, Some(callback));
@@ -616,7 +615,7 @@ where
         descriptor: &GPURenderPipelineDescriptor<D>,
     ) -> Fallible<<<D as script_bindings::DomTypes>::Promise as script_bindings::interfaces::PromiseHelpers<D>>::StackRoot>{
         let desc = self.parse_render_pipeline(descriptor)?;
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         let callback = <D::Promise as PromiseHelpers<D>>::StackRoot::callback_promise_dom_manipulation_task_source(
             &promise, self,
         );
@@ -669,7 +668,7 @@ where
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
     fn PopErrorScope(&self, cx: &mut CurrentRealm<'_>) -> <<D as script_bindings::DomTypes>::Promise as script_bindings::interfaces::PromiseHelpers<D>>::StackRoot{
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         let callback = <D::Promise as PromiseHelpers<D>>::StackRoot::callback_promise_dom_manipulation_task_source(
             &promise, self,
         );

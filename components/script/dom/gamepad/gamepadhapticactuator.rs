@@ -125,7 +125,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         type_: GamepadHapticEffectType,
         params: &GamepadEffectParameters,
     ) -> RootedPromise {
-        let playing_effect_promise = Promise::new_in_realm_rooted(cx);
+        let playing_effect_promise = Promise::new_in_realm(cx);
 
         // <https://www.w3.org/TR/gamepad/#dfn-valid-effect>
         match type_ {
@@ -253,7 +253,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
     fn Reset(&self, cx: &mut CurrentRealm) -> RootedPromise {
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {

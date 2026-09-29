@@ -65,9 +65,3 @@ promise_test(async () => {
   const result = await proofreader.proofread(kTestPrompt);
   assert_equals(typeof result, 'object');
 }, 'Simple Proofreader.proofread() call');
-
-promise_test(async () => {
-  const proofreader = await createProofreader();
-  await Promise.all(
-    [proofreader.proofread(kTestPrompt), proofreader.proofread(kTestPrompt)]);
-}, 'Multiple Proofreader.proofread() calls are resolved successfully');

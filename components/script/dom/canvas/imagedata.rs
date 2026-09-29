@@ -79,7 +79,7 @@ impl ImageData {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#initialize-an-imagedata-object>
     fn initialize(
         cx: &mut JSContext,

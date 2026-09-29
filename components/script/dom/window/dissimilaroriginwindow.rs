@@ -10,6 +10,7 @@ use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_bindings::interfaces::HasOrigin;
+use servo_base::generic_channel;
 use servo_base::id::PipelineId;
 use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, StructuredSerializedData,
@@ -24,8 +25,8 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::location::Location;
 use crate::dom::windowproxy::WindowProxy;
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.
@@ -46,7 +47,7 @@ pub(crate) struct DissimilarOriginWindow {
     window_proxy: Dom<WindowProxy>,
 
     /// The location of this window, initialized lazily.
-    location: MutNullableDom<DissimilarOriginLocation>,
+    location: MutNullableDom<Location>,
 
     #[no_trace]
     pipeline_id: PipelineId,
@@ -145,8 +146,21 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
 
     /// <https://html.spec.whatwg.org/multipage/#dom-length>
     fn Length(&self) -> u32 {
-        // TODO: Implement x-origin length
-        0
+        // First try to access the document directly if it is in the same event loop.
+        if let Some(document) = self.window_proxy.document() {
+            return document.iframes().active_iframe_count() as u32;
+        }
+
+        // Fall back to using messaging to get the count from another event loop.
+        let parent_browsing_context_id = self.window_proxy.browsing_context_id();
+        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+        let _ = self.globalscope.script_to_constellation_chan().send(
+            ScriptToConstellationMessage::GetChildBrowsingContextCount(
+                parent_browsing_context_id,
+                result_sender,
+            ),
+        );
+        result_receiver.recv().unwrap_or_default() as u32
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-close>
@@ -176,7 +190,7 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
         &self,
         cx: &mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<WindowPostMessageOptions>,
+        options: &WindowPostMessageOptions,
     ) -> ErrorResult {
         auto_root!(&in(cx) let transfer =
             options
@@ -219,9 +233,9 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
-    fn Location(&self, cx: &mut js::context::JSContext) -> DomRoot<DissimilarOriginLocation> {
+    fn Location(&self, cx: &mut js::context::JSContext) -> DomRoot<Location> {
         self.location
-            .or_init(|| DissimilarOriginLocation::new(cx, self))
+            .or_init(|| Location::new_dissimilar_origin(cx, self))
     }
 }
 

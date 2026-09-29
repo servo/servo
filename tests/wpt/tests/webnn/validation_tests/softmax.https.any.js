@@ -62,3 +62,7 @@ multi_builder_test(async (t, builder, otherBuilder) => {
   assert_throws_js(
       TypeError, () => builder.softmax(inputFromOtherBuilder, axis));
 }, '[softmax] throw if any input is from another builder');
+
+validateOperandRank('softmax', 'input', (builder, input) => {
+  return builder.softmax(input, 0);
+});

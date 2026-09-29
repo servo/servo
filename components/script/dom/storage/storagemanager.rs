@@ -122,7 +122,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
     /// <https://storage.spec.whatwg.org/#dom-storagemanager-persisted>
     fn Persisted(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         // Step 2. Let global be this’s relevant global object.
         let global = self.global();
 
@@ -167,7 +167,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
     /// <https://storage.spec.whatwg.org/#dom-storagemanager-persist>
     fn Persist(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         // Step 2. Let global be this’s relevant global object.
         let global = self.global();
 
@@ -223,7 +223,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
     /// <https://storage.spec.whatwg.org/#dom-storagemanager-estimate>
     fn Estimate(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         // Step 2. Let global be this’s relevant global object.
         let global = self.global();
 

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Test Fenced Frame Stub behavior</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+test(() => {
+  const fenced_frame = document.createElement('fencedframe');
+  document.body.appendChild(fenced_frame);
+
+  assert_true(fenced_frame instanceof HTMLFencedFrameElement,
+              "Should be an instance of HTMLFencedFrameElement");
+
+  assert_equals(typeof window.FencedFrameConfig, "function", "FencedFrameConfig class should exist");
+  assert_throws_js(TypeError, () => {
+    new FencedFrameConfig('https://example.com');
+  }, "FencedFrameConfig should not be constructible");
+
+  fenced_frame.config = null;
+}, "Fenced frame elements and config should behave as layout-preserving stubs");
+
+test(() => {
+  assert_true('fence' in window, "'fence' attribute should exist on window");
+  assert_equals(window.fence, null, "window.fence should be null");
+
+  assert_equals(typeof window.Fence, "function", "Fence class should exist");
+  assert_throws_js(TypeError, () => {
+    new Fence();
+  }, "Fence should not be constructible");
+
+  assert_equals(typeof Fence.prototype.reportEvent, "function",
+                "reportEvent should exist on Fence.prototype");
+  assert_equals(typeof Fence.prototype.setReportEventDataForAutomaticBeacons, "function",
+                "setReportEventDataForAutomaticBeacons should exist on Fence.prototype");
+  assert_equals(typeof Fence.prototype.getNestedConfigs, "function",
+                "getNestedConfigs should exist on Fence.prototype");
+}, "window.fence and Fence should behave as stubs");
+</script>
+</body>

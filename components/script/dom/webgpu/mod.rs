@@ -10,7 +10,7 @@ use euclid::default::Size2D;
 use js::context::NoGC;
 use pixels::Snapshot;
 use script_bindings::DomTypes;
-use script_bindings::callback::{CallbackContainer, RootedCallback};
+use script_bindings::callback::{CallbackContainer, HasCallbackHolder, RootedCallback};
 use script_bindings::error::{Error, Fallible};
 use script_bindings::reflector::{DomGlobalGeneric, DomObject};
 use script_webgpu::traits::{
@@ -245,7 +245,7 @@ impl EventTargetTrait<crate::DomTypeHolder> for EventTarget {
         EventTarget::new_inherited()
     }
 
-    fn get_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
+    fn get_event_handler_common<T: CallbackContainer>(
         &self,
         cx: &mut js::context::JSContext,
         ty: &str,
@@ -253,7 +253,7 @@ impl EventTargetTrait<crate::DomTypeHolder> for EventTarget {
         EventTarget::get_event_handler_common(self, cx, ty)
     }
 
-    fn set_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
+    fn set_event_handler_common<T: HasCallbackHolder>(
         &self,
         cx: &mut js::context::JSContext,
         ty: &str,

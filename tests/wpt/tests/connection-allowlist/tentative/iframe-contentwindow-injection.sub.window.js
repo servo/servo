@@ -85,6 +85,31 @@ iframe_injection_test(async (t) => {
 }, 'Injecting <link rel="prefetch"> into " about:" (space-prefixed) iframe ' +
    'contentWindow must be blocked by inherited Connection-Allowlist.');
 
+// --- srcdoc and blob: iframes (inherit parent's policy) ---
+
+iframe_injection_test(async (t) => {
+  const iframe = document.createElement('iframe');
+  iframe.srcdoc = '<!DOCTYPE html>';
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  await new Promise(resolve => { iframe.onload = resolve; });
+  return iframe;
+}, 'Injecting <link rel="prefetch"> into srcdoc iframe contentWindow ' +
+   'must be blocked by inherited Connection-Allowlist.');
+
+iframe_injection_test(async (t) => {
+  const iframe = document.createElement('iframe');
+  const blob = new Blob(['<!DOCTYPE html>'], {type: 'text/html'});
+  iframe.src = URL.createObjectURL(blob);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  await new Promise(resolve => { iframe.onload = resolve; });
+  return iframe;
+}, 'Injecting <link rel="prefetch"> into blob: iframe contentWindow ' +
+   'must be blocked by inherited Connection-Allowlist.');
+
 // --- Same-origin iframe with its own Connection-Allowlist ---
 // Uses a helper page served with Connection-Allowlist headers
 // to ensure the iframe's document has the policy.

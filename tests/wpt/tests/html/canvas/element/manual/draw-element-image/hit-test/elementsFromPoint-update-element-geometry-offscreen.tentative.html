@@ -141,7 +141,7 @@
 
     const updatePromise = waitForElementGeometryUpdate(canvas);
     offscreen.updateElementGeometry(b, {
-      clip: { x: 0, y: 0, width: 50, height: 50 }
+      canvasClip: { x: 0, y: 0, width: 50, height: 50 }
     });
     await updatePromise;
 

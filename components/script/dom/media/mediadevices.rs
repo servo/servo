@@ -51,7 +51,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         cx: &mut CurrentRealm,
         constraints: &MediaStreamConstraints,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
         let media = ServoMedia::get();
         let stream = MediaStream::new(cx, &self.global());
         if let Some(constraints) = convert_constraints(&constraints.audio) &&
@@ -75,7 +75,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
     fn EnumerateDevices(&self, cx: &mut JSContext) -> RootedPromise {
         // Step 1.
         let mut realm = CurrentRealm::assert(cx);
-        let p = Promise::new_in_realm_rooted(&mut realm);
+        let p = Promise::new_in_realm(&mut realm);
 
         // Step 2.
         // XXX These steps should be run in parallel.

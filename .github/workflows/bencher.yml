@@ -100,7 +100,6 @@ jobs:
         timeout-minutes: 30
         run: |
           sudo apt update
-          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
           ./mach bootstrap --yes --skip-lints --skip-nextest
       - uses: bencherdev/bencher@main
       - name: File size

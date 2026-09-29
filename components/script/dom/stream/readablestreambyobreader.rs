@@ -203,7 +203,7 @@ impl ReadableStreamBYOBReader {
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> DomRoot<ReadableStreamBYOBReader> {
-        let closed_promise = Promise::new_rooted(cx, global);
+        let closed_promise = Promise::new(cx, global);
         reflect_dom_object_with_proto(
             cx,
             Box::new(ReadableStreamBYOBReader::new_inherited(&closed_promise)),
@@ -225,7 +225,7 @@ impl ReadableStreamBYOBReader {
         cx: &mut JSContext,
         global: &GlobalScope,
     ) -> DomRoot<ReadableStreamBYOBReader> {
-        let closed_promise = Promise::new_rooted(cx, global);
+        let closed_promise = Promise::new(cx, global);
         reflect_dom_object_with_cx(Box::new(Self::new_inherited(&closed_promise)), global, cx)
     }
 
@@ -429,7 +429,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(cx, view);
         let min = options.min;
         // Let promise be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
 
         // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
         if view.byte_length() == 0 {

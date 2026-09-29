@@ -76,7 +76,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
     mut env: EnvUnowned<'local>,
     _class: JClass<'local>,
 ) -> JString<'local> {
-    let version = crate::VERSION;
+    let version = crate::version();
     env.with_env(|env| -> jni::errors::Result<_> { env.new_string(version) })
         .resolve::<ThrowRuntimeExAndDefault>()
 }

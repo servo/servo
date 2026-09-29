@@ -68,6 +68,7 @@ impl<D: Equivalence> GPUAdapterInfo<D> {
         is_fallback_adapter: bool,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(Self::new_inherited(
                 vendor,
                 architecture,
@@ -78,7 +79,6 @@ impl<D: Equivalence> GPUAdapterInfo<D> {
                 is_fallback_adapter,
             )),
             global,
-            cx,
             GPUAdapterInfoWrap::<D>,
         )
     }

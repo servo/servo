@@ -166,7 +166,7 @@ impl FlexLineItem<'_> {
             })
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn collect_fragment(
         mut self,
         initial_flex_layout: &InitialFlexLineLayout,
@@ -1766,7 +1766,7 @@ impl FlexItem<'_> {
             box_address = self.box_ as *const _ as usize,
         )
     )]
-    #[allow(clippy::too_many_arguments)]
+
     fn layout(
         &self,
         used_main_size: Au,
@@ -2624,7 +2624,6 @@ impl FlexItemBox {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     #[servo_tracing::instrument(name = "FlexContainer::layout_for_block_content_size", skip_all)]
     fn layout_for_block_content_size(
         &self,

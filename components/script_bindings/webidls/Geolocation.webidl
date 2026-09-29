@@ -14,17 +14,15 @@ partial interface Navigator {
 // https://www.w3.org/TR/geolocation/#geolocation_interface
 [Pref="dom_geolocation_enabled", Exposed=Window]
 interface Geolocation {
-  [Throws] undefined getCurrentPosition (
+  undefined getCurrentPosition (
     PositionCallback successCallback,
-    // FIXME: PositionErrorCallback breaks codegen (#39616)
-    optional /* PositionErrorCallback? */any errorCallback = null,
+    optional PositionErrorCallback? errorCallback = null,
     optional PositionOptions options = {}
   );
 
-  [Throws] long watchPosition (
+  long watchPosition (
     PositionCallback successCallback,
-    // FIXME: PositionErrorCallback breaks codegen (#39616)
-    optional /* PositionErrorCallback? */any errorCallback = null,
+    optional PositionErrorCallback? errorCallback = null,
     optional PositionOptions options = {}
   );
 

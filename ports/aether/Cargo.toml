@@ -1,7 +1,9 @@
 [package]
 name = "aether"
 build = "build.rs"
-version.workspace = true
+# Product version (`aether --version`). Not inherited from the workspace:
+# `[workspace.package] version` stays the Servo version
+version = "0.1.0"
 authors.workspace = true
 license.workspace = true
 edition.workspace = true

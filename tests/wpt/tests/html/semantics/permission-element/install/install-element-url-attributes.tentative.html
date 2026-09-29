@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Install element: manifest URL attributes</title>
+<link rel="help" href="https://github.com/WICG/install-element">
+<base href="/common/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  const install = document.createElement("install");
+
+  assert_equals(install.manifest, null);
+  assert_equals(install.manifestId, null);
+}, "The manifest and manifestId IDL attributes are null when omitted");
+
+test(() => {
+  const install = document.createElement("install");
+  install.setAttribute("manifest", "manifest.webmanifest");
+
+  assert_equals(install.getAttribute("manifest"), "manifest.webmanifest");
+  assert_equals(install.manifest,
+      new URL("manifest.webmanifest", document.baseURI).href);
+}, "The manifest IDL attribute resolves a relative URL against the document base URL");
+
+test(() => {
+  const install = document.createElement("install");
+  const value = " \t\n manifest.webmanifest \r\f ";
+  install.setAttribute("manifest", value);
+
+  assert_equals(install.getAttribute("manifest"), value);
+  assert_equals(install.manifest,
+      new URL("manifest.webmanifest", document.baseURI).href);
+}, "The manifest IDL attribute trims HTML whitespace before resolving a relative URL");
+
+test(() => {
+  const install = document.createElement("install");
+  install.setAttribute("manifestid", "app-id");
+
+  assert_equals(install.getAttribute("manifestid"), "app-id");
+  assert_equals(install.manifestId,
+      new URL("app-id", document.baseURI).href);
+}, "The manifestId IDL attribute resolves a relative URL against the document base URL");
+
+test(() => {
+  const install = document.createElement("install");
+  const value = " \t\n app-id \r\f ";
+  install.setAttribute("manifestid", value);
+
+  assert_equals(install.getAttribute("manifestid"), value);
+  assert_equals(install.manifestId,
+      new URL("app-id", document.baseURI).href);
+}, "The manifestId IDL attribute trims HTML whitespace before resolving a relative URL");
+
+test(() => {
+  const install = document.createElement("install");
+  install.manifestId = "app-id";
+
+  assert_equals(install.getAttribute("manifestid"), "app-id");
+  assert_equals(install.manifestId,
+      new URL("app-id", document.baseURI).href);
+
+  install.manifestId = null;
+  assert_false(install.hasAttribute("manifestid"));
+  assert_equals(install.manifestId, null);
+}, "The manifestId IDL attribute setter reflects values and removes null");
+</script>

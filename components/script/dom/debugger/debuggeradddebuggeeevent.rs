@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject, Value};
 use js::rust::MutableHandleObject;
-use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
+use script_bindings::reflector::{DomObject, reflect_dom_object};
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerAddDebuggeeEventBinding::DebuggerAddDebuggeeEventMethods;
@@ -40,7 +40,7 @@ impl DebuggerAddDebuggeeEvent {
             pipeline_id: Dom::from_ref(pipeline_id),
             worker_id,
         });
-        let result = reflect_dom_object_with_cx(result, debugger_global, cx);
+        let result = reflect_dom_object(cx, result, debugger_global);
         result.event.init_event("addDebuggee".into(), false, false);
 
         // Convert the debuggee global’s reflector to a Value, wrapping it from its originating realm (debuggee realm)

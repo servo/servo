@@ -142,8 +142,10 @@ impl AudioNodeEngine for OscillatorNode {
             while let Some(mut frame) = iter.next() {
                 let tick = frame.tick();
                 if tick < start_at {
+                    // AudioParam must still be updated because they are a function of time.
+                    self.update_parameters(info, frame.tick());
                     continue;
-                } else if tick > stop_at {
+                } else if tick >= stop_at {
                     break;
                 }
 

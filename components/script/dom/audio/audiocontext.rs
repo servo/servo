@@ -141,7 +141,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend>
     fn Suspend(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
@@ -197,7 +197,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-close>
     fn Close(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {

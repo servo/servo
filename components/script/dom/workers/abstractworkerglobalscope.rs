@@ -42,7 +42,7 @@ pub(crate) trait WorkerEventLoopMethods {
     fn control_receiver(&self) -> &Receiver<Self::ControlMsg>;
 }
 
-// https://html.spec.whatwg.org/multipage/#worker-event-loop
+/// <https://html.spec.whatwg.org/multipage/#worker-event-loop>
 pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     worker_scope: &T,
     worker: Option<&TrustedWorkerAddress>,
@@ -91,6 +91,7 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     // explicit close/exit Sharedworker path). Treat that as a clean shutdown signal rather
     // than panicking on RecvError.
     let Some(event) = event else {
+        scope.close();
         return;
     };
 

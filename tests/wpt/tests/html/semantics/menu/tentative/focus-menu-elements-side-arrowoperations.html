@@ -9,22 +9,38 @@
 <menubar>
   <submenu>
     <menuitem id="file">File</menuitem>
-    <menulist>
+    <menulist id="file_menu">
       <menuitem id="file_new">New</menuitem>
       <menuitem id="file_open">Open</menuitem>
     </menulist>
   </submenu>
   <submenu>
     <menuitem id="edit">Edit</menuitem>
-    <menulist>
+    <menulist id="edit_menu">
       <menuitem id="edit_cut">Cut</menuitem>
       <menuitem id="edit_copy">Copy</menuitem>
     </menulist>
   </submenu>
   <submenu>
     <menuitem id="help">Help</menuitem>
-    <menulist>
+    <menulist id="help_menu">
       <menuitem id="help_about">About</menuitem>
+    </menulist>
+  </submenu>
+</menubar>
+
+<menubar>
+  <submenu>
+    <menuitem id="mixed_file">File</menuitem>
+    <menulist id="mixed_file_menu">
+      <menuitem id="mixed_file_new">New</menuitem>
+    </menulist>
+  </submenu>
+  <menuitem id="mixed_plain">Plain</menuitem>
+  <submenu>
+    <menuitem id="mixed_help">Help</menuitem>
+    <menulist id="mixed_help_menu">
+      <menuitem id="mixed_help_about">About</menuitem>
     </menulist>
   </submenu>
 </menubar>
@@ -114,5 +130,66 @@ promise_test(async t => {
   await test_driver.send_keys(document.activeElement, ArrowLeft);
   assert_equals(document.activeElement, e("actions_go"));
 }, "side arrow keys should no-op in a menulist invoked by a button");
+
+promise_test(async t => {
+  t.add_cleanup(async () => { await test_driver.send_keys(document.activeElement, Esc); });
+  e("file").focus();
+  assert_equals(document.activeElement, e("file"));
+  await test_driver.send_keys(document.activeElement, Enter);
+  assert_equals(document.activeElement, e("file_new"));
+  assert_true(e("file_menu").matches(":popover-open"), "file menu should be open");
+
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("edit"), "edit should be focused");
+  assert_false(e("file_menu").matches(":popover-open"), "file menu should be closed");
+  assert_true(e("edit_menu").matches(":popover-open"), "edit menu should be opened");
+
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("help"), "help should be focused");
+  assert_false(e("edit_menu").matches(":popover-open"), "edit menu should be closed");
+  assert_true(e("help_menu").matches(":popover-open"), "help menu should be opened");
+
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, e("help_about"), "help_about should be focused");
+
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, e("edit"), "edit should be focused");
+  assert_false(e("help_menu").matches(":popover-open"), "help menu should be closed");
+  assert_true(e("edit_menu").matches(":popover-open"), "edit menu should be opened");
+
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, e("file"), "file should be focused");
+  assert_false(e("edit_menu").matches(":popover-open"), "edit menu should be closed");
+  assert_true(e("file_menu").matches(":popover-open"), "file menu should be opened");
+}, "side arrow keys from a menulist or a menubar item with an open submenu should open the submenu of the focused menu");
+
+promise_test(async t => {
+  t.add_cleanup(async () => { await test_driver.send_keys(document.activeElement, Esc); });
+  e("mixed_file").focus();
+  await test_driver.send_keys(document.activeElement, Enter);
+  assert_equals(document.activeElement, e("mixed_file_new"));
+  assert_true(e("mixed_file_menu").matches(":popover-open"), "mixed file menu should be open");
+
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("mixed_plain"), "mixed_plain should be focused");
+  assert_false(e("mixed_file_menu").matches(":popover-open"), "mixed file menu should be closed");
+
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("mixed_help"), "mixed_help should be focused");
+  assert_false(e("mixed_help_menu").matches(":popover-open"), "mixed help menu should stay closed");
+
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, e("mixed_help_about"), "mixed_help_about should be focused");
+  assert_true(e("mixed_help_menu").matches(":popover-open"), "mixed help menu should be open");
+
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("mixed_file"), "mixed_file should be focused");
+  assert_false(e("mixed_help_menu").matches(":popover-open"), "mixed help menu should be closed");
+  assert_true(e("mixed_file_menu").matches(":popover-open"), "mixed file menu should be open");
+
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("mixed_plain"), "mixed_plain should be focused");
+  assert_false(e("mixed_file_menu").matches(":popover-open"), "mixed file menu should be closed");
+}, "side arrow keys to a menuitem without submenu should close the list and focus without opening");
 
 </script>

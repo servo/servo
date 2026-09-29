@@ -159,6 +159,10 @@ impl Console {
     pub(crate) fn internal_warn(cx: &mut JSContext, global: &GlobalScope, message: String) {
         Console::send_string_message(cx, global, ConsoleLogLevel::Warn, message);
     }
+
+    pub(crate) fn internal_error(cx: &mut JSContext, global: &GlobalScope, message: String) {
+        Console::send_string_message(cx, global, ConsoleLogLevel::Error, message);
+    }
 }
 
 #[expect(unsafe_code)]

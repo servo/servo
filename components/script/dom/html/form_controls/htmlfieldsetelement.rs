@@ -6,7 +6,7 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use stylo_dom::ElementState;
 
@@ -113,8 +113,8 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
-    fn WillValidate(&self) -> bool {
-        self.is_instance_validatable()
+    fn WillValidate(&self, no_gc: &NoGC) -> bool {
+        self.is_instance_validatable(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
@@ -165,8 +165,8 @@ impl VirtualMethods for HTMLFieldSetElement {
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
-                    AttributeMutation::Set(None, _) => true,
-                    AttributeMutation::Set(Some(_), _) => {
+                    AttributeMutation::Set(None) => true,
+                    AttributeMutation::Set(Some(_)) => {
                         // Fieldset was already disabled before.
                         return;
                     },
@@ -230,7 +230,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                         let element = field.downcast::<Element>().unwrap();
                         if element.disabled_state() {
                             element.check_disabled_attribute();
-                            element.check_ancestors_disabled_state_for_form_control();
+                            element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
                             // Fire callback only if this has actually enabled the custom element
                             if element.enabled_state() &&
                                 element
@@ -280,7 +280,7 @@ impl Validatable for HTMLFieldSetElement {
             .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
-    fn is_instance_validatable(&self) -> bool {
+    fn is_instance_validatable(&self, _no_gc: &NoGC) -> bool {
         // fieldset is not a submittable element (https://html.spec.whatwg.org/multipage/#category-submit)
         false
     }

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Scrollend event fires after layout scroll clamping</title>
+<link rel="help" href="https://www.w3.org/TR/cssom-view-1/#scrolling-events">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="scroll_support.js"></script>
+<style>
+  #scroller {
+    width: 100px;
+    height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  #content {
+    height: 300px;
+  }
+</style>
+<div id="scroller">
+  <div id="content"></div>
+</div>
+<script>
+promise_test(async (t) => {
+  await waitForCompositorCommit();
+
+  const scroller = document.getElementById('scroller');
+  const content = document.getElementById('content');
+
+  // 1. Initial scroll position.
+  scroller.scrollTop = 100;
+  assert_equals(scroller.scrollTop, 100, "Initial scrollTop should be set");
+  await waitForCompositorCommit();
+
+  let scrollFired = false;
+  let scrollendFired = false;
+  scroller.addEventListener('scroll', () => { scrollFired = true; });
+  scroller.addEventListener('scrollend', () => { scrollendFired = true; });
+
+  // 2. Trigger layout clamp by shrinking the content height.
+  content.style.height = '0px';
+
+  // 3. Wait for layout, clamping, and event dispatch.
+  await waitForCompositorCommit();
+
+  assert_equals(scroller.scrollTop, 0, "scrollTop should be clamped to 0");
+  assert_true(scrollFired, "scroll event should have fired due to clamping");
+  assert_true(scrollendFired, "scrollend event should have fired after clamping");
+}, "scrollend event fires when layout clamps scroll offset");
+</script>

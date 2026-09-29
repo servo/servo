@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<link rel=help href="https://drafts.csswg.org/selectors/#the-hover-pseudo">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html#the-popover-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+[popover] {
+  top: 200px;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+div {
+  width: 100px;
+  height: 40px;
+}
+</style>
+
+<div id=hostForHiding><span id=slottedForHiding>slotted</span></div>
+<div id=hostForRemoval><span id=slottedForRemoval>slotted</span></div>
+<div id=hostForActive><span id=slottedForActive>slotted</span></div>
+<div id=sibling>sibling</div>
+
+<script>
+function popoverSlotting(host) {
+  const root = host.attachShadow({mode: 'open'});
+  root.innerHTML = '<div popover=manual><slot></slot></div>';
+  return root.querySelector('[popover]');
+}
+
+function moveTo(element) {
+  return (new test_driver.Actions().pointerMove(2, 2, {origin: element})).send()
+    .then(() => new Promise(requestAnimationFrame));
+}
+
+promise_test(async () => {
+  const slotted = document.getElementById('slottedForHiding');
+  const popover = popoverSlotting(document.getElementById('hostForHiding'));
+
+  popover.showPopover();
+  await moveTo(slotted);
+  assert_true(slotted.matches(':hover'),
+    'The slotted content should match :hover.');
+  assert_false(document.body.matches(':hover'),
+    'The hover chain should stop at the top layer while the popover is showing.');
+
+  // Assert without waiting, since the popover leaves the top layer within hidePopover().
+  popover.hidePopover();
+  assert_true(document.body.matches(':hover'),
+    'Hiding the popover should propagate :hover to the ancestors of its slotted content.');
+}, 'Hiding a popover restores :hover on the ancestors of slotted content it was showing.');
+
+promise_test(async () => {
+  const slotted = document.getElementById('slottedForRemoval');
+  const sibling = document.getElementById('sibling');
+  const popover = popoverSlotting(document.getElementById('hostForRemoval'));
+
+  popover.showPopover();
+  await moveTo(slotted);
+  assert_true(slotted.matches(':hover'),
+    'The slotted content should match :hover.');
+  assert_false(document.body.matches(':hover'),
+    'The hover chain should stop at the top layer while the popover is showing.');
+
+  // The popover keeps showing, so only the hovered element stops being rendered.
+  slotted.remove();
+  await moveTo(sibling);
+  assert_true(sibling.matches(':hover'),
+    'The element under the pointer should match :hover.');
+  assert_true(document.body.matches(':hover'),
+    'An ancestor of the element under the pointer should match :hover.');
+}, 'Hover still applies after removing the hovered slotted content of a showing popover.');
+
+promise_test(async () => {
+  const slotted = document.getElementById('slottedForActive');
+  const popover = popoverSlotting(document.getElementById('hostForActive'));
+
+  popover.showPopover();
+
+  // Removing the element within mousedown leaves the pointer down with it gone.
+  let popoverWasActive = false;
+  slotted.addEventListener('mousedown', () => {
+    popoverWasActive = popover.matches(':active');
+    slotted.remove();
+  }, {once: true});
+
+  await (new test_driver.Actions()
+    .pointerMove(2, 2, {origin: slotted})
+    .pointerDown()
+    .pointerUp())
+    .send();
+
+  assert_true(popoverWasActive,
+    'The popover should match :active while its slotted content is pressed.');
+  assert_false(popover.matches(':active'),
+    'Releasing the pointer should clear :active from the popover.');
+}, 'Removing pressed slotted content does not leave :active on the popover.');
+</script>

@@ -47,7 +47,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable>
     fn Enable(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 2.
         // 1. If registration’s active worker is null, then reject promise with an "InvalidStateError" DOMException.
@@ -72,7 +72,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-disable>
     fn Disable(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 2.
         // 1. If registration’s active worker is null, then reject promise with an "InvalidStateError" DOMException.
@@ -101,7 +101,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
         let normalized_value = trim_http_whitespace(&value);
 
         // Step 2. If value is not a header value, return a promise rejected with a TypeError.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         if normalized_value.contains(&b'\0') {
             promise.reject_error(cx, Error::Type(c"Invalid header value".to_owned()));
             return promise;
@@ -130,7 +130,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-getstate>
     fn GetState(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 2.
         // 1. Let state be a new NavigationPreloadState dictionary.

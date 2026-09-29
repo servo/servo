@@ -319,10 +319,14 @@ mod tests {
         menu.open = true;
         menu.rect = egui::Rect::from_min_max(egui::pos2(10.0, 20.0), egui::pos2(110.0, 80.0));
 
+        // egui rects are closed: min and max edges are inside.
         assert!(menu.contains_pointer(Point2D::new(10.0, 20.0)));
         assert!(menu.contains_pointer(Point2D::new(60.0, 40.0)));
+        assert!(menu.contains_pointer(Point2D::new(110.0, 40.0)));
+        assert!(menu.contains_pointer(Point2D::new(60.0, 80.0)));
         assert!(!menu.contains_pointer(Point2D::new(0.0, 0.0)));
-        assert!(!menu.contains_pointer(Point2D::new(110.0, 40.0)));
+        assert!(!menu.contains_pointer(Point2D::new(110.1, 40.0)));
+        assert!(!menu.contains_pointer(Point2D::new(60.0, 80.1)));
 
         menu.open = false;
         assert!(!menu.contains_pointer(Point2D::new(60.0, 40.0)));

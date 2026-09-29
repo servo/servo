@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Linked Parameters: a &lt;css-type&gt; in a param() &lt;url-modifier&gt;</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#setting-url">
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#typedef-css-type">
+<meta name="assert" content="param() used as a <url-modifier> accepts an optional <css-type>.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_valid_value("background-image", 'url("icon.svg" param(--c <color>, green))');
+test_valid_value("background-image", 'url("icon.svg" param(--c type(<color>), green))', 'url("icon.svg" param(--c <color>, green))');
+
+test_invalid_value("background-image", 'url("icon.svg" param(--c <notatype>, green))');
+</script>

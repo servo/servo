@@ -32,6 +32,7 @@ use net_traits::request::{
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
+use script_bindings::callback::RootedCallback;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::conversions::root_from_handlevalue;
 use script_bindings::reflector::DomObject;
@@ -67,7 +68,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
+use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 #[cfg(feature = "webcrypto")]
 use crate::dom::crypto::Crypto;
@@ -296,7 +297,7 @@ impl ResourceTimingListener for ScriptFetchContext {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
+/// <https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface>
 #[dom_struct]
 pub(crate) struct WorkerGlobalScope {
     globalscope: GlobalScope,
@@ -1010,11 +1011,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
-    fn QueueMicrotask(&self, cx: &mut JSContext, callback: Rc<VoidFunction>) {
+    fn QueueMicrotask(&self, cx: &mut JSContext, callback: RootedCallback<VoidFunction>) {
         self.enqueue_microtask(
             cx,
             Box::new(UserMicrotask {
-                callback,
+                callback: callback.to_traced(),
                 global: Dom::from_ref(&self.globalscope),
             }),
         );
@@ -1058,7 +1059,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         &self,
         realm: &mut CurrentRealm,
         input: RequestOrUSVString,
-        init: RootedTraceableBox<RequestInit>,
+        init: &RequestInit,
     ) -> RootedPromise {
         Fetch(self.upcast(), input, init, realm)
     }
@@ -1092,7 +1093,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         &self,
         cx: &mut JSContext,
         value: HandleValue,
-        options: RootedTraceableBox<StructuredSerializeOptions>,
+        options: &StructuredSerializeOptions,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
         self.upcast::<GlobalScope>()

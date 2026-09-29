@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 
 use embedder_traits::user_contents::UserContentManagerId;
@@ -10,7 +11,7 @@ use euclid::{Point2D, Size2D};
 use log::{debug, warn};
 use paint_api::{PaintMessage, PaintProxy};
 use rustc_hash::{FxHashMap, FxHashSet};
-use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
+use script_traits::{ConstellationInputEvent, ScriptThreadMessage, WebViewState};
 use servo_base::Epoch;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::{ScreenshotReadinessResponse, SessionHistoryTraversalRequest};
@@ -83,6 +84,11 @@ pub(crate) struct ConstellationWebView {
     /// are hidden will be throttled.
     hidden: bool,
 
+    /// Whether or not this [`ConstellationWebView`] has system focus. This is
+    /// a distinct piece of state from [`Self::focused_browsing_context_id`] which
+    /// tracks the frame with focus regardless of system focus state.
+    has_system_focus: bool,
+
     /// Whether accessibility is active for this webview.
     ///
     /// Set by [`crate::Constellation::set_accessibility_active()`], and forwarded to the
@@ -118,6 +124,7 @@ impl ConstellationWebView {
             pending_viewport_details: Default::default(),
             theme: Theme::Light,
             hidden: false,
+            has_system_focus: true,
             accessibility_active: false,
             screenshot_readiness_requests: Default::default(),
         }
@@ -139,10 +146,28 @@ impl ConstellationWebView {
         self.hidden
     }
 
-    /// Set whether or not this [`ConstellationWebView`] is hidden, returning true if the value changed.
+    /// Create a [`WebViewState`] for this [`ConstellationWebView`] to pass during pipeline
+    /// creation.
+    pub(crate) fn state(&self) -> WebViewState {
+        WebViewState {
+            id: self.webview_id,
+            theme: Cell::new(self.theme),
+            has_system_focus: Cell::new(self.has_system_focus),
+        }
+    }
+
+    /// Set whether or not this [`ConstellationWebView`] is hidden, returning true if the
+    /// value changed.
     pub(crate) fn set_hidden(&mut self, hidden: bool) -> bool {
         let old_hidden = std::mem::replace(&mut self.hidden, hidden);
         old_hidden != self.hidden
+    }
+
+    /// Set whether or not this [`ConstellationWebView`] has system focus, returning true
+    /// if the value changed.
+    pub(crate) fn set_has_system_focus(&mut self, has_system_focus: bool) -> bool {
+        let old_has_system_focus = std::mem::replace(&mut self.has_system_focus, has_system_focus);
+        old_has_system_focus != self.has_system_focus
     }
 
     fn target_pipeline_id_for_input_event(

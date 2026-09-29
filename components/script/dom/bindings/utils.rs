@@ -16,7 +16,7 @@ use js::jsapi::{
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, get_object_class, is_dom_class};
 use script_bindings::interfaces::{DomHelpers, Interface};
-use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_cx};
+use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
 use script_bindings::settings_stack::StackEntry;
 
 use crate::DomTypes;
@@ -177,7 +177,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         T: DomObject + DomObjectWrap<crate::DomTypeHolder>,
         U: DerivedFrom<GlobalScope>,
     {
-        reflect_dom_object_with_cx(obj, global, cx)
+        reflect_dom_object(cx, obj, global)
     }
 
     fn report_pending_exception(cx: &mut CurrentRealm) {

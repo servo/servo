@@ -45,9 +45,9 @@ impl<D: Equivalence> GPUSupportedLimits<D> {
         limits: Limits,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(Self::new_inherited(limits)),
             global,
-            cx,
             GPUSupportedLimitsWrap::<D>,
         )
     }

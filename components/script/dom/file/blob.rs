@@ -338,7 +338,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     /// <https://w3c.github.io/FileAPI/#text-method-algo>
     fn Text(&self, cx: &mut CurrentRealm) -> RootedPromise {
         let global = self.global();
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
         let id = self.get_blob_url_id();
         global.read_file_async(
             id,
@@ -359,7 +359,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
 
     /// <https://w3c.github.io/FileAPI/#arraybuffer-method-algo>
     fn ArrayBuffer(&self, cx: &mut CurrentRealm) -> RootedPromise {
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // 1. Let stream be the result of calling get stream on this.
         let stream = self.get_stream(cx);
@@ -398,7 +398,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
 
     /// <https://w3c.github.io/FileAPI/#dom-blob-bytes>
     fn Bytes(&self, cx: &mut CurrentRealm) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
 
         // 1. Let stream be the result of calling get stream on this.
         let stream = self.get_stream(cx);

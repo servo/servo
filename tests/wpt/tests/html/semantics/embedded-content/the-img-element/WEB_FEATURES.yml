@@ -14,4 +14,5 @@ rules:
 - update-the-source-set.html: [srcset]
 - null-image-source.html: [srcset]
 - usemap-casing.html: [image-maps]
+- attr-img-fetchpriority.html: [fetch-priority]
 - "*": [img]

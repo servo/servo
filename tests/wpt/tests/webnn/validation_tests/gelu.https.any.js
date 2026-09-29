@@ -12,3 +12,7 @@ validateInputFromAnotherBuilder('gelu');
 const label = 'gelu_123';
 const regrexp = new RegExp('\\[' + label + '\\]');
 validateSingleInputOperation('gelu', label, regrexp);
+
+validateOperandRank('gelu', 'input', (builder, input) => {
+  return builder.gelu(input);
+});

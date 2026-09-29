@@ -19,6 +19,7 @@ use js::rust::HandleValue;
 use js::rust::wrappers2::JS_GetScriptedCallerPrivate;
 use net_traits::request::ParserMetadata;
 use rustc_hash::FxHashMap;
+use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
@@ -550,6 +551,11 @@ impl OneshotTimers {
     pub(crate) fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
         self.js_timers.clear_timeout_or_interval(global, handle)
     }
+
+    pub(crate) fn clear(&self) {
+        self.timers.borrow_mut().clear();
+        self.js_timers.clear();
+    }
 }
 
 #[derive(Clone, Copy, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
@@ -564,6 +570,12 @@ pub(crate) struct JsTimers {
     nesting_level: Cell<u32>,
     /// Used to introduce a minimum delay in event intervals
     min_duration: Cell<Option<Duration>>,
+}
+
+impl JsTimers {
+    fn clear(&self) {
+        self.active_timers.borrow_mut().clear();
+    }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -596,7 +608,7 @@ pub(crate) enum IsInterval {
 
 pub(crate) enum TimerCallback {
     StringTimerCallback(TrustedScriptOrString),
-    FunctionTimerCallback(Rc<Function>),
+    FunctionTimerCallback(RootedCallback<Function>),
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -604,7 +616,7 @@ pub(crate) enum TimerCallback {
 enum InternalTimerCallback {
     StringTimerCallback(DOMString, InitiatingScriptFetchInfo),
     FunctionTimerCallback(
-        #[conditional_malloc_size_of] Rc<Function>,
+        TracedCallback<Function>,
         #[ignore_malloc_size_of = "mozjs"] Rc<Box<[Heap<JSVal>]>>,
     ),
 }
@@ -689,7 +701,7 @@ impl JsTimers {
                 // Step 9.5. If handler is a Function, then invoke handler given arguments and "report",
                 // and with callback this value set to thisArg.
                 InternalTimerCallback::FunctionTimerCallback(
-                    function,
+                    function.to_traced(),
                     Rc::new(args.into_boxed_slice()),
                 )
             },

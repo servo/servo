@@ -179,7 +179,7 @@ impl CacheMethods<crate::DomTypeHolder> for Cache {
 
         // Step 4: Let promise be a new promise.
         // Note: step re-ordered to make it available in Step 2.
-        let promise = Promise::new_rooted(cx, &global);
+        let promise = Promise::new(cx, &global);
 
         // Step 2: If the optional argument request is not omitted, then:
         if let Some(request) = request {

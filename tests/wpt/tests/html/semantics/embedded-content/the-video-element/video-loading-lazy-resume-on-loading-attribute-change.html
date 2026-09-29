@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A deferred loading=lazy video resumes when its loading attribute's state changes to Eager</title>
+<link rel="help" href="https://html.spec.whatwg.org/#attr-media-loading">
+<link rel="help" href="https://html.spec.whatwg.org/#lazy-loading-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div style="height: 1000vh"></div>
+<video id="eager" loading="lazy" src="/media/A4.webm?eager"></video>
+<video id="removed" loading="lazy" src="/media/A4.webm?removed"></video>
+<video id="invalid" loading="lazy" src="/media/A4.webm?invalid"></video>
+<script>
+// The missing value default and invalid value default of the loading
+// attribute are both Eager, so all three changes should resume the load.
+const changes = {
+  eager: video => video.setAttribute("loading", "eager"),
+  removed: video => video.removeAttribute("loading"),
+  invalid: video => video.setAttribute("loading", "foo"),
+};
+
+const loaded = new Promise(resolve => window.addEventListener("load", resolve));
+
+for (const [id, change] of Object.entries(changes)) {
+  async_test(t => {
+    const video = document.getElementById(id);
+    loaded.then(t.step_func(() => {
+      // By the time the load event fires, the video has been deferred.
+      assert_equals(video.readyState, HTMLMediaElement.HAVE_NOTHING,
+                    "precondition: the video has not fetched anything");
+      video.addEventListener("loadedmetadata", t.step_func_done());
+      change(video);
+    }));
+  }, `Deferred loading=lazy video resumes when the loading attribute is ${id}`);
+}
+</script>

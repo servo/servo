@@ -76,9 +76,9 @@ impl<D: Equivalence> GPUQueue<D> {
         queue: WebGPUQueue,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUQueue::new_inherited(channel, queue)),
             global,
-            cx,
             GPUQueueWrap::<D>,
         )
     }
@@ -409,7 +409,7 @@ where
         cx: &mut JSContext,
     ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
         let global = self.global_from_reflector();
-        let promise = D::Promise::new_rooted(cx, &global);
+        let promise = D::Promise::new(cx, &global);
         let callback = promise.callback_promise_dom_manipulation_task_source(self);
 
         if let Err(e) = self

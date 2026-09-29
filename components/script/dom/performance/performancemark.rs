@@ -19,7 +19,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::window::Window;
@@ -81,7 +80,7 @@ impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         mark_name: DOMString,
-        mark_options: RootedTraceableBox<PerformanceMarkOptions>,
+        mark_options: &PerformanceMarkOptions,
     ) -> Fallible<DomRoot<PerformanceMark>> {
         // The PerformanceMark constructor must run the following steps:
         // Step 1. If the current global object is a Window object and markName uses the same name

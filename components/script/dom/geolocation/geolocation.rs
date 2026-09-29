@@ -2,14 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::gc::HandleValue;
-use js::jsapi::IsCallable;
 use rustc_hash::FxHashSet;
-use script_bindings::callback::{ExceptionHandling, OwnerWindow};
+use script_bindings::callback::{ExceptionHandling, OwnerWindow, RootedCallback};
 use script_bindings::codegen::GenericBindings::GeolocationBinding::Geolocation_Binding::GeolocationMethods;
 use script_bindings::codegen::GenericBindings::GeolocationBinding::{
     PositionCallback, PositionErrorCallback, PositionOptions,
@@ -17,35 +14,13 @@ use script_bindings::codegen::GenericBindings::GeolocationBinding::{
 use script_bindings::codegen::GenericBindings::PermissionStatusBinding::PermissionName;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::domstring::DOMString;
-use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::geolocationpositionerror::GeolocationPositionError;
 use crate::dom::globalscope::GlobalScope;
-
-fn cast_error_callback(
-    cx: &mut JSContext,
-    error_callback: HandleValue,
-) -> Fallible<Option<Rc<PositionErrorCallback<DomTypeHolder>>>> {
-    if error_callback.get().is_object() {
-        let error_callback = error_callback.to_object();
-        #[expect(unsafe_code)]
-        unsafe {
-            if IsCallable(error_callback) {
-                Ok(Some(PositionErrorCallback::new(cx, error_callback)))
-            } else {
-                Err(Error::Type(c"Value is not callable.".to_owned()))
-            }
-        }
-    } else if error_callback.get().is_null_or_undefined() {
-        Ok(None)
-    } else {
-        Err(Error::Type(c"Value is not an object.".to_owned()))
-    }
-}
 
 #[dom_struct]
 pub struct Geolocation {
@@ -65,18 +40,18 @@ impl Geolocation {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited()), global)
     }
 
     /// <https://www.w3.org/TR/geolocation/#dfn-request-a-position>
     fn request_position(
         &self,
         cx: &mut JSContext,
-        _success_callback: Rc<PositionCallback<DomTypeHolder>>,
-        error_callback: Option<Rc<PositionErrorCallback<DomTypeHolder>>>,
+        _success_callback: RootedCallback<PositionCallback<DomTypeHolder>>,
+        error_callback: Option<RootedCallback<PositionErrorCallback<DomTypeHolder>>>,
         _options: &PositionOptions,
         watch_id: Option<u32>,
-    ) -> Fallible<()> {
+    ) {
         // Step 1. Let watchIDs be geolocation's [[watchIDs]].
         // Step 2. Let document be the geolocation's relevant global object's associated Document.
         let document = self.global().as_window().Document();
@@ -93,10 +68,10 @@ impl Geolocation {
                     &self.global(),
                     DOMString::from("User denied Geolocation".to_string()),
                 );
-                error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
+                let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
             // Step 3.3 Terminate this algorithm.
-            return Ok(());
+            return;
         }
         // Step 4. If geolocation's environment settings object is a non-secure context:
         if !self.global().is_secure_context() {
@@ -111,15 +86,14 @@ impl Geolocation {
                     &self.global(),
                     DOMString::from("Insecure context for Geolocation".to_string()),
                 );
-                error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
+                let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
             // Step 4.3 Terminate this algorithm.
-            return Ok(());
+            #[expect(clippy::needless_return)]
+            return;
         }
         // TODO: Step 5
         // TODO: Step 6. Let descriptor be a new PermissionDescriptor whose name is "geolocation".
-
-        Ok(())
     }
 }
 
@@ -128,11 +102,10 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
     fn GetCurrentPosition(
         &self,
         cx: &mut JSContext,
-        success_callback: Rc<PositionCallback<DomTypeHolder>>,
-        error_callback: HandleValue,
+        success_callback: RootedCallback<PositionCallback<DomTypeHolder>>,
+        error_callback: Option<RootedCallback<PositionErrorCallback<DomTypeHolder>>>,
         options: &PositionOptions,
-    ) -> Fallible<()> {
-        let error_callback = cast_error_callback(cx, error_callback)?;
+    ) {
         // Step 1. If this's relevant global object's associated Document is not fully active:
         if !self.global().as_window().Document().is_fully_active() {
             // Step 1.1 Call back with error errorCallback and POSITION_UNAVAILABLE.
@@ -142,10 +115,10 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
                     &self.global(),
                     DOMString::from("Document is not fully active".to_string()),
                 );
-                error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
+                let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
             // Step 1.2 Terminate this algorithm.
-            return Ok(());
+            return;
         }
         // Step 2. Request a position passing this, successCallback, errorCallback, and options.
         self.request_position(cx, success_callback, error_callback, options, None)
@@ -155,11 +128,10 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
     fn WatchPosition(
         &self,
         cx: &mut JSContext,
-        success_callback: Rc<PositionCallback<DomTypeHolder>>,
-        error_callback: HandleValue,
+        success_callback: RootedCallback<PositionCallback<DomTypeHolder>>,
+        error_callback: Option<RootedCallback<PositionErrorCallback<DomTypeHolder>>>,
         options: &PositionOptions,
-    ) -> Fallible<i32> {
-        let error_callback = cast_error_callback(cx, error_callback)?;
+    ) -> i32 {
         // Step 1. If this's relevant global object's associated Document is not fully active:
         if !self.global().as_window().Document().is_fully_active() {
             // Step 1.1 Call back with error errorCallback and POSITION_UNAVAILABLE.
@@ -169,10 +141,10 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
                     &self.global(),
                     DOMString::from("Document is not fully active".to_string()),
                 );
-                error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
+                let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
             // Step 1.2 Return 0.
-            return Ok(0);
+            return 0;
         }
         // Step 2. Let watchId be an implementation-defined unsigned long that is greater than zero.
         let watch_id = self.next_watch_id.get();
@@ -186,9 +158,9 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
             error_callback,
             options,
             Some(watch_id),
-        )?;
+        );
         // Step 5. Return watchId.
-        Ok(watch_id as i32)
+        watch_id as i32
     }
 
     /// <https://www.w3.org/TR/geolocation/#clearwatch-method>

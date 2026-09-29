@@ -10,7 +10,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use accesskit::Role::{self, GenericContainer};
-use accesskit::{NodeId, Rect, TreeId, TreeUpdate};
+use accesskit::{Affine, NodeId, Rect, TreeId, TreeUpdate};
 use accesskit_consumer::TreeChangeHandler;
 use euclid::Scale;
 use servo::{
@@ -918,11 +918,13 @@ fn test_accessibility_build_initial_tree_after_scroll() {
 
 #[test]
 fn test_accessibility_unchanged_bounds_are_not_resent() {
-    // Absolutely positioned divs; resizing one doesn't affect the other
+    // Absolutely positioned elements; resizing one doesn't affect the other
     let url = "data:text/html,<!DOCTYPE html>\
-               <div id='a' style='position:absolute;left:0;top:0;width:10px;height:10px'></div>\
-               <div id='b' style='position:absolute;left:100px;top:100px;\
-               width:10px;height:10px'></div>";
+               <section id='a' style='position:absolute;left:0;top:0;width:10px;height:10px'>\
+                 <article id='c'></article>\
+               </section>\
+               <footer id='b' style='position:absolute;left:100px;top:100px;\
+               width:10px;height:10px'></footer>";
     let (servo_test, delegate, webview, tree) = build_webview_and_tree(url);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
@@ -982,6 +984,368 @@ fn test_accessibility_bounds_are_computed_for_inline_elements() {
     assert!(strong.has_bounds());
 }
 
+#[test]
+fn test_accessibility_update_failed_layout_from_layout_root() {
+    // Absolutely positioned elements create layout roots during incremental update.
+    let url = "data:text/html,<!DOCTYPE html>\
+               <section id='a' style='position:absolute;left:0;top:0;width:10px;height:10px'>\
+                 <article id='b' style='position:absolute;top:20px;left:20px;\
+                                        width:20px;height:20px;'></article>\
+               </section>\
+               <footer id='c' style='position:absolute;left:100px;top:100px;\
+                                     width:10px;height:10px'></footer>";
+    let (servo_test, delegate, webview, tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 2);
+    let (node_a, node_c) = (children[0], children[1]);
+    assert_rect_eq(
+        node_a.raw_bounds().expect("a should have bounds"),
+        Rect::new(0.0, 0.0, 10.0, 10.0),
+    );
+    assert_rect_eq(
+        node_c.raw_bounds().expect("c should have bounds"),
+        Rect::new(100.0, 100.0, 110.0, 110.0),
+    );
+    let node_a_id = node_a.locate().0;
+
+    let a_children: Vec<_> = node_a.children().collect();
+    let node_b = a_children[0];
+    assert_rect_eq(
+        node_b.raw_bounds().expect("b should have bounds"),
+        Rect::new(20.0, 20.0, 40.0, 40.0),
+    );
+    let node_b_id = node_b.locate().0;
+
+    // Making `b` position: fixed will cause layout from the layout root at `a` to fail, triggering
+    // relayout from the root.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "b.style.position = 'fixed'; \
+         b.style.width = '30px'; \
+         a.style.width = '50px';",
+    );
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+
+    // This test really passes if:
+    // a) there's no hang because the accessibility tree never updates, and
+    // b) the integrity checks in the accessibility tree pass,
+    // but let's check the new bounds anyway.
+
+    let update = &updates[0];
+    assert_eq!(update.nodes.len(), 2);
+
+    let node_a = find_node_matching(&update, |&id, _node| id == node_a_id);
+    let node_a_bounds = node_a.bounds().expect("a should have bounds after update");
+    assert_rect_eq(node_a_bounds, Rect::new(0.0, 0.0, 50.0, 10.0));
+
+    let node_b = find_node_matching(&update, |&id, _node| id == node_b_id);
+    let node_b_bounds = node_b.bounds().expect("b should have bounds after update");
+    assert_rect_eq(node_b_bounds, Rect::new(20.0, 20.0, 50.0, 40.0));
+}
+
+#[test]
+fn test_accessibility_bounds_changed_by_sibling() {
+    let url = "data:text/html,<!DOCTYPE HTML>\
+               <body style='margin:0;'>\
+               <main id=main style='width:100px;height:100px;'></main>\
+               <footer id=footer style='width:100px;height:100px;'>Hello</footer>\
+               </body>";
+
+    let (servo_test, delegate, webview, tree) = build_webview_and_tree(url);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 2);
+    let (main, footer) = (children[0], children[1]);
+    assert_rect_eq(
+        main.raw_bounds().expect("main should have bounds"),
+        Rect::new(0.0, 0.0, 100.0, 100.0),
+    );
+    assert_rect_eq(
+        footer.raw_bounds().expect("footer should have bounds"),
+        Rect::new(0.0, 100.0, 100.0, 200.0),
+    );
+    let main_id = main.locate().0;
+    let footer_id = footer.locate().0;
+
+    let _ = evaluate_javascript(&servo_test, webview.clone(), "main.style.height = '200px';");
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let update = &updates[0];
+
+    let main = find_node_matching(&update, |&id, _node| id == main_id);
+    let main_bounds = main.bounds().expect("main should have bounds after update");
+    assert_rect_eq(main_bounds, Rect::new(0.0, 0.0, 100.0, 200.0));
+
+    let footer = find_node_matching(&update, |&id, _node| id == footer_id);
+    let footer_bounds = footer
+        .bounds()
+        .expect("footer should have bounds after update");
+    assert_rect_eq(footer_bounds, Rect::new(0.0, 200.0, 100.0, 300.0));
+}
+
+#[test]
+fn test_accessibility_layout_root_node_also_changed() {
+    // Absolutely positioned divs create layout roots; if the DOM content of a layout root also
+    // changes, we need to make sure both types of damage are handled.
+    let url = "data:text/html,<!DOCTYPE html>\
+               <article id='a' style='margin:0;position:absolute;left:0;top:0;width:10px;height:10px'>\
+                 <p id='c' style='margin:0;width:10px;height:10px'>c</p>\
+               </article>\
+               <footer id='b' style='position:absolute;left:100px;top:100px;\
+                                     width:10px;height:10px'></footer>";
+
+    let (servo_test, delegate, webview, tree) = build_webview_and_tree(url);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 2);
+    let (node_a, node_b) = (children[0], children[1]);
+    assert_rect_eq(
+        node_a.raw_bounds().expect("a should have bounds"),
+        Rect::new(0.0, 0.0, 10.0, 10.0),
+    );
+    let node_a_id = node_a.locate().0;
+
+    assert_rect_eq(
+        node_b.raw_bounds().expect("b should have bounds"),
+        Rect::new(100.0, 100.0, 110.0, 110.0),
+    );
+
+    let node_a_children: Vec<accesskit_consumer::Node> = node_a.children().collect();
+    assert_eq!(node_a_children.len(), 1);
+    let node_c = node_a_children[0];
+    assert_rect_eq(
+        node_c.raw_bounds().expect("c should have bounds"),
+        Rect::new(0.0, 0.0, 10.0, 10.0),
+    );
+    let node_c_id = node_c.locate().0;
+
+    // Change a's role, and also c's width. This should mean a has damage both from the DOM change
+    // (adding the role attribute), and from layout (as a layout root when layout is changing, due
+    // to the change in c).
+    let js = "a.setAttribute('role', 'main'); \
+         c.style.width = '20px';";
+    let _ = evaluate_javascript(&servo_test, webview.clone(), js);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let update = updates[0].clone();
+
+    // Should be node a (new role), node c (bounds updated).
+    assert_eq!(update.nodes.len(), 2);
+
+    // Check that node a's role was indeed changed.
+    let node_a_update = find_node_matching(&update, |&id, _node| id == node_a_id);
+    assert_eq!(node_a_update.role(), Role::Main);
+
+    // Check that node c's bounds were indeed updated.
+    let node_c_update = find_node_matching(&update, |&id, _node| id == node_c_id);
+    let node_c_bounds = node_c_update
+        .bounds()
+        .expect("Node c should have bounds after update");
+    assert_rect_eq(node_c_bounds, Rect::new(0.0, 0.0, 20.0, 10.0));
+}
+
+#[test]
+fn test_accessibility_display_none_change() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <style>section.subdued em { display: none }</style>
+               <section class='subdued'><h1>We <em>really</em> love the web</h1></section>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Should have a heading");
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 3);
+    let em = heading_children[1];
+    assert_eq!(em.is_hidden(), true);
+    assert_eq!(heading.label(), Some("We  love the web".to_owned()));
+
+    // Test that making previously-hidden content visible works correctly.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('section').removeAttribute('class');",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Heading should still be in the tree");
+    // Un-hiding the <em> should change the computed text of the heading
+    assert_eq!(heading.label(), Some("We really love the web".to_owned()));
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 3);
+    let em = heading_children[1];
+    assert_eq!(em.is_hidden(), false);
+
+    // Test that changing a node in a hidden subtree is picked up, even though the node is hidden.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('section').className = 'subdued';\
+         document.querySelector('em').firstChild.appendData(', really');",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Heading should still be in the tree");
+    // Hiding the <em> should change the computed text of the heading
+    assert_eq!(heading.label(), Some("We  love the web".to_owned()));
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 3);
+    let em = heading_children[1];
+    assert_eq!(em.is_hidden(), true);
+
+    // Make the previously added text content visible to ensure it was added correctly.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('section').removeAttribute('class');",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Heading should still be in the tree");
+    // Un-hiding the <em> should change the computed text of the heading, and the new text should be
+    // present
+    assert_eq!(
+        heading.label(),
+        Some("We really, really love the web".to_owned())
+    );
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 3);
+    let em = heading_children[1];
+    assert_eq!(em.is_hidden(), false);
+}
+
+#[test]
+fn test_accessibility_display_none_change_scroll() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <body style='margin:0;'>\
+                  <main id='main' style='width:1000px;height:100px;\
+                                         overflow:scroll'>\
+                    <article style='width:1000px;height:50px;'></article>\
+                    <div style='width:1000px;height:2000px'></div>\
+                    <aside id='aside' style='width:1000px;height:50px;'></aside>\
+                  </main>\
+               </body>";
+
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+
+    let main = find_first_matching_node(root, |node| node.role() == Role::Main)
+        .expect("Document should contain a main element");
+    assert_rect_eq(
+        main.bounding_box().expect("main should have bounds"),
+        Rect::new(0.0, 0.0, 1000.0, 100.0),
+    );
+
+    let article = find_first_matching_node(root, |node| node.role() == Role::Article)
+        .expect("Document should contain an article");
+    let article_id = article.locate().0;
+    assert_rect_eq(
+        article.bounding_box().expect("article should have bounds"),
+        Rect::new(0.0, 0.0, 1000.0, 50.0),
+    );
+
+    let div = find_first_matching_node(root, |node| node.role() == Role::GenericContainer)
+        .expect("Document should contain a div");
+    let div_id = div.locate().0;
+
+    let aside = find_first_matching_node(root, |node| node.role() == Role::Complementary)
+        .expect("Document should contain an aside");
+    assert_rect_eq(
+        aside.bounding_box().expect("aside should have bounds"),
+        Rect::new(0.0, 2050.0, 1000.0, 2100.0),
+    );
+    let aside_id = aside.locate().0;
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "aside.style.display = 'none';",
+    );
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let update = updates[0].clone();
+    assert_eq!(update.nodes.len(), 1, "only <aside> should be updated");
+    let _ = find_node_matching(&update, |id, _node| id == &aside_id);
+
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let aside = find_first_matching_node(root, |node| node.role() == Role::Complementary)
+        .expect("Aside should stil be present");
+    assert_eq!(aside.is_hidden(), true);
+    assert_eq!(aside.bounding_box(), None);
+
+    let _ = evaluate_javascript(&servo_test, webview.clone(), "main.scrollTo(0, 500);");
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates[0].clone();
+    assert_eq!(
+        update.nodes.len(),
+        2,
+        "only <article> and <div> should be updated"
+    );
+    let transform = Affine::translate((0.0, -500.0));
+    let article_data = find_node_matching(&update, |id, _node| id == &article_id);
+    assert_eq!(article_data.transform(), Some(&transform));
+    let div_data = find_node_matching(&update, |id, _node| id == &div_id);
+    assert_eq!(div_data.transform(), Some(&transform));
+
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let article = find_first_matching_node(root, |node| node.role() == Role::Article)
+        .expect("Document should contain an article");
+    let article_id = article.locate().0;
+    assert_rect_eq(
+        article.bounding_box().expect("article should have bounds"),
+        Rect::new(0.0, -500.0, 1000.0, -450.0),
+    );
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "aside.style.removeProperty('display');",
+    );
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates[0].clone();
+    assert_eq!(update.nodes.len(), 1, "only <aside> should be updated");
+    let aside_data = find_node_matching(&update, |id, _node| id == &aside_id);
+    assert_eq!(aside_data.transform(), Some(&transform));
+
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let aside = find_first_matching_node(root, |node| node.role() == Role::Complementary)
+        .expect("Aside should contain an aside");
+    let aside_id = aside.locate().0;
+    assert_eq!(aside.is_hidden(), false);
+    assert_rect_eq(
+        aside.bounding_box().expect("aside should have bounds"),
+        Rect::new(0.0, 1550.0, 1000.0, 1600.0),
+    );
+}
+
 // ************************************************************************************************
 // If you're adding a new test here, consider adding a matching test in
 // tests/wpt/mozilla/tests/accessibility-tree/
@@ -994,13 +1358,22 @@ const TEST_VIEWPORT_SIZE: f64 = 500.0;
 /// update is unspecified, so tests must not depend on it.
 #[track_caller]
 fn find_node_with_role(update: &TreeUpdate, role: Role) -> &accesskit::Node {
-    let mut matches = update.nodes.iter().filter(|(_, node)| node.role() == role);
+    find_node_matching(update, |_, node| node.role() == role)
+}
+
+/// Find the single node matching the given predicate in a [`TreeUpdate`].
+#[track_caller]
+fn find_node_matching(
+    update: &TreeUpdate,
+    mut predicate: impl FnMut(&NodeId, &accesskit::Node) -> bool,
+) -> &accesskit::Node {
+    let mut matches = update.nodes.iter().filter(|(id, node)| predicate(id, node));
     let node = matches
         .next()
-        .unwrap_or_else(|| panic!("Update should contain a node with role {role:?}"));
+        .expect("Exactly one node should match predicate");
     assert!(
         matches.next().is_none(),
-        "Update should contain exactly one node with role {role:?}"
+        "Exactly one node should match predicate"
     );
     &node.1
 }
@@ -1135,11 +1508,11 @@ fn assert_tree_structure_and_get_root_web_area<'tree>(
 
 fn find_first_matching_node(
     root_node: accesskit_consumer::Node<'_>,
-    mut pred: impl FnMut(&accesskit_consumer::Node) -> bool,
+    mut predicate: impl FnMut(&accesskit_consumer::Node) -> bool,
 ) -> Option<accesskit_consumer::Node<'_>> {
     let mut children = root_node.children().collect::<VecDeque<_>>();
     while let Some(candidate) = children.pop_front() {
-        if pred(&candidate) {
+        if predicate(&candidate) {
             return Some(candidate);
         }
         for child in candidate.children() {
@@ -1151,12 +1524,12 @@ fn find_first_matching_node(
 
 fn find_all_matching_nodes(
     root_node: accesskit_consumer::Node<'_>,
-    mut pred: impl FnMut(&accesskit_consumer::Node) -> bool,
+    mut predicate: impl FnMut(&accesskit_consumer::Node) -> bool,
 ) -> Vec<accesskit_consumer::Node<'_>> {
     let mut children = root_node.children().collect::<VecDeque<_>>();
     let mut result = vec![];
     while let Some(candidate) = children.pop_front() {
-        if pred(&candidate) {
+        if predicate(&candidate) {
             result.push(candidate);
         }
         for child in candidate.children() {

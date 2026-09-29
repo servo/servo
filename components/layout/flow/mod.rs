@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-#![allow(rustdoc::private_intra_doc_links)]
+#![expect(rustdoc::private_intra_doc_links)]
 
 //! Flow layout, also known as block-and-inline layout.
 
@@ -936,7 +936,7 @@ fn layout_block_level_child(
 }
 
 impl BlockLevelBox {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn layout(
         &self,
         layout_context: &LayoutContext,

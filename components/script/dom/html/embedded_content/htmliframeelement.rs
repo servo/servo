@@ -285,7 +285,6 @@ impl HTMLIFrameElement {
                     load_data: load_data.clone(),
                     old_pipeline_id,
                     viewport_details,
-                    embedder_theme: window.embedder_theme(),
                 };
                 window
                     .as_global_scope()
@@ -294,15 +293,14 @@ impl HTMLIFrameElement {
                     .unwrap();
 
                 let new_pipeline_info = NewPipelineInfo {
+                    webview_state: (*window.webview_state()).clone(),
                     parent_info: Some(window.pipeline_id()),
                     new_pipeline_id,
                     browsing_context_id,
-                    webview_id,
                     opener: None,
                     load_data,
                     viewport_details,
                     user_content_manager_id: None,
-                    embedder_theme: window.embedder_theme(),
                     target_snapshot_params,
                     frame_name: self.frozen_name.borrow().clone(),
                 };
@@ -318,7 +316,6 @@ impl HTMLIFrameElement {
                     load_data,
                     old_pipeline_id,
                     viewport_details,
-                    embedder_theme: window.embedder_theme(),
                 };
                 window
                     .as_global_scope()
@@ -1225,7 +1222,7 @@ impl VirtualMethods for HTMLIFrameElement {
             super_type.bind_to_tree(cx, context);
         }
 
-        self.owner_document().iframes_mut().add(self);
+        self.owner_document().iframes().add(cx.no_gc(), self);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-iframe-element:html-element-removing-steps>
@@ -1238,7 +1235,7 @@ impl VirtualMethods for HTMLIFrameElement {
         // navigable given removedNode
         self.destroy_child_navigable(cx);
 
-        self.owner_document().iframes_mut().remove(self);
+        self.owner_document().iframes().remove(cx.no_gc(), self);
     }
 }
 

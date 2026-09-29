@@ -3,7 +3,24 @@
 <script nonce="abc" src="/resources/testharness.js"></script>
 <script nonce="abc" src="/resources/testharnessreport.js"></script>
 
+<script nonce="abc">
+  var violation_dispatched = false;
+  var document_watcher;
+  promise_test(async t => {
+    document_watcher = new EventWatcher(t, document, ["securitypolicyviolation"])
+                           .wait_for("securitypolicyviolation").then(t.step_func(e => {
+                             violation_dispatched = true;
+                             assert_equals(e.blockedURI, "inline");
+                             assert_equals(e.lineNumber, 0);
+                             assert_in_array(e.columnNumber, [0, 1]);
+                             assert_equals(e.target, document.getElementById('target'));
+                           }));
+    return document_watcher;
+  });
+</script>
+
 <a id="target" onclick="void(0)">Click me</a>
+
 <script nonce="abc">
   promise_test(async t => {
     var a = document.getElementById('target');
@@ -13,24 +30,18 @@
     const get_failed_watchers = (results) => results.flatMap(
         (r, i) => r.status !== "fulfilled" ? [ `#${i}: ${r.reason}` ] : []);
 
-    await Promise.allSettled([
-      Promise.race([new EventWatcher(t, document, ["securitypolicyviolation"])
-                        .wait_for("securitypolicyviolation").then(t.step_func(e => {
-                          assert_equals(e.blockedURI, "inline");
-                          assert_equals(e.lineNumber, 0);
-                          assert_in_array(e.columnNumber, [0, 1]);
-                          assert_equals(e.target, a);
-                        })),
-                    timeout_promise()]),
-      Promise.race([new EventWatcher(t, a, ["securitypolicyviolation"])
-                        .wait_for("securitypolicyviolation").then(t.step_func(e => {
-                          assert_equals(e.blockedURI, "inline");
-                          assert_equals(e.lineNumber, 0);
-                          assert_in_array(e.columnNumber, [0, 1]);
-                          assert_equals(e.target, a);
-                        })),
-                    timeout_promise()]),
-    ]).then(results => {
+    var watchers = [ Promise.race([document_watcher, timeout_promise()]) ];
+    if (!violation_dispatched) {
+      watchers.push(Promise.race([new EventWatcher(t, a, ["securitypolicyviolation"])
+                                      .wait_for("securitypolicyviolation").then(t.step_func(e => {
+                                        assert_equals(e.blockedURI, "inline");
+                                        assert_equals(e.lineNumber, 0);
+                                        assert_in_array(e.columnNumber, [0, 1]);
+                                        assert_equals(e.target, a);
+                                      })),
+                                  timeout_promise()]));
+    }
+    await Promise.allSettled(watchers).then(results => {
       assert_array_equals(get_failed_watchers(results), []);
     });
   });

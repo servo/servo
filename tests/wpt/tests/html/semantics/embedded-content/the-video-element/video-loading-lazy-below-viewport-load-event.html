@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Below-viewport loading=lazy videos do not delay the window load event</title>
+<link rel="help" href="https://html.spec.whatwg.org/#concept-media-load-algorithm">
+<link rel="help" href="https://github.com/whatwg/html/issues/12854">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div style="height: 1000vh"></div>
+<!-- The attribute order matters: the parser appends attributes one at a time,
+     and appending src starts the resource selection algorithm. -->
+<video id="loading-before-src" loading="lazy" src="/media/A4.webm?loading-before-src"></video>
+<video id="src-before-loading" src="/media/A4.webm?src-before-loading" loading="lazy"></video>
+<script>
+const scripted = document.createElement("video");
+scripted.id = "src-before-loading-scripted";
+scripted.src = "/media/A4.webm?src-before-loading-scripted";
+scripted.loading = "lazy";
+document.body.append(scripted);
+
+const readyStatesAtLoad = new Promise(resolve => {
+  window.addEventListener("load", () => {
+    resolve(new Map([...document.querySelectorAll("video")]
+                      .map(video => [video.id, video.readyState])));
+  });
+});
+
+for (const id of ["loading-before-src", "src-before-loading", "src-before-loading-scripted"]) {
+  promise_test(async () => {
+    const readyStates = await readyStatesAtLoad;
+    assert_equals(readyStates.get(id), HTMLMediaElement.HAVE_NOTHING);
+  }, `${id} has not fetched anything when the load event fires`);
+}
+</script>

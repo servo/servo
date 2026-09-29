@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use aes::cipher::common::{Generate, Key};
 use aes::{Aes128, Aes192, Aes256};
 use js::context::JSContext;
@@ -16,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, CryptoAlgorithm, ExportedKey,
@@ -41,9 +39,9 @@ pub(crate) enum AesAlgorithm {
 /// The step order in the specification of AES-OCB is slightly different, but it is equivalent to
 /// this implementation.
 pub(crate) fn generate_key(
-    aes_algorithm: AesAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    aes_algorithm: AesAlgorithm,
     normalized_algorithm: &AesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
@@ -55,31 +53,17 @@ pub(crate) fn generate_key(
         AesAlgorithm::AesOcb => {
             // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt",
             // "wrapKey" or "unwrapKey", then throw a SyntaxError.
-            if usages.iter().any(|usage| {
-                !matches!(
-                    usage,
-                    KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
-                )
-            }) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \
-                    \"wrapKey\" or \"unwrapKey\""
-                        .to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[
+                KeyUsage::Encrypt,
+                KeyUsage::Decrypt,
+                KeyUsage::WrapKey,
+                KeyUsage::UnwrapKey,
+            ])?;
         },
         AesAlgorithm::AesKw => {
             // Step 1. If usages contains any entry which is not one of "wrapKey" or "unwrapKey",
             // then throw a SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::WrapKey | KeyUsage::UnwrapKey))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not one of \"wrapKey\" or \"unwrapKey\""
-                        .to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::WrapKey, KeyUsage::UnwrapKey])?;
         },
     }
 
@@ -171,9 +155,9 @@ pub(crate) fn generate_key(
 /// As it is simply used to name the variable, it is safe to omit it in the implementation below to
 /// align with the specification of other AES algorithms.
 pub(crate) fn import_key(
-    aes_algorithm: AesAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    aes_algorithm: AesAlgorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -186,31 +170,17 @@ pub(crate) fn import_key(
         AesAlgorithm::AesOcb => {
             // Step 1. If usages contains an entry which is not one of "encrypt", "decrypt",
             // "wrapKey" or "unwrapKey", then throw a SyntaxError.
-            if usages.iter().any(|usage| {
-                !matches!(
-                    usage,
-                    KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
-                )
-            }) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \
-                    \"wrapKey\"  or \"unwrapKey\""
-                        .to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[
+                KeyUsage::Encrypt,
+                KeyUsage::Decrypt,
+                KeyUsage::WrapKey,
+                KeyUsage::UnwrapKey,
+            ])?;
         },
         AesAlgorithm::AesKw => {
             // Step 1. If usages contains an entry which is not one of "wrapKey" or "unwrapKey",
             // then throw a SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::WrapKey | KeyUsage::UnwrapKey))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not one of \"wrapKey\"  or \"unwrapKey\""
-                        .to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::WrapKey, KeyUsage::UnwrapKey])?;
         },
     }
 

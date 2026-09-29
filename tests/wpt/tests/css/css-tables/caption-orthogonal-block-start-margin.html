@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Tables: a caption is offset from the table's block-start edge by its margin on that edge</title>
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-flows">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#table-wrapper-box">
+<meta name="assert" content="The caption sits inside its own margin box at the table's block-start edge, whether or not the caption's writing mode matches the table's.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+table { writing-mode: vertical-rl; border-spacing: 0; font: 10px/1 Ahem; }
+caption { margin: 7px 40px 3px 0; }
+td { width: 50px; height: 30px; padding: 0; }
+.same-writing-mode caption { writing-mode: vertical-rl; }
+.orthogonal caption { writing-mode: horizontal-tb; }
+</style>
+<table class="same-writing-mode" id="same"><caption>c</caption><tr><td></td></tr></table>
+<table class="orthogonal" id="orthogonal"><caption>c</caption><tr><td></td></tr></table>
+<script>
+// The table is vertical-rl, so its block-start edge is its right edge and the caption's margin
+// there is its 40px right margin, in either writing mode.
+function gapFromTableBlockStartEdge(id) {
+  const table = document.getElementById(id);
+  const caption = table.querySelector("caption");
+  return table.getBoundingClientRect().right - caption.getBoundingClientRect().right;
+}
+
+test(() => {
+  assert_equals(gapFromTableBlockStartEdge("same"), 40);
+}, "A caption in the table's writing mode is offset by its block-start margin");
+
+test(() => {
+  assert_equals(gapFromTableBlockStartEdge("orthogonal"), 40);
+}, "A caption in an orthogonal writing mode is offset by its block-start margin");
+</script>

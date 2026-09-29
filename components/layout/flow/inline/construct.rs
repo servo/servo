@@ -100,9 +100,11 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// completely collapsible whitespace. When that happens it can be ignored completely.
     pub is_empty: bool,
 
-    /// Whether or not the `::first-letter` pseudo-element of this inline formatting context
-    /// has been processed yet.
-    has_processed_first_letter: bool,
+    /// Whether this inline formatting context should process the `::first-letter` pseudo-element.
+    /// This typically starts as true, and then is set to false after processing `::first-letter`
+    /// or encountering an atomic. But it can also be false from the very beginning if this inline
+    /// formatting context doesn't contain the first formatted line.
+    should_process_first_letter: bool,
 
     /// Whether or not the inline formatting context under construction has any kind of
     /// right-to-left content such as a character with an RTL character class or a `dir`
@@ -131,7 +133,11 @@ impl InlineFormattingContextBuilder {
         character.is_ascii_whitespace()
     }
 
-    pub(crate) fn new(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
+    pub(crate) fn new(
+        info: &NodeAndStyleInfo,
+        context: &LayoutContext,
+        should_process_first_letter: bool,
+    ) -> Self {
         let has_right_to_left_content = info.style.get_inherited_box().direction == Direction::Rtl;
         Self {
             // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
@@ -141,6 +147,7 @@ impl InlineFormattingContextBuilder {
                 info, context,
             )],
             has_right_to_left_content,
+            should_process_first_letter,
             ..Default::default()
         }
     }
@@ -198,7 +205,7 @@ impl InlineFormattingContextBuilder {
         self.on_word_boundary = true;
 
         // Atomics such as images should prevent any following text as being interpreted as the first letter.
-        self.has_processed_first_letter = true;
+        self.should_process_first_letter = false;
 
         inline_level_box
     }
@@ -324,7 +331,7 @@ impl InlineFormattingContextBuilder {
         layout_context: &LayoutContext,
     ) -> bool {
         let selection = info.node.text_node_selection();
-        if self.has_processed_first_letter || !container_info.pseudo_element_chain().is_empty() {
+        if !self.should_process_first_letter || !container_info.pseudo_element_chain().is_empty() {
             self.push_text(text, info, selection);
             return false;
         }
@@ -382,7 +389,7 @@ impl InlineFormattingContextBuilder {
             first_letter_selection_range,
         );
         self.end_inline_box();
-        self.has_processed_first_letter = true;
+        self.should_process_first_letter = false;
 
         // Now push the non-first-letter text.
         let remaining_selection_range = selection.and_then(|range| {

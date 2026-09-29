@@ -299,7 +299,7 @@ impl HttpCache {
         }
     }
 
-    #[allow(unused, clippy::len_without_is_empty)]
+    #[expect(clippy::len_without_is_empty)]
     /// The number of entries in the memory cache. This does not say anything about the disk cache.
     pub fn len(&self) -> usize {
         self.entries.len()

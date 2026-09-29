@@ -44,6 +44,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import androidx.window.core.layout.WindowSizeClass
 import kotlinx.coroutines.launch
@@ -86,6 +87,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                 initialUri =
                     if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
                 navigator = navigator,
+                scope = lifecycleScope,
             )
 
         historyManager = HistoryManager(this)
@@ -101,7 +103,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (isWindowWidthAtLeastMedium) {
                             IconButton(
-                                onClick = ::onHistoryBackMenuItemClicked,
+                                onClick = { onHistoryBackMenuItemClicked(navigator) },
                                 enabled = navigator.canGoBackState.value,
                             ) {
                                 Icon(
@@ -110,7 +112,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                                 )
                             }
                             IconButton(
-                                onClick = ::onHistoryForwardMenuItemClicked,
+                                onClick = { onHistoryForwardMenuItemClicked(navigator) },
                                 enabled = navigator.canGoForwardState.value,
                             ) {
                                 Icon(
@@ -121,7 +123,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             IconButton(
                                 onClick = {
                                     if (isRefreshingState.value) onCancelMenuItemClicked()
-                                    else onRefreshMenuItemClicked()
+                                    else onRefreshMenuItemClicked(navigator)
                                 }
                             ) {
                                 if (isRefreshingState.value) {
@@ -172,14 +174,14 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             NavigationBarItem(
                                 selected = false,
                                 enabled = navigator.canGoBackState.value,
-                                onClick = ::onHistoryBackMenuItemClicked,
+                                onClick = { onHistoryBackMenuItemClicked(navigator) },
                                 icon = { Icon(painterResource(R.drawable.arrow_back), null) },
                                 label = { Text(stringResource(R.string.history_back)) },
                             )
                             NavigationBarItem(
                                 selected = false,
                                 enabled = navigator.canGoForwardState.value,
-                                onClick = { onHistoryForwardMenuItemClicked() },
+                                onClick = { onHistoryForwardMenuItemClicked(navigator) },
                                 icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
                                 label = { Text(stringResource(R.string.history_forward)) },
                             )
@@ -193,7 +195,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             } else {
                                 NavigationBarItem(
                                     selected = false,
-                                    onClick = ::onRefreshMenuItemClicked,
+                                    onClick = { onRefreshMenuItemClicked(navigator) },
                                     icon = { Icon(painterResource(R.drawable.refresh), null) },
                                     label = { Text(stringResource(R.string.refresh)) },
                                 )
@@ -218,7 +220,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     servoView = servoView,
                     modifier = Modifier.padding(innerPadding),
                 )
-                BackHandler(enabled = navigator.canGoBackState.value) { servoView.goBack() }
+                BackHandler(enabled = navigator.canGoBackState.value) { navigator.back() }
                 alertMessageState.value?.let { alertMessage ->
                     AlertDialog(
                         onDismissRequest = { alertMessageState.value = null },
@@ -249,27 +251,16 @@ class MainActivity : ComponentActivity(), Servo.Client {
         mediaSession?.hideMediaSessionControls()
     }
 
-    /**
-     * We’re unsetting all the loading UI just in case loading got stuck, and we’re navigating to a
-     * cached page, which doesn’t trigger [onLoadEnded]. The "stop loading" button is implemented by
-     * [onCancelMenuItemClicked], but the underlying Servo view can’t actually [ServoView.stop] yet.
-     */
-    private fun onHistoryItemClicked() {
-        onLoadEnded()
+    private fun onHistoryBackMenuItemClicked(navigator: ServoNavigator) {
+        navigator.back()
     }
 
-    private fun onHistoryBackMenuItemClicked() {
-        onHistoryItemClicked()
-        servoView.goBack()
+    private fun onHistoryForwardMenuItemClicked(navigator: ServoNavigator) {
+        navigator.forward()
     }
 
-    private fun onHistoryForwardMenuItemClicked() {
-        onHistoryItemClicked()
-        servoView.goForward()
-    }
-
-    private fun onRefreshMenuItemClicked() {
-        servoView.reload()
+    private fun onRefreshMenuItemClicked(navigator: ServoNavigator) {
+        navigator.reload()
     }
 
     private fun onCancelMenuItemClicked() {

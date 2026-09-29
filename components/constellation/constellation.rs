@@ -1015,12 +1015,12 @@ where
         }
 
         debug!("Creating new pipeline ({new_pipeline_id:?}) in {browsing_context_id}");
-        let (webview_hidden, theme) = {
+        let (webview_hidden, webview_state) = {
             let Some(webview) = self.webviews.get(&webview_id) else {
-                warn!("Tried to create Pipeline for uknown WebViewId: {webview_id:?}");
+                warn!("Tried to create Pipeline for unknown WebViewId: {webview_id:?}");
                 return;
             };
-            (webview.hidden(), webview.theme())
+            (webview.hidden(), webview.state())
         };
 
         let event_loop = match self.get_or_create_event_loop_for_new_pipeline(
@@ -1040,15 +1040,14 @@ where
             .and_then(|webview| webview.user_content_manager_id);
 
         let new_pipeline_info = NewPipelineInfo {
+            webview_state,
             parent_info: parent_pipeline_id,
             new_pipeline_id,
             browsing_context_id,
-            webview_id,
             opener,
             load_data,
             viewport_details: initial_viewport_details,
             user_content_manager_id,
-            embedder_theme: theme,
             target_snapshot_params,
             frame_name: name,
         };
@@ -1345,12 +1344,11 @@ where
             EmbedderToConstellationMessage::CloseWebView(webview_id) => {
                 self.handle_close_top_level_browsing_context(webview_id);
             },
-            EmbedderToConstellationMessage::FocusWebView(webview_id) => {
-                self.handle_focus_web_view(webview_id);
-            },
-            EmbedderToConstellationMessage::BlurWebView => {
-                self.constellation_to_embedder_proxy
-                    .send(ConstellationToEmbedderMsg::WebViewBlurred);
+            EmbedderToConstellationMessage::SetWebViewHasSystemFocus(
+                webview_id,
+                has_system_focus,
+            ) => {
+                self.handle_set_has_system_focus(webview_id, has_system_focus);
             },
             // Handle a forward or back request
             EmbedderToConstellationMessage::TraverseHistory(request) => {
@@ -1880,6 +1878,21 @@ where
                     );
                 }
             },
+            ScriptToConstellationMessage::GetChildBrowsingContextCount(
+                browsing_context_id,
+                response_sender,
+            ) => {
+                let count = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .and_then(|browsing_context| self.pipelines.get(&browsing_context.pipeline_id))
+                    .map(|pipeline| pipeline.children.len())
+                    .unwrap_or_default();
+                if let Err(error) = response_sender.send(count) {
+                    warn!("Sending reply to get child browsing context count failed ({error:?}).",);
+                }
+            },
+
             ScriptToConstellationMessage::GetChildBrowsingContextId(
                 browsing_context_id,
                 index,
@@ -1891,11 +1904,8 @@ where
                     .and_then(|bc| self.pipelines.get(&bc.pipeline_id))
                     .and_then(|pipeline| pipeline.children.get(index))
                     .copied();
-                if let Err(e) = response_sender.send(result) {
-                    warn!(
-                        "Sending reply to get child browsing context ID failed ({:?}).",
-                        e
-                    );
+                if let Err(error) = response_sender.send(result) {
+                    warn!("Sending reply to get child browsing context ID failed ({error:?}).",);
                 }
             },
             ScriptToConstellationMessage::IsCurrentlyFullyActive(pipeline_id, response_sender) => {
@@ -3123,9 +3133,25 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_focus_web_view(&mut self, webview_id: WebViewId) {
-        self.constellation_to_embedder_proxy
-            .send(ConstellationToEmbedderMsg::WebViewFocused(webview_id, true));
+    fn handle_set_has_system_focus(&mut self, webview_id: WebViewId, has_system_focus: bool) {
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            return warn!("Tried to focus a nonexistent WebView: {webview_id:?}");
+        };
+        if !webview.set_has_system_focus(has_system_focus) {
+            return;
+        }
+
+        let state = webview.state();
+        for event_loop in self.event_loops() {
+            if let Err(error) =
+                event_loop.send(ScriptThreadMessage::UpdateWebViewState(state.clone()))
+            {
+                warn!(
+                    "Sending to closed event loop ({:?}): {error}",
+                    event_loop.id()
+                );
+            }
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -3729,6 +3755,15 @@ where
             new_browsing_context_id,
             user_content_manager_id,
         );
+
+        // Inherit the opener's theme, which is also what script does. This
+        // ensures that the two states are in sync.
+        let opener_theme = self
+            .webviews
+            .get(&opener_webview_id)
+            .map_or(Theme::Light, |webview| webview.theme());
+        new_webview.set_theme(opener_theme);
+
         new_webview.add_pending_change(SessionHistoryChange {
             webview_id: new_webview_id,
             browsing_context_id: new_browsing_context_id,
@@ -4959,10 +4994,10 @@ where
         focused_child_browsing_context_id: Option<BrowsingContextId>,
         sequence: FocusSequenceNumber,
     ) {
-        let (browsing_context_id, webview_id) = match self.pipelines.get_mut(&pipeline_id) {
+        let browsing_context_id = match self.pipelines.get_mut(&pipeline_id) {
             Some(pipeline) => {
                 pipeline.focus_sequence = sequence;
-                (pipeline.browsing_context_id, pipeline.webview_id)
+                pipeline.browsing_context_id
             },
             None => return warn!("{}: Focus parent after closure", pipeline_id),
         };
@@ -4976,10 +5011,6 @@ where
             );
             return;
         }
-
-        // Focus the top-level browsing context.
-        self.constellation_to_embedder_proxy
-            .send(ConstellationToEmbedderMsg::WebViewFocused(webview_id, true));
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused
@@ -5255,7 +5286,7 @@ where
             },
             WebDriverCommandMsg::CloseWebView(..) |
             WebDriverCommandMsg::NewWindow(..) |
-            WebDriverCommandMsg::FocusWebView(..) |
+            WebDriverCommandMsg::SelectWebViewForInteraction(..) |
             WebDriverCommandMsg::IsWebViewOpen(..) |
             WebDriverCommandMsg::GetWindowRect(..) |
             WebDriverCommandMsg::GetViewportSize(..) |
@@ -5857,24 +5888,20 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_theme_change(&mut self, webview_id: WebViewId, theme: Theme) {
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
-            warn!("Received theme change request for uknown WebViewId: {webview_id:?}");
+            warn!("Received theme change request for unknown WebViewId: {webview_id:?}");
             return;
         };
         if !webview.set_theme(theme) {
             return;
         }
-
-        for pipeline in self.pipelines.values() {
-            if pipeline.webview_id != webview_id {
-                continue;
-            }
-            if let Err(error) = pipeline
-                .event_loop
-                .send(ScriptThreadMessage::ThemeChange(pipeline.id, theme))
+        let state = webview.state();
+        for event_loop in self.event_loops() {
+            if let Err(error) =
+                event_loop.send(ScriptThreadMessage::UpdateWebViewState(state.clone()))
             {
                 warn!(
-                    "{}: Failed to send theme change event to pipeline ({error:?}).",
-                    pipeline.id,
+                    "Sending to closed event loop ({:?}): {error}",
+                    event_loop.id()
                 );
             }
         }

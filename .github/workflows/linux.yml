@@ -145,7 +145,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
       number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
-      binary-path: servo/servoshell
+      binary-path: aether/aether
     secrets: inherit
 
   bencher:
@@ -162,11 +162,11 @@ jobs:
       target: "linux"
       profile: ${{ inputs.profile }}
       compressed-file-path: ${{ inputs.profile }}-binary-linux/servo-tech-demo.tar.gz
-      binary-path: servo/servoshell
+      binary-path: aether/aether
       file-size: true
       # We only evaluate speedometer and dromaeo score in release
-      speedometer: ${{ inputs.profile == 'release' }}
-      dromaeo: ${{ inputs.profile == 'release' }}
+      speedometer: ${{ inputs.profile == 'checked-release' }}
+      dromaeo: ${{ inputs.profile == 'checked-release' }}
     secrets: inherit
 
   # Runs the underlying job (“workload”) on a self-hosted runner if available.

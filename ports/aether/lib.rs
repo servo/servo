@@ -113,7 +113,23 @@ pub fn init_tracing(filter_directives: Option<&str>) {
     }
 }
 
-pub const VERSION: &str = concat!("Servo ", env!("CARGO_PKG_VERSION"), "-", env!("GIT_SHA"));
+/// Product version reported by `--version`.
+///
+/// Aether's number is this package's `version` in `Cargo.toml`. The Servo number
+/// is [`servo::SERVO_VERSION`], which follows `[workspace.package] version`
+pub fn version() -> &'static str {
+    static VERSION: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    VERSION
+        .get_or_init(|| {
+            format!(
+                "Aether {}-{} (Based on Servo {})",
+                env!("CARGO_PKG_VERSION"),
+                env!("GIT_SHA"),
+                servo::SERVO_VERSION
+            )
+        })
+        .as_str()
+}
 
 /// Plumbs tracing spans into HiTrace, with the following caveats:
 ///

@@ -421,7 +421,7 @@ impl VirtualMethods for HTMLDetailsElement {
                         .details_name_groups(cx.no_gc())
                         .unregister_details_element(old_name, self);
                 }
-                if matches!(mutation, AttributeMutation::Set(..)) {
+                if matches!(mutation, AttributeMutation::Set(_)) {
                     shadow_root
                         .details_name_groups(cx.no_gc())
                         .register_details_element(self);
@@ -433,7 +433,7 @@ impl VirtualMethods for HTMLDetailsElement {
                         .details_name_groups(cx.no_gc())
                         .unregister_details_element(old_name, self);
                 }
-                if matches!(mutation, AttributeMutation::Set(..)) {
+                if matches!(mutation, AttributeMutation::Set(_)) {
                     document
                         .details_name_groups(cx.no_gc())
                         .register_details_element(self);
@@ -480,7 +480,7 @@ impl VirtualMethods for HTMLDetailsElement {
             // Step 3.2. If oldValue is null and value is not null, then ensure details exclusivity
             // by closing other elements if needed given element.
             let was_previously_closed = match mutation {
-                AttributeMutation::Set(old, _) => old.is_none(),
+                AttributeMutation::Set(old) => old.is_none(),
                 AttributeMutation::Removed => false,
             };
             if was_previously_closed && self.Open() {

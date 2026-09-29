@@ -13,8 +13,6 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use euclid::{RigidTransform3D, Transform3D, Vector3D};
-use ipc_channel::ipc::IpcReceiver;
-use ipc_channel::router::ROUTER;
 use js::jsapi::JSObject;
 use js::rust::MutableHandleValue;
 use js::typedarray::HeapFloat32Array;
@@ -156,7 +154,6 @@ impl XRSession {
         window: &Window,
         session: Session,
         mode: XRSessionMode,
-        frame_receiver: IpcReceiver<Frame>,
     ) -> DomRoot<XRSession> {
         let ivfov = if mode == XRSessionMode::Inline {
             Some(FRAC_PI_2)
@@ -176,7 +173,7 @@ impl XRSession {
             window,
         );
         ret.attach_event_handler();
-        ret.setup_raf_loop(frame_receiver);
+        ret.setup_raf_loop();
         ret
     }
 
@@ -200,24 +197,23 @@ impl XRSession {
         false
     }
 
-    fn setup_raf_loop(&self, frame_receiver: IpcReceiver<Frame>) {
+    fn setup_raf_loop(&self) {
         let this = Trusted::new(self);
         let global = self.global();
         let task_source = global
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
-        ROUTER.add_typed_route(
-            frame_receiver,
-            Box::new(move |message| {
-                let frame: Frame = message.unwrap();
-                let time = CrossProcessInstant::now();
-                let this = this.clone();
-                task_source.queue(task!(xr_raf_callback: move |cx| {
-                    this.root().raf_callback(cx, frame, time);
-                }));
-            }),
-        );
+        let callback = ProfileGenericCallback::new(move |message| {
+            let frame: Frame = message.unwrap();
+            let time = CrossProcessInstant::now();
+            let this = this.clone();
+            task_source.queue(task!(xr_raf_callback: move |cx| {
+                this.root().raf_callback(cx, frame, time);
+            }));
+        })
+        .expect("Could not create callback");
+        self.session.borrow_mut().set_frame_dest(callback);
 
         self.session.borrow_mut().start_render_loop();
     }
@@ -836,7 +832,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         cx: &mut CurrentRealm,
         ty: XRReferenceSpaceType,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
 
@@ -896,7 +892,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 
     /// <https://immersive-web.github.io/webxr/#dom-xrsession-end>
     fn End(&self, cx: &mut CurrentRealm) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
         if self.ended.get() && self.end_promises.borrow().is_empty() {
             // If the session has completely ended and all end promises have been resolved,
             // don't queue up more end promises
@@ -935,7 +931,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         cx: &mut CurrentRealm,
         options: &XRHitTestOptionsInit,
     ) -> RootedPromise {
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
 
         if !self
             .session
@@ -1041,7 +1037,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-updatetargetframerate>
     fn UpdateTargetFrameRate(&self, cx: &mut CurrentRealm, rate: Finite<f32>) -> RootedPromise {
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         {
             let session = self.session.borrow();
             let supported_frame_rates = session.supported_frame_rates();

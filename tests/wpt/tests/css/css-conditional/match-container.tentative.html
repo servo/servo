@@ -13,6 +13,7 @@
   }
 </style>
 <div id="root"></div>
+<iframe id="frame" srcdoc="<body></body>"></iframe>
 <script>
 function createTestElement(html) {
   document.getElementById("root").innerHTML = html;
@@ -259,4 +260,35 @@ test(() => {
   assert_equals(target.matchContainer(",(width > 100px)").query, "",
     "query is empty for a leading comma in the list.");
 }, "Element.matchContainer .query is empty for invalid queries.");
+
+promise_test(async () => {
+  let frame = document.getElementById("frame");
+  if (!frame.contentDocument || !frame.contentDocument.body) {
+    await new Promise(resolve => frame.onload = resolve);
+  }
+  let docB = frame.contentDocument;
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let q = target.matchContainer("(width > 100px)");
+  assert_true(q.matches, "Matches the 200px container in the original document.");
+
+  docB.body.appendChild(target);
+  assert_false(q.matches, "No container in the new document after adoption.");
+
+  let containerB = docB.createElement("div");
+  containerB.style.containerType = "inline-size";
+  containerB.style.width = "400px";
+  docB.body.appendChild(containerB);
+  containerB.appendChild(target);
+  assert_true(q.matches,
+    "Resolves to the 400px container after a second move inside the new document.");
+
+  containerB.style.width = "50px";
+  assert_false(q.matches,
+    "Reflects a size change of the container in the new document.");
+}, "Element.matchContainer .matches stays correct after the target is adopted into another document and moved again there.");
 </script>

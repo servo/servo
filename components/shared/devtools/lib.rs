@@ -467,7 +467,7 @@ pub enum DevtoolScriptControlMsg {
     /// Gets the list of all allowed CSS rules and possible values.
     GetCssDatabase(GenericSender<HashMap<String, CssDatabaseProperty>>),
     /// Simulates a light or dark color scheme for the given pipeline
-    SimulateColorScheme(PipelineId, Theme),
+    SimulateColorScheme(PipelineId, Option<Theme>),
     /// Highlight the given DOM node
     HighlightDomNode(PipelineId, Option<String>),
 

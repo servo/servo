@@ -34,14 +34,6 @@ promise_test(async t => {
 
 promise_test(async () => {
   const writer = await createWriter();
-  await Promise.all([
-    writer.writeStreaming(kTestPrompt),
-    writer.writeStreaming(kTestPrompt)
-  ]);
-}, 'Multiple Writer.writeStreaming() calls are resolved successfully');
-
-promise_test(async () => {
-  const writer = await createWriter();
   const streamingResponse = writer.writeStreaming(kTestPrompt);
   garbageCollect();
   assert_true(streamingResponse instanceof ReadableStream);

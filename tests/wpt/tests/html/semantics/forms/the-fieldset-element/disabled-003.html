@@ -2,10 +2,12 @@
 <meta charset="utf-8">
 <title>Disable nested fieldsets with focused element</title>
 <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-fieldset-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering">
 <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1427047">
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
 
 <div id=container1>
   <fieldset id=target1>
@@ -17,23 +19,29 @@
   </fieldset>
 </div>
 <script>
-test(() => {
+promise_test(async () => {
   input1.focus();
+  assert_equals(document.activeElement, input1, 'Input should initially be focused');
   target1.disabled = true;
+
+  // Focus fixup runs during a rendering update.
+  await waitForAtLeastOneFrame();
   assert_not_equals(document.activeElement, input1);
 }, 'Disable light-nested fieldsets should not crash');
 </script>
 
 <div id=container2></div>
 <script>
-test(() => {
+promise_test(async () => {
   let n = 100;
   let markup = '<fieldset><legend>foo</legend>'.repeat(n) +
                '<input id=input2>' + '</fieldset>'.repeat(n);
   container2.innerHTML = markup;
   input2.focus();
+  assert_equals(document.activeElement, input2, 'Input should initially be focused');
   container2.firstChild.disabled = true;
+
+  await waitForAtLeastOneFrame();
   assert_not_equals(document.activeElement, input2);
 }, 'Disable deep-nested fieldsets should not hang');
 </script>
-

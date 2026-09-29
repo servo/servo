@@ -89,11 +89,11 @@ impl<D: Equivalence> GPUCommandEncoder<D> {
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUCommandEncoder::new_inherited(
                 channel, device, encoder, label,
             )),
             global,
-            cx,
             GPUCommandEncoderWrap::<D>,
         )
     }

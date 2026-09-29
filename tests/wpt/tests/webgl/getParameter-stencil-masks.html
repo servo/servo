@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>getParameter returns the stencil masks as unsigned integers</title>
+<link rel="author" title="mxmgorin" href="mailto:102797145+mxmgorin@users.noreply.github.com">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/1.0/#5.14.3">
+<link rel="help" href="https://registry.khronos.org/OpenGL-Refpages/es2.0/xhtml/glStencilMask.xml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+for (const name of ["STENCIL_WRITEMASK", "STENCIL_BACK_WRITEMASK",
+                    "STENCIL_VALUE_MASK", "STENCIL_BACK_VALUE_MASK"]) {
+    test(function() {
+        const gl = document.createElement("canvas").getContext("webgl");
+        const mask = gl.getParameter(gl[name]);
+        // A GLuint, so never negative; engines keep either 8 or 32 of its initial ones.
+        assert_greater_than_equal(mask, 0);
+        assert_equals(mask & 0xff, 0xff);
+        assert_equals(gl.getError(), gl.NO_ERROR);
+    }, `${name} is an unsigned integer of all ones`);
+}
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl");
+    gl.stencilFunc(gl.ALWAYS, 0, 0x87654321);
+    assert_equals(gl.getParameter(gl.STENCIL_VALUE_MASK), 0x87654321, "front");
+    assert_equals(gl.getParameter(gl.STENCIL_BACK_VALUE_MASK), 0x87654321, "back");
+    gl.stencilFuncSeparate(gl.BACK, gl.ALWAYS, 0, 0xf0f0f0f0);
+    assert_equals(gl.getParameter(gl.STENCIL_VALUE_MASK), 0x87654321, "front after BACK");
+    assert_equals(gl.getParameter(gl.STENCIL_BACK_VALUE_MASK), 0xf0f0f0f0, "back after BACK");
+    assert_equals(gl.getError(), gl.NO_ERROR);
+}, "the stencil value masks read back exactly as set");
+</script>

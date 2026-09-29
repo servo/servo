@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: column rules end at a fixed-height multicol row boundary before the multicol container edge across fragments</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segment-endpoints">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#fragmentation">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#ch">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#column-gaps-and-rules">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-column-wrap">
+<link rel="match" href="multicol-column-rule-fixed-row-shorter-than-container-fragmentation-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .outer {
+    width: 440px;
+    height: 100px;
+    columns: 2;
+    column-fill: auto;
+    column-gap: 40px;
+    background: lightgray;
+  }
+
+  .spacer {
+    height: 40px;
+  }
+
+  .inner {
+    width: 200px;
+    height: 160px;
+    columns: 3 60px;
+    column-fill: auto;
+    column-height: 60px;
+    column-wrap: wrap;
+    gap: 10px;
+    column-rule: 4px solid blue;
+  }
+
+  .item {
+    height: 60px;
+    background: orange;
+  }
+</style>
+<div class="outer">
+  <div class="spacer"></div>
+  <div class="inner">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+</div>

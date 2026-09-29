@@ -230,7 +230,7 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
         let global = self.global();
 
         // Step 1: Let promise be a new promise.
-        let promise = Promise::new_rooted(cx, &global);
+        let promise = Promise::new(cx, &global);
 
         // Step 2: Run the following substeps in parallel:
         let callback = self.get_or_setup_callback();
@@ -270,7 +270,7 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
     fn Open(&self, cx: &mut JSContext, cache_name: DOMString) -> RootedPromise {
         // Step 1: Let promise be a new promise.
         let global = self.global();
-        let promise = Promise::new_rooted(cx, &global);
+        let promise = Promise::new(cx, &global);
 
         // Step 2: Run the following substeps in parallel:
         let callback = self.get_or_setup_callback();
@@ -318,7 +318,7 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
 
         // Step 2.2: Let cacheJobPromise be a new promise.
         let global = self.global();
-        let promise = Promise::new_rooted(cx, &global);
+        let promise = Promise::new(cx, &global);
 
         // Step 3: Run the following substeps in parallel:
         let callback = self.get_or_setup_callback();

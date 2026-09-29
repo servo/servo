@@ -5,17 +5,14 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
-use ipc_channel::router::ROUTER;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
-use profile_traits::ipc;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::PipelineId;
 use servo_config::pref;
-use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
+use webxr_api::{Error as XRError, Session, SessionInit, SessionMode};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{
@@ -27,7 +24,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::promise::{Promise, RootedPromise};
@@ -115,7 +111,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     /// <https://immersive-web.github.io/webxr/#dom-xr-issessionsupported>
     fn IsSessionSupported(&self, cx: &mut CurrentRealm, mode: XRSessionMode) -> RootedPromise {
         // XXXManishearth this should select an XR device first
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         let mut trusted = Some(TrustedPromise::from(&promise));
         let global = self.global();
         let task_source = global
@@ -157,11 +153,11 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         &self,
         realm: &mut CurrentRealm,
         mode: XRSessionMode,
-        init: RootedTraceableBox<XRSessionInit>,
+        init: &XRSessionInit,
     ) -> RootedPromise {
         let global = self.global();
         let window = global.as_window();
-        let promise = Promise::new_in_realm_rooted(realm);
+        let promise = Promise::new_in_realm(realm);
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {
@@ -235,29 +231,25 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
-        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-        let (frame_sender, frame_receiver) = ipc_crate::channel().unwrap();
-        let mut frame_receiver = Some(frame_receiver);
-        ROUTER.add_typed_route(
-            receiver.to_ipc_receiver(),
-            Box::new(move |message| {
-                // router doesn't know this is only called once
-                let trusted = trusted.take().unwrap();
-                let this = this.clone();
-                let frame_receiver = frame_receiver.take().unwrap();
-                let message: Result<Session, webxr_api::Error> = if let Ok(message) = message {
-                    message
-                } else {
-                    error!("requestSession callback given incorrect payload");
-                    return;
-                };
-                task_source.queue(task!(request_session: move |cx| {
-                    this.root().session_obtained(cx, message, &trusted.root(cx), mode, frame_receiver);
-                }));
-            }),
-        );
+        let callback = ProfileGenericCallback::new(move |message| {
+            let Some(trusted) = trusted.take() else {
+                error!("requestSession callback called more than once");
+                return;
+            };
+            let this = this.clone();
+            let message: Result<Session, webxr_api::Error> = if let Ok(message) = message {
+                message
+            } else {
+                error!("requestSession callback given incorrect payload");
+                return;
+            };
+            task_source.queue(task!(request_session: move |cx| {
+                this.root().session_obtained(cx, message, &trusted.root(cx), mode);
+            }));
+        })
+        .expect("Could not create callback");
         if let Some(mut r) = window.webxr_registry() {
-            r.request_session(mode.convert(), init, sender, frame_sender);
+            r.request_session(mode.convert(), init, callback);
         }
         promise
     }
@@ -275,7 +267,6 @@ impl XRSystem {
         response: Result<Session, XRError>,
         promise: &RootedPromise,
         mode: XRSessionMode,
-        frame_receiver: IpcReceiver<Frame>,
     ) {
         let session = match response {
             Ok(session) => session,
@@ -288,7 +279,7 @@ impl XRSystem {
                 return;
             },
         };
-        let session = XRSession::new(cx, self.global().as_window(), session, mode, frame_receiver);
+        let session = XRSession::new(cx, self.global().as_window(), session, mode);
         if mode == XRSessionMode::Inline {
             self.active_inline_sessions
                 .borrow_mut()

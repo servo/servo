@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2053281">
+<style>
+#spacer {
+  height: 2000px;
+}
+@keyframes anim {}
+#target {
+  animation: anim 1s linear;
+  animation-timeline: scroll(nearest);
+}
+</style>
+<div id="target"></div>
+<div id="spacer"></div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const anims = target.getAnimations();
+    const anim = anims[0];
+    try {
+      anim.effect.updateTiming({
+        delay: -999999999,
+        duration: 1000000000,
+      });
+    } catch (e) {}
+    document.documentElement.className = "";
+  });
+});
+</script>
+</html>

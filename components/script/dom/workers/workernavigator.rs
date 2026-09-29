@@ -21,7 +21,7 @@ use crate::dom::storagemanager::StorageManager;
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 
-// https://html.spec.whatwg.org/multipage/#workernavigator
+/// <https://html.spec.whatwg.org/multipage/#workernavigator>
 #[dom_struct]
 pub(crate) struct WorkerNavigator {
     reflector_: Reflector,
@@ -103,7 +103,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
         navigatorinfo::Language()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-languages>
     fn Languages(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         to_frozen_array(cx, &[self.Language()], retval)
     }

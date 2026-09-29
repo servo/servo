@@ -1268,7 +1268,7 @@ impl<'a> TableLayout<'a> {
     ) {
         let mut cells_to_distribute = Vec::new();
         let mut total_percentage = 0.;
-        #[allow(clippy::needless_range_loop)] // It makes sense to use it here
+        #[expect(clippy::needless_range_loop)] // It makes sense to use it here
         for row_index in 0..self.table.size.height {
             let row_measure = self
                 .table
@@ -1980,7 +1980,7 @@ impl<'a> TableLayout<'a> {
         col_group.base.style.get_inherited_box().visibility == Visibility::Collapse
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn do_final_cell_layout(
         &mut self,
         row_index: usize,
@@ -2316,7 +2316,7 @@ impl<'a> RowFragmentLayout<'a> {
         containing_block_for_children: &ContainingBlock,
         row_group_fragment_layout: &mut Option<RowGroupFragmentLayout>,
     ) -> Fragment {
-        if self.positioning_context.is_some() {
+        if self.row.base.style.clone_position() == Position::Relative {
             self.rect.start_corner +=
                 relative_adjustement(&self.row.base.style, containing_block_for_children);
         }
@@ -2408,7 +2408,7 @@ impl RowGroupFragmentLayout {
         containing_block_for_children: &ContainingBlock,
     ) -> Fragment {
         let row_group = self.row_group.borrow();
-        if self.positioning_context.is_some() {
+        if row_group.base.style.clone_position() == Position::Relative {
             self.rect.start_corner +=
                 relative_adjustement(&row_group.base.style, containing_block_for_children);
         }
@@ -2874,7 +2874,7 @@ impl TableSlotCell {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn create_fragment(
         &self,
         mut layout: CellLayout,

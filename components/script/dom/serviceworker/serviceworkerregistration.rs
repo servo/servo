@@ -174,7 +174,7 @@ impl ServiceWorkerRegistration {
         }
     }
 
-    // https://w3c.github.io/ServiceWorker/#get-newest-worker-algorithm
+    /// <https://w3c.github.io/ServiceWorker/#get-newest-worker-algorithm>
     pub(crate) fn get_newest_worker(&self) -> Option<DomRoot<ServiceWorker>> {
         let installing = self.installing.borrow();
         let waiting = self.waiting.borrow();
@@ -219,7 +219,7 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
         // Note: `self` is the registration.
 
         // Step 2: Let promise be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
 
         let Some(worker) = self.get_newest_worker() else {
             promise.resolve_native(cx, &true);

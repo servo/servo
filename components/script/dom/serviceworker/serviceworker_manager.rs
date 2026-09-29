@@ -12,15 +12,11 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
-use crossbeam_channel::{Receiver, Sender, select, unbounded};
+use crossbeam_channel::{Sender, select, unbounded};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use fonts::FontContext;
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
-use servo_base::generic_channel::{
-    self, GenericCallback, GenericSender, ReceiveError, RoutedReceiver,
-};
+use servo_base::generic_channel::{self, GenericCallback, GenericSender, RoutedReceiver};
 use servo_base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use servo_config::pref;
 use servo_constellation_traits::{
@@ -236,7 +232,7 @@ pub struct ServiceWorkerManager {
     // receiver to receive messages from constellation
     own_port: RoutedReceiver<ServiceWorkerMsg>,
     // to receive resource messages
-    resource_receiver: Receiver<CustomResponseMediator>,
+    resource_receiver: RoutedReceiver<CustomResponseMediator>,
     /// A shared [`FontContext`] to use for all service workers spawned by this [`ServiceWorkerManager`].
     font_context: Arc<FontContext>,
 }
@@ -245,7 +241,7 @@ impl ServiceWorkerManager {
     fn new(
         own_sender: GenericSender<ServiceWorkerMsg>,
         from_constellation_receiver: RoutedReceiver<ServiceWorkerMsg>,
-        resource_port: Receiver<CustomResponseMediator>,
+        resource_port: RoutedReceiver<CustomResponseMediator>,
         font_context: Arc<FontContext>,
     ) -> ServiceWorkerManager {
         // Install a pipeline-namespace in the current thread.
@@ -301,7 +297,7 @@ impl ServiceWorkerManager {
     fn receive_message(&mut self) -> generic_channel::ReceiveResult<Message> {
         select! {
             recv(self.own_port) -> result_msg => generic_channel::to_receive_result::<ServiceWorkerMsg>(result_msg).map(|msg| Message::FromConstellation(Box::new(msg))),
-            recv(self.resource_receiver) -> msg => msg.map(Message::FromResource).map_err(|_e| ReceiveError::Disconnected),
+            recv(self.resource_receiver) -> result_msg => generic_channel::to_receive_result::<CustomResponseMediator>(result_msg).map(Message::FromResource),
         }
     }
 
@@ -781,7 +777,7 @@ fn update_serviceworker(
 
 impl ServiceWorkerManagerFactory for ServiceWorkerManager {
     fn create(sw_senders: SWManagerSenders, origin: ImmutableOrigin) {
-        let (resource_chan, resource_port) = ipc::channel().unwrap();
+        let (resource_chan, resource_port) = generic_channel::channel().unwrap();
 
         let SWManagerSenders {
             resource_threads,
@@ -792,7 +788,7 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
         } = sw_senders;
 
         let from_constellation = receiver.route_preserving_errors();
-        let resource_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(resource_port);
+        let resource_port = resource_port.route_preserving_errors();
         let _ = resource_threads
             .core_thread
             .send(CoreResourceMsg::NetworkMediator(resource_chan, origin));

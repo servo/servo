@@ -204,6 +204,7 @@ where
         planar_texture: Option<Rc<PlanarTexture<D>>>,
     ) -> DomRoot<GPUExternalTexture<D>> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUExternalTexture::new_inherited(
                 channel,
                 external_texture,
@@ -211,7 +212,6 @@ where
                 planar_texture,
             )),
             global,
-            cx,
             GPUExternalTextureWrap::<D>,
         )
     }

@@ -8,9 +8,7 @@ use rsa::signature::{RandomizedSigner, SignatureEncoding, Verifier};
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
-};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyPair, KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
@@ -30,11 +28,7 @@ pub(crate) fn sign(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".to_string(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Perform the signature generation operation defined in Section 8.1 of [RFC3447] with
     // the key represented by the [[handle]] internal slot of key as the signer's private key, K,
@@ -106,11 +100,7 @@ pub(crate) fn verify(
 ) -> Result<bool, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".to_string(),
-        )));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. Perform the signature verification operation defined in Section 8.1 of [RFC3447]
     // with the key represented by the [[handle]] internal slot of key as the signer's RSA public
@@ -183,9 +173,9 @@ pub(crate) fn generate_key(
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
     rsa_common::generate_key(
-        RsaAlgorithm::RsaPss,
         cx,
         global,
+        RsaAlgorithm::RsaPss,
         normalized_algorithm,
         extractable,
         usages,
@@ -203,9 +193,9 @@ pub(crate) fn import_key(
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     rsa_common::import_key(
-        RsaAlgorithm::RsaPss,
         cx,
         global,
+        RsaAlgorithm::RsaPss,
         normalized_algorithm,
         format,
         key_data,
@@ -228,5 +218,5 @@ pub(crate) fn get_public_key(
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
-    rsa_common::get_public_key(RsaAlgorithm::RsaPss, cx, global, key, algorithm, usages)
+    rsa_common::get_public_key(cx, global, RsaAlgorithm::RsaPss, key, algorithm, usages)
 }
