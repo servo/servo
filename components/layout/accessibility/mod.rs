@@ -993,7 +993,7 @@ impl AccessibilityNode {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
         // Don't update bounds on nodes in hidden subtrees.
-        if hidden | !layout_damage.intersects(AccessibilityDamage::Layout) {
+        if hidden || !layout_damage.intersects(AccessibilityDamage::Layout) {
             return local_damage;
         }
 
