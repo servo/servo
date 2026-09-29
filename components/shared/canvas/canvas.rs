@@ -382,7 +382,6 @@ impl Path {
 
         // Steps 4 - 5. If any radius is infinite or NaN, then return; if any radius is negative,
         // then throw a RangeError.
-        // From now on, radii is called normalizedRadii in spec.
         for radius in radii {
             if !(radius.x.is_finite() && radius.y.is_finite()) {
                 return Ok(());
@@ -391,33 +390,33 @@ impl Path {
                 return Err(RangeError::NegativeRadius);
             }
         }
-
+        // From now on, radii is called normalizedRadii in spec.
+        let normalized_radii = radii;
         // Steps 6 - 10. Assign upperLeft, upperRight, lowerRight and lowerLeft.
-        let (mut upper_left, mut upper_right, mut lower_right, mut lower_left) = match radii {
-            // If normalizedRadii's size is 1, then set upperLeft, upperRight, lowerRight,
-            // and lowerLeft to normalizedRadii[0].
-            [a] => (*a, *a, *a, *a),
-            // If normalizedRadii's size is 2, then set upperLeft and lowerRight to
-            // normalizedRadii[0] and set upperRight and lowerLeft to normalizedRadii[1].
-            [a, b] => (*a, *b, *a, *b),
-            // If normalizedRadii's size is 3, then set upperLeft to normalizedRadii[0],
-            // set upperRight and lowerLeft to normalizedRadii[1],
-            // and set lowerRight to normalizedRadii[2].
-            [a, b, c] => (*a, *b, *c, *b),
-            // If normalizedRadii's size is 4, then set upperLeft to normalizedRadii[0],
-            // set upperRight to normalizedRadii[1], set lowerRight to normalizedRadii[2],
-            // and set lowerLeft to normalizedRadii[3].
-            [a, b, c, d] => (*a, *b, *c, *d),
-            _ => unreachable!(),
-        };
+        let (mut upper_left, mut upper_right, mut lower_right, mut lower_left) =
+            match normalized_radii {
+                // If normalizedRadii's size is 1, then set upperLeft, upperRight, lowerRight,
+                // and lowerLeft to normalizedRadii[0].
+                [a] => (*a, *a, *a, *a),
+                // If normalizedRadii's size is 2, then set upperLeft and lowerRight to
+                // normalizedRadii[0] and set upperRight and lowerLeft to normalizedRadii[1].
+                [a, b] => (*a, *b, *a, *b),
+                // If normalizedRadii's size is 3, then set upperLeft to normalizedRadii[0],
+                // set upperRight and lowerLeft to normalizedRadii[1],
+                // and set lowerRight to normalizedRadii[2].
+                [a, b, c] => (*a, *b, *c, *b),
+                // If normalizedRadii's size is 4, then set upperLeft to normalizedRadii[0],
+                // set upperRight to normalizedRadii[1], set lowerRight to normalizedRadii[2],
+                // and set lowerLeft to normalizedRadii[3].
+                [a, b, c, d] => (*a, *b, *c, *d),
+                _ => unreachable!(),
+            };
 
         // Not explicitly stated in steps. See non-normative part of `roundRect` in
         // <https://html.spec.whatwg.org/multipage/#building-paths>
-
-        // Negative widths and heights flip the rounded rectangle horizontally/vertically: the
-        // radii that normally apply to the left/right (respectively top/bottom) corners are
-        // swapped. The path is drawn clockwise when `w` and `h` have the same
-        // sign, and counterclockwise otherwise.
+        // When w is negative, the rounded rectangle is flipped horizontally, which means that
+        // the radius values that normally apply to the left corners are used on the right and
+        // vice versa. Similarly, when h is negative, the rounded rect is flipped vertically.
         let (orig_x, orig_y) = (x, y);
         let counterclockwise = (w < 0.0) != (h < 0.0);
         use std::mem::swap;

@@ -228,7 +228,8 @@ pub(super) struct CanvasState {
     pub(super) buffered_sender: GenericBufferedSender<CanvasMsg, CanvasCommand>,
 }
 
-/// Converts the `radii` argument of `roundRect` into a list of corner radii.
+/// Part of step 5 of <https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-roundrect>
+/// Validation is done later as order of operations matter.
 pub(super) fn round_rect_radii(
     radii: &UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
 ) -> Vec<RoundRectRadius> {
