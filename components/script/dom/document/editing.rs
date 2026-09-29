@@ -95,7 +95,7 @@ impl Document {
         if !event.DefaultPrevented() {
             // Step 3. If the event was not canceled, then
             match clipboard_event.clipboard_event_type() {
-                ClipboardEventType::Copy => {
+                ClipboardEventType::Copy if editing_context.copying_enabled() => {
                     // Step 3.1. Copy the selected contents, if any, to the clipboard.
                     // Implementations should create alternate text/html and text/plain
                     // clipboard formats when content in a web page is selected.
@@ -113,7 +113,7 @@ impl Document {
                 },
                 ClipboardEventType::Cut => {
                     if let Some(selection) = editing_context.selection_content(cx) &&
-                        editing_context.cutting_and_pasting_enabled()
+                        editing_context.cutting_enabled()
                     {
                         // Step 3.1. If there is a selection in an editable context where
                         // cutting is enabled, then
@@ -143,7 +143,7 @@ impl Document {
                 },
                 ClipboardEventType::Paste => {
                     if editing_context.has_selection_or_cursor() &&
-                        editing_context.cutting_and_pasting_enabled() &&
+                        editing_context.pasting_enabled() &&
                         let Some(text_content) = clipboard_event.text_content()
                     {
                         // Step 3.1. If there is a selection or cursor in an editable context
@@ -491,7 +491,22 @@ impl EditingContext {
         }
     }
 
-    pub(crate) fn cutting_and_pasting_enabled(&self) -> bool {
+    pub(crate) fn copying_enabled(&self) -> bool {
+        match self {
+            EditingContext::TextControl(element) => {
+                !element.text_control_element().is_password_field()
+            },
+            EditingContext::Document(..) => true,
+        }
+    }
+
+    pub(crate) fn cutting_enabled(&self) -> bool {
+        // `pasting_enabled` ensures that the editable content can be modified, which is necessary
+        // for cutting text.
+        self.copying_enabled() && self.pasting_enabled()
+    }
+
+    pub(crate) fn pasting_enabled(&self) -> bool {
         match self {
             EditingContext::TextControl(element) => {
                 !element.text_control_element().read_only_or_disabled()
