@@ -293,7 +293,7 @@ enum UnderlyingSinkType {
     Transform(Dom<TransformStream>, TracedPromise),
 }
 
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) enum UnderlyingSinkTypeRef<'a> {
     Js {
         abort: &'a Option<TracedCallback<UnderlyingSinkAbortCallback>>,
@@ -309,7 +309,7 @@ pub(crate) enum UnderlyingSinkTypeRef<'a> {
     Transform(Dom<TransformStream>, TracedPromise),
 }
 
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 impl<'a> From<UnderlyingSinkTypeRef<'a>> for UnderlyingSinkType {
     fn from(value: UnderlyingSinkTypeRef<'a>) -> Self {
         match value {
@@ -393,7 +393,6 @@ impl WritableStreamDefaultController {
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -405,7 +404,7 @@ impl WritableStreamDefaultController {
         reflect_dom_object(
             cx,
             Box::new(WritableStreamDefaultController::new_inherited(
-                &*abort_controller,
+                &abort_controller,
                 underlying_sink_type,
                 strategy_hwm,
                 strategy_size,

@@ -956,7 +956,6 @@ impl WritableStream {
 }
 
 /// <https://streams.spec.whatwg.org/#create-writable-stream>
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn create_writable_stream(
     cx: &mut JSContext,
     global: &GlobalScope,
