@@ -480,9 +480,9 @@ impl SpecificShadowTree<HTMLInputElement, RangeInputType> for RangeInputShadowTr
             0.0
         } else {
             let clamped_value = value_num.clamp(min, max);
-            (clamped_value - min) / (max - min) * 100.0
+            (clamped_value - min) / (max - min)
         };
-
+        let percentage = percent * 100.0;
         if self.last_percent.replace(percent) == percent {
             return;
         }
@@ -490,12 +490,12 @@ impl SpecificShadowTree<HTMLInputElement, RangeInputType> for RangeInputShadowTr
         self.slider_thumb.set_attribute(
             cx,
             &local_name!("style"),
-            AttrValue::String(format!("inset-inline-start: {percent}% !important;")),
+            AttrValue::String(format!("--progress: {percent} !important;")),
         );
         self.slider_fill.set_attribute(
             cx,
             &local_name!("style"),
-            AttrValue::String(format!("width: {percent}% !important;")),
+            AttrValue::String(format!("width: {percentage}% !important;")),
         );
     }
 }
