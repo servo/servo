@@ -9585,6 +9585,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo-svg"
+version = "0.6.0"
+dependencies = [
+ "svgtypes",
+]
+
+[[package]]
 name = "servo-timers"
 version = "0.7.0"
 dependencies = [
@@ -10434,13 +10441,6 @@ dependencies = [
  "winapi",
  "wio",
  "x11-dl",
-]
-
-[[package]]
-name = "svg"
-version = "0.6.0"
-dependencies = [
- "svgtypes",
 ]
 
 [[package]]
