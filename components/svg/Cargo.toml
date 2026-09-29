@@ -11,6 +11,7 @@ rust-version.workspace = true
 
 [lib]
 name = "servo_svg"
+path = "lib.rs"
 
 [dependencies]
 svgtypes = { workspace = true }
