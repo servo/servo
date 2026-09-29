@@ -723,7 +723,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
 
     // Let promise be a new promise.
     // Note: re-ordered so we can return the promise below.
-    let promise = Promise::new_in_realm_rooted(cx);
+    let promise = Promise::new_in_realm(cx);
 
     // If object is unusable, then return a promise rejected with a TypeError.
     if object.is_unusable() {

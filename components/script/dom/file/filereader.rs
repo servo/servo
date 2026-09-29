@@ -212,7 +212,7 @@ impl FileReader {
         reflect_dom_object_with_proto(cx, Box::new(FileReader::new_inherited()), global, proto)
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-error-steps
+    /// <https://w3c.github.io/FileAPI/#dfn-error-steps>
     pub(crate) fn process_read_error(
         cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,
@@ -246,7 +246,7 @@ impl FileReader {
         fr.terminate_ongoing_reading();
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsText>
     pub(crate) fn process_read_data(
         cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,
@@ -266,7 +266,7 @@ impl FileReader {
         fr.dispatch_progress_event(cx, atom!("progress"), 0, None);
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsText>
     pub(crate) fn process_read(
         cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,
@@ -286,7 +286,7 @@ impl FileReader {
         fr.dispatch_progress_event(cx, atom!("loadstart"), 0, None);
     }
 
-    // https://w3c.github.io/FileAPI/#readOperation
+    /// <https://w3c.github.io/FileAPI/#readOperation>
     pub(crate) fn process_read_eof(
         cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,

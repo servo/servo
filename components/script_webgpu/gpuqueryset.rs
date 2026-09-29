@@ -88,11 +88,11 @@ where
         count: u32,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUQuerySet::new_inherited(
                 label, channel, query_set, r#type, count,
             )),
             global,
-            cx,
             GPUQuerySetWrap::<D>,
         )
     }

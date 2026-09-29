@@ -342,19 +342,6 @@ impl HeadedWindow {
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 window.close_webview(active_webview.id());
             })
-            .shortcut(CMD_OR_CONTROL, 'X', || {
-                active_webview
-                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Cut));
-            })
-            .shortcut(CMD_OR_CONTROL, 'C', || {
-                active_webview
-                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Copy));
-            })
-            .shortcut(CMD_OR_CONTROL, 'V', || {
-                active_webview.notify_input_event(InputEvent::EditingAction(
-                    servo::EditingActionEvent::Paste,
-                ));
-            })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F9), || {
                 active_webview.capture_webrender();
             })
@@ -618,12 +605,12 @@ impl HeadedWindow {
                     .borrow_mut()
                     .on_window_event(&self.winit_window, event);
 
-                if let WindowEvent::Focused(true) = event {
-                    state.handle_focused(window.clone());
-                }
-
                 if response.repaint && *event != WindowEvent::RedrawRequested {
                     self.winit_window.request_redraw();
+                }
+
+                if let WindowEvent::Focused(focused) = event {
+                    state.set_window_has_focus(window.clone(), *focused);
                 }
 
                 // All CursorMoved events, even when forwarded to the WebView, are also
@@ -799,6 +786,10 @@ impl HeadedWindow {
 }
 
 impl PlatformWindow for HeadedWindow {
+    fn platform_manages_focus(&self) -> bool {
+        true
+    }
+
     fn as_headed_window(&self) -> Option<&Self> {
         Some(self)
     }
@@ -1061,10 +1052,6 @@ impl PlatformWindow for HeadedWindow {
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::F5), || {
                 webview.reload()
             });
-    }
-
-    fn focus(&self) {
-        self.winit_window.focus_window();
     }
 
     fn has_platform_focus(&self) -> bool {

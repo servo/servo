@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Canvas paint events should fire in reverse tree order (descendants before ancestors)</title>
+<title>Canvas paint events should fire in reverse shadow-including tree order (descendants before ancestors)</title>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -74,15 +74,15 @@
       waitForCanvasPaint(outer_c),
     ]);
 
-    // Tree order (pre-order) in DOM is:
+    // Shadow-including tree order (pre-order) in DOM is:
     // outer_a, inner_a, outer_b, inner_b_1, inner_b_2, outer_c, inner_c.
-    // Reverse tree order is exact reverse:
+    // Reverse shadow-including tree order is exact reverse:
     // inner_c, outer_c, inner_b_2, inner_b_1, outer_b, inner_a, outer_a.
     assert_array_equals(
         paint_order,
         ['inner_c', 'outer_c', 'inner_b_2', 'inner_b_1', 'outer_b', 'inner_a', 'outer_a'],
-        'Initial paint should run in reverse tree order');
-  }, 'Initial paint of all canvases across multiple branches and sibling inner canvases runs in reverse tree order');
+        'Initial paint should run in reverse shadow-including tree order');
+  }, 'Initial paint of all canvases across multiple branches and sibling inner canvases runs in reverse shadow-including tree order');
 
   promise_test(async t => {
     await waitForOneFrame();
@@ -99,7 +99,7 @@
     ]);
     assert_array_equals(paint_order, ['inner_b_1', 'outer_b'],
                         'Changing inner_b_1 triggers paint on inner_b_1 then outer_b');
-  }, 'Repainting inner_b_1 fires paint events in reverse tree order (inner_b_1 before outer_b)');
+  }, 'Repainting inner_b_1 fires paint events in reverse shadow-including tree order (inner_b_1 before outer_b)');
 
   promise_test(async t => {
     await waitForOneFrame();
@@ -118,7 +118,7 @@
     ]);
     assert_array_equals(paint_order, ['inner_b_2', 'inner_b_1', 'outer_b'],
                         'Changing both sibling inner canvases triggers paint on inner_b_2, inner_b_1, then outer_b');
-  }, 'Repainting sibling inner canvases in outer_b fires in reverse tree order');
+  }, 'Repainting sibling inner canvases in outer_b fires in reverse shadow-including tree order');
 
   promise_test(async t => {
     await waitForOneFrame();
@@ -138,8 +138,8 @@
       waitForCanvasPaint(outer_b),
     ]);
     assert_array_equals(paint_order, ['inner_b_2', 'outer_b', 'inner_a', 'outer_a'],
-                        'Simultaneous repaints across branches fire in reverse tree order');
-  }, 'Simultaneous repaints across disjoint branches fire in reverse tree order');
+                        'Simultaneous repaints across branches fire in reverse shadow-including tree order');
+  }, 'Simultaneous repaints across disjoint branches fire in reverse shadow-including tree order');
 
   promise_test(async t => {
     await waitForOneFrame();

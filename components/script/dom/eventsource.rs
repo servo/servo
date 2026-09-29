@@ -543,7 +543,7 @@ impl EventSource {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#sse-processing-model:fail-the-connection-3
+    /// <https://html.spec.whatwg.org/multipage/#sse-processing-model:fail-the-connection-3>
     pub(crate) fn cancel(&self) {
         self.droppable.cancel();
         self.fail_the_connection();

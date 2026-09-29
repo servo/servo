@@ -186,7 +186,7 @@ impl App {
 
 fn publish_open_tabs(state: &RunningAppState) {
     let mut tabs = Vec::new();
-    for window in state.windows().values() {
+    for window in state.windows().iter() {
         for (webview_id, webview) in window.webviews() {
             let url = webview.url().map(|url| url.to_string()).unwrap_or_default();
             let title = webview

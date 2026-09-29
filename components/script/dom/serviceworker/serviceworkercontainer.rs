@@ -340,7 +340,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         let global = self.global();
 
         // A: Step 1
-        let promise = Promise::new_in_realm_rooted(realm);
+        let promise = Promise::new_in_realm(realm);
         let USVString(ref script_url) = script_url;
 
         // A: Step 3
@@ -474,7 +474,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
 
         // Step 7: Let promise be a new promise.
         // Note: done here so it can be used to handle failure of the below steps.
-        let promise = Promise::new_in_realm_rooted(realm);
+        let promise = Promise::new_in_realm(realm);
 
         // Step 2: Let client storage key be the result of running obtain a storage key given client.
         let Some(storage_key) = global.obtain_storage_key() else {

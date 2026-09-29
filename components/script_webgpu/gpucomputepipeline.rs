@@ -86,13 +86,13 @@ where
         device: &D::GPUDevice,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUComputePipeline::new_inherited(
                 compute_pipeline,
                 label,
                 device,
             )),
             global,
-            cx,
             GPUComputePipelineWrap::<D>,
         )
     }

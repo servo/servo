@@ -81,7 +81,7 @@ use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
-use crate::dom::console::stringify_handle_value;
+use crate::dom::console::{Console, stringify_handle_value};
 use crate::dom::csp::CspReporting;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -296,7 +296,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                 let target = Trusted::new(global.upcast::<EventTarget>());
                 let promise =
                     Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise) });
-                let trusted_promise = TrustedPromise::new(promise);
+                let trusted_promise = TrustedPromise::from(&promise);
 
                 // Step 5-4.
                 global.task_manager().dom_manipulation_task_source().queue(
@@ -342,9 +342,14 @@ unsafe extern "C" fn code_for_eval_gets(
     code_for_eval: MutableHandleString,
 ) -> bool {
     // SAFETY: We are in SM hook
-    let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let (mut cx, code) = unsafe {
+        (
+            JSContext::from_ptr(NonNull::new(cx).unwrap()),
+            RustHandleObject::from_raw(code),
+        )
+    };
     let cx = &mut cx;
-    if let Ok(trusted_script) = unsafe { root_from_object::<TrustedScript>(cx, code.get()) } {
+    if let Ok(trusted_script) = root_from_handleobject::<TrustedScript>(cx, code) {
         let script_str = trusted_script.data().str();
         let s = js::conversions::Utf8Chars::from(&*script_str);
         let new_string = unsafe { JS_NewStringCopyUTF8N(cx, &*s as *const _) };
@@ -458,7 +463,7 @@ pub(crate) fn notify_about_rejected_promises(cx: &mut JSContext, global: &Global
                 let promise =
                     Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise.handle()) });
 
-                TrustedPromise::new(promise)
+                TrustedPromise::from(&promise)
             })
             .collect()
     };
@@ -495,11 +500,6 @@ pub(crate) fn notify_about_rejected_promises(cx: &mut JSContext, global: &Global
                     JS_GetPromiseResult(promise.reflector().get_jsobject(), reason.handle_mut());
                 }
 
-                log::error!(
-                    "Unhandled promise rejection: {}",
-                    stringify_handle_value( cx, reason.handle())
-                );
-
                 let event = PromiseRejectionEvent::new(
                     cx,
                     &target.global(),
@@ -509,10 +509,17 @@ pub(crate) fn notify_about_rejected_promises(cx: &mut JSContext, global: &Global
                     &promise,
                     reason.handle(),
                 );
-                event.upcast::<Event>().fire(cx, &target);
+                let not_canceled = event.upcast::<Event>().fire(cx, &target);
 
-                // TODO: Step 4.1.3 If notCanceled is true, then the user agent may report
+                // Step 4.1.3 If notCanceled is true, then the user agent may report
                 // p.[[PromiseResult]] to a developer console.
+                if not_canceled {
+                    let message = format!(
+                        "Unhandled promise rejection: {}",
+                        stringify_handle_value(cx, reason.handle())
+                    );
+                    Console::internal_error(cx, &target.global(), message);
+                }
 
                 // Step 4.1.4 If p.[[PromiseIsHandled]] is false, then append p to global's outstanding
                 // rejected promises weak set.

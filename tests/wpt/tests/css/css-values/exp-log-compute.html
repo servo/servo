@@ -38,4 +38,55 @@ test_math_used('calc(log(exp(2 * sign(1em - 1px))))', '2', {type:'number', appro
 // Test nesting
 test_math_used('calc(log(exp(1)))', '1', {type:'number', approx:0.1});
 test_math_used('calc(log(exp(log(e))))', '1', {type:'number', approx:0.1});
+
+// Special values
+// https://drafts.csswg.org/css-values-4/#exponent-infinities
+
+// log(A, B): if B is 1 or negative, the result is NaN.
+// B values between 0 and 1, or greater than 1, are valid.
+test_nan('log(2, 1)');
+test_nan('log(2, -1)');
+test_nan('log(2, 0)');
+test_nan('log(2, -0)');
+test_nan('log(5, 1)');
+test_math_used('log(2, 0.5)', '-1', {type: 'number'});
+test_math_used('log(2, 2)', '1', {type: 'number'});
+
+// In log(A, B): if A is negative, the result is NaN.
+test_nan('log(-1)');
+test_nan('log(-1, 2)');
+
+// If A is 0+ or 0-, the result is -infinity.
+test_minus_infinity('log(0)');
+test_minus_infinity('log(-0)');
+test_minus_infinity('log(0, 2)');
+
+// If A is 1, the result is 0+.
+test_plus_zero('log(1)');
+test_plus_zero('log(1, 2)');
+test_plus_zero('log(1, 0.5)');
+
+// If A is +infinity, the result is +infinity.
+test_plus_infinity('log(infinity)');
+test_plus_infinity('log(infinity, 2)');
+
+// NaN is infectious, even when A is 1.
+// https://drafts.csswg.org/css-values-4/#exponent-infinities
+// https://drafts.csswg.org/css-values-4/#calc-ieee
+test_nan('log(NaN)');
+test_nan('log(NaN, 1)');
+test_nan('log(1, NaN)');
+test_nan('log(NaN, 2)');
+test_nan('log(2, NaN)');
+
+// exp()
+// If A is +infinity, the result is +infinity.
+// If A is -infinity, the result is 0+.
+test_plus_infinity('exp(infinity)');
+test_plus_zero('exp(-infinity)');
+
+// NaN is infectious
+// https://drafts.csswg.org/css-values-4/#exponent-infinities
+// https://drafts.csswg.org/css-values-4/#calc-ieee
+test_nan('exp(NaN)');
 </script>

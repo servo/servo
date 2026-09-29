@@ -32,7 +32,7 @@ use webrender_api::ImageKey;
 use crate::canvas_context::{CanvasContext, RenderingContext};
 #[cfg(feature = "webgl")]
 use crate::conversions::Convert;
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DSettings;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     BlobCallback, HTMLCanvasElementMethods, RenderingContext as RootedRenderingContext,
@@ -86,8 +86,7 @@ pub(crate) struct HTMLCanvasElement {
     callback_id: Cell<u32>,
 
     /// This hashmap along with [`Self::callback_id`] are used to keep track of ongoing toBlob() calls.
-    #[conditional_malloc_size_of]
-    blob_callbacks: RefCell<FxHashMap<u32, Rc<BlobCallback>>>,
+    blob_callbacks: RefCell<FxHashMap<u32, TracedCallback<BlobCallback>>>,
 
     /// The [`ImageKey`] used to render this [`HTMLCanvasElement`] to the WebRender scene, if it
     /// has a `RenderingContext`, otherwise `None`. Note that this key is owned by the `RenderingContext`
@@ -590,7 +589,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-toblob>
     fn ToBlob(
         &self,
-        callback: Rc<BlobCallback>,
+        callback: RootedCallback<BlobCallback>,
         mime_type: DOMString,
         quality: HandleValue,
     ) -> Fallible<()> {
@@ -617,7 +616,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
 
         self.blob_callbacks
             .borrow_mut()
-            .insert(callback_id, callback);
+            .insert(callback_id, callback.to_traced());
         let quality = Self::maybe_quality(quality);
         let image_type = EncodedImageType::from(&mime_type.str() as &str);
 

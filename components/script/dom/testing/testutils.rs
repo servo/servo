@@ -23,7 +23,7 @@ impl TestUtilsMethods<crate::DomTypeHolder> for TestUtils {
     #[expect(unsafe_code)]
     fn Gc(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
         // 1. Let p be a new promise.
-        let promise = Promise::new_rooted(cx, global);
+        let promise = Promise::new(cx, global);
         let trusted = TrustedPromise::from(&promise);
         // 2. Run the following in parallel:
         // 2.1 Run implementation-defined steps to perform a garbage collection covering at least the entry Realm.

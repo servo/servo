@@ -135,7 +135,7 @@ where
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
         global: &D::GlobalScope,
@@ -148,11 +148,11 @@ where
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUBuffer::new_inherited(
                 channel, buffer, device, size, usage, mapping, label,
             )),
             global,
-            cx,
             GPUBufferWrap::<D>,
         )
     }
@@ -286,7 +286,7 @@ where
         offset: GPUSize64,
         size: Option<GPUSize64>,
     ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         // Step 2
         if self.pending_map.borrow().is_some() {
             promise.reject_error(

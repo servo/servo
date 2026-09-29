@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Canvas paint events should fire in reverse tree order across iframes</title>
+<title>Canvas paint events should fire in reverse shadow-including tree order across iframes</title>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -51,8 +51,8 @@
     assert_array_equals(
         paint_order,
         ['iframeCanvas', 'inner', 'outer'],
-        'Paint events should fire in reverse tree order across frames');
-  }, 'Paint events fire in reverse tree order across frames');
+        'Paint events should fire in reverse shadow-including tree order across frames');
+  }, 'Paint events fire in reverse shadow-including tree order across frames');
 
   promise_test(async t => {
     await waitForLoad();
@@ -101,6 +101,6 @@
     assert_array_equals(
         paint_order,
         ['iframeCanvas', 'inner', 'outer'],
-        'Paint events should fire in reverse tree order across frames when invalidated');
-  }, 'Paint events fire in reverse tree order across frames on content invalidation');
+        'Paint events should fire in reverse shadow-including tree order across frames when invalidated');
+  }, 'Paint events fire in reverse shadow-including tree order across frames on content invalidation');
 </script>

@@ -136,7 +136,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-startrendering>
     fn StartRendering(&self, cx: &mut CurrentRealm) -> RootedPromise {
-        let promise = Promise::new_in_realm_rooted(cx);
+        let promise = Promise::new_in_realm(cx);
         if self.rendering_started.get() {
             promise.reject_error(cx, Error::InvalidState(None));
             return promise;

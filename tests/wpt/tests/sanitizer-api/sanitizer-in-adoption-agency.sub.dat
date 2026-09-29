@@ -101,3 +101,27 @@
 |     <div>
 |       <b>
 |       "x"
+
+#data
+<b><em><div>Text</b>after
+#config
+{ "replaceWithChildrenElements": ["div"] }
+#document
+| <b>
+|   <em>
+|     "Text"
+| <em>
+|   <b>
+|   "after"
+
+#data
+<b><em><s><div>Text</b>after</div>more
+#config
+{ "replaceWithChildrenElements": ["div", "s"] }
+#document
+| <b>
+|   <em>
+|     "Text"
+| <em>
+|   <b>
+|   "aftermore"

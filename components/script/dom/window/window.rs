@@ -6,7 +6,6 @@
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
-use std::collections::HashSet;
 use std::collections::hash_map::Entry;
 use std::default::Default;
 use std::ffi::c_void;
@@ -67,7 +66,7 @@ use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::dom::UnrootedDom;
@@ -76,7 +75,7 @@ use script_bindings::like::Setlike;
 use script_bindings::principals::ServoJSPrincipals;
 use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
-use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
+use script_traits::{ConstellationInputEvent, ScriptThreadMessage, WebViewState};
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -110,6 +109,7 @@ use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
 use crate::dom::StatelessWorkletThreadPool;
+use crate::dom::bindings::callback::RootedCallback;
 use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
@@ -281,19 +281,17 @@ struct PendingLayoutImageAncillaryData {
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
-
     /// A `Weak` reference to this [`ScriptThread`] used to give to child [`Window`]s so
     /// they can more easily call methods on the [`ScriptThread`] without constantly having
     /// to pass it everywhere.
     #[ignore_malloc_size_of = "Weak does not need to be accounted"]
     #[no_trace]
     weak_script_thread: Weak<ScriptThread>,
-
-    /// The webview that contains this [`Window`].
-    ///
-    /// This may not be the top-level [`Window`], in the case of frames.
+    /// The [`WebViewState`] for this [`Window`], shared with all other
+    /// [`Window`]s in the same `EventLoop`.
     #[no_trace]
-    webview_id: WebViewId,
+    #[conditional_malloc_size_of]
+    webview_state: Rc<WebViewState>,
     script_chan: Sender<MainThreadScriptMsg>,
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
@@ -327,7 +325,7 @@ pub(crate) struct Window {
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     #[no_trace]
-    devtools_markers: DomRefCell<HashSet<TimelineMarkerType>>,
+    devtools_markers: DomRefCell<FxHashSet<TimelineMarkerType>>,
     #[no_trace]
     devtools_marker_sender: DomRefCell<Option<GenericSender<Option<TimelineMarker>>>>,
 
@@ -340,10 +338,6 @@ pub(crate) struct Window {
     /// This allows us to detect ABA changes, and suppress firing the event in that case.
     #[no_trace]
     viewport_details_at_last_resize_steps: Cell<ViewportDetails>,
-
-    /// Platform theme.
-    #[no_trace]
-    embedder_theme: Cell<Theme>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -515,7 +509,11 @@ impl Window {
     }
 
     pub(crate) fn webview_id(&self) -> WebViewId {
-        self.webview_id
+        self.webview_state.id
+    }
+
+    pub(crate) fn webview_state(&self) -> Rc<WebViewState> {
+        self.webview_state.clone()
     }
 
     pub(crate) fn as_global_scope(&self) -> &GlobalScope {
@@ -1101,7 +1099,7 @@ impl ResourceTimingListener for FontFetchListener {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#atob
+/// <https://html.spec.whatwg.org/multipage/#atob>
 pub(crate) fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
@@ -1128,7 +1126,7 @@ pub(crate) fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#atob
+/// <https://html.spec.whatwg.org/multipage/#atob>
 pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
     fn is_html_space(c: char) -> bool {
@@ -1708,11 +1706,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
-    fn QueueMicrotask(&self, cx: &JSContext, callback: Rc<VoidFunction>) {
+    fn QueueMicrotask(&self, cx: &JSContext, callback: RootedCallback<VoidFunction>) {
         ScriptThread::enqueue_microtask(
             cx,
             Box::new(UserMicrotask {
-                callback,
+                callback: callback.to_traced(),
                 global: Dom::from_ref(&self.globalscope),
             }),
         );
@@ -1777,7 +1775,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts>
     fn Length(&self) -> u32 {
-        self.Document().iframes().iter().count() as u32
+        self.Document().iframes().active_iframe_count() as u32
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-parent>
@@ -1843,10 +1841,15 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
-    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> Fallible<u32> {
+    fn RequestAnimationFrame(
+        &self,
+        callback: RootedCallback<FrameRequestCallback>,
+    ) -> Fallible<u32> {
         Ok(self
             .Document()
-            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback { callback }))
+            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback {
+                callback: callback.to_traced(),
+            }))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe>
@@ -1876,7 +1879,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<WindowPostMessageOptions>,
+        options: &WindowPostMessageOptions,
     ) -> ErrorResult {
         auto_root!(&in(cx) let transfer =
             options
@@ -2234,7 +2237,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         realm: &mut CurrentRealm,
         input: RequestOrUSVString,
-        init: RootedTraceableBox<RequestInit>,
+        init: &RequestInit,
     ) -> RootedPromise {
         fetch::Fetch(self.upcast(), input, init, realm)
     }
@@ -2244,7 +2247,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         input: RequestInfo,
-        init: RootedTraceableBox<DeferredRequestInit>,
+        init: &DeferredRequestInit,
     ) -> Fallible<DomRoot<FetchLaterResult>> {
         fetch::FetchLater(cx, self, input, init)
     }
@@ -2397,7 +2400,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         value: HandleValue,
-        options: RootedTraceableBox<StructuredSerializeOptions>,
+        options: &StructuredSerializeOptions,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
         self.as_global_scope()
@@ -2416,7 +2419,7 @@ impl Window {
     }
 
     // https://heycam.github.io/webidl/#named-properties-object
-    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    /// <https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object>
     pub(crate) fn create_named_properties_object(
         cx: &mut JSContext,
         proto: HandleObject,
@@ -2734,6 +2737,8 @@ impl Window {
             animations: document.animation_manager().sets(),
             animating_images: document.animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
+            frame_focused: self.webview_state().has_system_focus.get() &&
+                document.focus_handler().has_focus(),
             halt_lcp: self.has_dispatched_scroll_event.get() ||
                 self.has_dispatched_input_event.get(),
             paint_timing_eligible: document.paint_timing_eligible(),
@@ -2767,7 +2772,7 @@ impl Window {
 
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
             document
-                .iframes_mut()
+                .iframes()
                 .handle_new_iframe_sizes_after_layout(cx, self, iframe_sizes);
         }
 
@@ -3150,8 +3155,7 @@ impl Window {
         self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery);
         self.Document()
             .iframes()
-            .get(browsing_context_id)
-            .and_then(|iframe| iframe.size)
+            .viewport_details(browsing_context_id)
     }
 
     #[expect(unsafe_code)]
@@ -3392,21 +3396,20 @@ impl Window {
         }
     }
 
-    /// Get the embedder theme of this [`Window`].
-    pub(crate) fn embedder_theme(&self) -> Theme {
-        self.embedder_theme.get()
-    }
-
-    /// Handle a theme change request, triggering a reflow is any actual change occurred.
-    pub(crate) fn set_embedder_theme(&self, new_theme: Theme) {
-        self.embedder_theme.set(new_theme);
-        self.refresh_theme();
+    pub(crate) fn webview_theme(&self) -> Theme {
+        self.webview_state.theme.get()
     }
 
     pub(crate) fn refresh_theme(&self) {
+        // The theme is chosen in this order of precedence:
+        //  1. The devtools theme override
+        //  2. The Document theme
+        //  3. The theme set on the WebView
         let document = self.Document();
-        // The theme of a document takes precedence over the theme of the embedder
-        let new_theme = document.theme().unwrap_or(self.embedder_theme.get());
+        let new_theme = document
+            .theme_override()
+            .or(document.theme())
+            .unwrap_or(self.webview_theme());
         if !self.layout_mut().set_theme(new_theme) {
             return;
         }
@@ -3531,7 +3534,7 @@ impl Window {
         self.current_state.get() == WindowState::Alive
     }
 
-    // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
+    /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
     pub(crate) fn is_top_level(&self) -> bool {
         self.parent_info.is_none()
     }
@@ -3879,7 +3882,7 @@ impl Window {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
-        webview_id: WebViewId,
+        webview_state: Rc<WebViewState>,
         runtime: Rc<Runtime>,
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
@@ -3910,7 +3913,6 @@ impl Window {
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
-        embedder_theme: Theme,
         weak_script_thread: Weak<ScriptThread>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
@@ -3919,7 +3921,7 @@ impl Window {
         };
 
         let win = Box::new(Self {
-            webview_id,
+            webview_state,
             globalscope: GlobalScope::new_inherited(
                 devtools_chan,
                 mem_profiler_chan,
@@ -3994,7 +3996,6 @@ impl Window {
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
-            embedder_theme: Cell::new(embedder_theme),
             trusted_types: Default::default(),
             reporting_observer_list: Default::default(),
             report_list: Default::default(),

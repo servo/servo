@@ -57,7 +57,7 @@ use script_bindings::proxyhandler::{
     set_property_descriptor,
 };
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
-use script_traits::NewPipelineInfo;
+use script_traits::{NewPipelineInfo, WebViewState};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel;
 use servo_base::generic_channel::GenericSend;
@@ -387,17 +387,21 @@ impl WindowProxy {
         let response = response_receiver.recv().unwrap()?;
         let new_browsing_context_id = BrowsingContextId::from(response.new_webview_id);
         let new_pipeline_info = NewPipelineInfo {
+            webview_state: WebViewState {
+                id: response.new_webview_id,
+                // Use the current `WebView`'s theme initially, but the embedder may change
+                // this later.
+                theme: Cell::new(window.webview_theme()),
+                // WebViews start focused by default for now.
+                has_system_focus: Cell::new(true),
+            },
             parent_info: None,
             new_pipeline_id: response.new_pipeline_id,
             browsing_context_id: new_browsing_context_id,
-            webview_id: response.new_webview_id,
             opener: Some(self.browsing_context_id),
             load_data,
             viewport_details: window.viewport_details(),
             user_content_manager_id: response.user_content_manager_id,
-            // Use the current `WebView`'s theme initially, but the embedder may
-            // change this later.
-            embedder_theme: window.embedder_theme(),
             target_snapshot_params: TargetSnapshotParams {
                 sandboxing_flags: sandboxing_flag_set,
                 iframe_element_referrer_policy: ReferrerPolicy::EmptyString,
@@ -445,7 +449,7 @@ impl WindowProxy {
         self.delaying_load_events_mode.set(false);
     }
 
-    // https://html.spec.whatwg.org/multipage/#disowned-its-opener
+    /// <https://html.spec.whatwg.org/multipage/#disowned-its-opener>
     pub(crate) fn disown(&self) {
         self.disowned.set(true);
     }
@@ -461,7 +465,7 @@ impl WindowProxy {
         self.is_closing.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-opener
+    /// <https://html.spec.whatwg.org/multipage/#dom-opener>
     pub(crate) fn opener(&self, cx: &mut CurrentRealm, mut retval: MutableHandleValue) {
         if self.disowned.get() {
             return retval.set(NullValue());
@@ -504,7 +508,7 @@ impl WindowProxy {
         opener_proxy.to_jsval(cx, retval);
     }
 
-    // https://html.spec.whatwg.org/multipage/#window-open-steps
+    /// <https://html.spec.whatwg.org/multipage/#window-open-steps>
     pub(crate) fn open(
         &self,
         cx: &mut JSContext,
@@ -1636,11 +1640,7 @@ unsafe extern "C" fn own_property_keys(
     rooted!(&in(cx) let target = window_proxy_target(proxy));
     let window = WindowOrDissimilarOriginWindow::new(cx, target.handle());
 
-    // Step 2. Let maxProperties be W's associated Document's document-tree child navigables's
-    // size.
-    //
-    // TODO: DissimilarOriginWindow currently always returns 0 for the length,
-    // so this has the effect of not exposing any indexable attributes.
+    // Step 2. Let maxProperties be W's associated Document's document-tree child navigables's size.
     let max_properties = window.iframe_count();
 
     // Step 3. Let keys be the range 0 to maxProperties, exclusive.
@@ -1667,13 +1667,69 @@ unsafe extern "C" fn own_property_keys(
     cross_origin_own_property_keys(cx, proxy, window.cross_origin_properties(), property_keys)
 }
 
+/// A version of <https://html.spec.whatwg.org/multipage#windowproxy-ownpropertykeys>
+/// that hands back only the enumerable properties. This is necessary because the
+/// default implementation of this method returns all enumerable properties which
+/// isn't correct in the cross-origin case.
+#[expect(unsafe_code)]
+unsafe extern "C" fn get_own_enumerable_property_keys(
+    cx: *mut RawJSContext,
+    proxy: RawHandleObject,
+    property_keys: RawMutableHandleIdVector,
+) -> bool {
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut cx = CurrentRealm::assert(&mut cx);
+    let cx = &mut cx;
+    let proxy = unsafe { Handle::from_raw(proxy) };
+
+    // Step 1. Let W be the value of the [[Window]] internal slot of this.
+    rooted!(&in(cx) let target = window_proxy_target(proxy));
+    let window = WindowOrDissimilarOriginWindow::new(cx, target.handle());
+
+    // Step 2. Let maxProperties be W's associated Document's document-tree child navigables's size.
+    let max_properties = window.iframe_count();
+
+    // Step 3. Let keys be the range 0 to maxProperties, exclusive.
+    rooted!(&in(cx) let mut rooted_index_jsid: jsid);
+    for index in 0..max_properties {
+        unsafe { int_to_jsid(index as i32, rooted_index_jsid.handle_mut()) };
+        unsafe { AppendToIdVector(property_keys, rooted_index_jsid.handle()) };
+    }
+
+    if is_platform_object_same_origin(cx, proxy) {
+        // Step 4. If IsPlatformObjectSameOrigin(W) is true, then return the concatenation of keys and
+        // OrdinaryOwnPropertyKeys(W).
+        return unsafe { GetPropertyKeys(cx, target.handle(), JSITER_OWNONLY, property_keys) };
+    }
+
+    // There are no other enumerable property keys for cross-origin WindowProxy other than
+    // the child navigable indices.
+    true
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn enumerate(
+    cx: *mut RawJSContext,
+    proxy: RawHandleObject,
+    property_keys: RawMutableHandleIdVector,
+) -> bool {
+    // Just get the property keys from ourselves, in whatever Realm we happen to
+    // be in. It's important to not enter the Realm of "proxy" here, because that
+    // would affect the list of keys we claim to have.
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let cx = &mut cx;
+    let proxy = unsafe { Handle::from_raw(proxy) };
+
+    unsafe { GetPropertyKeys(cx, proxy, 0, property_keys) }
+}
+
 static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(get_own_property_descriptor),
     defineProperty: Some(define_property),
     ownPropertyKeys: Some(own_property_keys),
     delete_: Some(delete),
-    enumerate: None,
+    enumerate: Some(enumerate),
     getPrototypeIfOrdinary: Some(get_prototype_if_ordinary),
     getPrototype: Some(get_prototype),
     setPrototype: Some(maybe_cross_origin_set_prototype_rawcx),
@@ -1686,7 +1742,7 @@ static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     call: None,
     construct: None,
     hasOwn: Some(has_own),
-    getOwnEnumerablePropertyKeys: None,
+    getOwnEnumerablePropertyKeys: Some(get_own_enumerable_property_keys),
     nativeCall: None,
     objectClassIs: None,
     className: None,
@@ -1854,20 +1910,22 @@ impl WindowOrDissimilarOriginWindow {
         &self,
         index: u32,
     ) -> Option<DomRoot<WindowProxy>> {
-        let browsing_context_id = self.window_proxy().browsing_context_id();
-        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
-        let _ = self.global_scope().script_to_constellation_chan().send(
-            ScriptToConstellationMessage::GetChildBrowsingContextId(
-                browsing_context_id,
-                index as usize,
-                result_sender,
-            ),
-        );
-        result_receiver
-            .recv()
-            .ok()
-            .flatten()
-            .and_then(|id| ScriptThread::window_proxies().find_window_proxy(id))
+        let window_proxy = self.window_proxy();
+        let browsing_context_id = if let Some(document) = window_proxy.document() {
+            document.iframes().at_insertion_index(index as usize)?
+        } else {
+            let parent_browsing_context_id = window_proxy.browsing_context_id();
+            let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+            let _ = self.global_scope().script_to_constellation_chan().send(
+                ScriptToConstellationMessage::GetChildBrowsingContextId(
+                    parent_browsing_context_id,
+                    index as usize,
+                    result_sender,
+                ),
+            );
+            result_receiver.recv().ok().flatten()?
+        };
+        ScriptThread::window_proxies().find_window_proxy(browsing_context_id)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#document-tree-child-navigable-target-name-property-set>

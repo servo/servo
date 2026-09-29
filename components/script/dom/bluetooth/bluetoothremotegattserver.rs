@@ -74,7 +74,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
     fn Connect(&self, cx: &mut CurrentRealm) -> RootedPromise {
         // Step 1.
-        let p = Promise::new_in_realm_rooted(cx);
+        let p = Promise::new_in_realm(cx);
         let sender = response_async(&p, self);
 
         // TODO: Step 3: Check if the UA is currently using the Bluetooth system.

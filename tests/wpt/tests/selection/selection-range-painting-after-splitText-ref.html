@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Selection painting result when "CDEFG" is selected</title>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", async () => {
+  const text = document.querySelector("p").firstChild;
+  const splitAt = parseInt((new URLSearchParams(location.search)).get("splitAt"));
+  const newText = text.splitText(splitAt);
+  const [startContainer, startOffset] = (function() {
+    if (splitAt > "AB".length) {
+      return [text, "AB".length];
+    }
+    return [newText, "AB".length - splitAt];
+  })();
+  const [endContainer, endOffset] = (function() {
+    if (splitAt > "ABCDEFG".length) {
+      return [text, "ABCDEFG".length];
+    }
+    return [newText, "ABCDEFG".length - splitAt];
+  })();
+  getSelection().setBaseAndExtent(startContainer, startOffset, endContainer, endOffset);
+}, {once: true});
+</script>
+</head>
+<body>
+  <p>ABCDEFGHI</p>
+</body>
+</html>

@@ -556,3 +556,271 @@ fn test_whitespace_around_timings() {
         ]
     )
 }
+
+#[test]
+fn test_no_newlines_after_timestamps() {
+    let mut parser = parser_with_dummy_sink();
+    assert_eq!(
+        parser.parse_sync(&mut (), include_vtt_file!("degenerate-cues.vtt")),
+        Ok(())
+    );
+    assert_eq!(
+        *parser.sink.collected_cues.borrow(),
+        vec![
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 0., 0.),
+                end_time: compute_result_in_seconds(0., 0., 1., 0.),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 2., 0.),
+                end_time: compute_result_in_seconds(0., 0., 3., 0.),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 4., 0.),
+                end_time: compute_result_in_seconds(0., 0., 5., 0.),
+                ..Default::default()
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_recovers_after_bad_header() {
+    let mut parser = parser_with_dummy_sink();
+    assert_eq!(
+        parser.parse_sync(&mut (), include_vtt_file!("cue-recovery-header.vtt")),
+        Ok(())
+    );
+    assert_eq!(
+        *parser.sink.collected_cues.borrow(),
+        vec![
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 0., 0.),
+                end_time: compute_result_in_seconds(0., 0., 1., 0.),
+                text: "Valid cue 1".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 2., 0.),
+                end_time: compute_result_in_seconds(0., 0., 3., 0.),
+                text: "Valid cue 2".into(),
+                ..Default::default()
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_recovers_after_bad_note() {
+    let mut parser = parser_with_dummy_sink();
+    assert_eq!(
+        parser.parse_sync(&mut (), include_vtt_file!("cue-recovery-note.vtt")),
+        Ok(())
+    );
+    assert_eq!(
+        *parser.sink.collected_cues.borrow(),
+        vec![
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 0., 0.),
+                end_time: compute_result_in_seconds(0., 0., 1., 0.),
+                text: "Valid cue 1".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 2., 0.),
+                end_time: compute_result_in_seconds(0., 0., 3., 0.),
+                text: "Valid cue 2".into(),
+                ..Default::default()
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_recovers_after_bad_cuetext() {
+    let mut parser = parser_with_dummy_sink();
+    assert_eq!(
+        parser.parse_sync(&mut (), include_vtt_file!("cue-recovery-cuetext.vtt")),
+        Ok(())
+    );
+    assert_eq!(
+        *parser.sink.collected_cues.borrow(),
+        vec![
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 0., 0.),
+                end_time: compute_result_in_seconds(0., 0., 1., 0.),
+                text: "Valid cue 1".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 2., 0.),
+                end_time: compute_result_in_seconds(0., 0., 3., 0.),
+                text: "Valid cue 2".into(),
+                ..Default::default()
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_handles_no_id() {
+    let mut parser = parser_with_dummy_sink();
+    assert_eq!(
+        parser.parse_sync(&mut (), include_vtt_file!("cue-no-id.vtt")),
+        Ok(())
+    );
+    assert_eq!(
+        *parser.sink.collected_cues.borrow(),
+        vec![
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 0., 0.),
+                end_time: compute_result_in_seconds(0., 0., 30., 500.),
+                text: "Bear is Coming!!!!!".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 31., 0.),
+                end_time: compute_result_in_seconds(0., 1., 0., 500.),
+                text: "I said Bear is coming!!!!".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 1., 1., 0.),
+                end_time: compute_result_in_seconds(0., 20., 0., 500.),
+                text: "I said Bear is coming now!!!!".into(),
+                ..Default::default()
+            },
+        ]
+    )
+}
+
+#[test]
+fn test_ignores_no_id_with_error() {
+    let mut parser = parser_with_dummy_sink();
+    assert_eq!(
+        parser.parse_sync(&mut (), include_vtt_file!("cue-no-id-error.vtt")),
+        Ok(())
+    );
+    assert_eq!(
+        *parser.sink.collected_cues.borrow(),
+        vec![
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 0., 0.),
+                end_time: compute_result_in_seconds(0., 0., 30., 500.),
+                text: "Bear is Coming!!!!!".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 31., 0.),
+                end_time: compute_result_in_seconds(0., 1., 0., 500.),
+                text: "I said Bear is coming!!!!".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 1., 1., 0.),
+                end_time: compute_result_in_seconds(0., 20., 0., 500.),
+                text: "I said Bear is coming now!!!!".into(),
+                ..Default::default()
+            },
+        ]
+    )
+}
+
+#[test]
+fn test_ignores_id_with_error() {
+    let mut parser = parser_with_dummy_sink();
+    assert_eq!(
+        parser.parse_sync(&mut (), include_vtt_file!("cue-id-error.vtt")),
+        Ok(())
+    );
+    assert_eq!(
+        *parser.sink.collected_cues.borrow(),
+        vec![
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 0., 0.),
+                end_time: compute_result_in_seconds(0., 0., 30., 500.),
+                text: "Bear is Coming!!!!!".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 31., 0.),
+                end_time: compute_result_in_seconds(0., 1., 0., 500.),
+                text: "I said Bear is coming!!!!".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 1., 1., 0.),
+                end_time: compute_result_in_seconds(0., 20., 0., 500.),
+                text: "I said Bear is coming now!!!!".into(),
+                ..Default::default()
+            },
+        ]
+    )
+}
+
+#[test]
+fn test_recovers_id_with_error() {
+    let mut parser = parser_with_dummy_sink();
+    assert_eq!(
+        parser.parse_sync(&mut (), include_vtt_file!("cue-id-error.vtt")),
+        Ok(())
+    );
+    assert_eq!(
+        *parser.sink.collected_cues.borrow(),
+        vec![
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 0., 0.),
+                end_time: compute_result_in_seconds(0., 0., 30., 500.),
+                text: "Bear is Coming!!!!!".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 31., 0.),
+                end_time: compute_result_in_seconds(0., 1., 0., 500.),
+                text: "I said Bear is coming!!!!".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 1., 1., 0.),
+                end_time: compute_result_in_seconds(0., 20., 0., 500.),
+                text: "I said Bear is coming now!!!!".into(),
+                ..Default::default()
+            },
+        ]
+    )
+}
+
+#[test]
+fn test_cues_without_whitespace_separation_means_id_is_part_of_text() {
+    let mut parser = parser_with_dummy_sink();
+    assert_eq!(
+        parser.parse_sync(&mut (), include_vtt_file!("cues-no-separation.vtt")),
+        Ok(())
+    );
+    assert_eq!(
+        *parser.sink.collected_cues.borrow(),
+        vec![
+            WebVttCue {
+                identifier: "1".into(),
+                start_time: compute_result_in_seconds(0., 0., 0., 0.),
+                end_time: compute_result_in_seconds(0., 0., 30., 500.),
+                text: "Bear is Coming!!!!!\n2".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 0., 31., 0.),
+                end_time: compute_result_in_seconds(0., 1., 0., 500.),
+                text: "I said Bear is coming!!!!".into(),
+                ..Default::default()
+            },
+            WebVttCue {
+                start_time: compute_result_in_seconds(0., 1., 1., 0.),
+                end_time: compute_result_in_seconds(100., 20., 0., 500.),
+                text: "I said Bear is coming now!!!!".into(),
+                ..Default::default()
+            },
+        ]
+    )
+}

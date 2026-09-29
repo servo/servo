@@ -381,7 +381,7 @@ impl VirtualMethods for HTMLStyleElement {
         }
 
         if attr.name() == "type" {
-            if let AttributeMutation::Set(Some(old_value), _) = mutation &&
+            if let AttributeMutation::Set(Some(old_value)) = mutation &&
                 **old_value == **attr.value()
             {
                 return;
@@ -395,7 +395,7 @@ impl VirtualMethods for HTMLStyleElement {
             let mut guard = shared_lock.write();
             let media = stylesheet.media.write_with(&mut guard);
             match mutation {
-                AttributeMutation::Set(..) => *media = self.create_media_list(&attr.value()),
+                AttributeMutation::Set(_) => *media = self.create_media_list(&attr.value()),
                 AttributeMutation::Removed => *media = StyleMediaList::empty(),
             };
             self.owner_document().invalidate_stylesheets(cx.no_gc());

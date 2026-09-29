@@ -60,10 +60,10 @@ where
         message: DOMString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
+            cx,
             Box::new(GPUError::new_inherited(message)),
             global,
             proto,
-            cx,
             GPUErrorWrap::<D>,
         )
     }

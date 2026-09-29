@@ -22,7 +22,7 @@ interface DissimilarOriginWindow : GlobalScope {
   [Replaceable, CrossOriginReadable] readonly attribute WindowProxy frames;
   [Replaceable, CrossOriginReadable] readonly attribute unsigned long length;
   [PutForwards=href, LegacyUnforgeable, CrossOriginReadable, CrossOriginWritable]
-    readonly attribute DissimilarOriginLocation location;
+    readonly attribute Location location;
 
   [CrossOriginCallable] undefined close();
   [CrossOriginReadable] readonly attribute boolean closed;

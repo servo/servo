@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>texImage2D from a TexImageSource ignores UNPACK_ALIGNMENT</title>
+<link rel="author" title="mxmgorin" href="mailto:102797145+mxmgorin@users.noreply.github.com">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/2.0/#DOM_UPLOAD_UNPACK_PARAMS">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// A 1x2 source: RGB rows are 3 bytes, not a multiple of the default UNPACK_ALIGNMENT of 4.
+function createSource() {
+    var canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 2;
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = "rgb(255, 0, 0)";
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = "rgb(0, 255, 0)";
+    ctx.fillRect(0, 1, 1, 1);
+    return canvas;
+}
+
+// Uploads the source into an RGB8 texture and reads its two texels back, row 0 first.
+function uploadAndReadBack(flipY) {
+    var gl = document.createElement("canvas").getContext("webgl2");
+    assert_equals(gl.getParameter(gl.UNPACK_ALIGNMENT), 4);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flipY);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, 1, 2, 0, gl.RGB, gl.UNSIGNED_BYTE, createSource());
+    assert_equals(gl.getError(), gl.NO_ERROR, "texImage2D");
+
+    var texture = gl.getParameter(gl.TEXTURE_BINDING_2D);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    var pixels = new Uint8Array(8);
+    gl.readPixels(0, 0, 1, 2, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    return [Array.from(pixels.slice(0, 3)), Array.from(pixels.slice(4, 7))];
+}
+
+test(function() {
+    assert_array_equals(uploadAndReadBack(false).flat(), [255, 0, 0, 0, 255, 0]);
+}, "Rows of a TexImageSource are uploaded packed");
+
+test(function() {
+    assert_array_equals(uploadAndReadBack(true).flat(), [0, 255, 0, 255, 0, 0]);
+}, "Rows of a TexImageSource are flipped packed with UNPACK_FLIP_Y_WEBGL");
+</script>

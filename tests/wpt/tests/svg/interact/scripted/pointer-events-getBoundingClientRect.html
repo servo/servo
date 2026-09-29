@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>pointer-events does not affect getBoundingClientRect() or getBBox() of SVG graphics elements</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/interact.html#PointerEventsProperty">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1815540">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg" width="300" height="100" font-family="Ahem">
+  <rect id="rect" x="10" y="10" width="40" height="40"/>
+  <text id="text" x="190" y="50" font-size="40px">X</text>
+</svg>
+<script>
+const pointer_events_values = [
+  "auto", "visiblePainted", "visibleFill", "visibleStroke", "visible",
+  "painted", "fill", "stroke", "all", "none", "bounding-box",
+];
+const paint_values = ["blue", "transparent", "none"];
+const stroke_width_values = ["20", "0"];
+const opacity_values = ["1", "0"];
+
+function rect_string(r) {
+  return [r.x, r.y, r.width, r.height].join(" ");
+}
+
+function test_element(id) {
+  const element = document.getElementById(id);
+  for (const fill of paint_values) {
+    for (const stroke of paint_values) {
+      for (const stroke_width of stroke_width_values) {
+        for (const stroke_opacity of opacity_values) {
+          element.setAttribute("fill", fill);
+          element.setAttribute("stroke", stroke);
+          element.setAttribute("stroke-width", stroke_width);
+          element.setAttribute("stroke-opacity", stroke_opacity);
+          test(() => {
+            element.removeAttribute("pointer-events");
+            const expected_client_rect = rect_string(element.getBoundingClientRect());
+            const expected_bbox = rect_string(element.getBBox());
+            for (const value of pointer_events_values) {
+              element.setAttribute("pointer-events", value);
+              assert_equals(rect_string(element.getBoundingClientRect()),
+                            expected_client_rect,
+                            `getBoundingClientRect() with pointer-events=${value}`);
+              assert_equals(rect_string(element.getBBox()), expected_bbox,
+                            `getBBox() with pointer-events=${value}`);
+            }
+          }, `<${element.localName}> fill=${fill} stroke=${stroke} ` +
+             `stroke-width=${stroke_width} stroke-opacity=${stroke_opacity}`);
+        }
+      }
+    }
+  }
+}
+
+setup({ explicit_done: true });
+
+document.fonts.ready.then(() => {
+  test_element("rect");
+  test_element("text");
+  done();
+});
+</script>

@@ -110,8 +110,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   const testId = token();
-  const manifestUrl1 = createPaymentMethodManifestUrl(testId);
-  const manifestUrl2 = createPaymentMethodManifestUrl(testId);
+  const manifestUrl1 = `${createPaymentMethodManifestUrl(testId)}&which=first`;
+  const manifestUrl2 = `${createPaymentMethodManifestUrl(testId)}&which=second`;
   const pmiUrl = createPaymentMethodIdentifierUrl(testId, {
     link: [
       `<${manifestUrl1}>; rel="payment-method-manifest"`,
@@ -128,12 +128,21 @@ promise_test(async t => {
   } catch (err) {
   }
 
-  const logs = await waitForServerAccessLogs(t, testId, 1);
+  const logs = await waitForServerAccessLogs(t, testId, 2);
 
   assert_equals(
-      logs.length, 1,
-      'Browser must issue only 1 server request (HEAD to PMI); duplicate manifest links abort fetch');
+      logs.length, 2,
+      'Browser must issue exactly 2 server requests (HEAD for PMI, GET for the first manifest)');
   assert_equals(logs[0].endpoint, 'payment-method-identifier',
-                'Request must hit PMI URL');
+                'First request must hit PMI URL');
   assert_equals(logs[0].method, 'HEAD', 'PMI request must use HEAD method');
-}, 'Multiple rel="payment-method-manifest" link headers cause fetch to abort');
+  assert_equals(logs[1].endpoint, 'payment-method-manifest',
+                'Second request must hit a manifest URL');
+  assert_equals(logs[1].method, 'GET', 'Manifest request must use GET method');
+  assert_true(
+      logs[1].url.includes('which=first'),
+      'Browser must fetch the first rel="payment-method-manifest" link');
+  assert_false(
+      logs[1].url.includes('which=second'),
+      'Browser must not fetch later rel="payment-method-manifest" links');
+}, 'Multiple rel="payment-method-manifest" link headers use the first one');

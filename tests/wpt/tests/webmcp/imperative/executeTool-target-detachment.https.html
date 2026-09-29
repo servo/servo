@@ -109,6 +109,91 @@ promise_test(async t => {
     'Promise should be rejected with UnknownError when target frame is detached mid-execution'
   );
 }, 'executeTool() rejects when target frame is detached mid-execution');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  const toolchange_promise = new Promise(resolve => {
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  await iframe.contentWindow.document.modelContext.registerTool({
+    name: 'sync_detach_on_execute',
+    description: 'Synchronously detaches its own frame during execute()',
+    execute: () => {
+      iframe.remove();
+      return new Promise(() => {});
+    }
+  });
+
+  await toolchange_promise;
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'sync_detach_on_execute');
+  assert_true(!!tool, 'Tool should be retrieved successfully');
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    document.modelContext.executeTool(tool),
+    'Promise should reject when target frame synchronously detaches itself during execute()'
+  );
+}, 'executeTool() rejects cleanly when tool callback synchronously detaches its own frame');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  const toolchange_promise = new Promise(resolve => {
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  const { promise: toolStarted, resolve: resolveToolStarted } = Promise.withResolvers();
+  await iframe.contentWindow.document.modelContext.registerTool({
+    name: 'sync_detach_on_abort',
+    description: 'Synchronously detaches its own frame when options.signal aborts',
+    execute: (input, options) => {
+      options.signal.addEventListener('abort', () => {
+        iframe.remove();
+      });
+      resolveToolStarted();
+      return new Promise(() => {});
+    }
+  });
+
+  await toolchange_promise;
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'sync_detach_on_abort');
+  assert_true(!!tool, 'Tool should be retrieved successfully');
+
+  const controller = new AbortController();
+  const execute_promise = document.modelContext.executeTool(
+      tool, {}, { signal: controller.signal });
+
+  await toolStarted;
+  controller.abort('abort and detach');
+
+  await promise_rejects_exactly(
+    t,
+    'abort and detach',
+    execute_promise,
+    'Promise should reject with abort reason when options.signal abort handler detaches frame'
+  );
+}, 'executeTool() abort cleanly handles synchronous frame detachment inside options.signal abort listener');
 </script>
 </body>
 </html>

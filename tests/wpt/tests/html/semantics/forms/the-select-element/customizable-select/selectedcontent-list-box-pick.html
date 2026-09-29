@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#send-select-update-notifications">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<select size=4>
+  <option selected>one</option>
+  <option>two</option>
+  <optgroup>
+    <legend><selectedcontent></selectedcontent></legend>
+  </optgroup>
+</select>
+
+<script>
+// The options of a list box need not have boxes of their own, so click their rows instead.
+function clickRow(select, row) {
+  const rect = select.getBoundingClientRect();
+  const rowHeight = select.clientHeight / select.size;
+  return new test_driver.Actions()
+    .pointerMove(Math.round(rect.left + 10), Math.round(rect.top + select.clientTop + rowHeight * (row + 0.5)))
+    .pointerDown()
+    .pointerUp()
+    .send();
+}
+
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const selectedcontent = select.querySelector('selectedcontent');
+  const optionTwo = select.options[1];
+
+  assert_equals(selectedcontent.textContent, 'one',
+    '<selectedcontent> should initially contain the selected option.');
+
+  // It is updated before change is fired, so check it there rather than rely on when the click
+  // resolves.
+  const contentAtChange = new Promise(resolve => {
+    select.addEventListener('change', () => resolve(selectedcontent.textContent), {once: true});
+  });
+  await clickRow(select, 1);
+  assert_true(optionTwo.selected, 'Clicking the second row should select its option.');
+  assert_equals(await contentAtChange, 'two',
+    '<selectedcontent> should respond to the user picking an option by the time change fires.');
+}, 'Picking an option in a list box updates its <selectedcontent>.');
+</script>

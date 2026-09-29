@@ -348,7 +348,7 @@ impl ReadableStreamDefaultReader {
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> DomRoot<ReadableStreamDefaultReader> {
-        let closed_promise = Promise::new_rooted(cx, global);
+        let closed_promise = Promise::new(cx, global);
         reflect_dom_object_with_proto(
             cx,
             Box::new(ReadableStreamDefaultReader::new_inherited(&closed_promise)),
@@ -370,7 +370,7 @@ impl ReadableStreamDefaultReader {
         cx: &mut JSContext,
         global: &GlobalScope,
     ) -> DomRoot<ReadableStreamDefaultReader> {
-        let closed_promise = Promise::new_rooted(cx, global);
+        let closed_promise = Promise::new(cx, global);
         reflect_dom_object_with_cx(Box::new(Self::new_inherited(&closed_promise)), global, cx)
     }
 
@@ -647,10 +647,10 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
                 &self.global(),
                 error.handle_mut(),
             );
-            return Promise::new_rejected_rooted(cx, &self.global(), error.handle());
+            return Promise::new_rejected(cx, &self.global(), error.handle());
         }
         // Let promise be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
 
         // Let readRequest be a new read request with the following items:
         // chunk steps, given chunk

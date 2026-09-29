@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid: percentage block-size transferred through a grid item into the grid's intrinsic inline-size</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-grid-sizing">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="A content-sized (max-content) grid whose grid item has a percentage block-size and contains a replaced grandchild with a percentage block-size and an aspect-ratio sizes its column from the grandchild's transferred block-size, instead of collapsing the grid and grandchild to zero.">
+<p>Test passes if there is a filled green square.</p>
+<style>
+  .grid { display: grid; width: max-content; }
+  .item { height: 100%; }
+  canvas { display: block; height: 100%; background: green; }
+</style>
+<div class="grid">
+  <div class="item">
+    <canvas width="100" height="100"></canvas>
+  </div>
+</div>

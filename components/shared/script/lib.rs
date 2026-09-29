@@ -9,6 +9,7 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
+use std::cell::Cell;
 use std::fmt;
 
 use bitflags::bitflags;
@@ -59,9 +60,24 @@ use webgpu_traits::WebGPUMsg;
 use webrender_api::ImageKey;
 use webrender_api::units::DevicePixel;
 
+/// A representation of the `WebView` state that is kept in each `EventLoop`
+/// and in the `Constellation`.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct WebViewState {
+    /// The [`WebViewId`] of this `WebView`.
+    pub id: WebViewId,
+    /// The platform [`Theme`] to use for this `WebView`.
+    pub theme: Cell<Theme>,
+    /// Whether or not the `WebView` has system focus. More than one `WebView` may have
+    /// system focus at one time.
+    pub has_system_focus: Cell<bool>,
+}
+
 /// The initial data required to create a new `Pipeline` attached to an existing `ScriptThread`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct NewPipelineInfo {
+    /// The [`WebViewState`] of the `WebView` that this pipeline belongs to.
+    pub webview_state: WebViewState,
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is a root pipeline.
     pub parent_info: Option<PipelineId>,
@@ -69,8 +85,6 @@ pub struct NewPipelineInfo {
     pub new_pipeline_id: PipelineId,
     /// Id of the browsing context associated with this pipeline.
     pub browsing_context_id: BrowsingContextId,
-    /// Id of the top-level browsing context associated with this pipeline.
-    pub webview_id: WebViewId,
     /// Id of the opener, if any
     pub opener: Option<BrowsingContextId>,
     /// Network request data which will be initiated by the script thread.
@@ -79,8 +93,6 @@ pub struct NewPipelineInfo {
     pub viewport_details: ViewportDetails,
     /// The ID of the `UserContentManager` associated with this new pipeline's `WebView`.
     pub user_content_manager_id: Option<UserContentManagerId>,
-    /// The [`Theme`] of the new layout.
-    pub embedder_theme: Theme,
     /// A snapshot of the navigation parameters of the target of this navigation.
     pub target_snapshot_params: TargetSnapshotParams,
     /// Name of this iframe, if any
@@ -152,8 +164,8 @@ pub enum ScriptThreadMessage {
     StopDelayingLoadEventsMode(PipelineId),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
     Resize(PipelineId, ViewportDetails, WindowSizeType),
-    /// Theme changed.
-    ThemeChange(PipelineId, Theme),
+    /// Inform the ScriptThread that some aspect of the WebViewState has changed.
+    UpdateWebViewState(WebViewState),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, ViewportDetails),
     /// Window switched from fullscreen mode.

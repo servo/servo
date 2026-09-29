@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CompositionEventBinding::{
@@ -36,7 +36,7 @@ impl CompositionEvent {
         cx: &mut JSContext,
         window: &Window,
     ) -> DomRoot<CompositionEvent> {
-        reflect_dom_object_with_cx(Box::new(CompositionEvent::new_inherited()), window, cx)
+        reflect_dom_object(cx, Box::new(CompositionEvent::new_inherited()), window)
     }
 
     #[expect(clippy::too_many_arguments)]

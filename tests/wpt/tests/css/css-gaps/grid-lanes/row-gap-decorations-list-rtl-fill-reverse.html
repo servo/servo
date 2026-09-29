@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: fill-reverse reverses RTL column rule list assignment independently in each row grid-lane</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#assigning">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-list-rtl-fill-reverse-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: 60px 60px;
+    grid-lanes-direction: row fill-reverse;
+    direction: rtl;
+    writing-mode: horizontal-tb;
+    gap: 10px;
+    width: 150px;
+    height: 130px;
+    background: #cdd5e0;
+    column-rule-width: 4px;
+    column-rule-style: solid;
+    column-rule-color: blue, gold, purple;
+  }
+  .lanes > div {
+    width: 30px;
+    background: #5b8def;
+  }
+  .r1 { grid-row: 1; }
+  .r2 { grid-row: 2; }
+</style>
+<div class="lanes">
+  <div class="r1"></div>
+  <div class="r1"></div>
+  <div class="r1"></div>
+  <div class="r2"></div>
+  <div class="r2"></div>
+  <div class="r2"></div>
+  <div class="r2"></div>
+</div>

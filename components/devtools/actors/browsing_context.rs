@@ -281,7 +281,7 @@ impl BrowsingContextActor {
         });
     }
 
-    pub fn simulate_color_scheme(&self, theme: Theme) -> Result<(), ()> {
+    pub fn simulate_color_scheme(&self, theme: Option<Theme>) -> Result<(), ()> {
         self.script_chan()
             .send(SimulateColorScheme(self.pipeline_id(), theme))
             .map_err(|_| ())

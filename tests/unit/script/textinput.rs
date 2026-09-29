@@ -7,10 +7,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use keyboard_types::{Key, Modifiers, NamedKey};
+use embedder_traits::{EditingAction, EditingMotion, ModifySelection};
 use script::test::DOMString;
 use script::test::text_input::{
-    ClipboardProvider, Direction, Lines, SelectionDirection, TextInput,
+    ClipboardProvider, EditingDirection, Lines, SelectionDirection, TextInput,
 };
 use servo_base::text::{Utf8CodeUnits, Utf16CodeUnits};
 use servo_base::{RopeIndex, RopeMovement};
@@ -224,20 +224,20 @@ fn test_single_line_text_input_with_max_length_doesnt_allow_appending_characters
 fn test_text_input_delete_char() {
     let mut text_input = make_text_input(Lines::Single, "abcdefg");
     text_input.modify_edit_point(2, RopeMovement::Grapheme);
-    text_input.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Backward);
+    text_input.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Backward);
     assert_eq!(text_input.get_content(), "acdefg");
 
-    text_input.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Forward);
+    text_input.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward);
     assert_eq!(text_input.get_content(), "adefg");
 
     text_input.modify_selection(2, RopeMovement::Grapheme);
-    text_input.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Forward);
+    text_input.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward);
     assert_eq!(text_input.get_content(), "afg");
 
     let mut text_input = make_text_input(Lines::Single, "a🌠b");
     // Same as "Right" key
     text_input.modify_edit_point(1, RopeMovement::Grapheme);
-    text_input.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Forward);
+    text_input.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward);
     // Not splitting surrogate pairs.
     assert_eq!(text_input.get_content(), "ab");
 
@@ -247,7 +247,7 @@ fn test_text_input_delete_char() {
         Utf8CodeUnits(2),
         SelectionDirection::None,
     );
-    text_input.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Backward);
+    text_input.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Backward);
     assert_eq!(text_input.get_content(), "acdefg");
 }
 
@@ -429,49 +429,53 @@ fn test_text_input_adjust_horizontal_to_line_end() {
 }
 
 #[test]
-fn test_navigation_keyboard_shortcuts() {
+fn test_perform_editing_action() {
     let mut text_input = make_text_input(Lines::Multiple, "hello áéc");
 
-    // Test that CMD + Right moves to the end of the current line.
-    text_input.handle_keydown_aux(Key::Named(NamedKey::ArrowRight), Modifiers::META, true);
+    // Test moving to the end of the current line.
+    text_input.perform_editing_action(EditingAction::MoveCursor(
+        EditingDirection::Forward,
+        EditingMotion::LineStartOrEnd,
+        ModifySelection::Yes,
+    ));
     assert_eq!(text_input.edit_point().code_point, 11);
-    // Test that CMD + Right moves to the beginning of the current line.
-    text_input.handle_keydown_aux(Key::Named(NamedKey::ArrowLeft), Modifiers::META, true);
-    assert_eq!(text_input.edit_point().code_point, 0);
-    // Test that CTRL + ALT + E moves to the end of the current line also.
-    text_input.handle_keydown_aux(
-        Key::Character("e".to_owned()),
-        Modifiers::CONTROL | Modifiers::ALT,
-        true,
-    );
-    assert_eq!(text_input.edit_point().code_point, 11);
-    // Test that CTRL + ALT + A moves to the beginning of the current line also.
-    text_input.handle_keydown_aux(
-        Key::Character("a".to_owned()),
-        Modifiers::CONTROL | Modifiers::ALT,
-        true,
-    );
+
+    // Test moving to the start of the current line.
+    text_input.perform_editing_action(EditingAction::MoveCursor(
+        EditingDirection::Backward,
+        EditingMotion::LineStartOrEnd,
+        ModifySelection::Yes,
+    ));
     assert_eq!(text_input.edit_point().code_point, 0);
 
-    // Test that ALT + Right moves to the end of the word.
-    text_input.handle_keydown_aux(Key::Named(NamedKey::ArrowRight), Modifiers::ALT, true);
+    // Test moving to the end of the word.
+    text_input.perform_editing_action(EditingAction::MoveCursor(
+        EditingDirection::Forward,
+        EditingMotion::Word,
+        ModifySelection::Yes,
+    ));
     assert_eq!(text_input.edit_point().code_point, 5);
-    // Test that CTRL + ALT + F moves to the end of the word also.
-    text_input.handle_keydown_aux(
-        Key::Character("f".to_owned()),
-        Modifiers::CONTROL | Modifiers::ALT,
-        true,
-    );
+
+    text_input.perform_editing_action(EditingAction::MoveCursor(
+        EditingDirection::Forward,
+        EditingMotion::Word,
+        ModifySelection::Yes,
+    ));
     assert_eq!(text_input.edit_point().code_point, 11);
-    // Test that ALT + Left moves to the end of the word.
-    text_input.handle_keydown_aux(Key::Named(NamedKey::ArrowLeft), Modifiers::ALT, true);
+
+    // Test moving to the start of the word.
+    text_input.perform_editing_action(EditingAction::MoveCursor(
+        EditingDirection::Backward,
+        EditingMotion::Word,
+        ModifySelection::Yes,
+    ));
     assert_eq!(text_input.edit_point().code_point, 6);
-    // Test that CTRL + ALT + B moves to the end of the word also.
-    text_input.handle_keydown_aux(
-        Key::Character("b".to_owned()),
-        Modifiers::CONTROL | Modifiers::ALT,
-        true,
-    );
+
+    text_input.perform_editing_action(EditingAction::MoveCursor(
+        EditingDirection::Backward,
+        EditingMotion::Word,
+        ModifySelection::Yes,
+    ));
     assert_eq!(text_input.edit_point().code_point, 0);
 }
 
@@ -521,24 +525,6 @@ fn test_text_input_set_content() {
     text_input.set_content(DOMString::from("de"));
     assert_eq!(text_input.get_content(), "de");
     assert_eq!(text_input.edit_point(), RopeIndex::new(0, 2));
-}
-
-#[test]
-fn test_clipboard_paste() {
-    #[cfg(target_os = "macos")]
-    const MODIFIERS: Modifiers = Modifiers::META;
-    #[cfg(not(target_os = "macos"))]
-    const MODIFIERS: Modifiers = Modifiers::CONTROL;
-
-    let mut text_input = TextInput::new(
-        Lines::Single,
-        DOMString::from("defg"),
-        DummyClipboardContext::new("abc"),
-    );
-    assert_eq!(text_input.get_content(), "defg");
-    assert_eq!(text_input.edit_point().code_point, 0);
-    text_input.handle_keydown_aux(Key::Character("v".to_owned()), MODIFIERS, false);
-    assert_eq!(text_input.get_content(), "abcdefg");
 }
 
 #[test]
@@ -698,7 +684,11 @@ fn test_select_all() {
 #[test]
 fn test_backspace_in_textarea_at_beginning_of_line() {
     let mut text_input = make_text_input(Lines::Multiple, "first line\n");
-    text_input.handle_keydown_aux(Key::Named(NamedKey::ArrowDown), Modifiers::empty(), false);
-    text_input.handle_keydown_aux(Key::Named(NamedKey::Backspace), Modifiers::empty(), false);
+    text_input.perform_editing_action(EditingAction::MoveCursor(
+        EditingDirection::Forward,
+        EditingMotion::Line,
+        ModifySelection::No,
+    ));
+    text_input.perform_editing_action(EditingAction::Backspace(EditingMotion::Grapheme));
     assert_eq!(text_input.get_content(), DOMString::from("first line"));
 }

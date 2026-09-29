@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>CSS Scroll Snap: 2D Euclidean distance resolution for candidate conflicts under scroll-snap-type: pair</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-axis"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller {
+    width: 200px;
+    height: 200px;
+    overflow: scroll;
+    position: relative;
+    scroll-snap-type: pair mandatory;
+    scrollbar-width: none;
+    background: #fafafa;
+    border: 2px solid #333;
+  }
+  .space {
+    width: 2000px;
+    height: 2000px;
+    position: absolute;
+  }
+  .target {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 4px;
+    scroll-snap-align: start start;
+  }
+  #origin {
+    left: 100px;
+    top: 100px;
+    background: #6c757d;
+    border: 2px solid #545b62;
+  }
+  #closer-target {
+    left: 100px;
+    top: 500px;
+    background: #28a745;
+    border: 2px solid #1e7e34;
+  }
+  #farther-target {
+    left: 800px;
+    top: 100px;
+    background: #dc3545;
+    border: 2px solid #bd2130;
+  }
+</style>
+
+<div id="scroller" class="scroller">
+  <div class="space"></div>
+  <div id="origin" class="target"></div>
+  <div id="closer-target" class="target"></div>
+  <div id="farther-target" class="target"></div>
+</div>
+
+<script>
+test(t => {
+  const scroller = document.getElementById("scroller");
+  // Set base position at (100, 100)
+  scroller.scrollTo(100, 100);
+
+  // Scroll diagonally towards (400, 400)
+  scroller.scrollTo(400, 400);
+
+  // closer-target (100, 500) has shorter 2D Euclidean distance than farther-target (800, 100)
+  assert_equals(scroller.scrollLeft, 100, "scrollLeft should snap to closer target");
+  assert_equals(scroller.scrollTop, 500, "scrollTop should snap to closer target");
+}, "Resolves dual-axis candidate conflicts using 2D Euclidean distance to base position");
+</script>

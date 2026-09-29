@@ -1,0 +1,12 @@
+<!doctype html>
+<html class="test-wait">
+<title>JPEG XL custom primaries with no representable ICC profile do not crash the decoder</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2073543">
+<img src="resources/custom-primaries-icc-overflow.jxl">
+<script>
+// The image may decode or fail to decode; what is being tested is that the
+// decode doesn't crash.
+document.querySelector("img").decode().finally(() => {
+  document.documentElement.className = "";
+});
+</script>

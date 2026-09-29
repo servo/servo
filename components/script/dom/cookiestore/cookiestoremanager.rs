@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::{Dom, DomRoot};
 use servo_url::ServoUrl;
 
@@ -54,7 +54,7 @@ impl CookieStoreManager {
     ) -> DomRoot<CookieStoreManager> {
         // The cookies getter steps are to return this's associated
         // CookieStoreManager object.
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(registration)), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited(registration)), global)
     }
 
     /// <https://cookiestore.spec.whatwg.org/#dom-cookiestoremanager-subscribe>
@@ -108,7 +108,7 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
         // Step 1. Let settings be this's relevant settings object.
         // Step 2. Let registration be this's registration.
         // Step 3. Let p be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
         // Step 4.1. Let subscription list be registration's associated cookie
         // change subscription list.
 
@@ -144,7 +144,7 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
     fn GetSubscriptions(&self, cx: &mut JSContext) -> RootedPromise {
         // Step 1. Let registration be this's registration.
         // Step 2. Let p be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
         // Step 3.1. Let subscriptions be registration's associated cookie
         // change subscription list.
         let subscriptions = self.subscriptions.borrow();
@@ -165,7 +165,7 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
         // Step 1. Let settings be this's relevant settings object.
         // Step 2. Let registration be this's registration.
         // Step 3. Let p be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
         // Step 4.1. Let subscription list be registration's associated cookie
         // change subscription list.
 

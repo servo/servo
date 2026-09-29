@@ -115,6 +115,7 @@ impl<D: Equivalence> GPUTexture<D> {
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUTexture::new_inherited(
                 texture,
                 device,
@@ -128,7 +129,6 @@ impl<D: Equivalence> GPUTexture<D> {
                 label,
             )),
             global,
-            cx,
             GPUTextureWrap::<D>,
         )
     }

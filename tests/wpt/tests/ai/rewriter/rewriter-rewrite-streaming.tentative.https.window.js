@@ -34,14 +34,6 @@ promise_test(async t => {
 
 promise_test(async () => {
   const rewriter = await createRewriter();
-  await Promise.all([
-    rewriter.rewriteStreaming(kTestPrompt),
-    rewriter.rewriteStreaming(kTestPrompt)
-  ]);
-}, 'Multiple Rewriter.rewriteStreaming() calls are resolved successfully');
-
-promise_test(async () => {
-  const rewriter = await createRewriter();
   const streamingResponse = rewriter.rewriteStreaming(kTestPrompt);
   garbageCollect();
   assert_true(streamingResponse instanceof ReadableStream);

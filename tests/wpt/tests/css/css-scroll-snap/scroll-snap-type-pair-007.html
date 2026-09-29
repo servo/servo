@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<title>CSS Scroll Snap: DirectionStrategy 2D fling candidate conflict resolution under scroll-snap-type: pair</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-axis"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  #scroller {
+    width: 300px;
+    height: 300px;
+    overflow: scroll;
+    position: relative;
+    scroll-snap-type: pair mandatory;
+    scrollbar-width: none;
+    background: #fafafa;
+    border: 2px solid #333;
+    touch-action: pan-x pan-y;
+  }
+  .space {
+    width: 2000px;
+    height: 2000px;
+    position: absolute;
+  }
+  .target {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 4px;
+    scroll-snap-align: start start;
+  }
+  .origin {
+    left: 100px;
+    top: 100px;
+    background: #6c757d;
+  }
+  /* Candidate X: delta (150, 0), distance 150px (farther), cosine similarity 0.981 */
+  .candidate-x {
+    left: 250px;
+    top: 100px;
+    background: #28a745;
+  }
+  /* Candidate Y: delta (0, 80), distance 80px (closer), cosine similarity 0.196 */
+  .candidate-y {
+    left: 100px;
+    top: 180px;
+    background: #007bff;
+  }
+</style>
+
+<div id="scroller" class="scroller">
+  <div class="space"></div>
+  <div class="origin target"></div>
+  <div class="candidate-x target"></div>
+  <div class="candidate-y target"></div>
+</div>
+
+<script>
+function diagonalTouchFling(target, x_pixels, y_pixels) {
+  const num_moves = 5;
+  const dx = -1 * x_pixels / num_moves;
+  const dy = -1 * y_pixels / num_moves;
+  return new test_driver.Actions()
+      .addPointer("touch1", "touch")
+      .pointerMove(0, 0, { origin: target })
+      .pointerDown()
+      .pointerMove(dx, dy, { origin: target })
+      .pointerMove(2 * dx, 2 * dy, { origin: target })
+      .pointerMove(3 * dx, 3 * dy, { origin: target })
+      .pointerMove(4 * dx, 4 * dy, { origin: target })
+      .pointerMove(5 * dx, 5 * dy, { origin: target })
+      .pause(0)
+      .pointerUp()
+      .send();
+}
+
+promise_test(async () => {
+  await waitForCompositorReady();
+  const scroller = document.getElementById("scroller");
+
+  assert_equals(scroller.scrollLeft, 100, "Initial scrollLeft is 100");
+  assert_equals(scroller.scrollTop, 100, "Initial scrollTop is 100");
+
+  const scrollEndPromise = waitForScrollendEventNoTimeout(scroller);
+  // 2D fling biased horizontally (x: 150, y: 30)
+  await diagonalTouchFling(scroller, 150, 30);
+  await scrollEndPromise;
+
+  assert_equals(scroller.scrollLeft, 250, "scrollLeft should snap to candidate-x");
+  assert_equals(scroller.scrollTop, 100, "scrollTop should snap to candidate-x");
+}, "DirectionStrategy prefers higher cosine similarity candidate during 2D momentum fling");
+</script>

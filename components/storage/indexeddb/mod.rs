@@ -1432,7 +1432,7 @@ impl IndexedDBManager {
     }
 
     /// Aborting the current upgrade for an origin.
-    // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+    /// <https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction>
     fn abort_pending_upgrade(
         &mut self,
         name: String,

@@ -57,6 +57,86 @@ test_math_used('hypot(3, 4 * sign(1em - 1px))', '5', {type: 'integer'});
 test_math_computed('calc(pow(tan(atan2(round(up,1px,100%),round(up,1px,100%))),2)*1px)',
                    'calc(pow(tan(atan2(round(up,1px,100%),round(up,1px,100%))),2)*1px)', {type:'length'});
 
+// Special values: pow()
+// https://drafts.csswg.org/css-values-4/#exponent-infinities
+
+// If A is negative and finite, and B is finite, B must be an integer.
+test_nan('pow(-2, 0.5)');
+test_nan('pow(-8, 1 / 3)');
+
+// Table 1: A is -infinity / 0- / 0+ / +infinity.
+test_minus_zero('pow(-infinity, -3)');
+test_plus_zero('pow(-infinity, -2)');
+test_minus_zero('pow(-infinity, -1)');
+test_math_used('pow(-infinity, 0)', '1', {type: 'number'});
+test_minus_infinity('pow(-infinity, 1)');
+test_plus_infinity('pow(-infinity, 2)');
+test_minus_infinity('pow(-infinity, 3)');
+
+test_minus_infinity('pow(-0, -3)');
+test_plus_infinity('pow(-0, -2)');
+test_minus_infinity('pow(-0, -1)');
+test_math_used('pow(-0, 0)', '1', {type: 'number'});
+test_minus_zero('pow(-0, 1)');
+test_plus_zero('pow(-0, 2)');
+test_minus_zero('pow(-0, 3)');
+
+test_plus_infinity('pow(0, -3)');
+test_plus_infinity('pow(0, -1)');
+test_math_used('pow(0, 0)', '1', {type: 'number'});
+test_plus_zero('pow(0, 1)');
+test_plus_zero('pow(0, 2)');
+
+test_plus_zero('pow(infinity, -3)');
+test_plus_zero('pow(infinity, -1)');
+test_math_used('pow(infinity, 0)', '1', {type: 'number'});
+test_plus_infinity('pow(infinity, 1)');
+test_plus_infinity('pow(infinity, 2)');
+
+// Table 2: B is +/-infinity, A relative to -1 / 0 / 1.
+test_plus_infinity('pow(-2, infinity)');
+test_nan('pow(-1, infinity)');
+test_plus_zero('pow(-0.5, infinity)');
+test_plus_zero('pow(0.5, infinity)');
+test_nan('pow(1, infinity)');
+test_plus_infinity('pow(2, infinity)');
+
+test_plus_zero('pow(-2, -infinity)');
+test_nan('pow(-1, -infinity)');
+test_plus_infinity('pow(-0.5, -infinity)');
+test_plus_infinity('pow(0.5, -infinity)');
+test_nan('pow(1, -infinity)');
+test_plus_zero('pow(2, -infinity)');
+
+// NaN is infectious, including pow(NaN, 0) and pow(1, NaN)
+// where JS `Math.pow` would return 1.
+// https://drafts.csswg.org/css-values-4/#exponent-infinities
+// https://drafts.csswg.org/css-values-4/#calc-ieee
+test_nan('pow(NaN, 0)');
+test_nan('pow(1, NaN)');
+test_nan('pow(NaN, NaN)');
+
+// sqrt()
+test_minus_zero('sqrt(-0)');
+test_plus_infinity('sqrt(infinity)');
+test_nan('sqrt(-1)');
+test_nan('sqrt(NaN)');
+test_nan('sqrt(-infinity)');
+
+// hypot()
+test_math_used('hypot(3, 4)', '5', {type: 'number'});
+test_plus_infinity('hypot(infinity, 5)');
+test_plus_infinity('hypot(5, infinity)');
+test_plus_infinity('hypot(-infinity, 5)');
+// NaN is infectious, so hypot(infinity, NaN) is NaN
+// even though JS `Math.hypot(Infinity, NaN)` returns Infinity.
+// https://drafts.csswg.org/css-values-4/#exponent-infinities
+// https://drafts.csswg.org/css-values-4/#calc-ieee
+test_nan('hypot(NaN, 5)');
+test_nan('hypot(5, NaN)');
+test_nan('hypot(infinity, NaN)');
+test_nan('hypot(NaN, infinity)');
+
 // Type checking hypot
 test_math_used('hypot(1px)', '1px');
 test_math_used('hypot(1cm)', '1cm');

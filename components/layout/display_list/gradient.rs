@@ -400,10 +400,8 @@ fn gradient_items_to_color_stops(
                     position: Some(if gradient_line_length.is_zero() {
                         0.
                     } else {
-                        position
-                            .to_used_value(gradient_line_length)
-                            .scale_by(1. / gradient_line_length.to_f32_px())
-                            .to_f32_px()
+                        position.to_used_value(gradient_line_length).to_f32_px() /
+                            gradient_line_length.to_f32_px()
                     }),
                 }),
                 // FIXME: approximate like in:

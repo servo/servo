@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::context::{JSContext, NoGC};
 use pixels::Snapshot;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_canvas_traits::canvas::CanvasCommand;
 
 use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
@@ -20,6 +20,7 @@ use crate::dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBi
 use crate::dom::bindings::codegen::UnionTypes::{
     HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas,
     StringOrCanvasGradientOrCanvasPattern,
+    UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
@@ -67,7 +68,7 @@ impl OffscreenCanvasRenderingContext2D {
             settings,
         )
         .map(|context| {
-            let context = reflect_dom_object_with_cx(Box::new(context), global, cx);
+            let context = reflect_dom_object(cx, Box::new(context), global);
             context.context.update_associated_memory_size();
             context
         })
@@ -435,7 +436,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         self.context.PutImageData(no_gc, imagedata, dx, dy)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
     fn PutImageData_(
         &self,
         no_gc: &NoGC,
@@ -596,6 +597,18 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-rect>
     fn Rect(&self, x: f64, y: f64, width: f64, height: f64) {
         self.context.Rect(x, y, width, height)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-roundrect>
+    fn RoundRect(
+        &self,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+        radii: UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
+    ) -> ErrorResult {
+        self.context.RoundRect(x, y, width, height, radii)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-quadraticcurveto>

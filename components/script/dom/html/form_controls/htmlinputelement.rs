@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, RgbColor, SelectedFile};
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::jsapi::{ClippedTime, JSObject, RegExpFlag_UnicodeSets, RegExpFlags};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers2::{
@@ -66,7 +66,6 @@ use crate::dom::html::htmlformelement::{
 };
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
-use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
@@ -237,7 +236,7 @@ impl HTMLInputElement {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-value
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
     /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
     pub(crate) fn value_mode(&self) -> ValueMode {
         match *self.input_type() {
@@ -743,7 +742,7 @@ impl HTMLInputElement {
             .suffers_from_bad_input(value)
     }
 
-    // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long
+    /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long>
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short>
     fn suffers_from_length_issues(&self, value: &DOMString) -> ValidationFlags {
         // https://html.spec.whatwg.org/multipage/#limiting-user-input-length%3A-the-maxlength-attribute%3Asuffering-from-being-too-long
@@ -837,29 +836,6 @@ impl HTMLInputElement {
     fn may_have_embedder_control(&self) -> bool {
         let el = self.upcast::<Element>();
         matches!(*self.input_type(), InputType::Color(_)) && !el.disabled_state()
-    }
-
-    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction, event: &Event) {
-        match action {
-            KeyReaction::TriggerDefaultAction => {
-                self.implicit_submission(cx);
-                event.mark_as_handled();
-            },
-            KeyReaction::DispatchInput(text, is_composing, input_type) => {
-                if event.IsTrusted() {
-                    self.queue_input_event(text, is_composing, input_type);
-                }
-                self.value_dirty.set(true);
-                self.update_placeholder_shown_state();
-                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
-                event.mark_as_handled();
-            },
-            KeyReaction::RedrawSelection => {
-                self.maybe_update_shared_selection();
-                event.mark_as_handled();
-            },
-            KeyReaction::Nothing => (),
-        }
     }
 
     /// Return a string that represents the contents of the element in its displayed shadow DOM.
@@ -1051,6 +1027,24 @@ impl TextControlElement for HTMLInputElement {
         self.update_placeholder_shown_state();
         self.upcast::<Node>()
             .dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
+    }
+
+    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction) {
+        match action {
+            KeyReaction::TriggerDefaultAction => {
+                self.implicit_submission(cx);
+            },
+            KeyReaction::DispatchInput(text, is_composing, input_type) => {
+                self.queue_input_event(text, is_composing, input_type);
+                self.value_dirty.set(true);
+                self.update_placeholder_shown_state();
+                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+            },
+            KeyReaction::RedrawSelection => {
+                self.maybe_update_shared_selection();
+            },
+            KeyReaction::Nothing => (),
+        }
     }
 }
 
@@ -1257,7 +1251,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         self.suggestions_source_element()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasdate>
     #[expect(unsafe_code)]
     fn GetValueAsDate(&self, cx: &mut JSContext, mut return_value: MutableHandleObject) {
         if let Some(date_time) = self
@@ -1272,7 +1266,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasdate>
     #[expect(unsafe_code)]
     fn SetValueAsDate(&self, cx: &mut JSContext, value: *mut JSObject) -> ErrorResult {
         rooted!(&in(cx) let value = value);
@@ -1566,8 +1560,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
-    fn WillValidate(&self) -> bool {
-        self.is_instance_validatable()
+    fn WillValidate(&self, no_gc: &NoGC) -> bool {
+        self.is_instance_validatable(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
@@ -1744,7 +1738,7 @@ impl HTMLInputElement {
             .set_state(ElementState::CHECKED, should_checked_state_apply);
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
+    /// <https://html.spec.whatwg.org/multipage/#concept-fe-mutable>
     pub(crate) fn is_mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
@@ -2041,8 +2035,8 @@ impl VirtualMethods for HTMLInputElement {
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
-                    AttributeMutation::Set(None, _) => true,
-                    AttributeMutation::Set(Some(_), _) => {
+                    AttributeMutation::Set(None) => true,
+                    AttributeMutation::Set(Some(_)) => {
                         // Input was already disabled before.
                         return;
                     },
@@ -2051,7 +2045,7 @@ impl VirtualMethods for HTMLInputElement {
                 let el = self.upcast::<Element>();
                 el.set_disabled_state(disabled_state);
                 el.set_enabled_state(!disabled_state);
-                el.check_ancestors_disabled_state_for_form_control();
+                el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
 
                 if self.input_type().is_textual() {
                     let read_write = !(self.ReadOnly() || el.disabled_state());
@@ -2060,8 +2054,8 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
-                    AttributeMutation::Set(None, _) => true,
-                    AttributeMutation::Set(Some(_), _) => {
+                    AttributeMutation::Set(None) => true,
+                    AttributeMutation::Set(Some(_)) => {
                         // Input was already checked before.
                         return;
                     },
@@ -2075,7 +2069,7 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("type") => {
                 match mutation {
-                    AttributeMutation::Set(previous_value, _) => {
+                    AttributeMutation::Set(previous_value) => {
                         // https://html.spec.whatwg.org/multipage/#input-type-change
 
                         // Ensure there was actually a change in type
@@ -2219,7 +2213,7 @@ impl VirtualMethods for HTMLInputElement {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
                     placeholder.clear();
-                    if let AttributeMutation::Set(..) = mutation {
+                    if let AttributeMutation::Set(_) = mutation {
                         placeholder
                             .extend(attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                     }
@@ -2233,7 +2227,7 @@ impl VirtualMethods for HTMLInputElement {
                 if self.input_type().is_textual() {
                     let el = self.upcast::<Element>();
                     match mutation {
-                        AttributeMutation::Set(..) => {
+                        AttributeMutation::Set(_) => {
                             el.set_read_write_state(false);
                         },
                         AttributeMutation::Removed => {
@@ -2284,7 +2278,7 @@ impl VirtualMethods for HTMLInputElement {
             s.bind_to_tree(cx, context);
         }
         self.upcast::<Element>()
-            .check_ancestors_disabled_state_for_form_control();
+            .check_ancestors_disabled_state_for_form_control(cx.no_gc());
 
         self.input_type()
             .as_specific()
@@ -2308,7 +2302,7 @@ impl VirtualMethods for HTMLInputElement {
             .ancestors()
             .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
         {
-            el.check_ancestors_disabled_state_for_form_control();
+            el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
         } else {
             el.check_disabled_attribute();
         }
@@ -2327,20 +2321,11 @@ impl VirtualMethods for HTMLInputElement {
     // https://w3c.github.io/uievents/#default-action
     /// <https://dom.spec.whatwg.org/#action-versus-occurance>
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
-        if event.type_() == atom!("keydown") &&
-            !event.DefaultPrevented() &&
-            self.input_type().is_textual_or_password()
-        {
-            if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
-                // This can't be inlined, as holding on to text_input.borrow_mut()
-                // during self.implicit_submission will cause a panic.
-                let action = self.text_input.borrow_mut().handle_keydown(keyevent);
-                self.handle_key_reaction(cx, action, event);
-            }
-        } else if (event.type_() == atom!("compositionstart") ||
+        if (event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
             event.type_() == atom!("compositionend")) &&
-            self.input_type().is_textual_or_password()
+            self.input_type().is_textual_or_password() &&
+            event.IsTrusted()
         {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
@@ -2348,7 +2333,7 @@ impl VirtualMethods for HTMLInputElement {
                         .text_input
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(cx, action, event);
+                    self.handle_key_reaction(cx, action);
                     self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionupdate") {
@@ -2356,7 +2341,7 @@ impl VirtualMethods for HTMLInputElement {
                         .text_input
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(cx, action, event);
+                    self.handle_key_reaction(cx, action);
                     self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionstart") {
@@ -2451,7 +2436,7 @@ impl Validatable for HTMLInputElement {
             .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
-    fn is_instance_validatable(&self) -> bool {
+    fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {
         // https://html.spec.whatwg.org/multipage/#hidden-state-(type%3Dhidden)%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#button-state-(type%3Dbutton)%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#reset-button-state-(type%3Dreset)%3Abarred-from-constraint-validation
@@ -2463,7 +2448,7 @@ impl Validatable for HTMLInputElement {
             _ => {
                 !(self.upcast::<Element>().disabled_state() ||
                     self.ReadOnly() ||
-                    is_barred_by_datalist_ancestor(self.upcast()))
+                    is_barred_by_datalist_ancestor(no_gc, self.upcast()))
             },
         }
     }

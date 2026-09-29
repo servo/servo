@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -30,7 +29,7 @@ use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback};
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::{
     NotificationAction, NotificationDirection, NotificationMethods, NotificationOptions,
     NotificationPermission, NotificationPermissionCallback,
@@ -46,7 +45,6 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::eventtarget::EventTarget;
@@ -125,7 +123,7 @@ impl Notification {
         cx: &mut JSContext,
         global: &GlobalScope,
         title: DOMString,
-        options: RootedTraceableBox<NotificationOptions>,
+        options: &NotificationOptions,
         origin: ImmutableOrigin,
         base_url: ServoUrl,
         fallback_timestamp: u64,
@@ -136,7 +134,7 @@ impl Notification {
             Box::new(Notification::new_inherited(
                 global,
                 title,
-                &options,
+                options,
                 origin,
                 base_url,
                 fallback_timestamp,
@@ -154,7 +152,7 @@ impl Notification {
     fn new_inherited(
         global: &GlobalScope,
         title: DOMString,
-        options: &RootedTraceableBox<NotificationOptions>,
+        options: &NotificationOptions,
         origin: ImmutableOrigin,
         base_url: ServoUrl,
         fallback_timestamp: u64,
@@ -352,7 +350,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         title: DOMString,
-        options: RootedTraceableBox<NotificationOptions>,
+        options: &NotificationOptions,
     ) -> Fallible<DomRoot<Notification>> {
         // step 1: Check global is a ServiceWorkerGlobalScope
         if global.is::<ServiceWorkerGlobalScope>() {
@@ -401,10 +399,10 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     fn RequestPermission(
         cx: &mut JSContext,
         global: &GlobalScope,
-        permission_callback: Option<Rc<NotificationPermissionCallback>>,
+        permission_callback: Option<RootedCallback<NotificationPermissionCallback>>,
     ) -> RootedPromise {
         // Step 2: Let promise be a new promise in this’s relevant Realm.
-        let promise = Promise::new_rooted(cx, global);
+        let promise = Promise::new(cx, global);
 
         // TODO: Step 3: Run these steps in parallel:
         // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
@@ -426,7 +424,10 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
                 // Step 3.2.1: If deprecatedCallback is given,
                 //             then invoke deprecatedCallback with « permissionState » and "report".
-                if let Some(callback) = global.remove_notification_permission_request_callback(uuid_) {
+                if let Some(callback) = global
+                    .remove_notification_permission_request_callback(uuid_)
+                    .as_deref()
+                {
                     let _ = callback.Call__(cx, notification_permission, ExceptionHandling::Report);
                 }
 
@@ -590,7 +591,7 @@ fn create_notification_with_settings_object(
     cx: &mut JSContext,
     global: &GlobalScope,
     title: DOMString,
-    options: RootedTraceableBox<NotificationOptions>,
+    options: &NotificationOptions,
     proto: Option<HandleObject>,
 ) -> Fallible<DomRoot<Notification>> {
     // step 1: Let origin be settings’s origin.
@@ -623,7 +624,7 @@ fn create_notification(
     cx: &mut JSContext,
     global: &GlobalScope,
     title: DOMString,
-    options: RootedTraceableBox<NotificationOptions>,
+    options: &NotificationOptions,
     origin: ImmutableOrigin,
     base_url: ServoUrl,
     fallback_timestamp: u64,
@@ -704,7 +705,7 @@ fn request_notification_permission(
     cx: &mut JSContext,
     global: &GlobalScope,
 ) -> NotificationPermission {
-    let promise = &Promise::new_rooted(cx, global);
+    let promise = &Promise::new(cx, global);
     let descriptor = PermissionDescriptor {
         name: PermissionName::Notifications,
     };

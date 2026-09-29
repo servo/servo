@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navigation API: entries() and currentEntry must already be updated when dispose fires for entries truncated by a navigation in another frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe id="iframe" src="/common/blank.html"></iframe>
+<!--
+  Companion to navigation-api/per-entry-events/dispose-for-navigation-in-child.html,
+  which only checks that the top frame's forward entries are disposed when a child
+  frame pushes. This test checks the state that those dispose handlers observe:
+  per spec the entry list and current entry index are updated *before* the dispose
+  events fire, so a handler must never see the entry it is being notified about
+  still in navigation.entries().
+-->
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigations don't get converted
+  // into replace navigations.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+  const startLength = navigation.entries().length;
+  const startIndex = navigation.currentEntry.index;
+  const childNav = iframe.contentWindow.navigation;
+
+  await childNav.navigate("#a").finished;
+  await navigation.navigate("#1").finished;
+  await navigation.navigate("#2").finished;
+  await navigation.navigate("#3").finished;
+  await childNav.back().finished;
+
+  assert_equals(navigation.entries().length, startLength + 3, "top frame keeps its forward entries after the child traverses back");
+  assert_equals(navigation.currentEntry.index, startIndex, "top frame moved back with the child");
+
+  // Snapshot what each dispose handler sees, rather than asserting inside the
+  // handler, so that a failure reports every handler's view.
+  const observed = [];
+  const disposed = [];
+  for (let i = startIndex + 1; i < navigation.entries().length; i++) {
+    const entry = navigation.entries()[i];
+    disposed.push(new Promise(resolve => {
+      entry.ondispose = e => {
+        observed.push({
+          entriesLength: navigation.entries().length,
+          currentIndex: navigation.currentEntry.index,
+          targetIndex: e.target.index,
+          stillInEntries: navigation.entries().indexOf(entry) !== -1,
+        });
+        resolve();
+      };
+    }));
+  }
+
+  // A push navigation in the child truncates the joint session history, which
+  // removes the top frame's forward entries even though the top frame is not
+  // the frame that navigated.
+  await childNav.navigate("#b").finished;
+  await Promise.all(disposed);
+
+  assert_equals(observed.length, 3, "all three forward entries fired dispose");
+  observed.forEach((state, i) => {
+    assert_equals(state.entriesLength, startLength, `dispose ${i}: entries() must already be truncated`);
+    assert_equals(state.currentIndex, startIndex, `dispose ${i}: currentEntry.index must already be updated`);
+    assert_false(state.stillInEntries, `dispose ${i}: the disposed entry must already be removed from entries()`);
+    assert_equals(state.targetIndex, -1, `dispose ${i}: the disposed entry's index must be -1`);
+  });
+}, "Entries truncated by a child frame's push must be removed from entries() before their dispose events fire");
+</script>

@@ -7,7 +7,7 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::TextEventBinding::TextEventMethods;
@@ -32,7 +32,7 @@ impl TextEvent {
     }
 
     pub(crate) fn new_uninitialized(cx: &mut JSContext, window: &Window) -> DomRoot<TextEvent> {
-        reflect_dom_object_with_cx(Box::new(TextEvent::new_inherited()), window, cx)
+        reflect_dom_object(cx, Box::new(TextEvent::new_inherited()), window)
     }
 }
 

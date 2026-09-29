@@ -30,6 +30,7 @@ promise_test(async (t) => {
   if (initialAvailabilityResult === "downloadable") {
     // Attempt to call install directly, without a user gesture with a
     // language that is downloadable but not installed.
+    // Must run before test_driver.bless(); sticky activation cannot be cleared.
     const installWithoutUserGesturePromise =
       SpeechRecognition.install(validOptions);
 

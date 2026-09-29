@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use profile_traits::generic_channel;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::BluetoothRequest;
 
@@ -31,7 +31,7 @@ impl TestRunner {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<TestRunner> {
-        reflect_dom_object_with_cx(Box::new(TestRunner::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(TestRunner::new_inherited()), global)
     }
 
     fn get_bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {

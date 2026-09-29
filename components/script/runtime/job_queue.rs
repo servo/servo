@@ -8,7 +8,6 @@
 
 use std::ffi::c_void;
 use std::ptr::NonNull;
-use std::rc::Rc;
 
 use js::context::JSContext;
 use js::glue::{CreateJobQueue, DeleteJobQueue, JobQueueTraps, RustJobQueue};
@@ -25,6 +24,7 @@ use js::rust::wrappers2::{
     JobQueueMayNotBeEmpty, MaybeGetHostDefinedDataFromJSMicroTask, RunJSMicroTask, SetJobQueue,
 };
 use malloc_size_of::MallocSizeOf;
+use script_bindings::callback::TracedCallback;
 use script_bindings::reflector::DomObject as _;
 use script_bindings::root::Dom;
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
@@ -173,8 +173,7 @@ pub(crate) trait MicrotaskRunnable: JSTraceable + MallocSizeOf {
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct UserMicrotask {
-    #[conditional_malloc_size_of]
-    pub(crate) callback: Rc<VoidFunction>,
+    pub(crate) callback: TracedCallback<VoidFunction>,
     pub(crate) global: Dom<GlobalScope>,
 }
 

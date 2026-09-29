@@ -552,11 +552,10 @@
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30) l c h / none)`,                                     `lch(0.7 45 30 / none)`);
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30 / 40%) l c none / alpha)`,                           `lch(0.7 45 none / 0.4)`);
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30 / 40%) l c h / none)`,                               `lch(0.7 45 30 / none)`);
-  // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
-  fuzzy_test_computed_color(`lch(from lch(none none none) l c h)`,                                       `lch(0 0 0)`);
-  fuzzy_test_computed_color(`lch(from lch(none none none / none) l c h / alpha)`,                        `lch(0 0 0 / 0)`);
-  fuzzy_test_computed_color(`lch(from lch(0.7 none 30) l c h)`,                                          `lch(0.7 0 30)`);
-  fuzzy_test_computed_color(`lch(from lch(0.7 45 30 / none) l c h / alpha)`,                             `lch(0.7 45 30 / 0)`);
+  fuzzy_test_computed_color(`lch(from lch(none none none) l c h)`,                                       `lch(none none none)`);
+  fuzzy_test_computed_color(`lch(from lch(none none none / none) l c h / alpha)`,                        `lch(none none none / none)`);
+  fuzzy_test_computed_color(`lch(from lch(0.7 none 30) l c h)`,                                          `lch(0.7 none 30)`);
+  fuzzy_test_computed_color(`lch(from lch(0.7 45 30 / none) l c h / alpha)`,                             `lch(0.7 45 30 / none)`);
   fuzzy_test_computed_color(`color-mix(in lch, lch(from lch(0.7 45 30) l c none), lch(0.7 45 30))`,      `lch(0.7 45 30)`);
 
   // Testing with 'currentColor'
@@ -648,11 +647,10 @@
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30) l c h / none)`,                                     `oklch(0.7 0.45 30 / none)`);
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30 / 40%) l c none / alpha)`,                           `oklch(0.7 0.45 none / 0.4)`);
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30 / 40%) l c h / none)`,                               `oklch(0.7 0.45 30 / none)`);
-  // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
-  fuzzy_test_computed_color(`oklch(from oklch(none none none) l c h)`,                                       `oklch(0 0 0)`);
-  fuzzy_test_computed_color(`oklch(from oklch(none none none / none) l c h / alpha)`,                        `oklch(0 0 0 / 0)`);
-  fuzzy_test_computed_color(`oklch(from oklch(0.7 none 30) l c h)`,                                          `oklch(0.7 0 30)`);
-  fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30 / none) l c h / alpha)`,                             `oklch(0.7 0.45 30 / 0)`);
+  fuzzy_test_computed_color(`oklch(from oklch(none none none) l c h)`,                                         `oklch(none none none)`);
+  fuzzy_test_computed_color(`oklch(from oklch(none none none / none) l c h / alpha)`,                          `oklch(none none none / none)`);
+  fuzzy_test_computed_color(`oklch(from oklch(0.7 none 30) l c h)`,                                            `oklch(0.7 none 30)`);
+  fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30 / none) l c h / alpha)`,                             `oklch(0.7 0.45 30 / none)`);
 
   // Testing with 'currentColor'
   fuzzy_test_computed_color_using_currentcolor(`oklch(from currentColor l c h)`, `oklch(0.7 0.45 30)`);
@@ -747,11 +745,10 @@
       fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r g b / none)`,                       `color(${colorSpace} 0.7 0.5 0.3 / none)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} r g none / alpha)`,             `color(${colorSpace} 0.7 0.5 none / 0.4)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} r g b / none)`,                 `color(${colorSpace} 0.7 0.5 0.3 / none)`);
-      // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
-      fuzzy_test_computed_color(`color(from color(${colorSpace} none none none) ${colorSpace} r g b)`,                           `color(${colorSpace} 0 0 0)`);
-      fuzzy_test_computed_color(`color(from color(${colorSpace} none none none / none) ${colorSpace} r g b / alpha)`,            `color(${colorSpace} 0 0 0 / 0)`);
-      fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 none 0.3) ${colorSpace} r g b)`,                             `color(${colorSpace} 0.7 0 0.3)`);
-      fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3 / none) ${colorSpace} r g b / alpha)`,               `color(${colorSpace} 0.7 0.5 0.3 / 0)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} none none none) ${colorSpace} r g b)`,                           `color(${colorSpace} none none none)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} none none none / none) ${colorSpace} r g b / alpha)`,            `color(${colorSpace} none none none / none)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 none 0.3) ${colorSpace} r g b)`,                             `color(${colorSpace} 0.7 none 0.3)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3 / none) ${colorSpace} r g b / alpha)`,               `color(${colorSpace} 0.7 0.5 0.3 / none)`);
 
       // Testing with 'currentColor'
       fuzzy_test_computed_color_using_currentcolor(`color(from currentColor ${colorSpace} r g b)`, `color(${colorSpace} 0.7 0.5 0.3)`);
@@ -819,11 +816,10 @@
       fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} x y z / none)`,                       `color(${resultColorSpace} 7 -20.5 100 / none)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} x y none / alpha)`,             `color(${resultColorSpace} 7 -20.5 none / 0.4)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} x y z / none)`,                 `color(${resultColorSpace} 7 -20.5 100 / none)`);
-      // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
-      fuzzy_test_computed_color(`color(from color(${colorSpace} none none none) ${colorSpace} x y z)`,                           `color(${resultColorSpace} 0 0 0)`);
-      fuzzy_test_computed_color(`color(from color(${colorSpace} none none none / none) ${colorSpace} x y z / alpha)`,            `color(${resultColorSpace} 0 0 0 / 0)`);
-      fuzzy_test_computed_color(`color(from color(${colorSpace} 7 none 100) ${colorSpace} x y z)`,                               `color(${resultColorSpace} 7 0 100)`);
-      fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / none) ${colorSpace} x y z / alpha)`,               `color(${resultColorSpace} 7 -20.5 100 / 0)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} none none none) ${colorSpace} x y z)`,                           `color(${resultColorSpace} none none none)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} none none none / none) ${colorSpace} x y z / alpha)`,            `color(${resultColorSpace} none none none / none)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} 7 none 100) ${colorSpace} x y z)`,                               `color(${resultColorSpace} 7 none 100)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / none) ${colorSpace} x y z / alpha)`,               `color(${resultColorSpace} 7 -20.5 100 / none)`);
 
       // Testing with 'currentColor'
       fuzzy_test_computed_color_using_currentcolor(`color(from currentColor ${colorSpace} x y z)`, `color(${resultColorSpace} 7 -20.5 100)`);

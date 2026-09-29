@@ -17,12 +17,11 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
 
-// https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
+/// <https://html.spec.whatwg.org/multipage/#the-popstateevent-interface>
 #[dom_struct]
 pub(crate) struct PopStateEvent {
     event: Event,
@@ -82,7 +81,7 @@ impl PopStateEventMethods<crate::DomTypeHolder> for PopStateEvent {
         window: &Window,
         proto: Option<HandleObject>,
         type_: DOMString,
-        init: RootedTraceableBox<PopStateEventBinding::PopStateEventInit>,
+        init: &PopStateEventBinding::PopStateEventInit,
     ) -> Fallible<DomRoot<PopStateEvent>> {
         Ok(PopStateEvent::new(
             cx,

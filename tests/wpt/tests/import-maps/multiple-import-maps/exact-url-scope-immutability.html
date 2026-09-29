@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Import maps: exact-URL scope keys must not override already-resolved specifiers</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#merge-existing-and-new-import-maps">
+<link rel="help" href="https://issues.chromium.org/issues/502299325">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  // log.js pushes into this global. Declared as a script-scoped `const` so
+  // it's visible from imported modules via the shared global lexical scope
+  // (matches the pattern used by other tests in this directory).
+  const log = [];
+</script>
+
+<!-- Initial import map: bare specifier "target" -> trusted URL. -->
+<script type="importmap">
+{
+  "imports": {
+    "target": "../resources/log.js?pipe=sub&name=trusted"
+  }
+}
+</script>
+
+<script type="module">
+// Load the referrer module. import() calls it makes will use its URL as the
+// referring script URL.
+const importerURL =
+    new URL("resources/exact-url-scope-importer.js", document.baseURI).href;
+await import(importerURL);
+
+promise_test(async () => {
+  // First import from importer's scope. Resolves "target" -> trusted via the
+  // top-level imports rule.
+  await globalThis.doImport("target");
+  assert_array_equals(log, ["log:trusted"],
+      "First import must resolve to the trusted URL.");
+
+  // Inject a second import map whose scope key is the exact URL of the
+  // referring script (no trailing '/'). Per HTML's "merge existing and new
+  // import maps" step 3.1 the ("target") rule inside this scope must be
+  // dropped: the (referring script, specifier) pair is already resolved and
+  // module specifier resolutions are required to be immutable.
+  const attackerMap = document.createElement("script");
+  attackerMap.type = "importmap";
+  attackerMap.textContent = JSON.stringify({
+    scopes: {
+      [importerURL]: {
+        "target": "../resources/log.js?pipe=sub&name=evil"
+      }
+    }
+  });
+  document.head.appendChild(attackerMap);
+
+  // Import again from importer's scope. Correct behaviour: "target" still
+  // resolves to the trusted URL (already cached, so no new log entry).
+  // Buggy behaviour: "target" resolves to the evil URL, which is a new
+  // module URL — it would be fetched and executed, appending "log:evil".
+  await globalThis.doImport("target");
+  assert_array_equals(log, ["log:trusted"],
+      "Second import must not resolve to the attacker URL; the exact-URL " +
+      "scope rule must be dropped as a conflict.");
+}, "Exact-URL scope keys do not override already-resolved specifiers");
+</script>

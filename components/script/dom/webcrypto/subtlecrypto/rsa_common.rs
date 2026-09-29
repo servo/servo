@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use base64ct::{Base64UrlUnpadded, Encoding};
 use crypto_bigint::NonZero;
 use js::context::JSContext;
@@ -21,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, DigestOperation, ExportedKey, JsonWebKeyExt, JwkStringField,
@@ -39,9 +37,9 @@ pub(crate) enum RsaAlgorithm {
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-generate-key>
 pub(crate) fn generate_key(
-    rsa_algorithm: RsaAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    rsa_algorithm: RsaAlgorithm,
     normalized_algorithm: &RsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
@@ -50,30 +48,17 @@ pub(crate) fn generate_key(
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
             // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
             // SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"sign\" or \"verify\"".to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
         },
         RsaAlgorithm::RsaOaep => {
             // Step 1. If usages contains an entry which is not "encrypt", "decrypt", "wrapKey" or
             // "unwrapKey", then throw a SyntaxError.
-            if usages.iter().any(|usage| {
-                !matches!(
-                    usage,
-                    KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
-                )
-            }) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"encrypt\", \"decrypt\", \
-                    \"wrapKey\" or \"unwrapKey\""
-                        .to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[
+                KeyUsage::Encrypt,
+                KeyUsage::Decrypt,
+                KeyUsage::WrapKey,
+                KeyUsage::UnwrapKey,
+            ])?;
         },
     }
 
@@ -187,9 +172,9 @@ pub(crate) fn generate_key(
 /// When format is "jwk", Step 2.2 and 2.3 in the specification of RSA-OAEP are combined into a single step.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn import_key(
-    rsa_algorithm: RsaAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    rsa_algorithm: RsaAlgorithm,
     normalized_algorithm: &RsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
@@ -206,24 +191,15 @@ pub(crate) fn import_key(
                 RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
                     // Step 2.1. If usages contains an entry which is not "verify" then throw a
                     // SyntaxError.
-                    if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                        return Err(Error::Syntax(Some(
-                            "Usages contains an entry which is not \"verify\"".to_string(),
-                        )));
-                    }
+                    usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
                 },
                 RsaAlgorithm::RsaOaep => {
                     // Step 2.1. If usages contains an entry which is not "encrypt" or "wrapKey",
                     // then throw a SyntaxError.
-                    if usages
-                        .iter()
-                        .any(|usage| !matches!(usage, KeyUsage::Encrypt | KeyUsage::WrapKey))
-                    {
-                        return Err(Error::Syntax(Some(
-                            "Usages contains an entry which is not \"encrypt\" or \"wrapKey\""
-                                .to_string(),
-                        )));
-                    }
+                    usages.ensure_only_contain_entries_from(&[
+                        KeyUsage::Encrypt,
+                        KeyUsage::WrapKey,
+                    ])?;
                 },
             }
 
@@ -259,24 +235,15 @@ pub(crate) fn import_key(
                 RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
                     // Step 2.1. If usages contains an entry which is not "sign" then throw a
                     // SyntaxError.
-                    if usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                        return Err(Error::Syntax(Some(
-                            "Usages contains an entry which is not \"sign\"".to_string(),
-                        )));
-                    }
+                    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?;
                 },
                 RsaAlgorithm::RsaOaep => {
                     // Step 2.1. If usages contains an entry which is not "decrypt" or "unwrapKey",
                     // then throw a SyntaxError.
-                    if usages
-                        .iter()
-                        .any(|usage| !matches!(usage, KeyUsage::Decrypt | KeyUsage::UnwrapKey))
-                    {
-                        return Err(Error::Syntax(Some(
-                            "Usages contains an entry which is not \"decrypt\" or \"unwrapKey\""
-                                .to_string(),
-                        )));
-                    }
+                    usages.ensure_only_contain_entries_from(&[
+                        KeyUsage::Decrypt,
+                        KeyUsage::UnwrapKey,
+                    ])?;
                 },
             }
 
@@ -320,19 +287,9 @@ pub(crate) fn import_key(
                     // Step 2.2. If the d field of jwk is present and usages contains an entry
                     // which is not "sign", or, if the d field of jwk is not present and usages
                     // contains an entry which is not "verify" then throw a SyntaxError.
-                    if jwk.d.is_some() && usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                        return Err(Error::Syntax(Some(
-                            "The d field of jwk is present and usages contains an entry which is \
-                            not \"sign\""
-                                .to_string(),
-                        )));
-                    }
-                    if jwk.d.is_none() && usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                        return Err(Error::Syntax(Some(
-                            "The d field of jwk is not present and usages contains an entry which \
-                            is not \"verify\""
-                                .to_string(),
-                        )));
+                    match jwk.d.as_ref() {
+                        Some(_) => usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?,
+                        None => usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?,
                     }
                 },
                 RsaAlgorithm::RsaOaep => {
@@ -341,27 +298,15 @@ pub(crate) fn import_key(
                     // "decrypt" or "unwrapKey", then throw a SyntaxError.
                     // * If the d field of jwk is not present and usages contains an entry which is
                     // not "encrypt" or "wrapKey", then throw a SyntaxError.
-                    if jwk.d.is_some() &&
-                        usages.iter().any(|usage| {
-                            !matches!(usage, KeyUsage::Decrypt | KeyUsage::UnwrapKey)
-                        })
-                    {
-                        return Err(Error::Syntax(Some(
-                            "The d field of jwk is present and usages contains an entry which is \
-                            not \"decrypt\" or \"unwrapKey\""
-                                .to_string(),
-                        )));
-                    }
-                    if jwk.d.is_none() &&
-                        usages
-                            .iter()
-                            .any(|usage| !matches!(usage, KeyUsage::Encrypt | KeyUsage::WrapKey))
-                    {
-                        return Err(Error::Syntax(Some(
-                            "The d field of jwk is not present and usages contains an entry which \
-                            is not \"encrypt\" or \"wrapKey\""
-                                .to_string(),
-                        )));
+                    match jwk.d.as_ref() {
+                        Some(_) => usages.ensure_only_contain_entries_from(&[
+                            KeyUsage::Decrypt,
+                            KeyUsage::UnwrapKey,
+                        ])?,
+                        None => usages.ensure_only_contain_entries_from(&[
+                            KeyUsage::Encrypt,
+                            KeyUsage::WrapKey,
+                        ])?,
                     }
                 },
             }
@@ -679,11 +624,7 @@ pub(crate) fn export_key(
         KeyFormat::Spki => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "The [[type]] internal slot of key is not \"public\"".to_string(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2.
             // Let data be an instance of the SubjectPublicKeyInfo ASN.1 structure defined in
@@ -717,11 +658,7 @@ pub(crate) fn export_key(
         KeyFormat::Pkcs8 => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "The [[type]] internal slot of key is not \"private\"".to_string(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 3.2.
             // Let data be an instance of the PrivateKeyInfo ASN.1 structure defined in [RFC5208]
@@ -985,9 +922,9 @@ pub(crate) fn export_key(
 /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
 /// Step 9 - 15, for RSA algorithms
 pub(crate) fn get_public_key(
-    rsa_algorithm: RsaAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
+    rsa_algorithm: RsaAlgorithm,
     key: &CryptoKey,
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
@@ -998,21 +935,10 @@ pub(crate) fn get_public_key(
     // NOTE: See "importKey" operation for supported usages
     match rsa_algorithm {
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
-            if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"verify\"".to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
         },
         RsaAlgorithm::RsaOaep => {
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::Encrypt | KeyUsage::WrapKey))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"encrypt\" or \"wrapKey\"".to_string(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Encrypt, KeyUsage::WrapKey])?;
         },
     }
 

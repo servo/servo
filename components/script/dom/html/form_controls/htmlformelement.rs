@@ -54,7 +54,7 @@ use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::attributes::storage::AttrRef;
-use crate::dom::element::{AttributeMutation, AttributeMutationReason, Element};
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
@@ -527,7 +527,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
+    /// <https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names>
     fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
         // Step 1
         #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -1681,7 +1681,7 @@ impl FormSubmitterElement<'_> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-submit-button
+    /// <https://html.spec.whatwg.org/multipage/#concept-submit-button>
     pub(crate) fn is_submit_button(&self) -> bool {
         match *self {
             // https://html.spec.whatwg.org/multipage/#image-button-state-(type=image)
@@ -1693,7 +1693,7 @@ impl FormSubmitterElement<'_> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#form-owner
+    /// <https://html.spec.whatwg.org/multipage/#form-owner>
     pub(crate) fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         match *self {
             FormSubmitterElement::Button(button_el) => button_el.form_owner(),
@@ -1793,7 +1793,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
     fn form_attribute_mutated(&self, cx: &mut JSContext, mutation: AttributeMutation) {
         match mutation {
-            AttributeMutation::Set(..) => {
+            AttributeMutation::Set(_) => {
                 self.register_if_necessary();
             },
             AttributeMutation::Removed => {
@@ -1839,10 +1839,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
         node.set_flag(NodeFlags::PARSER_ASSOCIATED_FORM_OWNER, false);
 
         if !must_skip_reset {
-            self.form_attribute_mutated(
-                cx,
-                AttributeMutation::Set(None, AttributeMutationReason::Directly),
-            );
+            self.form_attribute_mutated(cx, AttributeMutation::Set(None));
         }
     }
 
@@ -1903,11 +1900,11 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation>
-    fn is_candidate_for_constraint_validation(&self) -> bool {
+    fn is_candidate_for_constraint_validation(&self, no_gc: &NoGC) -> bool {
         let element = self.to_element();
         let html_element = element.downcast::<HTMLElement>();
         if let Some(html_element) = html_element {
-            html_element.is_submittable_element() || element.is_instance_validatable()
+            html_element.is_submittable_element() || element.is_instance_validatable(no_gc)
         } else {
             false
         }

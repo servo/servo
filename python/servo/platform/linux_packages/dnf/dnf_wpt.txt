@@ -1,0 +1,6 @@
+# CI runs on ubuntu, so this file should mirror apt_wpt.txt
+mesa-vulkan-drivers
+dejavu-fonts-all    
+google-noto-sans-cjk-fonts
+google-noto-serif-cjk-fonts
+google-noto-color-emoji-fonts

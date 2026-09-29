@@ -44,9 +44,9 @@ impl<D: Equivalence> GPUDeviceLostInfo<D> {
         reason: GPUDeviceLostReason,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUDeviceLostInfo::new_inherited(message, reason)),
             global,
-            cx,
             GPUDeviceLostInfoWrap::<D>,
         )
     }

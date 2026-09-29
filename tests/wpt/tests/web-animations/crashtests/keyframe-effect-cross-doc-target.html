@@ -1,0 +1,45 @@
+<!doctype html>
+<html class="test-wait">
+<style>
+  @keyframes anim {
+    from {
+      left: 20px
+    }
+  }
+
+  .owner {
+    animation: anim 10000s linear;
+  }
+
+  .owner.bad {
+    animation-timing-function: ease !important;
+    color: red !important;
+    animation-duration: 9999s;
+  }
+</style>
+<script>
+  function tick() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
+  window.onload = async function () {
+    let owner = document.createElement("div");
+    owner.textContent = "hello";
+    owner.className = "owner";
+    document.body.append(owner);
+    let frame = document.createElement("iframe");
+    document.body.append(frame);
+    frame.contentDocument.body.clientWidth;
+
+    let animation = owner.getAnimations()[0];
+    animation.effect.target = frame.contentDocument.body;
+    let second = owner.animate([{opacity: 0.5}, {opacity: 0.9}], 1e7);
+    await tick();
+    owner.classList.add("bad");
+    owner.getAnimations();
+    second.cancel();
+    second = null;
+    owner.clientWidth;
+    await tick();
+    document.documentElement.className = "";
+  };
+</script>

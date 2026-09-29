@@ -7,7 +7,7 @@ description: >
     Tests that Intl.Collator does not accept Unicode locale  extension
     keys and values that are not allowed.
 author: Norbert Lindenberg
-includes: [compareArray.js]
+includes: [compareArray.js, testIntl.js]
 ---*/
 
 var testArray = [
@@ -17,10 +17,10 @@ var testArray = [
         "Å", "Å", "A\u030A"
 ];
 
-var defaultCollator = new Intl.Collator();
+var defaultLocale = getLocaleBaseName(new Intl.Collator().resolvedOptions().locale);
+var defaultCollator = new Intl.Collator([defaultLocale]);
 var defaultOptions = defaultCollator.resolvedOptions();
 var defaultOptionsJSON = JSON.stringify(defaultOptions);
-var defaultLocale = defaultOptions.locale;
 var defaultSortedArray = testArray.slice(0).sort(defaultCollator.compare);
 
 var keyValues = {

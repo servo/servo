@@ -8,15 +8,15 @@ use std::default::Default;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
 use html5ever::{LocalName, Prefix, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
+use script_bindings::traits::DomEventTrait;
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -41,7 +41,6 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::inputevent::HitTestResult;
-use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
@@ -158,7 +157,7 @@ impl HTMLTextAreaElement {
         HTMLInputElement::directionality_from_value(&value)
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
+    /// <https://html.spec.whatwg.org/multipage/#concept-fe-mutable>
     pub(crate) fn is_mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Aconcept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
@@ -332,6 +331,21 @@ impl TextControlElement for HTMLTextAreaElement {
             .borrow()
             .update_placeholder_contents(cx, self);
         self.maybe_update_shared_selection();
+    }
+
+    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction) {
+        match action {
+            KeyReaction::TriggerDefaultAction => (),
+            KeyReaction::DispatchInput(text, is_composing, input_type) => {
+                self.queue_input_event(text, is_composing, input_type);
+                self.value_dirty.set(true);
+                self.handle_text_content_changed(cx);
+            },
+            KeyReaction::RedrawSelection => {
+                self.maybe_update_shared_selection();
+            },
+            KeyReaction::Nothing => (),
+        }
     }
 }
 
@@ -536,8 +550,8 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
-    fn WillValidate(&self) -> bool {
-        self.is_instance_validatable()
+    fn WillValidate(&self, no_gc: &NoGC) -> bool {
+        self.is_instance_validatable(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
@@ -582,25 +596,6 @@ impl HTMLTextAreaElement {
             .set_content(self.DefaultValue());
         self.handle_text_content_changed(cx);
     }
-
-    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction, event: &Event) {
-        match action {
-            KeyReaction::TriggerDefaultAction => (),
-            KeyReaction::DispatchInput(text, is_composing, input_type) => {
-                if event.IsTrusted() {
-                    self.queue_input_event(text, is_composing, input_type);
-                }
-                self.value_dirty.set(true);
-                self.handle_text_content_changed(cx);
-                event.mark_as_handled();
-            },
-            KeyReaction::RedrawSelection => {
-                self.maybe_update_shared_selection();
-                event.mark_as_handled();
-            },
-            KeyReaction::Nothing => (),
-        }
-    }
 }
 
 impl VirtualMethods for HTMLTextAreaElement {
@@ -621,7 +616,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(..) => {
+                    AttributeMutation::Set(_) => {
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
 
@@ -630,7 +625,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     AttributeMutation::Removed => {
                         el.set_disabled_state(false);
                         el.set_enabled_state(true);
-                        el.check_ancestors_disabled_state_for_form_control();
+                        el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
 
                         if !el.disabled_state() && !el.read_write_state() {
                             el.set_read_write_state(true);
@@ -666,7 +661,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
                     match mutation {
-                        AttributeMutation::Set(..) => {
+                        AttributeMutation::Set(_) => {
                             let value = attr.value();
                             let value_str: &str = value.as_ref();
                             *placeholder =
@@ -680,7 +675,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             local_name!("readonly") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(..) => {
+                    AttributeMutation::Set(_) => {
                         el.set_read_write_state(false);
                     },
                     AttributeMutation::Removed => {
@@ -704,7 +699,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
 
         self.upcast::<Element>()
-            .check_ancestors_disabled_state_for_form_control();
+            .check_ancestors_disabled_state_for_form_control(cx.no_gc());
 
         self.handle_text_content_changed(cx);
     }
@@ -740,7 +735,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             .ancestors()
             .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
         {
-            el.check_ancestors_disabled_state_for_form_control();
+            el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
         } else {
             el.check_disabled_attribute();
         }
@@ -782,16 +777,10 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     // copied and modified from htmlinputelement.rs
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
-        if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
-            if let Some(keyboard_event) = event.downcast::<KeyboardEvent>() {
-                // This can't be inlined, as holding on to text_input.borrow_mut()
-                // during self.implicit_submission will cause a panic.
-                let action = self.text_input.borrow_mut().handle_keydown(keyboard_event);
-                self.handle_key_reaction(cx, action, event);
-            }
-        } else if event.type_() == atom!("compositionstart") ||
+        if (event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
-            event.type_() == atom!("compositionend")
+            event.type_() == atom!("compositionend")) &&
+            event.IsTrusted()
         {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
@@ -799,14 +788,14 @@ impl VirtualMethods for HTMLTextAreaElement {
                         .text_input
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(cx, action, event);
+                    self.handle_key_reaction(cx, action);
                     self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
                         .text_input
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(cx, action, event);
+                    self.handle_key_reaction(cx, action);
                     self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                 }
                 self.maybe_update_shared_selection();
@@ -880,13 +869,13 @@ impl Validatable for HTMLTextAreaElement {
             .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
-    fn is_instance_validatable(&self) -> bool {
+    fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
         !self.upcast::<Element>().disabled_state() &&
             !self.ReadOnly() &&
-            !is_barred_by_datalist_ancestor(self.upcast())
+            !is_barred_by_datalist_ancestor(no_gc, self.upcast())
     }
 
     fn perform_validation(

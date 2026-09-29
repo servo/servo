@@ -13,6 +13,7 @@
   }
 </style>
 <div id="root"></div>
+<iframe id="frame" srcdoc="<body></body>"></iframe>
 <script>
 function createTestElement(html) {
   document.getElementById("root").innerHTML = html;
@@ -321,4 +322,72 @@ promise_test(async t => {
   assert_false(list.matches,
     "Moved under the 50px container.");
 }, "change event fires when moveBefore() changes the query container.");
+
+promise_test(async t => {
+  let frame = document.getElementById("frame");
+  if (!frame.contentDocument || !frame.contentDocument.body) {
+    await new Promise(resolve => frame.onload = resolve);
+  }
+  let docB = frame.contentDocument;
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  let watcher = createChangeWatcher(t, list);
+
+  let eventPromise = watcher.wait_for("change");
+  docB.body.appendChild(target);
+  await eventPromise;
+  assert_false(list.matches, "No container in the new document after adoption.");
+
+  let containerB = docB.createElement("div");
+  containerB.style.containerType = "inline-size";
+  containerB.style.width = "400px";
+  docB.body.appendChild(containerB);
+  eventPromise = watcher.wait_for("change");
+  containerB.appendChild(target);
+  await eventPromise;
+  assert_true(list.matches,
+    "Resolves to the 400px container after a second move inside the new document.");
+
+  eventPromise = watcher.wait_for("change");
+  containerB.style.width = "50px";
+  await eventPromise;
+  assert_false(list.matches,
+    "Reflects a size change of the container in the new document.");
+}, "change event fires after the target is adopted into another document and changes again there.");
+
+promise_test(async t => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let list = target.matchContainer("(width > 100px)");
+  await waitForAtLeastOneFrame();
+  assert_true(list.matches, "Initially matches the 200px container.");
+
+  let inactiveDoc = document.implementation.createHTMLDocument("inactive");
+  list.onchange = t.unreached_func(
+    "No change event while the target is in a document that is not fully active.");
+  inactiveDoc.body.appendChild(target);
+  await waitForAtLeastOneFrame();
+  list.onchange = null;
+
+  let narrow = document.createElement("div");
+  narrow.className = "size-container";
+  narrow.style.width = "50px";
+  container.appendChild(narrow);
+  let watcher = createChangeWatcher(t, list);
+  let eventPromise = watcher.wait_for("change");
+  narrow.appendChild(target);
+  await eventPromise;
+  assert_false(list.matches,
+    "Resolves to the 50px container after moving back.");
+}, "No change event fires while the target is in a document that is not fully active.");
 </script>

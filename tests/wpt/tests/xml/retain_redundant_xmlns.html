@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XML Redundant Namespace Declaration Attribute Retention</title>
+<link rel="help" href="https://www.w3.org/TR/xml-names/#ns-decl">
+<meta name="assert" content="For web compatibility, the parser should reproduce xmlns attributes on elements even if the same namespace was already in scope.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+const testCases = [
+  {
+    description: 'Non-prefixed: xmlns attribute is retained when same default namespace is already in scope on parent',
+    xml: '<root xmlns="http://example.com"><child xmlns="http://example.com"/></root>',
+    attributeName: 'xmlns',
+    expectedValue: 'http://example.com',
+  },
+  {
+    description: 'Non-prefixed: xmlns attribute is retained when intermediate element has no explicit namespace declaration',
+    xml: '<root xmlns="http://example.com"><intermediate><child xmlns="http://example.com"/></intermediate></root>',
+    attributeName: 'xmlns',
+    expectedValue: 'http://example.com',
+  },
+  {
+    description: 'Prefixed: xmlns:p attribute is retained when same prefix namespace is already in scope on parent',
+    xml: '<root xmlns:p="http://example.com"><child xmlns:p="http://example.com"/></root>',
+    attributeName: 'xmlns:p',
+    expectedValue: 'http://example.com',
+  },
+];
+
+for (const { description, xml, attributeName, expectedValue } of testCases) {
+  test(() => {
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const child = doc.getElementsByTagName('child')[0];
+
+    assert_true(child.hasAttribute(attributeName), `child should have '${attributeName}' attribute`);
+    assert_equals(child.getAttribute(attributeName), expectedValue);
+  }, description);
+}
+</script>

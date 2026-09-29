@@ -674,11 +674,7 @@ fn ensure_cross_origin_property_holder(
 ///
 /// [1]: https://html.spec.whatwg.org/multipage/#integration-with-idl
 pub(crate) fn is_cross_origin_object<D: DomTypes>(cx: &mut JSContext, obj: HandleObject) -> bool {
-    unsafe {
-        IsWindowProxy(*obj) ||
-            native_from_object::<D::Location>(cx, *obj).is_ok() ||
-            native_from_object::<D::DissimilarOriginLocation>(cx, *obj).is_ok()
-    }
+    unsafe { IsWindowProxy(*obj) || native_from_object::<D::Location>(cx, *obj).is_ok() }
 }
 
 /// Report a cross-origin denial for a property, Always returns `false`, so it

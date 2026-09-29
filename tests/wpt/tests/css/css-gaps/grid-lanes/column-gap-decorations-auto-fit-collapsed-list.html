@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: grid-axis rule auto repeaters follow gutters between
+  surviving auto-fit tracks in grid lanes
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#repeat-auto-fit">
+<link rel="match" href="column-gap-decorations-auto-fit-collapsed-list-ref.html">
+<style>
+  body { margin: 0; }
+  .stage {
+    width: 490px;
+    height: 70px;
+  }
+  /* Ten tracks fit; 1, 4, 5, 8, 9, and 10 are occupied; 2-3 and 6-7
+     collapse. */
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(auto-fit, 40px);
+    gap: 10px;
+    width: 490px;
+    background: #cdd5e0;
+    column-rule-width: 4px;
+    column-rule-style: solid;
+    column-rule-color: repeat(auto, blue, purple);
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    height: 30px;
+    background: #5b8def;
+  }
+  .t1 { grid-column: 1; }
+  .t4 { grid-column: 4; }
+  .t5 { grid-column: 5; }
+  .t8 { grid-column: 8; }
+  .t9 { grid-column: 9; }
+  .t10 { grid-column: 10; }
+</style>
+<div class="stage">
+  <div class="lanes">
+    <div class="t1"></div>
+    <div class="t1"></div>
+    <div class="t4"></div>
+    <div class="t4"></div>
+    <div class="t5"></div>
+    <div class="t5"></div>
+    <div class="t8"></div>
+    <div class="t8"></div>
+    <div class="t9"></div>
+    <div class="t9"></div>
+    <div class="t10"></div>
+    <div class="t10"></div>
+  </div>
+</div>

@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 from unittest.mock import Mock
 
+from mozlog.structuredlog import StructuredLogger
+
 from ..testloader import TestQueueBuilder
 from ..wptcommandline import TestRoot
 from ..wptrunner import get_loader, get_pause_after_test
@@ -13,7 +15,7 @@ TestQueueBuilder.__test__ = None  # type: ignore[attr-defined]
 TestRoot.__test__ = None  # type: ignore[attr-defined]
 
 
-def test_get_pause_after_test() -> None:
+def test_get_pause_after_test(logger: StructuredLogger) -> None:
     manifest_json = {
         "items": {
             "testharness": {
@@ -59,24 +61,24 @@ def test_get_pause_after_test() -> None:
     subsuites[""] = Subsuite("", config={})
 
     # This has two testharness tests, so shouldn't set pause_after_test
-    loader = TestLoader(test_manifests, ["testharness"], None, subsuites)
+    loader = TestLoader(logger, test_manifests, ["testharness"], None, subsuites)
 
     assert get_pause_after_test(loader, **kwargs) is False
 
     # This has one testharness test, so should set pause_after_test
-    loader = TestLoader(test_manifests, ["testharness"], None, subsuites,
+    loader = TestLoader(logger, test_manifests, ["testharness"], None, subsuites,
                         manifest_filters=manifest_filters)
 
     assert get_pause_after_test(loader, **kwargs) is True
 
     # This has one testharness test, and one reftest so shouldn't set pause_after_test
-    loader = TestLoader(test_manifests, ["testharness", "reftest"], None, subsuites,
+    loader = TestLoader(logger, test_manifests, ["testharness", "reftest"], None, subsuites,
                         manifest_filters=manifest_filters)
 
     assert get_pause_after_test(loader, **kwargs) is False
 
     # This has one reftest so shouldn't set pause_after_test
-    loader = TestLoader(test_manifests, ["reftest"], None, subsuites)
+    loader = TestLoader(logger, test_manifests, ["reftest"], None, subsuites)
 
     assert get_pause_after_test(loader, **kwargs) is False
 
@@ -85,7 +87,7 @@ def test_get_pause_after_test() -> None:
     multi_subsuites["extra"] = Subsuite("extra", config={}, include=["/a/foo.html"])
 
     # This has one testharness test per subsuite, so shouldn't set pause_after_test
-    loader = TestLoader(test_manifests, ["testharness"], None, multi_subsuites,
+    loader = TestLoader(logger, test_manifests, ["testharness"], None, multi_subsuites,
                         manifest_filters=manifest_filters)
     print(loader.tests)
     assert get_pause_after_test(loader, **kwargs) is False
@@ -149,7 +151,7 @@ def get_loader_with_fakes(
     )
 
 
-def test_get_loader(tmp_path: Path) -> None:
+def test_get_loader(tmp_path: Path, logger: StructuredLogger) -> None:
     _, test_loader = get_loader_with_fakes(tmp_path)
 
     assert test_loader.test_ids == [
@@ -166,7 +168,7 @@ def test_get_loader(tmp_path: Path) -> None:
     ]
 
 
-def test_get_loader_include(tmp_path: Path) -> None:
+def test_get_loader_include(tmp_path: Path, logger: StructuredLogger) -> None:
     _, test_loader = get_loader_with_fakes(
         tmp_path,
         include=["/fake-spec/test-007.html", "/fake-spec/test-008.html"],
@@ -178,7 +180,7 @@ def test_get_loader_include(tmp_path: Path) -> None:
     ]
 
 
-def test_get_loader_exclude(tmp_path: Path) -> None:
+def test_get_loader_exclude(tmp_path: Path, logger: StructuredLogger) -> None:
     _, test_loader = get_loader_with_fakes(
         tmp_path,
         exclude=["/fake-spec/test-007.html"],
@@ -197,7 +199,7 @@ def test_get_loader_exclude(tmp_path: Path) -> None:
     ]
 
 
-def test_get_loader_include_exclude(tmp_path: Path) -> None:
+def test_get_loader_include_exclude(tmp_path: Path, logger: StructuredLogger) -> None:
     _, test_loader = get_loader_with_fakes(
         tmp_path,
         include=["/fake-spec/test-007.html", "/fake-spec/test-008.html"],
@@ -209,7 +211,7 @@ def test_get_loader_include_exclude(tmp_path: Path) -> None:
     ]
 
 
-def test_get_loader_include_file(tmp_path: Path) -> None:
+def test_get_loader_include_file(tmp_path: Path, logger: StructuredLogger) -> None:
     include = ["/fake-spec/test-007.html", "/fake-spec/test-008.html"]
 
     with (tmp_path / "include.txt").open("w") as f:
@@ -226,7 +228,7 @@ def test_get_loader_include_file(tmp_path: Path) -> None:
     ]
 
 
-def test_get_loader_exclude_file(tmp_path: Path) -> None:
+def test_get_loader_exclude_file(tmp_path: Path, logger: StructuredLogger) -> None:
     exclude = ["/fake-spec/test-007.html"]
 
     with (tmp_path / "exclude.txt").open("w") as f:
@@ -250,7 +252,7 @@ def test_get_loader_exclude_file(tmp_path: Path) -> None:
     ]
 
 
-def test_get_loader_include_exclude_file(tmp_path: Path) -> None:
+def test_get_loader_include_exclude_file(tmp_path: Path, logger: StructuredLogger) -> None:
     include = ["/fake-spec/test-007.html", "/fake-spec/test-008.html"]
     exclude = ["/fake-spec/test-007.html"]
 

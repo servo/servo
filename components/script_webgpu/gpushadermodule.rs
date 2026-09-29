@@ -22,7 +22,6 @@ use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderMo
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::gpucompilationinfo::GPUCompilationInfo;
 use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromise, WebGPUPromiseCallbackTrait};
 
@@ -84,6 +83,7 @@ impl<D: Equivalence> GPUShaderModule<D> {
         promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPUShaderModule::new_inherited(
                 channel,
                 shader_module,
@@ -91,7 +91,6 @@ impl<D: Equivalence> GPUShaderModule<D> {
                 promise,
             )),
             global,
-            cx,
             GPUShaderModuleWrap::<D>,
         )
     }
@@ -110,13 +109,13 @@ where
     pub(crate) fn create(
         cx: &mut CurrentRealm<'_>,
         device: &D::GPUDevice,
-        descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
+        descriptor: &GPUShaderModuleDescriptor,
     ) -> DomRoot<GPUShaderModule<D>> {
         let program_id = device
             .global_from_reflector()
             .global_wgpu_id_hub()
             .create_shader_module_id();
-        let promise = D::Promise::new_in_realm_rooted(cx);
+        let promise = D::Promise::new_in_realm(cx);
         let shader_module = GPUShaderModule::new(
             cx,
             &*device.global_from_reflector(),

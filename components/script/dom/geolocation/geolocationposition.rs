@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::GeolocationPositionBinding::GeolocationPositionMethods;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::{Dom, DomRoot};
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
@@ -35,7 +35,7 @@ impl GeolocationPosition {
         coords: &GeolocationCoordinates,
         timestamp: u64,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(coords, timestamp)), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited(coords, timestamp)), global)
     }
 }
 

@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::error::throw_type_error;
 use js::jsapi::CallArgs;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleObject;
+use script_bindings::callback::RootedCallback;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -63,11 +62,11 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
     }
 
     /// <https://streams.spec.whatwg.org/#blqs-size>
-    fn GetSize(&self, cx: &mut js::context::JSContext) -> Fallible<Rc<Function>> {
+    fn GetSize(&self, cx: &mut js::context::JSContext) -> Fallible<RootedCallback<Function>> {
         let global = self.global();
         // Return this's relevant global object's byte length queuing strategy
         // size function.
-        if let Some(fun) = global.get_byte_length_queuing_strategy_size() {
+        if let Some(fun) = global.get_byte_length_queuing_strategy_size(cx) {
             return Ok(fun);
         }
 

@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setLocalDescription pranswer without sdp</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// webrtc-pc, setLocalDescription: when the sdp is missing or empty and the
+// type is "pranswer" or "answer", [[LastCreatedAnswer]] is used. When the type
+// is missing too, it is "offer" in "stable", "have-local-offer" and
+// "have-remote-pranswer", and "answer" otherwise.
+
+async function haveRemoteOffer(t) {
+  const offerer = new RTCPeerConnection();
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => {
+    offerer.close();
+    answerer.close();
+  });
+  offerer.addTransceiver('audio');
+  await offerer.setLocalDescription();
+  await answerer.setRemoteDescription(offerer.localDescription);
+  return [offerer, answerer];
+}
+
+promise_test(async t => {
+  const [, answerer] = await haveRemoteOffer(t);
+  const answer = await answerer.createAnswer();
+  await answerer.setLocalDescription({type: 'pranswer', sdp: ''});
+  assert_equals(answerer.signalingState, 'have-local-pranswer');
+  assert_equals(answerer.pendingLocalDescription.type, 'pranswer');
+  // assert_true() is used rather than assert_equals(), otherwise this gets
+  // very noisy.
+  assert_true(answerer.pendingLocalDescription.sdp == answer.sdp,
+    'pendingLocalDescription.sdp == answer.sdp');
+}, 'setLocalDescription({type: "pranswer", sdp: ""}) uses [[LastCreatedAnswer]]');
+
+promise_test(async t => {
+  const [, answerer] = await haveRemoteOffer(t);
+  await answerer.setLocalDescription({type: 'pranswer'});
+  assert_equals(answerer.signalingState, 'have-local-pranswer');
+  assert_equals(answerer.pendingLocalDescription.type, 'pranswer');
+  assert_not_equals(answerer.pendingLocalDescription.sdp, '');
+}, 'setLocalDescription({type: "pranswer"}) creates an answer to use');
+
+promise_test(async t => {
+  const [, answerer] = await haveRemoteOffer(t);
+  await answerer.setLocalDescription({type: 'pranswer', sdp: ''});
+  await answerer.setLocalDescription({type: 'pranswer', sdp: ''});
+  assert_equals(answerer.signalingState, 'have-local-pranswer');
+  await answerer.setLocalDescription({type: 'answer', sdp: ''});
+  assert_equals(answerer.signalingState, 'stable');
+  assert_equals(answerer.currentLocalDescription.type, 'answer');
+  assert_equals(answerer.pendingLocalDescription, null);
+}, 'setLocalDescription without sdp works for repeated pranswers and the ' +
+   'final answer');
+
+promise_test(async t => {
+  const [, answerer] = await haveRemoteOffer(t);
+  await answerer.setLocalDescription({type: 'pranswer'});
+  // No type either: "have-local-pranswer" is not one of the states that means
+  // "offer", so this is a final answer.
+  await answerer.setLocalDescription();
+  assert_equals(answerer.signalingState, 'stable');
+  assert_equals(answerer.currentLocalDescription.type, 'answer');
+}, 'Parameterless setLocalDescription() in "have-local-pranswer" is a final ' +
+   'answer');
+
+promise_test(async t => {
+  const [offerer, answerer] = await haveRemoteOffer(t);
+  const {sdp} = await answerer.createAnswer();
+  await offerer.setRemoteDescription({type: 'pranswer', sdp});
+  assert_equals(offerer.signalingState, 'have-remote-pranswer');
+  // No type means "offer" here, and an offer cannot be set in this state
+  // (RFC 9429 section 5.5).
+  await promise_rejects_dom(t, 'InvalidStateError',
+    offerer.setLocalDescription());
+  assert_equals(offerer.signalingState, 'have-remote-pranswer');
+}, 'Parameterless setLocalDescription() in "have-remote-pranswer" rejects ' +
+   'with InvalidStateError');
+
+</script>

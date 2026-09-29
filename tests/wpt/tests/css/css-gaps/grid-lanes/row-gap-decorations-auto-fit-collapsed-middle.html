@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: a collapsed middle auto-fit row range leaves one grid-axis rule and lane-local stacking-axis rules in grid lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#repeat-auto-fit">
+<link rel="match" href="row-gap-decorations-auto-fit-collapsed-middle-ref.html">
+<style>
+  body { margin: 0; }
+  .stage {
+    width: 170px;
+    height: 350px;
+  }
+  /* Four tracks fit. Items use the first and last, so the two middle tracks
+     collapse. */
+  .lanes {
+    display: grid-lanes;
+    grid-lanes-direction: row;
+    grid-template-rows: [top] 80px [fit-start] repeat(auto-fit, 80px) [fit-end] 80px [bottom];
+    gap: 10px;
+    width: max-content;
+    height: 350px;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    width: 80px;
+    background: #5b8def;
+  }
+  .top { grid-row: top / fit-start; }
+  .bottom { grid-row: fit-end / bottom; }
+</style>
+<div class="stage">
+  <div class="lanes">
+    <div class="top"></div>
+    <div class="top"></div>
+    <div class="bottom"></div>
+    <div class="bottom"></div>
+  </div>
+</div>

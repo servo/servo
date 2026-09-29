@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<title>Canvas paint events should fire in reverse shadow-including tree order across Shadow DOM</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<style>
+  canvas {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+
+<!-- Host component with Declarative Shadow DOM -->
+<my-element>
+  <!-- 1. Light DOM that is unslotted (no slot="unslotted" exists in shadow root) -->
+  <canvas id="unslotted" content="drawable"></canvas>
+
+  <!-- 2. Light DOM assigned to slot "slotted" -->
+  <canvas id="slotted" slot="slotted" content="drawable"></canvas>
+
+  <!-- 3. Light DOM assigned to slot "canvasslot" -->
+  <canvas id="slottedintocanvas" slot="canvasslot" content="drawable"></canvas>
+
+  <!-- Shadow Root -->
+  <template shadowrootmode="open">
+    <!-- 4. Slot with fallback canvas, and NO light DOM assigned to it -->
+    <slot name="empty">
+      <canvas id="activefallback" content="drawable"></canvas>
+    </slot>
+
+    <!-- 5. Slot with fallback canvas, but light DOM IS assigned to it -->
+    <slot name="slotted">
+      <canvas id="inactivefallback" content="drawable"></canvas>
+    </slot>
+
+    <!-- 6. Canvas slot host -->
+    <canvas id="canvasslothost" content="drawable">
+      <slot name="canvasslot"></slot>
+    </canvas>
+  </template>
+</my-element>
+
+<script>
+  'use strict';
+
+  function waitForOneFrame() {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 0);
+      });
+    });
+  }
+
+  promise_test(async t => {
+    await waitForOneFrame();
+    let paint_order = [];
+
+    const shadow = document.querySelector('my-element').shadowRoot;
+    const inactiveFallback = shadow.getElementById('inactivefallback');
+    const activeFallback = shadow.getElementById('activefallback');
+    const canvasSlotHost = shadow.getElementById('canvasslothost');
+
+    unslotted.addEventListener('paint', () => paint_order.push('unslotted'), {once: true});
+    slottedintocanvas.addEventListener('paint', () => paint_order.push('slottedintocanvas'), {once: true});
+    slotted.addEventListener('paint', () => paint_order.push('slotted'), {once: true});
+    inactiveFallback.addEventListener('paint', () => paint_order.push('inactiveFallback'), {once: true});
+    activeFallback.addEventListener('paint', () => paint_order.push('activeFallback'), {once: true});
+    canvasSlotHost.addEventListener('paint', () => paint_order.push('canvasslothost'), {once: true});
+
+    await Promise.all([
+      waitForCanvasPaint(unslotted),
+      waitForCanvasPaint(slottedintocanvas),
+      waitForCanvasPaint(slotted),
+      waitForCanvasPaint(inactiveFallback),
+      waitForCanvasPaint(activeFallback),
+      waitForCanvasPaint(canvasSlotHost),
+    ]);
+
+    assert_array_equals(
+        paint_order,
+        [
+          'slottedintocanvas',
+          'slotted',
+          'unslotted',
+          'canvasslothost',
+          'inactiveFallback',
+          'activeFallback',
+        ],
+        'Paint events should fire in reverse shadow-including tree order');
+  }, 'Canvas paint events fire in reverse shadow-including tree order across shadow DOM, slots, and fallback content');
+</script>

@@ -46,6 +46,7 @@ impl<D: Equivalence> WGSLLanguageFeatures<D> {
             .map(|le| le.to_ident().into())
             .collect();
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
+            cx,
             Box::new(Self {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(set),
@@ -53,7 +54,6 @@ impl<D: Equivalence> WGSLLanguageFeatures<D> {
             }),
             global,
             proto,
-            cx,
             WGSLLanguageFeaturesWrap::<D>,
         )
     }

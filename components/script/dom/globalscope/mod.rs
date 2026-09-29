@@ -4,8 +4,10 @@
 
 pub(crate) mod broadcastchannel;
 pub(crate) use self::globalscope::*;
+mod auto_close_worker;
 #[expect(clippy::module_inception, reason = "The interface name is GlobalScope")]
 pub(crate) mod globalscope;
+mod listeners;
 pub(crate) mod messagechannel;
 pub(crate) mod messageport;
 pub(crate) mod origin;

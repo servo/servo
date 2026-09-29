@@ -16,7 +16,6 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 
@@ -89,7 +88,7 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: DOMString,
-        init: RootedTraceableBox<CustomEventBinding::CustomEventInit>,
+        init: &CustomEventBinding::CustomEventInit,
     ) -> DomRoot<CustomEvent> {
         let event = CustomEvent::new(
             cx,

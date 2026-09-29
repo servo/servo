@@ -115,8 +115,8 @@ struct ImageRequest {
 #[dom_struct]
 pub(crate) struct HTMLImageElement {
     htmlelement: HTMLElement,
-    current_request: DomRefCell<ImageRequest>,
-    pending_request: DomRefCell<Option<ImageRequest>>,
+    current_request: DomRefCell<Box<ImageRequest>>,
+    pending_request: DomRefCell<Option<Box<ImageRequest>>>,
     form_owner: MutNullableDom<HTMLFormElement>,
     source_set: DomRefCell<SourceSet>,
     /// <https://html.spec.whatwg.org/multipage/#concept-img-dimension-attribute-source>
@@ -132,7 +132,7 @@ pub(crate) struct HTMLImageElement {
 }
 
 impl HTMLImageElement {
-    // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
+    /// <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
     pub(crate) fn is_usable(&self) -> Fallible<bool> {
         // If image has an intrinsic width or intrinsic height (or both) equal to zero, then return bad.
         if let Some(image) = &self.current_request.borrow().image {
@@ -600,7 +600,7 @@ impl HTMLImageElement {
 
     fn init_image_request(
         &self,
-        request: &DomRefCell<ImageRequest>,
+        request: &DomRefCell<Box<ImageRequest>>,
         url: &ServoUrl,
         src: &USVString,
         cx: &mut js::context::JSContext,
@@ -620,7 +620,7 @@ impl HTMLImageElement {
 
     fn init_pending_image_request(
         &self,
-        request: &DomRefCell<Option<ImageRequest>>,
+        request: &DomRefCell<Option<Box<ImageRequest>>>,
         url: &ServoUrl,
         src: &USVString,
         cx: &mut js::context::JSContext,
@@ -1270,7 +1270,7 @@ impl HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             image_request: Cell::new(ImageRequestPhase::Current),
-            current_request: DomRefCell::new(ImageRequest {
+            current_request: DomRefCell::new(Box::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
                 source_url: None,
@@ -1280,7 +1280,7 @@ impl HTMLImageElement {
                 final_url: None,
                 load_time: None,
                 current_pixel_density: None,
-            }),
+            })),
             pending_request: DomRefCell::new(None),
             form_owner: Default::default(),
             generation: Default::default(),
@@ -1679,7 +1679,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn Decode(&self, cx: &mut JSContext) -> RootedPromise {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new_rooted(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
 
         // Step 2. Queue a microtask to perform the following steps:
         let task = ImageElementMicrotask::Decode {
@@ -1763,8 +1763,8 @@ impl VirtualMethods for HTMLImageElement {
                 // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
                 // The element's crossorigin attribute's state is changed.
                 let cross_origin_state_changed = match mutation {
-                    AttributeMutation::Removed | AttributeMutation::Set(None, _) => true,
-                    AttributeMutation::Set(Some(old_value), _) => {
+                    AttributeMutation::Removed | AttributeMutation::Set(None) => true,
+                    AttributeMutation::Set(Some(old_value)) => {
                         let new_cors_setting =
                             CorsSettings::from_enumerated_attribute(&attr.value());
                         let old_cors_setting = CorsSettings::from_enumerated_attribute(old_value);
@@ -1781,10 +1781,10 @@ impl VirtualMethods for HTMLImageElement {
                 // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
                 // The element's referrerpolicy attribute's state is changed.
                 let referrer_policy_state_changed = match mutation {
-                    AttributeMutation::Removed | AttributeMutation::Set(None, _) => {
+                    AttributeMutation::Removed | AttributeMutation::Set(None) => {
                         ReferrerPolicy::from(&**attr.value()) != ReferrerPolicy::EmptyString
                     },
-                    AttributeMutation::Set(Some(old_value), _) => {
+                    AttributeMutation::Set(Some(old_value)) => {
                         ReferrerPolicy::from(&**attr.value()) != ReferrerPolicy::from(&**old_value)
                     },
                 };

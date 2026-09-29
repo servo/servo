@@ -8,13 +8,30 @@ package org.servo.servoview
 import android.content.Context
 import android.util.Size
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.Surface
+import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.nativeKeyCode
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 
 @Composable
 fun Servo(
@@ -22,22 +39,106 @@ fun Servo(
     modifier: Modifier = Modifier,
 ) {
     LifecycleResumeEffect(servoView) {
-        servoView.onResume()
-        onPauseOrDispose { servoView.onPause() }
+        servoView.servo.suspend(false)
+        onPauseOrDispose { servoView.servo.suspend(true) }
     }
+    // TODO Key off of and pass `servo` instead of `servoView` once `servo` is non-null.
+    LaunchedEffect(servoView, servoView.navigator) {
+        servoView.navigator.consumeNavigationEvents(servoView)
+    }
+
+    val focusRequester = remember { FocusRequester() }
     AndroidView(
         factory = { _ -> servoView },
-        modifier = modifier,
+        modifier =
+            modifier
+                .focusRequester(focusRequester)
+                .onKeyEvent { keyEvent ->
+                    when (keyEvent.type) {
+                        KeyEventType.KeyDown if keyEvent.key != Key.Back -> {
+                            servoView.servo.onKeyDown(
+                                keyEvent.key.nativeKeyCode,
+                                keyEvent.nativeKeyEvent,
+                            )
+                            true
+                        }
+
+                        KeyEventType.KeyUp if keyEvent.key != Key.Back -> {
+                            servoView.servo.onKeyUp(
+                                keyEvent.key.nativeKeyCode,
+                                keyEvent.nativeKeyEvent,
+                            )
+                            true
+                        }
+
+                        else -> false
+                    }
+                }
+                .pointerInteropFilter(null) { motionEvent ->
+                    focusRequester.requestFocus()
+
+                    val action = motionEvent.actionMasked
+                    val pointerIndex = motionEvent.actionIndex
+                    val pointerId = motionEvent.getPointerId(pointerIndex)
+                    val x = motionEvent.getX(pointerIndex)
+                    val y = motionEvent.getY(pointerIndex)
+
+                    when (action) {
+                        MotionEvent.ACTION_DOWN,
+                        MotionEvent.ACTION_POINTER_DOWN ->
+                            servoView.servo.touchDown(x, y, pointerId)
+                        MotionEvent.ACTION_MOVE -> servoView.servo.touchMove(x, y, pointerId)
+                        MotionEvent.ACTION_UP,
+                        MotionEvent.ACTION_POINTER_UP -> servoView.servo.touchUp(x, y, pointerId)
+                        MotionEvent.ACTION_CANCEL -> servoView.servo.touchCancel(x, y, pointerId)
+                    }
+
+                    true
+                },
+        onRelease = { servoView.glDispatcher.close() },
     )
 }
 
 @Stable
 class ServoNavigator {
+    private sealed interface NavigationEvent : Interaction {
+        data object Back : NavigationEvent
+
+        data object Forward : NavigationEvent
+
+        data object Reload : NavigationEvent
+    }
+
+    private val coroutineScope = CoroutineScope(EmptyCoroutineContext)
+    private val navigationEvents = MutableSharedFlow<NavigationEvent>()
+
+    internal suspend fun consumeNavigationEvents(servoView: ServoView) {
+        navigationEvents.collect { navigationEvent ->
+            when (navigationEvent) {
+                NavigationEvent.Back -> servoView.servo.goBack()
+                NavigationEvent.Forward -> servoView.servo.goForward()
+                NavigationEvent.Reload -> servoView.servo.reload()
+            }
+        }
+    }
+
     var canGoBackState = mutableStateOf(false)
         internal set
 
     var canGoForwardState = mutableStateOf(false)
         internal set
+
+    fun back() {
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Back) }
+    }
+
+    fun forward() {
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Forward) }
+    }
+
+    fun reload() {
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Reload) }
+    }
 }
 
 class Servo(

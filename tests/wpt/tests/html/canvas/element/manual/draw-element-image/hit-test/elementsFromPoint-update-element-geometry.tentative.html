@@ -286,7 +286,7 @@
 
     // b is 100x100 at (0, 0). Clip to (0, 0, 50, 50).
     canvas.updateElementGeometry(b, {
-      clip: { x: 0, y: 0, width: 50, height: 50 }
+      canvasClip: { x: 0, y: 0, width: 50, height: 50 }
     });
 
     // (25, 25) is inside the clip region -> hits b.
@@ -310,7 +310,7 @@
 
     // Negative dimensions in clip are normalized.
     canvas.updateElementGeometry(b, {
-      clip: { x: 50, y: 50, width: -50, height: -50 }
+      canvasClip: { x: 50, y: 50, width: -50, height: -50 }
     });
     assert_array_equals(document.elementsFromPoint(25, 25),
                         [b, canvas, document.body, document.documentElement],
@@ -347,7 +347,7 @@
     // So clip at (0, 0, 25, 25) restricts hit testing to [50, 50, 25, 25] in canvas coordinates.
     canvas.updateElementGeometry(b, {
       canvasTransform: new DOMMatrix().translate(50, 50),
-      clip: { x: 0, y: 0, width: 25, height: 25 }
+      canvasClip: { x: 0, y: 0, width: 25, height: 25 }
     });
 
     // (60, 60) is inside b's transformed rect [50, 50, 100, 100] and inside clip [0, 0, 25, 25] (canvas [50, 50, 25, 25]).
@@ -415,7 +415,7 @@
     canvas.clearElementGeometry(a);
     canvas.updateElementGeometry(a, {
       canvasTransform: new DOMMatrix().translate(100, 100),
-      clip: { x: 25, y: 25, width: 50, height: 50 }
+      canvasClip: { x: 25, y: 25, width: 50, height: 50 }
     });
 
     assert_array_equals(document.elementsFromPoint(115, 150),
@@ -444,7 +444,7 @@
 
     const imageA = canvas.captureElementImage(a);
     canvas.updateElementGeometry(imageA, {
-      clip: { x: 0, y: 0, width: 30, height: 30 }
+      canvasClip: { x: 0, y: 0, width: 30, height: 30 }
     });
 
     assert_array_equals(document.elementsFromPoint(15, 15),
@@ -469,7 +469,7 @@
     // Set a clip outside a's local (0, 0, 100, 100) geometry.
     canvas.updateElementGeometry(a, {
       canvasTransform: new DOMMatrix().translate(120, 120),
-      clip: { x: 120, y: 120, width: 50, height: 50 }
+      canvasClip: { x: 120, y: 120, width: 50, height: 50 }
     });
 
     // Mutate style on `a` so it is repainted.

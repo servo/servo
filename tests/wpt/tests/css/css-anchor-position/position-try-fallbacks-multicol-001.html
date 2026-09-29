@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Fallback and fragmented anchor</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-try-fallbacks">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    bottom: anchor(top);
+    right: anchor(left);
+    width: 30px;
+    height: 100px;
+    position-try-fallbacks: flip-inline flip-block;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; columns:2; width:100px; height:100px; column-fill:auto; gap:0; background:red;">
+  <div style="position:absolute; left:20px; right:30px; top:0; bottom:0; background:green;"></div>
+  <div style="position:relative; height:200px;">
+    <div style="width:20px; height:100px; background:green; anchor-name:--a;"></div>
+    <div id="anchored"></div>
+  </div>
+</div>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS zoom: computed translate and matrix transform with accumulated matrix animation</title>
+<link rel="author" href="mailto:salipov@mozilla.com" title="Seva Alipov">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2045846">
+<meta name="assert" content="Computed transform translations account for zoom when an accumulated animation is interpolated as a matrix.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.anim {
+  width: 50px;
+  height: 50px;
+  zoom: 2;
+  animation: kf 10s linear infinite;
+  animation-composition: accumulate;
+  transform: translateX(10%);
+}
+
+@keyframes kf {
+  0% {
+    transform: translateX(5px);
+  }
+
+  100% {
+    transform: matrix3d(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      25, 50, 0, 1
+    );
+  }
+}
+</style>
+
+<div id="target" class="anim"></div>
+
+<script>
+promise_test(async () => {
+  const animation = target.getAnimations()[0];
+
+  await animation.ready;
+
+  animation.pause();
+  animation.currentTime = 5000;
+
+  const transform = new DOMMatrix(getComputedStyle(target).transform);
+
+  assert_equals(transform.e, 20, "X translation");
+  assert_equals(transform.f, 25, "Y translation");
+}, "Computed transform accounts for zoom during matrix animation accumulation");
+</script>

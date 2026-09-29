@@ -23,7 +23,10 @@ pub mod size_of {
     use crate::dom::eventtarget::EventTarget;
     use crate::dom::html::htmldivelement::HTMLDivElement;
     use crate::dom::html::htmlelement::HTMLElement;
+    use crate::dom::html::htmlimageelement::HTMLImageElement;
+    use crate::dom::html::htmlscriptelement::HTMLScriptElement;
     use crate::dom::html::htmlspanelement::HTMLSpanElement;
+    use crate::dom::html::htmlvideoelement::HTMLVideoElement;
     use crate::dom::node::Node;
     use crate::dom::text::Text;
 
@@ -47,8 +50,20 @@ pub mod size_of {
         size_of::<HTMLElement>()
     }
 
+    pub fn HTMLImageElement() -> usize {
+        size_of::<HTMLImageElement>()
+    }
+
+    pub fn HTMLScriptElement() -> usize {
+        size_of::<HTMLScriptElement>()
+    }
+
     pub fn HTMLSpanElement() -> usize {
         size_of::<HTMLSpanElement>()
+    }
+
+    pub fn HTMLVideoElement() -> usize {
+        size_of::<HTMLVideoElement>()
     }
 
     pub fn Node() -> usize {
@@ -73,8 +88,10 @@ pub mod timeranges {
 }
 
 pub mod text_input {
+    pub use embedder_traits::EditingDirection;
+
     pub use crate::dom::html::form_controls::text_input::{
-        ClipboardProvider, Direction, Lines, SelectionDirection, TextInput,
+        ClipboardProvider, Lines, SelectionDirection, TextInput,
     };
 }
 

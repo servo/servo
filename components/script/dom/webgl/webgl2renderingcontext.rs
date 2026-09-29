@@ -2046,6 +2046,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             constants::TRANSFORM_FEEDBACK_BUFFER_MODE => {
                 retval.set(Int32Value(program.transform_feedback_buffer_mode()))
             },
+            constants::ACTIVE_UNIFORM_BLOCKS => {
+                retval.set(Int32Value(program.active_uniform_blocks().len() as i32))
+            },
             _ => self.base.GetProgramParameter(cx, program, param_id, retval),
         }
     }
@@ -3440,8 +3443,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             Err(_) => return Ok(()),
         };
 
-        let unpacking_alignment = self.base.texture_unpacking_alignment();
-
         let pixels = match self.base.get_image_pixels(no_gc, source)? {
             Some(pixels) => pixels,
             None => return Ok(()),
@@ -3455,7 +3456,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             format,
             level,
             border,
-            unpacking_alignment,
+            // UNPACK_ALIGNMENT does not apply to TexImageSource uploads, whose rows are packed.
+            1,
             pixels.size(),
             TexSource::Pixels(pixels),
         );
@@ -5030,7 +5032,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     #[cfg(feature = "webxr")]
     fn MakeXRCompatible(&self, cx: &mut js::context::JSContext) -> RootedPromise {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
-        Promise::new_resolved_rooted(cx, &self.global(), ())
+        Promise::new_resolved(cx, &self.global(), ())
     }
 }
 

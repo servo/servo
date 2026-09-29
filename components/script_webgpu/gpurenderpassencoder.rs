@@ -90,6 +90,7 @@ where
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPURenderPassEncoder::new_inherited(
                 channel,
                 render_pass,
@@ -97,7 +98,6 @@ where
                 label,
             )),
             global,
-            cx,
             GPURenderPassEncoderWrap::<D>,
         )
     }

@@ -97,8 +97,6 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap --yes --skip-lints --skip-nextest
-          # FIXME #41043, #41044
-          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk fonts-dejavu-extra
           # FIXME #35029
           sudo apt purge -y fonts-droid-fallback
       - name: Sync from upstream WPT

@@ -20,7 +20,7 @@ use smallvec::SmallVec;
 use strum::IntoStaticStr;
 use style_traits::CSSPixel;
 use surfman::{Adapter, Connection};
-use webrender_api::{DocumentId, FontVariation};
+use webrender_api::{DocumentId, FontInstancePlatformOptions, FontVariation};
 
 pub mod display_list;
 pub mod rendering_context;
@@ -171,6 +171,7 @@ pub enum PaintMessage {
         FontKey,
         f32,
         FontInstanceFlags,
+        FontInstancePlatformOptions,
         Vec<FontVariation>,
     ),
     /// Remove the given font resources from our WebRender instance.
@@ -451,6 +452,7 @@ impl CrossProcessPaintApi {
         font_key: FontKey,
         size: f32,
         flags: FontInstanceFlags,
+        options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
     ) {
         let _x = self.0.send(PaintMessage::AddFontInstance(
@@ -459,6 +461,7 @@ impl CrossProcessPaintApi {
             font_key,
             size,
             flags,
+            options,
             variations,
         ));
     }
