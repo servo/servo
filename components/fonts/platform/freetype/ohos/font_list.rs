@@ -31,6 +31,11 @@ use crate::{
 
 static FONT_LIST: LazyLock<FontList> = LazyLock::new(FontList::new);
 
+/// The length of [`UnicodeBlockSet`]'s array.
+/// Currently, there are 328 different unicode blocks supported by Servo (from `shared/base/unicode_block.rs`),
+/// so they can be represented by 64 * 6 = 384 bits.
+const UNICODE_BLOCK_SET_WORDS: usize = 6;
+
 /// When testing the ohos font code on linux, we can pass the fonts directory of the SDK
 /// via an environment variable.
 #[cfg(ohos_mock)]
@@ -58,6 +63,20 @@ impl From<FontWidth> for StyleFontWidth {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+// NOTE: If you modify this, you need to update CACHE_REVISION under [`font_cache.rs`].
+struct UnicodeBlockSet([u64; UNICODE_BLOCK_SET_WORDS]);
+
+impl UnicodeBlockSet {
+    fn insert(&mut self, index: usize) {
+        self.0[index / 64] |= 1u64 << (index % 64);
+    }
+
+    fn contains(&self, index: usize) -> bool {
+        (self.0[index / 64] & (1u64 << (index % 64))) != 0
+    }
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 // NOTE: If you modify this, you need to update CACHE_REVISION under [`font_cache.rs`].
 struct Font {
@@ -67,7 +86,7 @@ struct Font {
     weight: Option<i32>,
     style: Option<String>,
     width: FontWidth,
-    unicode_range: [u64; 6],
+    unicode_range: UnicodeBlockSet,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -165,24 +184,20 @@ fn detect_hos_font_width(font: &FontRef) -> FontWidth {
 /// Although OS/2 table is more suitable for the task, it is found via testing that this table is not accurate in some HarmonyOS fonts
 /// (e.g. A HarmonyOS font's OS/2 table may claim that it supports CJK block, eventhough it doesn't).
 /// So cmap table is used instead as a form of optimization.
-fn detect_hos_font_unicode_range(font: &FontRef) -> [u64; 6] {
+fn detect_hos_font_unicode_range(font: &FontRef) -> UnicodeBlockSet {
     // Conceptually, during initialization (if cache file doesn't exist or needs updating), Servo will traverse the font files
     // one by one and check its cmap table, which lets us check all the codepoints that is available in a given font.
     // From here, we map each codepoint to its respective unicode block and then mark an element of `bits`.
     //
-    // `bits` represents the range of unicode block a font supports. For example, if `bits[0]`'s second LSB is set HIGH,
-    // it means that at least one codepoint from `Latin1Supplement` block is supported by the font.
-    //
-    // Currently, there are 328 different unicode blocks supported by Servo (from `shared/base/unicode_block.rs`),
-    // so they can be represented by 64 * 6 = 384 bits.
-    let mut bits = [0u64; 6];
+    // `bits` represents the range of unicode block a font supports. For example, if the second LSB of `bits`' first
+    // word is set to 1, it means that at least one codepoint from `Latin1Supplement` block is supported by the font.
+    let mut bits = UnicodeBlockSet::default();
     for (codepoint, glyph) in font.charmap().mappings() {
         if glyph == GlyphId::NOTDEF {
             continue;
         }
         if let Some(block) = char::from_u32(codepoint).and_then(|c| c.block()) {
-            let index = block as usize;
-            bits[index / 64] |= unicode_block_to_bitmap(index);
+            bits.insert(block as usize);
         }
     }
     bits
@@ -316,17 +331,12 @@ impl FontList {
         })
     }
 
-    /// Detect available fonts or fallback to a hardcoded list and returns the list after sorting them in ascending order based on family name.
-    ///
-    /// The reason this is done is optimization: because the ordering returned by `fontations` is random, meanwhile we
-    /// want to prioritize `HarmonyOS` fonts during checks.
+    /// Detect available fonts or fallback to a hardcoded list
     fn detect_installed_font_families() -> Vec<FontFamily> {
-        let mut families = enumerate_font_files()
+        enumerate_font_files()
             .inspect_err(|e| error!("Failed to enumerate font files due to `{e:?}`"))
             .map(get_system_font_families)
-            .unwrap_or_else(|_| FontList::fallback_font_families());
-        families.sort_by(|a, b| a.name.cmp(&b.name));
-        families
+            .unwrap_or_else(|_| FontList::fallback_font_families())
     }
 
     fn fallback_font_families() -> Vec<FontFamily> {
@@ -471,7 +481,12 @@ where
     }
 }
 
-// Based on fonts present in OpenHarmony.
+/// Generate a list of candidate fonts and returns the list after sorting them: prioritize fonts whose family name contains `HarmonyOS` or `HMOS`.
+///
+/// The reason this is done is optimization: because the ordering returned by `fontations` (and therefore the generated FONT_LIST) is random,
+/// we want to prioritize `HarmonyOS` fonts during checks.
+///
+/// TODO: in the future, consider other factors such as language. And use multithreading to improve performance.
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = vec![];
 
@@ -485,8 +500,9 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             let index = unicode_block as usize;
             for font_family in &FONT_LIST.families {
                 for font in &font_family.fonts {
-                    if (font.unicode_range[index / 64] & unicode_block_to_bitmap(index)) != 0 {
+                    if font.unicode_range.contains(index) {
                         families.push(&font_family.name);
+                        break;
                     }
                 }
             }
@@ -498,6 +514,10 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
         },
     }
 
+    families.sort_by_key(|name| {
+        let is_priority = name.contains("HarmonyOS") || name.contains("HMOS");
+        (!is_priority, *name)
+    });
     families
 }
 
@@ -515,10 +535,6 @@ pub(crate) fn default_system_generic_font_family(
         },
         _ => default_font,
     }
-}
-
-fn unicode_block_to_bitmap(index: usize) -> u64 {
-    1u64 << (index % 64)
 }
 
 #[cfg(test)]
