@@ -1261,6 +1261,7 @@ malloc_size_of_is_0!(time::Duration);
 malloc_size_of_is_0!(unicode_bidi::Level);
 malloc_size_of_is_0!(unicode_script::Script);
 malloc_size_of_is_0!(std::net::TcpStream);
+malloc_size_of_is_0!(memmap2::Mmap);
 
 malloc_size_of_is_0!(taffy::Layout);
 malloc_size_of_is_0!(taffy::Baselines);
