@@ -225,6 +225,35 @@
       {}
      ]
     ],
+    "input-range-overflow-hidden.html": [
+     "58a1bd65f0961f3121416c65a6206bd1f1cb5921",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/input-range-overflow-hidden-ref.html",
+        "=="
+       ]
+      ],
+      {
+       "fuzzy": [
+        [
+         null,
+         [
+          [
+           0,
+           6
+          ],
+          [
+           0,
+           20
+          ]
+         ]
+        ]
+       ]
+      }
+     ]
+    ],
     "input-range.html": [
      "ed42641aa50cb89647ac3671da73d40b30f55f0d",
      [
@@ -8447,8 +8476,12 @@
      "d24a8715c8b453906323e89a1d605ba3e77351f0",
      []
     ],
+    "input-range-overflow-hidden-ref.html": [
+     "d4b736099e1652dc6909f59cb7eeb19e03d7fd83",
+     []
+    ],
     "input-range-ref.html": [
-     "a805e58f2bf0f48b597a3fef54ac7fa7c50db3b5",
+     "19fd28bc6629d995dddabae520c89c9352fd3993",
      []
     ],
     "input-text-caret-mixed-language-ref.html": [
@@ -8491,6 +8524,40 @@
      "3bbe99f30eba1dfeda637b2e44e21d366c7fda6f",
      []
     ],
+    "screenshots": {
+     "new_input-range-overflow-hidden-ref.png": [
+      "92c3a450bc39df35d38da4a92dab063fc4f45c3d",
+      []
+     ],
+     "new_input-range-overflow-hidden.png": [
+      "92c3a450bc39df35d38da4a92dab063fc4f45c3d",
+      []
+     ],
+     "new_input-range-ref.png": [
+      "8655035923407a3b6217392006190d6c0e543e3f",
+      []
+     ],
+     "new_input-range.png": [
+      "8655035923407a3b6217392006190d6c0e543e3f",
+      []
+     ],
+     "old_input-range-overflow-hidden-ref.png": [
+      "92c3a450bc39df35d38da4a92dab063fc4f45c3d",
+      []
+     ],
+     "old_input-range-overflow-hidden.png": [
+      "b23d96857efb6577c4510cbcbbad57c012d0bd52",
+      []
+     ],
+     "old_input-range-ref.png": [
+      "8655035923407a3b6217392006190d6c0e543e3f",
+      []
+     ],
+     "old_input-range.png": [
+      "8c34c89b71e3dc5b5c62e56f47bc40824c6fc268",
+      []
+     ]
+    },
     "supports": {
      "input-textual-ref.css": [
       "e16996804cc90ab9d95ba7a2feb6869f6213215c",
