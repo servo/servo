@@ -58,6 +58,8 @@ def map_platform(platform: str) -> str:
         return "x86_64-linux-gnu"
     elif platform == "linux-arm64":
         return "aarch64-linux-gnu"
+    elif platform == "linux-riscv64":
+        return "riscv64gc-linux-gnu"
     elif platform == "windows-msvc":
         return "x86_64-windows-msvc"
     elif platform == "mac":

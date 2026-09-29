@@ -134,6 +134,7 @@ jobs:
       # - build-android
       - build-linux
       - build-linux-arm64
+      - build-linux-riscv64
       - build-mac
       - build-mac-arm64
       - build-ohos
@@ -242,6 +243,7 @@ jobs:
       - build-mac-arm64
       - build-linux
       - build-linux-arm64
+      - build-linux-riscv64
       # - build-android
       - build-ohos
     strategy: &upload-artifacts-strategy
@@ -258,6 +260,8 @@ jobs:
             artifact_platform: linux
           - artifact_ids: ${{ needs.build-linux-arm64.outputs.artifact_ids }}
             artifact_platform: linux-arm64
+          - artifact_ids: ${{ needs.build-linux-riscv64.outputs.artifact_ids }}
+            artifact_platform: linux-riscv64
           # - artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
           #   artifact_platform: android
           - artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
@@ -358,6 +362,15 @@ jobs:
     if: github.repository == 'AetherBrowser/aether' || github.event_name == 'workflow_dispatch'
     name: Build production release (Linux Arm64)
     uses: ./.github/workflows/linux-arm64.yml
+    with:
+      profile: "production"
+      force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
+
+  build-linux-riscv64:
+    # This job is only useful when run on upstream aether.
+    if: github.repository == 'AetherBrowser/aether' || github.event_name == 'workflow_dispatch'
+    name: Build production release (Linux RiscV64)
+    uses: ./.github/workflows/linux-riscv.yml
     with:
       profile: "production"
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
