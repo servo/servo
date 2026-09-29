@@ -2046,6 +2046,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             constants::TRANSFORM_FEEDBACK_BUFFER_MODE => {
                 retval.set(Int32Value(program.transform_feedback_buffer_mode()))
             },
+            constants::ACTIVE_UNIFORM_BLOCKS => {
+                retval.set(Int32Value(program.active_uniform_blocks().len() as i32))
+            },
             _ => self.base.GetProgramParameter(cx, program, param_id, retval),
         }
     }
