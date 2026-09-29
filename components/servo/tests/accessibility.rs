@@ -1301,7 +1301,6 @@ fn test_accessibility_display_none_change_scroll() {
     let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
     assert_eq!(updates.len(), 1);
     let update = updates[0].clone();
-    dbg!(&update);
     assert_eq!(
         update.nodes.len(),
         2,
@@ -1331,7 +1330,6 @@ fn test_accessibility_display_none_change_scroll() {
     let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
     assert_eq!(updates.len(), 1);
     let update = updates[0].clone();
-    dbg!(&update);
     assert_eq!(update.nodes.len(), 1, "only <aside> should be updated");
     let aside_data = find_node_matching(&update, |id, _node| id == &aside_id);
     assert_eq!(aside_data.transform(), Some(&transform));
