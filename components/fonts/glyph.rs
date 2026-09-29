@@ -539,18 +539,6 @@ impl fmt::Debug for ShapedText {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf)]
-pub enum ShapedTextSliceType {
-    /// A [`ShapedTextSlice`] that is a word that is not followed by white space.
-    Word,
-    /// A [`ShapedTextSlice`] composed of only white space glyphs.
-    WhiteSpace,
-    /// A [`ShapedTextSlice`] that is a word that ends with a white space glyphs.
-    /// Typically whitespace glyphs are placed in a separate slice, but that may not be
-    /// the case with `white-space: break-spaces`.
-    WordAndWhiteSpace,
-}
-
 /// A slice of a [`ShapedText`] which allows having different views into a shaped
 /// text run. This is used for splitting up shaped text during layout, without
 /// duplicating the entire run.
@@ -573,8 +561,18 @@ pub struct ShapedTextSlice {
     /// <https://drafts.csswg.org/css-text/#word-separator>.
     total_word_separators: usize,
 
-    /// The [`ShapedTextSliceType`] of this [`ShapedTextSlice`].
-    slice_type: ShapedTextSliceType,
+    /// The number of glyphs and their advance of the removable portion of this glyph
+    /// run during inline line layout. This comes between hangable content and the end of
+    /// the slice.
+    removable_amount: (usize, Au),
+
+    /// The number of glyphs and their advance of the hangable portion of this glyph
+    /// run during inline line layout. This comes between non-removable/non-hangable
+    /// content and removable content.
+    hangable_amount: (usize, Au),
+
+    /// Whether or not this [`ShapedTextSlice`] is entirely white-space.
+    entirely_white_space: bool,
 }
 
 impl ShapedTextSlice {
@@ -604,24 +602,119 @@ impl ShapedTextSlice {
         self.total_word_separators
     }
 
-    /// Whether or not this [`ShapedTextSlice`] is entirely whitespace.
-    #[inline]
-    pub fn is_whitespace(&self) -> bool {
-        matches!(self.slice_type, ShapedTextSliceType::WhiteSpace)
+    /// The number of word separators in the hanging and removable portion of this [`ShapedTextSlice`].
+    pub fn hanging_and_removable_word_separators(&self) -> usize {
+        let discard_glyph_count = self.removable_amount.0 + self.hangable_amount.0;
+        let iterator = if self.shaped_text.is_rtl {
+            self.shaped_text
+                .glyph_slice(self.glyph_range.start..self.glyph_range.start + discard_glyph_count)
+        } else {
+            self.shaped_text
+                .glyph_slice(self.glyph_range.end - discard_glyph_count..self.glyph_range.end)
+        };
+        iterator
+            .map(|glyph| if glyph.char_is_word_separator() { 1 } else { 0 })
+            .sum()
     }
 
-    /// Whether or not this [`ShapedTextSlice`] ends with whitespace.
-    #[inline]
-    pub fn ends_with_whitespace(&self) -> bool {
-        match self.slice_type {
-            ShapedTextSliceType::Word => false,
-            ShapedTextSliceType::WhiteSpace | ShapedTextSliceType::WordAndWhiteSpace => true,
-        }
+    /// Whether or not this [`ShapedTextSlice`] is composed of only removable characters.
+    pub fn entirely_removable(&self) -> bool {
+        self.removable_amount.0 >= self.glyph_count()
+    }
+
+    /// Whether or not this [`ShapedTextSlice`] has any non-hangable and non-removable glyphs.
+    pub fn has_non_hangable_non_removable_content(&self) -> bool {
+        self.removable_amount.0 + self.hangable_amount.0 < self.glyph_count()
+    }
+
+    /// The advance of this [`ShapedTextSlice`] that is removable at the end of a line.
+    pub fn removable_advance(&self) -> Au {
+        self.removable_amount.1
+    }
+
+    /// The advance of this [`ShapedTextSlice`] that is hangable at the end of a line.
+    pub fn hangable_advance(&self) -> Au {
+        self.hangable_amount.1
+    }
+
+    /// Wether or not this [`ShapedTextSlice`] is entirely composed of white space.
+    pub fn entirely_white_space(&self) -> bool {
+        self.entirely_white_space
     }
 
     /// An iterator over the glyphs represented by this [`ShapedTextSlice`].
     pub fn glyphs(&self) -> impl DoubleEndedIterator<Item = GlyphInfo<'_>> + use<'_> {
         self.shaped_text.glyph_slice(self.glyph_range.clone())
+    }
+
+    fn split_off_count(&mut self, trimmed_glyph_count: usize) -> Arc<Self> {
+        let glyph_range = if self.shaped_text.is_rtl {
+            self.glyph_range.start + trimmed_glyph_count..self.glyph_range.end
+        } else {
+            self.glyph_range.start..self.glyph_range.end - trimmed_glyph_count
+        };
+
+        let split_glyph_range = if self.shaped_text.is_rtl {
+            self.glyph_range.start..self.glyph_range.start + trimmed_glyph_count
+        } else {
+            self.glyph_range.end - trimmed_glyph_count..self.glyph_range.end
+        };
+
+        let mut trimmed_characters = Utf32CodeUnits(0);
+        let mut trimmed_word_separators = 0;
+        let mut trimmed_advance = Au::zero();
+        let iterator = self.shaped_text.glyph_slice(split_glyph_range.clone());
+        for glyph in iterator {
+            trimmed_characters += glyph.character_count();
+            trimmed_advance += glyph.advance();
+            if glyph.char_is_word_separator() {
+                trimmed_word_separators += 1;
+            }
+        }
+
+        self.glyph_range = glyph_range;
+        self.character_count -= trimmed_characters;
+        self.total_word_separators -= trimmed_word_separators;
+        self.total_advance -= trimmed_advance;
+
+        let (removable_glyphs, removable_advance) = self.removable_amount;
+        let removable_glyphs_to_trim = trimmed_glyph_count.min(removable_glyphs);
+        let removable_advance_to_trim = trimmed_advance.min(removable_advance);
+        let hangable_glyphs_to_trim = trimmed_glyph_count - removable_glyphs_to_trim;
+        let hangable_advance_to_trim =
+            (trimmed_advance - removable_advance_to_trim).min(self.hangable_amount.1);
+
+        self.removable_amount.0 -= removable_glyphs_to_trim;
+        self.removable_amount.1 -= removable_advance_to_trim;
+        self.hangable_amount.0 -= hangable_glyphs_to_trim;
+        self.hangable_amount.1 -= hangable_advance_to_trim;
+
+        Arc::new(Self {
+            shaped_text: self.shaped_text.clone(),
+            glyph_range: split_glyph_range,
+            total_advance: trimmed_advance,
+            character_count: trimmed_characters,
+            total_word_separators: trimmed_word_separators,
+            removable_amount: (removable_glyphs_to_trim, removable_advance_to_trim),
+            hangable_amount: (hangable_glyphs_to_trim, hangable_advance_to_trim),
+            // This might be wrong, but this a conservative choice.
+            entirely_white_space: self.entirely_white_space,
+        })
+    }
+
+    /// Produce a new [`ShapedTextSlice] that includes all of the glyphs that `self`
+    /// does except for the removable portion of the slice.
+    pub fn without_removable_whitespace(&self) -> Arc<Self> {
+        let mut new = self.clone();
+        new.split_off_count(self.removable_amount.0);
+        Arc::new(new)
+    }
+
+    pub fn split_off_hangable(&self) -> (Arc<Self>, Arc<Self>) {
+        debug_assert_eq!(self.removable_amount.0, 0);
+        let mut original = self.clone();
+        let split_off = original.split_off_count(self.hangable_amount.0);
+        (Arc::new(original), split_off)
     }
 }
 
@@ -654,7 +747,9 @@ impl ShapedTextSlicer {
     pub fn slice_until_character_offset(
         &mut self,
         desired_character_offset: Utf32CodeUnits,
-        slice_type: ShapedTextSliceType,
+        hangable_count: Utf32CodeUnits,
+        removable_count: Utf32CodeUnits,
+        entirely_white_space: bool,
     ) -> Option<Arc<ShapedTextSlice>> {
         let mut glyph_count = 0;
         let mut total_word_separators = 0;
@@ -664,6 +759,13 @@ impl ShapedTextSlicer {
         if self.current_character_offset >= desired_character_offset {
             return None;
         }
+
+        let starting_removable_offset = desired_character_offset - removable_count;
+        let starting_hangable_offset = starting_removable_offset - hangable_count;
+        let mut hangable_glyph_count = 0;
+        let mut hangable_advance = Au::zero();
+        let mut removable_glyph_count = 0;
+        let mut removable_advance = Au::zero();
 
         // In `ShapedText` glyphs are stored in physical left-to-right order, which means that the
         // indices of the characters that they represent might decrease. Since we want to consume
@@ -689,6 +791,14 @@ impl ShapedTextSlicer {
                 glyph.character_count().0 > 0
             {
                 break;
+            }
+
+            if self.current_character_offset >= starting_removable_offset {
+                removable_advance += glyph.advance();
+                removable_glyph_count += 1;
+            } else if self.current_character_offset >= starting_hangable_offset {
+                hangable_advance += glyph.advance();
+                hangable_glyph_count += 1;
             }
 
             glyph_count += 1;
@@ -725,7 +835,9 @@ impl ShapedTextSlicer {
             total_advance,
             character_count: self.current_character_offset - original_character_offset,
             total_word_separators,
-            slice_type,
+            hangable_amount: (hangable_glyph_count, hangable_advance),
+            removable_amount: (removable_glyph_count, removable_advance),
+            entirely_white_space,
         }))
     }
 }
