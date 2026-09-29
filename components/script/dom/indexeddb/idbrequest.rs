@@ -10,7 +10,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
-use js::jsval::{DoubleValue, JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{DoubleValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
@@ -244,6 +244,8 @@ impl RequestListener {
                                     .set(ObjectValue(*cursor.reflector().get_jsobject()));
                             },
                         }
+                    } else {
+                        answer.handle_mut().set(NullValue());
                     }
                 },
                 IdbResult::None => {
@@ -448,6 +450,10 @@ impl IDBRequest {
 
     pub fn clear_transaction(&self) {
         self.transaction.set(None);
+    }
+
+    pub fn unset_done_flag(&self) {
+        self.ready_state.set(IDBRequestReadyState::Pending);
     }
 
     fn is_done(&self) -> bool {
