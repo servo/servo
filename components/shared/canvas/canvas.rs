@@ -878,7 +878,7 @@ pub enum RepetitionStyle {
     NoRepeat,
 }
 
-/// <https://drafts.fxtf.org/compositing/#compositemode>
+/// <https://drafts.csswg.org/compositing/#compositemode>
 #[derive(
     Clone, Copy, Debug, Deserialize, Display, EnumString, MallocSizeOf, PartialEq, Serialize,
 )]
@@ -900,7 +900,7 @@ pub enum CompositionStyle {
     // PlusLighter,
 }
 
-/// <https://drafts.fxtf.org/compositing/#ltblendmodegt>
+/// <https://drafts.csswg.org/compositing/#ltblendmodegt>
 #[derive(
     Clone, Copy, Debug, Deserialize, Display, EnumString, MallocSizeOf, PartialEq, Serialize,
 )]
