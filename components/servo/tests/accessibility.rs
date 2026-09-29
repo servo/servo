@@ -10,7 +10,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use accesskit::Role::{self, GenericContainer};
-use accesskit::{NodeId, Rect, TreeId, TreeUpdate};
+use accesskit::{Affine, NodeId, Rect, TreeId, TreeUpdate};
 use accesskit_consumer::TreeChangeHandler;
 use euclid::Scale;
 use servo::{
@@ -1234,6 +1234,118 @@ fn test_accessibility_display_none_change() {
     assert_eq!(heading_children.len(), 3);
     let em = heading_children[1];
     assert_eq!(em.is_hidden(), false);
+}
+
+#[test]
+fn test_accessibility_display_none_change_scroll() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <body style='margin:0;'>\
+                  <main id='main' style='width:1000px;height:100px;\
+                                         overflow:scroll'>\
+                    <article style='width:1000px;height:50px;'></article>\
+                    <div style='width:1000px;height:2000px'></div>\
+                    <aside id='aside' style='width:1000px;height:50px;'></aside>\
+                  </main>\
+               </body>";
+
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+
+    let main = find_first_matching_node(root, |node| node.role() == Role::Main)
+        .expect("Document should contain a main element");
+    assert_rect_eq(
+        main.bounding_box().expect("main should have bounds"),
+        Rect::new(0.0, 0.0, 1000.0, 100.0),
+    );
+
+    let article = find_first_matching_node(root, |node| node.role() == Role::Article)
+        .expect("Document should contain an article");
+    let article_id = article.locate().0;
+    assert_rect_eq(
+        article.bounding_box().expect("article should have bounds"),
+        Rect::new(0.0, 0.0, 1000.0, 50.0),
+    );
+
+    let div = find_first_matching_node(root, |node| node.role() == Role::GenericContainer)
+        .expect("Document should contain a div");
+    let div_id = div.locate().0;
+
+    let aside = find_first_matching_node(root, |node| node.role() == Role::Complementary)
+        .expect("Document should contain an aside");
+    assert_rect_eq(
+        aside.bounding_box().expect("aside should have bounds"),
+        Rect::new(0.0, 2050.0, 1000.0, 2100.0),
+    );
+    let aside_id = aside.locate().0;
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "aside.style.display = 'none';",
+    );
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let update = updates[0].clone();
+    assert_eq!(update.nodes.len(), 1, "only <aside> should be updated");
+    let _ = find_node_matching(&update, |id, _node| id == &aside_id);
+
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let aside = find_first_matching_node(root, |node| node.role() == Role::Complementary)
+        .expect("Aside should stil be present");
+    assert_eq!(aside.is_hidden(), true);
+    assert_eq!(aside.bounding_box(), None);
+
+    let _ = evaluate_javascript(&servo_test, webview.clone(), "main.scrollTo(0, 500);");
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates[0].clone();
+    dbg!(&update);
+    assert_eq!(
+        update.nodes.len(),
+        2,
+        "only <article> and <div> should be updated"
+    );
+    let transform = Affine::translate((0.0, -500.0));
+    let article_data = find_node_matching(&update, |id, _node| id == &article_id);
+    assert_eq!(article_data.transform(), Some(&transform));
+    let div_data = find_node_matching(&update, |id, _node| id == &div_id);
+    assert_eq!(div_data.transform(), Some(&transform));
+
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let article = find_first_matching_node(root, |node| node.role() == Role::Article)
+        .expect("Document should contain an article");
+    let article_id = article.locate().0;
+    assert_rect_eq(
+        article.bounding_box().expect("article should have bounds"),
+        Rect::new(0.0, -500.0, 1000.0, -450.0),
+    );
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "aside.style.removeProperty('display');",
+    );
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates[0].clone();
+    dbg!(&update);
+    assert_eq!(update.nodes.len(), 1, "only <aside> should be updated");
+    let aside_data = find_node_matching(&update, |id, _node| id == &aside_id);
+    assert_eq!(aside_data.transform(), Some(&transform));
+
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let aside = find_first_matching_node(root, |node| node.role() == Role::Complementary)
+        .expect("Aside should contain an aside");
+    let aside_id = aside.locate().0;
+    assert_eq!(aside.is_hidden(), false);
+    assert_rect_eq(
+        aside.bounding_box().expect("aside should have bounds"),
+        Rect::new(0.0, 1550.0, 1000.0, 1600.0),
+    );
 }
 
 // ************************************************************************************************
