@@ -77,7 +77,7 @@ jobs:
         id: setup_sdk
         uses: openharmony-rs/setup-ohos-sdk@v1.0.0
         with:
-          version: "6.1" # api 20 in openharmony
+          version: "6.1" # api 23 in openharmony
           fixup-path: true
       - name: Install node for hvigor
         uses: actions/setup-node@v7
