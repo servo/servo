@@ -3440,8 +3440,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             Err(_) => return Ok(()),
         };
 
-        let unpacking_alignment = self.base.texture_unpacking_alignment();
-
         let pixels = match self.base.get_image_pixels(no_gc, source)? {
             Some(pixels) => pixels,
             None => return Ok(()),
@@ -3455,7 +3453,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             format,
             level,
             border,
-            unpacking_alignment,
+            // UNPACK_ALIGNMENT does not apply to TexImageSource uploads, whose rows are packed.
+            1,
             pixels.size(),
             TexSource::Pixels(pixels),
         );
