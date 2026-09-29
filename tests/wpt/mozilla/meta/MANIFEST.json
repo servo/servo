@@ -293,6 +293,34 @@
       {}
      ]
     ],
+    "input-text-placeholder-caret-after-edit.html": [
+     "3a3e5e9992b318daa8d4b96c58633e44490e62ad",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/input-text-placeholder-caret-ref.html",
+        "=="
+       ]
+      ],
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "input-text-placeholder-caret-focus.html": [
+     "c05fb6606097b4dd9869535b1945c41248ba2f3b",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/input-text-placeholder-caret-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "input-textual-definite-width.html": [
      "59f1797fab3d1889bbcb7863178c6c5ef9e54f19",
      [
@@ -413,7 +441,7 @@
     "progress-determinate.html": [
      "0e98f4da0e53feedc972b3a75596fb2c60fd14c5",
      [
-      "appearance/progress-determinate.html",
+      null,
       [
        [
         "/_mozilla/appearance/progress-determinate-ref.html",
@@ -4356,7 +4384,7 @@
     "linear-gradients-small-stop-gaps.html": [
      "38542d78b9077de41cee1a41676611ca1dc3df16",
      [
-      "css/linear-gradients-small-stop-gaps.html",
+      null,
       [
        [
         "/_mozilla/css/linear-gradients-small-stop-gaps-ref.html",
@@ -8529,6 +8557,10 @@
     ],
     "input-text-caret-mixed-language-ref.html": [
      "ff0b91f2a8857fdefa4a8a3d7d75e06e53e699cf",
+     []
+    ],
+    "input-text-placeholder-caret-ref.html": [
+     "20e885777fa67bab3e86a086824d1264c33db32f",
      []
     ],
     "input-textual-definite-width-ref.html": [

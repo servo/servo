@@ -340,6 +340,7 @@ impl TextControlElement for HTMLTextAreaElement {
                 self.queue_input_event(text, is_composing, input_type);
                 self.value_dirty.set(true);
                 self.handle_text_content_changed(cx);
+                self.maybe_update_shared_selection();
             },
             KeyReaction::RedrawSelection => {
                 self.maybe_update_shared_selection();
