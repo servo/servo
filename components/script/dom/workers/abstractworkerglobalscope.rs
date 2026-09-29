@@ -91,6 +91,7 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     // explicit close/exit Sharedworker path). Treat that as a clean shutdown signal rather
     // than panicking on RecvError.
     let Some(event) = event else {
+        scope.close();
         return;
     };
 
