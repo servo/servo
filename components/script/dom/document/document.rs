@@ -35,7 +35,7 @@ use indexmap::IndexSet;
 use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::realm::CurrentRealm;
-use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{HandleObject, HandleValue};
 use layout_api::{
     ContainerTimingRecord, LCPCandidate, PendingRestyle, ReflowGoal, ReflowPhasesRun,
     ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, TrustedNodeAddress,
@@ -62,6 +62,7 @@ use script_bindings::callback::{RootedCallback, ThisReflector};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::tasks::NonSendTaskBox;
 use script_bindings::trace::CustomTraceable;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
@@ -124,7 +125,6 @@ use crate::dom::bindings::domname::{
     self, is_valid_attribute_local_name, is_valid_element_local_name, namespace_from_domstring,
 };
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
-use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -691,11 +691,9 @@ pub(crate) struct Document {
     #[no_trace]
     container_first_render_times: DomRefCell<HashMap<OpaqueNode, CrossProcessInstant>>,
     /// The constructed stylesheet that is adopted by this [Document].
+    /// The DOM-side adopted stylesheet list for this [Document], including duplicates.
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     adopted_stylesheets: DomRefCell<Vec<Dom<CSSStyleSheet>>>,
-    /// Cached frozen array of [`Self::adopted_stylesheets`]
-    #[ignore_malloc_size_of = "mozjs"]
-    adopted_stylesheets_frozen_types: CachedFrozenArray,
     /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-events>
     /// > Each Document has an associated list of pending scroll events, which stores
     /// > pairs of (EventTarget, DOMString), initially empty.
@@ -4282,7 +4280,6 @@ impl Document {
             container_timing_records: DomRefCell::new(Default::default()),
             container_first_render_times: DomRefCell::new(Default::default()),
             adopted_stylesheets: Default::default(),
-            adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_events: Default::default(),
             rendering_update_reasons: Default::default(),
             waiting_on_canvas_image_updates: Cell::new(false),
@@ -7296,35 +7293,44 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
-    fn AdoptedStyleSheets(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        self.adopted_stylesheets_frozen_types.get_or_init(
+    ///
+    /// To react to an ObservableArray indexed write:
+    /// 1. Convert the binding-provided context into a JS API context.
+    /// 2. Insert `value` at `index` in the DOM-side list.
+    /// 3. Reconcile the effective constructed stylesheets for this document.
+    fn OnSetAdoptedStyleSheets(
+        &self,
+        cx: &mut JSContext,
+        value: DomRoot<CSSStyleSheet>,
+        index: u32,
+    ) -> ErrorResult {
+        DocumentOrShadowRoot::on_set_adopted_stylesheets(
             cx,
-            || {
-                self.adopted_stylesheets
-                    .borrow()
-                    .clone()
-                    .iter()
-                    .map(|sheet| sheet.as_rooted())
-                    .collect()
-            },
-            retval,
-        );
+            self.adopted_stylesheets.borrow_mut().as_mut(),
+            &value,
+            index,
+            &StyleSheetListOwner::Document(Dom::from_ref(self)),
+        )
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
-    fn SetAdoptedStyleSheets(&self, cx: &mut JSContext, val: HandleValue) -> ErrorResult {
-        let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
+    ///
+    /// To react to an ObservableArray deletion:
+    /// 1. Convert the binding-provided context into a JS API context.
+    /// 2. Remove the entry at `index` from the DOM-side list.
+    /// 3. Reconcile the effective constructed stylesheets for this document.
+    fn OnDeleteAdoptedStyleSheets(
+        &self,
+        cx: &mut JSContext,
+        _value: DomRoot<CSSStyleSheet>,
+        index: u32,
+    ) -> ErrorResult {
+        DocumentOrShadowRoot::on_delete_adopted_stylesheets(
             cx,
-            &self.adopted_stylesheets,
-            val,
+            self.adopted_stylesheets.borrow_mut().as_mut(),
+            index,
             &StyleSheetListOwner::Document(Dom::from_ref(self)),
-        );
-
-        if result.is_ok() {
-            self.adopted_stylesheets_frozen_types.clear()
-        }
-
-        result
+        )
     }
 
     fn Timeline(&self) -> DomRoot<DocumentTimeline> {
