@@ -155,6 +155,14 @@ class TestConsoleTab:
         result = evaluate_and_capture_console_log_output("log_sprintf();")
         assert result["arguments"] == ["String string Int 32 Int 46 Float 3.141592653589793"]
 
+    def test_console_unhandled_promise_rejection(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output("Promise.reject(5);")
+
+        assert result["level"] == "error"
+        assert result["arguments"] == ["Unhandled promise rejection: 5"]
+
     def test_console_actor_can_handle_self_referential_objects(self, run_servoshell, web_server_urls):
         run_servoshell(url="data:text/html,")
 
