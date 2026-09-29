@@ -63,7 +63,6 @@ use crate::dom::html::htmltrackelement::HTMLTrackElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::htmlbuttonelement::CommandState;
 use crate::dom::htmldialogelement::HTMLDialogElement;
-use crate::dom::inputevent::HitTestResult;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, MoveContext, Node, UnbindContext,
 };
@@ -89,7 +88,6 @@ use crate::dom::svg::svgsymbolelement::SVGSymbolElement;
 use crate::dom::svg::svgtextelement::SVGTextElement;
 use crate::dom::svg::svgtspanelement::SVGTSpanElement;
 use crate::dom::svg::svguseelement::SVGUseElement;
-use crate::dom::types::MouseEvent;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.
@@ -173,20 +171,6 @@ pub(crate) trait VirtualMethods {
     fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         if let Some(s) = self.super_type() {
             s.handle_event(cx, event);
-        }
-    }
-
-    /// Called after `mousedown`/`pointerdown` event dispatch completes. This needs to be
-    /// separate from `handle_event` because it's only invoked if `preventDefault` was
-    /// called on neither the `mousedown` nor the `pointerdown` event handler.
-    fn handle_mousedown_event(
-        &self,
-        cx: &mut js::context::JSContext,
-        mouse_event: &MouseEvent,
-        hit_test_result: &HitTestResult,
-    ) {
-        if let Some(super_type) = self.super_type() {
-            super_type.handle_mousedown_event(cx, mouse_event, hit_test_result);
         }
     }
 
