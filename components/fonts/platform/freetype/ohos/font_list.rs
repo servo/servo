@@ -14,6 +14,7 @@ use read_fonts::FileRef::{Collection, Font as OHOS_Font};
 use read_fonts::{FileRef, FontRef, TableProvider};
 use serde::{Deserialize, Serialize};
 use servo_base::text::UnicodeBlockMethod;
+use skrifa::{GlyphId, MetadataProvider};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
@@ -23,7 +24,6 @@ use style::values::computed::{
 use crate::platform::freetype::ohos::font_cache::{
     font_file_cached_on_disk, read_from_disk, serialize_and_write_to_disk_wrapper,
 };
-use crate::platform::freetype::ohos::os2::unicode_block_to_os2_bits;
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
     FontTemplateDescriptor, LocalFontIdentifier, LowercaseFontFamilyName,
@@ -67,7 +67,7 @@ struct Font {
     weight: Option<i32>,
     style: Option<String>,
     width: FontWidth,
-    unicode_range: Option<u128>,
+    unicode_range: [u64; 6],
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -159,27 +159,33 @@ fn detect_hos_font_width(font: &FontRef) -> FontWidth {
     }
 }
 
-fn detect_hos_font_unicode_range(font: &FontRef) -> Option<u128> {
-    // According to TrueType's reference manual (https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html),
-    // os2 is an optional table. Therefore, if Fontations fails to read this table, we don't treat this as an error
-    // and we simply return `None`.
-    match font.os2() {
-        Ok(result) => {
-            let mut unicode_range: u128;
-            unicode_range = result.ul_unicode_range_4() as u128;
-            unicode_range <<= 32;
-
-            unicode_range |= result.ul_unicode_range_3() as u128;
-            unicode_range <<= 32;
-
-            unicode_range |= result.ul_unicode_range_2() as u128;
-            unicode_range <<= 32;
-
-            unicode_range |= result.ul_unicode_range_1() as u128;
-            Some(unicode_range)
-        },
-        Err(_) => None,
+/// Use the font's cmap table (<https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6cmap.html>)
+/// to obtain the range of unicode blocks the font supports, which will be used during coarse filtering by `fallback_font_families()`.
+///
+/// Although OS/2 table is more suitable for the task, it is found via testing that this table is not accurate in some HarmonyOS fonts
+/// (e.g. A HarmonyOS font's OS/2 table may claim that it supports CJK block, eventhough it doesn't).
+/// So cmap table is used instead as a form of optimization.
+fn detect_hos_font_unicode_range(font: &FontRef) -> [u64; 6] {
+    // Conceptually, during initialization (if cache file doesn't exist or needs updating), Servo will traverse the font files
+    // one by one and check its cmap table, which lets us check all the codepoints that is available in a given font.
+    // From here, we map each codepoint to its respective unicode block and then mark an element of `bits`.
+    //
+    // `bits` represents the range of unicode block a font supports. For example, if `bits[0]`'s second LSB is set HIGH,
+    // it means that at least one codepoint from `Latin1Supplement` block is supported by the font.
+    //
+    // Currently, there are 328 different unicode blocks supported by Servo (from `shared/base/unicode_block.rs`),
+    // so they can be represented by 64 * 6 = 384 bits.
+    let mut bits = [0u64; 6];
+    for (codepoint, glyph) in font.charmap().mappings() {
+        if glyph == GlyphId::NOTDEF {
+            continue;
+        }
+        if let Some(block) = char::from_u32(codepoint).and_then(|c| c.block()) {
+            let index = block as usize;
+            bits[index / 64] |= unicode_block_to_bitmap(index);
+        }
     }
+    bits
 }
 
 /// This function generates list of `FontFamily` based on font files with the extension `.otf`, `.ttc`, or `.otf`.
@@ -310,7 +316,10 @@ impl FontList {
         })
     }
 
-    /// Detect available fonts or fallback to a hardcoded list
+    /// Detect available fonts or fallback to a hardcoded list and returns the list after sorting them in ascending order based on family name.
+    ///
+    /// The reason this is done is optimization: because the ordering returned by `fontations` is random, meanwhile we
+    /// want to prioritize `HarmonyOS` fonts during checks.
     fn detect_installed_font_families() -> Vec<FontFamily> {
         let mut families = enumerate_font_files()
             .inspect_err(|e| error!("Failed to enumerate font files due to `{e:?}`"))
@@ -471,27 +480,18 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
         families.push("HMOS Color Emoji Flags");
     }
 
-    match unicode_block_to_os2_bits(options.character.block()) {
-        Some(unicode_bits) => {
+    match options.character.block() {
+        Some(unicode_block) => {
+            let index = unicode_block as usize;
             for font_family in &FONT_LIST.families {
                 for font in &font_family.fonts {
-                    match font.unicode_range {
-                        Some(urange) => {
-                            if (unicode_bits & urange) != 0 {
-                                families.push(&font_family.name);
-                                break;
-                            }
-                        },
-                        None => {
-                            families.push(&font_family.name);
-                            break;
-                        },
+                    if (font.unicode_range[index / 64] & unicode_block_to_bitmap(index)) != 0 {
+                        families.push(&font_family.name);
                     }
                 }
             }
         },
         None => {
-            // push everything font list has
             for font_family in &FONT_LIST.families {
                 families.push(&font_family.name);
             }
@@ -515,6 +515,10 @@ pub(crate) fn default_system_generic_font_family(
         },
         _ => default_font,
     }
+}
+
+fn unicode_block_to_bitmap(index: usize) -> u64 {
+    1u64 << (index % 64)
 }
 
 #[cfg(test)]
