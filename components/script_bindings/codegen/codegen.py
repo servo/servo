@@ -4858,9 +4858,11 @@ def observableArrayBindingNamespace(attr: IDLAttribute) -> str:
 
 
 class CGObservableArrayProxyHandler_callback(CGThing):
-    def __init__(self, descriptor: Descriptor, attr: IDLAttribute, callbackType: str, invalidTypeFatal: bool = False) -> None:
+    def __init__(self, descriptor: Descriptor, name: str, args: list[Argument], attr: IDLAttribute, callbackType: str, invalidTypeFatal: bool = False) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
+        self.name = name
+        self.args = args
         self.attr = attr
         self.callbackType = callbackType
         self.invalidTypeFatal = invalidTypeFatal
@@ -4874,7 +4876,7 @@ class CGObservableArrayProxyHandler_callback(CGThing):
     def postCallback(self) -> str:
         raise NotImplementedError
 
-    def define(self, functionName: str, args: str) -> str:  # pyrefly: ignore  # bad-override
+    def define(self) -> str:
         exceptionCode = (
             fill(
                 """
@@ -4906,6 +4908,7 @@ class CGObservableArrayProxyHandler_callback(CGThing):
         traitName = f"{self.descriptor.interface.identifier.name}Methods"
         nativeType = self.descriptor.concreteType
         methodName = f"On{self.callbackType}{MakeNativeName(self.attr.identifier.name)}"
+        functionName = self.name
         return fill(
             """
             unsafe fn ${functionName}<D: DomTypes>(${args}) -> bool {
@@ -4926,7 +4929,7 @@ class CGObservableArrayProxyHandler_callback(CGThing):
             }
             """,
             functionName=functionName,
-            args=args,
+            args=', '.join([a.declare() for a in self.args]),
             preConversion=self.preConversion(),
             convertType=convertType,
             preCallback=self.preCallback(),
@@ -4939,16 +4942,16 @@ class CGObservableArrayProxyHandler_callback(CGThing):
 
 
 class CGObservableArrayProxyHandler_OnDeleteItem(CGObservableArrayProxyHandler_callback):
-    def __init__(self, descriptor: Descriptor, attr: IDLAttribute) -> None:
-        CGObservableArrayProxyHandler_callback.__init__(self, descriptor, attr, "Delete", True)
+    def __init__(self, descriptor: Descriptor, name: str, args: list[Argument], attr: IDLAttribute) -> None:
+        CGObservableArrayProxyHandler_callback.__init__(self, descriptor, name, args, attr, "Delete", True)
 
     def postCallback(self) -> str:
         return "return true;"
 
 
 class CGObservableArrayProxyHandler_SetIndexedValue(CGObservableArrayProxyHandler_callback):
-    def __init__(self, descriptor: Descriptor, attr: IDLAttribute) -> None:
-        CGObservableArrayProxyHandler_callback.__init__(self, descriptor, attr, "Set")
+    def __init__(self, descriptor: Descriptor, name: str, args: list[Argument], attr: IDLAttribute) -> None:
+        CGObservableArrayProxyHandler_callback.__init__(self, descriptor, name, args, attr, "Set")
 
     def preConversion(self) -> str:
         return dedent(
@@ -4997,14 +5000,22 @@ class CGObservableArrayProxyHandlerGenerator(CGThing):
 
     def define(self) -> str:
         namespace = observableArrayBindingNamespace(self.attr)
-        on_delete = CGObservableArrayProxyHandler_OnDeleteItem(self.descriptor, self.attr).define(
-            "on_delete_item",
-            "cx: &mut JSContext, proxy: HandleObject, value: HandleValue, index: u32",
-        )
-        set_indexed = CGObservableArrayProxyHandler_SetIndexedValue(self.descriptor, self.attr).define(
-            "set_indexed_value",
-            "cx: &mut JSContext, proxy: HandleObject, backing_list: HandleObject, index: u32, value: HandleValue, result: *mut ObjectOpResult",
-        )
+        onDeleteArgs = [
+            Argument("&mut JSContext", "cx"),
+            Argument("HandleObject", "proxy"),
+            Argument("HandleValue", "value"),
+            Argument("u32", "index")
+        ]
+        setIndexedArgs = [
+            Argument("&mut JSContext", "cx"),
+            Argument("HandleObject", "proxy"),
+            Argument("HandleObject", "backing_list"),
+            Argument("u32", "index"),
+            Argument("HandleValue", "value"),
+            Argument("*mut ObjectOpResult", "result")
+        ]
+        on_delete = CGObservableArrayProxyHandler_OnDeleteItem(self.descriptor, "on_delete_item", onDeleteArgs, self.attr,).define()
+        set_indexed = CGObservableArrayProxyHandler_SetIndexedValue(self.descriptor, "set_indexed_value", setIndexedArgs, self.attr).define()
         return f"""
 mod {namespace} {{
     use super::*;
