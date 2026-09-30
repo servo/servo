@@ -3272,7 +3272,7 @@ where
         self.send_message_to_pipeline(
             pipeline_id,
             ScriptThreadMessage::ForwardAccessibilityAction(pipeline_id, action_request),
-            "Action request {action_request:?} failed: sending message to pipeline failed.",
+            "Action request failed: sending message to pipeline failed.",
         );
     }
 
