@@ -22,7 +22,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::text_input::{SelectionDirection, SelectionState, TextInput};
-use crate::dom::node::NodeTraits;
+use crate::dom::node::focus::FocusTrigger;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::text_input::{EmbedderClipboardProvider, InputEventType, IsComposing, KeyReaction};
 use crate::dom::types::InputEvent;
 use crate::dom::{Element, Event};
@@ -103,12 +104,19 @@ pub(crate) trait TextControlElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
-    fn dom_select(&self) {
+    fn dom_select(&self, cx: &mut JSContext) {
         // Step 1: If this element is an input element, and either select() does not apply
         // to this element or the corresponding control has no selectable text, return.
         if !self.has_selectable_text() {
             return;
         }
+
+        // See <https://github.com/servo/servo/issues/47753>:
+        // This behavior isn't specified, but all browsers seem to focus an input element
+        // when you perform a programmatic text selection in that element.
+        self.as_element()
+            .upcast::<Node>()
+            .run_the_focusing_steps(cx, None, FocusTrigger::Other);
 
         // Step 2 : Set the selection range with 0 and infinity.
         self.set_range(

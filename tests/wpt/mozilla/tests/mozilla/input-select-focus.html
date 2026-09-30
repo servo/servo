@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Calling `select()` on input elements should also focus them</title>
+<meta ref="help" src="https://github.com/servo/servo/issues/47753">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input value="Hello" />
+
+<script>
+test(() => {
+  const input = document.querySelector("input");
+  assert_not_equals(document.activeElement, input);
+  input.select();
+  assert_equals(document.activeElement, input);
+});
+</script>
