@@ -1117,11 +1117,13 @@ impl Servo {
         &self.0.site_data_manager
     }
 
-    /// When an [`ActionRequest`] is received from AccessKit, forward it to the appropriate pipeline
+    /// When an [`ActionRequest`] is received from AccessKit, forward it to the appropriate document
     /// to fulfil the action in the request.
     ///
-    /// For example, if a request for an [`accesskit::Action::Click`] with a particular
-    /// [`accesskit::TreeId`] and [`accesskit::NodeId`]
+    /// For example, if an AccessKit adapter sends a request for an [`accesskit::Action::Click`]
+    /// with a particular [`accesskit::TreeId`] and [`accesskit::NodeId`], determine which document
+    /// contains the tree matching the [`accesskit::TreeId`] and forward the [`ActionRequest`]
+    /// there, so that it can find the appropriate node to take the click action on.
     pub fn forward_accessibility_action(&self, action_request: ActionRequest) {
         self.0.constellation_proxy.send(
             EmbedderToConstellationMessage::ForwardAccessibilityAction(action_request),

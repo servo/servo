@@ -235,7 +235,7 @@ pub struct LayoutThread {
     /// This will be `None` unless [`Self::accessibility_active`] is true.
     /// During reflow, these actions are drained and sent to the accessibility tree.
     /// A reflow will be forced if this vec is non-empty.
-    pending_accessibility_actions: RefCell<Option<Vec<ActionRequest>>>,
+    pending_accessibility_actions: RefCell<Vec<ActionRequest>>,
 
     /// A callback to run whenever a web font from a `@font-face` rule finishes loading.
     web_font_finished_loading_callback: StylesheetWebFontLoadFinishedCallback,
@@ -755,7 +755,7 @@ impl Layout for LayoutThread {
         self.accessibility_active.set(active);
         if !active {
             self.accessibility_tree.replace(None);
-            self.pending_accessibility_actions.replace(None);
+            self.pending_accessibility_actions.borrow_mut().clear();
             return;
         }
 
@@ -763,11 +763,6 @@ impl Layout for LayoutThread {
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         if accessibility_tree.is_none() {
             *accessibility_tree = Some(AccessibilityTree::new(self.id.into(), epoch));
-        }
-
-        let mut pending_accessibility_actions = self.pending_accessibility_actions.borrow_mut();
-        if pending_accessibility_actions.is_none() {
-            *pending_accessibility_actions = Some(vec![]);
         }
     }
 
@@ -779,10 +774,7 @@ impl Layout for LayoutThread {
         if self.force_accessibility_update.get() {
             return true;
         }
-        if let Some(pending_accessibility_actions) =
-            self.pending_accessibility_actions.borrow().as_ref() &&
-            !pending_accessibility_actions.is_empty()
-        {
+        if !self.pending_accessibility_actions.borrow().is_empty() {
             return true;
         }
 
@@ -796,7 +788,6 @@ impl Layout for LayoutThread {
     fn handle_accessibility_action(&self, action_request: ActionRequest) {
         self.pending_accessibility_actions
             .borrow_mut()
-            .get_or_insert_default()
             .push(action_request);
     }
 
@@ -873,7 +864,7 @@ impl LayoutThread {
             accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
             force_accessibility_update: Cell::new(false),
-            pending_accessibility_actions: RefCell::new(None),
+            pending_accessibility_actions: RefCell::new(vec![]),
             web_font_finished_loading_callback: Arc::new(web_font_finished_loading_callback)
                 as StylesheetWebFontLoadFinishedCallback,
         }
@@ -1007,8 +998,7 @@ impl LayoutThread {
             stacking_context_tree,
         };
 
-        let mut pending_action_requests = self.pending_accessibility_actions.borrow_mut();
-        let action_requests = std::mem::take(pending_action_requests.as_mut().expect("pending_accessibility_actions is initialized when set_accessibility_active() is called"));
+        let action_requests = self.pending_accessibility_actions.take();
 
         let (tree_update, counters) = accessibility_tree.update_tree(
             root_element,
