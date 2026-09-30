@@ -354,51 +354,52 @@ pub(crate) fn generate_pseudo_element_content(
 ) -> Vec<PseudoElementContentItem> {
     match &pseudo_element_info.style.get_counters().content {
         Content::Items(items) => {
-            let mut vec = vec![];
-            for item in items.items.iter() {
-                match item {
-                    ContentItem::String(s) => {
-                        vec.push(PseudoElementContentItem::Text(s.to_string()));
-                    },
-                    ContentItem::Image(image) => {
-                        if let Some(replaced_content) =
+            items
+                .items
+                .iter()
+                .filter_map(|item| {
+                    match item {
+                        ContentItem::String(s) => {
+                            Some(PseudoElementContentItem::Text(s.to_string()))
+                        },
+                        ContentItem::Image(image) => {
                             ReplacedContents::from_image(pseudo_element_info.node, context, image)
-                        {
-                            vec.push(PseudoElementContentItem::Replaced(replaced_content));
-                        }
-                    },
-                    ContentItem::OpenQuote | ContentItem::CloseQuote => {
-                        // TODO(xiaochengh): calculate quote depth
-                        let maybe_quote = match &pseudo_element_info.style.get_list().quotes {
-                            Quotes::QuoteList(quote_list) => {
-                                quote_list.0.first().map(|quote_pair| {
-                                    get_quote_from_pair(
+                                .map(PseudoElementContentItem::Replaced)
+                        },
+                        ContentItem::OpenQuote | ContentItem::CloseQuote => {
+                            // TODO(xiaochengh): calculate quote depth
+                            let maybe_quote = match &pseudo_element_info.style.get_list().quotes {
+                                Quotes::QuoteList(quote_list) => {
+                                    quote_list.0.first().map(|quote_pair| {
+                                        get_quote_from_pair(
+                                            item,
+                                            &*quote_pair.opening,
+                                            &*quote_pair.closing,
+                                        )
+                                    })
+                                },
+                                Quotes::Auto => {
+                                    let lang = &pseudo_element_info.style.get_font()._x_lang;
+                                    let quotes = quotes_for_lang(lang.0.as_ref(), 0);
+                                    Some(get_quote_from_pair(
                                         item,
-                                        &*quote_pair.opening,
-                                        &*quote_pair.closing,
-                                    )
-                                })
-                            },
-                            Quotes::Auto => {
-                                let lang = &pseudo_element_info.style.get_font()._x_lang;
-                                let quotes = quotes_for_lang(lang.0.as_ref(), 0);
-                                Some(get_quote_from_pair(item, &quotes.opening, &quotes.closing))
-                            },
-                        };
-                        if let Some(quote) = maybe_quote {
-                            vec.push(PseudoElementContentItem::Text(quote));
-                        }
-                    },
-                    ContentItem::Counter(_, style) | ContentItem::Counters(_, _, style) => {
-                        // TODO: Add support for counters, this assumes a value of 0.
-                        vec.push(PseudoElementContentItem::Text(
-                            generate_counter_representation(style).to_string(),
-                        ));
-                    },
-                    ContentItem::NoOpenQuote | ContentItem::NoCloseQuote => {},
-                }
-            }
-            vec
+                                        &quotes.opening,
+                                        &quotes.closing,
+                                    ))
+                                },
+                            };
+                            maybe_quote.map(PseudoElementContentItem::Text)
+                        },
+                        ContentItem::Counter(_, style) | ContentItem::Counters(_, _, style) => {
+                            // TODO: Add support for counters, this assumes a value of 0.
+                            Some(PseudoElementContentItem::Text(
+                                generate_counter_representation(style).to_string(),
+                            ))
+                        },
+                        ContentItem::NoOpenQuote | ContentItem::NoCloseQuote => None,
+                    }
+                })
+                .collect()
         },
         Content::Normal | Content::None => unreachable!(),
     }
