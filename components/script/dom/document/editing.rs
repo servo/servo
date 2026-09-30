@@ -52,25 +52,26 @@ pub(crate) const ALT_OR_CONTROL: Modifiers = Modifiers::ALT;
 #[cfg(not(target_os = "macos"))]
 pub(crate) const ALT_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 
-/// How to set selection for mouse/pointer events
+/// A selection granularity to use when selecting via mouse button events.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) enum SelectionTarget {
-    /// Single primary click or middle click
+pub(crate) enum SelectionGranularity {
+    /// Select a single selection focus node position. This is created via single primary click
+    /// or middle clicks.
     Position,
-    /// Double primary click
+    /// Select a word at the target point. This is created via double primary clicks.
     Word,
-    /// Triple primary click
-    Line,
+    /// Select to the paragraph boundaries or to a hard line break, whatever comes first.
+    /// This is triggered via triple primary clicks.
+    LineIgnoringSoftWrap,
 }
 
-impl SelectionTarget {
+impl SelectionGranularity {
     pub(crate) fn from_mouse_event(mouse_event: &MouseEvent) -> Option<Self> {
         match mouse_event.button() {
-            MouseButton::Primary => {},
+            MouseButton::Primary => {}, // continue below
             MouseButton::Auxiliary => return Some(Self::Position),
             _ => return None,
         }
-        // Primary button
 
         // We currently don't do anything for higher click counts, but some platforms do.
         // For example on desktop linux, 4+ click cycle back starting at same as single click:
@@ -84,7 +85,7 @@ impl SelectionTarget {
         match click_count {
             1 => Some(Self::Position),
             2 => Some(Self::Word),
-            3 => Some(Self::Line),
+            3 => Some(Self::LineIgnoringSoftWrap),
             _ => None,
         }
     }
