@@ -553,7 +553,7 @@ pub(crate) struct TraversalState {
     pub clip_id: ClipId,
     pub origin: PhysicalPoint<Au>,
     pub text_decorations: Rc<Vec<FragmentTextDecoration>>,
-    /// The tag of the nearest ancestor box fragment that has a tag.
+    /// The tag of the nearest ancestor block-level box fragment that has a tag.
     /// Used for text LCP candidate grouping — all text fragments within
     /// a single element are unioned before computing effective visual size.
     pub containing_element_tag: Option<Tag>,
@@ -604,7 +604,13 @@ impl TraversalState {
                 .unwrap_or(self.spatial_id),
             clip_id: box_fragment.generated_clip_id().unwrap_or(self.clip_id),
             text_decorations,
-            containing_element_tag: box_fragment.base.tag.or(self.containing_element_tag),
+            containing_element_tag: if box_fragment.is_inline_box() {
+                // Inline flow boxes don't own their text nodes,
+                // Hence, keep the containing element's tag.
+                self.containing_element_tag
+            } else {
+                box_fragment.base.tag.or(self.containing_element_tag)
+            },
         }
     }
 
