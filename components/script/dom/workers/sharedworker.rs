@@ -54,7 +54,7 @@ use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 pub(crate) struct SharedWorker {
     eventtarget: EventTarget,
     port: Dom<MessagePort>,
-    _control_sender: Sender<SharedWorkerControlMsg>,
+    control_sender: Sender<SharedWorkerControlMsg>,
 }
 
 pub(crate) type TrustedSharedWorkerAddress = Trusted<SharedWorker>;
@@ -152,7 +152,7 @@ struct SharedWorkerRegistration {
     worker_is_secure_context: bool,
     closing: Arc<AtomicBool>,
     sender: Sender<SharedWorkerScriptMsg>,
-    _control_sender: Sender<SharedWorkerControlMsg>,
+    control_sender: Sender<SharedWorkerControlMsg>,
 }
 
 // A user agent has an associated shared worker manager which is the result of starting a new parallel queue.
@@ -335,7 +335,7 @@ impl SharedWorker {
         SharedWorker {
             eventtarget: EventTarget::new_inherited(),
             port: Dom::from_ref(port),
-            _control_sender: control_sender,
+            control_sender,
         }
     }
 
@@ -391,6 +391,23 @@ impl SharedWorker {
         let global = worker.global();
         // Enable outside port's port message queue.
         global.start_message_port(cx, worker.port.message_port_id());
+    }
+
+    /// Set online status for all living shared workers.
+    pub(crate) fn set_network_online_state(is_online: bool) {
+        let (workers, _ready) = &*SHARED_WORKERS;
+        let workers = workers.lock().expect("SharedWorker registry poisoned");
+        for entry in workers.iter() {
+            let SharedWorkerRegistryState::Created(registration) = &entry.state else {
+                continue;
+            };
+            if registration.closing.load(Ordering::SeqCst) {
+                continue;
+            }
+            let _ = registration
+                .control_sender
+                .send(SharedWorkerControlMsg::SetNetworkOnlineState(is_online));
+        }
     }
 }
 
@@ -652,7 +669,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             worker_is_secure_context,
             closing,
             sender,
-            _control_sender: control_sender,
+            control_sender,
         };
 
         if !transition_creating_to_created(&shared_worker_key, registration.clone()) {

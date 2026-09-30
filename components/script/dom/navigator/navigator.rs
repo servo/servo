@@ -29,6 +29,7 @@ use servo_base::generic_channel;
 use servo_config::pref;
 use servo_url::ServoUrl;
 
+use crate::ScriptThread;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 #[cfg(feature = "gamepad")]
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
@@ -379,7 +380,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
     fn OnLine(&self) -> bool {
-        true
+        ScriptThread::is_online()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-plugins>

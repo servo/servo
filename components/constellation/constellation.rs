@@ -1478,6 +1478,9 @@ where
             EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
                 self.handle_clear_session_history(webview_id);
             },
+            EmbedderToConstellationMessage::SetNetworkOnlineState(online) => {
+                self.handle_set_network_online_state(online);
+            },
         }
     }
 
@@ -6406,5 +6409,23 @@ where
                 })
             })
             .clone()
+    }
+
+    fn handle_set_network_online_state(&mut self, is_online: bool) {
+        // send to window and dedicated/shared workers
+        for event_loop in self.event_loops() {
+            if let Err(error) =
+                event_loop.send(ScriptThreadMessage::SetNetworkOnlineState(is_online))
+            {
+                error!("Could not send network online state to event loop: {error}");
+            }
+        }
+
+        // send to service workers
+        for sw in self.sw_managers.values() {
+            if let Err(error) = sw.send(ServiceWorkerMsg::SetNetworkOnlineState(is_online)) {
+                error!("Could not send network online state to service worker: {error}");
+            }
+        }
     }
 }

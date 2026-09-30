@@ -74,6 +74,7 @@ pub(crate) enum SharedWorkerScriptMsg {
 #[allow(dead_code)]
 pub(crate) enum SharedWorkerControlMsg {
     Exit,
+    SetNetworkOnlineState(bool),
 }
 
 pub(crate) enum MixedMessage {
@@ -788,6 +789,10 @@ impl SharedWorkerGlobalScope {
             },
             MixedMessage::Control(SharedWorkerControlMsg::Exit) => {
                 return false;
+            },
+            MixedMessage::Control(SharedWorkerControlMsg::SetNetworkOnlineState(is_online)) => {
+                self.upcast::<WorkerGlobalScope>()
+                    .set_network_online_state(cx, is_online);
             },
             MixedMessage::Timer => {},
         }
