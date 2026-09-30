@@ -59,7 +59,7 @@ use servo_base::text::{RangeAny, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::Atom;
 use style::animation::DocumentAnimationSet;
-use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
+use style::attr::{AttrValue, parse_double};
 use style::context::QuirksMode;
 use style::data::ElementDataWrapper;
 use style::device::Device;
@@ -162,26 +162,30 @@ pub struct SVGElementData<'dom> {
     pub width: Option<&'dom AttrValue>,
     pub height: Option<&'dom AttrValue>,
     pub svg_id: Uuid,
+    /// <https://www.w3.org/TR/SVG11/coords.html#ViewBoxAttribute>
     pub view_box: Option<&'dom AttrValue>,
 }
 
 impl SVGElementData<'_> {
+    /// <https://www.w3.org/TR/SVG11/coords.html#ViewBoxAttribute>
     pub fn ratio_from_view_box(&self) -> Option<f32> {
-        let mut iter = self.view_box?.chars();
-        let _min_x = parse_integer(&mut iter).ok()?;
-        let _min_y = parse_integer(&mut iter).ok()?;
+        let mut iter = self
+            .view_box?
+            .split(|c| char_is_whitespace(c) || c == ',')
+            .filter(|part| !part.is_empty());
+        let _min_x = parse_double(iter.next()?).ok()?;
+        let _min_y = parse_double(iter.next()?).ok()?;
 
-        let width = parse_unsigned_integer(&mut iter).ok()?;
-        if width == 0 {
+        let width = parse_double(iter.next()?).ok()?;
+        if width == 0f64 {
             return None;
         }
 
-        let height = parse_unsigned_integer(&mut iter).ok()?;
-        if height == 0 {
+        let height = parse_double(iter.next()?).ok()?;
+        if height == 0f64 {
             return None;
         }
 
-        let mut iter = iter.skip_while(|c| char_is_whitespace(*c));
         iter.next().is_none().then(|| width as f32 / height as f32)
     }
 }
