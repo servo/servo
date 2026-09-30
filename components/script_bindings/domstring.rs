@@ -1071,7 +1071,7 @@ macro_rules! match_domstring_ascii_inner {
 
 /// Use this to match &str against lazydomstring efficiently.
 /// You are only allowed to match ascii strings otherwise this macro will
-/// lead to wrong results. Additionally, mach_domstring_ascii cannot be nested.
+/// lead to wrong results. Additionally, match_domstring_ascii cannot be nested.
 /// ```ignore
 /// let s = DOMString::from("test");
 /// let value = match_domstring!(s,
