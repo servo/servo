@@ -1108,7 +1108,7 @@ impl SequentialLayoutState {
 
         // Re-calculate relative adjustment so that it is not lost when the BoxFragment's
         // `content_rect` is overwritten below.
-        let relative_offset = match style.clone_position() {
+        let relative_offset = match style.get_box().position {
             Position::Relative => relative_adjustement(&style, containing_block),
             _ => LogicalVec2::zero(),
         };

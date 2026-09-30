@@ -246,14 +246,14 @@ pub(crate) struct TextTransformationIterator<'a> {
 impl<'a> TextTransformationIterator<'a> {
     pub(crate) fn new(
         mut text: &'a str,
-        style: &ComputedValues,
+        style: &'a ComputedValues,
         trim_leading_white_space: bool,
         on_word_boundary: bool,
     ) -> Self {
-        let text_security = style.clone__webkit_text_security();
+        let text_security = style.get__webkit_text_security();
 
         // <https://drafts.csswg.org/css-text-4/#text-transform-property>
-        let text_transform = style.clone_text_transform();
+        let text_transform = style.get_text_transform();
 
         if text_transform.intersects(TextTransform::MATH_AUTO) {
             // `math-auto` only does anything “on text nodes containing a single character” per
@@ -273,7 +273,7 @@ impl<'a> TextTransformationIterator<'a> {
         let chars = text
             .chars()
             .map(move |character| map_character_for_webkit_text_security(text_security, character));
-        let white_space_collapse = style.clone_white_space_collapse();
+        let white_space_collapse = style.slow_clone_white_space_collapse();
         let iterator =
             WhitespaceCollapse::new(chars, white_space_collapse, trim_leading_white_space);
 
@@ -436,7 +436,7 @@ pub(crate) fn capitalization_iterator(
 /// Note: The behavior of `-webkit-text-security` isn't specified, so we have some
 /// flexibility in the implementation. We just need to maintain a rough compatibility with
 /// other browsers.
-fn map_character_for_webkit_text_security(mode: WebKitTextSecurity, character: char) -> char {
+fn map_character_for_webkit_text_security(mode: &WebKitTextSecurity, character: char) -> char {
     if let WebKitTextSecurity::None = mode {
         return character;
     }

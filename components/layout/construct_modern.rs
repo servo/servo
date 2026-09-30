@@ -128,7 +128,7 @@ impl<'dom> ModernContainerJob<'dom> {
                 let order = if is_abspos {
                     0
                 } else {
-                    info.style.clone_order()
+                    info.style.slow_clone_order()
                 };
 
                 if let Some(layout_box) =

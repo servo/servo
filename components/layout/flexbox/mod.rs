@@ -48,7 +48,7 @@ pub(crate) struct FlexContainerConfig {
 
 impl FlexContainerConfig {
     fn new(container_style: &ComputedValues) -> FlexContainerConfig {
-        let flex_direction = container_style.clone_flex_direction();
+        let flex_direction = container_style.slow_clone_flex_direction();
         let flex_axis = FlexAxis::from(flex_direction);
         let flex_wrap = container_style.get_position().flex_wrap;
         let container_is_single_line = match flex_wrap {
@@ -66,12 +66,12 @@ impl FlexContainerConfig {
             _ => unreachable!("FlexWrap::BALANCE should be disabled"),
         };
 
-        let align_content = container_style.clone_align_content();
-        let align_items = AlignItems(match container_style.clone_align_items().0 {
+        let align_content = container_style.slow_clone_align_content();
+        let align_items = AlignItems(match container_style.get_align_items().0 {
             AlignFlags::AUTO | AlignFlags::NORMAL => AlignFlags::STRETCH,
             align => align,
         });
-        let justify_content = container_style.clone_justify_content();
+        let justify_content = container_style.slow_clone_justify_content();
         let main_start_cross_start_sides_are =
             MainStartCrossStart::from(flex_direction, flex_wrap_reverse);
 

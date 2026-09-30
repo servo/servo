@@ -318,9 +318,9 @@ fn inline_box_style_breaks_shaping(style: &ComputedValues) -> (bool, bool) {
     // intrinsically by the fact that bidi isolation inserts bidi characters into the inline
     // formatting context text content. This leads to non-contiguous character offsets between
     // shaping queue entries.
-    if style.clone_baseline_shift() != BaselineShift::zero() ||
-        style.clone_baseline_source() != BaselineSource::Auto ||
-        style.clone_alignment_baseline() != AlignmentBaseline::Baseline
+    if style.get_baseline_shift() != &BaselineShift::zero() ||
+        style.get_baseline_source() != &BaselineSource::Auto ||
+        style.get_alignment_baseline() != &AlignmentBaseline::Baseline
     {
         return (true, true);
     }

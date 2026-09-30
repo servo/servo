@@ -215,7 +215,7 @@ impl BlockContainer {
         if is_list_item &&
             let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info)
         {
-            match marker_info.style.clone_list_style_position() {
+            match marker_info.style.get_list_style_position() {
                 ListStylePosition::Inside => {
                     builder.handle_list_item_marker_inside(&marker_info, marker_contents)
                 },

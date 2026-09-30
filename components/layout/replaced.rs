@@ -340,7 +340,7 @@ impl ReplacedContents {
         // If the `content` property is a single image URL, non-replaced boxes
         // and images get replaced with the given image.
         if let Content::Items(GenericContentItems { items, .. }) =
-            node.style(&context.style_context).clone_content() &&
+            node.style(&context.style_context).get_content() &&
             let [GenericContentItem::Image(image)] = items.as_slice()
         {
             // Invalid images are treated as zero-sized.
@@ -488,7 +488,7 @@ impl ReplacedContents {
                     PhysicalSize::new(size.width, candidate_height)
                 };
 
-            match style.clone_object_fit() {
+            match style.get_object_fit() {
                 ObjectFit::Fill => size,
                 ObjectFit::Contain => preserve_aspect_ratio_with_comparison(size, PartialOrd::le),
                 ObjectFit::Cover => preserve_aspect_ratio_with_comparison(size, PartialOrd::ge),
@@ -499,7 +499,7 @@ impl ReplacedContents {
             }
         });
 
-        let object_position = style.clone_object_position();
+        let object_position = style.get_object_position();
         let horizontal_position = object_position
             .horizontal
             .to_used_value(size.width - object_fit_size.width);
