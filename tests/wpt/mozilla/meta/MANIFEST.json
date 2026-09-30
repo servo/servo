@@ -226,7 +226,7 @@
      ]
     ],
     "input-range-overflow-hidden.html": [
-     "58a1bd65f0961f3121416c65a6206bd1f1cb5921",
+     "fcffbdc11d0f66fe9bb9830377e36e4ea058a1e8",
      [
       null,
       [
@@ -8477,7 +8477,7 @@
      []
     ],
     "input-range-overflow-hidden-ref.html": [
-     "d4b736099e1652dc6909f59cb7eeb19e03d7fd83",
+     "4de8b4f77a40a3951edd8b9ef75efd5d2644a363",
      []
     ],
     "input-range-ref.html": [
@@ -8524,40 +8524,6 @@
      "3bbe99f30eba1dfeda637b2e44e21d366c7fda6f",
      []
     ],
-    "screenshots": {
-     "new_input-range-overflow-hidden-ref.png": [
-      "92c3a450bc39df35d38da4a92dab063fc4f45c3d",
-      []
-     ],
-     "new_input-range-overflow-hidden.png": [
-      "92c3a450bc39df35d38da4a92dab063fc4f45c3d",
-      []
-     ],
-     "new_input-range-ref.png": [
-      "8655035923407a3b6217392006190d6c0e543e3f",
-      []
-     ],
-     "new_input-range.png": [
-      "8655035923407a3b6217392006190d6c0e543e3f",
-      []
-     ],
-     "old_input-range-overflow-hidden-ref.png": [
-      "92c3a450bc39df35d38da4a92dab063fc4f45c3d",
-      []
-     ],
-     "old_input-range-overflow-hidden.png": [
-      "b23d96857efb6577c4510cbcbbad57c012d0bd52",
-      []
-     ],
-     "old_input-range-ref.png": [
-      "8655035923407a3b6217392006190d6c0e543e3f",
-      []
-     ],
-     "old_input-range.png": [
-      "8c34c89b71e3dc5b5c62e56f47bc40824c6fc268",
-      []
-     ]
-    },
     "supports": {
      "input-textual-ref.css": [
       "e16996804cc90ab9d95ba7a2feb6869f6213215c",

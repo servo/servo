@@ -242,9 +242,9 @@ input[type="range"]::slider-fill {
 input[type="range"]::slider-track {
   width: 100%;
   height: 6px;
+  box-sizing: border-box;
   background-color: ButtonFace;
   border-color: ButtonBorder;
-  box-sizing: border-box;
 }
 
 input[type="range"]:hover::slider-track {
@@ -264,15 +264,15 @@ input[type="range"]::slider-fill {
 }
 
 input[type="range"]::slider-thumb {
-  height: 100%;
   width: 16px;
+  height: 100%;
   box-sizing: border-box;
   border-radius: 50%;
   background: #007aff;
   inset-inline-start: calc(var(--progress) * 100%);
-  transform: translateX(calc(var(--progress) * -100%)) translateY(-50%);
   /* Vertically centered, adjust inline direction by width so thumb
      is centered on range value. */
+  transform: translateX(calc(var(--progress) * -100%)) translateY(-50%);
 }
 
 input[type="range"]:disabled::slider-fill,
