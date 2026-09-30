@@ -399,7 +399,7 @@ impl DOMString {
     /// bytes of the string without doing any conversions.
     pub fn encoded_bytes<'a>(&'a self, no_gc: &'a NoGC) -> EncodedBytes<'a> {
         let inner = self.0.borrow();
-        // The lifetime of the `EncodedBytes` struct is bounded by the lifetime of the `NoGC` token.
+        // The lifetime of the `EncodedBytes` struct is bound by the lifetime of the `NoGC` token.
         match &*inner {
             DOMStringType::Rust(..) | DOMStringType::RustStatic(..) => EncodedBytes::Utf8((
                 no_gc,
