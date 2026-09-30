@@ -1118,7 +1118,7 @@ impl Servo {
     }
 
     /// When an [`ActionRequest`] is received from AccessKit, forward it to the appropriate document
-    /// to fulfil the action in the request.
+    /// to fulfill the action in the request.
     ///
     /// For example, if an AccessKit adapter sends a request for an [`accesskit::Action::Click`]
     /// with a particular [`accesskit::TreeId`] and [`accesskit::NodeId`], determine which document
