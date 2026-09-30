@@ -20,7 +20,7 @@ use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FocusSequenceNumber, InputEventAndId,
     JavaScriptEvaluationId, MediaSessionActionType, MouseButton, PaintHitTestResult,
-    ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverScriptCommand,
+    ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverScriptCommand, WebViewPoint,
 };
 use euclid::{Scale, Size2D};
 use fonts_traits::{SystemFontServiceProxySender, WebFontLoadEvent};
@@ -434,6 +434,11 @@ impl ConstellationInputEvent {
     /// Returns whether `pressed_mouse_buttons` includes the auxiliary (middle) button
     pub fn auxiliary_button_is_pressed(&self) -> bool {
         self.pressed_mouse_buttons.contains(MouseButtons::Auxiliary)
+    }
+
+    /// Returns the point of the underlying input event, if any.
+    pub fn point(&self) -> Option<WebViewPoint> {
+        self.event.event.point()
     }
 }
 
