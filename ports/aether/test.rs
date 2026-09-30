@@ -368,6 +368,29 @@ fn test_location_bar_accepts_history_url() {
 }
 
 #[test]
+fn test_settings_url_is_settings_page() {
+    let settings = crate::window::settings_url();
+    assert_eq!(settings.as_str(), crate::window::SETTINGS_URL);
+    assert_eq!(settings.as_str(), "servo:settings");
+}
+
+#[test]
+fn test_location_bar_accepts_settings_url() {
+    let url = location_bar_input_to_url(
+        crate::window::SETTINGS_URL,
+        "https://duckduckgo.com/html/?q=%s",
+    )
+    .expect("settings URL should parse");
+    assert_eq!(url.as_str(), "servo:settings");
+}
+
+#[test]
+fn settings_page_is_a_title_only() {
+    let html = include_str!("../../resources/resource_protocol/settings.html");
+    assert!(html.contains("<title>Settings</title>"));
+}
+
+#[test]
 fn processes_page_lists_sortable_columns_and_json_endpoint() {
     let html = include_str!("../../resources/resource_protocol/processes.html");
     assert!(html.contains("data-sort=\"name\""));

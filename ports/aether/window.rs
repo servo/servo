@@ -34,6 +34,13 @@ pub(crate) fn history_url() -> Url {
     Url::parse(HISTORY_URL).expect("Should always be able to parse 'servo:history' as URL")
 }
 
+/// The settings page opened from the application menu.
+pub(crate) const SETTINGS_URL: &str = "servo:settings";
+
+pub(crate) fn settings_url() -> Url {
+    Url::parse(SETTINGS_URL).expect("Should always be able to parse 'servo:settings' as URL")
+}
+
 /// The process list opened from More Tools.
 pub(crate) const PROCESSES_URL: &str = "servo:processes";
 
