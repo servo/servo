@@ -970,12 +970,12 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
         };
 
         // If transformerDict["readableType"] exists, throw a RangeError exception.
-        if !transformer_dict.readableType.handle().is_undefined() {
+        if !transformer_dict.readableType.get().is_undefined() {
             return Err(Error::Range(c"readableType is set".to_owned()));
         }
 
         // If transformerDict["writableType"] exists, throw a RangeError exception.
-        if !transformer_dict.writableType.handle().is_undefined() {
+        if !transformer_dict.writableType.get().is_undefined() {
             return Err(Error::Range(c"writableType is set".to_owned()));
         }
 

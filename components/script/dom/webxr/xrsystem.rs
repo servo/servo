@@ -23,7 +23,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::promise::{Promise, RootedPromise};
@@ -185,7 +185,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         if let Some(ref r) = init.requiredFeatures {
             for feature in r {
                 if let Ok(ConversionResult::Success(s)) =
-                    String::from_jsval(realm, feature.handle(), ())
+                    String::from_jsval(realm, feature.as_handle_value(), ())
                 {
                     required_features.push(s)
                 } else {
@@ -202,7 +202,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         if let Some(ref o) = init.optionalFeatures {
             for feature in o {
                 if let Ok(ConversionResult::Success(s)) =
-                    String::from_jsval(realm, feature.handle(), ())
+                    String::from_jsval(realm, feature.as_handle_value(), ())
                 {
                     optional_features.push(s)
                 } else {

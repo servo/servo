@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::ErrorEventBinding::{
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
@@ -139,7 +139,7 @@ impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
             file_name,
             line_num,
             col_num,
-            init.error.handle(),
+            init.error.as_handle_value(),
         );
         event.upcast::<Event>().set_composed(init.parent.composed);
         Ok(event)

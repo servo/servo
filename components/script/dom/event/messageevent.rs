@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::UnionTypes::WindowProxyOrMessagePortOrService
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -232,7 +232,7 @@ impl MessageEvent {
             atom!("messageerror"),
             init.parent.bubbles,
             init.parent.cancelable,
-            init.data.handle(),
+            init.data.as_handle_value(),
             init.origin.clone(),
             init.source.as_ref(),
             init.lastEventId.clone(),
@@ -258,7 +258,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
-            init.data.handle(),
+            init.data.as_handle_value(),
             init.origin.clone(),
             init.source.as_ref(),
             init.lastEventId.clone(),

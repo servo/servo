@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::UnionTypes::ClientOrServiceWorkerOrMessagePor
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::client::Client;
 use crate::dom::event::Event;
@@ -227,7 +227,7 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
             Atom::from(type_),
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,
-            init.data.handle(),
+            init.data.as_handle_value(),
             init.origin.clone(),
             init.lastEventId.clone(),
             init.source.as_ref().and_then(Option::as_ref),

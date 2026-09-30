@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::CustomEventBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
@@ -98,7 +98,7 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
-            init.detail.handle(),
+            init.detail.as_handle_value(),
         );
         event.upcast::<Event>().set_composed(init.parent.composed);
         event
