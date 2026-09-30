@@ -238,7 +238,6 @@ class Config(object):
                 words.extend(
                     [
                         "linux-bencher",
-                        "macos-bencher",
                         "macos-arm-bencher",
                         "windows-bencher",
                         "android-bencher",
@@ -250,7 +249,6 @@ class Config(object):
                 words.extend(
                     [
                         "linux-production-bencher",
-                        "macos-production-bencher",
                         "macos-arm-production-bencher",
                         "windows-production-bencher",
                         "ohos-production-bencher",
