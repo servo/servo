@@ -43,12 +43,12 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
         decl.push_str(&value.str());
         let decl = Declaration(decl);
         let url_data = UrlExtraData(win.Document().url().get_arc());
-        let context = parser_context_for_anonymous_content(
+        let mut context = parser_context_for_anonymous_content(
             CssRuleType::Style,
             ParsingMode::DEFAULT,
             &url_data,
         );
-        decl.eval(&context)
+        decl.eval(&mut context)
     }
 
     /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
@@ -61,12 +61,12 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
         };
 
         let url_data = UrlExtraData(win.Document().url().get_arc());
-        let context = parser_context_for_anonymous_content(
+        let mut context = parser_context_for_anonymous_content(
             CssRuleType::Style,
             ParsingMode::DEFAULT,
             &url_data,
         );
-        cond.eval(&context)
+        cond.eval(&mut context)
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
