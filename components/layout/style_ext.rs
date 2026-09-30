@@ -1334,6 +1334,7 @@ impl From<stylo::Display> for Display {
             },
             stylo::DisplayInside::Flex => DisplayInside::Flex,
             stylo::DisplayInside::Grid => DisplayInside::Grid,
+            stylo::DisplayInside::GridLanes => unreachable!("Should be disabled behind a pref"),
             stylo::DisplayInside::Table => DisplayInside::Table,
 
             // These should not be values of DisplayInside, but oh well
