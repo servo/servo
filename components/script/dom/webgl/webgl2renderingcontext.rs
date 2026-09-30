@@ -799,6 +799,7 @@ impl WebGL2RenderingContext {
         let array = array[src_offset..src_offset + array_size].to_vec();
 
         self.base.send_command(msg(buffer, draw_buffer, array));
+        self.mark_as_dirty();
     }
 
     fn valid_fb_attachment_values(&self, target: u32, attachments: &[u32]) -> bool {
@@ -3742,6 +3743,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         self.base.send_command(WebGLCommand::BlitFrameBuffer(
             src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1, mask, filter,
         ));
+        self.mark_as_dirty();
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
@@ -4842,6 +4844,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             depth,
             stencil,
         ));
+        self.mark_as_dirty();
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.4>
