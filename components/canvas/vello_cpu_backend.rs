@@ -31,6 +31,8 @@ thread_local! {
     static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, peniko::FontData>> = RefCell::default();
 }
 
+/// Clears the font cache.
+// TODO: Only clear fonts associated with a webviewid
 pub(crate) fn clear_shared_font_cache(_webview_id: WebViewId) {
     SHARED_FONT_CACHE.with(|font_cache| {
         font_cache.borrow_mut().clear();
