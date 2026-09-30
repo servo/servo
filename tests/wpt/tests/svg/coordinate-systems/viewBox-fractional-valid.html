@@ -1,0 +1,8 @@
+<!doctype HTML>
+<title>A viewBox with with fractional width should be valid</title>
+<link rel="help" href="https://www.w3.org/TR/SVG11/coords.html#ViewBoxAttribute"/>
+<link rel="match" href="viewBox-fractional-valid-ref.html"/>
+<meta name="assert" content="Height is fixed, width is free, so increasing viewBox width should not affect image"/>
+<svg xmlns="http://www.w3.org/2000/svg" height="200" viewBox="0 0 100.5 100" >
+  <circle cx="50" cy="50" r="50" />
+</svg>
