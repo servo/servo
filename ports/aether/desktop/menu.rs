@@ -35,6 +35,7 @@ pub(crate) enum AppMenuAction {
     NewTab,
     NewWindow,
     History,
+    Settings,
     Processes,
     Exit,
 }
@@ -164,6 +165,9 @@ impl AppMenu {
             return Some(action);
         }
         if let Some(action) = Self::action_item(ui, "History", AppMenuAction::History) {
+            return Some(action);
+        }
+        if let Some(action) = Self::action_item(ui, "Settings", AppMenuAction::Settings) {
             return Some(action);
         }
         if Self::submenu_item(ui, icons, "More Tools") {
