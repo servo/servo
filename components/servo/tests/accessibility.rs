@@ -10,7 +10,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use accesskit::Role::{self, GenericContainer};
-use accesskit::{Affine, NodeId, Rect, TreeId, TreeUpdate};
+use accesskit::{Action, ActionRequest, Affine, NodeId, Rect, TreeId, TreeUpdate};
 use accesskit_consumer::TreeChangeHandler;
 use euclid::Scale;
 use servo::{
@@ -1344,6 +1344,43 @@ fn test_accessibility_display_none_change_scroll() {
         aside.bounding_box().expect("aside should have bounds"),
         Rect::new(0.0, 1550.0, 1000.0, 1600.0),
     );
+}
+
+#[test]
+fn test_accessibility_click_link() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <a id='link' href='data:text/html,just%20a%20text%20node'>this is a link</a>";
+    let (servo_test, delegate, _webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 1);
+    let link = children[0];
+    assert_eq!(link.role(), Role::Link);
+    assert_eq!(link.label(), Some("this is a link".to_owned()));
+
+    let (target_node, target_tree) = link.locate();
+    let action_request = ActionRequest {
+        action: Action::Click,
+        target_tree,
+        target_node,
+        data: None,
+    };
+
+    servo_test
+        .servo
+        .forward_accessibility_action(action_request);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 2);
+    for update in updates {
+        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    }
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    let text = children[0];
+    assert_eq!(text.role(), Role::TextRun);
+    assert_eq!(text.value(), Some("just a text node".to_owned()));
 }
 
 // ************************************************************************************************

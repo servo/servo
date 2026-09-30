@@ -22,6 +22,7 @@ use std::sync::atomic::AtomicIsize;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
+use accesskit::{Action, ActionData, ActionRequest};
 use app_units::Au;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
@@ -248,6 +249,13 @@ pub struct HTMLMediaData {
     pub poster_url: Option<ServoUrl>,
 }
 
+#[derive(Debug)]
+pub struct AccessibilityActionRequest {
+    pub action: Action,
+    pub target: OpaqueNode,
+    pub data: Option<ActionData>,
+}
+
 pub struct LayoutConfig {
     pub id: PipelineId,
     pub webview_id: WebViewId,
@@ -421,12 +429,15 @@ pub trait Layout {
     /// - a page is loaded after accesibility is activated.
     ///
     /// Checked in can_skip_reflow_request_entirely(), as a dirty accessibility tree
-    /// should force a reflow, and handle_accessibility_tree_update() to determine whether to
-    /// update the accessibility tree during reflow.
-    fn force_accessibility_update(&self) -> bool;
+    /// should force a reflow, and handle_reflow() to determine whether to update the
+    /// accessibility tree during reflow.
+    fn needs_accessibility_update(&self) -> bool;
 
-    /// See [Self::force_accessibility_update()].
+    /// See [Self::needs_accessibility_update()].
     fn set_force_accessibility_update(&self);
+
+    /// Handle an accessibility action.
+    fn handle_accessibility_action(&self, action_request: ActionRequest);
 
     fn font_context(&self) -> &Arc<FontContext>;
 }
@@ -639,6 +650,8 @@ pub struct ReflowResult {
     pub changed_web_fonts: WebFontSetDifference,
     /// The LCP candidate during this layout pass, if any.
     pub lcp_candidate: Option<LCPCandidate>,
+    /// Actions which have been requested by assistive technology, if any.
+    pub pending_accessibility_actions: Vec<AccessibilityActionRequest>,
 }
 
 bitflags! {

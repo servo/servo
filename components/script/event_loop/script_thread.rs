@@ -1951,6 +1951,9 @@ impl ScriptThread {
             ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active, epoch) => {
                 self.set_accessibility_active(pipeline_id, active, epoch);
             },
+            ScriptThreadMessage::ForwardAccessibilityAction(pipeline_id, action_request) => {
+                self.forward_accessibility_action(pipeline_id, action_request);
+            },
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(cx, GCReason::API);
             },
@@ -3891,6 +3894,27 @@ impl ScriptThread {
             .window()
             .layout()
             .set_accessibility_active(active, epoch);
+    }
+
+    /// See the docs for [`ScriptThreadMessage::ForwardAccessibilityAction`].
+    fn forward_accessibility_action(
+        &self,
+        pipeline_id: PipelineId,
+        action_request: accesskit::ActionRequest,
+    ) {
+        if !(pref!(accessibility_enabled)) {
+            return;
+        }
+
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            error!("Trying to forward accessibility action to stale document: {pipeline_id}");
+            return;
+        };
+
+        document
+            .window()
+            .layout()
+            .handle_accessibility_action(action_request);
     }
 
     /// Handle a "navigate an iframe" message from the constellation.

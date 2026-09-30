@@ -20,6 +20,7 @@ webgpu = ["dep:webgpu_traits", "dep:wgpu-core"]
 webgl = []
 
 [dependencies]
+accesskit = { workspace = true }
 base64 = { workspace = true }
 content-security-policy = { workspace = true }
 devtools_traits = { workspace = true }
