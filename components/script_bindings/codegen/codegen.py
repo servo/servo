@@ -4879,26 +4879,25 @@ class CGObservableArrayProxyHandler_callback(CGThing):
         )
         convertType = instantiateJSToNativeConversionTemplate(
             getJSToNativeConversionInfo(
-                self.attr.type.inner,  # pyrefly: ignore  # missing-attribute
+                innerContainerType(self.attr.type),
                 self.descriptor,
                 sourceDescription="Element in ObservableArray backing list",
                 exceptionCode=exceptionCode,
             ).template,
             {"val": "value"},
             getJSToNativeConversionInfo(
-                self.attr.type.inner,  # pyrefly: ignore  # missing-attribute
+                innerContainerType(self.attr.type),
                 self.descriptor,
                 sourceDescription="Element in ObservableArray backing list",
                 exceptionCode=exceptionCode,
             ).declType,
             "decl",
-            needsAutoRoot=type_needs_auto_root(self.attr.type.inner),  # pyrefly: ignore  # missing-attribute
+            needsAutoRoot=type_needs_auto_root(innerContainerType(self.attr.type)),
         ).define()
         callbackArgs = ["cx", "decl", "index"]
         traitName = f"{self.descriptor.interface.identifier.name}Methods"
         nativeType = self.descriptor.concreteType
         methodName = f"On{self.callbackType}{MakeNativeName(self.attr.identifier.name)}"
-        functionName = self.name
         return fill(
             """
             unsafe fn ${functionName}<D: DomTypes>(${args}) -> bool {
@@ -4918,7 +4917,7 @@ class CGObservableArrayProxyHandler_callback(CGThing):
                 ${postCallback}
             }
             """,
-            functionName=functionName,
+            functionName=self.name,
             args=', '.join([a.declare() for a in self.args]),
             preConversion=self.preConversion(),
             convertType=convertType,
