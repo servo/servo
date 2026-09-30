@@ -346,21 +346,20 @@ impl OneshotTimers {
             return;
         }
 
-        // select timers to run to prevent firing timers
-        // that were installed during fire of another timer
-        let mut timers_to_run = Vec::new();
+        // Select the timers to run now, to prevent firing timers that were
+        // installed during the firing of another timer. They stay in the queue
+        // (which the GC traces) until they are about to be invoked, so that the
+        // GC can see their callbacks while earlier timers are firing.
+        let timers_to_run: Vec<_> = self
+            .timers
+            .borrow()
+            .iter()
+            .rev()
+            .take_while(|timer| timer.scheduled_for <= base_time)
+            .map(|timer| timer.handle)
+            .collect();
 
-        loop {
-            let mut timers = self.timers.borrow_mut();
-
-            if timers.is_empty() || timers.back().unwrap().scheduled_for > base_time {
-                break;
-            }
-
-            timers_to_run.push(timers.pop_back().unwrap());
-        }
-
-        for timer in timers_to_run {
+        for handle in timers_to_run {
             // Since timers can be coalesced together inside a task,
             // this loop can keep running, including after an interrupt of the JS,
             // and prevent a clean-shutdown of a JS-running thread.
@@ -368,6 +367,18 @@ impl OneshotTimers {
             if !self.global_scope.can_continue_running() {
                 return;
             }
+
+            // Take the timer out of the queue only now. `None` means it was
+            // cancelled while an earlier timer's callback was running.
+            let index = {
+                let timers = self.timers.borrow();
+                timers.iter().position(|timer| timer.handle == handle)
+            };
+            let timer = index.and_then(|index| self.timers.borrow_mut().remove(index));
+            let Some(timer) = timer else {
+                continue;
+            };
+
             match &timer.callback {
                 // TODO: https://github.com/servo/servo/issues/40060
                 OneshotTimerCallback::RunStepsAfterTimeout { ordering_id, .. } => {
