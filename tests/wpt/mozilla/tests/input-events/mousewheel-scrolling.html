@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Shift+wheel scrolls horizontally</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  #scroller {
+    height: 200px;
+    overflow: scroll;
+    width: 200px;
+  }
+
+  #contents {
+    height: 600px;
+    width: 600px;
+  }
+</style>
+
+<div id="scroller"><div id="contents"></div></div>
+
+<script>
+promise_test(async () => {
+  const shiftKey = "\uE008";
+  scroller.scrollTo(0, 0);
+
+  await new test_driver.Actions()
+    .scroll(50, 50, 0, 100, {origin: scroller})
+    .send();
+
+  assert_equals(scroller.scrollLeft, 0,
+    "vertical-wheel does not horizontally");
+  assert_greater_than(scroller.scrollTop, 0,
+    "vertical-wheel scroll vertically");
+}, "wheel swaps the scrolling axes");
+
+promise_test(async () => {
+  const shiftKey = "\uE008";
+  scroller.scrollTo(0, 0);
+
+  await new test_driver.Actions()
+    .scroll(50, 50, 0, 0, {origin: scroller})
+    .keyDown(shiftKey)
+    .scroll(50, 50, 0, 100, {origin: scroller})
+    .keyUp(shiftKey)
+    .send();
+
+  assert_greater_than(scroller.scrollLeft, 0,
+    "Shift+vertical-wheel scrolls horizontally");
+  assert_equals(scroller.scrollTop, 0,
+    "Shift+vertical-wheel does not scroll vertically");
+}, "Shift+wheel swaps the scrolling axes");
+</script>
