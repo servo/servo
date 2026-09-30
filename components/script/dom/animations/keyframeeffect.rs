@@ -139,78 +139,98 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
         cx: &mut JSContext,
         result: &mut RootedVec<'_, Box<Heap<*mut JSObject>>>,
     ) -> Fallible<()> {
-        let mut layout = self.upcast::<AnimationEffect>().window().layout_mut();
-        let stylist = layout.stylist_mut();
-
         // Step 1. Let result be an empty sequence of objects.
         debug_assert!(result.is_empty());
 
         // Step 2. Let keyframes be one of the following:
-        // If this keyframe effect is associated with a CSSAnimation, and its keyframes have not been replaced
-        // by a successful call to setKeyframes(),
-        // the computed keyframes for this keyframe effect.
-        // Otherwise,
-        // the result of applying the procedure compute missing keyframe offsets to the keyframes for this keyframe effect.
-        // TODO: We don't compute missing keyframe offsets yet. But that will likely happen in stylo, not here.
-        let keyframes = self.keyframes.borrow();
+        // If this keyframe effect is associated with a CSSAnimation, and its keyframes have not
+        // been replaced by a successful call to setKeyframes(), the computed keyframes for this
+        // keyframe effect.
+        // Otherwise, the result of applying the procedure compute missing keyframe offsets to the
+        // keyframes for this keyframe effect.
+        // TODO: We don't compute missing keyframe offsets yet. But that will likely happen
+        // in stylo.
+        //
+        // Extract and serialize keyframe properties into Rust structures first, so that we do not
+        // hold an active mutable borrow of `layout` or an active borrow of `self.keyframes` across
+        // garbage collection / JS object allocation boundaries.
+        let keyframes_data = {
+            let mut layout = self.upcast::<AnimationEffect>().window().layout_mut();
+            let stylist = layout.stylist_mut();
+            let keyframes = self.keyframes.borrow();
+            let mut keyframes_data = Vec::with_capacity(keyframes.len());
+
+            for keyframe in keyframes.iter() {
+                let base_keyframe = BaseComputedKeyframe {
+                    composite: keyframe.composite,
+                    offset: keyframe.offset,
+                    // FIXME: We don't post-process the offset of keyframes to find suitable
+                    // offset values for null keyframe offsets yet, so we just use the offset as-is.
+                    computedOffset: keyframe.offset,
+                    easing: keyframe.easing_function.clone(),
+                };
+
+                let mut properties = Vec::with_capacity(keyframe.declarations.len());
+                for property_value_pair in &keyframe.declarations {
+                    debug_assert!(property_value_pair.property_id.is_animatable());
+
+                    // Step 3.3.1 Let property name be the result of applying the animation
+                    // property name to IDL attribute name algorithm to the property name of
+                    // declaration.
+                    let mut property_name = String::new();
+                    let mut writer = CssWriter::new(&mut property_name);
+                    if property_value_pair.property_id.to_css(&mut writer).is_err() {
+                        continue;
+                    }
+                    let property_name =
+                        animation_property_name_to_idl_attribute_name(&property_name);
+                    let Ok(property_name) = CString::new(property_name) else {
+                        continue;
+                    };
+
+                    // Step 3.3.2 Let IDL value be the result of serializing the property value
+                    // of declaration by passing declaration to the algorithm to serialize a CSS
+                    // value [CSSOM].
+                    let mut value_string = String::new();
+                    if property_value_pair
+                        .block
+                        .single_value_to_css(
+                            &property_value_pair.property_id,
+                            &mut value_string,
+                            None,
+                            stylist,
+                        )
+                        .is_err()
+                    {
+                        continue;
+                    }
+
+                    properties.push((property_name, value_string));
+                }
+
+                keyframes_data.push((base_keyframe, properties));
+            }
+
+            keyframes_data
+        };
 
         // Step 3. For each keyframe in keyframes perform the following steps:
-        for keyframe in keyframes.iter() {
-            // Step 3.1 Initialize a dictionary object, output keyframe, using the following definition:
-            // TODO Step 3.2 Set the offset, computedOffset, easing, and composite members of output keyframe
-            // to the respective keyframe offset, computed keyframe offset, keyframe-specific easing function,
-            // and keyframe-specific composite operation values of keyframe.
-            let base_keyframe = BaseComputedKeyframe {
-                composite: keyframe.composite,
-                offset: keyframe.offset,
-                // FIXME: We don't post-process the offset of keyframes to find suitable offset values for null
-                // keyframe offsets yet, so we just use the offset as-is.
-                computedOffset: keyframe.offset,
-                easing: keyframe.easing_function.clone(),
-            };
+        for (base_keyframe, properties) in keyframes_data {
+            // Step 3.1 Initialize a dictionary object, output keyframe, using the definition.
+            // TODO Step 3.2 Set the offset, computedOffset, easing, and composite members of
+            // output keyframe to the respective values of keyframe.
             rooted!(&in(cx) let mut output_keyframe = unsafe { JS_NewObject(cx, ptr::null()) });
             base_keyframe.to_jsobject(cx, output_keyframe.handle_mut());
 
-            // Step 3.3 For each animation property-value pair declaration in keyframe, perform the following steps:
-            for property_value_pair in &keyframe.declarations {
-                debug_assert!(property_value_pair.property_id.is_animatable());
-
-                // Step 3.3.1 Let property name be the result of applying the animation property name to IDL attribute
-                // name algorithm to the property name of declaration.
-                let mut property_name = String::new();
-                let mut writer = CssWriter::new(&mut property_name);
-                if property_value_pair.property_id.to_css(&mut writer).is_err() {
-                    continue;
-                }
-                let property_name = animation_property_name_to_idl_attribute_name(&property_name);
-
-                // Step 3.3.2 Let IDL value be the result of serializing the property value of declaration
-                // by passing declaration to the algorithm to serialize a CSS value [CSSOM].
-                let mut value_string = String::new();
-                if property_value_pair
-                    .block
-                    .single_value_to_css(
-                        &property_value_pair.property_id,
-                        &mut value_string,
-                        None,
-                        stylist,
-                    )
-                    .is_err()
-                {
-                    continue;
-                }
-
-                // Step 3.3.3 Let value be the result of converting IDL value to an ECMAScript String value.
+            // Step 3.3 For each animation property-value pair declaration in keyframe:
+            for (property_name, value_string) in properties {
+                // Step 3.3.3 Let value be converting IDL value to ECMAScript String value.
                 rooted!(&in(cx) let mut value = UndefinedValue());
                 value_string.to_jsval(cx, value.handle_mut());
 
-                // Step 3.3.4 Call the [[DefineOwnProperty]] internal method on output keyframe with property
-                // name property name, Property Descriptor { [[Writable]]: true, [[Enumerable]]: true, [[Configurable]]:
-                // true, [[Value]]: value } and Boolean flag false.
-                let Ok(property_name) = CString::new(property_name) else {
-                    continue;
-                };
-
+                // Step 3.3.4 Call the [[DefineOwnProperty]] internal method on output keyframe
+                // with property name, Property Descriptor { [[Writable]]: true,
+                // [[Enumerable]]: true, [[Configurable]]: true, [[Value]]: value } and false.
                 let success = unsafe {
                     JS_DefineProperty(
                         cx,
@@ -229,7 +249,7 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
             }
 
             // Step 3.4 Append output keyframe to result.
-            result.push(Heap::boxed(output_keyframe.get()))
+            result.push(Heap::boxed(output_keyframe.get()));
         }
 
         // Step 4. Return result.
