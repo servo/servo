@@ -120,7 +120,8 @@ impl DOMStringType {
     ///
     /// # Safety
     ///
-    /// The returned slice is only valid until a GC happens. Afterwards it can point to arbitrary memory.
+    /// The returned slice is only guaranteed to be valid until garbage collection happens.
+    /// Afterwards it can point to arbitrary memory.
     unsafe fn as_raw_bytes(&self) -> &[u8] {
         match self {
             DOMStringType::Rust(s) => s.as_bytes(),
