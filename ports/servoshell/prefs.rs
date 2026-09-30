@@ -106,7 +106,7 @@ pub(crate) struct ServoShellPreferences {
     /// Log also to a file
     #[cfg(target_env = "ohos")]
     pub log_to_file: bool,
-    #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
+    /// Enable memory output if tracing is enabled.
     pub memory_output: bool,
 }
 
@@ -134,7 +134,6 @@ impl Default for ServoShellPreferences {
             #[cfg(target_env = "ohos")]
             log_to_file: false,
             experimental_preferences_enabled: false,
-            #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
             memory_output: false,
         }
     }
