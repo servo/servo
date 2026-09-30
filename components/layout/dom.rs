@@ -810,7 +810,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                         true
                     },
                     BlockLevelBox::OutOfFlowFloatBox(float_box) => {
-                        if !info.style.clone_float().is_floating() {
+                        if !info.style.get_float().is_floating() {
                             return false;
                         }
                         float_box.contents.rebuild(layout_context, &info);
@@ -821,7 +821,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                         // original display was inline-level, then the box needs to be handled as
                         // an inline-level in order to compute the static position correctly.
                         // See `BlockContainerBuilder::handle_absolutely_positioned_element()`.
-                        if !info.style.clone_position().is_absolutely_positioned() ||
+                        if !info.style.get_box().position.is_absolutely_positioned() ||
                             box_style.original_display.outside() != StyloDisplayOutside::Block
                         {
                             return false;
@@ -837,7 +837,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
             },
             LayoutBox::InlineLevel(inline_level) => match inline_level {
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
-                    if !info.style.clone_position().is_absolutely_positioned() {
+                    if !info.style.get_box().position.is_absolutely_positioned() {
                         return false;
                     }
                     positioned_box
@@ -864,8 +864,8 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 let mut flex_level_box = flex_level_box.borrow_mut();
                 match &mut *flex_level_box {
                     FlexLevelBox::FlexItem(flex_item_box) => {
-                        if info.style.clone_position().is_absolutely_positioned() ||
-                            flex_item_box.style().clone_order() != info.style.clone_order()
+                        if info.style.get_box().position.is_absolutely_positioned() ||
+                            !flex_item_box.style().order_equals(&info.style)
                         {
                             return false;
                         }
@@ -874,7 +874,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                             .rebuild(layout_context, &info)
                     },
                     FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
-                        if !info.style.clone_position().is_absolutely_positioned() {
+                        if !info.style.get_box().position.is_absolutely_positioned() {
                             return false;
                         }
                         positioned_box
@@ -920,7 +920,8 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 .element_data()
                 .styles
                 .primary()
-                .clone_position()
+                .get_box()
+                .position
                 .is_absolutely_positioned()
         })
     }

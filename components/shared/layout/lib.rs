@@ -525,8 +525,8 @@ impl Default for AxesOverflow {
 impl From<&ComputedValues> for AxesOverflow {
     fn from(style: &ComputedValues) -> Self {
         Self {
-            x: style.clone_overflow_x(),
-            y: style.clone_overflow_y(),
+            x: style.slow_clone_overflow_x(),
+            y: style.slow_clone_overflow_y(),
         }
     }
 }

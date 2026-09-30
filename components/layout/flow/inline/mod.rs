@@ -1285,20 +1285,20 @@ impl InlineFormattingContextLayout<'_> {
         }
         let containing_block = self.containing_block();
         let style = containing_block.style;
-        let mut text_align_keyword = style.clone_text_align();
+        let mut text_align_keyword = style.get_text_align();
 
         if last_line_or_forced_line_break {
-            text_align_keyword = match style.clone_text_align_last() {
-                TextAlignLast::Auto if text_align_keyword == TextAlignKeyword::Justify => {
-                    TextAlignKeyword::Start
+            text_align_keyword = match style.get_text_align_last() {
+                TextAlignLast::Auto if text_align_keyword == &TextAlignKeyword::Justify => {
+                    &TextAlignKeyword::Start
                 },
                 TextAlignLast::Auto => text_align_keyword,
-                TextAlignLast::Start => TextAlignKeyword::Start,
-                TextAlignLast::End => TextAlignKeyword::End,
-                TextAlignLast::Left => TextAlignKeyword::Left,
-                TextAlignLast::Right => TextAlignKeyword::Right,
-                TextAlignLast::Center => TextAlignKeyword::Center,
-                TextAlignLast::Justify => TextAlignKeyword::Justify,
+                TextAlignLast::Start => &TextAlignKeyword::Start,
+                TextAlignLast::End => &TextAlignKeyword::End,
+                TextAlignLast::Left => &TextAlignKeyword::Left,
+                TextAlignLast::Right => &TextAlignKeyword::Right,
+                TextAlignLast::Center => &TextAlignKeyword::Center,
+                TextAlignLast::Justify => &TextAlignKeyword::Justify,
             };
         }
 
@@ -1351,7 +1351,7 @@ impl InlineFormattingContextLayout<'_> {
         // Calculate the justification adjustment. This is simply the remaining space on the line,
         // dividided by the number of justficiation opportunities that we recorded when building
         // the line.
-        let text_justify = containing_block.style.clone_text_justify();
+        let text_justify = containing_block.style.get_text_justify();
         let justification_adjustment = match (text_align_keyword, text_justify) {
             // `text-justify: none` should disable text justification.
             // TODO: Handle more `text-justify` values.
@@ -1665,7 +1665,7 @@ impl InlineFormattingContextLayout<'_> {
             );
             let mut font_block_conribution = current_inline_container_state
                 .get_block_size_contribution(
-                    baseline_shift,
+                    &baseline_shift,
                     font_metrics,
                     &current_inline_container_state.font_metrics,
                 );
@@ -2377,7 +2377,7 @@ impl InlineContainerState {
         let mut baseline_offset = Au::zero();
         let mut strut_block_sizes = {
             Self::get_block_sizes_with_style(
-                effective_baseline_shift(&style, parent_container),
+                &effective_baseline_shift(&style, parent_container),
                 &style,
                 &font_metrics,
                 &font_metrics,
@@ -2389,8 +2389,8 @@ impl InlineContainerState {
             // The baseline offset from `vertical-align` might adjust where our block size contribution is
             // within the line.
             baseline_offset = parent_container.get_cumulative_baseline_offset_for_child(
-                style.clone_alignment_baseline(),
-                style.clone_baseline_shift(),
+                style.get_alignment_baseline(),
+                style.get_baseline_shift(),
                 &strut_block_sizes,
             );
             strut_block_sizes.adjust_for_baseline_offset(baseline_offset);
@@ -2416,7 +2416,7 @@ impl InlineContainerState {
     }
 
     fn get_block_sizes_with_style(
-        baseline_shift: BaselineShift,
+        baseline_shift: &BaselineShift,
         style: &ComputedValues,
         font_metrics: &FontMetrics,
         font_metrics_of_first_font: &FontMetrics,
@@ -2490,7 +2490,7 @@ impl InlineContainerState {
 
     fn get_block_size_contribution(
         &self,
-        baseline_shift: BaselineShift,
+        baseline_shift: &BaselineShift,
         font_metrics: &FontMetrics,
         font_metrics_of_first_font: &FontMetrics,
     ) -> LineBlockSizes {
@@ -2505,12 +2505,12 @@ impl InlineContainerState {
 
     fn get_cumulative_baseline_offset_for_child(
         &self,
-        child_alignment_baseline: AlignmentBaseline,
-        child_baseline_shift: BaselineShift,
+        child_alignment_baseline: &AlignmentBaseline,
+        child_baseline_shift: &BaselineShift,
         child_block_size: &LineBlockSizes,
     ) -> Au {
         let block_size = self.get_block_size_contribution(
-            child_baseline_shift.clone(),
+            child_baseline_shift,
             &self.font_metrics,
             &self.font_metrics,
         );
@@ -2657,7 +2657,7 @@ impl IndependentFormattingContext {
     /// TODO: clarify that this is not to be used for box alignment in flex/grid
     /// <https://drafts.csswg.org/css-inline/#baseline-source>
     fn pick_baseline(&self, baselines: &Baselines) -> Option<Au> {
-        match self.style().clone_baseline_source() {
+        match self.style().get_baseline_source() {
             BaselineSource::First => baselines.first,
             BaselineSource::Last => baselines.last,
             BaselineSource::Auto if self.is_block_container() => baselines.last,
@@ -2671,7 +2671,7 @@ impl IndependentFormattingContext {
         block_size: Au,
         baseline_offset_in_content_area: Au,
     ) -> (LineBlockSizes, Au) {
-        let mut contribution = if !is_baseline_relative(self.style().clone_baseline_shift()) {
+        let mut contribution = if !is_baseline_relative(self.style().get_baseline_shift()) {
             LineBlockSizes {
                 line_height: block_size,
                 baseline_relative_size_for_line_height: None,
@@ -2693,8 +2693,8 @@ impl IndependentFormattingContext {
         let baseline_offset = ifc
             .current_inline_container_state()
             .get_cumulative_baseline_offset_for_child(
-                style.clone_alignment_baseline(),
-                style.clone_baseline_shift(),
+                style.get_alignment_baseline(),
+                style.get_baseline_shift(),
                 &contribution,
             );
         contribution.adjust_for_baseline_offset(baseline_offset);
@@ -2770,11 +2770,11 @@ fn effective_baseline_shift(
         // (it can just affect how the block container is aligned within the parent IFC).
         BaselineShift::zero()
     } else {
-        style.clone_baseline_shift()
+        style.slow_clone_baseline_shift()
     }
 }
 
-fn is_baseline_relative(baseline_shift: BaselineShift) -> bool {
+fn is_baseline_relative(baseline_shift: &BaselineShift) -> bool {
     !matches!(
         baseline_shift,
         BaselineShift::Keyword(
@@ -2916,7 +2916,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 self.ending_inline_pbm_stack.push(pbm.inline_end);
 
                 self.text_wrap_mode_stack
-                    .push(layout_style.style().clone_text_wrap_mode());
+                    .push(layout_style.style().slow_clone_text_wrap_mode());
             },
             InlineItem::EndInlineBox(..) => {
                 let length = self.ending_inline_pbm_stack.pop().unwrap_or_else(Au::zero);
@@ -2943,7 +2943,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 }
             },
             InlineItem::Atomic(atomic, offset_in_text, _level) => {
-                let can_wrap = self.text_wrap_mode() == TextWrapMode::Wrap;
+                let can_wrap = self.text_wrap_mode() == &TextWrapMode::Wrap;
                 if can_wrap &&
                     self.had_content_yet_for_min_content &&
                     !inline_formatting_context
@@ -3145,11 +3145,10 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         self.paragraph.union_assign(&end_floats);
     }
 
-    fn text_wrap_mode(&self) -> TextWrapMode {
+    fn text_wrap_mode(&self) -> &TextWrapMode {
         self.text_wrap_mode_stack
             .last()
-            .cloned()
-            .unwrap_or_else(|| self.constraint_space.style.clone_text_wrap_mode())
+            .unwrap_or_else(|| self.constraint_space.style.get_text_wrap_mode())
     }
 
     /// Compute the [`ContentSizes`] of the given [`InlineFormattingContext`].

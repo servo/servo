@@ -40,9 +40,8 @@ impl Eq for FontDescriptor {}
 
 impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
     fn from(style: &'a FontStyleStruct) -> Self {
-        let variation_settings = style
-            .clone_font_variation_settings()
-            .0
+        let variation_settings = &style.font_variation_settings.0;
+        let variation_settings = variation_settings
             .into_iter()
             .map(|setting| FontVariation {
                 tag: setting.tag.0,
@@ -56,8 +55,8 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
             variant: style.font_variant_caps,
             pt_size: Au::from_f32_px(style.font_size.computed_size().px()),
             variation_settings,
-            synthesis_weight: style.clone_font_synthesis_weight(),
-            optical_sizing: style.clone_font_optical_sizing(),
+            synthesis_weight: style.font_synthesis_weight,
+            optical_sizing: style.font_optical_sizing,
         }
     }
 }

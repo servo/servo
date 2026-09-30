@@ -611,9 +611,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         };
 
         let text_shaping_needs_recollect = || {
-            if old.clone_direction() != new.clone_direction() ||
-                old.clone_unicode_bidi() != new.clone_unicode_bidi()
-            {
+            if !old.direction_equals(new) || !old.unicode_bidi_equals(new) {
                 return true;
             }
 

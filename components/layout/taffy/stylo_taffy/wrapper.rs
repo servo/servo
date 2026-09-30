@@ -41,7 +41,7 @@ impl<T: Deref<Target = ComputedValues>> taffy::CoreStyle for TaffyStyloStyle<T> 
 
     #[inline]
     fn direction(&self) -> taffy::Direction {
-        convert::direction(self.style.clone_direction())
+        convert::direction(self.style.slow_clone_direction())
     }
 
     #[inline]
