@@ -184,7 +184,9 @@ pub struct AccessibilityTree {
     embedder_epoch: Epoch,
     /// Pending actions which have been processed from [`accesskit::ActionRequest`]s to retrieve the
     /// [`OpaqueNode`] for the corresponding DOM node.
-    /// Any [`OpaqueNode`] in this list
+    /// Any [`OpaqueNode`] in this list corresponds to an [`AccessibilityNode`] which is still in
+    /// the tree immediately after the tree has been updated, and therefore should correspond to a
+    /// live DOM node.
     pending_actions: Vec<AccessibilityActionRequest>,
     /// Debug options, copied from configuration to this `AccessibilityTree` in order
     /// to avoid having to constantly access the thread-safe global options.
@@ -628,11 +630,8 @@ impl AccessibilityTree {
         self.embedder_epoch
     }
 
-    pub(crate) fn take_pending_actions(&mut self) -> Option<Vec<AccessibilityActionRequest>> {
-        if self.pending_actions.is_empty() {
-            return None;
-        }
-        Some(std::mem::take(&mut self.pending_actions))
+    pub(crate) fn take_pending_actions(&mut self) -> Vec<AccessibilityActionRequest> {
+        std::mem::take(&mut self.pending_actions)
     }
 
     /// Assert that the tree is a tree without any dangling references or orphaned nodes.

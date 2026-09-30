@@ -976,7 +976,7 @@ impl LayoutThread {
         root_element: &ServoLayoutNode,
         accessibility_damage: Option<AccessibilityDamageMap>,
         rooted_nodes: Option<FxHashSet<OpaqueNode>>,
-        pending_accessibility_actions: &mut Option<Vec<AccessibilityActionRequest>>,
+        pending_accessibility_actions: &mut Vec<AccessibilityActionRequest>,
         reflow_statistics: &mut ReflowStatistics,
     ) -> bool {
         let Some(damage) = accessibility_damage else {
@@ -1102,7 +1102,7 @@ impl LayoutThread {
         if self.handle_update_scroll_node_request(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedScrollNodeOffset);
         }
-        let mut pending_accessibility_actions = None;
+        let mut pending_accessibility_actions = vec![];
         if self.handle_accessibility_tree_update(
             &root_element.as_node(),
             accessibility_damage,

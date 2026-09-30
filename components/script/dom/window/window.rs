@@ -2753,9 +2753,7 @@ impl Window {
             return Default::default();
         };
 
-        if let Some(pending_accessibility_actions) = reflow_result.pending_accessibility_actions {
-            self.handle_accessibility_actions(pending_accessibility_actions, cx);
-        }
+        self.handle_accessibility_actions(reflow_result.pending_accessibility_actions, cx);
 
         debug!("script: layout complete");
         if let Some(marker) = marker {
@@ -3838,7 +3836,7 @@ impl Window {
     ) {
         for action_request in actions {
             let target_opaque = action_request.target;
-            let target = unsafe { Node::from_untrusted_node_address(target_opaque.into()) };
+            let target = unsafe { from_untrusted_node_address(target_opaque.into()) };
             if action_request.action == Action::Click {
                 target.fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
             }

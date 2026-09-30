@@ -651,7 +651,7 @@ pub struct ReflowResult {
     /// The LCP candidate during this layout pass, if any.
     pub lcp_candidate: Option<LCPCandidate>,
     /// Actions which have been requested by assistive technology, if any.
-    pub pending_accessibility_actions: Option<Vec<AccessibilityActionRequest>>,
+    pub pending_accessibility_actions: Vec<AccessibilityActionRequest>,
 }
 
 bitflags! {
