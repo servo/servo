@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::error::Error;
 use std::fs::File;
-use std::os::unix::ffi::OsStrExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{fs, thread};
 
 use log::error;
@@ -25,7 +24,7 @@ const CACHE_REVISION: &str = "_28092026";
 pub fn font_file_cached_on_disk() -> bool {
     thread::spawn(remove_redundant_cache_files); // do clean up of the directory
 
-    match parse_file_path() {
+    match parse_file_path(false) {
         Ok(file_path) => {
             let Ok(res) = fs::exists(file_path) else {
                 return false;
@@ -54,7 +53,7 @@ pub fn serialize_and_write_to_disk_wrapper(input_data: FontList) {
 /// Reads the OHOS FontList cache file. Returns a `Result` so the caller can know if this function fails
 /// and that the caller needs to find another way to get the FontList.
 pub fn read_from_disk() -> Result<FontList, Box<dyn Error>> {
-    let file_path = parse_file_path()?;
+    let file_path = parse_file_path(false)?;
     let mut file_handler = File::open(file_path)?;
     let mut buffer = [0u8; 1024]; // NB: This simply means that the deserializer will be deserializing 1024B of data at a time.
 
@@ -76,23 +75,25 @@ fn remove_redundant_cache_files() {
             return;
         },
     };
-    let Ok(expected_cache_filename) = parse_filename() else {
+    let Ok(expected_cache_filename) = parse_filename(false) else {
         log::debug!("Could not determine font cache filename. Skipping cleanup");
         return;
     };
-
+    let Ok(expected_temporary_cache_filename) = parse_filename(true) else {
+        log::debug!("Could not determine temporary font cache filename. Skipping cleanup");
+        return;
+    };
     if let Ok(entries) = fs::read_dir(&base_dir) {
         for entry in entries {
             let Ok(entry) = entry else {
                 continue;
             };
-            let filename = entry.file_name();
+            let filename = entry.file_name().into_encoded_bytes();
 
-            // A cache file with a mismatching prefix is obsolete.
-            if filename
-                .as_bytes()
-                .ends_with(CACHE_FILENAME_SUFFIX.as_bytes()) &&
-                filename.as_bytes() != expected_cache_filename.as_bytes() &&
+            // A cache file that is neither the expected one nor its temporary file is obsolete.
+            if filename.ends_with(CACHE_FILENAME_SUFFIX.as_bytes()) &&
+                filename != expected_cache_filename.as_bytes() &&
+                filename != expected_temporary_cache_filename.as_bytes() &&
                 let Err(e) = fs::remove_file(entry.path())
             {
                 error!(
@@ -104,10 +105,11 @@ fn remove_redundant_cache_files() {
     }
 }
 
-/// Helper function to parse the filepath of the cache file.
-fn parse_file_path() -> Result<PathBuf, Box<dyn Error>> {
+/// Helper function to parse the filepath of the cache file, or of the temporary file it is renamed
+/// into place from.
+fn parse_file_path(is_temporary_file: bool) -> Result<PathBuf, Box<dyn Error>> {
     let base_dir = get_directory()?;
-    let cache_filename = parse_filename()?;
+    let cache_filename = parse_filename(is_temporary_file)?;
 
     Ok(base_dir.join(cache_filename))
 }
@@ -122,20 +124,36 @@ fn get_directory() -> Result<PathBuf, Box<dyn Error>> {
     Ok(base_dir)
 }
 
-/// Helper function to parse the filename.
-/// Currently, the naming format is <OS_VERSION>_<revision date>_font-cache.bin"
-fn parse_filename() -> Result<String, Box<dyn Error>> {
+/// Helper function to parse the filename. The naming format is
+/// <OS_VERSION>_<revision date>_font-cache.bin, prefixed with `.tmp_` for the temporary file.
+fn parse_filename(is_temporary_file: bool) -> Result<String, Box<dyn Error>> {
+    let prefix: &str = if is_temporary_file { ".tmp_" } else { "" };
+
     let filename = ohos_deviceinfo::get_incremental_version()
-        .map(|os_version| [os_version, CACHE_REVISION, CACHE_FILENAME_SUFFIX].concat())
+        .map(|os_version| [prefix, os_version, CACHE_REVISION, CACHE_FILENAME_SUFFIX].concat())
         .ok_or("OH_get_incremental_version failed")?;
     Ok(filename)
 }
 
-/// This function serializes `FontList` and caches its result into disk.
+/// This function serializes `FontList` and caches its result into disk. The data is written to a
+/// temporary file and renamed into place, so that a crash during the write leaves it intact.
 fn serialize_and_write_to_disk(input_data: &FontList) -> Result<(), Box<dyn Error>> {
-    let file_path = parse_file_path()?;
+    let file_path = parse_file_path(false)?;
+    let temp_file_path = parse_file_path(true)?;
 
+    if let Err(e) = write_cache_file(&temp_file_path, input_data) {
+        let _ = fs::remove_file(temp_file_path);
+        return Err(e);
+    }
+
+    fs::rename(temp_file_path, file_path)?;
+    Ok(())
+}
+
+/// Writes `input_data` into `file_path` and flushes it before the file is renamed into place.
+fn write_cache_file(file_path: &Path, input_data: &FontList) -> Result<(), Box<dyn Error>> {
     let file = File::create(file_path)?;
     to_io(input_data, &file)?;
+    file.sync_all()?;
     Ok(())
 }
