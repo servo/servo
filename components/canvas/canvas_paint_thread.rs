@@ -21,6 +21,7 @@ use servo_canvas_traits::canvas::*;
 use webrender_api::ImageKey;
 
 use crate::canvas_data::*;
+use crate::vello_cpu_backend::clear_shared_font_cache;
 
 pub struct CanvasPaintThread {
     canvases: FxHashMap<CanvasId, Canvas>,
@@ -87,6 +88,9 @@ impl CanvasPaintThread {
                                     let _ = exit_sender.send(());
                                     break;
                                 },
+                                Ok(ConstellationCanvasMsg::ClearResources(webview_id)) => {
+                                    clear_shared_font_cache(webview_id);
+                                }
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
                                     break;

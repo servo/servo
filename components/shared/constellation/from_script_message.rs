@@ -889,6 +889,8 @@ pub enum ScriptToConstellationMessage {
     ReleaseWakeLock(WakeLockType),
     /// Add tuple to upgrade insecure navigations set to keep in sync with global scope.
     AddTupleToUpgradeInsecureNavigationsSet(UpgradeInsecureNavigations),
+    /// Tells canvas thread to clear resources from its caches.
+    ClearCanvasResources(WebViewId),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {
