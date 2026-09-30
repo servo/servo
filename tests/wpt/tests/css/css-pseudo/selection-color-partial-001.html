@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>CSS Pseudo-Elements Test: ::selection color on partially selected text</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-painting">
+<link rel="match" href="selection-color-partial-001-ref.html">
+<meta name="assert" content="This test checks that only the glyphs that are part of the selection are painted with the color of the ::selection pseudo-element, while the glyphs outside of it keep the color of the originating element.">
+<link rel="stylesheet" href="support/highlights.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="support/selections.js"></script>
+<style>
+    main {
+        font: 80px/1 Ahem;
+        width: min-content;
+    }
+    main::selection {
+        background: white;
+        color: green;
+    }
+</style>
+<p>Test passes if only the middle three of the five squares below are green.
+<main class="highlight_reftest">ppppp</main>
+<script>
+    const target = document.querySelector("main");
+    selectRangeWith(range => {
+        range.selectNodeContents(target);
+        range.setStart(target.firstChild, 1);
+        range.setEnd(target.firstChild, 4);
+    });
+</script>

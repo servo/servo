@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{OnceCell, RefCell};
+use std::ops::Range;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, LazyLock};
 
@@ -16,6 +17,7 @@ use layout_api::ReflowStatistics;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
+use servo_base::text::Utf32CodeUnits;
 use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
 use servo_url::ServoUrl;
@@ -1087,6 +1089,13 @@ impl Fragment {
 
         let parent_style = fragment.style();
         let color = parent_style.clone_color();
+
+        // A rule that only sets a selection background needs no extra text runs.
+        let selection = FragmentSelection::from_fragment(fragment);
+        let selected_color = selection.as_ref().and_then(|_| {
+            let selected_color = fragment.selected_style().clone_color();
+            (selected_color != color).then_some(selected_color)
+        });
         let font_size = parent_style.clone_font_size();
         let font_metrics = &fragment.font_metrics;
         let dppx = builder.device_pixel_ratio.get();
@@ -1140,7 +1149,13 @@ impl Fragment {
             );
         }
 
-        Self::build_display_list_for_text_selection(fragment, builder, state, line_box_rect);
+        Self::build_display_list_for_text_selection(
+            fragment,
+            builder,
+            state,
+            line_box_rect,
+            selection.as_ref(),
+        );
 
         for text_decoration in state.text_decorations.iter() {
             if text_decoration.line.contains(TextDecorationLine::UNDERLINE) {
@@ -1173,14 +1188,34 @@ impl Fragment {
             }
         }
 
-        builder.wr().push_text(
-            &common,
-            glyph_bounds,
-            &glyphs,
-            fragment.font_key,
-            rgba(color),
-            None,
-        );
+        // The selected and unselected runs are slices of the same flattened glyph list.
+        let mut glyph_runs: [(Range<usize>, AbsoluteColor); 3] =
+            std::array::from_fn(|_| (0..glyphs.len(), color));
+        let mut glyph_run_count = 1;
+        if let (Some(selection), Some(selected_color)) = (&selection, selected_color) &&
+            !selection.glyph_range.is_empty()
+        {
+            glyph_runs = [
+                (0..selection.glyph_range.start, color),
+                (selection.glyph_range.clone(), selected_color),
+                (selection.glyph_range.end..glyphs.len(), color),
+            ];
+            glyph_run_count = 3;
+        }
+
+        for (glyph_range, run_color) in glyph_runs.into_iter().take(glyph_run_count) {
+            if glyph_range.is_empty() {
+                continue;
+            }
+            builder.wr().push_text(
+                &common,
+                glyph_bounds,
+                &glyphs[glyph_range],
+                fragment.font_key,
+                rgba(run_color),
+                None,
+            );
+        }
 
         builder
             .paint_timing_handler
@@ -1327,81 +1362,21 @@ impl Fragment {
         builder: &mut DisplayListBuilder<'_>,
         state: &TraversalState,
         line_box_rect: &PhysicalRect<Au>,
+        selection: Option<&FragmentSelection>,
     ) {
-        let run_data = &fragment.run_data;
-        let Some(selection) = *run_data.selection.borrow() else {
+        let Some(selection) = selection else {
             return;
         };
 
-        // The selection character range is in pre-transformed character offsets, so use the
-        // OffsetMap contained within `run_data` to convert it to post-transformed character
-        // offsets. This allows updating this selection directly from the DOM (skipping layout).
-        let selection_character_range = run_data.map_dom_range_to_transformed_range(selection);
-
-        if fragment.character_range_in_dom_node.start > selection_character_range.end ||
-            fragment.character_range_in_dom_node.end < selection_character_range.start
-        {
-            return;
-        }
-
-        // When there is an active selection, the line is empty, and there is a forced linebreak,
-        // layout will push an empty fragment in order to trigger painting of the cursor on an empty line.
-        // This code ensure that it is only painted if the cursor is on the starting index of the empty
-        // fragment.
-        if fragment.is_empty_for_text_cursor &&
-            !fragment
-                .character_range_in_dom_node
-                .contains(&selection_character_range.start)
-        {
-            return;
-        }
-
-        let mut current_character_index = fragment.character_range_in_dom_node.start;
-        let mut current_advance = Au::zero();
-        let mut start_advance = None;
-        let mut end_advance = None;
-        for glyph_store in fragment.glyphs.iter() {
-            let glyph_store_character_count = glyph_store.character_count();
-            if current_character_index + glyph_store_character_count <
-                selection_character_range.start
-            {
-                current_advance += glyph_store.total_advance() +
-                    (fragment.justification_adjustment *
-                        glyph_store.total_word_separators() as i32);
-                current_character_index += glyph_store_character_count;
-                continue;
-            }
-
-            if current_character_index >= selection_character_range.end {
-                break;
-            }
-
-            for glyph in glyph_store.glyphs() {
-                if current_character_index >= selection_character_range.start {
-                    start_advance = start_advance.or(Some(current_advance));
-                }
-
-                current_character_index += glyph.character_count();
-                current_advance += glyph.advance();
-                if glyph.char_is_word_separator() {
-                    current_advance += fragment.justification_adjustment;
-                }
-
-                if current_character_index <= selection_character_range.end {
-                    end_advance = Some(current_advance);
-                }
-            }
-        }
-
-        let start_x = start_advance.unwrap_or(current_advance);
-        let end_x = end_advance.unwrap_or(current_advance);
+        let start_x = selection.start_advance;
+        let end_x = selection.end_advance;
 
         let fragment_rect = fragment.base.rect();
         let fragment_origin =
             (state.origin + fragment_rect.origin.to_vector()) + Vector2D::new(start_x, Au::zero());
 
         let parent_style = fragment.style();
-        if !selection_character_range.is_empty() {
+        if !selection.character_range.is_empty() {
             let selection_rect = Rect::new(
                 Point2D::new(fragment_origin.x, line_box_rect.min_y()),
                 Size2D::new(end_x - start_x, line_box_rect.height()),
@@ -2299,6 +2274,90 @@ impl<'a> BuilderForBoxFragment<'a> {
                 clip_mode,
             );
         }
+    }
+}
+
+/// The portion of a [`TextFragment`] covered by the active selection, if any.
+struct FragmentSelection {
+    character_range: Range<Utf32CodeUnits>,
+    /// Indices into the fragment's flattened glyph list.
+    glyph_range: Range<usize>,
+    start_advance: Au,
+    end_advance: Au,
+}
+
+impl FragmentSelection {
+    fn from_fragment(fragment: &TextFragment) -> Option<Self> {
+        let run_data = &fragment.run_data;
+        let selection = (*run_data.selection.borrow())?;
+
+        let character_range = run_data.map_dom_range_to_transformed_range(selection);
+
+        if fragment.character_range_in_dom_node.start > character_range.end ||
+            fragment.character_range_in_dom_node.end < character_range.start
+        {
+            return None;
+        }
+
+        if fragment.is_empty_for_text_cursor &&
+            !fragment
+                .character_range_in_dom_node
+                .contains(&character_range.start)
+        {
+            return None;
+        }
+
+        let mut current_character_index = fragment.character_range_in_dom_node.start;
+        let mut current_advance = Au::zero();
+        let mut glyph_index = 0;
+        let mut start_advance = None;
+        let mut end_advance = None;
+        let mut first_selected_glyph = None;
+        let mut end_of_selected_glyphs = None;
+        for glyph_store in fragment.glyphs.iter() {
+            let glyph_store_character_count = glyph_store.character_count();
+            if current_character_index + glyph_store_character_count < character_range.start {
+                current_advance += glyph_store.total_advance() +
+                    (fragment.justification_adjustment *
+                        glyph_store.total_word_separators() as i32);
+                current_character_index += glyph_store_character_count;
+                glyph_index += glyph_store.glyph_count();
+                continue;
+            }
+
+            if current_character_index >= character_range.end {
+                break;
+            }
+
+            for glyph in glyph_store.glyphs() {
+                if current_character_index >= character_range.start {
+                    start_advance = start_advance.or(Some(current_advance));
+                    first_selected_glyph = first_selected_glyph.or(Some(glyph_index));
+                }
+
+                current_character_index += glyph.character_count();
+                current_advance += glyph.advance();
+                if glyph.char_is_word_separator() {
+                    current_advance += fragment.justification_adjustment;
+                }
+
+                if current_character_index <= character_range.end {
+                    end_advance = Some(current_advance);
+                    end_of_selected_glyphs = Some(glyph_index + 1);
+                }
+
+                glyph_index += 1;
+            }
+        }
+
+        Some(Self {
+            character_range,
+            glyph_range: first_selected_glyph
+                .zip(end_of_selected_glyphs)
+                .map_or(0..0, |(start, end)| start..end),
+            start_advance: start_advance.unwrap_or(current_advance),
+            end_advance: end_advance.unwrap_or(current_advance),
+        })
     }
 }
 
