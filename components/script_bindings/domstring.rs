@@ -47,9 +47,9 @@ const ASCII_SPACE: u8 = 0x20;
 /// # Safety
 ///
 /// The `*mut JSString` in `rooted_traceable_box` must be non-null. The resulting slice is
-/// guaranteed to live as long as no GC operation happens. Afterwards this pointer can
-/// point to arbitrary memory. Callers should enforce this using `NoGC`.
-// For later code it is important that this function cannot GC which is enforced by the spidermonkey API.
+/// guaranteed to live as long as no garbage collection operation happens. Afterwards this
+/// pointer can  point to arbitrary memory. Callers should enforce this using `NoGC`. It is
+/// essential for callers that this function not trigger a garbage collection.
 unsafe fn get_latin1_string_bytes(
     rooted_traceable_box: &RootedTraceableBox<Heap<*mut JSString>>,
 ) -> &[u8] {
