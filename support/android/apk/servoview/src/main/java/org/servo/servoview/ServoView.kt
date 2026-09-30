@@ -12,10 +12,7 @@ import android.util.Size
 import android.view.Choreographer
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.launch
 
 @SuppressLint("ViewConstructor")
 class ServoView(
@@ -26,16 +23,15 @@ class ServoView(
     experimentalMode: Boolean,
     initialUri: String?,
     internal val navigator: ServoNavigator,
-    private val scope: CoroutineScope,
-) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
-    internal val glDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    scope: CoroutineScope,
+) : SurfaceView(context), Choreographer.FrameCallback {
     internal val servo =
         Servo(
             servoArgs,
             initialUri,
             servoLog,
             experimentalMode,
-            this,
+            scope,
             client,
             context,
             navigator,
@@ -47,14 +43,6 @@ class ServoView(
         addTouchables(arrayListOf(this))
         val surfaceHolderCallback = SurfaceHolderCallback(servoView = this)
         holder.addCallback(surfaceHolderCallback)
-    }
-
-    override fun inGLThread(r: Runnable) {
-        scope.launch(glDispatcher) { r.run() }
-    }
-
-    override fun inUIThread(r: Runnable) {
-        scope.launch { r.run() }
     }
 
     override fun doFrame(frameTimeNanos: Long) {
@@ -92,7 +80,6 @@ class ServoView(
                 servoView.servo.addPlatformWindow(
                     size,
                     servoView.resources.displayMetrics.density,
-                    servoView,
                     surface,
                 )
             } else {
