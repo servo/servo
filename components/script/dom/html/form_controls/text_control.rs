@@ -111,6 +111,9 @@ pub(crate) trait TextControlElement {
             return;
         }
 
+        // See <https://github.com/servo/servo/issues/47753>:
+        // This behavior isn't specified, but all browsers seem to focus an input element
+        // when you perform a programmatic text selection in that element.
         self.as_element()
             .upcast::<Node>()
             .run_the_focusing_steps(cx, None, FocusTrigger::Other);
