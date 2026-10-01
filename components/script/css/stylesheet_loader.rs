@@ -45,7 +45,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmllinkelement::{HTMLLinkElement, RequestGenerationId};
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::window::CSSErrorReporter;
 use crate::event_loop::document_loader::LoadType;
 use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};

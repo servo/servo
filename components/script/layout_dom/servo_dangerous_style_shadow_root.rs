@@ -10,7 +10,7 @@ use style::dom::TShadowRoot;
 use style::stylist::CascadeData;
 
 use crate::dom::bindings::root::LayoutDom;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode};
 
 /// A wrapper around [`LayoutDom<_, ShadowRoot>`] to be used with `stylo` and `selectors`.

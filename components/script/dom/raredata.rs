@@ -21,7 +21,7 @@ use crate::dom::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::nodelist::NodeList;
 use crate::dom::range::Range;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::types::Element;
 use crate::dom::window::LayoutValue;
 

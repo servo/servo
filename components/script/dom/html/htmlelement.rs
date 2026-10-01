@@ -70,7 +70,7 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, MoveContext, Node, NodeTraits, UnbindContext, from_untrusted_node_address,
 };
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::event_loop::script_thread::ScriptThread;

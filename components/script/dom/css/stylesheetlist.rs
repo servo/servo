@@ -15,7 +15,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
 use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::element::Element;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]

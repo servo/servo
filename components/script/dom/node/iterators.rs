@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, UnrootedDom};
 use crate::dom::element::Element;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 
 /// Whether a tree traversal should pass shadow tree boundaries.
 #[derive(Clone, Copy, PartialEq)]

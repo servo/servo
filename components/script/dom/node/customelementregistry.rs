@@ -52,7 +52,7 @@ use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::promise::Promise;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 use crate::dom::{RootedPromise, TracedPromise};
 use crate::event_loop::script_thread::ScriptThread;

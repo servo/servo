@@ -180,7 +180,7 @@ use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToE
 use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::selection::Selection;
 use crate::dom::serviceworker::cachestorage::CacheStorage;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
