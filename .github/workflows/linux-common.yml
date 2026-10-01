@@ -114,39 +114,15 @@ jobs:
           large-packages: false
           swap-storage: false
       - name: Install LLVM and Clang
-        if: inputs.arch != 'riscv64'
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "20.1"
           directory: ${{ runner.temp }}/llvm
-      # install-llvm-action publishes no linux/riscv64 binaries. Ubuntu 24.04
-      # noble-updates ships clang 20.1.2 for riscv64, same major.minor as above.
-      - name: Install LLVM and Clang (riscv64)
-        if: inputs.arch == 'riscv64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-20 libclang-20-dev llvm-20
-          echo "LLVM_PATH=/usr/lib/llvm-20" >> "$GITHUB_ENV"
-          echo "/usr/lib/llvm-20/bin" >> "$GITHUB_PATH"
       - name: Set LIBCLANG_PATH env
         run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
       - name: Setup Python
-        if: ${{ runner.environment != 'self-hosted' && inputs.arch != 'riscv64' }}
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
-      # RISE runners are self-hosted, so the step above is skipped, and the
-      # image has no uv. actions/setup-python also has no riscv64 builds;
-      # the image already ships CPython 3.11 in the toolcache.
-      - name: Setup uv (riscv64)
-        if: inputs.arch == 'riscv64'
-        run: |
-          curl -LsSf https://astral.sh/uv/0.11.16/install.sh | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          py=$(find /opt/hostedtoolcache/Python -path '*/riscv64/bin/python3.11' | sort | tail -1)
-          if [[ -z "$py" ]]; then
-            echo "Python 3.11 for riscv64 not found in /opt/hostedtoolcache"
-            exit 1
-          fi
-          echo "UV_PYTHON=$py" >> "$GITHUB_ENV"
       - name: Change Mirror Priorities
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/apt-mirrors
@@ -156,27 +132,12 @@ jobs:
         with:
           tool: nextest@0.9.140
       - name: Bootstrap dependencies
-        if: ${{ runner.environment != 'self-hosted' || inputs.arch == 'riscv64' }}
+        if: ${{ runner.environment != 'self-hosted' }}
         timeout-minutes: 30
         run: |
           sudo apt update
           echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
-          packages=(tshark shellcheck)
-          if [[ "${{ inputs.arch }}" == "riscv64" ]]; then
-            # ./mach starts with `uv run`, which builds these sdists before
-            # bootstrap can install packages. None of them publish a riscv64 wheel:
-            # pillow needs libjpeg and zlib, cffi needs libffi.
-            packages+=(libjpeg-dev zlib1g-dev libffi-dev)
-          fi
-          sudo apt install -qy "${packages[@]}"
-          if [[ "${{ inputs.arch }}" == "riscv64" ]] && ! command -v rustc >/dev/null; then
-            # cryptography 46 is a Rust extension and is built by that same `uv run`.
-            channel=$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-              sh -s -- -y --default-toolchain "$channel" --profile minimal
-            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-            . "$HOME/.cargo/env"
-          fi
+          sudo apt install -qy tshark shellcheck
           ./mach bootstrap --yes --skip-lints --skip-nextest
 
       # Only enable `sccache` on forks. On the main repository we suffer from too much cache-trashing,
@@ -185,13 +146,11 @@ jobs:
       # use-case of running `./mach try linux-wpt`.
       # `sccache` can be turned off by adding a repository-level variable SCCACHE_GHA_ENABLED and
       # setting the value to `false`. See <https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#creating-configuration-variables-for-a-repository>.
-      # sccache-action has no riscv64 asset. v0.18.0 builds the URL
-      # sccache-v0.18.0-<arch>-unknown-linux-musl.tar.gz and rejects this arch.
       - name: Install sccache
-        if: ${{ inputs.arch != 'riscv64' && github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
+        if: ${{ github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
         uses: mozilla-actions/sccache-action@v0.0.11
       - name: Enable sccache
-        if: ${{ inputs.arch != 'riscv64' && github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
+        if: ${{ github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
         run: |
           {
             # Set / Increment SCCACHE_GHA_VERSION as a repository level variable in your fork
@@ -280,18 +239,10 @@ jobs:
           large-packages: false
           swap-storage: false
       - name: Install LLVM and Clang
-        if: inputs.arch != 'riscv64'
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "20.1"
           directory: ${{ runner.temp }}/llvm
-      - name: Install LLVM and Clang (riscv64)
-        if: inputs.arch == 'riscv64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-20 libclang-20-dev llvm-20
-          echo "LLVM_PATH=/usr/lib/llvm-20" >> "$GITHUB_ENV"
-          echo "/usr/lib/llvm-20/bin" >> "$GITHUB_PATH"
       - name: Set LIBCLANG_PATH env
         run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
       - name: Setup Python
@@ -329,18 +280,10 @@ jobs:
           large-packages: false
           swap-storage: false
       - name: Install LLVM and Clang
-        if: inputs.arch != 'riscv64'
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "20.1"
           directory: ${{ runner.temp }}/llvm
-      - name: Install LLVM and Clang (riscv64)
-        if: inputs.arch == 'riscv64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-20 libclang-20-dev llvm-20
-          echo "LLVM_PATH=/usr/lib/llvm-20" >> "$GITHUB_ENV"
-          echo "/usr/lib/llvm-20/bin" >> "$GITHUB_PATH"
       - name: Set LIBCLANG_PATH env
         run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
       - name: Setup Python
