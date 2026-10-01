@@ -348,17 +348,18 @@ impl OneshotTimers {
 
         // select timers to run to prevent firing timers
         // that were installed during fire of another timer
-        let mut timers_to_run = Vec::new();
-
-        loop {
+        let timers_to_run = {
             let mut timers = self.timers.borrow_mut();
+            let mut timers_to_run = Vec::with_capacity(timers.len());
+            loop {
+                if timers.is_empty() || timers.back().unwrap().scheduled_for > base_time {
+                    break;
+                }
 
-            if timers.is_empty() || timers.back().unwrap().scheduled_for > base_time {
-                break;
+                timers_to_run.push(timers.pop_back().unwrap());
             }
-
-            timers_to_run.push(timers.pop_back().unwrap());
-        }
+            timers_to_run
+        };
 
         for timer in timers_to_run {
             // Since timers can be coalesced together inside a task,
