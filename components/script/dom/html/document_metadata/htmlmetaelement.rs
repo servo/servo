@@ -168,7 +168,7 @@ impl HTMLMetaElement {
             .upcast::<Node>()
             // Do not traverse shadow trees for optimization, which also implies:
             // > the element is in a document tree;
-            .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No)
+            .traverse_preorder_unrooted(cx.no_gc(), ShadowIncluding::No)
             .filter_map(UnrootedDom::downcast::<HTMLMetaElement>)
             .filter_map(|meta| {
                 let element = UnrootedDom::upcast::<Element>(meta);

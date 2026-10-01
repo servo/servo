@@ -387,7 +387,7 @@ impl Node {
             .union(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)
             .union(NodeFlags::SELECTION_INHIBITED);
 
-        for node in root.traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No) {
+        for node in root.traverse_preorder_unrooted(cx.no_gc(), ShadowIncluding::No) {
             node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
 
             // If the element has a shadow root attached to it then we traverse that as well,
@@ -395,7 +395,7 @@ impl Node {
             if let Some(shadow_root) = node.downcast::<Element>().and_then(Element::shadow_root) {
                 for node in shadow_root
                     .upcast::<Node>()
-                    .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes)
+                    .traverse_preorder_unrooted(cx.no_gc(), ShadowIncluding::Yes)
                 {
                     node.set_flag(RESET_FLAGS, false);
                 }
@@ -944,7 +944,7 @@ impl Node {
 
     /// Iterates over this node and all its descendants, in preorder.
     /// We take &NoGC to prevent GC which allows us to avoid rooting.
-    pub(crate) fn traverse_preorder_non_rooting<'b>(
+    pub(crate) fn traverse_preorder_unrooted<'b>(
         &self,
         no_gc: &'b NoGC,
         shadow_including: ShadowIncluding,
@@ -1521,7 +1521,7 @@ impl Node {
 
         // Step 16. If node has an inclusive descendant that is a slot:
         let has_slot_descendant = node
-            .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No)
+            .traverse_preorder_unrooted(cx.no_gc(), ShadowIncluding::No)
             .any(|element| element.is::<HTMLSlotElement>());
         if has_slot_descendant {
             // Step 16.1. Run assign slottables for a tree with oldParent’s root.
@@ -2111,7 +2111,7 @@ impl Node {
 
         // > To assign slottables for a tree, given a node root, run assign slottables for each slot
         // > slot in root’s inclusive descendants, in tree order.
-        for node in self.traverse_preorder_non_rooting(cx, ShadowIncluding::No) {
+        for node in self.traverse_preorder_unrooted(cx, ShadowIncluding::No) {
             if let Some(slot) = node.downcast::<HTMLSlotElement>() {
                 slot.assign_slottables(cx);
             }
@@ -3070,7 +3070,7 @@ impl Node {
 
         // Step 10. If node has an inclusive descendant that is a slot:
         let has_slot_descendant = node
-            .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No)
+            .traverse_preorder_unrooted(cx.no_gc(), ShadowIncluding::No)
             .any(|elem| elem.is::<HTMLSlotElement>());
         if has_slot_descendant {
             // Step 10.1 Run assign slottables for a tree with parent’s root.
