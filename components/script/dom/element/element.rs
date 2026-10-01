@@ -2597,6 +2597,8 @@ impl Element {
             for attr in self.attrs().borrow().iter() {
                 // Step 2.1: If attribute’s name contains an ASCII case-insensitive match
                 // for "<script" or "<style", return "Not Nonceable".
+
+                // to_ascii_lowercase is already optimized for `LocalName`.
                 let attr_name = attr.name().to_ascii_lowercase();
                 if attr_name.contains("<script") || attr_name.contains("<style") {
                     return false;
