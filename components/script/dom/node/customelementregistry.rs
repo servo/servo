@@ -302,7 +302,7 @@ impl CustomElementRegistry {
         // only include elements whose is value is equal to name.
         for candidate in document
             .upcast::<Node>()
-            .traverse_preorder_non_rooting(cx, ShadowIncluding::Yes)
+            .traverse_preorder_unrooted(cx, ShadowIncluding::Yes)
             .filter_map(UnrootedDom::downcast::<Element>)
         {
             // Note: If the registry is scoped, only include elements whose custom
@@ -709,7 +709,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     fn Upgrade(&self, cx: &JSContext, node: &Node) {
         // Step 1. For each shadow-including inclusive descendant candidate of
         // root, in shadow-including tree order:
-        for node in node.traverse_preorder_non_rooting(cx, ShadowIncluding::Yes) {
+        for node in node.traverse_preorder_unrooted(cx, ShadowIncluding::Yes) {
             // Step 1.1. If candidate is not an Element node, then continue.
             let Some(element) = node.downcast::<Element>() else {
                 continue;
