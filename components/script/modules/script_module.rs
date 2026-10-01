@@ -218,17 +218,15 @@ impl ModuleTree {
             line_number,
         );
 
-        let mut source = if let Some(unminified_js_dir) = global.unminified_js_dir() {
-            let mut module_source = ScriptSource {
-                source,
-                external,
-                url,
-            };
-            unminify_js(&mut module_source, unminified_js_dir);
-            transform_str_to_source_text(&module_source.source)
-        } else {
-            transform_str_to_source_text(&source)
+        let mut module_source = ScriptSource {
+            source,
+            external,
+            url,
         };
+        if let Some(unminified_js_dir) = global.unminified_js_dir() {
+            unminify_js(&mut module_source, unminified_js_dir);
+        }
+        let mut source = transform_str_to_source_text(&module_source.source);
 
         unsafe {
             // Step 7. Let result be ParseModule(source, settings's realm, script).
