@@ -573,7 +573,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
                 cors_mode = RequestMode::CorsMode;
                 // If contentType value is a CORS-safelisted request-header value for the Content-Type header,
                 // set corsMode to "no-cors".
-                if is_cors_safelisted_request_content_type(content_type.as_bytes().deref()) {
+                if is_cors_safelisted_request_content_type(
+                    content_type.as_bytes(cx.no_gc()).deref(),
+                ) {
                     cors_mode = RequestMode::NoCors;
                 }
                 // Append a Content-Type header with value contentType to headerList.

@@ -217,12 +217,12 @@ pub(crate) fn process_blob_parts(
                 // Step 2.1.2. If the endings member of options is "native",
                 // set s to the result of converting line endings to native of blobpart.
                 if endings == BlobBinding::EndingType::Native {
-                    let converted = convert_line_endings_to_native(&s.as_bytes());
+                    let converted = convert_line_endings_to_native(&s.as_bytes(no_gc));
                     // Step 2.1.3. Append the result of UTF-8 encoding s to bytes.
                     bytes.extend(converted);
                 } else {
                     // Step 2.1.3: Append the result of UTF-8 encoding s to bytes.
-                    bytes.extend_from_slice(&s.as_bytes());
+                    bytes.extend_from_slice(&s.as_bytes(no_gc));
                 }
             },
             // Step 2.2. If element is a BufferSource,

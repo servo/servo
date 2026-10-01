@@ -588,7 +588,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         // Step 4 (first half)
         let mut extracted_or_serialized = match data {
             Some(DocumentOrXMLHttpRequestBodyInit::Document(ref doc)) => {
-                let bytes = Vec::from(&*serialize_document(doc)?.as_bytes());
+                let bytes = Vec::from(&*serialize_document(doc)?.as_bytes(cx.no_gc()));
                 let content_type = if doc.is_html_document() {
                     "text/html;charset=UTF-8"
                 } else {

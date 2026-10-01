@@ -148,7 +148,7 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
         label: DOMString,
         options: &TextDecoderBinding::TextDecoderOptions,
     ) -> Fallible<DomRoot<TextDecoderStream>> {
-        let encoding = match Encoding::for_label_no_replacement(&label.as_bytes()) {
+        let encoding = match Encoding::for_label_no_replacement(&label.as_bytes(cx.no_gc())) {
             Some(enc) => enc,
             None => {
                 return Err(Error::Range(
