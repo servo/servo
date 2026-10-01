@@ -10,7 +10,6 @@ import android.content.Context
 import android.content.res.Resources
 import android.util.Log
 import android.util.Size
-import android.view.Choreographer
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import kotlinx.coroutines.CoroutineScope
@@ -61,7 +60,7 @@ class ServoView(
     private class SurfaceHolderCallback(
         private val resources: Resources,
         private val servo: Servo,
-    ) : SurfaceHolder.Callback, Choreographer.FrameCallback {
+    ) : SurfaceHolder.Callback {
         private var paused = false
 
         override fun surfaceCreated(holder: SurfaceHolder) {
@@ -81,8 +80,6 @@ class ServoView(
                 paused = false
                 servo.resumePainting(surface, size)
             }
-
-            Choreographer.getInstance().postFrameCallback(this)
         }
 
         override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
@@ -94,11 +91,6 @@ class ServoView(
             Log.d(LOGTAG, "GLThread::surfaceDestroyed")
             paused = true
             servo.pausePainting()
-        }
-
-        override fun doFrame(frameTimeNanos: Long) {
-            servo.onDoFrame()
-            Choreographer.getInstance().postFrameCallback(this)
         }
     }
 
