@@ -6,12 +6,14 @@ use std::sync::LazyLock;
 
 use app_units::Au;
 use cssparser::Parser;
+use js::context::NoGC;
 use regex::Regex;
 use rustc_hash::FxHashSet;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::inheritance::Castable;
-use script_bindings::root::DomRoot;
 use script_bindings::str::USVString;
+use smallvec::{SmallVec, smallvec};
 use style::attr::parse_unsigned_integer;
 use style::stylesheets::CssRuleType;
 use style::values::specified::source_size_list::SourceSizeList;
@@ -48,7 +50,7 @@ const SUPPORTED_IMAGE_MIME_TYPES: &[&str] = &[
 /// <https://html.spec.whatwg.org/multipage/#source-set>
 #[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SourceSet {
-    pub image_sources: Vec<ImageSource>,
+    pub image_sources: SmallVec<[ImageSource; 1]>,
     pub source_size: SourceSizeList,
 }
 
@@ -77,7 +79,7 @@ enum ParseState {
 impl SourceSet {
     pub fn new() -> SourceSet {
         SourceSet {
-            image_sources: Vec::new(),
+            image_sources: SmallVec::new(),
             source_size: SourceSizeList::empty(),
         }
     }
@@ -90,32 +92,32 @@ impl SourceSet {
         document: &Document,
     ) -> SourceSet {
         // Step 1. Let source set be an empty source set.
-        let mut source_set = SourceSet::new();
-
         // Step 2. If srcset is not an empty string, then set source set to the result of parsing
         // srcset.
-        if !srcset.is_empty() {
-            source_set.image_sources = parse_a_srcset_attribute(srcset);
-        }
+        let mut image_sources = if !srcset.is_empty() {
+            parse_a_srcset_attribute(srcset)
+        } else {
+            smallvec![]
+        };
 
         // Step 3. Set source set's source size to the result of parsing sizes with img.
-        if !sizes.is_empty() {
-            source_set.source_size = parse_a_sizes_attribute(sizes);
-        }
+        let source_size = if !sizes.is_empty() {
+            parse_a_sizes_attribute(sizes)
+        } else {
+            SourceSizeList::empty()
+        };
 
         // Step 4. If default source is not the empty string and source set does not contain an
         // image source with a pixel density descriptor value of 1, and no image source with a width
         // descriptor, append default source to source set.
-        let no_density_source_of_1 = source_set
-            .image_sources
+        let no_density_source_of_1 = image_sources
             .iter()
             .all(|source| source.descriptor.density != Some(1.));
-        let no_width_descriptor = source_set
-            .image_sources
+        let no_width_descriptor = image_sources
             .iter()
             .all(|source| source.descriptor.width.is_none());
         if !default_source.is_empty() && no_density_source_of_1 && no_width_descriptor {
-            source_set.image_sources.push(ImageSource {
+            image_sources.push(ImageSource {
                 url: String::from(default_source),
                 descriptor: Descriptor {
                     width: None,
@@ -123,7 +125,10 @@ impl SourceSet {
                 },
             })
         }
-
+        let mut source_set = SourceSet {
+            image_sources,
+            source_size,
+        };
         // Step 5. Normalize the source densities of source set.
         source_set.normalise_source_densities(document);
 
@@ -132,7 +137,7 @@ impl SourceSet {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-source-set>
-    pub fn update_source_set(&mut self, el: &Element) {
+    pub fn update_source_set(&mut self, no_gc: &NoGC, el: &Element) {
         // Step 1. Set el's source set to an empty source set.
         *self = SourceSet::new();
 
@@ -146,21 +151,20 @@ impl SourceSet {
             Some(p) => {
                 if p.is::<HTMLPictureElement>() {
                     p.upcast::<Node>()
-                        .children()
-                        .filter_map(DomRoot::downcast::<Element>)
-                        .map(|n| DomRoot::from_ref(&*n))
+                        .children_unrooted(no_gc)
+                        .filter_map(UnrootedDom::downcast::<Element>)
                         .collect()
                 } else {
-                    vec![DomRoot::from_ref(el)]
+                    vec![UnrootedDom::from_ref(el, no_gc)]
                 }
             },
-            None => vec![DomRoot::from_ref(el)],
+            None => vec![UnrootedDom::from_ref(el, no_gc)],
         };
 
         // Step 5. For each child in elements:
         for child in &elements {
             // Step 5.1. If child is el:
-            if *child == DomRoot::from_ref(el) {
+            if child == el {
                 let (default_source, srcset, sizes) = if el.is::<HTMLImageElement>() {
                     // Step 5.1.4: If el is an img element that has a srcset attribute, then
                     // set srcset to that attribute's value.
@@ -217,20 +221,16 @@ impl SourceSet {
                 continue;
             }
 
-            let mut source_set = SourceSet::new();
-
             // Step 5.3. If child does not have a srcset attribute, continue to the next child.
             // Step 5.4. Parse child's srcset attribute and let source set be the returned source
             // set.
-            match child.get_attribute_string_value(&local_name!("srcset")) {
-                Some(srcset) => {
-                    source_set.image_sources = parse_a_srcset_attribute(&srcset);
-                },
+            let image_sources = match child.get_attribute_string_value(&local_name!("srcset")) {
+                Some(srcset) => parse_a_srcset_attribute(&srcset),
                 _ => continue,
-            }
+            };
 
             // Step 5.5. If source set has zero image sources, continue to the next child.
-            if source_set.image_sources.is_empty() {
+            if image_sources.is_empty() {
                 continue;
             }
 
@@ -244,9 +244,12 @@ impl SourceSet {
 
             // Step 5.7. Parse child's sizes attribute with img, and let source set's source size be
             // the returned value.
-            if let Some(sizes) = child.get_attribute_string_value(&local_name!("sizes")) {
-                source_set.source_size = parse_a_sizes_attribute(&sizes);
-            }
+            let source_size =
+                if let Some(sizes) = child.get_attribute_string_value(&local_name!("sizes")) {
+                    parse_a_sizes_attribute(&sizes)
+                } else {
+                    SourceSizeList::empty()
+                };
 
             // Step 5.8. If child has a type attribute, and its value is an unknown or unsupported
             // MIME type, continue to the next child.
@@ -268,6 +271,10 @@ impl SourceSet {
                 }
             }
 
+            let mut source_set = SourceSet {
+                image_sources,
+                source_size,
+            };
             // Step 5.10. Normalize the source densities of source set.
             source_set.normalise_source_densities(&el.owner_document());
 
@@ -311,9 +318,13 @@ impl SourceSet {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#select-an-image-source>
-    pub fn select_image_source(&mut self, element: &Element) -> Option<(USVString, f64)> {
+    pub fn select_image_source(
+        &mut self,
+        no_gc: &NoGC,
+        element: &Element,
+    ) -> Option<(USVString, f64)> {
         // Step 1. Update the source set for el.
-        self.update_source_set(element);
+        self.update_source_set(no_gc, element);
 
         // Step 2. If el's source set is empty, return null as the URL and undefined as the pixel
         // density.
@@ -429,13 +440,13 @@ fn is_valid_floating_point_number_string(s: &str) -> bool {
 
 /// Parse an `srcset` attribute:
 /// <https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute>.
-pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
+pub fn parse_a_srcset_attribute(input: &str) -> SmallVec<[ImageSource; 1]> {
     // > 1. Let input be the value passed to this algorithm.
     // > 2. Let position be a pointer into input, initially pointing at the start of the string.
     let mut current_index = 0;
 
     // > 3. Let candidates be an initially empty source set.
-    let mut candidates = vec![];
+    let mut candidates = smallvec![];
     while current_index < input.len() {
         let remaining_string = &input[current_index..];
 
