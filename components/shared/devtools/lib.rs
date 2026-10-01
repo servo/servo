@@ -238,6 +238,8 @@ pub enum DebuggerValue {
         class: String,
         own_property_length: Option<u32>,
         preview: Option<Box<ObjectPreview>>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        prototype: Option<Box<DebuggerValue>>,
     },
 }
 
