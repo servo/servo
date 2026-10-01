@@ -1847,7 +1847,7 @@ impl Element {
 
     /// Element branch of <https://dom.spec.whatwg.org/#locate-a-namespace>
     pub(crate) fn locate_namespace(&self, prefix: Option<DOMString>) -> Namespace {
-        let namespace_prefix = prefix.clone().map(|s| Prefix::from(&*s.str()));
+        let namespace_prefix = prefix.as_ref().map(|s| Prefix::from(&*s.str()));
 
         // Step 1. If prefix is "xml", then return the XML namespace.
         if namespace_prefix == Some(namespace_prefix!("xml")) {
