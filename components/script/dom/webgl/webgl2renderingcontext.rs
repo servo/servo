@@ -59,7 +59,9 @@ use crate::dom::webgl::validations::tex_image_3d::{
 };
 use crate::dom::webgl::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webgl::webglbuffer::WebGLBuffer;
-use crate::dom::webgl::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
+use crate::dom::webgl::webglframebuffer::{
+    CompleteForRendering, WebGLFramebuffer, WebGLFramebufferAttachmentRoot,
+};
 use crate::dom::webgl::webglprogram::WebGLProgram;
 use crate::dom::webgl::webglquery::WebGLQuery;
 use crate::dom::webgl::webglrenderbuffer::WebGLRenderbuffer;
@@ -3681,6 +3683,22 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         let src_fb = self.base.get_read_framebuffer_slot().get();
         let dst_fb = self.base.get_draw_framebuffer_slot().get();
+
+        if src_fb
+            .as_ref()
+            .is_some_and(|fb| fb.check_status() != constants::FRAMEBUFFER_COMPLETE)
+        {
+            return self.base.webgl_error(InvalidFramebufferOperation);
+        }
+        // Both framebuffers' uninitialized attachments must be cleared before the blit.
+        if let Some(fb) = &dst_fb &&
+            let CompleteForRendering::Incomplete = fb.check_status_for_rendering()
+        {
+            return self.base.webgl_error(InvalidFramebufferOperation);
+        }
+        if let Some(fb) = &src_fb {
+            fb.initialize_for_reading(dst_fb.as_deref());
+        }
 
         let get_default_formats = || -> WebGLResult<(Option<u32>, Option<u32>, Option<u32>)> {
             // All attempts to blit to an antialiased back buffer should fail.
