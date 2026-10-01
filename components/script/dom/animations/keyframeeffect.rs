@@ -188,13 +188,12 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
                 let mut value_string = String::new();
                 let is_single_value_value_to_css = {
                     let mut layout = window.layout_mut();
-                    let result = property_value_pair.block.single_value_to_css(
+                    property_value_pair.block.single_value_to_css(
                         &property_value_pair.property_id,
                         &mut value_string,
                         None,
                         layout.stylist_mut(),
-                    );
-                    result
+                    )
                 };
                 if is_single_value_value_to_css.is_err() {
                     continue;
