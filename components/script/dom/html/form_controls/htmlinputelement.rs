@@ -64,7 +64,6 @@ use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, SubmittedFrom,
 };
-use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
@@ -72,7 +71,7 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::text_input::EmbedderClipboardProvider;
-use crate::dom::types::{FocusEvent, MouseEvent};
+use crate::dom::types::FocusEvent;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::realms::enter_auto_realm;
@@ -2358,31 +2357,6 @@ impl VirtualMethods for HTMLInputElement {
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);
-        }
-    }
-
-    fn handle_mousedown_event(
-        &self,
-        cx: &mut JSContext,
-        mouse_event: &MouseEvent,
-        hit_test_result: &HitTestResult,
-    ) {
-        // Only respond to mouse events if we are displayed as text input or a password. If the
-        // placeholder is displayed, also don't do any interactive mouse event handling.
-        if !self.input_type().is_textual_or_password() || self.text_input.borrow().is_empty() {
-            if let Some(super_type) = self.super_type() {
-                super_type.handle_mousedown_event(cx, mouse_event, hit_test_result);
-            }
-            return;
-        }
-
-        if self.text_input.borrow_mut().handle_mousedown_event(
-            self.upcast(),
-            mouse_event,
-            hit_test_result,
-        ) {
-            self.maybe_update_shared_selection();
-            mouse_event.upcast::<Event>().mark_as_handled();
         }
     }
 

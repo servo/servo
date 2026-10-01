@@ -71,7 +71,6 @@ use crate::dom::types::{
     CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLElement,
     HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
 };
-use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::drag::drag_gesture::DragGesture;
 use crate::realms::enter_auto_realm;
@@ -1072,7 +1071,8 @@ impl DocumentEventHandler {
                         .GetTarget()
                         .and_then(DomRoot::downcast::<Node>)
                 {
-                    vtable_for(&node).handle_mousedown_event(cx, &mouse_event, &hit_test_result);
+                    let editing_context = document.editing_context(cx, &node);
+                    editing_context.handle_mousedown_event(cx, &mouse_event, &hit_test_result);
                 }
 
                 // Step 8. If result is true and target is a focusable area
