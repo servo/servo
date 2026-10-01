@@ -57,6 +57,7 @@ use style::properties::{
 use style::rule_tree::{CascadeLevel, CascadeOrigin};
 use style::selector_parser::{RestyleDamage, SelectorParser, Snapshot};
 use style::shared_lock::Locked;
+use style::str::string_as_ascii_lowercase;
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, UrlExtraData};
 use style::values::computed::{Overflow, UserSelect};
@@ -2602,7 +2603,8 @@ impl Element {
                 }
                 // Step 2.2: If attribute’s value contains an ASCII case-insensitive match
                 // for "<script" or "<style", return "Not Nonceable".
-                let attr_value = attr.value().to_ascii_lowercase();
+                let attr_value = attr.value();
+                let attr_value = string_as_ascii_lowercase(&attr_value);
                 if attr_value.contains("<script") || attr_value.contains("<style") {
                     return false;
                 }
