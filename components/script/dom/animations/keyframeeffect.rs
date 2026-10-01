@@ -139,8 +139,7 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
         cx: &mut JSContext,
         result: &mut RootedVec<'_, Box<Heap<*mut JSObject>>>,
     ) -> Fallible<()> {
-        let mut layout = self.upcast::<AnimationEffect>().window().layout_mut();
-        let stylist = layout.stylist_mut();
+        let window = self.upcast::<AnimationEffect>().window();
 
         // Step 1. Let result be an empty sequence of objects.
         debug_assert!(result.is_empty());
@@ -187,16 +186,16 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
                 // Step 3.3.2 Let IDL value be the result of serializing the property value of declaration
                 // by passing declaration to the algorithm to serialize a CSS value [CSSOM].
                 let mut value_string = String::new();
-                if property_value_pair
-                    .block
-                    .single_value_to_css(
+                let is_single_value_value_to_css = {
+                    let mut layout = window.layout_mut();
+                    property_value_pair.block.single_value_to_css(
                         &property_value_pair.property_id,
                         &mut value_string,
                         None,
-                        stylist,
+                        layout.stylist_mut(),
                     )
-                    .is_err()
-                {
+                };
+                if is_single_value_value_to_css.is_err() {
                     continue;
                 }
 
