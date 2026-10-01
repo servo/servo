@@ -173,7 +173,6 @@ impl WebGLRenderbuffer {
 
     pub(crate) fn storage(
         &self,
-        api_type: GlType,
         sample_count: i32,
         internal_format: u32,
         width: i32,
@@ -184,82 +183,10 @@ impl WebGLRenderbuffer {
         };
 
         let webgl_version = context.webgl_version();
-        let is_gles = api_type == GlType::Gles;
 
         // Validate the internal_format, and save it for completeness
         // validation.
-        let actual_format = match internal_format {
-            constants::RGBA4 | constants::DEPTH_COMPONENT16 | constants::STENCIL_INDEX8 => {
-                internal_format
-            },
-            constants::R8 |
-            constants::R8UI |
-            constants::R8I |
-            constants::R16UI |
-            constants::R16I |
-            constants::R32UI |
-            constants::R32I |
-            constants::RG8 |
-            constants::RG8UI |
-            constants::RG8I |
-            constants::RG16UI |
-            constants::RG16I |
-            constants::RG32UI |
-            constants::RG32I |
-            constants::RGB8 |
-            constants::RGBA8 |
-            constants::SRGB8_ALPHA8 |
-            constants::RGB10_A2 |
-            constants::RGBA8UI |
-            constants::RGBA8I |
-            constants::RGB10_A2UI |
-            constants::RGBA16UI |
-            constants::RGBA16I |
-            constants::RGBA32I |
-            constants::RGBA32UI |
-            constants::DEPTH_COMPONENT24 |
-            constants::DEPTH_COMPONENT32F |
-            constants::DEPTH24_STENCIL8 |
-            constants::DEPTH32F_STENCIL8 => match webgl_version {
-                WebGLVersion::WebGL1 => return Err(WebGLError::InvalidEnum),
-                _ => internal_format,
-            },
-            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.8
-            constants::DEPTH_STENCIL => constants::DEPTH24_STENCIL8,
-            constants::RGB5_A1 => {
-                // 16-bit RGBA formats are not supported on desktop GL.
-                if is_gles {
-                    constants::RGB5_A1
-                } else {
-                    constants::RGBA8
-                }
-            },
-            constants::RGB565 => {
-                // RGB565 is not supported on desktop GL.
-                if is_gles {
-                    constants::RGB565
-                } else {
-                    constants::RGB8
-                }
-            },
-            EXTColorBufferHalfFloatConstants::RGBA16F_EXT |
-            EXTColorBufferHalfFloatConstants::RGB16F_EXT => {
-                if !context
-                    .extension_manager()
-                    .is_half_float_buffer_renderable()
-                {
-                    return Err(WebGLError::InvalidEnum);
-                }
-                internal_format
-            },
-            WEBGLColorBufferFloatConstants::RGBA32F_EXT => {
-                if !context.extension_manager().is_float_buffer_renderable() {
-                    return Err(WebGLError::InvalidEnum);
-                }
-                internal_format
-            },
-            _ => return Err(WebGLError::InvalidEnum),
-        };
+        let actual_format = renderbuffer_format(&context, internal_format)?;
 
         if webgl_version != WebGLVersion::WebGL1 {
             let (sender, receiver) = webgl_channel().unwrap();
@@ -311,4 +238,86 @@ impl WebGLRenderbuffer {
     pub(crate) fn detach_from_framebuffer(&self) {
         self.attached_framebuffer.set(None);
     }
+}
+
+/// The format GL allocates for a renderbuffer of `internal_format`, or `InvalidEnum` if
+/// `context` cannot render to that format.
+pub(crate) fn renderbuffer_format(
+    context: &WebGLRenderingContext,
+    internal_format: u32,
+) -> WebGLResult<u32> {
+    let webgl_version = context.webgl_version();
+    let is_gles = context.api_type() == GlType::Gles;
+    Ok(match internal_format {
+        constants::RGBA4 | constants::DEPTH_COMPONENT16 | constants::STENCIL_INDEX8 => {
+            internal_format
+        },
+        constants::R8 |
+        constants::R8UI |
+        constants::R8I |
+        constants::R16UI |
+        constants::R16I |
+        constants::R32UI |
+        constants::R32I |
+        constants::RG8 |
+        constants::RG8UI |
+        constants::RG8I |
+        constants::RG16UI |
+        constants::RG16I |
+        constants::RG32UI |
+        constants::RG32I |
+        constants::RGB8 |
+        constants::RGBA8 |
+        constants::SRGB8_ALPHA8 |
+        constants::RGB10_A2 |
+        constants::RGBA8UI |
+        constants::RGBA8I |
+        constants::RGB10_A2UI |
+        constants::RGBA16UI |
+        constants::RGBA16I |
+        constants::RGBA32I |
+        constants::RGBA32UI |
+        constants::DEPTH_COMPONENT24 |
+        constants::DEPTH_COMPONENT32F |
+        constants::DEPTH24_STENCIL8 |
+        constants::DEPTH32F_STENCIL8 => match webgl_version {
+            WebGLVersion::WebGL1 => return Err(WebGLError::InvalidEnum),
+            _ => internal_format,
+        },
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.8
+        constants::DEPTH_STENCIL => constants::DEPTH24_STENCIL8,
+        constants::RGB5_A1 => {
+            // 16-bit RGBA formats are not supported on desktop GL.
+            if is_gles {
+                constants::RGB5_A1
+            } else {
+                constants::RGBA8
+            }
+        },
+        constants::RGB565 => {
+            // RGB565 is not supported on desktop GL.
+            if is_gles {
+                constants::RGB565
+            } else {
+                constants::RGB8
+            }
+        },
+        EXTColorBufferHalfFloatConstants::RGBA16F_EXT |
+        EXTColorBufferHalfFloatConstants::RGB16F_EXT => {
+            if !context
+                .extension_manager()
+                .is_half_float_buffer_renderable()
+            {
+                return Err(WebGLError::InvalidEnum);
+            }
+            internal_format
+        },
+        WEBGLColorBufferFloatConstants::RGBA32F_EXT => {
+            if !context.extension_manager().is_float_buffer_renderable() {
+                return Err(WebGLError::InvalidEnum);
+            }
+            internal_format
+        },
+        _ => return Err(WebGLError::InvalidEnum),
+    })
 }
