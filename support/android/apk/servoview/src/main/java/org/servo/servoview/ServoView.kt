@@ -25,7 +25,7 @@ class ServoView(
     initialUri: String?,
     internal val navigator: ServoNavigator,
     scope: CoroutineScope,
-) : SurfaceView(context), Choreographer.FrameCallback {
+) : SurfaceView(context) {
     internal val servo =
         Servo(
             servoArgs,
@@ -42,13 +42,8 @@ class ServoView(
         isFocusable = true
         isFocusableInTouchMode = true
         addTouchables(arrayListOf(this))
-        val surfaceHolderCallback = SurfaceHolderCallback(resources, servo, this)
+        val surfaceHolderCallback = SurfaceHolderCallback(resources, servo)
         holder.addCallback(surfaceHolderCallback)
-    }
-
-    override fun doFrame(frameTimeNanos: Long) {
-        servo.onDoFrame()
-        Choreographer.getInstance().postFrameCallback(this)
     }
 
     fun stop() {
@@ -70,8 +65,7 @@ class ServoView(
     private class SurfaceHolderCallback(
         private val resources: Resources,
         private val servo: Servo,
-        private val frameCallback: Choreographer.FrameCallback,
-    ) : SurfaceHolder.Callback {
+    ) : SurfaceHolder.Callback, Choreographer.FrameCallback {
         private var paused = false
 
         override fun surfaceCreated(holder: SurfaceHolder) {
@@ -92,7 +86,7 @@ class ServoView(
                 servo.resumePainting(surface, size)
             }
 
-            Choreographer.getInstance().postFrameCallback(frameCallback)
+            Choreographer.getInstance().postFrameCallback(this)
         }
 
         override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
@@ -104,6 +98,11 @@ class ServoView(
             Log.d(LOGTAG, "GLThread::surfaceDestroyed")
             paused = true
             servo.pausePainting()
+        }
+
+        override fun doFrame(frameTimeNanos: Long) {
+            servo.onDoFrame()
+            Choreographer.getInstance().postFrameCallback(this)
         }
     }
 
