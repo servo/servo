@@ -80,17 +80,15 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         line_number: u32,
     ) -> ClassicScript {
-        let mut source = if let Some(unminified_js_dir) = self.unminified_js_dir() {
-            let mut script_source = ScriptSource {
-                source,
-                external: options.contains(ScriptOptions::External),
-                url: &url,
-            };
-            unminify_js(&mut script_source, unminified_js_dir);
-            transform_str_to_source_text(&script_source.source)
-        } else {
-            transform_str_to_source_text(&source)
+        let mut script_source = ScriptSource {
+            source,
+            external: options.contains(ScriptOptions::External),
+            url: &url,
         };
+        if let Some(unminified_js_dir) = self.unminified_js_dir() {
+            unminify_js(&mut script_source, unminified_js_dir);
+        }
+        let mut source = transform_str_to_source_text(&script_source.source);
 
         // TODO Step 1. If mutedErrors is true, then set baseURL to about:blank.
 
