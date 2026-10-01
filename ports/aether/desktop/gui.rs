@@ -100,6 +100,15 @@ pub struct Gui {
     /// Hamburger menu opened from the toolbar.
     app_menu: AppMenu,
 
+    /// Whether the docked developer tools panel is open beside the page.
+    devtools_open: bool,
+
+    /// Screen rect of the docked developer tools panel, in device-independent pixels.
+    ///
+    /// Empty when the panel is closed. Pointer events inside this rect stay in egui
+    /// so the close button works and the page does not receive them.
+    devtools_rect: egui::Rect,
+
     /// AccessKit tree updates pending the next egui tick.
     /// This allows us to ensure that graft nodes are sent before the subtrees they graft.
     pending_accesskit_updates: Vec<accesskit::TreeUpdate>,
@@ -275,6 +284,8 @@ impl Gui {
             favicon_textures: Default::default(),
             toolbar_icons: Default::default(),
             app_menu: Default::default(),
+            devtools_open: false,
+            devtools_rect: egui::Rect::NOTHING,
             pending_accesskit_updates: vec![],
         }
     }
@@ -307,12 +318,16 @@ impl Gui {
         self.toolbar_height
     }
 
-    /// Return true iff the given position is over the egui toolbar or the open app menu.
+    /// Return true iff the given position is over the egui toolbar, the open app menu,
+    /// or the docked developer tools panel.
     pub(crate) fn is_in_egui_toolbar_rect(
         &self,
         position: Point2D<f32, DeviceIndependentPixel>,
     ) -> bool {
-        position.y < self.toolbar_height.get() || self.app_menu.contains_pointer(position)
+        position.y < self.toolbar_height.get() ||
+            self.app_menu.contains_pointer(position) ||
+            self.devtools_rect
+                .contains(egui::pos2(position.x, position.y))
     }
 
     pub(crate) fn is_app_menu_open(&self) -> bool {
@@ -414,6 +429,25 @@ impl Gui {
         };
         tab_frame.frame.fill = fill_color;
         tab_frame.end(ui);
+    }
+
+    /// Header of the docked developer tools panel. Returns true when the close button is clicked.
+    fn devtools_header(ui: &mut egui::Ui, toolbar_icons: &mut ToolbarIconCache) -> bool {
+        ui.horizontal(|ui| {
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let close_button = toolbar_icons
+                    .button(ui, ToolbarIcon::Close)
+                    .on_hover_text("Close developer tools");
+                close_button.widget_info(|| {
+                    let mut info = WidgetInfo::new(WidgetType::Button);
+                    info.label = Some("Close developer tools".into());
+                    info
+                });
+                close_button.clicked()
+            })
+            .inner
+        })
+        .inner
     }
 
     /// Update the user interface, but do not paint the updated state.
@@ -695,6 +729,9 @@ impl Gui {
                                 TopLevelWebViewCreationRequest::WithUrl(processes_url()),
                             ));
                         },
+                        Some(AppMenuAction::DeveloperTools) => {
+                            self.devtools_open = true;
+                        },
                         Some(AppMenuAction::Exit) => {
                             state.schedule_exit();
                         },
@@ -704,6 +741,34 @@ impl Gui {
             } else {
                 app_menu.close_ui(ctx);
                 *toolbar_height = Length::default();
+            }
+
+            // Split the page area in half: the WebView keeps the left, developer tools the right.
+            // Shown after the menu action so the panel appears on the same frame it is opened.
+            if self.devtools_open {
+                let split_width = (ctx.available_rect_before_wrap().width() / 2.0).max(1.0);
+                let frame = egui::Frame::default()
+                    .fill(ctx.style().visuals.panel_fill)
+                    .inner_margin(4.0);
+                let mut close_devtools = false;
+                let panel = Panel::right("devtools")
+                    .frame(frame)
+                    .exact_size(split_width)
+                    .resizable(false)
+                    .show_inside(ctx, |ui| {
+                        close_devtools = Self::devtools_header(ui, toolbar_icons);
+                        // Fill the dock so the reserved rect is the full right half,
+                        // not just the header row.
+                        ui.allocate_space(ui.available_size());
+                    });
+                if close_devtools {
+                    self.devtools_open = false;
+                    self.devtools_rect = egui::Rect::NOTHING;
+                } else {
+                    self.devtools_rect = panel.response.rect;
+                }
+            } else {
+                self.devtools_rect = egui::Rect::NOTHING;
             }
 
             let scale =

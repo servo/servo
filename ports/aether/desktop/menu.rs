@@ -37,6 +37,7 @@ pub(crate) enum AppMenuAction {
     History,
     Settings,
     Processes,
+    DeveloperTools,
     Exit,
 }
 
@@ -189,6 +190,11 @@ impl AppMenu {
         if Self::back_title(ui, icons, "More tools") {
             self.page = AppMenuPage::Root;
             return None;
+        }
+        if let Some(action) =
+            Self::action_item(ui, "Developer Tools", AppMenuAction::DeveloperTools)
+        {
+            return Some(action);
         }
         if let Some(action) = Self::action_item(ui, "Processes", AppMenuAction::Processes) {
             return Some(action);
