@@ -4,90 +4,27 @@
 
 use std::cell::Cell;
 use std::num::{NonZero, NonZeroU16};
-use std::ptr::{self, NonNull};
+use std::ptr;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::conversions::{ToJSValConvertible, latin1_to_string};
-use js::jsapi::{JS_DeprecatedStringHasLatin1Chars, JSObject, JSType};
+use js::conversions::ToJSValConvertible;
+use js::jsapi::{JSObject, JSString};
 use js::jsval::UndefinedValue;
-use js::rust::wrappers2::{JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending, ToPrimitive};
-use js::rust::{
-    HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
-    MutableHandleValue as SafeMutableHandleValue, ToString,
-};
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::Uint8;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::str::js_string_to_code_units;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::TextEncoderStreamBinding::TextEncoderStreamMethods;
-use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{ConversionResult, DOMString};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::types::{GlobalScope, TransformStream, TransformStreamDefaultController};
-
-/// String converted from an input JS Value
-enum ConvertedInput<'a> {
-    String(String),
-    CodeUnits(&'a [u16]),
-}
-
-/// Converts a JS value to primitive type so that it can be used with
-/// `ToString`.
-///
-/// Set `rval` to `chunk` if `chunk` is a primitive JS value. Otherwise, convert
-/// `chunk` into a primitive JS value and then set `rval` to the converted
-/// primitive. This follows the `ToString` procedure with the exception that it
-/// does not convert the value to string.
-///
-/// See below for the `ToString` procedure in spec:
-/// <https://tc39.es/ecma262/multipage/abstract-operations.html#sec-tostring>
-#[expect(unsafe_code)]
-fn jsval_to_primitive(
-    cx: &mut JSContext,
-    global: &GlobalScope,
-    chunk: SafeHandleValue,
-    mut rval: SafeMutableHandleValue,
-) -> Fallible<()> {
-    // Step 1. If argument is a String, return argument.
-    // Step 2. If argument is a Symbol, throw a TypeError exception.
-    // Step 3. If argument is undefined, return "undefined".
-    // Step 4. If argument is null, return "null".
-    // Step 5. If argument is true, return "true".
-    // Step 6. If argument is false, return "false".
-    // Step 7. If argument is a Number, return Number::toString(argument, 10).
-    // Step 8. If argument is a BigInt, return BigInt::toString(argument, 10).
-    if chunk.is_primitive() {
-        rval.set(chunk.get());
-
-        return Ok(());
-    }
-
-    // Step 9. Assert: argument is an Object.
-    assert!(chunk.is_object());
-
-    // Step 10. Let primValue be ? ToPrimitive(argument, string).
-    rooted!(&in(cx) let obj = chunk.to_object());
-    let is_success = unsafe { ToPrimitive(cx, obj.handle(), JSType::JSTYPE_STRING, rval) };
-    log::debug!("ToPrimitive is_success={:?}", is_success);
-    if !is_success {
-        unsafe {
-            if !JS_IsExceptionPending(cx) {
-                throw_dom_exception(
-                    cx,
-                    global,
-                    Error::Type(c"Cannot convert JSObject to primitive".to_owned()),
-                );
-            }
-        }
-        return Err(Error::JSFailed);
-    }
-
-    Ok(())
-}
 
 /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -97,9 +34,9 @@ pub(crate) struct Encoder {
 }
 
 impl Encoder {
-    fn encode(&self, maybe_ill_formed: ConvertedInput<'_>) -> String {
+    fn encode(&self, maybe_ill_formed: ConversionResult) -> String {
         match maybe_ill_formed {
-            ConvertedInput::String(s) => {
+            ConversionResult::String(s) => {
                 // Rust String is already UTF-8 encoded and cannot contain
                 // surrogate
                 if !s.is_empty() && self.leading_surrogate.take().is_some() {
@@ -111,7 +48,7 @@ impl Encoder {
 
                 s
             },
-            ConvertedInput::CodeUnits(code_units) => self.encode_from_code_units(code_units),
+            ConversionResult::CodeUnits(code_units) => self.encode_from_code_units(&code_units.0),
         }
     }
 
@@ -205,7 +142,6 @@ fn code_point_type(value: u16) -> CodePointType {
 }
 
 /// <https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk>
-#[expect(unsafe_code)]
 pub(crate) fn encode_and_enqueue_a_chunk(
     cx: &mut JSContext,
     global: &GlobalScope,
@@ -214,37 +150,13 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     controller: &TransformStreamDefaultController,
 ) -> Fallible<()> {
     // Step 1. Let input be the result of converting chunk to a DOMString.
+    // Note: using not a DOMString but ConversionResult,
+    // because a DOMString assumes utf-8.
+    rooted!(&in(cx) let mut target = ptr::null_mut::<JSString>());
+    let input = js_string_to_code_units(cx, chunk, target.handle_mut())?;
+
     // Step 2. Convert input to an I/O queue of code units.
-    rooted!(&in(cx) let mut rval = UndefinedValue());
-    jsval_to_primitive(cx, global, chunk, rval.handle_mut())?;
-
-    assert!(!rval.is_object());
-    rooted!(&in(cx) let jsstr = unsafe { ToString(cx, rval.handle()) });
-    if jsstr.is_null() {
-        unsafe {
-            if !JS_IsExceptionPending(cx) {
-                throw_dom_exception(
-                    cx,
-                    global,
-                    Error::Type(c"Cannot convert JS primitive to string".to_owned()),
-                );
-            }
-        }
-
-        return Err(Error::JSFailed);
-    }
-
-    let input = unsafe {
-        if JS_DeprecatedStringHasLatin1Chars(*jsstr) {
-            let s = NonNull::new(*jsstr).expect("jsstr cannot be null");
-            ConvertedInput::String(latin1_to_string(cx, s))
-        } else {
-            let mut len = 0;
-            let data = JS_GetTwoByteStringCharsAndLength(cx, *jsstr, &mut len);
-            let maybe_ill_formed_code_units = std::slice::from_raw_parts(data, len);
-            ConvertedInput::CodeUnits(maybe_ill_formed_code_units)
-        }
-    };
+    // Note: passing input as a slice.
 
     // Step 3. Let output be the I/O queue of bytes « end-of-queue ».
     // Step 4. While true:
