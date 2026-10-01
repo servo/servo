@@ -10,9 +10,26 @@
 import os
 import shutil
 import subprocess
-from typing import Optional
+from typing import Optional, Tuple
 
 from .build_target import BuildTarget, OpenHarmonyTarget
+
+
+def clap_tool_already_installed(name: str, minimum_version: Optional[Tuple[int, int, int]] = None) -> bool:
+    """
+    Returns true if the tool `name` is already installed and in PATH.
+    If `minimum_version` is specified, additionally checks if the version tuple is newer than the minimum version.
+    This assumes the CLI uses clap, although other argument parsers that output `name X.Y.Z` for `name --version`
+    will also work.
+    """
+    if not shutil.which(name):
+        return False
+    result = subprocess.run([name, "--version"], encoding="utf-8", capture_output=True)
+    if minimum_version is not None:
+        (major, minor, micro) = result.stdout.strip().split(" ")[1].split(".", 2)
+        return (int(major), int(minor), int(micro)) >= minimum_version
+    else:
+        return True
 
 
 class Base:
@@ -69,7 +86,8 @@ class Base:
             installed_something |= self.install_crown(force)
         # Optional and non-default, since most people won't be compiling for OpenHarmony
         if install_ohos:
-            installed_something |= self.install_ohos(force)
+            installed_something |= self.install_cargo_ohos(force)
+            installed_something |= self.install_ohos_test_runner(force)
 
         if not installed_something:
             print("Dependencies were already installed!")
@@ -99,7 +117,7 @@ class Base:
 
         return True
 
-    def install_ohos(self, force: bool) -> bool:
+    def install_cargo_ohos(self, force: bool) -> bool:
         (is_installed_and_compatible, _reason) = OpenHarmonyTarget.is_cargo_ohos_compatible()
         if is_installed_and_compatible and not force:
             return False
@@ -109,16 +127,17 @@ class Base:
             raise EnvironmentError("Installation of cargo-ohos failed.")
         return True
 
-    def install_cargo_deny(self, force: bool) -> bool:
-        def cargo_deny_installed() -> bool:
-            if force or not shutil.which("cargo-deny"):
-                return False
-            # Tidy needs at least version 0.18.6 installed.
-            result = subprocess.run(["cargo-deny", "--version"], encoding="utf-8", capture_output=True)
-            (major, minor, micro) = result.stdout.strip().split(" ")[1].split(".", 2)
-            return (int(major), int(minor), int(micro)) >= (0, 18, 6)
+    def install_ohos_test_runner(self, force: bool) -> bool:
+        if not force and clap_tool_already_installed("ohos-test-runner", (0, 1, 6)):
+            return False
+        print(" * Installing ohos-test-runner...")
+        if subprocess.call(["cargo", "install", "ohos-test-runner", "--locked"]) != 0:
+            raise EnvironmentError("Installation of ohos-test-runner failed.")
+        return True
 
-        if cargo_deny_installed():
+    def install_cargo_deny(self, force: bool) -> bool:
+        # Tidy needs at least version 0.18.6 installed.
+        if not force and clap_tool_already_installed("cargo-deny", (0, 18, 6)):
             return False
 
         print(" * Installing cargo-deny...")
