@@ -474,8 +474,7 @@ struct CmdArgs {
     #[bpaf(long)]
     log_to_file: bool,
 
-    #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
-    /// Should we output memory stats after a page load.
+    /// Should we output memory stats after a page load. Only useful if tracing is enabled
     #[bpaf(long)]
     memory_output: bool,
 
@@ -713,6 +712,11 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
             default_window_size.min(screen_size_override)
         });
 
+    #[cfg(not(all(feature = "tracing", feature = "tracing-hitrace")))]
+    if cmd_args.memory_output {
+        log::error!("Memory reporting only works with tracing and tracing-hitrace enabled.");
+    }
+
     let servoshell_preferences = ServoShellPreferences {
         url: Some(cmd_args.url),
         no_native_titlebar: cmd_args.no_native_titlebar,
@@ -735,7 +739,6 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         }),
         #[cfg(target_env = "ohos")]
         log_to_file: cmd_args.log_to_file,
-        #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
         memory_output: cmd_args.memory_output,
         ..Default::default()
     };
