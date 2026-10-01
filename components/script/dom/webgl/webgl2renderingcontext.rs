@@ -62,7 +62,7 @@ use crate::dom::webgl::webglbuffer::WebGLBuffer;
 use crate::dom::webgl::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
 use crate::dom::webgl::webglprogram::WebGLProgram;
 use crate::dom::webgl::webglquery::WebGLQuery;
-use crate::dom::webgl::webglrenderbuffer::WebGLRenderbuffer;
+use crate::dom::webgl::webglrenderbuffer::{WebGLRenderbuffer, renderbuffer_format};
 use crate::dom::webgl::webglrenderingcontext::{
     Operation, TexPixels, TexSource, VertexAttrib, WebGLRenderingContext, uniform_get,
     uniform_typed,
@@ -4929,6 +4929,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             self.base.webgl_error(InvalidEnum);
             return retval.set(NullValue());
         }
+
+        let internal_format = handle_potential_webgl_error!(
+            self.base,
+            renderbuffer_format(&self.base, internal_format),
+            return retval.set(NullValue())
+        );
 
         match handle_potential_webgl_error!(
             self.base,
