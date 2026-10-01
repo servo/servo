@@ -212,12 +212,6 @@ impl Handler {
             // computing the tick duration with argument tick actions.
             let tick_duration = compute_tick_duration(tick_actions);
 
-            // FIXME: This is out of spec, but the test `perform_actions/invalid.py` requires
-            // that duration more than `MAXIMUM_SAFE_INTEGER` is considered invalid.
-            if tick_duration > MAXIMUM_SAFE_INTEGER {
-                return Err(ErrorStatus::InvalidArgument);
-            }
-
             let tick_start = Instant::now();
 
             // Step 1.3. Try to dispatch tick actions
