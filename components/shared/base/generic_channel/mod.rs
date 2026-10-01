@@ -130,7 +130,7 @@ fn serialize_generic_sender_variants<T: Serialize, S: Serializer>(
                 ));
             } // We know everything is in one address-space, so we can "serialize" the sender by
             // sending a leaked Box pointer.
-            let sender_clone_addr = Box::leak(Box::new(sender.clone())) as *mut _ as usize;
+            let sender_clone_addr = Box::into_raw(Box::new(sender.clone())) as *mut _ as usize;
             s.serialize_newtype_variant("GenericSender", 1, "Crossbeam", &sender_clone_addr)
         },
     }
@@ -520,7 +520,8 @@ where
                     ));
                 } // We know everything is in one address-space, so we can "serialize" the receiver by
                 // sending a leaked Box pointer.
-                let receiver_clone_addr = Box::leak(Box::new(receiver.clone())) as *mut _ as usize;
+                let receiver_clone_addr =
+                    Box::into_raw(Box::new(receiver.clone())) as *mut _ as usize;
                 s.serialize_newtype_variant("GenericReceiver", 1, "Crossbeam", &receiver_clone_addr)
             },
         }
