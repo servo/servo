@@ -139,8 +139,6 @@ impl SourceSet {
     /// <https://html.spec.whatwg.org/multipage/#update-the-source-set>
     pub fn update_source_set(&mut self, no_gc: &NoGC, el: &Element) {
         // Step 1. Set el's source set to an empty source set.
-        *self = SourceSet::new();
-
         // Step 2. Let elements be « el ».
         // Step 3. If el is an img element whose parent node is a picture element, then replace the
         // contents of elements with el's parent node's child elements, retaining relative order.
