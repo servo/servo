@@ -24,7 +24,6 @@ from enum import Enum
 class Workflow(str, Enum):
     LINUX = "linux"
     LINUX_ARM = "linux-arm64"
-    LINUX_RISCV = "linux-riscv64"
     MACOS = "macos"
     MACOS_ARM = "macos-arm64"
     WINDOWS = "windows"
@@ -75,8 +74,6 @@ class JobConfig(object):
             self.name = "Linux"
         elif self.workflow is Workflow.LINUX_ARM:
             self.name = "Linux Arm64"
-        elif self.workflow is Workflow.LINUX_RISCV:
-            self.name = "Linux RiscV64"
         elif self.workflow is Workflow.MACOS:
             self.name = "MacOS"
         elif self.workflow is Workflow.MACOS_ARM:
@@ -113,9 +110,7 @@ class JobConfig(object):
 def handle_preset(s: str) -> Optional[JobConfig]:
     s = s.lower()
 
-    if any(word in s for word in ["linux-riscv", "linux-riscv64", "riscv64", "riscv"]):
-        return JobConfig("Linux RiscV64", Workflow.LINUX_RISCV)
-    elif any(word in s for word in ["linux-arm", "linux-arm64"]):
+    if any(word in s for word in ["linux-arm", "linux-arm64"]):
         return JobConfig("Linux Arm64", Workflow.LINUX_ARM)
     elif any(word in s for word in ["linux"]):
         return JobConfig("Linux", Workflow.LINUX)

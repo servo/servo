@@ -42,9 +42,6 @@ def host_triple() -> str:
         cpu_type = "arm"
     elif cpu_type in ["aarch64", "arm64"]:
         cpu_type = "aarch64"
-    elif cpu_type == "riscv64":
-        # Rust's host target is riscv64gc, not the bare riscv64 machine name.
-        cpu_type = "riscv64gc"
     else:
         cpu_type = "unknown"
     return f"{cpu_type}-{os_type}"

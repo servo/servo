@@ -995,7 +995,6 @@ class MachCommands(CommandBase):
 
           Platforms (combine with modifiers, e.g. linux-wpt):
             linux
-            linux-riscv/linux-riscv64
             mac/macos
             mac-arm/macos-arm64
             win/windows
