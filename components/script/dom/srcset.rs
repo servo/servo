@@ -363,38 +363,31 @@ impl SourceSet {
             }
         }
 
-        let mut max = (0f64, 0);
-        let img_sources = &mut vec![];
-        for (index, image_source) in self.image_sources.iter().enumerate() {
-            if repeat_indices.contains(&index) {
-                continue;
-            }
-            let den = image_source.descriptor.density.unwrap();
-            if max.0 < den {
-                max = (den, img_sources.len());
-            }
-            img_sources.push(image_source);
-        }
-
         // Step 2. In an implementation-defined manner, choose one image source from sourceSet. Let
         // selectedSource be this choice.
-        let mut best_candidate = max;
         let device_pixel_ratio = document
             .window()
             .viewport_details()
             .hidpi_scale_factor
             .get() as f64;
-        for (index, image_source) in img_sources.iter().enumerate() {
-            let current_den = image_source.descriptor.density.unwrap();
-            if current_den < best_candidate.0 && current_den >= device_pixel_ratio {
-                best_candidate = (current_den, index);
-            }
-        }
-        let selected_source = img_sources.remove(best_candidate.1).clone();
+
+        // Find the smallest density that is larger than device_pixel_ratio
+        let selected_source = self
+            .image_sources
+            .iter()
+            .filter(|image_source| image_source.descriptor.density.unwrap() >= device_pixel_ratio)
+            .min_by(|image_source1, image_source2| {
+                image_source1
+                    .descriptor
+                    .density
+                    .unwrap()
+                    .total_cmp(&image_source2.descriptor.density.unwrap())
+            })
+            .expect("Could not find src to select");
 
         // Step 3. Return selectedSource and its associated pixel density.
         Some((
-            USVString(selected_source.url),
+            USVString(selected_source.url.clone()),
             selected_source.descriptor.density.unwrap(),
         ))
     }
