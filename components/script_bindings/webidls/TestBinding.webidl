@@ -47,6 +47,7 @@ dictionary TestDictionary {
   DOMString? nonRequiredNullable2;
   SimpleCallback noCallbackImport;
   callbackWithOnlyOneOptionalArg noCallbackImport2;
+  Promise<undefined> promiseValue;
 };
 
 dictionary TestDictionaryWithTypedArray {

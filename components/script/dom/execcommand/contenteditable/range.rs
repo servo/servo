@@ -75,7 +75,7 @@ impl Range {
         }
 
         self.ancestor_for_effectively_contained()
-            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
+            .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
             .find(|child| {
                 child.is_formattable(no_gc) && self.is_effectively_contained_node(no_gc, child)
             })
@@ -110,7 +110,7 @@ impl Range {
         no_gc: &'a NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'a, Node>> {
         self.CommonAncestorContainer()
-            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
+            .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
             .filter(|node| self.contains(no_gc, node))
     }
 

@@ -13,13 +13,13 @@ use log::{debug, error, warn};
 use read_fonts::FileRef::{Collection, Font as OHOS_Font};
 use read_fonts::{FileRef, FontRef, TableProvider};
 use serde::{Deserialize, Serialize};
-use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
+use servo_base::text::UnicodeBlockMethod;
+use skrifa::{GlyphId, MetadataProvider};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
     FontStyle as StyleFontStyle, FontWeight as StyleFontWeight, FontWidth as StyleFontWidth,
 };
-use unicode_script::Script;
 
 use crate::platform::freetype::ohos::font_cache::{
     font_file_cached_on_disk, read_from_disk, serialize_and_write_to_disk_wrapper,
@@ -30,6 +30,11 @@ use crate::{
 };
 
 static FONT_LIST: LazyLock<FontList> = LazyLock::new(FontList::new);
+
+/// The length of [`UnicodeBlockSet`]'s array.
+/// Currently, there are 328 different unicode blocks supported by Servo (from `shared/base/unicode_block.rs`),
+/// so they can be represented by 64 * 6 = 384 bits.
+const UNICODE_BLOCK_SET_WORDS: usize = 6;
 
 /// When testing the ohos font code on linux, we can pass the fonts directory of the SDK
 /// via an environment variable.
@@ -42,6 +47,7 @@ static OHOS_FONTS_DIR: &str = "/system/fonts";
 
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 // HarmonyOS only comes in Condensed and Normal variants
+// NOTE: If you modify this, you need to update CACHE_REVISION under [`font_cache.rs`].
 enum FontWidth {
     Condensed,
     #[default]
@@ -57,7 +63,22 @@ impl From<FontWidth> for StyleFontWidth {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+// NOTE: If you modify this, you need to update CACHE_REVISION under [`font_cache.rs`].
+struct UnicodeBlockSet([u64; UNICODE_BLOCK_SET_WORDS]);
+
+impl UnicodeBlockSet {
+    fn insert(&mut self, index: usize) {
+        self.0[index / 64] |= 1u64 << (index % 64);
+    }
+
+    fn contains(&self, index: usize) -> bool {
+        (self.0[index / 64] & (1u64 << (index % 64))) != 0
+    }
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+// NOTE: If you modify this, you need to update CACHE_REVISION under [`font_cache.rs`].
 struct Font {
     // `LocalFontIdentifier` uses `Atom` for string interning and requires a String or str, so we
     // already require a String here, instead of using a PathBuf.
@@ -65,15 +86,18 @@ struct Font {
     weight: Option<i32>,
     style: Option<String>,
     width: FontWidth,
+    unicode_range: UnicodeBlockSet,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+// NOTE: If you modify this, you need to update CACHE_REVISION under [`font_cache.rs`].
 struct FontFamily {
     name: String,
     fonts: Vec<Font>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+// NOTE: If you modify this, you need to update CACHE_REVISION under [`font_cache.rs`].
 struct FontAlias {
     from: String,
     to: String,
@@ -81,6 +105,7 @@ struct FontAlias {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+// NOTE: If you modify this, you need to update CACHE_REVISION under [`font_cache.rs`].
 pub(super) struct FontList {
     families: Vec<FontFamily>,
     aliases: Vec<FontAlias>,
@@ -151,6 +176,31 @@ fn detect_hos_font_width(font: &FontRef) -> FontWidth {
         },
         Err(_) => FontWidth::Normal,
     }
+}
+
+/// Use the font's cmap table (<https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6cmap.html>)
+/// to obtain the range of unicode blocks the font supports, which will be used during coarse filtering by `fallback_font_families()`.
+///
+/// Although OS/2 table is more suitable for the task, it is found via testing that this table is not accurate in some HarmonyOS fonts
+/// (e.g. A HarmonyOS font's OS/2 table may claim that it supports CJK block, eventhough it doesn't).
+/// So cmap table is used instead as a form of optimization.
+fn detect_hos_font_unicode_range(font: &FontRef) -> UnicodeBlockSet {
+    // Conceptually, during initialization (if cache file doesn't exist or needs updating), Servo will traverse the font files
+    // one by one and check its cmap table, which lets us check all the codepoints that is available in a given font.
+    // From here, we map each codepoint to its respective unicode block and then mark an element of `bits`.
+    //
+    // `bits` represents the range of unicode block a font supports. For example, if the second LSB of `bits`' first
+    // word is set to 1, it means that at least one codepoint from `Latin1Supplement` block is supported by the font.
+    let mut bits = UnicodeBlockSet::default();
+    for (codepoint, glyph) in font.charmap().mappings() {
+        if glyph == GlyphId::NOTDEF {
+            continue;
+        }
+        if let Some(block) = char::from_u32(codepoint).and_then(|c| c.block()) {
+            bits.insert(block as usize);
+        }
+    }
+    bits
 }
 
 /// This function generates list of `FontFamily` based on font files with the extension `.otf`, `.ttc`, or `.otf`.
@@ -231,6 +281,7 @@ fn get_family_name_and_generate_font_struct(
     let style = detect_hos_font_style(font_ref, file_path_string_slice);
     let weight = detect_hos_font_weight_alias(font_ref);
     let width = detect_hos_font_width(font_ref);
+    let unicode_range = detect_hos_font_unicode_range(font_ref);
 
     // Get the family name via the name table. According to TrueType's reference manual (https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html),
     // the name table is a mandatory table. Therefore, if Fontations fails to read this table for whatever reason, return `None` to skip this font altogether.
@@ -251,6 +302,7 @@ fn get_family_name_and_generate_font_struct(
         weight,
         style,
         width,
+        unicode_range,
     };
     Some((family_name, font))
 }
@@ -429,7 +481,12 @@ where
     }
 }
 
-// Based on fonts present in OpenHarmony.
+/// Generate a list of candidate fonts and returns the list after sorting them: prioritize fonts whose family name contains `HarmonyOS` or `HMOS`.
+///
+/// The reason this is done is optimization: because the ordering returned by `fontations` (and therefore the generated FONT_LIST) is random,
+/// we want to prioritize `HarmonyOS` fonts during checks.
+///
+/// TODO: in the future, consider other factors such as language. And use multithreading to improve performance.
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = vec![];
 
@@ -438,83 +495,29 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
         families.push("HMOS Color Emoji Flags");
     }
 
-    if Script::from(options.character) == Script::Han {
-        families.push("HarmonyOS Sans SC");
-        families.push("HarmonyOS Sans TC");
+    match options.character.block() {
+        Some(unicode_block) => {
+            let index = unicode_block as usize;
+            for font_family in &FONT_LIST.families {
+                for font in &font_family.fonts {
+                    if font.unicode_range.contains(index) {
+                        families.push(&font_family.name);
+                        break;
+                    }
+                }
+            }
+        },
+        None => {
+            for font_family in &FONT_LIST.families {
+                families.push(&font_family.name);
+            }
+        },
     }
 
-    if let Some(block) = options.character.block() {
-        match block {
-            UnicodeBlock::Hebrew => {
-                families.push("Noto Sans Hebrew");
-            },
-
-            UnicodeBlock::Arabic => {
-                families.push("HarmonyOS Sans Naskh Arabic");
-            },
-
-            UnicodeBlock::Devanagari => {
-                families.push("Noto Sans Devanagari");
-            },
-
-            UnicodeBlock::Tamil => {
-                families.push("Noto Sans Tamil");
-            },
-
-            UnicodeBlock::Thai => {
-                families.push("Noto Sans Thai");
-            },
-
-            UnicodeBlock::Georgian | UnicodeBlock::GeorgianSupplement => {
-                families.push("Noto Sans Georgian");
-            },
-
-            UnicodeBlock::Ethiopic | UnicodeBlock::EthiopicSupplement => {
-                families.push("Noto Sans Ethiopic");
-            },
-            UnicodeBlock::HangulCompatibilityJamo |
-            UnicodeBlock::HangulJamo |
-            UnicodeBlock::HangulJamoExtendedA |
-            UnicodeBlock::HangulJamoExtendedB |
-            UnicodeBlock::HangulSyllables => {
-                families.push("Noto Sans CJK KR");
-                families.push("Noto Sans Mono CJK KR");
-                families.push("Noto Serif CJK KR");
-                families.push("Noto Sans KR");
-            },
-            UnicodeBlock::Hiragana |
-            UnicodeBlock::Katakana |
-            UnicodeBlock::KatakanaPhoneticExtensions => {
-                families.push("Noto Sans CJK JP");
-                families.push("Noto Sans Mono CJK JP");
-                families.push("Noto Serif CJK JP");
-                families.push("Noto Sans JP");
-            },
-            UnicodeBlock::HalfwidthandFullwidthForms => {
-                families.push("HarmonyOS Sans SC");
-                families.push("Noto Sans CJK SC");
-                families.push("Noto Sans Mono CJK SC");
-            },
-            // Note: CJKCompatibilityIdeographsSupplement & CJKRadicalsSupplement are not included because
-            // neither HarmonyOS Sans SC nor TC cover the entire range of these blocks.
-            // Whereas the CJKUnifiedIdeographs and its extensions are not included because they contain regular characters and
-            // have been covered in the previous if block, at least for Chinese characters.
-            UnicodeBlock::CJKCompatibility |
-            UnicodeBlock::CJKCompatibilityForms |
-            UnicodeBlock::CJKCompatibilityIdeographs |
-            UnicodeBlock::CJKStrokes |
-            UnicodeBlock::CJKSymbolsandPunctuation => {
-                families.push("HarmonyOS Sans SC");
-                families.push("HarmonyOS Sans TC");
-            },
-            _ => {},
-        }
-    }
-
-    families.push("HarmonyOS Sans");
-    families.push("Noto Sans");
-    families.push("Noto Sans Symbols");
-    families.push("Noto Sans Symbols 2");
+    families.sort_by_key(|name| {
+        let is_priority = name.contains("HarmonyOS") || name.contains("HMOS");
+        (!is_priority, *name)
+    });
     families
 }
 

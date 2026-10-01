@@ -2,19 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::f32::consts::PI;
+use std::f32::consts::PI as PI32;
+use std::f64::consts::PI;
 
 use euclid::default::Vector3D;
 use malloc_size_of_derive::MallocSizeOf;
+use num_traits::{Float, Zero};
 
 use crate::audio_node::{AudioNodeEngine, AudioNodeMessage, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::{Block, Chunk, FRAMES_PER_BLOCK, Tick};
 use crate::param::{Param, ParamDir, ParamType};
 
 // .normalize(), but it takes into account zero vectors
-pub fn normalize_zero(v: Vector3D<f32>) -> Vector3D<f32> {
+pub fn normalize_zero<T: Float>(v: Vector3D<T>) -> Vector3D<T> {
     let len = v.length();
-    if len == 0. { v } else { v / len }
+    if len.is_zero() { v } else { v / len }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, MallocSizeOf)]
@@ -145,23 +147,34 @@ impl PannerNode {
     fn azimuth_elevation_distance(
         &self,
         listener: (Vector3D<f32>, Vector3D<f32>, Vector3D<f32>),
-    ) -> (f32, f32, f64) {
+    ) -> (f64, f64, f64) {
         let (listener_position, listener_forward, listener_up) = listener;
+        let listener_position = listener_position.to_f64();
+        let listener_forward = listener_forward.to_f64();
+        let listener_up = listener_up.to_f64();
         let source_position = Vector3D::new(
             self.position_x.value(),
             self.position_y.value(),
             self.position_z.value(),
-        );
+        )
+        .to_f64();
+        let diff = source_position - listener_position;
+        let source_listener = normalize_zero(diff);
+        let distance = diff.length();
 
         // degenerate case
-        if source_position == listener_position {
-            return (0., 0., 0.);
+        if source_listener.length().is_zero() {
+            return (0., 0., distance);
         }
 
-        let diff = source_position - listener_position;
-        let distance = diff.length();
-        let source_listener = normalize_zero(diff);
         let listener_right = listener_forward.cross(listener_up);
+
+        if listener_right.length().is_zero() {
+            // Handle the case where listener's 'up' and 'forward' vectors are linearly
+            // dependent, in which case 'right' cannot be determined
+            return (0., 0., distance);
+        }
+
         let listener_right_norm = normalize_zero(listener_right);
         let listener_forward_norm = normalize_zero(listener_forward);
 
@@ -189,7 +202,7 @@ impl PannerNode {
             elevation = -180. - elevation;
         }
 
-        (azimuth, elevation, distance as f64)
+        (azimuth, elevation, distance)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#Spatialization-sound-cones>
@@ -206,17 +219,17 @@ impl PannerNode {
             self.orientation_z.value(),
         );
 
-        if source_orientation == Vector3D::zero() ||
+        if source_orientation.length().is_zero() ||
             (self.cone_inner_angle == 360. && self.cone_outer_angle == 360.)
         {
-            return 0.;
+            return 1.;
         }
 
         let normalized_source_orientation = normalize_zero(source_orientation);
 
         let source_to_listener = normalize_zero(source_position - listener_position);
         // Angle between the source orientation vector and the source-listener vector
-        let angle = 180. * source_to_listener.dot(normalized_source_orientation).acos() / PI;
+        let angle = 180. * source_to_listener.dot(normalized_source_orientation).acos() / PI32;
         let abs_angle = angle.abs() as f64;
 
         // Divide by 2 here since API is entire angle (not half-angle)
@@ -352,14 +365,14 @@ impl AudioNodeEngine for PannerNode {
                     let index = frame.0 as usize;
                     if mono {
                         let input = l[index];
-                        l[index] = input * gain_l;
-                        r[index] = input * gain_r;
+                        l[index] = input * gain_l as f32;
+                        r[index] = input * gain_r as f32;
                     } else if azimuth <= 0. {
-                        l[index] += r[index] * gain_l;
-                        r[index] *= gain_r;
+                        l[index] += r[index] * gain_l as f32;
+                        r[index] *= gain_r as f32;
                     } else {
-                        r[index] += l[index] * gain_r;
-                        l[index] *= gain_l;
+                        r[index] += l[index] * gain_r as f32;
+                        l[index] *= gain_l as f32;
                     }
                     l[index] = l[index] * distance_gain as f32 * cone_gain as f32;
                     r[index] = r[index] * distance_gain as f32 * cone_gain as f32;

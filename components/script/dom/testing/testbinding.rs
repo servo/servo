@@ -572,7 +572,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     ) {
         self.global().as_window().gc(cx);
     }
-    fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> RootedTraceableBox<TestDictionary> {
+    fn ReceiveTestDictionaryWithSuccessOnKeyword(
+        &self,
+        cx: &mut JSContext,
+    ) -> RootedTraceableBox<TestDictionary> {
+        let promise = Promise::new_resolved(cx, &self.global(), ());
         RootedTraceableBox::new(TestDictionary {
             anyValue: RootedTraceableBox::new(Heap::default()),
             booleanValue: None,
@@ -639,6 +643,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             nonRequiredNullable2: Some(None),
             noCallbackImport: None,
             noCallbackImport2: None,
+            promiseValue: Some(promise.to_traced()),
         })
     }
 

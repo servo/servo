@@ -28,8 +28,11 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import java.util.concurrent.Executors
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
@@ -42,9 +45,8 @@ fun Servo(
         servoView.servo.suspend(false)
         onPauseOrDispose { servoView.servo.suspend(true) }
     }
-    // TODO Key off of and pass `servo` instead of `servoView` once `servo` is non-null.
-    LaunchedEffect(servoView, servoView.navigator) {
-        servoView.navigator.consumeNavigationEvents(servoView)
+    LaunchedEffect(servoView.servo, servoView.navigator) {
+        servoView.navigator.consumeNavigationEvents(servoView.servo)
     }
 
     val focusRequester = remember { FocusRequester() }
@@ -95,7 +97,7 @@ fun Servo(
 
                     true
                 },
-        onRelease = { servoView.glDispatcher.close() },
+        onRelease = { servoView.servo.glDispatcher.close() },
     )
 }
 
@@ -112,12 +114,12 @@ class ServoNavigator {
     private val coroutineScope = CoroutineScope(EmptyCoroutineContext)
     private val navigationEvents = MutableSharedFlow<NavigationEvent>()
 
-    internal suspend fun consumeNavigationEvents(servoView: ServoView) {
+    internal suspend fun consumeNavigationEvents(servo: Servo) {
         navigationEvents.collect { navigationEvent ->
             when (navigationEvent) {
-                NavigationEvent.Back -> servoView.servo.goBack()
-                NavigationEvent.Forward -> servoView.servo.goForward()
-                NavigationEvent.Reload -> servoView.servo.reload()
+                NavigationEvent.Back -> servo.goBack()
+                NavigationEvent.Forward -> servo.goForward()
+                NavigationEvent.Reload -> servo.reload()
             }
         }
     }
@@ -146,16 +148,17 @@ class Servo(
     url: String?,
     logStr: String?,
     experimentalMode: Boolean,
-    private val runCallback: RunCallback,
+    private val scope: CoroutineScope,
     client: Client,
     context: Context,
     navigator: ServoNavigator,
 ) {
     private val jni = JNIServo()
-    private val servoCallbacks = Callbacks(client, jni, runCallback, navigator)
+    internal val glDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val servoCallbacks = Callbacks(client, jni, scope, glDispatcher, navigator)
 
     init {
-        this.runCallback.inGLThread {
+        scope.launch(glDispatcher) {
             jni.init(
                 context,
                 args,
@@ -170,10 +173,9 @@ class Servo(
     fun addPlatformWindow(
         size: Size,
         density: Float,
-        runCallback: RunCallback,
         surface: Surface,
     ) {
-        runCallback.inGLThread {
+        scope.launch(glDispatcher) {
             jni.addPlatformWindow(
                 size,
                 density,
@@ -187,83 +189,83 @@ class Servo(
     }
 
     fun performUpdates() {
-        runCallback.inGLThread { jni.performUpdates() }
+        scope.launch(glDispatcher) { jni.performUpdates() }
     }
 
     fun resize(size: Size) {
-        runCallback.inGLThread { jni.resize(size) }
+        scope.launch(glDispatcher) { jni.resize(size) }
     }
 
     fun reload() {
-        runCallback.inGLThread { jni.reload() }
+        scope.launch(glDispatcher) { jni.reload() }
     }
 
     fun stop() {
-        runCallback.inGLThread { jni.stop() }
+        scope.launch(glDispatcher) { jni.stop() }
     }
 
     fun goBack() {
-        runCallback.inGLThread { jni.goBack() }
+        scope.launch(glDispatcher) { jni.goBack() }
     }
 
     fun goForward() {
-        runCallback.inGLThread { jni.goForward() }
+        scope.launch(glDispatcher) { jni.goForward() }
     }
 
     fun loadUri(uri: String) {
-        runCallback.inGLThread { jni.loadUri(uri) }
+        scope.launch(glDispatcher) { jni.loadUri(uri) }
     }
 
     fun scroll(dx: Int, dy: Int, x: Int, y: Int) {
-        runCallback.inGLThread { jni.scroll(dx, dy, x, y) }
+        scope.launch(glDispatcher) { jni.scroll(dx, dy, x, y) }
     }
 
     fun onKeyDown(keyCode: Int, event: KeyEvent) {
-        runCallback.inGLThread { jni.keydown(keyCode, event.unicodeChar) }
+        scope.launch(glDispatcher) { jni.keydown(keyCode, event.unicodeChar) }
     }
 
     fun onKeyUp(keyCode: Int, event: KeyEvent) {
-        runCallback.inGLThread { jni.keyup(keyCode, event.unicodeChar) }
+        scope.launch(glDispatcher) { jni.keyup(keyCode, event.unicodeChar) }
     }
 
     fun touchDown(x: Float, y: Float, pointerId: Int) {
-        runCallback.inGLThread { jni.touchDown(x, y, pointerId) }
+        scope.launch(glDispatcher) { jni.touchDown(x, y, pointerId) }
     }
 
     fun touchMove(x: Float, y: Float, pointerId: Int) {
-        runCallback.inGLThread { jni.touchMove(x, y, pointerId) }
+        scope.launch(glDispatcher) { jni.touchMove(x, y, pointerId) }
     }
 
     fun touchUp(x: Float, y: Float, pointerId: Int) {
-        runCallback.inGLThread { jni.touchUp(x, y, pointerId) }
+        scope.launch(glDispatcher) { jni.touchUp(x, y, pointerId) }
     }
 
     fun touchCancel(x: Float, y: Float, pointerId: Int) {
-        runCallback.inGLThread { jni.touchCancel(x, y, pointerId) }
+        scope.launch(glDispatcher) { jni.touchCancel(x, y, pointerId) }
     }
 
     fun pinchZoomStart(factor: Float, x: Float, y: Float) {
-        runCallback.inGLThread { jni.pinchZoomStart(factor, x, y) }
+        scope.launch(glDispatcher) { jni.pinchZoomStart(factor, x, y) }
     }
 
     fun pinchZoom(factor: Float, x: Float, y: Float) {
-        runCallback.inGLThread { jni.pinchZoom(factor, x, y) }
+        scope.launch(glDispatcher) { jni.pinchZoom(factor, x, y) }
     }
 
     fun pinchZoomEnd(factor: Float, x: Float, y: Float) {
-        runCallback.inGLThread { jni.pinchZoomEnd(factor, x, y) }
+        scope.launch(glDispatcher) { jni.pinchZoomEnd(factor, x, y) }
     }
 
     fun click(x: Float, y: Float) {
-        runCallback.inGLThread { jni.click(x, y) }
+        scope.launch(glDispatcher) { jni.click(x, y) }
     }
 
     fun pausePainting() {
-        runCallback.inGLThread { jni.pausePainting() }
+        scope.launch(glDispatcher) { jni.pausePainting() }
     }
 
     fun resumePainting(surface: Surface, size: Size) {
-        runCallback.inGLThread { jni.resumePainting(surface, size) }
+        scope.launch(glDispatcher) { jni.resumePainting(surface, size) }
     }
 
     fun suspend(suspended: Boolean) {
@@ -271,15 +273,15 @@ class Servo(
     }
 
     fun mediaSessionAction(action: Int) {
-        runCallback.inGLThread { jni.mediaSessionAction(action) }
+        scope.launch(glDispatcher) { jni.mediaSessionAction(action) }
     }
 
     fun setExperimentalMode(enable: Boolean) {
-        runCallback.inGLThread { jni.setExperimentalMode(enable) }
+        scope.launch(glDispatcher) { jni.setExperimentalMode(enable) }
     }
 
     fun onDoFrame() {
-        runCallback.inGLThread { jni.doFrame() }
+        scope.launch(glDispatcher) { jni.doFrame() }
     }
 
     interface Client {
@@ -304,52 +306,47 @@ class Servo(
         fun onMediaSessionSetPositionState(duration: Float, position: Float, playbackRate: Float)
     }
 
-    interface RunCallback {
-        fun inGLThread(f: Runnable)
-
-        fun inUIThread(f: Runnable)
-    }
-
     private class Callbacks(
         private var client: Client,
         private val jni: JNIServo,
-        private val runCallback: RunCallback,
+        private val scope: CoroutineScope,
+        private val glDispatcher: CoroutineDispatcher,
         private val navigator: ServoNavigator,
     ) : JNIServo.Callbacks, Client {
         var suspended: Boolean = false
 
         override fun wakeup() {
             if (!suspended) {
-                runCallback.inGLThread { jni.performUpdates() }
+                scope.launch(glDispatcher) { jni.performUpdates() }
             }
         }
 
         override fun onAlert(message: String) {
-            runCallback.inUIThread { client.onAlert(message) }
+            scope.launch { client.onAlert(message) }
         }
 
         override fun onImeShow() {
-            runCallback.inUIThread { client.onImeShow() }
+            scope.launch { client.onImeShow() }
         }
 
         override fun onImeHide() {
-            runCallback.inUIThread { client.onImeHide() }
+            scope.launch { client.onImeHide() }
         }
 
         override fun onLoadStarted() {
-            runCallback.inUIThread { client.onLoadStarted() }
+            scope.launch { client.onLoadStarted() }
         }
 
         override fun onLoadEnded() {
-            runCallback.inUIThread { client.onLoadEnded() }
+            scope.launch { client.onLoadEnded() }
         }
 
         override fun onTitleChanged(title: String) {
-            runCallback.inUIThread { client.onTitleChanged(title) }
+            scope.launch { client.onTitleChanged(title) }
         }
 
         override fun onUrlChanged(url: String) {
-            runCallback.inUIThread { client.onUrlChanged(url) }
+            scope.launch { client.onUrlChanged(url) }
         }
 
         override fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean) {
@@ -358,11 +355,11 @@ class Servo(
         }
 
         override fun onMediaSessionMetadata(title: String, artist: String, album: String) {
-            runCallback.inUIThread { client.onMediaSessionMetadata(title, artist, album) }
+            scope.launch { client.onMediaSessionMetadata(title, artist, album) }
         }
 
         override fun onMediaSessionPlaybackStateChange(state: Int) {
-            runCallback.inUIThread { client.onMediaSessionPlaybackStateChange(state) }
+            scope.launch { client.onMediaSessionPlaybackStateChange(state) }
         }
 
         override fun onMediaSessionSetPositionState(
@@ -370,9 +367,7 @@ class Servo(
             position: Float,
             playbackRate: Float,
         ) {
-            runCallback.inUIThread {
-                client.onMediaSessionSetPositionState(duration, position, playbackRate)
-            }
+            scope.launch { client.onMediaSessionSetPositionState(duration, position, playbackRate) }
         }
     }
 }

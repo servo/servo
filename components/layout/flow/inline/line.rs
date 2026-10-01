@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ops::Range;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -894,8 +895,8 @@ impl LineItemLayout<'_, '_> {
 }
 
 pub(super) enum LineItem {
-    InlineStartBoxPaddingBorderMargin(InlineBoxIdentifier),
-    InlineEndBoxPaddingBorderMargin(InlineBoxIdentifier),
+    InlineStartBoxPaddingBorderMargin(Rc<InlineBoxContainerState>),
+    InlineEndBoxPaddingBorderMargin(Rc<InlineBoxContainerState>),
     TextRun(Option<InlineBoxIdentifier>, TextRunLineItem),
     Atomic(Option<InlineBoxIdentifier>, AtomicLineItem),
     AbsolutelyPositioned(Option<InlineBoxIdentifier>, AbsolutelyPositionedLineItem),
@@ -918,8 +919,8 @@ impl LineItem {
 
     fn inline_box_identifier(&self) -> Option<InlineBoxIdentifier> {
         match self {
-            LineItem::InlineStartBoxPaddingBorderMargin(identifier) => Some(*identifier),
-            LineItem::InlineEndBoxPaddingBorderMargin(identifier) => Some(*identifier),
+            LineItem::InlineStartBoxPaddingBorderMargin(state) => Some(state.identifier),
+            LineItem::InlineEndBoxPaddingBorderMargin(state) => Some(state.identifier),
             LineItem::TextRun(identifier, _) => *identifier,
             LineItem::Atomic(identifier, _) => *identifier,
             LineItem::AbsolutelyPositioned(identifier, _) => *identifier,

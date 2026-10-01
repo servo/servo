@@ -7,15 +7,13 @@ package org.servo.servoview
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Resources
 import android.util.Log
 import android.util.Size
 import android.view.Choreographer
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.launch
 
 @SuppressLint("ViewConstructor")
 class ServoView(
@@ -26,16 +24,15 @@ class ServoView(
     experimentalMode: Boolean,
     initialUri: String?,
     internal val navigator: ServoNavigator,
-    private val scope: CoroutineScope,
-) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
-    internal val glDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    scope: CoroutineScope,
+) : SurfaceView(context), Choreographer.FrameCallback {
     internal val servo =
         Servo(
             servoArgs,
             initialUri,
             servoLog,
             experimentalMode,
-            this,
+            scope,
             client,
             context,
             navigator,
@@ -45,16 +42,8 @@ class ServoView(
         isFocusable = true
         isFocusableInTouchMode = true
         addTouchables(arrayListOf(this))
-        val surfaceHolderCallback = SurfaceHolderCallback(servoView = this)
+        val surfaceHolderCallback = SurfaceHolderCallback(resources, servo, this)
         holder.addCallback(surfaceHolderCallback)
-    }
-
-    override fun inGLThread(r: Runnable) {
-        scope.launch(glDispatcher) { r.run() }
-    }
-
-    override fun inUIThread(r: Runnable) {
-        scope.launch { r.run() }
     }
 
     override fun doFrame(frameTimeNanos: Long) {
@@ -78,40 +67,43 @@ class ServoView(
         servo.setExperimentalMode(enable)
     }
 
-    private class SurfaceHolderCallback(private val servoView: ServoView) : SurfaceHolder.Callback {
+    private class SurfaceHolderCallback(
+        private val resources: Resources,
+        private val servo: Servo,
+        private val frameCallback: Choreographer.FrameCallback,
+    ) : SurfaceHolder.Callback {
         private var paused = false
 
         override fun surfaceCreated(holder: SurfaceHolder) {
             Log.d(LOGTAG, "GLThread::surfaceCreated")
 
-            val size = Size(servoView.width, servoView.height)
+            val size = Size(holder.surfaceFrame.width(), holder.surfaceFrame.height())
 
             val surface = holder.surface
 
             if (!paused) {
-                servoView.servo.addPlatformWindow(
+                servo.addPlatformWindow(
                     size,
-                    servoView.resources.displayMetrics.density,
-                    servoView,
+                    resources.displayMetrics.density,
                     surface,
                 )
             } else {
                 paused = false
-                servoView.servo.resumePainting(surface, size)
+                servo.resumePainting(surface, size)
             }
 
-            Choreographer.getInstance().postFrameCallback(servoView)
+            Choreographer.getInstance().postFrameCallback(frameCallback)
         }
 
         override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
             Log.d(LOGTAG, "GLThread::surfaceChanged")
-            servoView.servo.resize(Size(width, height))
+            servo.resize(Size(width, height))
         }
 
         override fun surfaceDestroyed(holder: SurfaceHolder) {
             Log.d(LOGTAG, "GLThread::surfaceDestroyed")
             paused = true
-            servoView.servo.pausePainting()
+            servo.pausePainting()
         }
     }
 

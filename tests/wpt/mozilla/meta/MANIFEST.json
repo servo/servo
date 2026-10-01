@@ -14689,6 +14689,13 @@
       {}
      ]
     ],
+    "input-select-focus.html": [
+     "5996de7bbb67132d4e748e1f6779013a2cdefa1a",
+     [
+      null,
+      {}
+     ]
+    ],
     "input-value.html": [
      "a2a12d44d0331164651816710eeb2ddcb1738735",
      [
@@ -15302,6 +15309,13 @@
         ]
        ]
       }
+     ]
+    ],
+    "textarea-select-focus.html": [
+     "7f6bfe3c4f07d1fdd4fa260967d1756d918947a1",
+     [
+      null,
+      {}
      ]
     ],
     "textcontent.html": [

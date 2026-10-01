@@ -64,7 +64,6 @@ use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, SubmittedFrom,
 };
-use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
@@ -72,7 +71,7 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::text_input::EmbedderClipboardProvider;
-use crate::dom::types::{FocusEvent, MouseEvent};
+use crate::dom::types::FocusEvent;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::realms::enter_auto_realm;
@@ -1473,8 +1472,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
-    fn Select(&self) {
-        self.dom_select();
+    fn Select(&self, cx: &mut JSContext) {
+        self.dom_select(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
@@ -2361,31 +2360,6 @@ impl VirtualMethods for HTMLInputElement {
         }
     }
 
-    fn handle_mousedown_event(
-        &self,
-        cx: &mut JSContext,
-        mouse_event: &MouseEvent,
-        hit_test_result: &HitTestResult,
-    ) {
-        // Only respond to mouse events if we are displayed as text input or a password. If the
-        // placeholder is displayed, also don't do any interactive mouse event handling.
-        if !self.input_type().is_textual_or_password() || self.text_input.borrow().is_empty() {
-            if let Some(super_type) = self.super_type() {
-                super_type.handle_mousedown_event(cx, mouse_event, hit_test_result);
-            }
-            return;
-        }
-
-        if self.text_input.borrow_mut().handle_mousedown_event(
-            self.upcast(),
-            mouse_event,
-            hit_test_result,
-        ) {
-            self.maybe_update_shared_selection();
-            mouse_event.upcast::<Event>().mark_as_handled();
-        }
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext>
     fn cloning_steps(
         &self,
@@ -2506,24 +2480,17 @@ impl Activatable for HTMLInputElement {
         self.upcast()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element:activation-behaviour>
     fn is_instance_activatable(&self) -> bool {
+        // Step 1. If element is not mutable, and element's type attribute is
+        // neither in the Checkbox nor in the Radio state, then return.
         match *self.input_type() {
-            // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):input-activation-behavior
-            // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):input-activation-behavior
-            // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
-            // https://html.spec.whatwg.org/multipage/#image-button-state-(type=image):input-activation-behavior
-            //
-            // Although they do not have implicit activation behaviors, `type=button` is an activatable input event.
-            InputType::Submit(_) |
-            InputType::Reset(_) |
-            InputType::File(_) |
-            InputType::Image(_) |
-            InputType::Button(_) => self.is_mutable(),
-            // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior
-            // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior
-            // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
-            InputType::Checkbox(_) | InputType::Radio(_) | InputType::Color(_) => true,
-            _ => false,
+            InputType::Checkbox(_) | InputType::Radio(_) => true,
+            // https://html.spec.whatwg.org/multipage/#hidden-state-(type=hidden)
+            // > The input element represents a value that is not intended
+            // > to be examined or manipulated by the user.
+            InputType::Hidden(_) => false,
+            _ => self.is_mutable(),
         }
     }
 
@@ -2572,8 +2539,13 @@ impl Activatable for HTMLInputElement {
         self.value_changed(cx);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element:activation-behaviour>
     fn activation_behavior(&self, cx: &mut JSContext, event: &Event, target: &EventTarget) {
+        // Step 1. If element is not mutable, and element's type attribute is
+        // neither in the Checkbox nor in the Radio state, then return.
+        debug_assert!(self.is_instance_activatable());
+
+        // Step 2. Run element's input activation behavior, if any, and do nothing otherwise.
         let input_activation_type = {
             let input_type = self.input_type();
             InputActivationType::new_from_input_type(&input_type)
@@ -2584,6 +2556,14 @@ impl Activatable for HTMLInputElement {
                 .as_specific()
                 .activation_behavior(cx, self, event, target);
         }
+
+        // Step 3. If element has a form owner and element's type attribute
+        // is not in the Button state, then return.
+        // TODO
+
+        // Step 4. Run the popover target attribute activation behavior
+        // given element and event's target.
+        // TODO
     }
 }
 

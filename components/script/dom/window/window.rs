@@ -15,6 +15,7 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use accesskit::Action;
 use app_units::Au;
 use base64::Engine;
 use content_security_policy::Violation;
@@ -47,11 +48,11 @@ use js::rust::{
     CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue,
 };
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType, HitTestFlags, LCPCandidate, Layout,
-    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
-    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
-    ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
-    TrustedNodeAddress, combine_id_with_fragment_type,
+    AccessibilityActionRequest, AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType,
+    HitTestFlags, LCPCandidate, Layout, LayoutImageDestination, PendingImage, PendingImageState,
+    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
+    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
+    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -2752,6 +2753,8 @@ impl Window {
             return Default::default();
         };
 
+        self.handle_accessibility_actions(reflow_result.pending_accessibility_actions, cx);
+
         debug!("script: layout complete");
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
@@ -3822,6 +3825,21 @@ impl Window {
             let svg = node.downcast::<SVGSVGElement>().unwrap();
             svg.serialize_and_cache_subtree(cx);
             node.dirty(cx.no_gc(), NodeDamage::Other);
+        }
+    }
+
+    #[expect(unsafe_code)]
+    fn handle_accessibility_actions(
+        &self,
+        actions: Vec<AccessibilityActionRequest>,
+        cx: &mut JSContext,
+    ) {
+        for action_request in actions {
+            let target_opaque = action_request.target;
+            let target = unsafe { from_untrusted_node_address(target_opaque.into()) };
+            if action_request.action == Action::Click {
+                target.fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
+            }
         }
     }
 

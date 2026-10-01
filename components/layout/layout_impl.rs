@@ -10,6 +10,7 @@ use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
+use accesskit::ActionRequest;
 use app_units::Au;
 use bitflags::bitflags;
 use embedder_traits::{
@@ -20,12 +21,12 @@ use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
 use icu_locale_core::subtags::Language;
 use layout_api::{
-    AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode,
-    HitTestFlags, HitTestResult, IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutElement,
-    LayoutFactory, LayoutNode, NodeRenderingType, OffsetParentResponse, PhysicalSides, QueryMsg,
-    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult,
-    ReflowStatistics, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
-    with_layout_state,
+    AccessibilityActionRequest, AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec,
+    DangerousStyleNode, HitTestFlags, HitTestResult, IFrameSizes, Layout, LayoutConfig,
+    LayoutDamage, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
+    OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
+    ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
+    ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
 };
 use log::{debug, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -228,6 +229,13 @@ pub struct LayoutThread {
 
     /// See [Layout::force_accessibility_update()].
     force_accessibility_update: Cell<bool>,
+
+    /// Accessibility action requests which have arrived from assistive technology since the last
+    /// reflow, in chronological order.
+    /// This will be `None` unless [`Self::accessibility_active`] is true.
+    /// During reflow, these actions are drained and sent to the accessibility tree.
+    /// A reflow will be forced if this vec is non-empty.
+    pending_accessibility_actions: RefCell<Vec<ActionRequest>>,
 
     /// A callback to run whenever a web font from a `@font-face` rule finishes loading.
     web_font_finished_loading_callback: StylesheetWebFontLoadFinishedCallback,
@@ -747,27 +755,40 @@ impl Layout for LayoutThread {
         self.accessibility_active.set(active);
         if !active {
             self.accessibility_tree.replace(None);
+            self.pending_accessibility_actions.borrow_mut().clear();
             return;
         }
 
         self.set_force_accessibility_update();
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
-        if accessibility_tree.is_some() {
-            return;
+        if accessibility_tree.is_none() {
+            *accessibility_tree = Some(AccessibilityTree::new(self.id.into(), epoch));
         }
-        *accessibility_tree = Some(AccessibilityTree::new(self.id.into(), epoch));
     }
 
     fn accessibility_active(&self) -> bool {
         self.accessibility_active.get()
     }
 
-    fn force_accessibility_update(&self) -> bool {
-        self.force_accessibility_update.get()
+    fn needs_accessibility_update(&self) -> bool {
+        if self.force_accessibility_update.get() {
+            return true;
+        }
+        if !self.pending_accessibility_actions.borrow().is_empty() {
+            return true;
+        }
+
+        false
     }
 
     fn set_force_accessibility_update(&self) {
         self.force_accessibility_update.set(true);
+    }
+
+    fn handle_accessibility_action(&self, action_request: ActionRequest) {
+        self.pending_accessibility_actions
+            .borrow_mut()
+            .push(action_request);
     }
 
     fn font_context(&self) -> &Arc<FontContext> {
@@ -843,6 +864,7 @@ impl LayoutThread {
             accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
             force_accessibility_update: Cell::new(false),
+            pending_accessibility_actions: RefCell::new(vec![]),
             web_font_finished_loading_callback: Arc::new(web_font_finished_loading_callback)
                 as StylesheetWebFontLoadFinishedCallback,
         }
@@ -882,7 +904,7 @@ impl LayoutThread {
             return false;
         }
         // If the accessibility tree needs an update, we need reflow to build the accessibility tree.
-        if self.force_accessibility_update() || reflow_request.accessibility_damage.is_some() {
+        if self.needs_accessibility_update() || reflow_request.accessibility_damage.is_some() {
             return false;
         }
 
@@ -945,12 +967,13 @@ impl LayoutThread {
         root_element: &ServoLayoutNode,
         accessibility_damage: Option<AccessibilityDamageMap>,
         rooted_nodes: Option<FxHashSet<OpaqueNode>>,
+        pending_accessibility_actions: &mut Vec<AccessibilityActionRequest>,
         reflow_statistics: &mut ReflowStatistics,
     ) -> bool {
         let Some(damage) = accessibility_damage else {
             return false;
         };
-        if !self.force_accessibility_update() && damage.is_empty() {
+        if !self.needs_accessibility_update() && damage.is_empty() {
             return false;
         }
 
@@ -975,9 +998,12 @@ impl LayoutThread {
             stacking_context_tree,
         };
 
+        let action_requests = self.pending_accessibility_actions.take();
+
         let (tree_update, counters) = accessibility_tree.update_tree(
             root_element,
             damage,
+            action_requests,
             accessibility_context,
             rooted_nodes,
         );
@@ -1000,6 +1026,9 @@ impl LayoutThread {
         reflow_statistics.nodes_in_tree_update = counters.nodes_in_tree_update;
 
         self.force_accessibility_update.set(false);
+
+        *pending_accessibility_actions = accessibility_tree.take_pending_actions();
+
         true
     }
 
@@ -1063,10 +1092,12 @@ impl LayoutThread {
         if self.handle_update_scroll_node_request(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedScrollNodeOffset);
         }
+        let mut pending_accessibility_actions = vec![];
         if self.handle_accessibility_tree_update(
             &root_element.as_node(),
             accessibility_damage,
             reflow_request.rooted_nodes_for_accessibility_integrity_check,
+            &mut pending_accessibility_actions,
             &mut reflow_statistics,
         ) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
@@ -1101,6 +1132,7 @@ impl LayoutThread {
             reflow_statistics,
             changed_web_fonts,
             lcp_candidate,
+            pending_accessibility_actions,
         })
     }
 

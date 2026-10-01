@@ -40,14 +40,13 @@ use crate::dom::html::form_controls::text_input::{KeyReaction, Lines, TextInput}
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
-use crate::dom::inputevent::HitTestResult;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::text_input::EmbedderClipboardProvider;
-use crate::dom::types::{FocusEvent, MouseEvent};
+use crate::dom::types::FocusEvent;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 
@@ -481,8 +480,8 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     make_labels_getter!(Labels, labels_node_list);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
-    fn Select(&self) {
-        self.dom_select();
+    fn Select(&self, cx: &mut JSContext) {
+        self.dom_select(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
@@ -810,30 +809,6 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);
-        }
-    }
-
-    fn handle_mousedown_event(
-        &self,
-        cx: &mut JSContext,
-        mouse_event: &MouseEvent,
-        hit_test_result: &HitTestResult,
-    ) {
-        // If the placeholder is displayed, don't do any interactive mouse event handling.
-        if self.text_input.borrow().is_empty() {
-            if let Some(super_type) = self.super_type() {
-                super_type.handle_mousedown_event(cx, mouse_event, hit_test_result);
-            }
-            return;
-        }
-
-        if self.text_input.borrow_mut().handle_mousedown_event(
-            self.upcast(),
-            mouse_event,
-            hit_test_result,
-        ) {
-            self.maybe_update_shared_selection();
-            mouse_event.upcast::<Event>().mark_as_handled();
         }
     }
 

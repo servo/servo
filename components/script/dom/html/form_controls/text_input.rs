@@ -9,10 +9,9 @@ use std::ops::Range;
 
 use app_units::Au;
 use embedder_traits::{
-    EditingAction, EditingDirection, EditingMotion, EmbedderMsg, ModifySelection, MouseButton,
+    EditingAction, EditingDirection, EditingMotion, EmbedderMsg, ModifySelection,
     ScriptToEmbedderChan,
 };
-use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::match_domstring_ascii;
 use script_bindings::root::Dom;
 use script_bindings::trace::CustomTraceable;
@@ -25,11 +24,12 @@ use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
+use crate::dom::editing::SelectionGranularity;
 use crate::dom::event::Event;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::text_control::TextControlElement;
-use crate::dom::types::{HTMLInputElement, HTMLTextAreaElement, UIEvent};
+use crate::dom::types::{HTMLInputElement, HTMLTextAreaElement};
 use crate::dom::{Element, NodeTraits};
 use crate::drag::drag_gesture::{DragGesture, DragHandler};
 
@@ -689,35 +689,29 @@ impl<T: ClipboardProvider> TextInput<T> {
     ) -> bool {
         assert_eq!(mouse_event.upcast::<Event>().type_(), atom!("mousedown"));
 
-        let button = mouse_event.button();
-        let selection_changed = match mouse_event.upcast::<UIEvent>().Detail() {
-            3 if button == MouseButton::Primary => {
-                let word_boundaries = self.rope.line_boundaries(self.edit_point);
-                self.edit_point = word_boundaries.end;
-                self.selection_origin = Some(word_boundaries.start);
+        let selection_changed = match SelectionGranularity::from_mouse_event(mouse_event) {
+            Some(SelectionGranularity::LineIgnoringSoftWrap) => {
+                let line_boundaries = self.rope.line_boundaries(self.edit_point);
+                self.edit_point = line_boundaries.end;
+                self.selection_origin = Some(line_boundaries.start);
                 self.update_selection_direction();
                 true
             },
-            2 if button == MouseButton::Primary => {
+            Some(SelectionGranularity::Word) => {
                 let word_boundaries = self.rope.relevant_word_boundaries(self.edit_point);
                 self.edit_point = word_boundaries.end;
                 self.selection_origin = Some(word_boundaries.start);
                 self.update_selection_direction();
                 true
             },
-            1 if matches!(button, MouseButton::Primary | MouseButton::Auxiliary) => {
+            Some(SelectionGranularity::Position) => {
                 self.clear_selection();
                 self.edit_point = self.edit_point_for_hit_test_result(hit_test_result);
                 self.selection_origin = Some(self.edit_point);
                 self.update_selection_direction();
                 true
             },
-            _ => {
-                // We currently don't do anything for higher click counts, but some platforms do.
-                // We should re-examine this when implementing support for platform-specific editing
-                // behaviors.
-                false
-            },
+            _ => false,
         };
 
         if selection_changed && mouse_event.buttons().contains(MouseButtons::Primary) {

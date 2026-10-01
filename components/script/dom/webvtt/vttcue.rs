@@ -39,6 +39,7 @@ use crate::dom::node::Node;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::vttregion::VTTRegion;
+use crate::dom::webvtt::rules_for_rendering::RulesForUpdatingTheTextTrackRendering;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -74,7 +75,13 @@ impl VTTCue {
         track: Option<&TextTrack>,
     ) -> Self {
         VTTCue {
-            texttrackcue: TextTrackCue::new_inherited(id, start_time, end_time, track),
+            texttrackcue: TextTrackCue::new_inherited(
+                id,
+                start_time,
+                end_time,
+                track,
+                RulesForUpdatingTheTextTrackRendering::WebVTT,
+            ),
             text: DomRefCell::new(text),
             region: DomRefCell::new(None),
             vertical: Cell::new(vertical),

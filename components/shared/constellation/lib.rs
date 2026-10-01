@@ -14,6 +14,7 @@ mod structured_data;
 use std::collections::VecDeque;
 use std::fmt;
 
+use accesskit::ActionRequest;
 use embedder_traits::user_contents::{
     UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
 };
@@ -114,6 +115,8 @@ pub enum EmbedderToConstellationMessage {
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
     /// Activate or deactivate accessibility features for the given `WebView`.
     SetAccessibilityActive(WebViewId, bool),
+    /// Forward an incoming [`accesskit::ActionRequest`] to the correct pipeline.
+    ForwardAccessibilityAction(ActionRequest),
     /// Clears the session history for the `WebView` with the given `WebViewId`, leaving
     /// the `WebView` with only the current URL in its session history.
     ClearSessionHistory(WebViewId),

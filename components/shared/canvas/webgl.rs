@@ -1392,6 +1392,16 @@ pub enum SizedDataType {
 }
 
 impl TexDataType {
+    /// Parses a texture data type constant. `HalfFloat` stores WebGL 1's `HALF_FLOAT_OES`,
+    /// while WebGL 2 uses `HALF_FLOAT` and does not define `OES_texture_half_float`.
+    pub fn from_webgl_constant(constant: u32, version: WebGLVersion) -> Option<Self> {
+        match (version, constant) {
+            (WebGLVersion::WebGL2, gl::HALF_FLOAT) => Some(TexDataType::HalfFloat),
+            (WebGLVersion::WebGL2, gl::HALF_FLOAT_OES) => None,
+            _ => Self::from_gl_constant(constant),
+        }
+    }
+
     /// Returns the compatible sized data type for this texture data type.
     pub fn sized_data_type(&self) -> SizedDataType {
         match self {

@@ -15,6 +15,10 @@ import android.view.inputmethod.InputMethodManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.component1
+import androidx.activity.result.component2
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -92,6 +96,18 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
         historyManager = HistoryManager(this)
 
+        val historyActivityResultLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+                (resultCode, data) ->
+                if (resultCode == RESULT_OK && data != null) {
+                    val url = data.getStringExtra("url")
+                    if (!url.isNullOrEmpty()) {
+                        urlTextFieldState.edit { replace(0, length, url) }
+                        servoView.loadUri(urlTextFieldState.text.toString())
+                    }
+                }
+            }
+
         setContent {
             val isWindowWidthAtLeastMedium =
                 currentWindowAdaptiveInfo()
@@ -159,7 +175,11 @@ class MainActivity : ComponentActivity(), Servo.Client {
                                     stringResource(R.string.options),
                                 )
                             }
-                            IconButton(onClick = ::onHistoryMenuItemClicked) {
+                            IconButton(
+                                onClick = {
+                                    onHistoryMenuItemClicked(historyActivityResultLauncher)
+                                }
+                            ) {
                                 Icon(
                                     painterResource(R.drawable.history),
                                     stringResource(R.string.history_title),
@@ -208,7 +228,9 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             )
                             NavigationBarItem(
                                 selected = false,
-                                onClick = ::onHistoryMenuItemClicked,
+                                onClick = {
+                                    onHistoryMenuItemClicked(historyActivityResultLauncher)
+                                },
                                 icon = { Icon(painterResource(R.drawable.history), null) },
                                 label = { Text(stringResource(R.string.history_title)) },
                             )
@@ -271,8 +293,10 @@ class MainActivity : ComponentActivity(), Servo.Client {
         startActivity(Intent(this, SettingsActivity::class.java))
     }
 
-    private fun onHistoryMenuItemClicked() {
-        startActivityForResult(Intent(this, HistoryActivity::class.java), HISTORY_REQUEST_CODE)
+    private fun onHistoryMenuItemClicked(
+        historyActivityResultLauncher: ActivityResultLauncher<Intent>
+    ) {
+        historyActivityResultLauncher.launch(Intent(this, HistoryActivity::class.java))
     }
 
     override fun onImeShow() {
@@ -326,18 +350,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
         settings = updatedSettings
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == HISTORY_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
-            val url = data.getStringExtra("url")
-            if (!url.isNullOrEmpty()) {
-                urlTextFieldState.edit { replace(0, length, url) }
-                servoView.loadUri(urlTextFieldState.text.toString())
-            }
-        }
-    }
-
     override fun onMediaSessionMetadata(title: String, artist: String, album: String) {
         Log.d("onMediaSessionMetadata", "$title $artist $album")
         val mediaSession =
@@ -374,10 +386,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
     companion object {
         private const val TAG = "MainActivity"
-
-        // Identify which activity a result came from, if we ever have more
-        // than one
-        private const val HISTORY_REQUEST_CODE = 1
     }
 }
 

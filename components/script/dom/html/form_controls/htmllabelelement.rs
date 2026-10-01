@@ -132,7 +132,7 @@ impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
         let maybe_found = self
             .upcast::<Node>()
             .GetRootNode(&GetRootNodeOptions::empty())
-            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
+            .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
             .find_map(|e| {
                 if let Some(htmle) = e.downcast::<HTMLElement>() {
                     if htmle.upcast::<Element>().Id() == for_value {

@@ -60,6 +60,7 @@ use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
@@ -70,7 +71,6 @@ use crate::dom::types::{
     CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLElement,
     HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
 };
-use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::drag::drag_gesture::DragGesture;
 use crate::realms::enter_auto_realm;
@@ -1071,7 +1071,8 @@ impl DocumentEventHandler {
                         .GetTarget()
                         .and_then(DomRoot::downcast::<Node>)
                 {
-                    vtable_for(&node).handle_mousedown_event(cx, &mouse_event, &hit_test_result);
+                    let editing_context = document.editing_context(cx, &node);
+                    editing_context.handle_mousedown_event(cx, &mouse_event, &hit_test_result);
                 }
 
                 // Step 8. If result is true and target is a focusable area
@@ -2032,10 +2033,16 @@ impl DocumentEventHandler {
         // Check whether this node is a state-changing element. Note that the specification doesn't
         // seem to have a good definition of what "state-changing" means, so we merely check to
         // see if the element is activatable here.
+        //
+        // However, an input that is text or password is activatable (to be able to click on it),
+        // but hitting enter should be processed as a character rather than trigger a click. Hence
+        // we ignore those
         if node
             .downcast::<Element>()
             .and_then(Element::as_maybe_activatable)
-            .is_none()
+            .is_none() ||
+            node.downcast::<HTMLInputElement>()
+                .is_some_and(|input| input.is_textual_or_password())
         {
             return;
         }

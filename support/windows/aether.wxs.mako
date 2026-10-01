@@ -4,7 +4,7 @@
            UpgradeCode="7c3a9e2f-4b81-4d6a-9f13-2e8c5a1b0d47"
            Language="1033"
            Codepage="1252"
-           Version="0.6.0"
+           Version="0.7.0"
            InstallerVersion="200">
     <SummaryInformation Keywords="Installer"
                         Description="Aether Installer"

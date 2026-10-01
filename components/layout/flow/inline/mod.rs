@@ -482,6 +482,11 @@ struct LineUnderConstruction {
     /// If this line is empty and contains a selection, this field will be used to create
     /// an empty [`TextFragment`] for holding a text caret.
     caret_placeholder: Option<CaretPlaceholder>,
+
+    /// The amount of space that will be taken up by all inline padding, borders and
+    /// margins of all inline boxes with `box-decoration-break: clone` that we are
+    /// currently inside of.
+    cloneable_inline_box_pbm_size: LogicalSides1D<Au>,
 }
 
 impl LineUnderConstruction {
@@ -497,6 +502,7 @@ impl LineUnderConstruction {
             line_items: Vec::new(),
             for_block_level: false,
             caret_placeholder: None,
+            cloneable_inline_box_pbm_size: Default::default(),
         }
     }
 
@@ -840,9 +846,10 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// of the inline box is the state popped from the stack.
     inline_box_state_stack: Vec<Rc<InlineBoxContainerState>>,
 
-    /// The amount of space that will be taken up by all end-side paddings, borders and margins of
-    /// all inline boxes with `box-decoration-break: clone` that we are currently inside of.
-    cloneable_inline_box_end_pbm_size: Au,
+    /// The amount of space that will be taken up by all inline padding, borders and
+    /// margins of all inline boxes with `box-decoration-break: clone` that we are
+    /// currently inside of.
+    cloneable_inline_box_pbm_size: LogicalSides1D<Au>,
 
     /// A collection of [`InlineBoxContainerState`] of all the inlines that are present
     /// in this inline formatting context. We keep this as well as the stack, so that we
@@ -999,28 +1006,24 @@ impl InlineFormattingContextLayout<'_> {
             );
         }
 
-        let padding = inline_box_state.pbm.padding.inline_start;
-        let border = inline_box_state.pbm.border.inline_start;
-        let margin = inline_box_state.pbm.margin.inline_start.auto_is(Au::zero);
-        // We can't just check if the sum is zero because the margin can be negative,
-        // we need to check the values separately.
-        if !padding.is_zero() || !border.is_zero() || !margin.is_zero() {
+        let inline_box_state = Rc::new(inline_box_state);
+        if inline_box_state.has_pbm_inline_start() {
             self.current_line_segment.has_inline_pbm = true;
         }
-        self.current_line_segment.inline_size += padding + border + margin;
+
+        let pbm_inline_start = inline_box_state.pbm_inline_start();
+        self.current_line_segment.inline_size += pbm_inline_start;
+
+        if inline_box_state.should_clone_pbm() {
+            self.cloneable_inline_box_pbm_size.start += pbm_inline_start;
+            self.cloneable_inline_box_pbm_size.end += inline_box_state.pbm_inline_end();
+        }
+
         self.current_line_segment
             .line_items
             .push(LineItem::InlineStartBoxPaddingBorderMargin(
-                inline_box.identifier,
+                inline_box_state.clone(),
             ));
-
-        let inline_box_state = Rc::new(inline_box_state);
-        if inline_box_state.should_clone_pbm() {
-            self.cloneable_inline_box_end_pbm_size += inline_box_state.pbm.padding.inline_end;
-            self.cloneable_inline_box_end_pbm_size += inline_box_state.pbm.border.inline_end;
-            self.cloneable_inline_box_end_pbm_size +=
-                inline_box_state.pbm.margin.inline_end.auto_is(Au::zero);
-        }
 
         // Push the state onto the IFC-wide collection of states. Inline boxes are numbered in
         // the order that they are encountered, so this should correspond to the order they
@@ -1040,12 +1043,6 @@ impl InlineFormattingContextLayout<'_> {
             Some(inline_box_state) => inline_box_state,
             None => return, // We are at the root.
         };
-        if inline_box_state.should_clone_pbm() {
-            self.cloneable_inline_box_end_pbm_size -= inline_box_state.pbm.padding.inline_end;
-            self.cloneable_inline_box_end_pbm_size -= inline_box_state.pbm.border.inline_end;
-            self.cloneable_inline_box_end_pbm_size -=
-                inline_box_state.pbm.margin.inline_end.auto_is(Au::zero);
-        }
 
         self.current_line_segment
             .max_block_size
@@ -1059,20 +1056,21 @@ impl InlineFormattingContextLayout<'_> {
             self.propagate_current_nesting_level_white_space_style();
         }
 
-        let padding = inline_box_state.pbm.padding.inline_end;
-        let border = inline_box_state.pbm.border.inline_end;
-        let margin = inline_box_state.pbm.margin.inline_end.auto_is(Au::zero);
-        // We can't just check if the sum is zero because the margin can be negative,
-        // we need to check the values separately.
-        if !padding.is_zero() || !border.is_zero() || !margin.is_zero() {
+        if inline_box_state.has_pbm_inline_end() {
             self.current_line_segment.has_inline_pbm = true;
         }
-        self.current_line_segment.inline_size += padding + border + margin;
+
+        let pbm_inline_end = inline_box_state.pbm_inline_end();
+        self.current_line_segment.inline_size += pbm_inline_end;
+
+        if inline_box_state.should_clone_pbm() {
+            self.cloneable_inline_box_pbm_size.start -= inline_box_state.pbm_inline_start();
+            self.cloneable_inline_box_pbm_size.end -= pbm_inline_end;
+        }
+
         self.current_line_segment
             .line_items
-            .push(LineItem::InlineEndBoxPaddingBorderMargin(
-                inline_box_state.identifier,
-            ));
+            .push(LineItem::InlineEndBoxPaddingBorderMargin(inline_box_state));
     }
 
     fn finish_last_line(&mut self) {
@@ -1109,17 +1107,14 @@ impl InlineFormattingContextLayout<'_> {
         self.possibly_push_empty_text_run_to_line_for_text_caret();
 
         let whitespace_trimmed = self.current_line.trim_trailing_whitespace();
-        // At the end of a line, we need to insert any paddings, borders or margins that might need to be
-        // duplicated due to box-decoration-break
+
+        // Add space for any cloneable padding, border, and margin ends that will
+        // be drawn for this line.
         if !self.current_line.for_block_level {
-            for inline_box in self.inline_box_state_stack.iter().rev() {
-                if inline_box.should_clone_pbm() {
-                    self.current_line_segment.line_items.push(
-                        LineItem::InlineEndBoxPaddingBorderMargin(inline_box.identifier),
-                    );
-                }
-            }
+            self.current_line.inline_position +=
+                self.current_line.cloneable_inline_box_pbm_size.end;
         }
+
         let (inline_start_position, justification_adjustment) = self
             .calculate_current_line_inline_start_and_justification_adjustment(
                 whitespace_trimmed,
@@ -1187,16 +1182,14 @@ impl InlineFormattingContextLayout<'_> {
         );
         self.current_line.for_block_level = for_block_level;
 
-        // At the start of the next line, we need to insert any paddings, borders or margins that might need to be
-        // duplicated due to box-decoration-break
-        if !for_block_level {
-            for inline_box in self.inline_box_state_stack.iter() {
-                if inline_box.should_clone_pbm() {
-                    self.current_line_segment.line_items.push(
-                        LineItem::InlineStartBoxPaddingBorderMargin(inline_box.identifier),
-                    );
-                }
-            }
+        // Preserve the current state of the cloneable inline box PBM size.
+        self.current_line.cloneable_inline_box_pbm_size =
+            line_to_layout.cloneable_inline_box_pbm_size;
+        // Reserve space for any cloned inline box starts that will be added to the new line, but
+        // only if this is not for a block level.
+        if !self.current_line.for_block_level {
+            self.current_line.inline_position +=
+                self.current_line.cloneable_inline_box_pbm_size.start;
         }
 
         if !line_to_layout.for_block_level {
@@ -1569,7 +1562,7 @@ impl InlineFormattingContextLayout<'_> {
         // Otherwise the new potential line size will require a newline if it fits in the
         // inline space available for this line. This space may be smaller than the
         // containing block if floats shrink the available inline space.
-        potential_line_size.inline + self.cloneable_inline_box_end_pbm_size >
+        potential_line_size.inline + self.cloneable_inline_box_pbm_size.end >
             available_line_space.inline
     }
 
@@ -1819,6 +1812,10 @@ impl InlineFormattingContextLayout<'_> {
     /// Commit the current unbreakable segment to the current line. In addition, this will
     /// place all floats in the unbreakable segment and expand the line dimensions.
     fn commit_current_segment_to_line(&mut self) {
+        // Take a snapshot of the IFC layout's current cloneable PBM. This ensures that the
+        // line reflects the reality of *only* the committed segments.
+        self.current_line.cloneable_inline_box_pbm_size = self.cloneable_inline_box_pbm_size;
+
         // The line segments might have no items and have content after processing a forced
         // linebreak on an empty line.
         if self.current_line_segment.line_items.is_empty() && !self.current_line_segment.has_content
@@ -2113,7 +2110,7 @@ impl InlineFormattingContext {
                 self.default_font.clone(),
             ),
             inline_box_state_stack: Vec::new(),
-            cloneable_inline_box_end_pbm_size: Au::zero(),
+            cloneable_inline_box_pbm_size: Default::default(),
             inline_box_states: Vec::with_capacity(self.inline_boxes.len()),
             current_line_segment: UnbreakableSegmentUnderConstruction::new(),
             force_line_break_before_new_content: false,

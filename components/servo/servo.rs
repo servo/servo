@@ -8,6 +8,7 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::Duration;
 
+use accesskit::ActionRequest;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
@@ -1114,6 +1115,19 @@ impl Servo {
 
     pub fn site_data_manager(&self) -> &SiteDataManager {
         &self.0.site_data_manager
+    }
+
+    /// When an [`ActionRequest`] is received from AccessKit, forward it to the appropriate document
+    /// to fulfill the action in the request.
+    ///
+    /// For example, if an AccessKit adapter sends a request for an [`accesskit::Action::Click`]
+    /// with a particular [`accesskit::TreeId`] and [`accesskit::NodeId`], determine which document
+    /// contains the tree matching the [`accesskit::TreeId`] and forward the [`ActionRequest`]
+    /// there, so that it can find the appropriate node to take the click action on.
+    pub fn forward_accessibility_action(&self, action_request: ActionRequest) {
+        self.0.constellation_proxy.send(
+            EmbedderToConstellationMessage::ForwardAccessibilityAction(action_request),
+        );
     }
 
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {
