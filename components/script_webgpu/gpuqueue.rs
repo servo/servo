@@ -25,6 +25,7 @@ use script_bindings::codegen::GenericUnionTypes::{
     ImageBitmapOrImageDataOrHTMLImageElementOrHTMLVideoElementOrHTMLCanvasElementOrOffscreenCanvas as GPUCopyExternalImageSource,
     RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict as GPUExtent3D,
 };
+use script_bindings::dom::MutNullableDom;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
@@ -34,7 +35,6 @@ use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{COPY_BUFFER_ALIGNMENT, TextureFormat, WebGPU, WebGPUQueue, WebGPURequest};
 
 use crate::JSTraceable;
-use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::str::USVString;
 use crate::gpubuffer::GPUBuffer;
 use crate::gpucommandbuffer::GPUCommandBuffer;
@@ -52,7 +52,7 @@ pub struct GPUQueue<D: DomTypes> {
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
-    device: DomRefCell<Option<Dom<GPUDevice<D>>>>,
+    device: MutNullableDom<GPUDevice<D>>,
     label: DomRefCell<USVString>,
     #[no_trace]
     queue: WebGPUQueue,
@@ -63,7 +63,7 @@ impl<D: Equivalence> GPUQueue<D> {
         GPUQueue {
             channel,
             reflector_: Reflector::new(),
-            device: DomRefCell::new(None),
+            device: MutNullableDom::new(None),
             label: DomRefCell::new(USVString::default()),
             queue,
         }
@@ -85,8 +85,8 @@ impl<D: Equivalence> GPUQueue<D> {
 }
 
 impl<D: Equivalence> GPUQueue<D> {
-    pub(crate) fn set_device(&self, no_gc: &NoGC, device: &GPUDevice<D>) {
-        *self.device.safe_borrow_mut(no_gc) = Some(Dom::from_ref(device));
+    pub(crate) fn set_device(&self, device: &GPUDevice<D>) {
+        self.device.set(Some(device));
     }
 
     pub(crate) fn id(&self) -> WebGPUQueue {
@@ -121,7 +121,7 @@ where
         self.channel
             .0
             .send(WebGPURequest::Submit {
-                device_id: self.device.borrow().as_ref().unwrap().id().0,
+                device_id: self.device.get().unwrap().id().0,
                 queue_id: self.queue.0,
                 command_buffers,
             })
@@ -179,7 +179,7 @@ where
             &get_buffer_source_slice(&data, cx.no_gc())[byte_start..byte_end],
         );
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
-            device_id: self.device.borrow().as_ref().unwrap().id().0,
+            device_id: self.device.get().unwrap().id().0,
             queue_id: self.queue.0,
             buffer_id: buffer.id().0,
             buffer_offset,
@@ -218,7 +218,7 @@ where
         let final_data = GenericSharedMemory::from_bytes(bytes);
 
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {
-            device_id: self.device.borrow().as_ref().unwrap().id().0,
+            device_id: self.device.get().unwrap().id().0,
             queue_id: self.queue.0,
             texture_cv,
             data_layout: texture_layout,
@@ -384,7 +384,7 @@ where
             .channel
             .0
             .send(WebGPURequest::CopyExternalImageToTexture {
-                device_id: self.device.borrow().as_ref().unwrap().id().0,
+                device_id: self.device.get().unwrap().id().0,
                 queue_id: self.queue.0,
                 usable_source: usable_snapshot,
                 destination: destination_tex_info,

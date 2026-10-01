@@ -10,6 +10,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+use script_bindings::dom::MutNullableDom;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::str::DOMString;
@@ -108,7 +109,7 @@ impl TextInputWidget {
 pub(crate) struct TextInputWidgetShadowTree {
     inner_container: Dom<Element>,
     text_container: Dom<Element>,
-    placeholder_container: DomRefCell<Option<Dom<Element>>>,
+    placeholder_container: MutNullableDom<Element>,
 }
 
 impl TextInputWidgetShadowTree {
@@ -140,7 +141,7 @@ impl TextInputWidgetShadowTree {
         Self {
             inner_container: inner_container.as_traced(),
             text_container: text_container.as_traced(),
-            placeholder_container: DomRefCell::new(None),
+            placeholder_container: MutNullableDom::new(None),
         }
     }
 
@@ -151,8 +152,8 @@ impl TextInputWidgetShadowTree {
         cx: &mut JSContext,
         element: &impl TextControlElement,
     ) -> Option<DomRoot<Element>> {
-        if let Some(placeholder_container) = &*self.placeholder_container.borrow() {
-            return Some(placeholder_container.as_rooted());
+        if let Some(placeholder_container) = self.placeholder_container.get() {
+            return Some(placeholder_container);
         }
         // If there is no placeholder text and we haven't already created one then it is
         // not necessary to initialize a new placeholder container.
@@ -169,7 +170,7 @@ impl TextInputWidgetShadowTree {
             PseudoElement::Placeholder,
             true,
         );
-        *self.placeholder_container.borrow_mut() = Some(placeholder_container.as_traced());
+        self.placeholder_container.set(Some(&*placeholder_container));
         Some(placeholder_container)
     }
 
