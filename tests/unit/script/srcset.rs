@@ -7,7 +7,7 @@ use script::test::srcset::{Descriptor, ImageSource, parse_a_srcset_attribute};
 #[test]
 fn no_value() {
     let new_vec = Vec::new();
-    assert_eq!(parse_a_srcset_attribute(" "), new_vec);
+    assert_eq!(parse_a_srcset_attribute(" ").as_slice(), new_vec);
 }
 
 #[test]
@@ -21,7 +21,10 @@ fn width_one_value() {
         descriptor: first_descriptor,
     };
     let sources = &[first_imagesource];
-    assert_eq!(parse_a_srcset_attribute("small-image.jpg 320w"), sources);
+    assert_eq!(
+        parse_a_srcset_attribute("small-image.jpg 320w").as_slice(),
+        sources
+    );
 }
 
 #[test]
@@ -44,7 +47,7 @@ fn width_two_value() {
     };
     let sources = &[first_imagesource, second_imagesource];
     assert_eq!(
-        parse_a_srcset_attribute("small-image.jpg 320w, medium-image.jpg 480w"),
+        parse_a_srcset_attribute("small-image.jpg 320w, medium-image.jpg 480w").as_slice(),
         sources
     );
 }
@@ -81,7 +84,8 @@ fn width_three_value() {
             "smallImage.jpg 320w,
                                         mediumImage.jpg 480w,
                                         largeImage.jpg 800w"
-        ),
+        )
+        .as_slice(),
         sources
     );
 }
@@ -97,7 +101,10 @@ fn density_value() {
         descriptor: first_descriptor,
     };
     let sources = &[first_imagesource];
-    assert_eq!(parse_a_srcset_attribute("small-image.jpg 1x"), sources);
+    assert_eq!(
+        parse_a_srcset_attribute("small-image.jpg 1x").as_slice(),
+        sources
+    );
 }
 
 #[test]
@@ -111,7 +118,10 @@ fn without_descriptor() {
         descriptor: first_descriptor,
     };
     let sources = &[first_imagesource];
-    assert_eq!(parse_a_srcset_attribute("small-image.jpg"), sources);
+    assert_eq!(
+        parse_a_srcset_attribute("small-image.jpg").as_slice(),
+        sources
+    );
 }
 
 // Does not parse an ImageSource when both width and density descriptor present
@@ -119,7 +129,7 @@ fn without_descriptor() {
 fn two_descriptor() {
     let empty_vec = Vec::new();
     assert_eq!(
-        parse_a_srcset_attribute("small-image.jpg 320w 1.1x"),
+        parse_a_srcset_attribute("small-image.jpg 320w 1.1x").as_slice(),
         empty_vec
     );
 }
@@ -135,7 +145,10 @@ fn decimal_descriptor() {
         descriptor: first_descriptor,
     };
     let sources = &[first_imagesource];
-    assert_eq!(parse_a_srcset_attribute("small-image.jpg 2.2x"), sources);
+    assert_eq!(
+        parse_a_srcset_attribute("small-image.jpg 2.2x").as_slice(),
+        sources
+    );
 }
 
 #[test]
@@ -158,7 +171,7 @@ fn different_descriptor() {
     };
     let sources = &[first_imagesource, second_imagesource];
     assert_eq!(
-        parse_a_srcset_attribute("small-image.jpg 320w, medium-image.jpg 2.2x"),
+        parse_a_srcset_attribute("small-image.jpg 320w, medium-image.jpg 2.2x").as_slice(),
         sources
     );
 }
