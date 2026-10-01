@@ -130,7 +130,7 @@ where
                 // pointer we can leak.
                 // We additionally need to Box to get a thin pointer.
                 let cloned_callback = Box::new(wrapped_callback.clone());
-                let sender_clone_addr = Box::leak(cloned_callback) as *mut _ as usize;
+                let sender_clone_addr = Box::into_raw(cloned_callback) as *mut _ as usize;
                 s.serialize_newtype_variant("CallbackSetter", 1, "InProcess", &sender_clone_addr)
             },
         }
