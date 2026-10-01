@@ -397,10 +397,9 @@
           assert_unreached('touchend event not received');
         }
 
-        // Check event ordering TA: 1.6.2
         assert_array_equals(
             events,
-            ["target0:touchstart", "target0:touchmove", "target0:touchend"],
+            ["target0:touchstart", "target0:touchmove", "target0:touchmove", "target0:touchend"],
             "unexpected event ordering");
 
       }, 'Verify touch events for a single touch drag operation');
