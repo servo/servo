@@ -230,7 +230,7 @@ impl SystemFontService {
         for_each_available_family(|family_name| {
             self.local_families
                 .families
-                .entry(family_name.as_str().into())
+                .entry(family_name.into())
                 .or_default();
         });
     }

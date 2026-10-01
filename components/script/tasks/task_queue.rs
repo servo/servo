@@ -132,7 +132,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
         // 4. Filter tasks from non-priority task-sources.
         // TODO: This can use `extract_if` once that is stabilized.
-        let mut to_be_throttled = Vec::new();
+        let mut to_be_throttled = Vec::with_capacity(incoming.len());
         let mut index = 0;
         while index != incoming.len() {
             index += 1; // By default we go to the next index of the vector.
