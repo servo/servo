@@ -6,7 +6,7 @@ use std::cell::Ref;
 use std::ops::{Add, Div};
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
@@ -23,8 +23,10 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
-use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits};
+use crate::dom::node::{BindContext, ChildrenMutation, Node};
 use crate::dom::nodelist::NodeList;
+use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::UAShadowRoot;
 
 #[dom_struct]
 pub(crate) struct HTMLMeterElement {
@@ -38,6 +40,25 @@ pub(crate) struct HTMLMeterElement {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ShadowTree {
     meter_value: Dom<Element>,
+}
+
+impl UAShadowRoot<ShadowTree> for HTMLMeterElement {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        let container = self.create_element_in_ua_shadowroot(cx, local_name!("div"));
+
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(cx, container.upcast::<Node>())
+            .expect("Must always be able to append to shadow root");
+
+        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
+            meter_value: container.as_traced(),
+        });
+    }
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>> {
+        self.shadow_tree.borrow()
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#the-meter-element>
@@ -69,40 +90,6 @@ impl HTMLMeterElement {
             document,
             proto,
         )
-    }
-
-    fn create_shadow_tree(&self, cx: &mut JSContext) {
-        let document = self.owner_document();
-        let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
-
-        let meter_value = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &document,
-            crate::dom::element::ElementCreator::ScriptCreated,
-            crate::dom::element::CustomElementCreationMode::Asynchronous,
-            None,
-        );
-        root.upcast::<Node>()
-            .AppendChild(cx, meter_value.upcast::<Node>())
-            .unwrap();
-
-        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
-            meter_value: meter_value.as_traced(),
-        });
-        self.upcast::<Node>()
-            .dirty(cx.no_gc(), crate::dom::node::NodeDamage::Other);
-    }
-
-    fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree> {
-        if !self.upcast::<Element>().is_shadow_host() {
-            self.create_shadow_tree(cx);
-        }
-
-        Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
-            .ok()
-            .expect("UA shadow tree was not created")
     }
 
     fn update_state(&self, cx: &mut JSContext) {

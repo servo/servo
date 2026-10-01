@@ -6,3 +6,4 @@ pub(crate) use self::shadowroot::*;
 
 #[allow(clippy::module_inception, reason = "The interface name is ShadowRoot")]
 pub(crate) mod shadowroot;
+pub(crate) mod ua_shadowroot;

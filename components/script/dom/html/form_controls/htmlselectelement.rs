@@ -5,11 +5,20 @@
 use std::default::Default;
 use std::iter;
 
+use dom_struct::dom_struct;
+use embedder_traits::{EmbedderControlRequest, SelectElementRequest};
+use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
+use html5ever::{local_name, LocalName, Prefix};
+use js::context::{JSContext, NoGC};
+use js::rust::HandleObject;
+use script_bindings::cell::{DomRefCell, Ref};
+use script_bindings::dom::UnrootedDom;
+use style::attr::AttrValue;
+use stylo_dom::ElementState;
+
 use crate::dom::activation::Activatable;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::iterators::ShadowIncluding;
-use script_bindings::cell::{DomRefCell, Ref};
-use script_bindings::dom::UnrootedDom;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -30,7 +39,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
-use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
@@ -43,19 +52,13 @@ use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits,  UnbindContext};
 use crate::dom::nodelist::NodeList;
+use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::UAShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::types::FocusEvent;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::node::virtualmethods::VirtualMethods;
-use dom_struct::dom_struct;
-use embedder_traits::{EmbedderControlRequest, SelectElementRequest};
-use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
-use html5ever::{local_name, ns, LocalName, Prefix, QualName};
-use js::context::{JSContext, NoGC};
-use js::rust::HandleObject;
-use style::attr::AttrValue;
-use stylo_dom::ElementState;
 
 const DEFAULT_SELECT_SIZE: u32 = 0;
 
@@ -140,6 +143,51 @@ pub(crate) struct HTMLSelectElement {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ShadowTree {
     selected_option: Dom<Text>,
+}
+
+impl UAShadowRoot<ShadowTree> for HTMLSelectElement {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        let document = self.owner_document();
+
+        let select_box = self.create_element_in_ua_shadowroot(cx, local_name!("div"));
+        select_box.set_string_attribute(cx, &local_name!("style"), SELECT_BOX_STYLE.into());
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(cx, select_box.upcast::<Node>())
+            .unwrap();
+
+        let text_container = self.create_element_in_ua_shadowroot(cx, local_name!("div"));
+        text_container.set_string_attribute(cx, &local_name!("style"), TEXT_CONTAINER_STYLE.into());
+        select_box
+            .upcast::<Node>()
+            .AppendChild(cx, text_container.upcast::<Node>())
+            .unwrap();
+
+        let text = Text::new(cx, DOMString::new(), &document);
+        text_container
+            .upcast::<Node>()
+            .AppendChild(cx, text.upcast::<Node>())
+            .unwrap();
+
+        let chevron_container = self.create_element_in_ua_shadowroot(cx, local_name!("div"));
+        chevron_container.set_string_attribute(
+            cx,
+            &local_name!("style"),
+            CHEVRON_CONTAINER_STYLE.into(),
+        );
+        select_box
+            .upcast::<Node>()
+            .AppendChild(cx, chevron_container.upcast::<Node>())
+            .unwrap();
+
+        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
+            selected_option: text.as_traced(),
+        });
+    }
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>> {
+        self.shadow_tree.borrow()
+    }
 }
 
 impl HTMLSelectElement {
@@ -294,79 +342,6 @@ impl HTMLSelectElement {
         } else {
             self.Size()
         }
-    }
-
-    fn create_shadow_tree(&self, cx: &mut JSContext) {
-        let document = self.owner_document();
-        let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
-
-        let select_box = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &document,
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
-        select_box.set_string_attribute(cx, &local_name!("style"), SELECT_BOX_STYLE.into());
-
-        let text_container = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &document,
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
-        text_container.set_string_attribute(cx, &local_name!("style"), TEXT_CONTAINER_STYLE.into());
-        select_box
-            .upcast::<Node>()
-            .AppendChild(cx, text_container.upcast::<Node>())
-            .unwrap();
-
-        let text = Text::new(cx, DOMString::new(), &document);
-        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
-            selected_option: text.as_traced(),
-        });
-        text_container
-            .upcast::<Node>()
-            .AppendChild(cx, text.upcast::<Node>())
-            .unwrap();
-
-        let chevron_container = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &document,
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
-        chevron_container.set_string_attribute(
-            cx,
-            &local_name!("style"),
-            CHEVRON_CONTAINER_STYLE.into(),
-        );
-        select_box
-            .upcast::<Node>()
-            .AppendChild(cx, chevron_container.upcast::<Node>())
-            .unwrap();
-
-        root.upcast::<Node>()
-            .AppendChild(cx, select_box.upcast::<Node>())
-            .unwrap();
-    }
-
-    fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree> {
-        if !self.upcast::<Element>().is_shadow_host() {
-            self.create_shadow_tree(cx);
-        }
-
-        Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
-            .ok()
-            .expect("UA shadow tree was not created")
     }
 
     pub(crate) fn update_shadow_tree(&self, cx: &mut JSContext) {
