@@ -1411,7 +1411,7 @@ impl InlineFormattingContextLayout<'_> {
     fn place_float_line_item_for_commit_to_line(
         &mut self,
         float_item: &mut FloatLineItem,
-        hypothetical_line_length: Au,
+        potential_line_length: Au,
     ) {
         let containing_block = self.containing_block();
         let float_fragment = &float_item.fragment;
@@ -1424,7 +1424,7 @@ impl InlineFormattingContextLayout<'_> {
         let available_inline_size = match self.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
             None => containing_block.size.inline,
-        } - hypothetical_line_length;
+        } - potential_line_length;
 
         // If this float doesn't fit on the current line or a previous float didn't fit on
         // the current line, we need to place it starting at the next line BUT still as
@@ -1448,7 +1448,7 @@ impl InlineFormattingContextLayout<'_> {
         // placement among floats for the current line, which may adjust its inline
         // start position.
         let new_placement = self.place_line_among_floats(&LogicalVec2 {
-            inline: hypothetical_line_length,
+            inline: potential_line_length,
             block: self.current_line.max_block_size.resolve(),
         });
         self.current_line
@@ -1782,11 +1782,11 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     fn unbreakable_segment_fits_on_line(&mut self) -> bool {
-        let mut hypothetical_line_length = self.potential_line_size();
-        hypothetical_line_length.inline += self.cloneable_inline_box_pbm_size.end -
+        let mut potential_line_size = self.potential_line_size();
+        potential_line_size.inline += self.cloneable_inline_box_pbm_size.end -
             self.current_line_segment.trailing_whitespace_size -
             self.current_line_segment.trailing_inline_box_start_size();
-        !self.new_potential_line_size_causes_line_break(&hypothetical_line_length)
+        !self.new_potential_line_size_causes_line_break(&potential_line_size)
     }
 
     /// After a line break triggered by a soft wrap opportunity, any trailing opening
@@ -1795,25 +1795,27 @@ impl InlineFormattingContextLayout<'_> {
     /// inline box items from the line to the segment (which will be part of the next
     /// line).
     fn rewind_trailing_inline_box_starts(&mut self) {
-        while let Some(last) = self.current_line.line_items.last() &&
-            let LineItem::InlineStartBoxPaddingBorderMargin(state) = last
-        {
-            let state = state.clone();
+        let mut removal_start = self.current_line.line_items.len();
+        for item in self.current_line.line_items.iter().rev() {
+            let LineItem::InlineStartBoxPaddingBorderMargin(state) = item else {
+                break;
+            };
+
+            removal_start -= 1;
+
             let inline_start = state.pbm_inline_start();
             self.current_line.inline_position -= inline_start;
-            self.current_line.line_items.pop();
+            self.current_line_segment.inline_size += inline_start;
 
             if state.should_clone_pbm() {
                 self.current_line.cloneable_inline_box_pbm_size.start -= inline_start;
                 self.current_line.cloneable_inline_box_pbm_size.end -= state.pbm_inline_end();
             }
-
-            let segment = &mut self.current_line_segment;
-            segment
-                .line_items
-                .insert(0, LineItem::InlineStartBoxPaddingBorderMargin(state));
-            segment.inline_size += inline_start;
         }
+
+        self.current_line_segment
+            .line_items
+            .splice(0..0, self.current_line.line_items.drain(removal_start..));
     }
 
     /// Process a soft wrap opportunity. This will either commit the current unbreakable
@@ -1859,7 +1861,7 @@ impl InlineFormattingContextLayout<'_> {
             .current_line_max_block_size_including_nested_containers()
             .max(&self.current_line_segment.max_block_size);
 
-        let hypothetical_line_length = self.current_line.inline_position -
+        let potential_line_length = self.current_line.inline_position -
             self.current_line_segment.trailing_whitespace_size -
             self.current_line_segment.trailing_inline_box_start_size() +
             self.current_line.cloneable_inline_box_pbm_size.end;
@@ -1872,7 +1874,7 @@ impl InlineFormattingContextLayout<'_> {
         };
         for item in segment_items.iter_mut() {
             if let LineItem::Float(_, float_item) = item {
-                self.place_float_line_item_for_commit_to_line(float_item, hypothetical_line_length);
+                self.place_float_line_item_for_commit_to_line(float_item, potential_line_length);
             }
         }
 
@@ -1882,7 +1884,7 @@ impl InlineFormattingContextLayout<'_> {
         // break because it is the first content on the line.
         if self.current_line.line_items.is_empty() {
             let will_break = self.new_potential_line_size_causes_line_break(&LogicalVec2 {
-                inline: hypothetical_line_length,
+                inline: potential_line_length,
                 block: self.current_line_segment.max_block_size.resolve(),
             });
             assert!(!will_break);
@@ -3127,9 +3129,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         // Handle the line break for min-content sizes.
         self.line_break_opportunity();
 
-        // Repeat the same logic, but now for max-content sizes.
+        // Repeat the same logic as `line_break_opportunity()`, but now for max-content sizes.
         self.pending_whitespace.max_content = Au::zero();
-
         let current_max_content = mem::take(&mut self.current_line.max_content);
         self.paragraph.max_content.max_assign(current_max_content);
         self.had_content_yet_for_max_content = false;
