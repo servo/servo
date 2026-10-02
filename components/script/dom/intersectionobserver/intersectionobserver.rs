@@ -433,6 +433,7 @@ impl IntersectionObserver {
     fn disconnect_from_owner(&self) {
         if self.connected_to_document.get() {
             self.owner_doc.remove_intersection_observer(self);
+            self.connected_to_document.set(false);
         }
     }
 
