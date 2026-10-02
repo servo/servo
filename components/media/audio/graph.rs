@@ -593,12 +593,7 @@ impl AudioGraph {
     /// >             quantum when in a cycle.
     /// >       7. If nodes contains cycles, mute all the AudioNodes that are part of this cycle, and
     /// >          remove them from nodes.
-    fn detect_nodes_in_cycles(
-        &mut self,
-    ) -> (
-        FxHashSet<NodeIndex<DefaultIx>>,
-        Vec<(Box<DelayNode>, NodeId, NodeId)>,
-    ) {
+    fn detect_nodes_in_cycles(&mut self) -> (FxHashSet<NodeIndex<DefaultIx>>, Vec<CycleBreaker>) {
         let mut cycle_nodes = FxHashSet::default();
         let mut cycle_breakers = Vec::default();
         let mut has_cycle_breakers = false;

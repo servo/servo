@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::f32::consts::PI as PI32;
 use std::f64::consts::PI;
-use std::any::Any;
 
 use euclid::default::Vector3D;
 use malloc_size_of_derive::MallocSizeOf;

@@ -58,21 +58,9 @@ impl DelayReader {
         }
     }
 
-    /// <https://webaudio.github.io/web-audio-api/#dom-delaynode-delaytime>
-    /// If DelayNode is part of a cycle, then the value of the delayTime attribute is clamped
-    /// to a minimum of one render quantum.
     fn update_parameters(&mut self, info: &BlockInfo, tick: Tick) -> bool {
         let updated = self.delay_time.update(info, tick);
-        // TODO: Param needs to handle min and max value correctly, so that it updates with the
-        // minimum value clamped at render quantum instead of clamping here
-        let delay_time = if self.is_cycle_breaker {
-            self.delay_time
-                .value()
-                .max(FRAMES_PER_BLOCK_USIZE as f32 / info.sample_rate)
-        } else {
-            self.delay_time.value()
-        };
-        self.update_delay_frames(tick.0 as usize, delay_time * info.sample_rate);
+        self.update_delay_frames(tick.0 as usize, self.delay_time.value() * info.sample_rate);
         updated
     }
 
@@ -268,6 +256,13 @@ impl AudioNodeEngine for DelayReader {
     }
 
     fn process(&mut self, _inputs: Chunk, info: &BlockInfo) -> Chunk {
+        // <https://webaudio.github.io/web-audio-api/#dom-delaynode-delaytime>
+        // If DelayNode is part of a cycle, then the value of the delayTime attribute is clamped
+        // to a minimum of one render quantum.
+        if self.is_cycle_breaker {
+            self.delay_time
+                .set_range_minimum(FRAMES_PER_BLOCK_USIZE as f32 / info.sample_rate);
+        }
         // Update the accessed_first lock
         self.update_accessed_first();
         // Reset the delay frames array
