@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::str::FromStr;
+use std::sync::Arc;
 
 use bytes::{Bytes, BytesMut};
 use cssparser::match_ignore_ascii_case;
@@ -78,7 +79,7 @@ pub(crate) struct LinkProcessingOptions {
     /// <https://html.spec.whatwg.org/multipage/#link-options-referrer-policy>
     pub(crate) referrer_policy: ReferrerPolicy,
     /// <https://html.spec.whatwg.org/multipage/#link-options-policy-container>
-    pub(crate) policy_container: PolicyContainer,
+    pub(crate) policy_container: Arc<PolicyContainer>,
     /// <https://html.spec.whatwg.org/multipage/#link-options-source-set>
     pub(crate) source_set: Option<SourceSet>,
     /// <https://html.spec.whatwg.org/multipage/#link-options-base-url>
@@ -412,7 +413,7 @@ pub(crate) fn process_link_headers(
             cryptographic_nonce_metadata: String::new(),
             cross_origin: None,
             referrer_policy: ReferrerPolicy::EmptyString,
-            policy_container: document.policy_container().to_owned(),
+            policy_container: document.policy_container().clone(),
             source_set: None,
             origin: document.origin().immutable().to_owned(),
             base_url: document.base_url(),
