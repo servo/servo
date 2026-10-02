@@ -158,7 +158,7 @@ impl VirtualMethods for HTMLSourceElement {
             parent
                 .downcast::<HTMLMediaElement>()
                 .unwrap()
-                .handle_source_child_insertion(self, cx);
+                .handle_source_child_insertion(cx, self);
         }
 
         // Step 3. If parent is a picture element, then for each child of parent's children, if
