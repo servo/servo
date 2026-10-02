@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::OnceCell;
+
 use html5ever::{LocalName, Namespace, local_name, ns};
 use js::context::JSContext;
 use servo_arc::Arc as ServoArc;
@@ -12,7 +14,43 @@ use crate::dom::bindings::codegen::UnionTypes::{TrustedHTMLOrString, TrustedScri
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::element::Element;
 use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::element::storage::{AttrValueRef, AttributesBorrow};
 use crate::dom::node::NodeTraits;
+
+/// A reference to an attribute value as `&str`. Keeps the borrow alive.
+pub(crate) struct AttrStrRef<'a> {
+    attributes_borrow: AttributesBorrow<'a>,
+    position: usize,
+    inner_attr: OnceCell<AttrRef<'a>>,
+}
+
+impl<'a> AttrStrRef<'a> {
+    /// Create a new [`AttrStrRef`] from localname.
+    pub(crate) fn maybe_new(
+        attrs: AttributesBorrow<'a>,
+        namespace: &Namespace,
+        local_name: &LocalName,
+    ) -> Option<AttrStrRef<'a>> {
+        attrs
+            .clone()
+            .iter()
+            .position(|attribute| {
+                attribute.local_name() == local_name && attribute.namespace() == namespace
+            })
+            .map(|position| AttrStrRef {
+                attributes_borrow: attrs,
+                position,
+                inner_attr: OnceCell::new(),
+            })
+    }
+
+    pub(crate) fn as_attr_ref(&'a self) -> AttrValueRef<'a> {
+        self.inner_attr
+            .get_or_init(|| self.attributes_borrow.get(self.position).unwrap())
+            .clone()
+            .value()
+    }
+}
 
 impl Element {
     /// Callers should convert the `LocalName` to ASCII lowercase before calling.
@@ -27,6 +65,17 @@ impl Element {
         );
 
         self.get_attribute_string_value_with_namespace(&ns!(), local_name)
+    }
+
+    /// This returns an attribute reference that can be seen as a `&str`. This keeps the borrow on attributes alive.
+    /// Callers should convert the `LocalName` to ASCII lowercase before calling.
+    pub(crate) fn get_attribute_string_ref(&self, local_name: &LocalName) -> Option<AttrStrRef> {
+        debug_assert_eq!(
+            *local_name,
+            local_name.to_ascii_lowercase(),
+            "All namespace-less attribute accesses should use a lowercase ASCII name"
+        );
+        self.attribute_str_ref(&ns!(), local_name)
     }
 
     pub(crate) fn get_attribute_string_value_with_namespace(
