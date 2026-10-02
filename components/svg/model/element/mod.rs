@@ -14,7 +14,7 @@ use crate::model::style::NodeStyle;
 use crate::model::transform::TransformOp;
 use crate::model::units::Id;
 
-// A single node in SvgTree.
+/// A single node in SvgTree.
 pub struct SvgNode {
     pub id: Option<Id>,
     pub tag: SvgTag,
