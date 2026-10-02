@@ -356,10 +356,10 @@ impl DocumentOrShadowRoot {
 
         match insertion_point {
             Some(ip) => {
-                stylesheets.insert_stylesheet_before(None, sheet, ip, &guard);
+                stylesheets.insert_stylesheet_before(sheet, ip, &guard);
             },
             None => {
-                stylesheets.append_stylesheet(None, sheet, &guard);
+                stylesheets.append_stylesheet(sheet, &guard);
             },
         }
     }

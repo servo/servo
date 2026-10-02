@@ -1014,7 +1014,7 @@ impl AccessibilityNode {
         {
             let data = dom_element.element_data();
             let style = data.styles.primary();
-            if style.clone_display().is_none() {
+            if style.get_display().is_none() {
                 self.clear_bounds();
                 local_damage.insert(self.set_hidden());
             } else {

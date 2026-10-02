@@ -418,7 +418,7 @@ impl InlineFormattingContextBuilder {
         let original_size_before = offset_map.total_original_size();
 
         let bidi_class_map = CodePointMapData::<BidiClass>::new();
-        let white_space_collapse = info.style.clone_white_space_collapse();
+        let white_space_collapse = info.style.get_white_space_collapse();
         let mut character_count = Utf32CodeUnits(0);
         let mut new_text = String::with_capacity(text.len());
         for iteration in TextTransformationIterator::new(
@@ -464,7 +464,7 @@ impl InlineFormattingContextBuilder {
         if let Some(last_character) = new_text.chars().next_back() {
             self.on_word_boundary = last_character.is_whitespace();
             self.last_inline_box_ended_with_collapsible_white_space =
-                self.on_word_boundary && white_space_collapse != WhiteSpaceCollapse::Preserve;
+                self.on_word_boundary && white_space_collapse != &WhiteSpaceCollapse::Preserve;
         }
 
         // TODO: ensure layout doesn’t handle more than 4 GiB at a time?

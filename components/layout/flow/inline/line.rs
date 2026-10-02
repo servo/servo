@@ -633,7 +633,7 @@ impl LineItemLayout<'_, '_> {
 
         // The baseline offset that we have in `Self::baseline_offset` is relative to the line
         // baseline, so we need to make it relative to the line block start.
-        match inline_box_state.base.style.clone_baseline_shift() {
+        match inline_box_state.base.style.get_baseline_shift() {
             BaselineShift::Keyword(BaselineShiftKeyword::Top) => {
                 let line_height = line_height(style, font_metrics, &inline_box_state.base.flags);
                 (line_height - line_gap).scale_by(0.5)
@@ -1056,7 +1056,7 @@ impl AtomicLineItem {
     /// Given the metrics for a line, our vertical alignment, and our block size, find a block start
     /// position relative to the top of the line.
     fn calculate_block_start(&self, line_metrics: &LineMetrics) -> Au {
-        match self.fragment.style().clone_baseline_shift() {
+        match self.fragment.style().get_baseline_shift() {
             BaselineShift::Keyword(BaselineShiftKeyword::Top) => Au::zero(),
             BaselineShift::Keyword(BaselineShiftKeyword::Center) => {
                 (line_metrics.block_size - self.size.block).scale_by(0.5)

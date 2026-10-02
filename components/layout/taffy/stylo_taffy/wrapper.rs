@@ -41,7 +41,7 @@ impl<T: Deref<Target = ComputedValues>> taffy::CoreStyle for TaffyStyloStyle<T> 
 
     #[inline]
     fn direction(&self) -> taffy::Direction {
-        convert::direction(self.style.clone_direction())
+        convert::direction(self.style.slow_clone_direction())
     }
 
     #[inline]
@@ -284,9 +284,8 @@ impl<T: Deref<Target = ComputedValues>> taffy::GridContainerStyle for TaffyStylo
                 }))
             },
 
-            // TODO: Implement subgrid and masonry
+            // TODO: Implement subgrid
             stylo::GenericGridTemplateComponent::Subgrid(_) => None,
-            stylo::GenericGridTemplateComponent::Masonry => None,
         }
     }
 
@@ -305,9 +304,8 @@ impl<T: Deref<Target = ComputedValues>> taffy::GridContainerStyle for TaffyStylo
                 }))
             },
 
-            // TODO: Implement subgrid and masonry
+            // TODO: Implement subgrid
             stylo::GenericGridTemplateComponent::Subgrid(_) => None,
-            stylo::GenericGridTemplateComponent::Masonry => None,
         }
     }
 
@@ -366,9 +364,8 @@ impl<T: Deref<Target = ComputedValues>> taffy::GridContainerStyle for TaffyStylo
             stylo::GenericGridTemplateComponent::TrackList(list) => {
                 Some(StyloLineNameIter::new(&list.line_names))
             },
-            // TODO: Implement subgrid and masonry
+            // TODO: Implement subgrid
             stylo::GenericGridTemplateComponent::Subgrid(_) => None,
-            stylo::GenericGridTemplateComponent::Masonry => None,
         }
     }
 
@@ -378,9 +375,8 @@ impl<T: Deref<Target = ComputedValues>> taffy::GridContainerStyle for TaffyStylo
             stylo::GenericGridTemplateComponent::TrackList(list) => {
                 Some(StyloLineNameIter::new(&list.line_names))
             },
-            // TODO: Implement subgrid and masonry
+            // TODO: Implement subgrid
             stylo::GenericGridTemplateComponent::Subgrid(_) => None,
-            stylo::GenericGridTemplateComponent::Masonry => None,
         }
     }
 

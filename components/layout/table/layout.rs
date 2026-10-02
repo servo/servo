@@ -1621,7 +1621,7 @@ impl<'a> TableLayout<'a> {
         }
         impl TableWrapperSection {
             fn accepts_caption(&self, caption: &TableCaption) -> bool {
-                match caption.context.style().clone_caption_side() {
+                match caption.context.style().get_caption_side() {
                     CaptionSide::Top => *self == TableWrapperSection::TopCaptions,
                     CaptionSide::Bottom => *self == TableWrapperSection::BottomCaptions,
                 }
@@ -1702,7 +1702,7 @@ impl<'a> TableLayout<'a> {
                         .to_logical(table_writing_mode);
 
                     let caption_style = caption_fragment.style().clone();
-                    let caption_relative_offset = match caption_style.clone_position() {
+                    let caption_relative_offset = match caption_style.get_box().position {
                         Position::Relative => {
                             relative_adjustement(&caption_style, containing_block_for_children)
                         },
@@ -2316,7 +2316,7 @@ impl<'a> RowFragmentLayout<'a> {
         containing_block_for_children: &ContainingBlock,
         row_group_fragment_layout: &mut Option<RowGroupFragmentLayout>,
     ) -> Fragment {
-        if self.row.base.style.clone_position() == Position::Relative {
+        if self.row.base.style.get_box().position == Position::Relative {
             self.rect.start_corner +=
                 relative_adjustement(&self.row.base.style, containing_block_for_children);
         }
@@ -2408,7 +2408,7 @@ impl RowGroupFragmentLayout {
         containing_block_for_children: &ContainingBlock,
     ) -> Fragment {
         let row_group = self.row_group.borrow();
-        if row_group.base.style.clone_position() == Position::Relative {
+        if row_group.base.style.get_box().position == Position::Relative {
             self.rect.start_corner +=
                 relative_adjustement(&row_group.base.style, containing_block_for_children);
         }
@@ -2587,10 +2587,10 @@ impl TableAndTrackDimensions {
 
 impl Table {
     fn border_spacing(&self) -> LogicalVec2<Au> {
-        if self.style.clone_border_collapse() == BorderCollapse::Collapse {
+        if self.style.get_border_collapse() == &BorderCollapse::Collapse {
             LogicalVec2::zero()
         } else {
-            let border_spacing = self.style.clone_border_spacing();
+            let border_spacing = self.style.get_border_spacing();
             LogicalVec2 {
                 inline: border_spacing.horizontal(),
                 block: border_spacing.vertical(),

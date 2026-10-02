@@ -436,7 +436,7 @@ impl DisplayListBuilder<'_> {
 
         let mut is_blend_container = stacking_context.children.iter().any(|child| {
             child.fragment().is_some_and(|fragment| {
-                fragment.style().clone_mix_blend_mode() != ComputedMixBlendMode::Normal
+                fragment.style().get_mix_blend_mode() != &ComputedMixBlendMode::Normal
             })
         });
 
@@ -813,7 +813,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         // > vice versa. This means that a frame that contains just iframes will have first paint
         // > (due to the enclosing boxes of the iframes) but no first contentful paint.
         self.paint_timing_handler
-            .check_if_paintable(rect.to_webrender(), style.clone_opacity());
+            .check_if_paintable(rect.to_webrender(), style.slow_clone_opacity());
     }
 
     fn visit_image(
@@ -852,7 +852,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             );
 
             self.paint_timing_handler
-                .check_if_paintable(rect, style.clone_opacity());
+                .check_if_paintable(rect, style.slow_clone_opacity());
 
             // From <https://www.w3.org/TR/paint-timing/#contentful>:
             // An element target is contentful when one or more of the following apply:
@@ -1086,8 +1086,8 @@ impl Fragment {
         }
 
         let parent_style = fragment.style();
-        let color = parent_style.clone_color();
-        let font_size = parent_style.clone_font_size();
+        let color = parent_style.slow_clone_color();
+        let font_size = parent_style.get_font().font_size;
         let font_metrics = &fragment.font_metrics;
         let dppx = builder.device_pixel_ratio.get();
 
@@ -1184,7 +1184,7 @@ impl Fragment {
 
         builder
             .paint_timing_handler
-            .check_if_paintable(glyph_bounds, parent_style.clone_opacity());
+            .check_if_paintable(glyph_bounds, parent_style.slow_clone_opacity());
 
         // From <https://www.w3.org/TR/paint-timing/#contentful>:
         // An element target is contentful when one or more of the following apply:
@@ -1239,7 +1239,7 @@ impl Fragment {
         text_decoration: &FragmentTextDecoration,
         line: TextDecorationLine,
     ) {
-        if text_decoration.style == ComputedTextDecorationStyle::MozNone {
+        if text_decoration.style == ComputedTextDecorationStyle::None {
             return;
         }
 
@@ -1409,9 +1409,12 @@ impl Fragment {
             .to_webrender();
 
             let unfocused_color = *UNFOCUSED_SELECTION_COLOR;
-            let style_color = fragment.selected_style().clone_background_color();
+            let selected_style = fragment.selected_style();
             let selection_color = if builder.frame_focused {
-                style_color.as_absolute().unwrap_or(&unfocused_color)
+                selected_style
+                    .get_background_color()
+                    .as_absolute()
+                    .unwrap_or(&unfocused_color)
             } else {
                 &unfocused_color
             };
@@ -1443,10 +1446,10 @@ impl Fragment {
         )
         .to_webrender();
 
-        let color = parent_style.clone_color();
-        let caret_color = match parent_style.clone_caret_color().0 {
-            ColorOrAuto::Color(caret_color) => caret_color.resolve_to_absolute(&color),
-            ColorOrAuto::Auto => color,
+        let color = parent_style.get_color();
+        let caret_color = match parent_style.get_caret_color().0 {
+            ColorOrAuto::Color(ref caret_color) => caret_color.resolve_to_absolute(color),
+            ColorOrAuto::Auto => *color,
         };
         let insertion_point_common =
             builder.common_properties(state, insertion_point_rect, &parent_style);
@@ -1849,7 +1852,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                     builder
                         .paint_timing_handler
-                        .check_if_paintable(layer.bounds, style.clone_opacity());
+                        .check_if_paintable(layer.bounds, style.slow_clone_opacity());
                 },
                 ResolvedImage::Image { image, size } => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
@@ -1890,7 +1893,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 layer.bounds,
                                 layer.tile_size,
                                 layer.tile_spacing,
-                                style.clone_image_rendering().to_webrender(),
+                                style.get_image_rendering().to_webrender(),
                                 wr::AlphaType::PremultipliedAlpha,
                                 image_key,
                                 wr::ColorF::WHITE,
@@ -1899,7 +1902,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                             builder.wr().push_image(
                                 &layer.common,
                                 layer.bounds,
-                                style.clone_image_rendering().to_webrender(),
+                                style.get_image_rendering().to_webrender(),
                                 wr::AlphaType::PremultipliedAlpha,
                                 image_key,
                                 wr::ColorF::WHITE,
@@ -1912,7 +1915,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                         builder
                             .paint_timing_handler
-                            .check_if_paintable(layer.bounds, style.clone_opacity());
+                            .check_if_paintable(layer.bounds, style.slow_clone_opacity());
 
                         // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
                         // An element target is contentful when one or more of the following apply:
@@ -2057,8 +2060,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        let current_color = style.get_inherited_text().clone_color();
-        let style_color = BorderStyleColor::from_border(border, &current_color);
+        let current_color = style.get_inherited_text().get_color();
+        let style_color = BorderStyleColor::from_border(border, current_color);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: self.build_border_side(style_color.top),
             right: self.build_border_side(style_color.right),
@@ -2117,9 +2120,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                     return false;
                 };
 
-                builder
-                    .paint_timing_handler
-                    .check_if_paintable(Box2D::from_size(size.cast_unit()), style.clone_opacity());
+                builder.paint_timing_handler.check_if_paintable(
+                    Box2D::from_size(size.cast_unit()),
+                    style.slow_clone_opacity(),
+                );
 
                 // From <https://www.w3.org/TR/paint-timing/#contentful>:
                 // An element target is contentful when one or more of the following apply:
@@ -2129,7 +2133,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                 width = size.width;
                 height = size.height;
-                let image_rendering = style.clone_image_rendering().to_webrender();
+                let image_rendering = style.get_image_rendering().to_webrender();
                 NinePatchBorderSource::Image(key, image_rendering)
             },
             Ok(ResolvedImage::Gradient(gradient)) => {

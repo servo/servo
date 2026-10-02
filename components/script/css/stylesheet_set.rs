@@ -25,38 +25,26 @@ where
     /// Appends a new stylesheet to the current set.
     ///
     /// No device implies not computing invalidations.
-    pub(crate) fn append_stylesheet(
-        &mut self,
-        device: Option<&Device>,
-        sheet: S,
-        guard: &SharedRwLockReadGuard,
-    ) {
-        let custom_media = &CustomMediaMap::default();
+    pub(crate) fn append_stylesheet(&mut self, sheet: S, guard: &SharedRwLockReadGuard) {
         match self {
-            StylesheetSetRef::Author(set) => {
-                set.append_stylesheet(device, custom_media, sheet, guard)
-            },
-            StylesheetSetRef::Document(set) => {
-                set.append_stylesheet(device, custom_media, sheet, guard)
-            },
+            StylesheetSetRef::Author(set) => set.append_stylesheet(sheet, guard),
+            StylesheetSetRef::Document(set) => set.append_stylesheet(sheet, guard),
         }
     }
 
     /// Insert a given stylesheet before another stylesheet in the document.
     pub(crate) fn insert_stylesheet_before(
         &mut self,
-        device: Option<&Device>,
         sheet: S,
         before_sheet: S,
         guard: &SharedRwLockReadGuard,
     ) {
-        let custom_media = &CustomMediaMap::default();
         match self {
             StylesheetSetRef::Author(set) => {
-                set.insert_stylesheet_before(device, custom_media, sheet, before_sheet, guard)
+                set.insert_stylesheet_before(sheet, before_sheet, guard)
             },
             StylesheetSetRef::Document(set) => {
-                set.insert_stylesheet_before(device, custom_media, sheet, before_sheet, guard)
+                set.insert_stylesheet_before(sheet, before_sheet, guard)
             },
         }
     }

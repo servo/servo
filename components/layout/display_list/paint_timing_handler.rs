@@ -359,7 +359,7 @@ impl PaintTimingHandler {
 
             // Step 5.2. If textNode has alpha channel value <=0 or opacity
             // value <=0:
-            if record.style.clone_color().alpha <= 0.0 || record.style.clone_opacity() <= 0.0 {
+            if record.style.get_color().alpha <= 0.0 || record.style.slow_clone_opacity() <= 0.0 {
                 // Step 5.2.1. If textNode's text-shadow value is none,
                 // textNode's stroke-color value is transparent and textNode's
                 // stroke-image value is none, continue.
