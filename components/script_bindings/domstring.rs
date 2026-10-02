@@ -105,6 +105,18 @@ enum DOMStringType {
     RustStatic(&'static str),
 }
 
+impl Clone for DOMStringType {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Rust(arg0) => Self::Rust(arg0.clone()),
+            Self::JSString(rooted_box) => Self::JSString(Heap::boxed(rooted_box.get())),
+            #[cfg(test)]
+            Self::Latin1Vec(arg0) => Self::Latin1Vec(arg0.clone()),
+            Self::RustStatic(arg0) => Self::RustStatic(arg0),
+        }
+    }
+}
+
 impl Default for DOMStringType {
     fn default() -> Self {
         Self::Rust(Default::default())
