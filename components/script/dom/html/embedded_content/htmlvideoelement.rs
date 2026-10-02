@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -218,7 +216,7 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn update_poster_frame(&self, poster_attribute: Option<&str>, cx: &mut JSContext) {
+    fn update_poster_frame(&self, cx: &mut JSContext, poster_attribute: Option<&str>) {
         // Step 1. If there is an existing instance of this algorithm running
         // for this video element, abort that instance of this algorithm without
         // changing the poster frame.
@@ -264,16 +262,16 @@ impl HTMLVideoElement {
                 url,
                 ..
             }) => {
-                self.process_image_response(ImageResponse::Loaded(image, url), cx);
+                self.process_image_response(cx, ImageResponse::Loaded(image, url));
                 return;
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) => id,
             ImageCacheResult::ReadyForRequest(id) => {
-                self.do_fetch_poster_frame(poster_url, id, cx);
+                self.do_fetch_poster_frame(cx, poster_url, id);
                 id
             },
             ImageCacheResult::FailedToLoadOrDecode => {
-                self.process_image_response(ImageResponse::FailedToLoadOrDecode, cx);
+                self.process_image_response(cx, ImageResponse::FailedToLoadOrDecode);
                 return;
             },
             ImageCacheResult::Pending(id) => id,
@@ -288,7 +286,7 @@ impl HTMLVideoElement {
             if generation != element.generation_id() {
                 return;
             }
-            element.process_image_response(response.response, cx);
+            element.process_image_response(cx, response.response);
         });
 
         image_cache.add_listener(ImageLoadListener::new(callback, window.pipeline_id(), id));
@@ -297,9 +295,9 @@ impl HTMLVideoElement {
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     fn do_fetch_poster_frame(
         &self,
+        cx: &mut JSContext,
         poster_url: UrlWithBlobClaim,
         id: PendingImageId,
-        cx: &mut JSContext,
     ) {
         // Step 5. Let request be a new request whose URL is url, client is the element's node
         // document's relevant settings object, destination is "image", initiator type is "video",
@@ -345,7 +343,7 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn process_image_response(&self, response: ImageResponse, cx: &mut JSContext) {
+    fn process_image_response(&self, cx: &mut JSContext, response: ImageResponse) {
         // Step 7. If an image is thus obtained, the poster frame is that image.
         // Otherwise, there is no poster frame.
         match response {
@@ -443,9 +441,9 @@ impl VirtualMethods for HTMLVideoElement {
 
         if attr.local_name() == &local_name!("poster") {
             if let Some(new_value) = mutation.new_value(attr) {
-                self.update_poster_frame(Some(&new_value), cx)
+                self.update_poster_frame(cx, Some(&new_value))
             } else {
-                self.update_poster_frame(None, cx)
+                self.update_poster_frame(cx, None)
             }
         };
     }
@@ -547,7 +545,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
     fn process_csp_violations(
         &mut self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
