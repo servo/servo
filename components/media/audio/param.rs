@@ -13,6 +13,7 @@ use crate::block::{Block, FRAMES_PER_BLOCK_USIZE, Tick};
 pub enum ParamType {
     Frequency,
     Detune,
+    DelayTime,
     Gain,
     Q,
     Pan,

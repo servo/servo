@@ -17,6 +17,7 @@ path = "lib.rs"
 byte-slice-cast = { workspace = true }
 euclid = { workspace = true }
 log = { workspace = true }
+parking_lot = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 num-complex = { workspace = true }

@@ -8824,6 +8824,7 @@ dependencies = [
  "malloc_size_of_derive",
  "num-complex",
  "num-traits",
+ "parking_lot",
  "petgraph",
  "realfft",
  "rustc-hash 2.1.3",
