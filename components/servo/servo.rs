@@ -608,6 +608,11 @@ impl ServoInner {
                     webview.update_cursor_metadata(cursor_id, metadata);
                 }
             },
+            EmbedderMsg::ClearCursors(webview_id, cursor_ids) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.clear_cursors(cursor_ids);
+                }
+            },
             EmbedderMsg::NewFavicon(webview_id, image) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.set_favicon(image);

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::io::{BufRead, Seek};
+use std::io::{BufRead, Error, ErrorKind, Seek};
 
 use ico::{IconDir, IconDirEntry};
 use image::error::{ParameterError, ParameterErrorKind};
@@ -13,7 +13,7 @@ use log::debug;
 // rust-ico decoder for cur files
 #[derive(Debug)]
 pub struct RustIcoDecoder {
-    decoder: IconDirEntry,
+    entry: IconDirEntry,
 }
 
 impl RustIcoDecoder {
@@ -39,33 +39,39 @@ impl RustIcoDecoder {
             )));
         };
         Ok(RustIcoDecoder {
-            decoder: best_entry.clone(),
+            entry: best_entry.clone(),
         })
     }
 }
 
 impl image::ImageDecoder for RustIcoDecoder {
     fn dimensions(&self) -> (u32, u32) {
-        (self.decoder.width(), self.decoder.height())
+        (self.entry.width(), self.entry.height())
     }
 
     fn color_type(&self) -> image::ColorType {
         image::ColorType::Rgba8
     }
 
-    fn read_image(self, buf: &mut [u8]) -> ImageResult<()>
+    fn read_image(self, buffer: &mut [u8]) -> ImageResult<()>
     where
         Self: Sized,
     {
-        let decoded_image = match self.decoder.decode() {
+        let decoded_image = match self.entry.decode() {
             Ok(image) => image,
-            Err(e) => {
-                debug!("Error decoding .cur file image");
-                return Err(ImageError::IoError(e));
+            Err(error) => {
+                debug!("Error decoding .cur file image: {error}");
+                return Err(ImageError::IoError(error));
             },
         };
         let rgba = decoded_image.into_rgba_data();
-        buf.copy_from_slice(&rgba);
+        if buffer.len() != rgba.len() {
+            return Err(ImageError::IoError(Error::new(
+                ErrorKind::InvalidData,
+                "Decoded image length does not equal image buffer length.",
+            )));
+        }
+        buffer.copy_from_slice(&rgba);
         Ok(())
     }
 

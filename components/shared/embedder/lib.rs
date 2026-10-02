@@ -199,12 +199,12 @@ pub struct CursorMetadata {
     /// the precise position within the cursor that is being pointed to.
     /// The numbers are in units of image pixels.
     /// They are relative to the top left corner of the image, which corresponds to (0,0)
-    pub hotspot: Option<DevicePoint>,
+    pub hotspot: Option<(f32, f32)>,
 }
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub enum Cursor {
+pub enum NamedCursor {
     None,
     #[default]
     Default,
@@ -241,7 +241,19 @@ pub enum Cursor {
     AllScroll,
     ZoomIn,
     ZoomOut,
-    Url(CursorId),
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum Cursor {
+    Named(NamedCursor),
+    Image(CursorId),
+}
+
+impl Default for Cursor {
+    fn default() -> Self {
+        Cursor::Named(NamedCursor::default())
+    }
 }
 
 /// A way for Servo to request that the embedder wake up the main event loop.
@@ -511,6 +523,8 @@ pub enum EmbedderMsg {
     SetCursor(WebViewId, Cursor),
     /// Update the cursor image's metadata
     UpdateCursorMetadata(WebViewId, CursorId, CursorMetadata),
+    /// Clears the cursors from the embedder registry
+    ClearCursors(WebViewId, Vec<CursorId>),
     /// A favicon was detected
     NewFavicon(WebViewId, Image),
     /// Get the device independent window rectangle.

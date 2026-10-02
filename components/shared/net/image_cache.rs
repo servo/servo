@@ -45,6 +45,7 @@ pub type VectorImageId = PendingImageId;
 // Represents either a raster image for which the pixel data is available
 // or a vector image for which only the natural dimensions are available
 // and thus requires a further rasterization step to render.
+// Raster image pixel data already have premultiplied alpha.
 #[derive(Clone, Debug, MallocSizeOf)]
 pub enum Image {
     Raster(#[conditional_malloc_size_of] Arc<RasterImage>),

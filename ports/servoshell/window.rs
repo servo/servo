@@ -10,7 +10,7 @@ use euclid::Scale;
 use log::warn;
 use servo::{
     AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel,
-    CreateNewWebViewRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
+    CreateNewWebViewRequest, Cursor, CursorId, DeviceIndependentIntRect, DeviceIndependentPixel,
     DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl, EmbedderControlId, InputEventId,
     InputEventResult, MediaSessionEvent, PermissionRequest, RenderingContext, ScreenGeometry,
     WebView, WebViewBuilder, WebViewId,
@@ -423,6 +423,7 @@ pub(crate) trait PlatformWindow {
     fn set_position(&self, _point: DeviceIntPoint) {}
     fn set_fullscreen(&self, _state: bool) {}
     fn set_cursor(&self, _cursor: Cursor) {}
+    fn clear_custom_cursors(&self, _cursors: Vec<CursorId>) {}
     #[cfg(all(
         feature = "webxr",
         not(any(target_os = "android", target_env = "ohos"))
