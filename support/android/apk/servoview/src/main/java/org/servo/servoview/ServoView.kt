@@ -50,10 +50,6 @@ class ServoView(
         servo.stop()
     }
 
-    fun loadUri(uri: String) {
-        servo.loadUri(uri)
-    }
-
     fun mediaSessionAction(action: Int) {
         servo.mediaSessionAction(action)
     }

@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     val url = data.getStringExtra("url")
                     if (!url.isNullOrEmpty()) {
                         urlTextFieldState.edit { replace(0, length, url) }
-                        servoView.loadUri(urlTextFieldState.text.toString())
+                        navigator.navigate(urlTextFieldState.text.toString())
                     }
                 }
             }
@@ -158,7 +158,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                         Omnibox(
                             urlTextFieldState,
                             onSearch = { search ->
-                                servoView.loadUri(search)
+                                navigator.navigate(search)
                                 servoView.requestFocus()
                             },
                             modifier = Modifier.weight(1f).padding(end = 10.dp),
