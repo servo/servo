@@ -55,6 +55,8 @@ pub(crate) enum TexImageValidationError {
     InvalidOffsets,
     /// No base image has been defined for this texture target and level.
     MissingBaseTexture,
+    /// The texture already has immutable storage.
+    ImmutableTexture,
 }
 
 impl std::error::Error for TexImageValidationError {}
@@ -83,6 +85,7 @@ impl fmt::Display for TexImageValidationError {
             InvalidCompressionFormat => "Unrecognized texture compression format",
             InvalidOffsets => "Invalid X/Y texture offset parameters",
             MissingBaseTexture => "No base image defined for this texture target and level",
+            ImmutableTexture => "Texture storage is immutable",
         };
         write!(f, "TexImageValidationError({})", description)
     }
@@ -769,6 +772,10 @@ impl WebGLValidator for TexStorageValidator<'_> {
         if texture.target().is_none() {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::TextureTargetNotBound(self.target));
+        }
+        if texture.is_immutable() {
+            context.webgl_error(InvalidOperation);
+            return Err(TexImageValidationError::ImmutableTexture);
         }
 
         let internal_format = validate_internal_format(context, self.internal_format)?;
