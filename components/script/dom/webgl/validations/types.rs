@@ -24,10 +24,18 @@ gl_enums! {
 
 impl TexImageTarget {
     pub(crate) fn is_cubic(&self) -> bool {
-        !matches!(
-            *self,
-            TexImageTarget::Texture2D | TexImageTarget::Texture3D | TexImageTarget::Texture2DArray
-        )
+        match self {
+            TexImageTarget::CubeMap |
+            TexImageTarget::CubeMapPositiveX |
+            TexImageTarget::CubeMapNegativeX |
+            TexImageTarget::CubeMapPositiveY |
+            TexImageTarget::CubeMapNegativeY |
+            TexImageTarget::CubeMapPositiveZ |
+            TexImageTarget::CubeMapNegativeZ => true,
+            TexImageTarget::Texture2D |
+            TexImageTarget::Texture2DArray |
+            TexImageTarget::Texture3D => false,
+        }
     }
 
     pub(crate) fn dimensions(self) -> u8 {
