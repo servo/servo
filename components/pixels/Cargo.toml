@@ -21,7 +21,12 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 servo-base = { workspace = true }
+typetag = { workspace = true }
 webrender_api = { workspace = true }
+
+[target.'cfg(target_env = "ohos")'.dependencies]
+ohos-image-kit-sys = { version = "0.3.6", features = ["api-20", "picture", "image-source"] }
+libc = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["html_reports"] }
