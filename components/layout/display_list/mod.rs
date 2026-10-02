@@ -2314,11 +2314,11 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
     )
 }
 
-/// Return a tuple the given `shaped_text_slices` that contains:
+/// Return a tuple for the given `shaped_text_slices` that contains:
 ///
-/// - A vector of [`GlyphInstance`]` for every glyph in the slices.
+/// - A vector of [`GlyphInstance`] for every glyph in the slices.
 /// - The measure of the largest advance
-/// - A boolean which is true if the slices only  contained white space.
+/// - A boolean which is true if the slices only contained white space.
 fn glyphs(
     shaped_text_slices: &[Arc<ShapedTextSlice>],
     mut baseline_origin: PhysicalPoint<Au>,
@@ -2329,7 +2329,7 @@ fn glyphs(
     let mut entirely_white_space = true;
 
     for shaped_text_slice in shaped_text_slices {
-        entirely_white_space &= shaped_text_slice.entirely_white_space();
+        entirely_white_space &= shaped_text_slice.all_white_space();
         for glyph in shaped_text_slice.glyphs() {
             let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
             let point = LayoutPoint::new(

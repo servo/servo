@@ -483,11 +483,11 @@ struct LineUnderConstruction {
     /// currently inside of.
     cloneable_inline_box_pbm_size: LogicalSides1D<Au>,
 
-    /// The inline size of any trailing hangable whitespace in this line.
-    trailing_hangable_whitespace: Au,
+    /// The inline size of any trailing hangable white space in this line.
+    trailing_hangable_white_space: Au,
 
-    /// The inline size of any trailing removable whitespace in this line.
-    trailing_removable_whitespace: Au,
+    /// The inline size of any trailing removable white space in this line.
+    trailing_removable_white_space: Au,
 }
 
 impl LineUnderConstruction {
@@ -503,8 +503,8 @@ impl LineUnderConstruction {
             for_block_level: false,
             caret_placeholder: None,
             cloneable_inline_box_pbm_size: Default::default(),
-            trailing_hangable_whitespace: Au::zero(),
-            trailing_removable_whitespace: Au::zero(),
+            trailing_hangable_white_space: Au::zero(),
+            trailing_removable_white_space: Au::zero(),
         }
     }
 
@@ -533,7 +533,7 @@ impl LineUnderConstruction {
     /// >    * If white-space is set to break-spaces, spaces, tabs, and other space separators
     /// >      are treated the same as other visible characters: they cannot hang nor have their
     /// >      advance width collapsed.
-    fn trim_trailing_whitespace_and_calculate_hanging(
+    fn trim_trailing_white_space_and_calculate_hanging(
         &mut self,
         available_inline_size: Au,
         last_line_or_forced_line_break: bool,
@@ -553,29 +553,28 @@ impl LineUnderConstruction {
                 LineItem::TextRun(_, text_run) => text_run,
             };
 
-            let (mut run_hangable, run_removable, run_had_content) =
-                text_run.trailing_white_space();
+            let (mut count, preceded_by_content) = text_run.trailing_white_space();
             if conditionally_hanging.is_zero() && unconditionally_hanging.is_zero() {
                 text_run.trim_removable_white_space_at_end();
-                removed += run_removable;
+                removed += count.removable;
             } else {
-                run_hangable += run_removable
+                count.hangable += count.removable;
             }
 
             if white_space_still_hanging_conditionally && text_run.white_space_hangs_conditionally()
             {
-                conditionally_hanging += run_hangable;
+                conditionally_hanging += count.hangable;
             } else {
                 white_space_still_hanging_conditionally = false;
-                unconditionally_hanging += run_hangable;
+                unconditionally_hanging += count.hangable;
             }
 
-            if run_had_content {
+            if preceded_by_content {
                 break;
             }
         }
 
-        self.trailing_removable_whitespace = Au::zero();
+        self.trailing_removable_white_space = Au::zero();
         self.inline_position -= removed;
 
         if !last_line_or_forced_line_break {
@@ -648,8 +647,8 @@ impl LineUnderConstruction {
     ///
     /// Note: This is only valid during line construction, because it doesn't take
     /// into account conditional hanging.
-    fn tentative_hanging_and_removable_whitespace_advance(&self) -> Au {
-        self.trailing_hangable_whitespace + self.trailing_removable_whitespace
+    fn tentative_hanging_and_removable_white_space_advance(&self) -> Au {
+        self.trailing_hangable_white_space + self.trailing_removable_white_space
     }
 }
 
@@ -803,11 +802,11 @@ struct UnbreakableSegmentUnderConstruction {
     /// it on the line into the line's content.
     incorporates_trailing_white_space: bool,
 
-    /// The inline size of any trailing hangable whitespace in this segment.
-    trailing_hangable_whitespace: Au,
+    /// The inline size of any trailing hangable white space in this segment.
+    trailing_hangable_white_space: Au,
 
-    /// The inline size of any trailing removable whitespace in this segment.
-    trailing_removable_whitespace: Au,
+    /// The inline size of any trailing removable white space in this segment.
+    trailing_removable_white_space: Au,
 }
 
 impl UnbreakableSegmentUnderConstruction {
@@ -821,8 +820,8 @@ impl UnbreakableSegmentUnderConstruction {
             },
             line_items: Vec::new(),
             has_content: false,
-            trailing_hangable_whitespace: Au::zero(),
-            trailing_removable_whitespace: Au::zero(),
+            trailing_hangable_white_space: Au::zero(),
+            trailing_removable_white_space: Au::zero(),
             incorporates_trailing_white_space: false,
         }
     }
@@ -833,8 +832,8 @@ impl UnbreakableSegmentUnderConstruction {
         self.inline_size = Au::zero();
         self.max_block_size = LineBlockSizes::zero();
         self.has_content = false;
-        self.trailing_hangable_whitespace = Au::zero();
-        self.trailing_removable_whitespace = Au::zero();
+        self.trailing_hangable_white_space = Au::zero();
+        self.trailing_removable_white_space = Au::zero();
         self.incorporates_trailing_white_space = false;
     }
 
@@ -863,12 +862,12 @@ impl UnbreakableSegmentUnderConstruction {
         self.inline_size -= whitespace_trimmed;
 
         // If there is no content in this segment, then trimming the leading whitespace may have
-        // also trimmed some of the trailing whitespace, so we need to adjust those lengths as
+        // also trimmed some of the trailing white space, so we need to adjust those lengths as
         // well.
         if !self.incorporates_trailing_white_space {
-            let trimmed_from_hanging = whitespace_trimmed.min(self.trailing_hangable_whitespace);
-            self.trailing_hangable_whitespace -= trimmed_from_hanging;
-            self.trailing_removable_whitespace -= whitespace_trimmed - trimmed_from_hanging;
+            let trimmed_from_hanging = whitespace_trimmed.min(self.trailing_hangable_white_space);
+            self.trailing_hangable_white_space -= trimmed_from_hanging;
+            self.trailing_removable_white_space -= whitespace_trimmed - trimmed_from_hanging;
         }
     }
 
@@ -902,8 +901,8 @@ impl UnbreakableSegmentUnderConstruction {
 
     /// The advance of the whitespace at the end of this segment that would either hang
     /// or be trimmed if it was at the end of a line.
-    fn hanging_and_removable_whitespace_advance(&self) -> Au {
-        self.trailing_hangable_whitespace + self.trailing_removable_whitespace
+    fn hanging_and_removable_white_space_advance(&self) -> Au {
+        self.trailing_hangable_white_space + self.trailing_removable_white_space
     }
 }
 
@@ -1228,7 +1227,7 @@ impl InlineFormattingContextLayout<'_> {
     ) {
         let hanging_white_space = self
             .current_line
-            .trim_trailing_whitespace_and_calculate_hanging(
+            .trim_trailing_white_space_and_calculate_hanging(
                 self.available_line_space(),
                 last_line_or_forced_line_break,
             );
@@ -1768,7 +1767,7 @@ impl InlineFormattingContextLayout<'_> {
         let mut block_contribution = LineBlockSizes::zero();
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
         let current_inline_container_state = self.current_inline_container_state();
-        if quirks_mode && !slice.entirely_removable() {
+        if quirks_mode && !slice.all_removable() {
             // Normally, the strut is incorporated into the nested block size. In quirks mode though
             // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
             // TODO(mrobinson): This isn't quite right for situations where collapsible white space
@@ -1804,7 +1803,7 @@ impl InlineFormattingContextLayout<'_> {
         if slice.has_non_hangable_non_removable_content() {
             segment_flags.insert(SegmentContentFlags::IncorporateTrailingWhiteSpace);
         }
-        if !slice.entirely_removable() {
+        if !slice.all_removable() {
             segment_flags.insert(SegmentContentFlags::Contentful);
         }
 
@@ -1879,8 +1878,8 @@ impl InlineFormattingContextLayout<'_> {
         segment_flags: SegmentContentFlags,
     ) {
         if segment_flags.contains(SegmentContentFlags::IncorporateTrailingWhiteSpace) {
-            self.current_line_segment.trailing_hangable_whitespace = Au::zero();
-            self.current_line_segment.trailing_removable_whitespace = Au::zero();
+            self.current_line_segment.trailing_hangable_white_space = Au::zero();
+            self.current_line_segment.trailing_removable_white_space = Au::zero();
             self.current_line_segment.incorporates_trailing_white_space = true;
         }
 
@@ -1892,11 +1891,11 @@ impl InlineFormattingContextLayout<'_> {
             // When hangable space follows space previously considered removable, it can
             // no longer be trimmed from the end of the line, but it can hang.
             let old_removable_space =
-                std::mem::take(&mut self.current_line_segment.trailing_removable_whitespace);
-            self.current_line_segment.trailing_hangable_whitespace +=
+                std::mem::take(&mut self.current_line_segment.trailing_removable_white_space);
+            self.current_line_segment.trailing_hangable_white_space +=
                 old_removable_space + hangable_size;
         }
-        self.current_line_segment.trailing_removable_whitespace += removable_size;
+        self.current_line_segment.trailing_removable_white_space += removable_size;
 
         // This may or may not include the size of the strut depending on the quirks mode setting.
         let container_max_block_size = &self
@@ -1925,11 +1924,11 @@ impl InlineFormattingContextLayout<'_> {
     fn hypothetical_line_size(&self) -> LogicalVec2<Au> {
         let mut hanging_and_removable_whitespace = self
             .current_line_segment
-            .hanging_and_removable_whitespace_advance();
+            .hanging_and_removable_white_space_advance();
         if !self.current_line_segment.incorporates_trailing_white_space {
             hanging_and_removable_whitespace += self
                 .current_line
-                .tentative_hanging_and_removable_whitespace_advance();
+                .tentative_hanging_and_removable_white_space_advance();
         }
         let inline = self.current_line.inline_position +
             self.current_line_segment.inline_size +
@@ -2020,11 +2019,11 @@ impl InlineFormattingContextLayout<'_> {
         let potential_line_length = self.hypothetical_line_size().inline;
 
         let old_removable_space =
-            std::mem::take(&mut self.current_line.trailing_removable_whitespace);
+            std::mem::take(&mut self.current_line.trailing_removable_white_space);
         let old_hangable_space =
-            std::mem::take(&mut self.current_line.trailing_hangable_whitespace);
-        let mut new_removable_space = self.current_line_segment.trailing_removable_whitespace;
-        let mut new_hangable_space = self.current_line_segment.trailing_hangable_whitespace;
+            std::mem::take(&mut self.current_line.trailing_hangable_white_space);
+        let mut new_removable_space = self.current_line_segment.trailing_removable_white_space;
+        let mut new_hangable_space = self.current_line_segment.trailing_hangable_white_space;
 
         // If the white space of the current line is not incorporated into the content by the
         // new segment, add it to the segment's white space values.
@@ -2039,8 +2038,8 @@ impl InlineFormattingContextLayout<'_> {
             new_hangable_space += old_hangable_space;
         }
 
-        self.current_line.trailing_hangable_whitespace = new_hangable_space;
-        self.current_line.trailing_removable_whitespace = new_removable_space;
+        self.current_line.trailing_hangable_white_space = new_hangable_space;
+        self.current_line.trailing_removable_white_space = new_removable_space;
 
         self.current_line.inline_position += self.current_line_segment.inline_size;
         self.current_line.max_block_size = self
@@ -2127,7 +2126,7 @@ impl InlineFormattingContext {
         let mut options = LineBreakOptions::default();
 
         // TODO: These settings need to be handled on an inline box basis and not based
-        // on the paragraphs style.
+        // on the paragraph's style.
         options.strictness = Some(match line_break {
             LineBreak::Loose => LineBreakStrictness::Loose,
             LineBreak::Normal => LineBreakStrictness::Normal,
@@ -2432,7 +2431,7 @@ impl InlineFormattingContext {
                     TextRunItem::LineBreak { .. } => false,
                     TextRunItem::Tab { .. } => false,
                     TextRunItem::TextSegment(segment) => {
-                        segment.runs.iter().all(|run| run.entirely_removable())
+                        segment.runs.iter().all(|run| run.all_removable())
                     },
                 })
             },
@@ -3219,6 +3218,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             let removable_advance = run.removable_advance();
             let hangable_advance = run.hangable_advance();
             if run.has_non_hangable_non_removable_content() {
+                self.commit_pending_opening_pbm_for_inline_boxes();
                 self.commit_pending_whitespace();
                 self.add_inline_size(advance - removable_advance - hangable_advance);
             }

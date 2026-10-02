@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::ShapedTextSlice;
+use fonts::{ShapedTextSlice, TrailingWhiteSpace};
 use itertools::Either;
 use servo_base::text::Utf32CodeUnits;
 use style::Zero;
@@ -971,15 +971,14 @@ impl TextRunLineItem {
         )
     }
 
-    /// Trim the removable white space at the end of this [`TextRunLineItem`]
-    /// and returned the amount trimmed.
+    /// Trim the removable white space at the end of this [`TextRunLineItem`].
     pub(crate) fn trim_removable_white_space_at_end(&mut self) {
         while let Some(last) = self.text.last_mut() {
-            if last.entirely_removable() {
+            if last.all_removable() {
                 self.text.pop();
                 continue;
             }
-            *last = last.without_removable_whitespace();
+            *last = last.without_removable_white_space();
             break;
         }
     }
@@ -988,7 +987,7 @@ impl TextRunLineItem {
         let index_of_first_non_whitespace = self
             .text
             .iter()
-            .position(|slice| !slice.entirely_removable())
+            .position(|slice| !slice.all_removable())
             .unwrap_or(self.text.len());
 
         *whitespace_trimmed += self
@@ -1001,9 +1000,14 @@ impl TextRunLineItem {
         self.text.is_empty()
     }
 
-    pub(crate) fn trailing_white_space(&self) -> (Au, Au, bool) {
+    /// Returns a [`TrailingWhiteSpace`] with the measurement of hanging
+    /// and removable white space and boolean saying whether or not there
+    /// was preceding content.
+    pub(crate) fn trailing_white_space(&self) -> (TrailingWhiteSpace<Au>, bool) {
         let mut hangable = Au::zero();
         let mut removable = Au::zero();
+        let mut preceded_by_content = false;
+
         for slice in self.text.iter().rev() {
             if hangable.is_zero() {
                 removable += slice.removable_advance();
@@ -1013,11 +1017,18 @@ impl TextRunLineItem {
             hangable += slice.hangable_advance();
 
             if slice.has_non_hangable_non_removable_content() {
-                return (hangable, removable, true);
+                preceded_by_content = true;
+                break;
             }
         }
 
-        (hangable, removable, false)
+        (
+            TrailingWhiteSpace {
+                hangable,
+                removable,
+            },
+            preceded_by_content,
+        )
     }
 }
 
