@@ -39,9 +39,9 @@ use script_bindings::settings_stack::run_a_script;
 use servo_base::Epoch;
 use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId};
+use servo_config::pref;
 use webdriver::command::SetPermissionState;
 use webdriver::error::ErrorStatus;
-use servo_config::pref;
 
 use crate::DomTypeHolder;
 use crate::dom::Promise;
@@ -528,7 +528,6 @@ fn clone_an_object(
                         JavaScriptEvaluationResultSerializationError::UnknownType,
                     ));
                 },
-
             },
             Err(error) => {
                 throw_dom_exception(cx, global_scope, error);
@@ -1406,16 +1405,14 @@ pub(crate) fn handle_get_computed_role(
     }
     reply
         .send(
-
-            get_known_element(documents, pipeline, node_id)
-                .map(|element| {
-                    let document = element.upcast::<Node>().owner_doc();
-                    let window = document.window();
-                    window
-                        .layout()
-                        .set_accessibility_active(true, Epoch::default());
-                    element.get_computed_role().map(String::from)
-                }),
+            get_known_element(documents, pipeline, node_id).map(|element| {
+                let document = element.upcast::<Node>().owner_doc();
+                let window = document.window();
+                window
+                    .layout()
+                    .set_accessibility_active(true, Epoch::default());
+                element.get_computed_role().map(String::from)
+            }),
         )
         .unwrap();
 }

@@ -2040,6 +2040,7 @@ impl ReflowPhases {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
+                QueryMsg::AccessKitNodeQuery |
                 QueryMsg::BoxArea |
                 QueryMsg::BoxAreas |
                 QueryMsg::ElementsFromPoint |
@@ -2055,8 +2056,7 @@ impl ReflowPhases {
                 QueryMsg::PaddingQuery |
                 QueryMsg::ResolvedFontStyleQuery |
                 QueryMsg::ScrollParentQuery |
-                QueryMsg::StyleQuery |
-                QueryMsg::AccessKitNodeQuery => Self::empty(),
+                QueryMsg::StyleQuery => Self::empty(),
             },
             ReflowGoal::UpdateScrollNode(..) | ReflowGoal::UpdateTheRendering => {
                 Self::StackingContextTreeConstruction | Self::DisplayListConstruction
