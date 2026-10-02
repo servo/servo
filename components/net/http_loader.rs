@@ -2185,7 +2185,7 @@ async fn http_network_fetch(
                 context.ignore_certificate_errors,
                 context.state.override_manager.clone(),
             );
-            tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
+            tls_config.alpn_protocols = vec!["http/1.1".into()];
 
             let response = match start_websocket(
                 context.state.clone(),
