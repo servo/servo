@@ -2179,11 +2179,11 @@ impl Element {
             .map(map_func)
     }
 
-    pub(crate) fn attribute_str_ref(
-        &self,
+    pub(crate) fn attribute_str_ref<'a>(
+        &'a self,
         namespace: &Namespace,
         local_name: &LocalName,
-    ) -> Option<crate::dom::element::attributes::accessors::AttrStrRef> {
+    ) -> Option<crate::dom::element::attributes::accessors::AttrStrRef<'a>> {
         crate::dom::element::attributes::accessors::AttrStrRef::maybe_new(
             self.attrs.borrow(),
             namespace,
