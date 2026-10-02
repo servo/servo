@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::Ref;
 
-use html5ever::{local_name, ns};
+use html5ever::local_name;
 use js::context::JSContext;
-use markup5ever::QualName;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::domstring::parse_floating_point_number;
@@ -14,43 +13,22 @@ use style::selector_parser::PseudoElement;
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::element::Element;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::SpecificInputType;
 use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{
+    SpecificShadowTree, UAShadowRoot, UpdateUAShadowRootForOther,
+};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct RangeInputType {
     shadow_tree: DomRefCell<Option<RangeInputShadowTree>>,
-}
-
-impl RangeInputType {
-    /// Get the shadow tree for this [`HTMLInputElement`], if it is created and valid, otherwise
-    /// recreate the shadow tree and return it.
-    fn get_or_create_shadow_tree(
-        &self,
-        cx: &mut JSContext,
-        input: &HTMLInputElement,
-    ) -> Ref<'_, RangeInputShadowTree> {
-        {
-            if let Ok(shadow_tree) = Ref::filter_map(self.shadow_tree.borrow(), |shadow_tree| {
-                shadow_tree.as_ref()
-            }) {
-                return shadow_tree;
-            }
-        }
-
-        let element = input.upcast::<Element>();
-        let shadow_root = element
-            .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
-        let shadow_root = shadow_root.upcast();
-        *self.shadow_tree.borrow_mut() = Some(RangeInputShadowTree::new(cx, shadow_root));
-        self.get_or_create_shadow_tree(cx, input)
-    }
 }
 
 impl SpecificInputType for RangeInputType {
@@ -128,7 +106,7 @@ impl SpecificInputType for RangeInputType {
     }
 
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.get_or_create_shadow_tree(cx, input).update(cx, input)
+        UpdateUAShadowRootForOther::update_shadow_tree(self, cx, input)
     }
 }
 
@@ -161,36 +139,11 @@ pub(crate) struct RangeInputShadowTree {
 impl RangeInputShadowTree {
     pub(crate) fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
         Node::replace_all(cx, None, shadow_root.upcast::<Node>());
+        let document = shadow_root.owner_document();
 
-        let slider_fill = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &shadow_root.owner_document(),
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
-
-        let slider_thumb = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &shadow_root.owner_document(),
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
-
-        let slider_track = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &shadow_root.owner_document(),
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
+        let slider_fill = Self::create_element_in_ua_shadowroot(cx, &document, local_name!("div"));
+        let slider_thumb = Self::create_element_in_ua_shadowroot(cx, &document, local_name!("div"));
+        let slider_track = Self::create_element_in_ua_shadowroot(cx, &document, local_name!("div"));
 
         shadow_root
             .upcast::<Node>()
@@ -221,8 +174,10 @@ impl RangeInputShadowTree {
             slider_track: slider_track.as_traced(),
         }
     }
+}
 
-    pub(crate) fn update(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
+impl SpecificShadowTree<HTMLInputElement, RangeInputType> for RangeInputShadowTree {
+    fn update(&self, cx: &mut JSContext, _: &RangeInputType, input_element: &HTMLInputElement) {
         let value = input_element.Value();
         let min = input_element
             .minimum()
@@ -251,5 +206,15 @@ impl RangeInputShadowTree {
             &local_name!("style"),
             format!("width: {percent}% !important;").into(),
         );
+    }
+}
+
+impl UAShadowRoot<RangeInputShadowTree> for RangeInputType {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        *self.shadow_tree.borrow_mut() = Some(RangeInputShadowTree::new(cx, shadow_root.upcast()));
+    }
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<RangeInputShadowTree>> {
+        self.shadow_tree.borrow()
     }
 }

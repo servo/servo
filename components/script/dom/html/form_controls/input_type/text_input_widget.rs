@@ -16,11 +16,16 @@ use script_bindings::str::DOMString;
 use servo_base::text::{RangeAny, Utf32CodeUnits};
 use style::selector_parser::PseudoElement;
 
+use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::form_controls::text_control::TextControlElement;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{
+    SpecificShadowTree, UAShadowRoot, UpdateUAShadowRootForOther,
+};
 
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
@@ -31,41 +36,20 @@ pub(crate) struct TextInputWidget {
 }
 
 impl TextInputWidget {
-    /// Get the shadow tree for this [`HTMLInputElement`], if it is created and valid, otherwise
-    /// recreate the shadow tree and return it.
-    fn get_or_create_shadow_tree(
+    pub(crate) fn update_shadow_tree(
         &self,
         cx: &mut JSContext,
-        text_control_element: &impl TextControlElement,
-    ) -> Ref<'_, TextInputWidgetShadowTree> {
-        {
-            if let Ok(shadow_tree) = Ref::filter_map(self.shadow_tree.borrow(), |shadow_tree| {
-                shadow_tree.as_ref()
-            }) {
-                return shadow_tree;
-            }
-        }
-
-        let element = text_control_element.as_element();
-        let shadow_root = element
-            .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
-        let shadow_root = shadow_root.upcast();
-        *self.shadow_tree.borrow_mut() = Some(TextInputWidgetShadowTree::new(cx, shadow_root));
-        self.get_or_create_shadow_tree(cx, text_control_element)
-    }
-
-    pub(crate) fn update_shadow_tree(&self, cx: &mut JSContext, element: &impl TextControlElement) {
-        self.get_or_create_shadow_tree(cx, element)
-            .update(cx, element)
+        element: &(impl TextControlElement + DerivedFrom<Element>),
+    ) {
+        UpdateUAShadowRootForOther::update_shadow_tree(self, cx, element)
     }
 
     pub(crate) fn update_placeholder_contents(
         &self,
         cx: &mut JSContext,
-        element: &impl TextControlElement,
+        element: &(impl TextControlElement + DerivedFrom<Element>),
     ) {
-        self.get_or_create_shadow_tree(cx, element)
+        self.ensure_shadow_tree(cx, element.upcast())
             .update_placeholder(cx, element);
     }
 
@@ -202,37 +186,6 @@ impl TextInputWidgetShadowTree {
                 .downcast::<CharacterData>()?,
         ))
     }
-
-    // TODO(stevennovaryo): The rest of textual input shadow dom structure should act
-    // like an exstension to this one.
-    pub(crate) fn update(&self, cx: &mut JSContext, element: &impl TextControlElement) {
-        // The addition of zero-width space here forces the text input to have an inline formatting
-        // context that might otherwise be trimmed if there's no text. This is important to ensure
-        // that the input element is at least as tall as the line gap of the caret:
-        // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
-        //
-        // This is also used to ensure that the caret will still be rendered when the input is empty.
-        // TODO: when this hack is removed, let `TextInput::sorted_selection_character_offsets_range`
-        // rely on `Rope::last_index()` to use an unbounded end in the `RangeAny` it returns.
-        let value = element.value_text();
-        let value_text = match (value.is_empty(), element.is_password_field()) {
-            // For a password input, we replace all of the character with its replacement char.
-            (false, true) => value
-                .str()
-                .chars()
-                .map(|_| PASSWORD_REPLACEMENT_CHAR)
-                .collect::<String>()
-                .into(),
-            (false, _) => value,
-            (true, _) => DOMString::from_static("\u{200B}"),
-        };
-
-        if let Some(character_data) = self.value_character_data() &&
-            character_data.Data() != value_text
-        {
-            character_data.SetData(cx, value_text);
-        }
-    }
 }
 
 /// Create a div element with a text node within an UA Widget and either append or prepend it to
@@ -276,4 +229,50 @@ fn create_ua_widget_div_with_text_node(
             .unwrap();
     }
     el
+}
+
+impl<Element: TextControlElement> SpecificShadowTree<Element, TextInputWidget>
+    for TextInputWidgetShadowTree
+{
+    // TODO(stevennovaryo): The rest of textual input shadow dom structure should act
+    // like an exstension to this one.
+    fn update(&self, cx: &mut JSContext, _: &TextInputWidget, element: &Element) {
+        // The addition of zero-width space here forces the text input to have an inline formatting
+        // context that might otherwise be trimmed if there's no text. This is important to ensure
+        // that the input element is at least as tall as the line gap of the caret:
+        // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
+        //
+        // This is also used to ensure that the caret will still be rendered when the input is empty.
+        // TODO: when this hack is removed, let `TextInput::sorted_selection_character_offsets_range`
+        // rely on `Rope::last_index()` to use an unbounded end in the `RangeAny` it returns.
+        let value = element.value_text();
+        let value_text = match (value.is_empty(), element.is_password_field()) {
+            // For a password input, we replace all of the character with its replacement char.
+            (false, true) => value
+                .str()
+                .chars()
+                .map(|_| PASSWORD_REPLACEMENT_CHAR)
+                .collect::<String>()
+                .into(),
+            (false, _) => value,
+            (true, _) => DOMString::from_static("\u{200B}"),
+        };
+
+        if let Some(character_data) = self.value_character_data() &&
+            character_data.Data() != value_text
+        {
+            character_data.SetData(cx, value_text);
+        }
+    }
+}
+
+impl UAShadowRoot<TextInputWidgetShadowTree> for TextInputWidget {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        *self.shadow_tree.borrow_mut() =
+            Some(TextInputWidgetShadowTree::new(cx, shadow_root.upcast()));
+    }
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<TextInputWidgetShadowTree>> {
+        self.shadow_tree.borrow()
+    }
 }

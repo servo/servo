@@ -36,7 +36,7 @@ use crate::dom::node::{
     BindContext, ChildrenMutation, IsShadowTree, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::shadowroot::ua_shadowroot::UAShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{CreateUAShadowRootForSelf, UAShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::toggleevent::ToggleEvent;
 

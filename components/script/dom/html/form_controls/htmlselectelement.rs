@@ -53,7 +53,7 @@ use crate::dom::html::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits,  UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::shadowroot::ua_shadowroot::UAShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{CreateUAShadowRootForSelf, UAShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::types::FocusEvent;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};

@@ -25,7 +25,7 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node};
 use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::shadowroot::ua_shadowroot::UAShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{CreateUAShadowRootForSelf, UAShadowRoot};
 
 #[dom_struct]
 pub(crate) struct HTMLProgressElement {
