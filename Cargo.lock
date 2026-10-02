@@ -9585,6 +9585,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo-svg"
+version = "0.7.0"
+dependencies = [
+ "svgtypes",
+]
+
+[[package]]
 name = "servo-timers"
 version = "0.7.0"
 dependencies = [
