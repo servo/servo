@@ -250,6 +250,48 @@ def test_input_source_action_sequence_actions_pause_duration_invalid_value(
     assert_error(response, "invalid argument")
 
 
+@pytest.mark.parametrize("value", [-1, MAX_INT + 1])
+def test_pointer_action_move_duration_invalid_value(session, value):
+    actions = [
+        {
+            "type": "pointer",
+            "id": "foo",
+            "actions": [
+                {
+                    "type": "pointerMove",
+                    "x": 0,
+                    "y": 0,
+                    "duration": value,
+                }
+            ],
+        }
+    ]
+    response = perform_actions(session, actions)
+    assert_error(response, "invalid argument")
+
+
+@pytest.mark.parametrize("value", [-1, MAX_INT + 1])
+def test_wheel_action_scroll_duration_invalid_value(session, value):
+    actions = [
+        {
+            "type": "wheel",
+            "id": "foo",
+            "actions": [
+                {
+                    "type": "scroll",
+                    "x": 0,
+                    "y": 0,
+                    "deltaX": 0,
+                    "deltaY": 0,
+                    "duration": value,
+                }
+            ],
+        }
+    ]
+    response = perform_actions(session, actions)
+    assert_error(response, "invalid argument")
+
+
 @pytest.mark.parametrize("value", ["", "pauses"])
 def test_null_action_type_invalid_value(session, value):
     actions = [
