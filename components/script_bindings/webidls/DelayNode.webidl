@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://webaudio.github.io/web-audio-api/#PeriodicWave
+ * https://webaudio.github.io/web-audio-api/#DelayNode
  */
 
 dictionary DelayOptions : AudioNodeOptions {

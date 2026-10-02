@@ -67,11 +67,11 @@ impl UpmixedBlock {
         UpmixedBlock { index, block }
     }
 
-    fn get_index(&self) -> usize {
+    fn index(&self) -> usize {
         self.index
     }
 
-    fn get_block(&self) -> &Block {
+    fn block(&self) -> &Block {
         &self.block
     }
 

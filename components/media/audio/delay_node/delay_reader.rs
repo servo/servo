@@ -165,7 +165,7 @@ impl DelayReader {
                         {
                             let mut maybe_upmixed_block = self.upmixed_block.write();
                             if let Some(upmixed_block) = maybe_upmixed_block.as_ref() {
-                                if upmixed_block.get_index() != block_index {
+                                if upmixed_block.index() != block_index {
                                     *maybe_upmixed_block =
                                         Some(self.upmix_block(block_index, channel_count, block));
                                 }
@@ -183,9 +183,10 @@ impl DelayReader {
                                 .read()
                                 .as_ref()
                                 .map(|upmixed_block| {
-                                    upmixed_block
-                                        .get_block()
-                                        .data_chan_frame(127 - position_for_block, channel as u8)
+                                    upmixed_block.block().data_chan_frame(
+                                        FRAMES_PER_BLOCK_USIZE - 1 - position_for_block,
+                                        channel as u8,
+                                    )
                                 })
                                 .unwrap_or_default();
                             // Flag if we are actively processing
