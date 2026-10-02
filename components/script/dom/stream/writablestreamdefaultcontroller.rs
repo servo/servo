@@ -293,7 +293,7 @@ enum UnderlyingSinkType {
     Transform(Dom<TransformStream>, TracedPromise),
 }
 
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum UnderlyingSinkTypeRef<'a> {
     Js {
         abort: &'a Option<TracedCallback<UnderlyingSinkAbortCallback>>,
@@ -304,9 +304,9 @@ pub(crate) enum UnderlyingSinkTypeRef<'a> {
 
     Transfer {
         backpressure_promise: &'a Rc<RefCell<Option<TracedPromise>>>,
-        port: Dom<MessagePort>,
+        port: &'a MessagePort,
     },
-    Transform(Dom<TransformStream>, TracedPromise),
+    Transform(&'a TransformStream, TracedPromise),
 }
 
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -329,10 +329,10 @@ impl<'a> From<UnderlyingSinkTypeRef<'a>> for UnderlyingSinkType {
                 port,
             } => UnderlyingSinkType::Transfer {
                 backpressure_promise: backpressure_promise.clone(),
-                port,
+                port: Dom::from_ref(port),
             },
             UnderlyingSinkTypeRef::Transform(dom, traced_promise) => {
-                UnderlyingSinkType::Transform(dom, traced_promise)
+                UnderlyingSinkType::Transform(Dom::from_ref(dom), traced_promise)
             },
         }
     }

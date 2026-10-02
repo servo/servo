@@ -874,7 +874,7 @@ impl WritableStream {
             &global,
             UnderlyingSinkTypeRef::Transfer {
                 backpressure_promise: &backpressure_promise.0,
-                port: Dom::from_ref(port),
+                port,
             },
             1.0,
             size_algorithm,

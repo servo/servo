@@ -525,7 +525,7 @@ impl TransformStream {
             global,
             writable_high_water_mark,
             writable_size_algorithm,
-            UnderlyingSinkTypeRef::Transform(Dom::from_ref(self), start_promise.to_traced()),
+            UnderlyingSinkTypeRef::Transform(self, start_promise.to_traced()),
         )?;
         self.writable.set(Some(&writable));
 
