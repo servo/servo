@@ -7162,8 +7162,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         index: u32,
     ) -> ErrorResult {
         DocumentOrShadowRoot::on_set_adopted_stylesheets(
-            cx,
-            self.adopted_stylesheets.borrow_mut().as_mut(),
+            self.adopted_stylesheets.safe_borrow_mut(cx).as_mut(),
             &value,
             index,
             &StyleSheetListOwner::Document(Dom::from_ref(self)),
@@ -7183,8 +7182,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         index: u32,
     ) -> ErrorResult {
         DocumentOrShadowRoot::on_delete_adopted_stylesheets(
-            cx,
-            self.adopted_stylesheets.borrow_mut().as_mut(),
+            self.adopted_stylesheets.safe_borrow_mut(cx).as_mut(),
             index,
             &StyleSheetListOwner::Document(Dom::from_ref(self)),
         )

@@ -32,7 +32,7 @@ use js::rust::{
 };
 
 use crate::conversions::jsid_to_string;
-use crate::proxyhandler::set_property_descriptor;
+use crate::proxyhandler::{is_accessor_descriptor, set_property_descriptor};
 use crate::utils::get_array_index_from_id;
 
 // Adapted from https://searchfox.org/firefox-main/rev/c681e91369f59d0efae43bdc465872b855e8b269/dom/bindings/ObservableArrayProxyHandler.cpp
@@ -85,7 +85,9 @@ static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     isConstructor: None,
 };
 
-pub fn create_proxy_handler(config: *const ObservableArrayProxyHandlerConfig) -> *const c_void {
+pub unsafe fn create_proxy_handler(
+    config: *const ObservableArrayProxyHandlerConfig,
+) -> *const c_void {
     unsafe { CreateProxyHandler(&PROXY_TRAPS, config as *const c_void) }
 }
 
@@ -123,7 +125,7 @@ pub unsafe fn new_proxy_object(
 }
 
 /// # Safety
-/// The caller must ensure that the returned pointer is not used after the `JSContext` is deallocated.
+/// handler and owner pointers must outlive the created proxy object.
 pub unsafe fn get_or_create_proxy_object(
     cx: &mut JSContext,
     obj: HandleObject,
@@ -165,7 +167,7 @@ pub unsafe fn get_or_create_proxy_object(
 }
 
 /// # Safety
-/// The caller must ensure that the returned pointer is not used after the `JSContext` is deallocated.
+/// `proxy` must be a valid, non-null pointer.
 pub unsafe fn clear_owner_slot(proxy: *mut JSObject) {
     unsafe {
         SetProxyReservedSlot(proxy, OBSERVABLE_ARRAY_OWNER_SLOT, &UndefinedValue());
@@ -323,17 +325,17 @@ unsafe extern "C" fn define_property(
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
-    desc: RawHandle<PropertyDescriptor>,
+    descriptor: RawHandle<PropertyDescriptor>,
     result: *mut ObjectOpResult,
 ) -> bool {
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let proxy = unsafe { HandleObject::from_raw(proxy) };
     let id = unsafe { Handle::from_raw(id) };
-    let desc = unsafe { Handle::from_raw(desc) };
+    let desc = unsafe { Handle::from_raw(descriptor) };
     let mut result_ptr = unsafe { *result };
 
     if is_length_id(&cx, id) {
-        if desc.hasSetter_() || desc.hasGetter_() {
+        if is_accessor_descriptor(&descriptor) {
             return (result_ptr).fail_not_data_descriptor();
         }
         if desc.hasConfigurable_() && desc.configurable_() {
@@ -363,7 +365,7 @@ unsafe extern "C" fn define_property(
     }
 
     if let Some(index) = get_array_index_from_id(id) {
-        if desc.hasSetter_() || desc.hasGetter_() {
+        if is_accessor_descriptor(&descriptor) {
             return (result_ptr).fail_not_data_descriptor();
         }
         if desc.hasConfigurable_() && !desc.configurable_() {

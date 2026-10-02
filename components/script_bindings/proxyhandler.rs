@@ -396,7 +396,7 @@ fn get_setter_object(d: &PropertyDescriptor, out: RawMutableHandleObject) {
 }
 
 /// <https://tc39.es/ecma262/#sec-isaccessordescriptor>
-fn is_accessor_descriptor(d: &PropertyDescriptor) -> bool {
+pub(crate) fn is_accessor_descriptor(d: &PropertyDescriptor) -> bool {
     d.hasSetter_() || d.hasGetter_()
 }
 

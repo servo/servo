@@ -367,7 +367,6 @@ impl DocumentOrShadowRoot {
     /// 2. Remove the old effective constructed stylesheets from the style set.
     /// 3. Rebuild the effective constructed stylesheet order from `incoming_stylesheets`.
     fn set_adopted_stylesheets(
-        _cx: &mut JSContext,
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         incoming_stylesheets: &[Dom<CSSStyleSheet>],
         owner: &StyleSheetListOwner,
@@ -392,6 +391,7 @@ impl DocumentOrShadowRoot {
             }
         }
 
+        // The set to check for the duplicates when removing the old stylesheets.
         let mut stylesheet_remove_set = HashSet::with_capacity(adopted_stylesheets.len());
 
         // Remove the old stylesheets from the StyleSet. This workflow is limited by utilities
@@ -435,7 +435,6 @@ impl DocumentOrShadowRoot {
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     pub(crate) fn on_set_adopted_stylesheets(
-        cx: &mut JSContext,
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         value: &CSSStyleSheet,
         index: u32,
@@ -443,18 +442,17 @@ impl DocumentOrShadowRoot {
     ) -> ErrorResult {
         rooted_vec!(let mut incoming_stylesheets <- adopted_stylesheets.iter().cloned());
         incoming_stylesheets.insert(index as usize, Dom::from_ref(value));
-        Self::set_adopted_stylesheets(cx, adopted_stylesheets, &incoming_stylesheets, owner)
+        Self::set_adopted_stylesheets(adopted_stylesheets, &incoming_stylesheets, owner)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     pub(crate) fn on_delete_adopted_stylesheets(
-        cx: &mut JSContext,
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         index: u32,
         owner: &StyleSheetListOwner,
     ) -> ErrorResult {
         rooted_vec!(let mut incoming_stylesheets <- adopted_stylesheets.iter().cloned());
         incoming_stylesheets.remove(index as usize);
-        Self::set_adopted_stylesheets(cx, adopted_stylesheets, &incoming_stylesheets, owner)
+        Self::set_adopted_stylesheets(adopted_stylesheets, &incoming_stylesheets, owner)
     }
 }

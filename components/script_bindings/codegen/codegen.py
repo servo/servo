@@ -4877,22 +4877,19 @@ class CGObservableArrayProxyHandler_callback(CGThing):
             if self.invalidTypeFatal
             else None
         )
+        containerType = innerContainerType(self.attr.type)
+        conversionInfo = getJSToNativeConversionInfo(
+            containerType,
+            self.descriptor,
+            sourceDescription="Element in ObservableArray backing list",
+            exceptionCode=exceptionCode,
+        )
         convertType = instantiateJSToNativeConversionTemplate(
-            getJSToNativeConversionInfo(
-                innerContainerType(self.attr.type),
-                self.descriptor,
-                sourceDescription="Element in ObservableArray backing list",
-                exceptionCode=exceptionCode,
-            ).template,
+            conversionInfo.template,
             {"val": "value"},
-            getJSToNativeConversionInfo(
-                innerContainerType(self.attr.type),
-                self.descriptor,
-                sourceDescription="Element in ObservableArray backing list",
-                exceptionCode=exceptionCode,
-            ).declType,
+            conversionInfo.declType,
             "decl",
-            needsAutoRoot=type_needs_auto_root(innerContainerType(self.attr.type)),
+            needsAutoRoot=type_needs_auto_root(containerType),
         ).define()
         callbackArgs = ["cx", "decl", "index"]
         traitName = f"{self.descriptor.interface.identifier.name}Methods"
@@ -5016,7 +5013,7 @@ mod {namespace} {{
             on_delete_item: on_delete_item::<D>,
             set_indexed_value: set_indexed_value::<D>,
         }});
-        HANDLER.set(crate::observablearray::create_proxy_handler(Box::into_raw(config)));
+        HANDLER.set( unsafe {{ crate::observablearray::create_proxy_handler(Box::into_raw(config)) }} );
     }}
 
     {on_delete}
