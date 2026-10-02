@@ -566,7 +566,7 @@ impl TextFragment {
             }
         }
 
-        // TODO: This is not correct for vertical writing modes.
+        // TODO: This is not correct for vertical and right-to-left writing modes.
         rect.size.width -= hanging_advance;
 
         rect

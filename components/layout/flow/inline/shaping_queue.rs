@@ -5,7 +5,7 @@
 use std::ops::Range;
 use std::sync::Arc;
 
-use fonts::{ShapedText, ShapedTextSlice, ShapedTextSlicer, ShapingOptions};
+use fonts::{ShapedText, ShapedTextSlice, ShapedTextSlicer, ShapingOptions, TrailingWhiteSpace};
 use icu_properties::props::{EnumeratedProperty, GeneralCategory, LineBreak};
 use icu_segmenter::options::LineBreakOptions;
 use servo_base::text::{AssumeUnder4GB, Utf8CodeUnits, Utf32CodeUnits};
@@ -90,27 +90,26 @@ impl BatchSlicer<'_> {
         // of line breaks. Also add a simulated break at the end of the segment in order to ensure the final
         // piece of text is processed.
         let range = segment.byte_range.clone();
+        let text_style = parent_style.get_inherited_text();
         let mut break_at_start =
-            self.line_breaker.take_additional_break_at_start() == Some(segment.byte_range.start);
+            self.line_breaker.take_additional_break_at_start() == Some(range.start);
         let linebreaks = self
             .line_breaker
             .advance_to_linebreaks_in_range(segment.byte_range.clone());
         let linebreak_iter = linebreaks.iter().chain(std::iter::once(&range.end));
 
-        let text_style = parent_style.get_inherited_text();
         let mut current_character_offset =
             segment.character_range.start - self.character_offset_origin;
 
         let mut slices = Vec::with_capacity(linebreaks.len());
         let mut maybe_push_slice_and_update_character_offset = |slice_text: &str| {
             current_character_offset += Utf32CodeUnits::length_of(AssumeUnder4GB, slice_text);
-            let (hangable_count, removable_count, entirely_white_space) =
-                count_hangable_and_removable(slice_text, parent_style);
+            let (trailing_white_space, all_white_space) =
+                trailing_white_space_of(slice_text, parent_style);
             if let Some(slice) = self.slicer.slice_until_character_offset(
                 current_character_offset,
-                hangable_count,
-                removable_count,
-                entirely_white_space,
+                trailing_white_space,
+                all_white_space,
             ) {
                 slices.push(slice);
             }
@@ -118,13 +117,21 @@ impl BatchSlicer<'_> {
 
         let mut last_slice_end = segment.byte_range.start;
         for break_index in linebreak_iter {
-            if *break_index == segment.byte_range.start {
+            if *break_index == segment.byte_range.start &&
+                !line_break_ignored_for_keep_all(self.text, text_style, *break_index)
+            {
                 break_at_start = true;
                 continue;
             }
 
             let slice = last_slice_end..*break_index;
-            if line_break_ignored_for_keep_all(self.text, text_style, *break_index) {
+
+            // `keep-all` might suppress line breaks between certain characters and that check
+            // is done here, but not in the case that the line break is the last one for this
+            // segment (in order to push the rest of the text).
+            if *break_index != segment.byte_range.end &&
+                line_break_ignored_for_keep_all(self.text, text_style, *break_index)
+            {
                 continue;
             }
 
@@ -190,7 +197,11 @@ fn line_break_ignored_for_keep_all(
 /// From <https://drafts.csswg.org/css-text-4/#valdef-word-break-keep-all>:
 /// > Breaking is forbidden within “words”: implicit soft wrap opportunities between
 /// > typographic letter units (or other typographic character units belonging to the NU,
-/// > AL, AI, or ID Unicode line breaking classes [UAX14]) are suppressed...
+/// > AL, AI, or ID Unicode line breaking classes [UAX14]) are suppressed, i.e. breaks are
+/// > prohibited between pairs of such characters (regardless of line-break settings other
+/// > than anywhere) except where opportunities exist due to § 6.1.1.1 Lexical Word
+/// > Breaking. Otherwise this option is equivalent to normal. In this style, sequences of
+/// > CJK characters do not break.
 ///
 /// From <https://drafts.csswg.org/css-text-4/#typographic-letter-unit>:
 /// > A typographic letter unit (or letter for the purpose of this specification) is a
@@ -213,11 +224,15 @@ fn suppresses_line_break_for_keep_all(character: char) -> bool {
         line_break_class,
         LineBreak::Numeric | LineBreak::Alphabetic | LineBreak::Ambiguous | LineBreak::Ideographic
     )) &&
-    // > In order to avoid unexpected overflow, if the user agent is unable to perform the
-    // > requisite lexical or orthographic analysis for line breaking any content language
-    // > that requires it—​for example due to lacking a dictionary for languages written in
-    // > characters with class SA—​it must assume a soft wrap opportunity between pairs of
-    // > typographic letter units in that writing system.
+    // From <https://drafts.csswg.org/css-text-4/#lexical-breaking>:
+    // > To provide the expected normal behavior for Southeast Asian languages, typographic
+    // > character units with line breaking class SA in [UAX14] must be treated as if they
+    // > had class AL. However, the user agent must additionally analyze the content of a
+    // > run of such characters to detect word boundaries and treat each boundary as a soft
+    // > wrap opportunities.
+    //
+    // `ComplexContext` is the SA class here. `break-all` must not suppress dictionary-based
+    // word breaks inside SA text.
     !matches!(line_break_class, LineBreak::ComplexContext)
 }
 
@@ -225,14 +240,21 @@ fn breaks_for_break_spaces(character: char) -> bool {
     match CssTextType::from(character) {
         CssTextType::NonWhiteSpace => false,
         CssTextType::DocumentWhiteSpace => true,
+        // From <https://www.unicode.org/reports/tr14/tr14-57.html#GL>:
+        // > Non-breaking characters prohibit breaks on either side, but that prohibition
+        // > can be overridden by SP or ZW.
+        //
+        // The specification also marks this class of characters as non-tailorable.
         CssTextType::OtherSpaceSeparator => LineBreak::for_char(character) != LineBreak::Glue,
     }
 }
 
-fn count_hangable_and_removable(
+/// Returns a tuple containing the [`TrailingWhiteSpace`] values for the text and boolean
+/// indicating whether all of the content was white space.
+fn trailing_white_space_of(
     text: &str,
     style: &ComputedValues,
-) -> (Utf32CodeUnits, Utf32CodeUnits, bool) {
+) -> (TrailingWhiteSpace<Utf32CodeUnits>, bool) {
     let (anything_hangable, anything_removable) = match (
         style.clone_white_space_collapse(),
         style.clone_text_wrap_mode(),
@@ -265,8 +287,10 @@ fn count_hangable_and_removable(
     }
 
     (
-        Utf32CodeUnits(hangable),
-        Utf32CodeUnits(removable),
+        TrailingWhiteSpace {
+            hangable: Utf32CodeUnits(hangable),
+            removable: Utf32CodeUnits(removable),
+        },
         all_white_space,
     )
 }
