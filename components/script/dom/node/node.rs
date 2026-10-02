@@ -117,7 +117,7 @@ use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::raredata::NodeRareData;
 use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::servoparser::serialize_html_fragment;
-use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
+use crate::dom::shadowroot::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::traversal::LightDomNoGcTraversal;
 use crate::dom::types::{CDATASection, KeyboardEvent, ProcessingInstruction};

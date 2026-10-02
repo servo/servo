@@ -26,7 +26,7 @@ use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::node::NodeTraits;
 use crate::dom::node::node::Node;
 use crate::dom::promise::Promise;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::types::HTMLDialogElement;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::runtime::script_runtime::ScriptThreadEventCategory;

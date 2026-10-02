@@ -46,7 +46,7 @@ use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::types::{KeyboardEvent, PointerEvent, UserActivation};
 use crate::dom::window::Window;
 use crate::tasks::task::TaskOnce;

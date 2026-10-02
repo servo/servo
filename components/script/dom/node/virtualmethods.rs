@@ -66,7 +66,7 @@ use crate::dom::htmldialogelement::HTMLDialogElement;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, MoveContext, Node, UnbindContext,
 };
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::svg::svgaelement::SVGAElement;
 use crate::dom::svg::svgcircleelement::SVGCircleElement;
 use crate::dom::svg::svgdefselement::SVGDefsElement;

@@ -175,7 +175,7 @@ use crate::dom::range::Range;
 use crate::dom::raredata::ElementRareData;
 use crate::dom::sanitizer::Sanitizer;
 use crate::dom::servoparser::ServoParser;
-use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
+use crate::dom::shadowroot::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::svg::svgelement::SVGElement;
 use crate::dom::text::Text;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
