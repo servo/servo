@@ -24,12 +24,14 @@ use style::str::split_commas;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::filelist::FileList;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
-use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
+use crate::dom::html::form_controls::input_type::{
+    SpecificInputActivationType, SpecificInputType, ValueChangeEvents,
+};
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::input_type::text_input_widget::TextInputWidget;
@@ -121,15 +123,7 @@ impl FileInputType {
         }
 
         self.set_files(&FileList::new(cx, &window, files));
-        let target = input.upcast::<EventTarget>();
-        target.fire_event_with_params(
-            cx,
-            atom!("input"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            EventComposed::Composed,
-        );
-        target.fire_bubbling_event(cx, atom!("change"));
+        input.fire_value_change_events(cx, ValueChangeEvents::Input | ValueChangeEvents::Change);
     }
 }
 
