@@ -16,16 +16,15 @@ use dpi::PhysicalSize;
 use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor as CursorInternal, CursorMetadata,
     EmbedderControlId, EmbedderControlRequest, Image, InputEvent, InputEventAndId, InputEventId,
-    JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType, NewWebViewDetails,
-    ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId, UrlRequest,
-    ViewportDetails, WebViewPoint, WebViewRect,
+    JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType, NamedCursor,
+    NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId,
+    UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
 use log::{debug, warn};
 use paint_api::WebViewTrait;
 use paint_api::rendering_context::RenderingContext;
-use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{CursorId, WebViewId};
@@ -137,8 +136,9 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
-    /// Registry of decoded cursor images received by the embedder.
-    /// Image data is stored in a Rc and can then be shared by the WebViewDelegate
+    /// Registry of custom cursors mapped to its CursorId.
+    /// Image data is stored in a Rc and can then be shared amongst cursors.
+    /// A cursor can be shared via the WebviewDelegate.
     cursor_registry: HashMap<CursorId, Cursor>,
     /// The back / forward list of this WebView.
     back_forward_list: Vec<Url>,
@@ -187,7 +187,7 @@ impl WebView {
             favicon: None,
             focused: true,
             animating: false,
-            cursor: Cursor::Pointer,
+            cursor: Cursor::Named(NamedCursor::Pointer),
             cursor_registry: Default::default(),
             back_forward_list: Default::default(),
             back_forward_list_index: 0,
@@ -416,9 +416,10 @@ impl WebView {
         image: Image,
         metadata: CursorMetadata,
     ) {
+        // Store and create the reference to the image.
         self.inner_mut().cursor_registry.insert(
             cursor_id,
-            Cursor::Url(CustomCursorImage::new(image, metadata)),
+            Cursor::Image(CustomCursorImage::new(cursor_id, Rc::new(image), metadata)),
         );
     }
 
@@ -429,60 +430,44 @@ impl WebView {
             warn!("No cursor image registered for cursor id {:?}", cursor_id);
             return;
         };
-        if let Cursor::Url(image) = current_image {
+        if let Cursor::Image(image) = current_image {
             image.set_hotspot(metadata.hotspot);
         }
     }
 
     pub(crate) fn set_cursor(self, internal_cursor: CursorInternal) {
         let cursor = match internal_cursor {
-            CursorInternal::None => Cursor::None,
-            CursorInternal::Default => Cursor::Default,
-            CursorInternal::Pointer => Cursor::Pointer,
-            CursorInternal::ContextMenu => Cursor::ContextMenu,
-            CursorInternal::Help => Cursor::Help,
-            CursorInternal::Progress => Cursor::Progress,
-            CursorInternal::Wait => Cursor::Wait,
-            CursorInternal::Cell => Cursor::Cell,
-            CursorInternal::Crosshair => Cursor::Crosshair,
-            CursorInternal::Text => Cursor::Text,
-            CursorInternal::VerticalText => Cursor::VerticalText,
-            CursorInternal::Alias => Cursor::Alias,
-            CursorInternal::Copy => Cursor::Copy,
-            CursorInternal::Move => Cursor::Move,
-            CursorInternal::NoDrop => Cursor::NoDrop,
-            CursorInternal::NotAllowed => Cursor::NotAllowed,
-            CursorInternal::Grab => Cursor::Grab,
-            CursorInternal::Grabbing => Cursor::Grabbing,
-            CursorInternal::EResize => Cursor::EResize,
-            CursorInternal::NResize => Cursor::NResize,
-            CursorInternal::NeResize => Cursor::NeResize,
-            CursorInternal::NwResize => Cursor::NwResize,
-            CursorInternal::SResize => Cursor::SResize,
-            CursorInternal::SeResize => Cursor::SeResize,
-            CursorInternal::SwResize => Cursor::SwResize,
-            CursorInternal::WResize => Cursor::WResize,
-            CursorInternal::EwResize => Cursor::EwResize,
-            CursorInternal::NsResize => Cursor::NsResize,
-            CursorInternal::NeswResize => Cursor::NeswResize,
-            CursorInternal::NwseResize => Cursor::NwseResize,
-            CursorInternal::ColResize => Cursor::ColResize,
-            CursorInternal::RowResize => Cursor::RowResize,
-            CursorInternal::AllScroll => Cursor::AllScroll,
-            CursorInternal::ZoomIn => Cursor::ZoomIn,
-            CursorInternal::ZoomOut => Cursor::ZoomOut,
-            CursorInternal::Url(cursor_id) => self
-                .inner()
-                .cursor_registry
-                .get(&cursor_id)
-                .cloned()
-                .unwrap_or_default(),
+            CursorInternal::Named(cursor) => Cursor::Named(cursor),
+            CursorInternal::Image(cursor_id) => {
+                let Some(cursor) = self.inner().cursor_registry.get(&cursor_id).cloned() else {
+                    warn!("No cursor image registered for cursor id {:?}", cursor_id);
+                    return;
+                };
+                cursor
+            },
         };
-        if self.inner().cursor == cursor {
-            return;
+        if self.inner().cursor != cursor {
+            self.inner_mut().cursor = cursor.clone();
+            self.delegate().notify_cursor_changed(self, cursor);
         }
-        self.inner_mut().cursor = cursor.clone();
-        self.delegate().notify_cursor_changed(self, cursor);
+    }
+
+    pub(crate) fn clear_cursors(self, cursor_ids: Vec<CursorId>) {
+        let current_cursor_id = if let Cursor::Image(cursor_image) = &self.inner().cursor {
+            Some(cursor_image.cursor_id)
+        } else {
+            None
+        };
+        for id in &cursor_ids {
+            if let Some(current_id) = current_cursor_id &&
+                current_id == *id
+            {
+                self.inner_mut().cursor = Cursor::default();
+            }
+            self.inner_mut().cursor_registry.remove(id);
+        }
+        self.delegate()
+            .notify_custom_cursor_removed(self, cursor_ids);
     }
 
     /// Notify Servo that this [`WebView`] has gained or lost system focus.
@@ -1231,34 +1216,40 @@ impl WebViewBuilder {
 }
 
 /// A cursor image fetched from a URL.
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+#[derive(Clone)]
 pub struct CustomCursorImage {
+    cursor_id: CursorId,
     image: Rc<Image>,
-    metadata: CursorMetadata,
+    metadata: Rc<RefCell<CursorMetadata>>,
 }
 
 impl CustomCursorImage {
-    pub fn new(image: Image, metadata: CursorMetadata) -> CustomCursorImage {
+    pub fn new(
+        cursor_id: CursorId,
+        image: Rc<Image>,
+        metadata: CursorMetadata,
+    ) -> CustomCursorImage {
         CustomCursorImage {
-            image: Rc::new(image),
-            metadata,
+            cursor_id,
+            image,
+            metadata: Rc::new(RefCell::new(metadata)),
         }
     }
 
-    pub fn get_image(&self) -> &Image {
+    pub fn image(&self) -> &Image {
         &self.image
     }
 
-    pub fn get_url(&self) -> &Url {
-        &self.metadata.url
+    pub fn id(&self) -> CursorId {
+        self.cursor_id
     }
 
-    pub fn get_hotspot(&self) -> &Option<DevicePoint> {
-        &self.metadata.hotspot
+    pub fn metadata(&self) -> Ref<'_, CursorMetadata> {
+        self.metadata.borrow()
     }
 
-    pub fn set_hotspot(&mut self, hotspot: Option<DevicePoint>) {
-        self.metadata.hotspot = hotspot;
+    pub fn set_hotspot(&mut self, hotspot: Option<(f32, f32)>) {
+        self.metadata.borrow_mut().hotspot = hotspot;
     }
 }
 
@@ -1273,45 +1264,22 @@ impl Debug for CustomCursorImage {
     }
 }
 
+impl PartialEq for CustomCursorImage {
+    fn eq(&self, other: &Self) -> bool {
+        self.cursor_id == other.cursor_id && self.metadata == other.metadata
+    }
+}
+
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Cursor {
-    None,
-    #[default]
-    Default,
-    Pointer,
-    ContextMenu,
-    Help,
-    Progress,
-    Wait,
-    Cell,
-    Crosshair,
-    Text,
-    VerticalText,
-    Alias,
-    Copy,
-    Move,
-    NoDrop,
-    NotAllowed,
-    Grab,
-    Grabbing,
-    EResize,
-    NResize,
-    NeResize,
-    NwResize,
-    SResize,
-    SeResize,
-    SwResize,
-    WResize,
-    EwResize,
-    NsResize,
-    NeswResize,
-    NwseResize,
-    ColResize,
-    RowResize,
-    AllScroll,
-    ZoomIn,
-    ZoomOut,
-    Url(CustomCursorImage),
+    Named(NamedCursor),
+    Image(CustomCursorImage),
+}
+
+impl Default for Cursor {
+    fn default() -> Self {
+        Cursor::Named(NamedCursor::default())
+    }
 }

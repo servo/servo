@@ -10,7 +10,6 @@ use std::cell::Cell;
 use std::fmt;
 use std::marker::PhantomData;
 use std::num::NonZeroU32;
-use std::ops::Deref;
 use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::{Arc, LazyLock};
 
@@ -443,6 +442,8 @@ namespace_id! {ImageDataId, ImageDataIndex, "ImageData"}
 
 namespace_id! {CryptoKeyId, CryptoKeyIndex, "CryptoKey"}
 
+namespace_id! {CursorId, CursorIndex, "Cursor"}
+
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 pub const TEST_PIPELINE_INDEX: Index<PipelineIndex> =
@@ -585,22 +586,3 @@ impl fmt::Display for ScriptEventLoopId {
 /// layout time.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct LCPCandidateID(pub u64);
-
-/// A unique identifier for a custom cursor icon, generated after resolving the cursor icon image.
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize, Hash,
-)]
-pub struct CursorId(usize);
-
-impl CursorId {
-    pub fn new(id: usize) -> CursorId {
-        CursorId(id)
-    }
-}
-
-impl Deref for CursorId {
-    type Target = usize;
-    fn deref(&self) -> &usize {
-        &self.0
-    }
-}

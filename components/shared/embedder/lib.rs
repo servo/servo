@@ -29,7 +29,7 @@ use http::{HeaderMap, Method, StatusCode};
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::SharedRasterImage;
+use pixels::{Multiply, SharedRasterImage, transform_inplace};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_base::Epoch;
 use servo_base::generic_channel::{
@@ -199,12 +199,12 @@ pub struct CursorMetadata {
     /// the precise position within the cursor that is being pointed to.
     /// The numbers are in units of image pixels.
     /// They are relative to the top left corner of the image, which corresponds to (0,0)
-    pub hotspot: Option<DevicePoint>,
+    pub hotspot: Option<(f32, f32)>,
 }
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub enum Cursor {
+pub enum NamedCursor {
     None,
     #[default]
     Default,
@@ -241,7 +241,19 @@ pub enum Cursor {
     AllScroll,
     ZoomIn,
     ZoomOut,
-    Url(CursorId),
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum Cursor {
+    Named(NamedCursor),
+    Image(CursorId),
+}
+
+impl Default for Cursor {
+    fn default() -> Self {
+        Cursor::Named(NamedCursor::default())
+    }
 }
 
 /// A way for Servo to request that the embedder wake up the main event loop.
@@ -438,6 +450,18 @@ impl Image {
     pub fn data(&self) -> &[u8] {
         &self.data[self.range.clone()]
     }
+
+    /// Unmultiply a copy of the bytes belonging to the first image frame.
+    pub fn unmultiply_data(&self) -> Vec<u8> {
+        let mut image_data = self.data().to_vec();
+        transform_inplace(
+            image_data.as_mut_slice(),
+            Multiply::UnMultiply,
+            false,
+            false,
+        );
+        image_data
+    }
 }
 
 /// The severity level of a message logged by page content.
@@ -511,6 +535,8 @@ pub enum EmbedderMsg {
     SetCursor(WebViewId, Cursor),
     /// Update the cursor image's metadata
     UpdateCursorMetadata(WebViewId, CursorId, CursorMetadata),
+    /// Clears the cursors from the embedder registry
+    ClearCursors(WebViewId, Vec<CursorId>),
     /// A favicon was detected
     NewFavicon(WebViewId, Image),
     /// Get the device independent window rectangle.
