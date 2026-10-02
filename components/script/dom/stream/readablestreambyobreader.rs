@@ -63,7 +63,7 @@ impl ReadIntoRequest {
                     cx,
                     &ReadableStreamReadResult {
                         done: Some(false),
-                        value: chunk,
+                        value: chunk.into_box(),
                     },
                 );
             },
@@ -91,17 +91,15 @@ impl ReadIntoRequest {
                     cx,
                     &ReadableStreamReadResult {
                         done: Some(true),
-                        value: chunk,
+                        value: chunk.into_box(),
                     },
                 ),
                 None => {
-                    let result = RootedTraceableBox::new(Heap::default());
-                    result.set(UndefinedValue());
                     promise.resolve_native(
                         cx,
                         &ReadableStreamReadResult {
                             done: Some(true),
-                            value: result,
+                            value: Heap::boxed(UndefinedValue()),
                         },
                     );
                 },

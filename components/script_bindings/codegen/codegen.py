@@ -1282,10 +1282,10 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
                 raise TypeError("Can't handle non-null, non-undefined default value here")
 
             if not isAutoRooted:
-                templateBody = f"RootedTraceableBox::from_box(Heap::boxed({templateBody}))"
+                templateBody = f"Heap::boxed({templateBody})"
                 if default is not None:
-                    default = f"RootedTraceableBox::from_box(Heap::boxed({default}))"
-                declType = CGGeneric("RootedTraceableBox<Heap<JSVal>>")
+                    default = f"Heap::boxed({default})"
+                declType = CGGeneric("Box<Heap<JSVal>>")
             # AutoRooter can trace properly inner raw GC thing pointers
             else:
                 declType = CGGeneric("JSVal")
@@ -1311,7 +1311,11 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         templateBody = "${val}.get().to_object()"
         default = "ptr::null_mut()"
 
-        if isMember in ("Dictionary", "Union", "Sequence") and not isAutoRooted:
+        if isMember == "Dictionary":
+            templateBody = f"Heap::boxed({templateBody})"
+            default = "Box::new(Heap::default())"
+            declType = CGGeneric("Box<Heap<*mut JSObject>>")
+        elif isMember in ("Union", "Sequence") and not isAutoRooted:
             templateBody = f"RootedTraceableBox::from_box(Heap::boxed({templateBody}))"
             default = "RootedTraceableBox::new(Heap::default())"
             declType = CGGeneric("RootedTraceableBox<Heap<*mut JSObject>>")

@@ -25,7 +25,7 @@ use crate::error::Fallible;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::reflector::{DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector};
 use crate::root::{Dom, DomRoot, Root};
-use crate::trace::{NoTrace, RootedTraceableBox};
+use crate::trace::NoTrace;
 use crate::utils::DOMClass;
 use crate::{DomTypes, JSTraceable};
 
@@ -188,7 +188,7 @@ fn key_and_value_return(
     dict.value = Some(
         vec![key, value]
             .into_iter()
-            .map(|handle| RootedTraceableBox::from_box(Heap::boxed(handle.get())))
+            .map(|handle| Heap::boxed(handle.get()))
             .collect(),
     );
 

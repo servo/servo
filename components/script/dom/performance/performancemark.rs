@@ -16,7 +16,7 @@ use crate::dom::PERFORMANCE_TIMING_ATTRIBUTES;
 use crate::dom::bindings::codegen::Bindings::PerformanceMarkBinding::PerformanceMarkMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::globalscope::GlobalScope;
@@ -125,7 +125,7 @@ impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
         // Step 8 Otherwise:
         if !mark_options.detail.get().is_null_or_undefined() {
             // Step 8.1. Let record be the result of calling the StructuredSerialize algorithm on markOptions’s detail.
-            let record = structuredclone::write(cx, mark_options.detail.handle(), None)?;
+            let record = structuredclone::write(cx, mark_options.detail.as_handle_value(), None)?;
 
             // Step 8.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
             structuredclone::read(cx, global, record, detail.handle_mut())?;

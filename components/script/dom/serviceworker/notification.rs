@@ -34,9 +34,8 @@ use crate::dom::bindings::codegen::Bindings::NotificationBinding::{
     NotificationAction, NotificationDirection, NotificationMethods, NotificationOptions,
     NotificationPermission, NotificationPermissionCallback,
 };
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatus_Binding::PermissionStatusMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
-    PermissionDescriptor, PermissionName, PermissionState,
+    PermissionDescriptor, PermissionName, PermissionState, PermissionStatusMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::UnsignedLongOrUnsignedLongSequence;
 use crate::dom::bindings::error::{Error, Fallible};

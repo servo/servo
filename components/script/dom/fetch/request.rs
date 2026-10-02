@@ -163,12 +163,12 @@ impl Request {
         // TODO: `environment settings object` is not implemented in Servo yet.
 
         // Step 10. If init["window"] exists and is non-null, then throw a TypeError.
-        if !init.window.handle().is_null_or_undefined() {
+        if !init.window.get().is_null_or_undefined() {
             return Err(Error::Type(c"Window is present and is not null".to_owned()));
         }
 
         // Step 11. If init["window"] exists, then set traversableForUserPrompts to "no-traversable".
-        if !init.window.handle().is_undefined() {
+        if !init.window.get().is_undefined() {
             traversable_for_user_prompts = TraversableForUserPrompts::NoTraversable;
         }
 
@@ -206,7 +206,7 @@ impl Request {
             init.redirect.is_some() ||
             init.referrer.is_some() ||
             init.referrerPolicy.is_some() ||
-            !init.window.handle().is_undefined()
+            !init.window.get().is_undefined()
         {
             // Step 13.1. If request’s mode is "navigate", then set it to "same-origin".
             if request.mode == NetTraitsRequestMode::Navigate {

@@ -578,12 +578,12 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     ) -> RootedTraceableBox<TestDictionary> {
         let promise = Promise::new_resolved(cx, &self.global(), ());
         RootedTraceableBox::new(TestDictionary {
-            anyValue: RootedTraceableBox::new(Heap::default()),
+            anyValue: Box::new(Heap::default()),
             booleanValue: None,
             byteValue: None,
             dict: RootedTraceableBox::new(TestDictionaryDefaults {
                 UnrestrictedDoubleValue: 0.0,
-                anyValue: RootedTraceableBox::new(Heap::default()),
+                anyValue: Box::new(Heap::default()),
                 arrayValue: Vec::new(),
                 booleanValue: false,
                 bytestringValue: ByteString::new(vec![]),
@@ -600,7 +600,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
                 nullableFloatValue: None,
                 nullableLongLongValue: None,
                 nullableLongValue: None,
-                nullableObjectValue: RootedTraceableBox::new(Heap::default()),
+                nullableObjectValue: Box::new(Heap::default()),
                 nullableOctetValue: None,
                 nullableShortValue: None,
                 nullableStringValue: None,
@@ -697,7 +697,6 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassAnySequence(&self, _: CustomAutoRooterGuard<Vec<JSVal>>) {}
     fn AnySequencePassthrough(
         &self,
-
         seq: CustomAutoRooterGuard<Vec<JSVal>>,
         return_value: &mut RootedVec<'_, Box<Heap<JSVal>>>,
     ) {
