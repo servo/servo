@@ -40,7 +40,7 @@ impl<'a> AttrStrRef<'a> {
             })
     }
 
-    pub(crate) fn as_attr_ref2<'b>(&'b self) -> AttrRef<'b> {
+    pub(crate) fn as_attr_ref<'b>(&'b self) -> AttrRef<'b> {
         self.attributes_borrow.get(self.position).unwrap()
     }
 }
@@ -125,9 +125,9 @@ impl Element {
             return Default::default();
         };
         self.owner_document()
-            .encoding_parse_a_url(&value.as_attr_ref2().value())
+            .encoding_parse_a_url(&value.as_attr_ref().value())
             .map(|parsed| USVString(parsed.into_string()))
-            .unwrap_or_else(|_| USVString(value.as_attr_ref2().value().to_string()))
+            .unwrap_or_else(|_| USVString(value.as_attr_ref().value().to_string()))
     }
 
     pub(crate) fn set_url_attribute(
@@ -146,7 +146,7 @@ impl Element {
         let Some(value) = self.get_attribute_string_ref(local_name) else {
             return TrustedScriptURLOrUSVString::USVString(USVString::default());
         };
-        let value_ref = value.as_attr_ref2();
+        let value_ref = value.as_attr_ref();
         self.owner_document()
             .encoding_parse_a_url(&value_ref.value())
             .map(|parsed| TrustedScriptURLOrUSVString::USVString(USVString(parsed.into_string())))
