@@ -50,7 +50,7 @@ const ASCII_SPACE: u8 = 0x20;
 /// guaranteed to live as long as no garbage collection operation happens. Afterwards this
 /// pointer can  point to arbitrary memory. Callers should enforce this using `NoGC`. It is
 /// essential for callers that this function not trigger a garbage collection.
-unsafe fn get_latin1_string_bytes(rooted_traceable_box: &Box<Heap<*mut JSString>>) -> &[u8] {
+unsafe fn get_latin1_string_bytes(rooted_traceable_box: &Heap<*mut JSString>) -> &[u8] {
     debug_assert!(!rooted_traceable_box.get().is_null());
     let mut length = 0;
     unsafe {
@@ -360,6 +360,7 @@ impl DOMString {
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
     /// to the JSString. Otherwise do the conversion to utf8 now.
     /// <https://webidl.spec.whatwg.org/#js-DOMString>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn from_js_string(
         cx: &mut JSContext,
         value: HandleValue,
