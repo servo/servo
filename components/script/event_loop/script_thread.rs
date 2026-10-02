@@ -3067,7 +3067,7 @@ impl ScriptThread {
         let Some(frame_element) = frame_element else {
             return;
         };
-        if !frame_element.update_pipeline_id(new_pipeline_id, reason, cx) {
+        if !frame_element.update_pipeline_id(cx, new_pipeline_id, reason) {
             return;
         };
 
@@ -3384,7 +3384,7 @@ impl ScriptThread {
             .borrow()
             .find_iframe(parent_id, browsing_context_id);
         match iframe {
-            Some(iframe) => iframe.iframe_load_event_steps(child_id, cx),
+            Some(iframe) => iframe.iframe_load_event_steps(cx, child_id),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
     }
@@ -3933,11 +3933,11 @@ impl ScriptThread {
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
             iframe.navigate_or_reload_child_browsing_context(
+                cx,
                 load_data,
                 history_handling,
                 ProcessingMode::NotFirstTime,
                 target_snapshot_params,
-                cx,
             );
         }
     }

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -152,11 +150,11 @@ impl HTMLIFrameElement {
 
     pub(crate) fn navigate_or_reload_child_browsing_context(
         &self,
+        cx: &mut JSContext,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
         mode: ProcessingMode,
         target_snapshot_params: TargetSnapshotParams,
-        cx: &mut JSContext,
     ) {
         self.start_new_pipeline(
             cx,
@@ -364,11 +362,11 @@ impl HTMLIFrameElement {
         // documentResource set to srcdocString, and initialInsertion set to initialInsertion.
         let target_snapshot_params = snapshot_self(self);
         self.navigate_or_reload_child_browsing_context(
+            cx,
             load_data,
             history_handling,
             mode,
             target_snapshot_params,
-            cx,
         );
     }
 
@@ -384,7 +382,7 @@ impl HTMLIFrameElement {
     }
 
     /// Step 1.3. of <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
-    fn navigate_to_the_srcdoc_resource(&self, mode: ProcessingMode, cx: &mut JSContext) {
+    fn navigate_to_the_srcdoc_resource(&self, cx: &mut JSContext, mode: ProcessingMode) {
         // Step 1.3. Navigate to the srcdoc resource: Navigate an iframe or frame given element,
         // about:srcdoc, the empty string, and the value of element's srcdoc attribute.
         let url = ServoUrl::parse("about:srcdoc").unwrap();
@@ -422,7 +420,7 @@ impl HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
-    fn process_the_iframe_attributes(&self, mode: ProcessingMode, cx: &mut JSContext) {
+    fn process_the_iframe_attributes(&self, cx: &mut JSContext, mode: ProcessingMode) {
         let element = self.upcast::<Element>();
 
         // Step 1. If `element`'s `srcdoc` attribute is specified, then:
@@ -446,7 +444,7 @@ impl HTMLIFrameElement {
             }
             // Step 1.3. Navigate to the srcdoc resource: Navigate an iframe or frame given element,
             // about:srcdoc, the empty string, and the value of element's srcdoc attribute.
-            self.navigate_to_the_srcdoc_resource(mode, cx);
+            self.navigate_to_the_srcdoc_resource(cx, mode);
             return;
         }
 
@@ -544,11 +542,11 @@ impl HTMLIFrameElement {
 
         let target_snapshot_params = snapshot_self(self);
         self.navigate_or_reload_child_browsing_context(
+            cx,
             load_data,
             history_handling,
             mode,
             target_snapshot_params,
-            cx,
         );
     }
 
@@ -627,9 +625,9 @@ impl HTMLIFrameElement {
     /// since the asynchronous update was started.
     pub(crate) fn update_pipeline_id(
         &self,
+        cx: &mut JSContext,
         new_pipeline_id: PipelineId,
         reason: UpdatePipelineIdReason,
-        cx: &mut JSContext,
     ) -> bool {
         // For all updates except the one for the initial blank document,
         // we need to set the flag back to false because the navigation is complete,
@@ -727,7 +725,7 @@ impl HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps>
-    pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, cx: &mut JSContext) {
+    pub(crate) fn iframe_load_event_steps(&self, cx: &mut JSContext, loaded_pipeline: PipelineId) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
@@ -1127,7 +1125,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 // trigger the processing of iframe attributes whenever "srcdoc" attribute is set, changed or removed
                 if self.upcast::<Node>().is_connected_with_browsing_context() {
                     debug!("iframe srcdoc modified while in browsing context.");
-                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, cx);
+                    self.process_the_iframe_attributes(cx, ProcessingMode::NotFirstTime);
                 }
             },
             local_name!("src") => {
@@ -1141,7 +1139,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 // the child browsing context to be created.
                 if self.upcast::<Node>().is_connected_with_browsing_context() {
                     debug!("iframe src set while in browsing context.");
-                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, cx);
+                    self.process_the_iframe_attributes(cx, ProcessingMode::NotFirstTime);
                 }
             },
             local_name!("loading") => {
@@ -1161,7 +1159,7 @@ impl VirtualMethods for HTMLIFrameElement {
                     LazyLoadResumptionSteps::None => (),
                     LazyLoadResumptionSteps::SrcDoc => {
                         // Step 4. Invoke resumptionSteps.
-                        self.navigate_to_the_srcdoc_resource(ProcessingMode::NotFirstTime, cx);
+                        self.navigate_to_the_srcdoc_resource(cx, ProcessingMode::NotFirstTime);
                     },
                 }
             },
@@ -1214,7 +1212,7 @@ impl VirtualMethods for HTMLIFrameElement {
         self.create_nested_browsing_context(cx);
 
         // Step 3. Process the iframe attributes for insertedNode, with initialInsertion set to true.
-        self.process_the_iframe_attributes(ProcessingMode::FirstTime, cx);
+        self.process_the_iframe_attributes(cx, ProcessingMode::FirstTime);
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
