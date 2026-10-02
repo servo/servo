@@ -20,7 +20,7 @@ pub struct SvgNode {
     pub tag: SvgTag,
     pub style: NodeStyle,
     pub transforms: Vec<TransformOp>,
-    // For nested '<svg>'
+    /// For nested '<svg>'
     pub viewport: Option<SvgViewport>,
     pub children: Vec<SvgNode>,
 }
