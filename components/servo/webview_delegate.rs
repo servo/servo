@@ -1216,7 +1216,9 @@ mod test {
         let web_resource_request = || WebResourceRequest {
             method: Method::GET,
             headers: HeaderMap::default(),
-            url: Url::parse("https://example.com").expect("Guaranteed by argument"),
+            url: Url::parse("https://example.com")
+                .expect("Guaranteed by argument")
+                .into(),
             destination: content_security_policy::Destination::Document,
             referrer_url: None,
             is_for_main_frame: false,
