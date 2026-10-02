@@ -16,8 +16,8 @@ use std::pin::Pin;
 use headers::{ContentType, HeaderMapExt};
 use servo::UserAgentPlatform;
 use servo::protocol_handler::{
-    DoneChannel, FetchContext, NetworkError, ProtocolHandler, Request, ResourceFetchTiming,
-    Response, ResponseBody,
+    DoneChannel, DoneResponseBody, FetchContext, NetworkError, ProtocolHandler, Request,
+    ResourceFetchTiming, Response, ResponseBody,
 };
 
 use crate::desktop::protocols::resource::ResourceProtocolHandler;
@@ -101,6 +101,9 @@ fn json_response(
         ResourceFetchTiming::new(request.timing_type()),
     );
     response.headers.typed_insert(ContentType::json());
-    *response.body.lock() = ResponseBody::Done(body.into_bytes());
+    *response.body.lock() = ResponseBody::Done(DoneResponseBody {
+        decoded_body: body.into_bytes(),
+        encoded_body: None,
+    });
     Box::pin(std::future::ready(response))
 }
