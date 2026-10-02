@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::ops::Deref;
@@ -780,7 +778,7 @@ impl HTMLMediaElement {
     /// we pass true to that method again.
     ///
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
-    pub(crate) fn delay_load_event(&self, delay: bool, cx: &mut JSContext) {
+    fn delay_load_event(&self, cx: &mut JSContext, delay: bool) {
         let blocker = &self.delaying_the_load_event_flag;
 
         if delay {
@@ -1283,7 +1281,7 @@ impl HTMLMediaElement {
                             // Once the readyState attribute reaches HAVE_CURRENT_DATA, after the
                             // loadeddata event has been fired, set the element's
                             // delaying-the-load-event flag to false.
-                            this.delay_load_event(false, cx);
+                            this.delay_load_event(cx, false);
                         }));
                 }
 
@@ -1405,7 +1403,7 @@ impl HTMLMediaElement {
 
         // Step 3. Set the media element's delaying-the-load-event flag to true (this delays the
         // load event).
-        self.delay_load_event(true, cx);
+        self.delay_load_event(cx, true);
 
         // Step 4. Await a stable state, allowing the task that invoked this algorithm to continue.
         // If the resource selection mode in the synchronous section is
@@ -1427,7 +1425,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn resource_selection_algorithm_sync(&self, base_url: ServoUrl, cx: &mut JSContext) {
+    fn resource_selection_algorithm_sync(&self, cx: &mut JSContext, base_url: ServoUrl) {
         // TODO Step 5. If the media element's blocked-on-parser flag is false, then populate the
         // list of pending text tracks.
         // FIXME(ferjm): Implement blocked_on_parser logic
@@ -1470,7 +1468,7 @@ impl HTMLMediaElement {
 
             // Step 6.none.2. Set the element's delaying-the-load-event flag to false. This stops
             // delaying the load event.
-            self.delay_load_event(false, cx);
+            self.delay_load_event(cx, false);
 
             // Step 6.none.3. End the synchronous section and return.
             return;
@@ -1728,7 +1726,7 @@ impl HTMLMediaElement {
                     return;
                 }
 
-                this.delay_load_event(false, cx);
+                this.delay_load_event(cx, false);
             }));
 
         // Step 9.children.22. Wait until the node after pointer is a node other than the end of the
@@ -1894,7 +1892,7 @@ impl HTMLMediaElement {
                                 return;
                             }
 
-                            this.delay_load_event(false, cx);
+                            this.delay_load_event(cx, false);
                         }));
 
                     // TODO Steps 5.remote.1.4. Wait for the task to be run.
@@ -1997,7 +1995,7 @@ impl HTMLMediaElement {
 
                 // Step 7. Set the element's delaying-the-load-event flag to false. This stops
                 // delaying the load event.
-                this.delay_load_event(false, cx);
+                this.delay_load_event(cx, false);
             }));
     }
 
@@ -2227,8 +2225,8 @@ impl HTMLMediaElement {
 
     pub(crate) fn handle_source_child_insertion(
         &self,
-        source: &HTMLSourceElement,
         cx: &mut JSContext,
+        source: &HTMLSourceElement,
     ) {
         // <https://html.spec.whatwg.org/multipage/#the-source-element:html-element-insertion-steps>
         // Step 2. If parent is a media element that has no src attribute and whose networkState has
@@ -2266,7 +2264,7 @@ impl HTMLMediaElement {
     fn select_next_source_child_after_wait(&self, cx: &mut JSContext) {
         // Step 9.children.24. Set the element's delaying-the-load-event flag back to true (this
         // delays the load event again, in case it hasn't been fired yet).
-        self.delay_load_event(true, cx);
+        self.delay_load_event(cx, true);
 
         // Step 9.children.25. Set the networkState back to NETWORK_LOADING.
         self.network_state.set(NetworkState::Loading);
@@ -2292,7 +2290,7 @@ impl HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
     /// => "If the connection is interrupted after some media data has been received..."
     /// => "If the media data is corrupted"
-    fn media_data_processing_fatal_steps(&self, error: u16, cx: &mut JSContext) {
+    fn media_data_processing_fatal_steps(&self, cx: &mut JSContext, error: u16) {
         *self.source_children_pointer.borrow_mut() = None;
         self.current_source_child.set(None);
 
@@ -2311,7 +2309,7 @@ impl HTMLMediaElement {
 
         // Step 4. Set the element's delaying-the-load-event flag to false. This stops delaying
         // the load event.
-        self.delay_load_event(false, cx);
+        self.delay_load_event(cx, false);
 
         // Step 5. Fire an event named error at the media element.
         self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
@@ -2519,7 +2517,7 @@ impl HTMLMediaElement {
                 };
 
                 if let Some(shared_player_id) = shared_player_id_clone.get() {
-                    event_handler.lock().unwrap().handle_player_event(*shared_player_id, event, cx);
+                    event_handler.lock().unwrap().handle_player_event(cx, *shared_player_id, event);
                 } else {
                     error!("Player Action without ID being assigned yet.");
                 }
@@ -2734,7 +2732,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_error(&self, error: &str, cx: &mut JSContext) {
+    fn playback_error(&self, cx: &mut JSContext, error: &str) {
         error!("Player error: {:?}", error);
 
         // If we have already flagged an error condition while processing
@@ -2751,7 +2749,7 @@ impl HTMLMediaElement {
             self.media_data_processing_failure_steps(cx);
         } else {
             // => "If the media data is corrupted"
-            self.media_data_processing_fatal_steps(MEDIA_ERR_DECODE, cx);
+            self.media_data_processing_fatal_steps(cx, MEDIA_ERR_DECODE);
         }
     }
 
@@ -3344,8 +3342,8 @@ impl HTMLMediaElement {
     /// renderer.
     pub(crate) fn set_audio_renderer(
         &self,
-        audio_renderer: Option<Arc<Mutex<dyn AudioRenderer>>>,
         cx: &mut JSContext,
+        audio_renderer: Option<Arc<Mutex<dyn AudioRenderer>>>,
     ) {
         *self.audio_renderer.borrow_mut() = audio_renderer;
 
@@ -4087,7 +4085,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 ref base_url,
             } => {
                 if generation_id == elem.generation_id.get() {
-                    elem.resource_selection_algorithm_sync(base_url.clone(), cx);
+                    elem.resource_selection_algorithm_sync(cx, base_url.clone());
                 }
             },
             // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:remove-an-element-from-a-document
@@ -4346,7 +4344,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                 element.media_data_processing_failure_steps(cx);
             } else {
                 // => "If the connection is interrupted after some media data has been received..."
-                element.media_data_processing_fatal_steps(MEDIA_ERR_NETWORK, cx);
+                element.media_data_processing_fatal_steps(cx, MEDIA_ERR_NETWORK);
             }
             return;
         }
@@ -4515,7 +4513,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                 .fire_event(cx, atom!("suspend"));
         } else if status.is_err() && element.ready_state.get() != ReadyState::HaveNothing {
             // => "If the connection is interrupted after some media data has been received..."
-            element.media_data_processing_fatal_steps(MEDIA_ERR_NETWORK, cx);
+            element.media_data_processing_fatal_steps(cx, MEDIA_ERR_NETWORK);
         } else {
             // => "If the media data can be fetched but is found by inspection to be in an
             // unsupported format, or can otherwise not be rendered at all"
@@ -4527,7 +4525,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn process_csp_violations(
         &mut self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
@@ -4648,7 +4646,7 @@ impl HTMLMediaElementEventHandler {
         }
     }
 
-    fn handle_player_event(&self, player_id: usize, event: PlayerEvent, cx: &mut JSContext) {
+    fn handle_player_event(&self, cx: &mut JSContext, player_id: usize, event: PlayerEvent) {
         let Some(element) = self.element.root() else {
             return;
         };
@@ -4662,7 +4660,7 @@ impl HTMLMediaElementEventHandler {
             PlayerEvent::DurationChanged(duration) => element.playback_duration_changed(duration),
             PlayerEvent::EndOfStream => element.playback_end(cx),
             PlayerEvent::EnoughData => element.playback_enough_data(),
-            PlayerEvent::Error(ref error) => element.playback_error(error, cx),
+            PlayerEvent::Error(ref error) => element.playback_error(cx, error),
             PlayerEvent::MetadataUpdated(ref metadata) => {
                 element.playback_metadata_updated(cx, metadata)
             },

@@ -47,7 +47,7 @@ impl MediaElementAudioSourceNode {
             MediaElementSourceNodeMessage::GetAudioRenderer(sender),
         ));
         let audio_renderer = receiver.recv();
-        media_element.set_audio_renderer(audio_renderer.ok(), cx);
+        media_element.set_audio_renderer(cx, audio_renderer.ok());
         let media_element = Dom::from_ref(media_element);
         Ok(MediaElementAudioSourceNode {
             node,
