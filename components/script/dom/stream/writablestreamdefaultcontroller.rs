@@ -293,7 +293,6 @@ enum UnderlyingSinkType {
     Transform(Dom<TransformStream>, TracedPromise),
 }
 
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum UnderlyingSinkTypeRef<'a> {
     Js {
         abort: &'a Option<TracedCallback<UnderlyingSinkAbortCallback>>,
