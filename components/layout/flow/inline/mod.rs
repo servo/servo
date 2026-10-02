@@ -457,10 +457,6 @@ struct LineUnderConstruction {
     /// indicates that the next run that exceeds the line length can cause a line break.
     has_content: bool,
 
-    /// Whether any active linebox has added some inline-axis padding, border or margin
-    /// to this line.
-    has_inline_pbm: bool,
-
     /// Whether or not there are floats that did not fit on the current line. Before
     /// the [`LineItem`]s of this line are laid out, these floats will need to be
     /// placed directly below this line, but still as children of this line's Fragments.
@@ -496,7 +492,6 @@ impl LineUnderConstruction {
             start_position,
             max_block_size: LineBlockSizes::zero(),
             has_content: false,
-            has_inline_pbm: false,
             has_floats_waiting_to_be_placed: false,
             placement_among_floats: OnceCell::new(),
             line_items: Vec::new(),
@@ -547,8 +542,21 @@ impl LineUnderConstruction {
     /// Whether this is a phantom line box.
     /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
     fn is_phantom(&self) -> bool {
-        // Keep this logic in sync with `UnbreakableSegmentUnderConstruction::is_phantom()`.
-        !self.has_content && !self.has_inline_pbm
+        Self::is_phantom_inner(self.has_content, &self.line_items)
+    }
+
+    fn is_phantom_inner(has_content: bool, line_items: &[LineItem]) -> bool {
+        if has_content {
+            return false;
+        }
+
+        // If the line has no content it might have padding, border, or margin
+        // added by inline boxes.
+        !line_items.iter().any(|item| match item {
+            LineItem::InlineStartBoxPaddingBorderMargin(state) => state.has_pbm_inline_start(),
+            LineItem::InlineEndBoxPaddingBorderMargin(state) => state.has_pbm_inline_end(),
+            _ => false,
+        })
     }
 }
 
@@ -693,18 +701,10 @@ struct UnbreakableSegmentUnderConstruction {
     /// The LineItems for the segment under construction
     line_items: Vec<LineItem>,
 
-    /// The depth in the inline box hierarchy at the start of this segment. This is used
-    /// to prefix this segment when it is pushed to a new line.
-    inline_box_hierarchy_depth: Option<usize>,
-
     /// Whether any active linebox has added a glyph or atomic element to this line
     /// segment, which indicates that the next run that exceeds the line length can cause
     /// a line break.
     has_content: bool,
-
-    /// Whether any active linebox has added some inline-axis padding, border or margin
-    /// to this line segment.
-    has_inline_pbm: bool,
 
     /// The inline size of any trailing whitespace in this segment.
     trailing_whitespace_size: Au,
@@ -720,9 +720,7 @@ impl UnbreakableSegmentUnderConstruction {
                 size_for_baseline_positioning: BaselineRelativeSize::zero(),
             },
             line_items: Vec::new(),
-            inline_box_hierarchy_depth: None,
             has_content: false,
-            has_inline_pbm: false,
             trailing_whitespace_size: Au::zero(),
         }
     }
@@ -732,20 +730,12 @@ impl UnbreakableSegmentUnderConstruction {
         assert!(self.line_items.is_empty()); // Preserve allocated memory.
         self.inline_size = Au::zero();
         self.max_block_size = LineBlockSizes::zero();
-        self.inline_box_hierarchy_depth = None;
         self.has_content = false;
-        self.has_inline_pbm = false;
         self.trailing_whitespace_size = Au::zero();
     }
 
-    /// Push a single line item to this segment. In addition, record the inline box
-    /// hierarchy depth if this is the first segment. The hierarchy depth is used to
-    /// duplicate the necessary `StartInlineBox` tokens if this segment is ultimately
-    /// placed on a new empty line.
-    fn push_line_item(&mut self, line_item: LineItem, inline_box_hierarchy_depth: usize) {
-        if self.line_items.is_empty() {
-            self.inline_box_hierarchy_depth = Some(inline_box_hierarchy_depth);
-        }
+    /// Push a single line item to this segment.
+    fn push_line_item(&mut self, line_item: LineItem) {
         self.line_items.push(line_item);
     }
 
@@ -772,8 +762,29 @@ impl UnbreakableSegmentUnderConstruction {
     /// Whether this is segment is phantom. If false, its line box won't be phantom.
     /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
     fn is_phantom(&self) -> bool {
-        // Keep this logic in sync with `LineUnderConstruction::is_phantom()`.
-        !self.has_content && !self.has_inline_pbm
+        LineUnderConstruction::is_phantom_inner(self.has_content, &self.line_items)
+    }
+
+    /// The size of the inline padding, border, and margin start edge of all trailing
+    /// opening inline boxes on this segment. In addition, if those inline boxes will
+    /// clone their box decorations, include the size of the cloned end padding, border,
+    /// and margin as well.
+    fn trailing_inline_box_start_size(&self) -> Au {
+        self.line_items
+            .iter()
+            .rev()
+            .map_while(|item| match item {
+                LineItem::InlineStartBoxPaddingBorderMargin(state) => Some(state),
+                _ => None,
+            })
+            .map(|state| {
+                if state.should_clone_pbm() {
+                    state.pbm_inline_start() + state.pbm_inline_end()
+                } else {
+                    state.pbm_inline_start()
+                }
+            })
+            .sum()
     }
 }
 
@@ -1007,10 +1018,6 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         let inline_box_state = Rc::new(inline_box_state);
-        if inline_box_state.has_pbm_inline_start() {
-            self.current_line_segment.has_inline_pbm = true;
-        }
-
         let pbm_inline_start = inline_box_state.pbm_inline_start();
         self.current_line_segment.inline_size += pbm_inline_start;
 
@@ -1054,10 +1061,6 @@ impl InlineFormattingContextLayout<'_> {
         // `white-space` used is that of their nearest common ancestor.
         if inline_box_state.base.has_content.get() {
             self.propagate_current_nesting_level_white_space_style();
-        }
-
-        if inline_box_state.has_pbm_inline_end() {
-            self.current_line_segment.has_inline_pbm = true;
         }
 
         let pbm_inline_end = inline_box_state.pbm_inline_end();
@@ -1408,7 +1411,7 @@ impl InlineFormattingContextLayout<'_> {
     fn place_float_line_item_for_commit_to_line(
         &mut self,
         float_item: &mut FloatLineItem,
-        line_inline_size_without_trailing_whitespace: Au,
+        potential_line_length: Au,
     ) {
         let containing_block = self.containing_block();
         let float_fragment = &float_item.fragment;
@@ -1421,7 +1424,7 @@ impl InlineFormattingContextLayout<'_> {
         let available_inline_size = match self.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
             None => containing_block.size.inline,
-        } - line_inline_size_without_trailing_whitespace;
+        } - potential_line_length;
 
         // If this float doesn't fit on the current line or a previous float didn't fit on
         // the current line, we need to place it starting at the next line BUT still as
@@ -1445,7 +1448,7 @@ impl InlineFormattingContextLayout<'_> {
         // placement among floats for the current line, which may adjust its inline
         // start position.
         let new_placement = self.place_line_among_floats(&LogicalVec2 {
-            inline: line_inline_size_without_trailing_whitespace,
+            inline: potential_line_length,
             block: self.current_line.max_block_size.resolve(),
         });
         self.current_line
@@ -1562,8 +1565,7 @@ impl InlineFormattingContextLayout<'_> {
         // Otherwise the new potential line size will require a newline if it fits in the
         // inline space available for this line. This space may be smaller than the
         // containing block if floats shrink the available inline space.
-        potential_line_size.inline + self.cloneable_inline_box_pbm_size.end >
-            available_line_space.inline
+        potential_line_size.inline > available_line_space.inline
     }
 
     fn defer_forced_line_break_at_character_offset(
@@ -1573,6 +1575,7 @@ impl InlineFormattingContextLayout<'_> {
         // If the current portion of the unbreakable segment does not fit on the current line
         // we need to put it on a new line *before* actually triggering the hard line break.
         if !self.unbreakable_segment_fits_on_line() {
+            self.rewind_trailing_inline_box_starts();
             self.process_line_break(
                 false, /* forced_line_break */
                 false, /* for_block_level */
@@ -1621,8 +1624,7 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     fn push_line_item_to_unbreakable_segment(&mut self, line_item: LineItem) {
-        self.current_line_segment
-            .push_line_item(line_item, self.inline_box_state_stack.len());
+        self.current_line_segment.push_line_item(line_item);
     }
 
     fn push_glyph_store_to_unbreakable_segment(
@@ -1780,14 +1782,40 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     fn unbreakable_segment_fits_on_line(&mut self) -> bool {
-        let potential_line_size_without_hanging_whitespace = self.potential_line_size() -
-            LogicalVec2 {
-                inline: self.current_line_segment.trailing_whitespace_size,
-                block: Au::zero(),
+        let mut potential_line_size = self.potential_line_size();
+        potential_line_size.inline += self.cloneable_inline_box_pbm_size.end -
+            self.current_line_segment.trailing_whitespace_size -
+            self.current_line_segment.trailing_inline_box_start_size();
+        !self.new_potential_line_size_causes_line_break(&potential_line_size)
+    }
+
+    /// After a line break triggered by a soft wrap opportunity, any trailing opening
+    /// inline box items should belong to the next line so that they "stick" to their
+    /// content. This method runs before the line break and moves those trailing opening
+    /// inline box items from the line to the segment (which will be part of the next
+    /// line).
+    fn rewind_trailing_inline_box_starts(&mut self) {
+        let mut removal_start = self.current_line.line_items.len();
+        for item in self.current_line.line_items.iter().rev() {
+            let LineItem::InlineStartBoxPaddingBorderMargin(state) = item else {
+                break;
             };
-        !self.new_potential_line_size_causes_line_break(
-            &potential_line_size_without_hanging_whitespace,
-        )
+
+            removal_start -= 1;
+
+            let inline_start = state.pbm_inline_start();
+            self.current_line.inline_position -= inline_start;
+            self.current_line_segment.inline_size += inline_start;
+
+            if state.should_clone_pbm() {
+                self.current_line.cloneable_inline_box_pbm_size.start -= inline_start;
+                self.current_line.cloneable_inline_box_pbm_size.end -= state.pbm_inline_end();
+            }
+        }
+
+        self.current_line_segment
+            .line_items
+            .splice(0..0, self.current_line.line_items.drain(removal_start..));
     }
 
     /// Process a soft wrap opportunity. This will either commit the current unbreakable
@@ -1801,6 +1829,7 @@ impl InlineFormattingContextLayout<'_> {
             return;
         }
         if !self.unbreakable_segment_fits_on_line() {
+            self.rewind_trailing_inline_box_starts();
             self.process_line_break(
                 false, /* forced_line_break */
                 false, /* for_block_level */
@@ -1831,8 +1860,11 @@ impl InlineFormattingContextLayout<'_> {
         self.current_line.max_block_size = self
             .current_line_max_block_size_including_nested_containers()
             .max(&self.current_line_segment.max_block_size);
-        let line_inline_size_without_trailing_whitespace =
-            self.current_line.inline_position - self.current_line_segment.trailing_whitespace_size;
+
+        let potential_line_length = self.current_line.inline_position -
+            self.current_line_segment.trailing_whitespace_size -
+            self.current_line_segment.trailing_inline_box_start_size() +
+            self.current_line.cloneable_inline_box_pbm_size.end;
 
         // Place all floats in this unbreakable segment.
         let mut segment_items = {
@@ -1842,10 +1874,7 @@ impl InlineFormattingContextLayout<'_> {
         };
         for item in segment_items.iter_mut() {
             if let LineItem::Float(_, float_item) = item {
-                self.place_float_line_item_for_commit_to_line(
-                    float_item,
-                    line_inline_size_without_trailing_whitespace,
-                );
+                self.place_float_line_item_for_commit_to_line(float_item, potential_line_length);
             }
         }
 
@@ -1855,7 +1884,7 @@ impl InlineFormattingContextLayout<'_> {
         // break because it is the first content on the line.
         if self.current_line.line_items.is_empty() {
             let will_break = self.new_potential_line_size_causes_line_break(&LogicalVec2 {
-                inline: line_inline_size_without_trailing_whitespace,
+                inline: potential_line_length,
                 block: self.current_line_segment.max_block_size.resolve(),
             });
             assert!(!will_break);
@@ -1863,7 +1892,6 @@ impl InlineFormattingContextLayout<'_> {
 
         self.current_line.line_items.extend(segment_items);
         self.current_line.has_content |= self.current_line_segment.has_content;
-        self.current_line.has_inline_pbm |= self.current_line_segment.has_inline_pbm;
 
         self.current_line_segment.reset();
     }
@@ -2847,6 +2875,9 @@ struct ContentSizesComputation<'layout_data> {
     current_line: ContentSizes,
     /// Size for whitespace pending to be added to this line.
     pending_whitespace: ContentSizes,
+    /// Padding, border, and margins from the opening of inline boxes that
+    /// has not yet been committed to the line.
+    pending_opening_pbm_for_inline_boxes: Au,
     /// The size of the not yet cleared floats in the inline axis of the containing block.
     uncleared_floats: LogicalSides1D<ContentSizes>,
     /// The size of the already cleared floats in the inline axis of the containing block.
@@ -2912,7 +2943,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     .auto_is(Au::zero);
 
                 let pbm = margin + padding + border;
-                self.add_inline_size(pbm.inline_start);
+                self.pending_opening_pbm_for_inline_boxes += pbm.inline_start;
+                self.current_line.max_content += pbm.inline_start;
                 self.ending_inline_pbm_stack.push(pbm.inline_end);
 
                 self.text_wrap_mode_stack
@@ -2920,6 +2952,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             },
             InlineItem::EndInlineBox(..) => {
                 let length = self.ending_inline_pbm_stack.pop().unwrap_or_else(Au::zero);
+                self.commit_pending_opening_pbm_for_inline_boxes();
                 self.add_inline_size(length);
                 self.text_wrap_mode_stack.pop();
             },
@@ -2952,6 +2985,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     self.line_break_opportunity();
                 }
 
+                self.commit_pending_opening_pbm_for_inline_boxes();
                 self.commit_pending_whitespace();
                 let outer = self.outer_inline_content_sizes_of_float_or_atomic(&atomic.borrow());
                 self.current_line += outer;
@@ -3041,6 +3075,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 }
             }
 
+            self.commit_pending_opening_pbm_for_inline_boxes();
             self.commit_pending_whitespace();
             self.add_inline_size(advance);
 
@@ -3059,7 +3094,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         parent_style: &AtomicRef<'_, ServoArc<ComputedValues>>,
         inline_formatting_context: &InlineFormattingContext,
     ) {
-        // If there is a preserved tab, that means that all whitespace is preserved.
+        self.commit_pending_opening_pbm_for_inline_boxes();
         self.commit_pending_whitespace();
 
         self.current_line.min_content += inline_formatting_context
@@ -3087,10 +3122,14 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
     }
 
     fn forced_line_break(&mut self) {
+        // A forced line break causes any pending open inline box padding, border,
+        // and margin to immediately be considered part of the current line.
+        self.commit_pending_opening_pbm_for_inline_boxes();
+
         // Handle the line break for min-content sizes.
         self.line_break_opportunity();
 
-        // Repeat the same logic, but now for max-content sizes.
+        // Repeat the same logic as `line_break_opportunity()`, but now for max-content sizes.
         self.pending_whitespace.max_content = Au::zero();
         let current_max_content = mem::take(&mut self.current_line.max_content);
         self.paragraph.max_content.max_assign(current_max_content);
@@ -3101,6 +3140,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         self.current_line += mem::take(&mut self.pending_whitespace);
         self.had_content_yet_for_min_content = true;
         self.had_content_yet_for_max_content = true;
+    }
+
+    fn commit_pending_opening_pbm_for_inline_boxes(&mut self) {
+        self.current_line.min_content +=
+            std::mem::take(&mut self.pending_opening_pbm_for_inline_boxes);
     }
 
     fn outer_inline_content_sizes_of_float_or_atomic(
@@ -3164,6 +3208,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             pending_whitespace: ContentSizes::zero(),
+            pending_opening_pbm_for_inline_boxes: Au::zero(),
             uncleared_floats: LogicalSides1D::default(),
             cleared_floats: LogicalSides1D::default(),
             had_content_yet_for_min_content: false,
