@@ -10,9 +10,7 @@ use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
-use accesskit::Node;
-
-use accesskit::ActionRequest;
+use accesskit::{ActionRequest, Node};
 use app_units::Au;
 use bitflags::bitflags;
 use embedder_traits::{
