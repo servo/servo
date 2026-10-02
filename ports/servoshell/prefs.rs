@@ -107,6 +107,7 @@ pub(crate) struct ServoShellPreferences {
     #[cfg(target_env = "ohos")]
     pub log_to_file: bool,
     /// Enable memory output if tracing is enabled.
+    #[allow(unused)]
     pub memory_output: bool,
 }
 
