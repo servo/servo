@@ -1064,7 +1064,22 @@ impl Handler {
                 self.input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Null);
-                Ok(null_actions.into_iter().map(ActionItem::Null).collect())
+                // <https://w3c.github.io/webdriver/#dfn-process-a-null-action>
+                null_actions
+                    .into_iter()
+                    .map(|action_item| {
+                        let is_invalid = match &action_item {
+                            NullActionItem::General(GeneralAction::Pause(action)) => {
+                                action.duration.is_some_and(exceeds_maximum_safe_integer)
+                            },
+                        };
+                        if is_invalid {
+                            Err(ErrorStatus::InvalidArgument)
+                        } else {
+                            Ok(ActionItem::Null(action_item))
+                        }
+                    })
+                    .collect()
             },
             ActionsType::Key {
                 actions: key_actions,
@@ -1072,7 +1087,23 @@ impl Handler {
                 self.input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Key(KeyInputState::new()));
-                Ok(key_actions.into_iter().map(ActionItem::Key).collect())
+                // <https://w3c.github.io/webdriver/#dfn-process-a-key-action>
+                key_actions
+                    .into_iter()
+                    .map(|action_item| {
+                        let is_invalid = match &action_item {
+                            KeyActionItem::General(GeneralAction::Pause(action)) => {
+                                action.duration.is_some_and(exceeds_maximum_safe_integer)
+                            },
+                            KeyActionItem::Key(_) => false,
+                        };
+                        if is_invalid {
+                            Err(ErrorStatus::InvalidArgument)
+                        } else {
+                            Ok(ActionItem::Key(action_item))
+                        }
+                    })
+                    .collect()
             },
             ActionsType::Pointer {
                 parameters,
