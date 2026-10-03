@@ -684,9 +684,9 @@ pub struct WebResourceRequest {
         serialize_with = "::hyper_serde::serialize"
     )]
     pub headers: HeaderMap,
-    pub url: Url,
+    pub url: ServoUrl,
     pub destination: Destination,
-    pub referrer_url: Option<Url>,
+    pub referrer_url: Option<ServoUrl>,
     pub is_for_main_frame: bool,
     pub is_redirect: bool,
 }
