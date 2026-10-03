@@ -149,8 +149,8 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
 use crate::event_loop::timers::{
-    IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
-    TimerEventId, TimerSource,
+    IsInterval, JsTimerTaskData, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers,
+    RootedInternalTimerCallback, TimerCallback, TimerEventId, TimerSource,
 };
 use crate::fetch::fetch::FetchGroup;
 use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
@@ -2610,6 +2610,18 @@ impl GlobalScope {
 
             maybe_resume_unwind();
             Ok(())
+        })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
+    pub(crate) fn schedule_js_callback(
+        &self,
+        callback: RootedInternalTimerCallback,
+        data: JsTimerTaskData,
+        duration: Duration,
+    ) -> OneshotTimerHandle {
+        self.with_timers(|timers| {
+            timers.schedule_js_callback(callback, data, duration, self.timer_source())
         })
     }
 
