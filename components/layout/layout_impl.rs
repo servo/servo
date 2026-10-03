@@ -1577,6 +1577,7 @@ impl LayoutThread {
             .mark_paint_timing(
                 reflow_request.paint_timing_eligible,
                 reflow_request.halt_lcp,
+                &stacking_context_tree.paint_info.scroll_tree,
             );
 
         if let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate() {
