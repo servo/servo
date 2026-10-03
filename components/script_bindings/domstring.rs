@@ -106,6 +106,20 @@ enum DOMStringType {
     RustStatic(&'static str),
 }
 
+impl Clone for DOMStringType {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Rust(arg0) => Self::Rust(arg0.clone()),
+            Self::JSString(rooted_box) => {
+                Self::JSString(RootedTraceableBox::from_box(Heap::boxed(rooted_box.get())))
+            },
+            #[cfg(test)]
+            Self::Latin1Vec(arg0) => Self::Latin1Vec(arg0.clone()),
+            Self::RustStatic(arg0) => Self::RustStatic(arg0),
+        }
+    }
+}
+
 impl Default for DOMStringType {
     fn default() -> Self {
         Self::Rust(Default::default())
@@ -308,14 +322,8 @@ impl std::fmt::Debug for DOMStringType {
 /// expensive. For now, you should assume that all the functions incur this
 /// conversion cost.
 #[repr(transparent)]
-#[derive(Debug, Default, MallocSizeOf, JSTraceable)]
+#[derive(Clone, Debug, Default, MallocSizeOf, JSTraceable)]
 pub struct DOMString(RefCell<DOMStringType>);
-
-impl Clone for DOMString {
-    fn clone(&self) -> Self {
-        self.ensure_rust_string().clone().into()
-    }
-}
 
 pub enum DOMStringErrorType {
     JSConversionError,
