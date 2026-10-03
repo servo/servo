@@ -17,6 +17,7 @@ use crate::dom::navigator::hardware_concurrency;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::storagemanager::StorageManager;
+use crate::dom::types::LockManager;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -29,6 +30,7 @@ pub(crate) struct WorkerNavigator {
     storage: MutNullableDom<StorageManager>,
     #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
+    locks: MutNullableDom<LockManager>,
 }
 
 impl WorkerNavigator {
@@ -39,6 +41,7 @@ impl WorkerNavigator {
             storage: Default::default(),
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
+            locks: Default::default(),
         }
     }
 
@@ -134,5 +137,10 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
     fn HardwareConcurrency(&self) -> u64 {
         hardware_concurrency()
+    }
+
+    /// <https://w3c.github.io/web-locks/#navigator-mixins>
+    fn Locks(&self, cx: &mut JSContext) -> DomRoot<LockManager> {
+        self.locks.or_init(|| LockManager::new(cx, &self.global()))
     }
 }

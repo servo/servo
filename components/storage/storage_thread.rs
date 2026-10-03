@@ -10,8 +10,10 @@ use storage_traits::StorageThreads;
 use storage_traits::cache_storage::CacheStorageThreadHandle;
 use storage_traits::client_storage::ClientStorageThreadHandle;
 use storage_traits::indexeddb::IndexedDBThreadMsg;
+use storage_traits::weblocks::WebLocksThreadMsg;
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 
+use crate::weblocks::WebLocksThreadFactory;
 use crate::{
     CacheStorageThreadFactory, ClientStorageThreadFactory, IndexedDBThreadFactory,
     WebStorageThreadFactory,
@@ -31,17 +33,20 @@ fn new_storage_thread_group(
     );
     let web_storage: GenericSender<WebStorageThreadMsg> = WebStorageThreadFactory::new(
         config_dir.clone(),
-        mem_profiler_chan,
+        mem_profiler_chan.clone(),
         format!("storage-reporter-{label}"),
     );
     let cache_storage: CacheStorageThreadHandle =
         CacheStorageThreadFactory::new(config_dir, temporary_storage);
+    let web_locks: GenericSender<WebLocksThreadMsg> =
+        WebLocksThreadFactory::new(mem_profiler_chan, format!("WebLocks-reporter-{label}"));
 
     StorageThreads::new(
         client_storage.into(),
         idb,
         web_storage,
         cache_storage.into(),
+        web_locks,
     )
 }
 

@@ -353,6 +353,8 @@ pub(crate) mod gpucanvascontext;
 pub(crate) mod webcrypto;
 #[cfg(feature = "webcrypto")]
 pub(crate) use self::webcrypto::*;
+pub(crate) mod weblock;
+pub(crate) use self::weblock::*;
 pub(crate) mod webrtc;
 pub(crate) use self::webrtc::*;
 pub(crate) mod webvtt;
