@@ -1468,6 +1468,66 @@ impl<'dom> LayoutDom<'dom, Element> {
             },
         }
 
+        let margin_right_left = if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_margin_right_left()
+        } else {
+            LengthOrPercentageOrAuto::Auto
+        };
+
+        match margin_right_left {
+            LengthOrPercentageOrAuto::Auto => {},
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let margin_right_left_value =
+                    specified::Margin::LengthPercentage(specified::LengthPercentage::Percentage(
+                        specified::NoCalcPercentage::new(percentage),
+                    ));
+                push(PropertyDeclaration::MarginLeft(
+                    margin_right_left_value.clone(),
+                ));
+                push(PropertyDeclaration::MarginRight(margin_right_left_value));
+            },
+            LengthOrPercentageOrAuto::Length(length) => {
+                let margin_right_left_value =
+                    specified::Margin::LengthPercentage(specified::LengthPercentage::Length(
+                        specified::NoCalcLength::from_px(length.to_f32_px()),
+                    ));
+                push(PropertyDeclaration::MarginLeft(
+                    margin_right_left_value.clone(),
+                ));
+                push(PropertyDeclaration::MarginRight(margin_right_left_value));
+            },
+        }
+
+        let margin_top_bottom = if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_margin_top_bottom()
+        } else {
+            LengthOrPercentageOrAuto::Auto
+        };
+
+        match margin_top_bottom {
+            LengthOrPercentageOrAuto::Auto => {},
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let margin_top_bottom_value =
+                    specified::Margin::LengthPercentage(specified::LengthPercentage::Percentage(
+                        specified::NoCalcPercentage::new(percentage),
+                    ));
+                push(PropertyDeclaration::MarginTop(
+                    margin_top_bottom_value.clone(),
+                ));
+                push(PropertyDeclaration::MarginBottom(margin_top_bottom_value));
+            },
+            LengthOrPercentageOrAuto::Length(length) => {
+                let margin_top_bottom_value =
+                    specified::Margin::LengthPercentage(specified::LengthPercentage::Length(
+                        specified::NoCalcLength::from_px(length.to_f32_px()),
+                    ));
+                push(PropertyDeclaration::MarginTop(
+                    margin_top_bottom_value.clone(),
+                ));
+                push(PropertyDeclaration::MarginBottom(margin_top_bottom_value));
+            },
+        }
+
         if let Some(svg_element) = self.downcast::<SVGElement>() {
             svg_element.synthesize_presentational_hints(document, &mut push);
         }

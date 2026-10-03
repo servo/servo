@@ -1453,20 +1453,28 @@ impl<'dom> LayoutDom<'dom, HTMLImageElement> {
         matches!(self.current_request().state, State::Broken)
     }
 
-    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
+    fn dimension_attr_value(self, name: LocalName) -> LengthOrPercentageOrAuto {
         self.dimension_attribute_source()
-            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .get_attr_for_layout(&ns!(), &name)
             .map(AttrValue::as_dimension)
             .cloned()
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
+        self.dimension_attr_value(local_name!("width"))
+    }
+
     pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
-        self.dimension_attribute_source()
-            .get_attr_for_layout(&ns!(), &local_name!("height"))
-            .map(AttrValue::as_dimension)
-            .cloned()
-            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        self.dimension_attr_value(local_name!("height"))
+    }
+
+    pub(crate) fn get_margin_right_left(self) -> LengthOrPercentageOrAuto {
+        self.dimension_attr_value(local_name!("hspace"))
+    }
+
+    pub(crate) fn get_margin_top_bottom(self) -> LengthOrPercentageOrAuto {
+        self.dimension_attr_value(local_name!("vspace"))
     }
 }
 
@@ -1803,7 +1811,9 @@ impl VirtualMethods for HTMLImageElement {
             &local_name!("width") | &local_name!("height") => {
                 AttrValue::from_dimension(value.into())
             },
-            &local_name!("hspace") | &local_name!("vspace") => AttrValue::from_u32(value.into(), 0),
+            &local_name!("hspace") | &local_name!("vspace") => {
+                AttrValue::from_dimension(value.into())
+            },
             _ => self
                 .super_type()
                 .unwrap()
