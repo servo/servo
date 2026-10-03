@@ -50,6 +50,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import androidx.window.core.layout.WindowSizeClass
@@ -73,15 +75,11 @@ class MainActivity : ComponentActivity(), Servo.Client {
         var experimental = preferences.getBoolean("experimental", false)
     }
 
-    private lateinit var sharedPreferences: SharedPreferences
-    private lateinit var settings: Settings
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        settings = Settings(sharedPreferences)
-
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        var settings = Settings(sharedPreferences)
         val navigator = ServoNavigator()
         servoView =
             ServoView(
@@ -111,6 +109,14 @@ class MainActivity : ComponentActivity(), Servo.Client {
             }
 
         setContent {
+            LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                val updatedSettings = Settings(sharedPreferences)
+                if (updatedSettings.experimental != settings.experimental) {
+                    servoView.setExperimentalMode(updatedSettings.experimental)
+                }
+                settings = updatedSettings
+            }
+
             val isWindowWidthAtLeastMedium =
                 currentWindowAdaptiveInfo()
                     .windowSizeClass
@@ -341,15 +347,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onUrlChanged(url: String) {
         urlTextFieldState.edit { replace(0, length, url) }
         currentUrl = url
-    }
-
-    public override fun onResume() {
-        super.onResume()
-        val updatedSettings = Settings(sharedPreferences)
-        if (updatedSettings.experimental != settings.experimental) {
-            servoView.setExperimentalMode(updatedSettings.experimental)
-        }
-        settings = updatedSettings
     }
 
     override fun onMediaSessionMetadata(title: String, artist: String, album: String) {
