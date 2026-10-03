@@ -90,7 +90,7 @@ impl From<SelectionDirection> for DOMString {
     }
 }
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum Lines {
     Single,
     Multiple,
@@ -481,6 +481,10 @@ impl<T: ClipboardProvider> TextInput<T> {
             ModifySelection::No => self.modify_edit_point(amount, movement),
         }
         self.assert_ok_selection();
+    }
+
+    pub fn mode(&self) -> Lines {
+        self.mode
     }
 
     /// Update the field selection_direction.

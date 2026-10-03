@@ -302,7 +302,7 @@ impl DocumentExecCommandSupport for Document {
                 0,
                 None,
                 false,
-                DOMString::new(),
+                mapped_value_of_command(command),
             );
             let event = event.upcast::<Event>();
             // Step 4.3. If the value returned by the previous step is false, return false.
