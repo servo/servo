@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use embedder_traits::Cursor;
+use embedder_traits::NamedCursor;
 use euclid::Point2D;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_base::text::Utf32CodeUnitsOrNodeOffset;
 use style::Atom;
+use style::values::computed::ui::CursorImage;
 use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEventMethods};
@@ -127,7 +128,8 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
 pub(crate) struct HitTestResult {
     pub node: DomRoot<Node>,
     pub dom_position_for_selection: Option<(DomRoot<Node>, Utf32CodeUnitsOrNodeOffset)>,
-    pub cursor: Cursor,
+    pub cursor: NamedCursor,
+    pub cursor_images: Vec<CursorImage>,
     pub point_in_node: Point2D<f32, CSSPixel>,
     pub point_in_frame: Point2D<f32, CSSPixel>,
     pub point_relative_to_initial_containing_block: Point2D<f32, CSSPixel>,

@@ -26,7 +26,9 @@ use accesskit::{Action, ActionData, ActionRequest};
 use app_units::Au;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
-use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
+use embedder_traits::{
+    NamedCursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails,
+};
 use euclid::{Point2D, Rect};
 use fonts::{FontContext, WebFontDocumentContext, WebFontSetDifference};
 pub use largest_contentful_paint_candidate::LCPCandidate;
@@ -75,6 +77,7 @@ use style::stylist::Stylist;
 #[cfg(debug_assertions)]
 use style::thread_state::{self, ThreadState};
 use style::values::computed::Overflow;
+use style::values::computed::ui::CursorImage;
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
@@ -959,9 +962,10 @@ pub struct HitTestResultItem {
     /// The [`Point2D`] of the original query point relative to the
     /// node fragment rectangle.
     pub point_in_target: Point2D<f32, CSSPixel>,
-    /// The [`Cursor`] that's defined on the item that is hit by this
-    /// hit test result.
-    pub cursor: Cursor,
+    /// The [`NamedCursor`] that's defined on the item that is hit by this hit test result.
+    pub cursor: NamedCursor,
+    /// All cursor image URLs defined on the item that is hit by this hit test result.
+    pub cursor_images: Vec<CursorImage>,
 }
 
 #[derive(Debug, Default, MallocSizeOf)]

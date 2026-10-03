@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use app_units::Au;
-use embedder_traits::Cursor;
+use embedder_traits::NamedCursor;
 use euclid::{Box2D, Point2D, Vector2D};
 use kurbo::{Ellipse, Shape};
 use layout_api::{HitTestFlags, HitTestResult, HitTestResultItem};
@@ -18,7 +18,7 @@ use style::computed_values::pointer_events::T as PointerEvents;
 use style::computed_values::visibility::T as Visibility;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-use style::values::computed::ui::CursorKind;
+use style::values::computed::ui::{Cursor as StyloCursor, CursorImage, CursorKind};
 use style_traits::CSSPixel;
 use webrender_api::BorderRadius;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, RectExt};
@@ -238,7 +238,7 @@ impl Fragment {
              fragment_rect: PhysicalRect<Au>,
              border_radius: BorderRadius,
              fragment_flags: FragmentFlags,
-             auto_cursor: Cursor| {
+             auto_cursor: NamedCursor| {
                 let is_root_element = fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT);
 
                 if !is_root_element {
@@ -291,10 +291,13 @@ impl Fragment {
                         fragment_rect.origin.y.to_f32_px(),
                     );
 
+                let (cursor_icon, cursor_images) =
+                    cursor(&style.get_inherited_ui().cursor, auto_cursor);
                 hit_test.items.push(HitTestResultItem {
                     node: tag.node,
                     point_in_target,
-                    cursor: cursor(style.get_inherited_ui().cursor.keyword, auto_cursor),
+                    cursor: cursor_icon,
+                    cursor_images,
                 });
 
                 // Selection boundaries cannot intersect generated content, which is what
@@ -326,14 +329,14 @@ impl Fragment {
                 box_fragment.border_rect(),
                 box_fragment.border_radius(),
                 box_fragment.base.flags,
-                Cursor::Default,
+                NamedCursor::Default,
             ),
             Fragment::Text(text) => hit_test_fragment_inner(
                 &text.style(),
                 text.base.rect(),
                 BorderRadius::zero(),
                 FragmentFlags::empty(),
-                Cursor::Text,
+                NamedCursor::Text,
             ),
             _ => false,
         }
@@ -386,45 +389,47 @@ fn rounded_rect_contains_point(
         check_corner(rect.bottom_left(), &border_radius.bottom_left, false, true)
 }
 
-fn cursor(kind: CursorKind, auto_cursor: Cursor) -> Cursor {
-    match kind {
+fn cursor(cursor: &StyloCursor, auto_cursor: NamedCursor) -> (NamedCursor, Vec<CursorImage>) {
+    let images = cursor.images.to_vec();
+    let cursor = match cursor.keyword {
         CursorKind::Auto => auto_cursor,
-        CursorKind::None => Cursor::None,
-        CursorKind::Default => Cursor::Default,
-        CursorKind::Pointer => Cursor::Pointer,
-        CursorKind::ContextMenu => Cursor::ContextMenu,
-        CursorKind::Help => Cursor::Help,
-        CursorKind::Progress => Cursor::Progress,
-        CursorKind::Wait => Cursor::Wait,
-        CursorKind::Cell => Cursor::Cell,
-        CursorKind::Crosshair => Cursor::Crosshair,
-        CursorKind::Text => Cursor::Text,
-        CursorKind::VerticalText => Cursor::VerticalText,
-        CursorKind::Alias => Cursor::Alias,
-        CursorKind::Copy => Cursor::Copy,
-        CursorKind::Move => Cursor::Move,
-        CursorKind::NoDrop => Cursor::NoDrop,
-        CursorKind::NotAllowed => Cursor::NotAllowed,
-        CursorKind::Grab => Cursor::Grab,
-        CursorKind::Grabbing => Cursor::Grabbing,
-        CursorKind::EResize => Cursor::EResize,
-        CursorKind::NResize => Cursor::NResize,
-        CursorKind::NeResize => Cursor::NeResize,
-        CursorKind::NwResize => Cursor::NwResize,
-        CursorKind::SResize => Cursor::SResize,
-        CursorKind::SeResize => Cursor::SeResize,
-        CursorKind::SwResize => Cursor::SwResize,
-        CursorKind::WResize => Cursor::WResize,
-        CursorKind::EwResize => Cursor::EwResize,
-        CursorKind::NsResize => Cursor::NsResize,
-        CursorKind::NeswResize => Cursor::NeswResize,
-        CursorKind::NwseResize => Cursor::NwseResize,
-        CursorKind::ColResize => Cursor::ColResize,
-        CursorKind::RowResize => Cursor::RowResize,
-        CursorKind::AllScroll => Cursor::AllScroll,
-        CursorKind::ZoomIn => Cursor::ZoomIn,
-        CursorKind::ZoomOut => Cursor::ZoomOut,
-    }
+        CursorKind::None => NamedCursor::None,
+        CursorKind::Default => NamedCursor::Default,
+        CursorKind::Pointer => NamedCursor::Pointer,
+        CursorKind::ContextMenu => NamedCursor::ContextMenu,
+        CursorKind::Help => NamedCursor::Help,
+        CursorKind::Progress => NamedCursor::Progress,
+        CursorKind::Wait => NamedCursor::Wait,
+        CursorKind::Cell => NamedCursor::Cell,
+        CursorKind::Crosshair => NamedCursor::Crosshair,
+        CursorKind::Text => NamedCursor::Text,
+        CursorKind::VerticalText => NamedCursor::VerticalText,
+        CursorKind::Alias => NamedCursor::Alias,
+        CursorKind::Copy => NamedCursor::Copy,
+        CursorKind::Move => NamedCursor::Move,
+        CursorKind::NoDrop => NamedCursor::NoDrop,
+        CursorKind::NotAllowed => NamedCursor::NotAllowed,
+        CursorKind::Grab => NamedCursor::Grab,
+        CursorKind::Grabbing => NamedCursor::Grabbing,
+        CursorKind::EResize => NamedCursor::EResize,
+        CursorKind::NResize => NamedCursor::NResize,
+        CursorKind::NeResize => NamedCursor::NeResize,
+        CursorKind::NwResize => NamedCursor::NwResize,
+        CursorKind::SResize => NamedCursor::SResize,
+        CursorKind::SeResize => NamedCursor::SeResize,
+        CursorKind::SwResize => NamedCursor::SwResize,
+        CursorKind::WResize => NamedCursor::WResize,
+        CursorKind::EwResize => NamedCursor::EwResize,
+        CursorKind::NsResize => NamedCursor::NsResize,
+        CursorKind::NeswResize => NamedCursor::NeswResize,
+        CursorKind::NwseResize => NamedCursor::NwseResize,
+        CursorKind::ColResize => NamedCursor::ColResize,
+        CursorKind::RowResize => NamedCursor::RowResize,
+        CursorKind::AllScroll => NamedCursor::AllScroll,
+        CursorKind::ZoomIn => NamedCursor::ZoomIn,
+        CursorKind::ZoomOut => NamedCursor::ZoomOut,
+    };
+    (cursor, images)
 }
 
 pub(crate) struct ClosestFragment {

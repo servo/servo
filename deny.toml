@@ -216,6 +216,10 @@ skip = [
     "phf_generator",
     "phf_macros",
     "phf_shared",
+
+    # ico crate is still using png 0.17
+    # Will be gone in next release png upgraded in main branch already
+    "png",
 ]
 
 # github.com organizations to allow git sources for

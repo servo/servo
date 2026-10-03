@@ -442,6 +442,8 @@ namespace_id! {ImageDataId, ImageDataIndex, "ImageData"}
 
 namespace_id! {CryptoKeyId, CryptoKeyIndex, "CryptoKey"}
 
+namespace_id! {CursorId, CursorIndex, "Cursor"}
+
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 pub const TEST_PIPELINE_INDEX: Index<PipelineIndex> =

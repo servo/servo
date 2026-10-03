@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::collections::{HashMap, HashSet};
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
 
@@ -12,19 +14,20 @@ use accesskit::{
 };
 use dpi::PhysicalSize;
 use embedder_traits::{
-    ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
-    InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MediaSessionActionType, NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll,
-    Theme, TraversalId, UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
+    ContextMenuAction, ContextMenuItem, Cursor as CursorInternal, CursorMetadata,
+    EmbedderControlId, EmbedderControlRequest, Image, InputEvent, InputEventAndId, InputEventId,
+    JSValue, JavaScriptEvaluationError, LoadStatus, MediaSessionActionType, NamedCursor,
+    NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId,
+    UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
-use log::debug;
+use log::{debug, warn};
 use paint_api::WebViewTrait;
 use paint_api::rendering_context::RenderingContext;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
-use servo_base::id::WebViewId;
+use servo_base::id::{CursorId, WebViewId};
 use servo_config::pref;
 use servo_constellation_traits::{
     EmbedderToConstellationMessage, HistoryTraversalSource, SessionHistoryTraversalRequest,
@@ -133,7 +136,13 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
-
+    /// Decoded cursor images received by the embedder.
+    /// Image data is stored in a Rc and can then be shared amongst cursors.
+    cursor_images: HashMap<Url, Rc<Image>>,
+    /// Registry of custom cursors mapped to its CursorId.
+    /// Multiple cursors from different documents can use the same image.
+    /// A cursor can be shared via the WebviewDelegate.
+    cursor_registry: HashMap<CursorId, Cursor>,
     /// The back / forward list of this WebView.
     back_forward_list: Vec<Url>,
 
@@ -181,7 +190,9 @@ impl WebView {
             favicon: None,
             focused: true,
             animating: false,
-            cursor: Cursor::Pointer,
+            cursor: Cursor::Named(NamedCursor::Pointer),
+            cursor_images: Default::default(),
+            cursor_registry: Default::default(),
             back_forward_list: Default::default(),
             back_forward_list_index: 0,
             user_content_manager: builder.user_content_manager.clone(),
@@ -399,15 +410,89 @@ impl WebView {
     /// can use [`WebViewDelegate::notify_cursor_changed`] to subscribe to changes in
     /// the  [`WebView`]'s cursor.
     pub fn cursor(&self) -> Cursor {
-        self.inner().cursor
+        self.inner().cursor.clone()
     }
 
-    pub(crate) fn set_cursor(self, new_value: Cursor) {
-        if self.inner().cursor == new_value {
+    /// Registers a new custom cursor in the cursor registry.
+    pub(crate) fn register_cursor(
+        self,
+        cursor_id: CursorId,
+        image: Image,
+        metadata: CursorMetadata,
+    ) {
+        // Retrieve the reference to the image or store and create the reference.
+        let shared_image = self
+            .inner_mut()
+            .cursor_images
+            .entry(metadata.url.clone())
+            .or_insert(Rc::new(image))
+            .clone();
+        let image = CustomCursorImage::new(cursor_id, shared_image, metadata);
+        self.inner_mut()
+            .cursor_registry
+            .insert(cursor_id, Cursor::Image(image));
+    }
+
+    /// Updates the metadata (the hotspot coordinates) for an existing custom cursor in the cursor registry.
+    pub(crate) fn update_cursor_metadata(self, cursor_id: CursorId, metadata: CursorMetadata) {
+        let cursor_registry = &mut self.inner_mut().cursor_registry;
+        let Some(current_image) = cursor_registry.get_mut(&cursor_id) else {
+            warn!("No cursor image registered for cursor id {:?}", cursor_id);
             return;
+        };
+        if let Cursor::Image(image) = current_image {
+            image.set_hotspot(metadata.hotspot);
         }
-        self.inner_mut().cursor = new_value;
-        self.delegate().notify_cursor_changed(self, new_value);
+    }
+
+    pub(crate) fn set_cursor(self, internal_cursor: CursorInternal) {
+        let cursor = match internal_cursor {
+            CursorInternal::Named(cursor) => Cursor::Named(cursor),
+            CursorInternal::Image(cursor_id) => {
+                let Some(cursor) = self.inner().cursor_registry.get(&cursor_id).cloned() else {
+                    warn!("No cursor image registered for cursor id {:?}", cursor_id);
+                    return;
+                };
+                cursor
+            },
+        };
+        if self.inner().cursor != cursor {
+            self.inner_mut().cursor = cursor.clone();
+            self.delegate().notify_cursor_changed(self, cursor);
+        }
+    }
+
+    pub(crate) fn clear_cursors(self, cursor_ids: Vec<CursorId>) {
+        let current_cursor_id = if let Cursor::Image(cursor_image) = &self.inner().cursor {
+            Some(cursor_image.cursor_id)
+        } else {
+            None
+        };
+        let mut removed_urls = HashSet::with_capacity(cursor_ids.len());
+        for id in &cursor_ids {
+            if let Some(current_id) = current_cursor_id &&
+                current_id == *id
+            {
+                self.inner_mut().cursor = Cursor::default();
+            }
+            if let Some(Cursor::Image(image)) = self.inner_mut().cursor_registry.remove(id) {
+                removed_urls.insert(image.metadata().url.clone());
+            }
+        }
+        // If the stored image only has one reference,
+        // that means there are no documents with that cursor image.
+        // The only Rc is the one in cursor_images.
+        // In that case, drop the stored custom cursor image.
+        for url in removed_urls {
+            let cursor_images = &mut self.inner_mut().cursor_images;
+            if let Some(shared_image) = cursor_images.get(&url) &&
+                Rc::strong_count(shared_image) == 1
+            {
+                cursor_images.remove(&url);
+            }
+        }
+        self.delegate()
+            .notify_custom_cursor_removed(self, cursor_ids);
     }
 
     /// Notify Servo that this [`WebView`] has gained or lost system focus.
@@ -1152,5 +1237,74 @@ impl WebViewBuilder {
     /// Create the [`WebView`] using the configuration specified in this [`WebViewBuilder`].
     pub fn build(self) -> WebView {
         WebView::new(self)
+    }
+}
+
+/// A cursor image fetched from a URL.
+#[derive(Clone)]
+pub struct CustomCursorImage {
+    cursor_id: CursorId,
+    image: Rc<Image>,
+    metadata: Rc<RefCell<CursorMetadata>>,
+}
+
+impl CustomCursorImage {
+    pub fn new(
+        cursor_id: CursorId,
+        image: Rc<Image>,
+        metadata: CursorMetadata,
+    ) -> CustomCursorImage {
+        CustomCursorImage {
+            cursor_id,
+            image,
+            metadata: Rc::new(RefCell::new(metadata)),
+        }
+    }
+
+    pub fn image(&self) -> &Image {
+        &self.image
+    }
+
+    pub fn id(&self) -> CursorId {
+        self.cursor_id
+    }
+
+    pub fn metadata(&self) -> Ref<'_, CursorMetadata> {
+        self.metadata.borrow()
+    }
+
+    pub fn set_hotspot(&mut self, hotspot: Option<(f32, f32)>) {
+        self.metadata.borrow_mut().hotspot = hotspot;
+    }
+}
+
+impl Debug for CustomCursorImage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        f.debug_struct("CustomCursorImage")
+            .field("width", &self.image.width)
+            .field("height", &self.image.height)
+            .field("format", &self.image.format)
+            .field("metadata", &self.metadata)
+            .finish()
+    }
+}
+
+impl PartialEq for CustomCursorImage {
+    fn eq(&self, other: &Self) -> bool {
+        self.cursor_id == other.cursor_id && self.metadata == other.metadata
+    }
+}
+
+/// A cursor for the window. This is different from a CSS cursor (see
+/// `CursorKind`) in that it has no `Auto` value.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Cursor {
+    Named(NamedCursor),
+    Image(CustomCursorImage),
+}
+
+impl Default for Cursor {
+    fn default() -> Self {
+        Cursor::Named(NamedCursor::default())
     }
 }

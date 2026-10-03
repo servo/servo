@@ -13,18 +13,18 @@ use std::rc::Rc;
 
 use euclid::{Angle, Length, Point2D, Rect, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use keyboard_types::ShortcutMatcher;
-use log::{debug, info};
+use log::{debug, error, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::{
-    AuthenticationRequest, BluetoothDeviceSelectionRequest, Cursor, DeviceIndependentIntRect,
-    DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
-    EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId, InputEventResult,
-    InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
-    OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme,
-    TouchEvent, TouchEventType, TouchId, TouchPointerType, WebRenderDebugOption, WebView,
-    WebViewId, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
-    convert_rect_to_css_pixel,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, Cursor, CursorId,
+    DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize,
+    DevicePixel, DevicePoint, EmbedderControl, EmbedderControlId, ImeEvent, InputEvent,
+    InputEventId, InputEventResult, InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers,
+    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
+    MouseMoveEvent, NamedCursor, NamedKey, OffscreenRenderingContext, PermissionRequest,
+    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, TouchPointerType,
+    WebRenderDebugOption, WebView, WebViewId, WheelDelta, WheelEvent, WheelMode,
+    WindowRenderingContext, convert_rect_to_css_pixel,
 };
 use url::Url;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -37,6 +37,7 @@ use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey as WinitNamedK
 use winit::platform::wayland::WindowAttributesExtWayland;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
+use winit::window::{Cursor as WinitCursor, CursorIcon, CustomCursor};
 #[cfg(target_os = "macos")]
 use {
     objc2_app_kit::{NSColorSpace, NSView},
@@ -58,6 +59,8 @@ use crate::window::{
 };
 
 pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
+
+type CustomCursorKey = (CursorId, Option<(u16, u16)>);
 
 pub struct HeadedWindow {
     /// The egui interface that is responsible for showing the user interface elements of
@@ -101,6 +104,12 @@ pub struct HeadedWindow {
     visible_input_method: Cell<Option<EmbedderControlId>>,
     /// The position of the mouse cursor after the most recent `MouseMove` event.
     last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
+    /// Current Cursor Type
+    current_cursor: RefCell<Cursor>,
+    /// Boolean to track if cursor has been updated.
+    cursor_updated: Cell<bool>,
+    /// Cached winit CustomCursor
+    current_custom_cursor: RefCell<Option<(CustomCursorKey, CustomCursor)>>,
 }
 
 impl HeadedWindow {
@@ -214,11 +223,121 @@ impl HeadedWindow {
             dialogs: Default::default(),
             visible_input_method: Default::default(),
             last_mouse_position: Default::default(),
+            current_cursor: Default::default(),
+            cursor_updated: Default::default(),
+            current_custom_cursor: Default::default(),
         })
     }
 
     pub(crate) fn winit_window(&self) -> &winit::window::Window {
         &self.winit_window
+    }
+
+    fn set_winit_window_cursor(&self, cursor: impl Into<WinitCursor>) {
+        self.winit_window.set_cursor(cursor);
+        self.winit_window.set_cursor_visible(true);
+    }
+
+    fn reset_cursor(&self) {
+        let cursor = CursorIcon::Default;
+        *self.current_cursor.borrow_mut() = Cursor::default();
+        *self.current_custom_cursor.borrow_mut() = None;
+        self.cursor_updated.set(false);
+        self.winit_window.set_cursor(cursor);
+        self.winit_window.set_cursor_visible(true);
+    }
+
+    fn apply_cursor(&self, event_loop: &ActiveEventLoop) {
+        let mut failed_to_apply = false;
+        match &*self.current_cursor.borrow() {
+            Cursor::Named(named_cursor) => match named_cursor {
+                NamedCursor::Default => self.set_winit_window_cursor(CursorIcon::Default),
+                NamedCursor::Pointer => self.set_winit_window_cursor(CursorIcon::Pointer),
+                NamedCursor::ContextMenu => self.set_winit_window_cursor(CursorIcon::ContextMenu),
+                NamedCursor::Help => self.set_winit_window_cursor(CursorIcon::Help),
+                NamedCursor::Progress => self.set_winit_window_cursor(CursorIcon::Progress),
+                NamedCursor::Wait => self.set_winit_window_cursor(CursorIcon::Wait),
+                NamedCursor::Cell => self.set_winit_window_cursor(CursorIcon::Cell),
+                NamedCursor::Crosshair => self.set_winit_window_cursor(CursorIcon::Crosshair),
+                NamedCursor::Text => self.set_winit_window_cursor(CursorIcon::Text),
+                NamedCursor::VerticalText => self.set_winit_window_cursor(CursorIcon::VerticalText),
+                NamedCursor::Alias => self.set_winit_window_cursor(CursorIcon::Alias),
+                NamedCursor::Copy => self.set_winit_window_cursor(CursorIcon::Copy),
+                NamedCursor::Move => self.set_winit_window_cursor(CursorIcon::Move),
+                NamedCursor::NoDrop => self.set_winit_window_cursor(CursorIcon::NoDrop),
+                NamedCursor::NotAllowed => self.set_winit_window_cursor(CursorIcon::NotAllowed),
+                NamedCursor::Grab => self.set_winit_window_cursor(CursorIcon::Grab),
+                NamedCursor::Grabbing => self.set_winit_window_cursor(CursorIcon::Grabbing),
+                NamedCursor::EResize => self.set_winit_window_cursor(CursorIcon::EResize),
+                NamedCursor::NResize => self.set_winit_window_cursor(CursorIcon::NResize),
+                NamedCursor::NeResize => self.set_winit_window_cursor(CursorIcon::NeResize),
+                NamedCursor::NwResize => self.set_winit_window_cursor(CursorIcon::NwResize),
+                NamedCursor::SResize => self.set_winit_window_cursor(CursorIcon::SResize),
+                NamedCursor::SeResize => self.set_winit_window_cursor(CursorIcon::SeResize),
+                NamedCursor::SwResize => self.set_winit_window_cursor(CursorIcon::SwResize),
+                NamedCursor::WResize => self.set_winit_window_cursor(CursorIcon::WResize),
+                NamedCursor::EwResize => self.set_winit_window_cursor(CursorIcon::EwResize),
+                NamedCursor::NsResize => self.set_winit_window_cursor(CursorIcon::NsResize),
+                NamedCursor::NeswResize => self.set_winit_window_cursor(CursorIcon::NeswResize),
+                NamedCursor::NwseResize => self.set_winit_window_cursor(CursorIcon::NwseResize),
+                NamedCursor::ColResize => self.set_winit_window_cursor(CursorIcon::ColResize),
+                NamedCursor::RowResize => self.set_winit_window_cursor(CursorIcon::RowResize),
+                NamedCursor::AllScroll => self.set_winit_window_cursor(CursorIcon::AllScroll),
+                NamedCursor::ZoomIn => self.set_winit_window_cursor(CursorIcon::ZoomIn),
+                NamedCursor::ZoomOut => self.set_winit_window_cursor(CursorIcon::ZoomOut),
+                NamedCursor::None => {
+                    *self.current_custom_cursor.borrow_mut() = None;
+                    self.winit_window.set_cursor_visible(false);
+                },
+            },
+            // For the url case, we can only set the winit cursor with the event loop.
+            Cursor::Image(custom_cursor) => {
+                let custom_cursor_key = {
+                    (
+                        custom_cursor.id(),
+                        custom_cursor
+                            .metadata()
+                            .hotspot
+                            .map(|(x, y)| (x as u16, y as u16)),
+                    )
+                };
+                // If the cursor matches the current cached custom cursor, use that.
+                {
+                    let current_custom_cursor = self.current_custom_cursor.borrow();
+                    let cached = current_custom_cursor
+                        .as_ref()
+                        .filter(|(key, _)| *key == custom_cursor_key)
+                        .map(|(_, cursor)| cursor);
+                    if let Some(cursor) = cached {
+                        return self.set_winit_window_cursor(cursor.clone());
+                    }
+                }
+                let cursor_image = custom_cursor.image();
+                let hotspot = custom_cursor_key.1.unwrap_or(Default::default());
+
+                match CustomCursor::from_rgba(
+                    cursor_image.data(),
+                    cursor_image.width as u16,
+                    cursor_image.height as u16,
+                    hotspot.0,
+                    hotspot.1,
+                ) {
+                    Ok(source) => {
+                        let cursor = event_loop.create_custom_cursor(source);
+                        *self.current_custom_cursor.borrow_mut() =
+                            Some((custom_cursor_key, cursor.clone()));
+                        self.set_winit_window_cursor(cursor);
+                    },
+                    Err(error) => {
+                        error!("Error reading image data for custom cursor image: {error}");
+                        failed_to_apply = true;
+                    },
+                }
+            },
+        };
+        if failed_to_apply {
+            self.reset_cursor();
+        }
     }
 
     fn handle_keyboard_input(
@@ -474,7 +593,7 @@ impl HeadedWindow {
         // If a dialog is open, clear any Servo cursor. TODO: This should restore the
         // cursor too, when all dialogs close. In general, we need a better cursor
         // management strategy.
-        self.set_cursor(Cursor::Default);
+        self.set_cursor(Cursor::default());
         dialogs.retain_mut(callback);
     }
 
@@ -508,6 +627,7 @@ impl HeadedWindow {
     pub(crate) fn handle_winit_window_event(
         &self,
         state: Rc<RunningAppState>,
+        event_loop: &ActiveEventLoop,
         window: Rc<ServoShellWindow>,
         event: WindowEvent,
     ) {
@@ -526,6 +646,10 @@ impl HeadedWindow {
         // contents are available to the window manager.
         if event == WindowEvent::RedrawRequested || resized {
             let mut gui = self.gui.borrow_mut();
+            if self.cursor_updated.get() {
+                self.apply_cursor(event_loop);
+                self.cursor_updated.set(false);
+            }
             gui.update(&state, &window, self);
             gui.paint(&self.winit_window);
         }
@@ -934,50 +1058,33 @@ impl PlatformWindow for HeadedWindow {
     }
 
     fn set_cursor(&self, cursor: Cursor) {
-        use winit::window::CursorIcon;
+        let mut current_cursor = self.current_cursor.borrow_mut();
+        if *current_cursor != cursor {
+            *current_cursor = cursor;
+            self.cursor_updated.set(true);
+            self.winit_window.request_redraw();
+        }
+    }
 
-        let winit_cursor = match cursor {
-            Cursor::Default => CursorIcon::Default,
-            Cursor::Pointer => CursorIcon::Pointer,
-            Cursor::ContextMenu => CursorIcon::ContextMenu,
-            Cursor::Help => CursorIcon::Help,
-            Cursor::Progress => CursorIcon::Progress,
-            Cursor::Wait => CursorIcon::Wait,
-            Cursor::Cell => CursorIcon::Cell,
-            Cursor::Crosshair => CursorIcon::Crosshair,
-            Cursor::Text => CursorIcon::Text,
-            Cursor::VerticalText => CursorIcon::VerticalText,
-            Cursor::Alias => CursorIcon::Alias,
-            Cursor::Copy => CursorIcon::Copy,
-            Cursor::Move => CursorIcon::Move,
-            Cursor::NoDrop => CursorIcon::NoDrop,
-            Cursor::NotAllowed => CursorIcon::NotAllowed,
-            Cursor::Grab => CursorIcon::Grab,
-            Cursor::Grabbing => CursorIcon::Grabbing,
-            Cursor::EResize => CursorIcon::EResize,
-            Cursor::NResize => CursorIcon::NResize,
-            Cursor::NeResize => CursorIcon::NeResize,
-            Cursor::NwResize => CursorIcon::NwResize,
-            Cursor::SResize => CursorIcon::SResize,
-            Cursor::SeResize => CursorIcon::SeResize,
-            Cursor::SwResize => CursorIcon::SwResize,
-            Cursor::WResize => CursorIcon::WResize,
-            Cursor::EwResize => CursorIcon::EwResize,
-            Cursor::NsResize => CursorIcon::NsResize,
-            Cursor::NeswResize => CursorIcon::NeswResize,
-            Cursor::NwseResize => CursorIcon::NwseResize,
-            Cursor::ColResize => CursorIcon::ColResize,
-            Cursor::RowResize => CursorIcon::RowResize,
-            Cursor::AllScroll => CursorIcon::AllScroll,
-            Cursor::ZoomIn => CursorIcon::ZoomIn,
-            Cursor::ZoomOut => CursorIcon::ZoomOut,
-            Cursor::None => {
-                self.winit_window.set_cursor_visible(false);
+    fn clear_custom_cursors(&self, cursors: Vec<CursorId>) {
+        let custom_cursor_cleared = {
+            let mut custom_cursor = self.current_custom_cursor.borrow_mut();
+            let Some(((cursor_id, _), _)) = *custom_cursor else {
                 return;
-            },
+            };
+            let cleared = cursors.contains(&cursor_id);
+            if cleared {
+                *custom_cursor = None;
+            }
+            cleared
         };
-        self.winit_window.set_cursor(winit_cursor);
-        self.winit_window.set_cursor_visible(true);
+        if custom_cursor_cleared {
+            // If the current cursor is custom it must be using the cached custom cursor.
+            // If we have cleared the cached cursor then we must reset the cursor.
+            if matches!(*self.current_cursor.borrow(), Cursor::Image(_)) {
+                self.reset_cursor();
+            }
+        }
     }
 
     fn id(&self) -> ServoShellWindowId {
