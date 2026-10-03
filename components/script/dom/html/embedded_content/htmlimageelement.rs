@@ -1453,20 +1453,24 @@ impl<'dom> LayoutDom<'dom, HTMLImageElement> {
         matches!(self.current_request().state, State::Broken)
     }
 
-    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn width(self) -> LengthOrPercentageOrAuto {
         self.dimension_attribute_source()
-            .get_attr_for_layout(&ns!(), &local_name!("width"))
-            .map(AttrValue::as_dimension)
-            .cloned()
-            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+            .dimension_attr_value(local_name!("width"))
     }
 
-    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn height(self) -> LengthOrPercentageOrAuto {
         self.dimension_attribute_source()
-            .get_attr_for_layout(&ns!(), &local_name!("height"))
-            .map(AttrValue::as_dimension)
-            .cloned()
-            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+            .dimension_attr_value(local_name!("height"))
+    }
+
+    pub(crate) fn margin_right_left(self) -> LengthOrPercentageOrAuto {
+        self.dimension_attribute_source()
+            .dimension_attr_value(local_name!("hspace"))
+    }
+
+    pub(crate) fn margin_top_bottom(self) -> LengthOrPercentageOrAuto {
+        self.dimension_attribute_source()
+            .dimension_attr_value(local_name!("vspace"))
     }
 }
 
@@ -1690,16 +1694,16 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     make_setter!(SetAlign, "align");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-hspace
-    make_uint_getter!(Hspace, "hspace");
+    make_dimension_uint_getter!(Hspace, "hspace");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-hspace
-    make_uint_setter!(SetHspace, "hspace");
+    make_dimension_uint_setter!(SetHspace, "hspace");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-vspace
-    make_uint_getter!(Vspace, "vspace");
+    make_dimension_uint_getter!(Vspace, "vspace");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-vspace
-    make_uint_setter!(SetVspace, "vspace");
+    make_dimension_uint_setter!(SetVspace, "vspace");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
     make_url_getter!(LongDesc, "longdesc");
@@ -1790,7 +1794,10 @@ impl VirtualMethods for HTMLImageElement {
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
-            &local_name!("width") | &local_name!("height") => true,
+            &local_name!("width") |
+            &local_name!("height") |
+            &local_name!("hspace") |
+            &local_name!("vspace") => true,
             _ => self
                 .super_type()
                 .unwrap()
@@ -1800,10 +1807,10 @@ impl VirtualMethods for HTMLImageElement {
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &local_name!("width") | &local_name!("height") => {
-                AttrValue::from_dimension(value.into())
-            },
-            &local_name!("hspace") | &local_name!("vspace") => AttrValue::from_u32(value.into(), 0),
+            &local_name!("width") |
+            &local_name!("height") |
+            &local_name!("hspace") |
+            &local_name!("vspace") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()

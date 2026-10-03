@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
@@ -86,19 +86,13 @@ impl VirtualMethods for HTMLMarqueeElement {
 }
 
 impl LayoutDom<'_, HTMLMarqueeElement> {
-    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("width"))
-            .map(AttrValue::as_dimension)
-            .cloned()
-            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+            .dimension_attr_value(local_name!("width"))
     }
 
-    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("height"))
-            .map(AttrValue::as_dimension)
-            .cloned()
-            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+            .dimension_attr_value(local_name!("height"))
     }
 }

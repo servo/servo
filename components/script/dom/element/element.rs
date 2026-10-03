@@ -1250,6 +1250,13 @@ impl<'dom> LayoutDom<'dom, Element> {
         get_attr_for_layout(self, &ns!(), &local_name!("part")).map(|attr| attr.as_tokens())
     }
 
+    pub(crate) fn dimension_attr_value(self, name: LocalName) -> LengthOrPercentageOrAuto {
+        self.get_attr_for_layout(&ns!(), &name)
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
+
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) fn style_data(self) -> Option<&'dom StyleData> {
@@ -1398,24 +1405,24 @@ impl<'dom> LayoutDom<'dom, Element> {
         }
 
         let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
-            this.get_width()
+            this.width()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
-            this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLTableColElement>() {
-            this.get_width()
+            this.width()
         } else if let Some(this) = self.downcast::<HTMLInputElement>() {
+            this.width()
+        } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
+            this.width()
+        } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
+            this.width()
+        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.width()
+        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
+            this.width()
+        } else if let Some(this) = self.downcast::<HTMLTableColElement>() {
             this.width()
         } else if let Some(this) = self.downcast::<HTMLHRElement>() {
             // https://html.spec.whatwg.org/multipage/#the-hr-element-2:attr-hr-width
-            this.get_width()
+            this.width()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
@@ -1442,22 +1449,22 @@ impl<'dom> LayoutDom<'dom, Element> {
         }
 
         let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
-            this.get_height()
+            this.height()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
-            this.get_height()
+            this.height()
         } else if let Some(this) = self.downcast::<HTMLInputElement>() {
+            this.height()
+        } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
+            this.height()
+        } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
+            this.height()
+        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.height()
+        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
+            this.height()
+        } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
+            this.height()
+        } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
             this.height()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -1480,6 +1487,66 @@ impl<'dom> LayoutDom<'dom, Element> {
                     )),
                 ));
                 push(PropertyDeclaration::Height(height_value));
+            },
+        }
+
+        let margin_right_left = if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.margin_right_left()
+        } else {
+            LengthOrPercentageOrAuto::Auto
+        };
+
+        match margin_right_left {
+            LengthOrPercentageOrAuto::Auto => {},
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let margin_right_left_value =
+                    specified::Margin::LengthPercentage(specified::LengthPercentage::Percentage(
+                        specified::NoCalcPercentage::new(percentage),
+                    ));
+                push(PropertyDeclaration::MarginLeft(
+                    margin_right_left_value.clone(),
+                ));
+                push(PropertyDeclaration::MarginRight(margin_right_left_value));
+            },
+            LengthOrPercentageOrAuto::Length(length) => {
+                let margin_right_left_value =
+                    specified::Margin::LengthPercentage(specified::LengthPercentage::Length(
+                        specified::NoCalcLength::from_px(length.to_f32_px()),
+                    ));
+                push(PropertyDeclaration::MarginLeft(
+                    margin_right_left_value.clone(),
+                ));
+                push(PropertyDeclaration::MarginRight(margin_right_left_value));
+            },
+        }
+
+        let margin_top_bottom = if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.margin_top_bottom()
+        } else {
+            LengthOrPercentageOrAuto::Auto
+        };
+
+        match margin_top_bottom {
+            LengthOrPercentageOrAuto::Auto => {},
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let margin_top_bottom_value =
+                    specified::Margin::LengthPercentage(specified::LengthPercentage::Percentage(
+                        specified::NoCalcPercentage::new(percentage),
+                    ));
+                push(PropertyDeclaration::MarginTop(
+                    margin_top_bottom_value.clone(),
+                ));
+                push(PropertyDeclaration::MarginBottom(margin_top_bottom_value));
+            },
+            LengthOrPercentageOrAuto::Length(length) => {
+                let margin_top_bottom_value =
+                    specified::Margin::LengthPercentage(specified::LengthPercentage::Length(
+                        specified::NoCalcLength::from_px(length.to_f32_px()),
+                    ));
+                push(PropertyDeclaration::MarginTop(
+                    margin_top_bottom_value.clone(),
+                ));
+                push(PropertyDeclaration::MarginBottom(margin_top_bottom_value));
             },
         }
 
