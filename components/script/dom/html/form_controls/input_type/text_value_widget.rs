@@ -10,10 +10,14 @@ use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDa
 use script_bindings::root::Dom;
 
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::characterdata::CharacterData;
-use crate::dom::element::Element;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{
+    SpecificShadowTree, UAShadowRoot, UpdateUAShadowRootForOther,
+};
 use crate::dom::text::Text;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -23,32 +27,8 @@ pub(crate) struct TextValueWidget {
 }
 
 impl TextValueWidget {
-    /// Get the shadow tree for this [`HTMLInputElement`], if it is created and valid, otherwise
-    /// recreate the shadow tree and return it.
-    fn get_or_create_shadow_tree(
-        &self,
-        cx: &mut JSContext,
-        input: &HTMLInputElement,
-    ) -> Ref<'_, TextValueShadowTree> {
-        {
-            if let Ok(shadow_tree) = Ref::filter_map(self.shadow_tree.borrow(), |shadow_tree| {
-                shadow_tree.as_ref()
-            }) {
-                return shadow_tree;
-            }
-        }
-
-        let element = input.upcast::<Element>();
-        let shadow_root = element
-            .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
-        let shadow_root = shadow_root.upcast();
-        *self.shadow_tree.borrow_mut() = Some(TextValueShadowTree::new(cx, shadow_root));
-        self.get_or_create_shadow_tree(cx, input)
-    }
-
     pub(crate) fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.get_or_create_shadow_tree(cx, input).update(cx, input)
+        UpdateUAShadowRootForOther::update_shadow_tree(self, cx, input)
     }
 }
 
@@ -66,12 +46,24 @@ impl TextValueShadowTree {
             value: value.as_traced(),
         }
     }
+}
 
-    fn update(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
+impl SpecificShadowTree<HTMLInputElement, TextValueWidget> for TextValueShadowTree {
+    fn update(&self, cx: &mut JSContext, _: &TextValueWidget, input_element: &HTMLInputElement) {
         let character_data = self.value.upcast::<CharacterData>();
         let value = input_element.value_for_shadow_dom();
         if character_data.Data() != value {
             character_data.SetData(cx, value);
         }
+    }
+}
+
+impl UAShadowRoot<TextValueShadowTree> for TextValueWidget {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        *self.shadow_tree.borrow_mut() = Some(TextValueShadowTree::new(cx, shadow_root.upcast()));
+    }
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<TextValueShadowTree>> {
+        self.shadow_tree.borrow()
     }
 }

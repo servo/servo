@@ -13,13 +13,30 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::document::Document;
 use crate::dom::element::element::Element;
 use crate::dom::element::{CustomElementCreationMode, ElementCreator};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::shadowroot::{IsUserAgentWidget, ShadowRoot};
 
-pub(crate) trait UAShadowRoot<ShadowTree>:
-    NodeTraits + Castable + DerivedFrom<Element> + DerivedFrom<Node>
+pub(crate) trait UAShadowRoot<ShadowTree> {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>);
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>>;
+
+    fn ensure_shadow_tree(&self, cx: &mut JSContext, element: &Element) -> Ref<'_, ShadowTree> {
+        if self.borrow_for_shadow_tree().is_none() {
+            self.create_shadow_tree(cx, element);
+        }
+
+        Ref::filter_map(self.borrow_for_shadow_tree(), Option::as_ref)
+            .ok()
+            .expect("UA shadow tree was not created")
+    }
+}
+
+pub(crate) trait CreateUAShadowRootForSelf<ShadowTree>:
+    NodeTraits + DerivedFrom<Node>
 {
     fn create_element_in_ua_shadowroot(
         &self,
@@ -38,27 +55,61 @@ pub(crate) trait UAShadowRoot<ShadowTree>:
         )
     }
 
+    fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree>;
+}
+
+impl<ShadowTree, E: UAShadowRoot<ShadowTree> + Castable + DerivedFrom<Element> + DerivedFrom<Node>>
+    CreateUAShadowRootForSelf<ShadowTree> for E
+{
     fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree> {
-        if !self.upcast::<Element>().is_shadow_host() {
-            self.create_shadow_tree(cx);
-        }
-
-        Ref::filter_map(self.borrow_for_shadow_tree(), Option::as_ref)
-            .ok()
-            .expect("UA shadow tree was not created")
+        self.ensure_shadow_tree(cx, self.upcast())
     }
+}
 
-    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>);
+pub(crate) trait SpecificShadowTree<ElementType, ShadowTreeHolder> {
+    fn update(&self, cx: &mut JSContext, holder: &ShadowTreeHolder, element: &ElementType);
 
-    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>>;
+    fn create_element_in_ua_shadowroot(
+        cx: &mut JSContext,
+        document: &Document,
+        local_name: LocalName,
+    ) -> DomRoot<Element> {
+        Element::create(
+            cx,
+            QualName::new(None, ns!(html), local_name),
+            None,
+            document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+        )
+    }
+}
+
+pub(crate) trait UpdateUAShadowRootForOther<ElementType, ShadowTree>:
+    UAShadowRoot<ShadowTree>
+{
+    fn update_shadow_tree(&self, cx: &mut JSContext, element: &ElementType);
+}
+
+impl<
+    T: UAShadowRoot<ShadowTree>,
+    ShadowTree: SpecificShadowTree<ElementType, T>,
+    ElementType: Castable + DerivedFrom<Element>,
+> UpdateUAShadowRootForOther<ElementType, ShadowTree> for T
+{
+    fn update_shadow_tree(&self, cx: &mut JSContext, element: &ElementType) {
+        self.ensure_shadow_tree(cx, element.upcast())
+            .update(cx, self, element)
+    }
 }
 
 trait UAShadowRootHelpers<ShadowTree>: UAShadowRoot<ShadowTree> {
     fn attach_ua_shadow_root(cx: &mut JSContext, element: &Element) -> DomRoot<ShadowRoot>;
-    fn create_shadow_tree(&self, cx: &mut JSContext);
+    fn create_shadow_tree(&self, cx: &mut JSContext, element: &Element);
 }
 
-impl<T: UAShadowRoot<ShadowTree>, ShadowTree> UAShadowRootHelpers<ShadowTree> for T {
+impl<T: ?Sized + UAShadowRoot<ShadowTree>, ShadowTree> UAShadowRootHelpers<ShadowTree> for T {
     /// Attach a UA widget shadow root with its default parameters.
     /// Additionally mark ShadowRoot to use styling configuration for a UA widget.
     ///
@@ -91,12 +142,15 @@ impl<T: UAShadowRoot<ShadowTree>, ShadowTree> UAShadowRootHelpers<ShadowTree> fo
         root
     }
 
-    fn create_shadow_tree(&self, cx: &mut JSContext) {
-        let root = Self::attach_ua_shadow_root(cx, self.upcast());
+    fn create_shadow_tree(&self, cx: &mut JSContext, element: &Element) {
+        let root = element
+            .shadow_root()
+            .unwrap_or_else(|| Self::attach_ua_shadow_root(cx, element));
 
         self.store_for_shadow_tree(cx, root);
 
-        self.upcast::<Node>()
+        element
+            .upcast::<Node>()
             .dirty(cx.no_gc(), crate::dom::node::NodeDamage::Other);
     }
 }
