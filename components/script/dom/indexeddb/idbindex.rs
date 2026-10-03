@@ -108,16 +108,7 @@ impl IDBIndex {
         let transaction = self.object_store.transaction();
 
         // Step 2. If index or its object store has been deleted, throw an "InvalidStateError" DOMException.
-        let stored_name = self.name.borrow();
-        if !self.object_store.has_index(&stored_name) ||
-            !transaction
-                .get_db()
-                .object_store_exists(&self.object_store.get_name())
-        {
-            return Err(Error::InvalidState(Some(
-                "Index or its object store has been deleted".to_owned(),
-            )));
-        }
+        self.verify_not_deleted()?;
 
         // Step 3. If transaction is not active, throw a "TransactionInactiveError" DOMException.
         if !transaction.is_active() || !transaction.is_usable() {
