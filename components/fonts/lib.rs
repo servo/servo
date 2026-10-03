@@ -95,6 +95,12 @@ impl FallbackFontSelectionOptions {
     }
 }
 
+// According to https://harfbuzz.github.io/harfbuzz-hb-font.html#hb-font-set-scale,
+// Harfbuzz's `hb_position_t` is an integer type, so we need to multiply it by a scale factor to avoid losing precision.
+// For now, the scale factor is set to 32.0, which is a reasonable value that provides enough precision for most cases.
+// However, if the needs of the application change, this value may need to be adjusted accordingly.
+pub(crate) static GLYPH_SCALE_FACTOR: f64 = 32.0;
+
 pub(crate) fn float_to_fixed(before: usize, f: f64) -> i32 {
     ((1i32 << before) as f64 * f) as i32
 }
