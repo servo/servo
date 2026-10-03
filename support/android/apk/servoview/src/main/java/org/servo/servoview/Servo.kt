@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -46,6 +47,11 @@ fun Servo(
     LifecycleResumeEffect(servoView) {
         servoView.servo.suspend(false)
         onPauseOrDispose { servoView.servo.suspend(true) }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            withFrameNanos { servoView.servo.onDoFrame() }
+        }
     }
     LaunchedEffect(servoView.servo, servoView.navigator) {
         servoView.navigator.consumeNavigationEvents(servoView.servo)
