@@ -123,6 +123,15 @@ function navigateToJavascriptURL(reportOnly) {
     // loaded frame to through DOMContentLoaded. In either case there should be
     // _some_ event that we can expect.
     document.addEventListener("DOMContentLoaded", bounceEventToOpener);
+
+    document.addEventListener("securitypolicyviolation", violationEvent => {
+      // Skip directives not in the cspDirectives list, so that "connect-src" is
+      // reported, because it's used as a marker.
+      if (cspDirectives.includes(violationEvent.effectiveDirective)) {
+        bounceEventToOpener(violationEvent);
+      }
+    });
+
     // Prevent loops.
     if (params.has("navigationattempted")) {
       return;
@@ -180,11 +189,8 @@ function navigateToJavascriptURL(reportOnly) {
         await trusted_type_violations_and_exception_for(async _ => {
           navigationElement.click();
           // The timing is tricky here: we must wait for the navigation
-          // to be attempted before reporting the observed violations
-          // (otherwise we could miss the corresponding pre-navigation
-          // check CSP violation) but we must also not wait for too
-          // long, otherwise we already navigated away from the page
-          // and cannot report the observed violations anymore.
+          // to be attempted (otherwise we could miss the corresponding
+          // pre-navigation check CSP violation).
           if (window.requestIdleCallback) {
             await new Promise(resolve => {
               requestIdleCallback(resolve);
@@ -201,7 +207,6 @@ function navigateToJavascriptURL(reportOnly) {
         window.opener.postMessage(`Unexpected exception: ${exception.message}`, "*");
         return;
       }
-      violations.forEach(violationEvent => bounceEventToOpener(violationEvent));
       if (violations.length == 0 &&
           [null, "throw", "make-invalid"].includes(params.get("defaultpolicy"))) {
         window.opener.postMessage("No securitypolicyviolation reported!", "*");
