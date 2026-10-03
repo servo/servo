@@ -26,15 +26,17 @@ use servo::profile_traits::mem::MemoryReportResult;
 use servo::{
     CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType, JSValue,
     LoadStatus, MouseButton, MouseLeftViewportEvent, MouseMoveEvent, PrefValue, RenderingContext,
-    Scroll, SimpleDialog, Theme, WebView, WebViewBuilder, WebViewDelegate, WebViewPoint,
-    WebViewVector,
+    ScreenGeometry, Scroll, SimpleDialog, Theme, WebView, WebViewBuilder, WebViewDelegate,
+    WebViewPoint, WebViewVector,
 };
 use servo_base::generic_channel::GenericCallback;
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
 use surfman::{Error, Surface, SurfaceTexture};
 use url::Url;
-use webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePoint, DeviceVector2D};
+use webrender_api::units::{
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, DeviceVector2D,
+};
 
 use crate::common::{
     ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
@@ -1200,4 +1202,150 @@ fn test_hide_animating_webview() {
 
     webview.hide();
     servo_test.spin(|| webview.animating());
+}
+
+#[test]
+fn test_mouse_event_screen_coordinates() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    // Configure the window screen geometry with non-zero window origin.
+    let window_origin_x = 120;
+    let window_origin_y = 240;
+    delegate.screen_geometry.set(Some(ScreenGeometry {
+        size: DeviceIntSize::new(1920, 1080),
+        available_size: DeviceIntSize::new(1920, 1040),
+        window_rect: DeviceIntRect::from_origin_and_size(
+            DeviceIntPoint::new(window_origin_x, window_origin_y),
+            DeviceIntSize::new(800, 600),
+        ),
+    }));
+
+    let html = r#"<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; }
+  #target {
+    position: absolute;
+    left: 40px;
+    top: 50px;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+window.mouseMoveCoords = null;
+window.clickCoords = null;
+document.addEventListener('mousemove', (e) => {
+  window.mouseMoveCoords = {
+    screenX: e.screenX,
+    screenY: e.screenY,
+    clientX: e.clientX,
+    clientY: e.clientY,
+  };
+});
+document.getElementById('target').addEventListener('click', (e) => {
+  window.clickCoords = {
+    screenX: e.screenX,
+    screenY: e.screenY,
+    clientX: e.clientX,
+    clientY: e.clientY,
+  };
+});
+</script>
+</body>
+</html>"#;
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse(&format!("data:text/html,{html}")).unwrap())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    // 1. Verify window.screenX and window.screenY match the screen geometry origin.
+    let window_screen_x = evaluate_javascript(&servo_test, webview.clone(), "window.screenX")
+        .expect("evaluate window.screenX");
+    let window_screen_y = evaluate_javascript(&servo_test, webview.clone(), "window.screenY")
+        .expect("evaluate window.screenY");
+    assert_eq!(window_screen_x, JSValue::Number(window_origin_x as f64));
+    assert_eq!(window_screen_y, JSValue::Number(window_origin_y as f64));
+
+    // 2. Dispatch a mousemove event and verify screen coordinates.
+    let move_client_x = 25.0;
+    let move_client_y = 35.0;
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(move_client_x, move_client_y).into(),
+    )));
+
+    servo_test.spin(|| {
+        evaluate_javascript(&servo_test, webview.clone(), "window.mouseMoveCoords !== null")
+            != Ok(JSValue::Boolean(true))
+    });
+
+    let move_screen_x =
+        evaluate_javascript(&servo_test, webview.clone(), "window.mouseMoveCoords.screenX")
+            .expect("evaluate mouseMoveCoords.screenX");
+    let move_screen_y =
+        evaluate_javascript(&servo_test, webview.clone(), "window.mouseMoveCoords.screenY")
+            .expect("evaluate mouseMoveCoords.screenY");
+    let move_cl_x =
+        evaluate_javascript(&servo_test, webview.clone(), "window.mouseMoveCoords.clientX")
+            .expect("evaluate mouseMoveCoords.clientX");
+    let move_cl_y =
+        evaluate_javascript(&servo_test, webview.clone(), "window.mouseMoveCoords.clientY")
+            .expect("evaluate mouseMoveCoords.clientY");
+
+    assert_eq!(move_cl_x, JSValue::Number(move_client_x as f64));
+    assert_eq!(move_cl_y, JSValue::Number(move_client_y as f64));
+    assert_eq!(
+        move_screen_x,
+        JSValue::Number((window_origin_x + move_client_x as i32) as f64)
+    );
+    assert_eq!(
+        move_screen_y,
+        JSValue::Number((window_origin_y + move_client_y as i32) as f64)
+    );
+
+    // 3. Dispatch a click event on the target element and verify screen coordinates.
+    let click_client_x = 60.0;
+    let click_client_y = 70.0;
+    click_at_point(
+        &webview,
+        DevicePoint::new(click_client_x, click_client_y),
+        MouseButton::Primary,
+    );
+
+    servo_test.spin(|| {
+        evaluate_javascript(&servo_test, webview.clone(), "window.clickCoords !== null")
+            != Ok(JSValue::Boolean(true))
+    });
+
+    let click_screen_x =
+        evaluate_javascript(&servo_test, webview.clone(), "window.clickCoords.screenX")
+            .expect("evaluate clickCoords.screenX");
+    let click_screen_y =
+        evaluate_javascript(&servo_test, webview.clone(), "window.clickCoords.screenY")
+            .expect("evaluate clickCoords.screenY");
+    let click_cl_x =
+        evaluate_javascript(&servo_test, webview.clone(), "window.clickCoords.clientX")
+            .expect("evaluate clickCoords.clientX");
+    let click_cl_y =
+        evaluate_javascript(&servo_test, webview.clone(), "window.clickCoords.clientY")
+            .expect("evaluate clickCoords.clientY");
+
+    assert_eq!(click_cl_x, JSValue::Number(click_client_x as f64));
+    assert_eq!(click_cl_y, JSValue::Number(click_client_y as f64));
+    assert_eq!(
+        click_screen_x,
+        JSValue::Number((window_origin_x + click_client_x as i32) as f64)
+    );
+    assert_eq!(
+        click_screen_y,
+        JSValue::Number((window_origin_y + click_client_y as i32) as f64)
+    );
 }

@@ -60,6 +60,8 @@ use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
+#[cfg(feature = "gamepad")]
+use crate::dom::types::GlobalScope;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
@@ -68,7 +70,7 @@ use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::types::{
-    CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLElement,
+    CompositionEvent, Element, Event, EventTarget, HTMLAnchorElement, HTMLElement,
     HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
 };
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
@@ -456,6 +458,19 @@ impl DocumentEventHandler {
         ));
     }
 
+    fn calculate_screen_point(
+        &self,
+        client_point: Point2D<i32, CSSPixel>,
+        input_event: &ConstellationInputEvent,
+    ) -> Point2D<i32, CSSPixel> {
+        let screen_position = self.window.screen_position();
+        let point_in_webview = match input_event.point() {
+            Some(point) => point.to_css_pixel(self.window.device_pixel_ratio()).to_i32(),
+            None => client_point,
+        };
+        screen_position + point_in_webview.to_vector()
+    }
+
     fn handle_mouse_left_viewport_event(
         &self,
         cx: &mut JSContext,
@@ -477,12 +492,17 @@ impl DocumentEventHandler {
                         .hit_test_from_point_in_viewport(HitTestFlags::empty(), point)
                 })
             {
+                let screen_point = self.calculate_screen_point(
+                    hit_test_result.point_in_frame.to_i32(),
+                    input_event,
+                );
                 let mouse_out_event = MouseEvent::new_for_platform_motion_event(
                     cx,
                     &self.window,
                     FireMouseEventType::Out,
                     &hit_test_result,
                     input_event,
+                    screen_point,
                 );
 
                 // Fire pointerout before mouseout
@@ -502,6 +522,7 @@ impl DocumentEventHandler {
                     FireMouseEventType::Leave,
                     &hit_test_result,
                     input_event,
+                    screen_point,
                 );
             }
         }
@@ -525,6 +546,7 @@ impl DocumentEventHandler {
         self.most_recent_mousemove_point.set(None);
     }
 
+    #[expect(clippy::too_many_arguments)]
     fn handle_mouse_enter_leave_event(
         &self,
         cx: &mut JSContext,
@@ -533,6 +555,7 @@ impl DocumentEventHandler {
         event_type: FireMouseEventType,
         hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
+        screen_point: Point2D<i32, CSSPixel>,
     ) {
         assert!(matches!(
             event_type,
@@ -573,6 +596,7 @@ impl DocumentEventHandler {
                 event_type,
                 hit_test_result,
                 input_event,
+                screen_point,
             );
             mouse_event
                 .upcast::<Event>()
@@ -622,6 +646,11 @@ impl DocumentEventHandler {
         else {
             return;
         };
+
+        let screen_point = self.calculate_screen_point(
+            hit_test_result.point_in_frame.to_i32(),
+            input_event,
+        );
 
         {
             let mut maybe_drag_gesture = self.drag_gesture.borrow_mut();
@@ -684,6 +713,7 @@ impl DocumentEventHandler {
                         FireMouseEventType::Out,
                         &hit_test_result,
                         input_event,
+                        screen_point,
                     );
                     mouse_out_event
                         .upcast::<Event>()
@@ -709,6 +739,7 @@ impl DocumentEventHandler {
                             FireMouseEventType::Leave,
                             &hit_test_result,
                             input_event,
+                            screen_point,
                         );
                     }
                 }
@@ -730,6 +761,7 @@ impl DocumentEventHandler {
                     FireMouseEventType::Over,
                     &hit_test_result,
                     input_event,
+                    screen_point,
                 );
                 mouse_over_event
                     .upcast::<Event>()
@@ -756,6 +788,7 @@ impl DocumentEventHandler {
                     FireMouseEventType::Enter,
                     &hit_test_result,
                     input_event,
+                    screen_point,
                 );
             }
         }
@@ -768,6 +801,7 @@ impl DocumentEventHandler {
             FireMouseEventType::Move,
             &hit_test_result,
             input_event,
+            screen_point,
         );
 
         // Send pointermove event before mousemove.
@@ -996,6 +1030,11 @@ impl DocumentEventHandler {
                 );
         }
 
+        let screen_point = self.calculate_screen_point(
+            hit_test_result.point_in_frame.to_i32(),
+            input_event,
+        );
+
         let mouse_event = MouseEvent::for_platform_button_event(
             cx,
             mouse_event_type,
@@ -1005,6 +1044,7 @@ impl DocumentEventHandler {
             &hit_test_result,
             input_event.active_keyboard_modifiers,
             self.click_counting_info.borrow().count + 1,
+            screen_point,
         );
 
         match mouse_button_event.action {
@@ -1089,7 +1129,13 @@ impl DocumentEventHandler {
                 // Step 9. If mbutton is the secondary mouse button, then
                 // Maybe show context menu with native, target.
                 if let MouseButton::Secondary = mouse_button_event.button {
-                    self.maybe_show_context_menu(cx, node.upcast(), &hit_test_result, input_event);
+                    self.maybe_show_context_menu(
+                        cx,
+                        node.upcast(),
+                        &hit_test_result,
+                        input_event,
+                        screen_point,
+                    );
                 }
             },
             // https://w3c.github.io/pointerevents/#dfn-handle-native-mouse-up
@@ -1166,6 +1212,7 @@ impl DocumentEventHandler {
                     input_event,
                     &hit_test_result,
                     &element,
+                    screen_point,
                 );
             },
         }
@@ -1180,6 +1227,7 @@ impl DocumentEventHandler {
         input_event: &ConstellationInputEvent,
         hit_test_result: &HitTestResult,
         element: &Element,
+        screen_point: Point2D<i32, CSSPixel>,
     ) {
         if event.button != MouseButton::Primary {
             return;
@@ -1212,6 +1260,7 @@ impl DocumentEventHandler {
             hit_test_result,
             input_event.active_keyboard_modifiers,
             click_count,
+            screen_point,
         )
         .upcast::<Event>()
         .dispatch(cx, element.upcast(), false);
@@ -1235,6 +1284,7 @@ impl DocumentEventHandler {
                 hit_test_result,
                 input_event.active_keyboard_modifiers,
                 2,
+                screen_point,
             )
             .upcast::<Event>()
             .dispatch(cx, element.upcast(), false);
@@ -1248,6 +1298,7 @@ impl DocumentEventHandler {
         target: &EventTarget,
         hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
+        screen_point: Point2D<i32, CSSPixel>,
     ) {
         // <https://w3c.github.io/pointerevents/#contextmenu>
         let menu_event = PointerEvent::new(
@@ -1258,7 +1309,7 @@ impl DocumentEventHandler {
             EventCancelable::Cancelable, // cancelable
             Some(&self.window),          // view
             0,                           // detail
-            hit_test_result.point_in_frame.to_i32(),
+            screen_point,
             hit_test_result.point_in_frame.to_i32(),
             hit_test_result
                 .point_relative_to_initial_containing_block
@@ -1325,6 +1376,11 @@ impl DocumentEventHandler {
         let current_target = DomRoot::upcast::<EventTarget>(element.clone());
         let window = &*self.window;
 
+        let client_point = hit_test_result.point_in_frame.to_i32();
+        let screen_point = self.calculate_screen_point(client_point, input_event);
+
+        let screen_x = Finite::wrap(screen_point.x as f64);
+        let screen_y = Finite::wrap(screen_point.y as f64);
         let client_x = Finite::wrap(hit_test_result.point_in_frame.x as f64);
         let client_y = Finite::wrap(hit_test_result.point_in_frame.y as f64);
         let page_x =
@@ -1338,8 +1394,8 @@ impl DocumentEventHandler {
             window,
             identifier,
             &current_target,
-            client_x,
-            client_y, // TODO: Get real screen coordinates?
+            screen_x,
+            screen_y,
             client_x,
             client_y,
             page_x,
@@ -1735,6 +1791,8 @@ impl DocumentEventHandler {
                             .has_non_passive_listener(&event_type)
                     }),
         );
+        let client_point = hit_test_result.point_in_frame.to_i32();
+        let screen_point = self.calculate_screen_point(client_point, input_event);
         // https://w3c.github.io/uievents/#event-wheelevents
         let dom_event = WheelEvent::new(
             cx,
@@ -1744,8 +1802,8 @@ impl DocumentEventHandler {
             cancelable,
             Some(&self.window),
             0i32,
-            hit_test_result.point_in_frame.to_i32(),
-            hit_test_result.point_in_frame.to_i32(),
+            screen_point,
+            client_point,
             hit_test_result
                 .point_relative_to_initial_containing_block
                 .to_i32(),
