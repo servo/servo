@@ -212,7 +212,7 @@ where
             global,
             GPUDeviceWrap::<D>,
         );
-        queue.set_device(cx, &device);
+        queue.set_device(&device);
         device.extensions.set(*extensions);
         device
     }
