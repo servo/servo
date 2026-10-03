@@ -17,6 +17,7 @@ use crate::fragment_tree::{
     PositioningFragment, Tag, TextFragment,
 };
 use crate::geom::{PhysicalPoint, PhysicalRect};
+use crate::style_ext::ComputedValuesExt;
 
 pub(crate) struct PaintTraversal<'a, Handler: PaintTraversalHandler> {
     handler: &'a mut Handler,
@@ -553,9 +554,10 @@ pub(crate) struct TraversalState {
     pub clip_id: ClipId,
     pub origin: PhysicalPoint<Au>,
     pub text_decorations: Rc<Vec<FragmentTextDecoration>>,
-    /// The tag of the nearest ancestor box fragment that has a tag.
-    /// Used for text LCP candidate grouping — all text fragments within
-    /// a single element are unioned before computing effective visual size.
+    /// <https://www.w3.org/TR/paint-timing/#sec-modifications-dom>:
+    ///
+    /// The tag of the nearest ancestor box that determines the containing block of
+    /// text, used to group text fragments for LCP.
     pub containing_element_tag: Option<Tag>,
 }
 
@@ -604,7 +606,19 @@ impl TraversalState {
                 .unwrap_or(self.spatial_id),
             clip_id: box_fragment.generated_clip_id().unwrap_or(self.clip_id),
             text_decorations,
-            containing_element_tag: box_fragment.base.tag.or(self.containing_element_tag),
+            // From: https://www.w3.org/TR/paint-timing/#sec-modifications-dom
+            // > Let element be the Element which determines the containing block of text.
+            // > Append text to element’s set of owned text nodes.
+            containing_element_tag: if !box_fragment.is_inline_box() ||
+                style.establishes_containing_block_for_absolute_descendants(
+                    box_fragment.base.flags,
+                ) {
+                // In this case it establishes its own containing block, use its tag.
+                box_fragment.base.tag.or(self.containing_element_tag)
+            } else {
+                // Otherwise, keep the ancestor's tag.
+                self.containing_element_tag
+            },
         }
     }
 
