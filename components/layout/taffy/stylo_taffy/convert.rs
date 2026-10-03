@@ -30,8 +30,10 @@ fn fit_content_function(limit: &stylo::LengthPercentage) -> taffy::Dimension {
         stylo::UnpackedLengthPercentage::Percentage(percentage) => {
             taffy::Dimension::fit_content_percent(percentage.0)
         },
-        // TODO: fit-content() with a calc() limit
-        stylo::UnpackedLengthPercentage::Calc(_) => taffy::Dimension::fit_content(),
+        stylo::UnpackedLengthPercentage::Calc(calc_ref) => {
+            let calc_ptr = calc_ref as *const stylo::CalcLengthPercentage as *const ();
+            taffy::Dimension::fit_content_calc(calc_ptr)
+        },
     }
 }
 
@@ -161,14 +163,11 @@ pub fn direction(input: stylo::Direction) -> taffy::Direction {
 #[inline]
 pub fn position(input: stylo::Position) -> taffy::Position {
     match input {
-        // TODO: support position:static
+        stylo::Position::Static => taffy::Position::Static,
         stylo::Position::Relative => taffy::Position::Relative,
-        stylo::Position::Static => taffy::Position::Relative,
-
-        // TODO: support position:fixed and sticky
         stylo::Position::Absolute => taffy::Position::Absolute,
-        stylo::Position::Fixed => taffy::Position::Absolute,
-        stylo::Position::Sticky => taffy::Position::Relative,
+        stylo::Position::Fixed => taffy::Position::Fixed,
+        stylo::Position::Sticky => taffy::Position::Sticky,
     }
 }
 
@@ -194,10 +193,19 @@ pub fn aspect_ratio(input: stylo::AspectRatio) -> Option<f32> {
 }
 
 #[inline]
-pub fn content_alignment(input: stylo::ContentDistribution) -> Option<taffy::AlignContent> {
+fn alignment_safety(flags: stylo::AlignFlags) -> taffy::AlignmentSafety {
+    match flags {
+        stylo::AlignFlags::SAFE => taffy::AlignmentSafety::Safe,
+        stylo::AlignFlags::UNSAFE => taffy::AlignmentSafety::Unsafe,
+        _ => taffy::AlignmentSafety::Default,
+    }
+}
+
+#[inline]
+pub fn content_alignment(input: stylo::ContentDistribution) -> taffy::AlignContent {
     let keyword = match input.primary().value() {
-        stylo::AlignFlags::NORMAL => return None,
-        stylo::AlignFlags::AUTO => return None,
+        stylo::AlignFlags::NORMAL => taffy::AlignContentKeyword::Normal,
+        stylo::AlignFlags::AUTO => taffy::AlignContentKeyword::Normal,
         stylo::AlignFlags::START => taffy::AlignContentKeyword::Start,
         stylo::AlignFlags::END => taffy::AlignContentKeyword::End,
         stylo::AlignFlags::LEFT => taffy::AlignContentKeyword::Start,
@@ -210,22 +218,25 @@ pub fn content_alignment(input: stylo::ContentDistribution) -> Option<taffy::Ali
         stylo::AlignFlags::SPACE_AROUND => taffy::AlignContentKeyword::SpaceAround,
         stylo::AlignFlags::SPACE_EVENLY => taffy::AlignContentKeyword::SpaceEvenly,
         // Should never be hit. But no real reason to panic here.
-        _ => return None,
+        _ => taffy::AlignContentKeyword::Normal,
     };
 
-    let safety = match input.primary().flags() {
-        stylo::AlignFlags::SAFE => taffy::AlignmentSafety::Safe,
-        _ => taffy::AlignmentSafety::Unsafe,
-    };
-
-    Some(taffy::AlignContent { keyword, safety })
+    taffy::AlignContent {
+        keyword,
+        safety: alignment_safety(input.primary().flags()),
+    }
 }
 
 #[inline]
-pub fn item_alignment(input: stylo::AlignFlags) -> Option<taffy::AlignItems> {
+pub fn items_alignment(input: stylo::AlignFlags) -> taffy::AlignItems {
+    self_alignment(input).unwrap_or(taffy::AlignItems::NORMAL)
+}
+
+#[inline]
+pub fn self_alignment(input: stylo::AlignFlags) -> Option<taffy::AlignSelf> {
     let keyword = match input.value() {
         stylo::AlignFlags::AUTO => return None,
-        stylo::AlignFlags::NORMAL => taffy::AlignItemsKeyword::Stretch,
+        stylo::AlignFlags::NORMAL => taffy::AlignItemsKeyword::Normal,
         stylo::AlignFlags::STRETCH => taffy::AlignItemsKeyword::Stretch,
         stylo::AlignFlags::FLEX_START => taffy::AlignItemsKeyword::FlexStart,
         stylo::AlignFlags::FLEX_END => taffy::AlignItemsKeyword::FlexEnd,
@@ -241,12 +252,10 @@ pub fn item_alignment(input: stylo::AlignFlags) -> Option<taffy::AlignItems> {
         _ => return None,
     };
 
-    let safety = match input.flags() {
-        stylo::AlignFlags::SAFE => taffy::AlignmentSafety::Safe,
-        _ => taffy::AlignmentSafety::Unsafe,
-    };
-
-    Some(taffy::AlignItems { keyword, safety })
+    Some(taffy::AlignItems {
+        keyword,
+        safety: alignment_safety(input.flags()),
+    })
 }
 
 #[inline]

@@ -22,7 +22,7 @@ use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{BoxFragment, Fragment};
+use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags};
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -31,6 +31,7 @@ use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 pub(crate) struct TaffyContainer {
     children: Vec<ArcRefCell<TaffyItemBox>>,
     style: Arc<ComputedValues>,
+    fragment_flags: FragmentFlags,
 }
 
 impl TaffyContainer {
@@ -39,6 +40,7 @@ impl TaffyContainer {
         info: &NodeAndStyleInfo,
         contents: NonReplacedContents,
         propagated_data: PropagatedBoxTreeData,
+        fragment_flags: FragmentFlags,
     ) -> Self {
         let mut builder = ModernContainerBuilder::new(context, info, propagated_data);
         contents.traverse(context, info, &mut builder);
@@ -75,6 +77,7 @@ impl TaffyContainer {
         Self {
             children,
             style: info.style.clone(),
+            fragment_flags,
         }
     }
 
@@ -171,13 +174,6 @@ impl TaffyItemBox {
         }
     }
 
-    fn is_in_flow_replaced(&self) -> bool {
-        match &self.taffy_level_box {
-            TaffyItemBoxInner::InFlowBox(fc) => fc.is_replaced(),
-            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(_) => false,
-        }
-    }
-
     pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
         match &self.taffy_level_box {
             TaffyItemBoxInner::InFlowBox(formatting_context) => {
@@ -209,7 +205,9 @@ impl SpecificTaffyGridInfo {
         containing_block_fragment: &BoxFragment,
         item_style: &ComputedValues,
     ) -> PhysicalRect<Au> {
-        let item_style = TaffyStyloStyle::new(item_style, false);
+        // Fragment flags are not used when resolving the grid area, so empty flags are
+        // sufficient here.
+        let item_style = TaffyStyloStyle::new(item_style, FragmentFlags::empty());
 
         // Convert direction to Taffy type
         let direction = if containing_block_fragment.style().writing_mode.is_bidi_ltr() {

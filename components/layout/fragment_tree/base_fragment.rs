@@ -302,6 +302,17 @@ bitflags! {
     }
 }
 
+impl FragmentFlags {
+    /// Whether or not this is a compressible replaced element.
+    /// <https://drafts.csswg.org/css-sizing-3/#min-content-zero>
+    ///
+    /// TODO: `<progress>`, `<meter>` and `<marquee>` should also be compressible replaced.
+    pub(crate) fn is_compressible_replaced(self) -> bool {
+        self.contains(Self::IS_REPLACED) ||
+            (self.contains(Self::IS_WIDGET) && !self.contains(Self::IS_BUTTON))
+    }
+}
+
 malloc_size_of_is_0!(FragmentFlags);
 
 /// A data structure used to hold DOM and pseudo-element information about

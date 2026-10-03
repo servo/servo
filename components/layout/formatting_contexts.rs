@@ -241,6 +241,7 @@ impl IndependentFormattingContext {
                     node_and_style_info,
                     non_replaced_contents,
                     propagated_data,
+                    base_fragment_info.flags,
                 ))
             },
             DisplayInside::Flex => {
