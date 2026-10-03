@@ -8,14 +8,16 @@ use std::str;
 
 use devtools_traits::{
     AncestorData, AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty,
-    EventListenerInfo, GetHTMLType, MatchedRule, NodeInfo, NodeStyle, RuleModification,
-    StyleSheetInfo, TimelineMarker, TimelineMarkerType,
+    DomMutation, EventListenerInfo, GetHTMLType, MatchedRule, NodeInfo, NodeStyle,
+    RuleModification, ScriptToDevtoolsControlMsg, StyleSheetInfo, TimelineMarker,
+    TimelineMarkerType,
 };
 use js::context::JSContext;
 use markup5ever::{LocalName, ns};
 use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::CSSRuleBinding::CSSRuleMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+use script_bindings::codegen::GenericBindings::NodeListBinding::NodeListMethods;
 use script_bindings::root::Dom;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::PipelineId;
@@ -44,12 +46,14 @@ use crate::dom::css::cssstyledeclaration::ENABLED_LONGHAND_PROPERTIES;
 use crate::dom::css::cssstylerule::CSSStyleRule;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{
     CSSGroupingRule, CSSLayerBlockRule, EventTarget, HTMLElement, TrustedHTML,
 };
 use crate::event_loop::document_collection::DocumentCollection;
+use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -766,6 +770,65 @@ pub(crate) fn handle_modify_attribute(
             None => elem.RemoveAttribute(cx, DOMString::from(modification.attribute_name)),
         }
     }
+}
+
+pub(crate) fn handle_remove_node(
+    cx: &mut JSContext,
+    state: &DevtoolsState,
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    node_id: &str,
+    reply: GenericSender<Option<NodeInfo>>,
+) {
+    let Some(document) = documents.find_document(pipeline) else {
+        let _ = reply.send(None);
+        return;
+    };
+    let mut realm = enter_auto_realm(cx, document.window());
+    let cx = &mut realm.current_realm();
+
+    let Some(node) = state.find_node_by_unique_id(pipeline, node_id) else {
+        let _ = reply.send(None);
+        return;
+    };
+    let Some(parent) = node.GetParentNode() else {
+        let _ = reply.send(None);
+        return;
+    };
+    if node.is::<crate::dom::document::Document>() ||
+        (node.is::<Element>() && parent.is::<crate::dom::document::Document>())
+    {
+        let _ = reply.send(None);
+        return;
+    }
+
+    let next_sibling = node.GetNextSibling();
+    if parent.RemoveChild(cx, &node).is_err() {
+        let _ = reply.send(None);
+        return;
+    }
+    let window = document.window();
+    if window.live_devtools_updates() &&
+        ScriptThread::devtools_want_updates_for_node(pipeline, parent.upcast()) &&
+        let Some(sender) = window.upcast::<GlobalScope>().devtools_chan()
+    {
+        let _ = sender.send(ScriptToDevtoolsControlMsg::DomMutation(
+            pipeline,
+            DomMutation::ChildList {
+                parent: parent.unique_id(pipeline),
+                removed: node_id.to_owned(),
+                num_children: parent.ChildNodes(cx).Length() as usize,
+            },
+        ));
+    }
+    let next_info = next_sibling.map(|sibling| {
+        state
+            .mut_pipeline_state_for(pipeline)
+            .unwrap()
+            .register_node(&sibling);
+        sibling.summarize(cx)
+    });
+    let _ = reply.send(next_info);
 }
 
 pub(crate) fn handle_modify_rule(

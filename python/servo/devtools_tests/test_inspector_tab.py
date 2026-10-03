@@ -86,6 +86,40 @@ class TestInspectorTab:
             # Assert that the new DOM state is correct
             assert walker.children(body)[0]["attrs"] == [{"name": "foo", "value": "baz"}]
 
+    def test_inspector_remove_node_affects_dom(self, run_servoshell):
+        run_servoshell(url="data:text/html,<body><div></div><span></span></body>")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
+            document_element = walker.document_element("")["actor"]
+            body = walker.query_selector(document_element, "body")["node"]["actor"]
+
+            mutation_result = Future()
+
+            async def on_new_mutations(data):
+                mutation_result.set_result(data)
+
+            devtools.client.add_event_listener(
+                inspector.get_walker()["actor"], Events.Walker.NEW_MUTATIONS, on_new_mutations
+            )
+
+            children = walker.children(body)
+            node = children[0]
+            result = walker.remove_node(node["actor"])
+            assert result["from"] == walker.actor_id
+            assert result["nextSibling"]["actor"] == children[1]["actor"]
+            mutation_result.result(1)
+            assert walker.get_mutations(False) == [
+                {
+                    "type": "childList",
+                    "target": body,
+                    "removed": [node["actor"]],
+                    "added": [],
+                    "numChildren": len(children) - 1,
+                }
+            ]
+            assert [child["actor"] for child in walker.children(body)] == [child["actor"] for child in children[1:]]
+
     def test_inspector_notices_attribute_mutation_from_javascript(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
         with Devtools.connect() as devtools:
