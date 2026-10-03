@@ -469,7 +469,7 @@ impl OneshotTimers {
             let mut timers = self.timers.borrow_mut();
             let mut timers_to_run = Vec::with_capacity(timers.len());
             loop {
-                if timers.is_empty() || timers.back().unwrap().scheduled_for > base_time {
+                if timers.is_empty() || timers.back().unwrap().data.scheduled_for > base_time {
                     break;
                 }
 
