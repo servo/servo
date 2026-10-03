@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+
+<html class="reftest-wait">
+
+<style>
+    input { caret-animation: manual;}
+</style>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="match" href="input-text-placeholder-caret-ref.html">
+
+<body>
+    <input id="input" placeholder="placeholder">
+</body>
+
+<script>
+  (async() => {
+    input.focus();
+    await test_driver.send_keys(input, "A");
+    await test_driver.send_keys(input, "\uE003");
+    requestAnimationFrame(() => document.documentElement.classList.remove("reftest-wait"));
+  })();
+</script>
+
+</html>
