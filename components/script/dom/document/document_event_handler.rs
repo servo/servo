@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::array::from_ref;
 use std::cell::Cell;
 use std::f64::consts::PI;
 use std::mem;
@@ -210,6 +209,19 @@ pub(crate) struct DocumentEventHandler {
     drag_gesture: DomRefCell<Option<DragGesture>>,
 }
 
+/// The data needed to dispatch a [`TouchEvent`] after the per-touch pointer
+/// event handling and active touch point bookkeeping has been performed.
+struct PreparedTouchEvent {
+    /// The target on which the [`TouchEvent`] will be dispatched.
+    dispatch_target: DomRoot<EventTarget>,
+    /// The touch point that was added, moved, or removed by this event.
+    changed_touch: DomRoot<Touch>,
+    /// The type of the touch event to dispatch.
+    event_type: TouchEventType,
+    /// Whether the touch event to dispatch is cancelable.
+    cancelable: bool,
+}
+
 impl DocumentEventHandler {
     pub(crate) fn new(window: &Window) -> Self {
         Self {
@@ -337,9 +349,51 @@ impl DocumentEventHandler {
         // these cases needs to be examined and some of them either fire more than one
         // event or fire events later. We have to make a good decision about what to
         // return to the embedder when that happens.
-        for event in pending_input_events {
+        let mut pending_input_events = pending_input_events.into_iter().peekable();
+        while let Some(event) = pending_input_events.next() {
             self.active_keyboard_modifiers
                 .set(event.active_keyboard_modifiers);
+
+            // Coalesce a run of consecutive `touchend` input events into a single
+            // `touchend` event whose `changedTouches` contains all of the removed touch
+            // points. User agents do this when multiple touch points are removed in the
+            // same event loop turn.
+            // <https://w3c.github.io/touch-events/#dfn-touchend>
+            if matches!(
+                &event.event.event,
+                InputEvent::Touch(touch_event)
+                    if matches!(touch_event.event_type, TouchEventType::Up)
+            ) {
+                let mut touch_up_events = vec![event];
+                loop {
+                    let next_is_touch_up = matches!(
+                        pending_input_events.peek(),
+                        Some(next_event)
+                            if matches!(
+                                &next_event.event.event,
+                                InputEvent::Touch(touch_event)
+                                    if matches!(touch_event.event_type, TouchEventType::Up)
+                            )
+                    );
+                    if !next_is_touch_up {
+                        break;
+                    }
+                    touch_up_events.push(
+                        pending_input_events
+                            .next()
+                            .expect("Peeked event must exist"),
+                    );
+                }
+
+                let result = self.handle_touch_up_events(cx, &touch_up_events);
+                input_event_outcomes.extend(touch_up_events.into_iter().map(|event| {
+                    InputEventOutcome {
+                        id: event.event.id,
+                        result,
+                    }
+                }));
+                continue;
+            }
             let result = match event.event.event {
                 InputEvent::MouseButton(mouse_button_event) => {
                     self.handle_native_mouse_button_event(cx, mouse_button_event, &event);
@@ -1303,12 +1357,28 @@ impl DocumentEventHandler {
         event: EmbedderTouchEvent,
         input_event: &ConstellationInputEvent,
     ) -> InputEventResult {
+        let Some(prepared_touch_event) = self.prepare_touch_event(cx, event, input_event) else {
+            return Default::default();
+        };
+
+        self.dispatch_prepared_touch_events(cx, &[prepared_touch_event])
+    }
+
+    /// Performs the per-touch pointer event handling and active touch point
+    /// bookkeeping for `event`, returning the data needed to dispatch the
+    /// corresponding [`TouchEvent`] (if any).
+    fn prepare_touch_event(
+        &self,
+        cx: &mut JSContext,
+        event: EmbedderTouchEvent,
+        input_event: &ConstellationInputEvent,
+    ) -> Option<PreparedTouchEvent> {
         let flags = HitTestFlags::empty();
         // Ignore all incoming events without a hit test.
         let Some(hit_test_result) = self.window.hit_test_from_input_event(flags, input_event)
         else {
             self.update_active_touch_points_when_early_return(event);
-            return Default::default();
+            return None;
         };
 
         let TouchId(identifier) = event.touch_id;
@@ -1319,7 +1389,7 @@ impl DocumentEventHandler {
             .find_map(DomRoot::downcast::<Element>)
         else {
             self.update_active_touch_points_when_early_return(event);
-            return Default::default();
+            return None;
         };
 
         let current_target = DomRoot::upcast::<EventTarget>(element.clone());
@@ -1475,14 +1545,19 @@ impl DocumentEventHandler {
             );
         }
 
-        let (touch_dispatch_target, changed_touch) = match event.event_type {
+        match event.event_type {
             TouchEventType::Down => {
                 // Add a new touch point
                 self.active_touch_points
                     .safe_borrow_mut(cx.no_gc())
                     .push(Dom::from_ref(&*pointer_touch));
                 self.set_active_element(cx.no_gc(), &element);
-                (current_target, pointer_touch)
+                Some(PreparedTouchEvent {
+                    dispatch_target: current_target,
+                    changed_touch: pointer_touch,
+                    event_type: event.event_type,
+                    cancelable: event.is_cancelable(),
+                })
             },
             _ => {
                 // From <https://w3c.github.io/touch-events/#dfn-touchend>:
@@ -1490,17 +1565,19 @@ impl DocumentEventHandler {
                 // > The target of this event must be the same Element on which the touch
                 // > point started when it was first placed on the surface, even if the touch point
                 // > has since moved outside the interactive area of the target element.
-                let active_touch_points = self.active_touch_points.borrow();
-                let Some(index) = active_touch_points
-                    .iter()
-                    .position(|point| point.Identifier() == identifier)
-                else {
-                    warn!("No active touch point for {:?}", event.event_type);
-                    return Default::default();
+                let (original_target, index) = {
+                    let active_touch_points = self.active_touch_points.borrow();
+                    let Some(index) = active_touch_points
+                        .iter()
+                        .position(|point| point.Identifier() == identifier)
+                    else {
+                        warn!("No active touch point for {:?}", event.event_type);
+                        return None;
+                    };
+                    // This is the original target that was selected during `touchstart`
+                    // event handling.
+                    (active_touch_points[index].Target(), index)
                 };
-                // This is the original target that was selected during `touchstart` event handling.
-                let original_target = active_touch_points[index].Target();
-                drop(active_touch_points);
 
                 let touch_with_touchstart_target = Touch::new(
                     cx,
@@ -1528,20 +1605,114 @@ impl DocumentEventHandler {
                     },
                     TouchEventType::Down => unreachable!("Should have been handled above"),
                 }
-                (original_target, touch_with_touchstart_target)
+                Some(PreparedTouchEvent {
+                    dispatch_target: original_target,
+                    changed_touch: touch_with_touchstart_target,
+                    event_type: event.event_type,
+                    cancelable: event.is_cancelable(),
+                })
             },
-        };
+        }
+    }
 
+    /// Handles a run of consecutive `touchend` input events.
+    ///
+    /// When multiple touch points are removed in the same event loop turn, user
+    /// agents coalesce them into a single `touchend` event per target, with all of
+    /// the removed touch points in `changedTouches`.
+    /// <https://w3c.github.io/touch-events/#dfn-touchend>
+    fn handle_touch_up_events(
+        &self,
+        cx: &mut JSContext,
+        touch_up_events: &[ConstellationInputEvent],
+    ) -> InputEventResult {
+        let mut prepared_touch_events = Vec::with_capacity(touch_up_events.len());
+        for input_event in touch_up_events {
+            let InputEvent::Touch(touch_event) = &input_event.event.event else {
+                continue;
+            };
+            if let Some(prepared_touch_event) =
+                self.prepare_touch_event(cx, *touch_event, input_event)
+            {
+                prepared_touch_events.push(prepared_touch_event);
+            }
+        }
+
+        self.dispatch_prepared_touch_events(cx, &prepared_touch_events)
+    }
+
+    /// Dispatches the touch events for one or more prepared touch points.
+    ///
+    /// Touch points that share the same target are coalesced into a single
+    /// [`TouchEvent`] whose `changedTouches` contains all of them.
+    fn dispatch_prepared_touch_events(
+        &self,
+        cx: &mut JSContext,
+        prepared_touch_events: &[PreparedTouchEvent],
+    ) -> InputEventResult {
+        let Some(first_prepared_touch_event) = prepared_touch_events.first() else {
+            return InputEventResult::default();
+        };
+        let event_type = first_prepared_touch_event.event_type;
+        let cancelable = first_prepared_touch_event.cancelable;
+
+        // Group the touch points by their (original) target, since a `TouchEvent`
+        // is dispatched to a single target.
+        let mut groups: Vec<(DomRoot<EventTarget>, Vec<DomRoot<Touch>>)> = Vec::new();
+        for prepared_touch_event in prepared_touch_events {
+            let dispatch_target = prepared_touch_event.dispatch_target.clone();
+            let position = groups
+                .iter()
+                .position(|(group_target, _)| group_target == &dispatch_target);
+            if let Some(position) = position {
+                groups[position]
+                    .1
+                    .push(prepared_touch_event.changed_touch.clone());
+            } else {
+                groups.push((
+                    dispatch_target,
+                    vec![prepared_touch_event.changed_touch.clone()],
+                ));
+            }
+        }
+
+        let mut result = InputEventResult::default();
+        for (dispatch_target, changed_touches) in groups {
+            let changed_touches: Vec<&Touch> =
+                changed_touches.iter().map(|touch| &**touch).collect();
+            result = result |
+                self.dispatch_touch_event_group(
+                    cx,
+                    event_type,
+                    cancelable,
+                    dispatch_target,
+                    &changed_touches,
+                );
+        }
+        result
+    }
+
+    /// Dispatches a single [`TouchEvent`] of `event_type` to `dispatch_target`
+    /// with the given `changed_touches`.
+    fn dispatch_touch_event_group(
+        &self,
+        cx: &mut JSContext,
+        event_type: TouchEventType,
+        cancelable: bool,
+        dispatch_target: DomRoot<EventTarget>,
+        changed_touches: &[&Touch],
+    ) -> InputEventResult {
+        let window = &*self.window;
         rooted_vec!(let mut target_touches);
         target_touches.extend(
             self.active_touch_points
                 .borrow()
                 .iter()
-                .filter(|touch| touch.Target() == touch_dispatch_target)
+                .filter(|touch| touch.Target() == dispatch_target)
                 .cloned(),
         );
 
-        let event_name = match event.event_type {
+        let event_name = match event_type {
             TouchEventType::Down => "touchstart",
             TouchEventType::Move => "touchmove",
             TouchEventType::Up => "touchend",
@@ -1549,21 +1720,21 @@ impl DocumentEventHandler {
         };
 
         let touches = TouchList::new(cx, window, self.active_touch_points.borrow().r());
-        let changed_touches = TouchList::new(cx, window, from_ref(&&*changed_touch));
-        let target_touches = TouchList::new(cx, window, target_touches.r());
+        let changed_touches_list = TouchList::new(cx, window, changed_touches);
+        let target_touches_list = TouchList::new(cx, window, target_touches.r());
 
         let touch_event = TouchEvent::new(
             cx,
             window,
             event_name.into(),
             EventBubbles::Bubbles,
-            EventCancelable::from(event.is_cancelable()),
+            EventCancelable::from(cancelable),
             EventComposed::Composed,
             Some(window),
             0i32,
             &touches,
-            &changed_touches,
-            &target_touches,
+            &changed_touches_list,
+            &target_touches_list,
             // FIXME: modifier keys
             false,
             false,
@@ -1571,7 +1742,7 @@ impl DocumentEventHandler {
             false,
         );
         let event = touch_event.upcast::<Event>();
-        event.fire(cx, &touch_dispatch_target);
+        event.fire(cx, &dispatch_target);
         event.flags().into()
     }
 
