@@ -10,6 +10,7 @@ import android.util.Size
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.Surface
+import android.view.inputmethod.BaseInputConnection
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,12 +30,16 @@ import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.platform.PlatformTextInputModifierNode
+import androidx.compose.ui.platform.establishTextInputSession
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import java.util.concurrent.Executors
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -42,6 +47,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun Servo(
     servoView: ServoView,
+    softKeyboardVisible: Boolean,
     modifier: Modifier = Modifier,
 ) {
     LifecycleResumeEffect(servoView) {
@@ -63,6 +69,7 @@ fun Servo(
         modifier =
             modifier
                 .focusRequester(focusRequester)
+                .softKeyboardVisible(softKeyboardVisible)
                 .onKeyEvent { keyEvent ->
                     when (keyEvent.type) {
                         KeyEventType.KeyDown if keyEvent.key != Key.Back -> {
@@ -162,6 +169,32 @@ class ServoNavigator {
 
     fun stop() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.Stop) }
+    }
+}
+
+private fun Modifier.softKeyboardVisible(visible: Boolean) = this then SoftKeyboardVisible(visible)
+
+private data class SoftKeyboardVisible(val visible: Boolean) :
+    ModifierNodeElement<SoftKeyboardVisibleNode>() {
+    override fun create() = SoftKeyboardVisibleNode()
+
+    override fun update(node: SoftKeyboardVisibleNode) {
+        node.update(visible)
+    }
+}
+
+private class SoftKeyboardVisibleNode : Modifier.Node(), PlatformTextInputModifierNode {
+    private var textInputSessionJob: Job? = null
+
+    fun update(visible: Boolean) {
+        textInputSessionJob?.cancel()
+        if (visible) {
+            textInputSessionJob = coroutineScope.launch {
+                establishTextInputSession {
+                    startInputMethod { _ -> BaseInputConnection(view, true) }
+                }
+            }
+        }
     }
 }
 
