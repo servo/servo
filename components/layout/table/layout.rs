@@ -64,6 +64,11 @@ enum CellContentAlignment {
     Baseline,
 }
 
+enum RowAbsPosOwner {
+    RowGroup,
+    Table,
+}
+
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
 /// covered by spans or empty.
@@ -1992,15 +1997,28 @@ impl<'a> TableLayout<'a> {
         positioning_context_for_table: &mut PositioningContext,
         is_collapsed: bool,
     ) {
-        // The PositioningContext for cells is, in order or preference, the PositioningContext of the row,
-        // the PositioningContext of the row group, or the PositioningContext of the table.
-        let row_group_positioning_context =
-            row_group_fragment_layout.and_then(|layout| layout.positioning_context.as_mut());
-        let positioning_context = row_fragment_layout
-            .positioning_context
-            .as_mut()
-            .or(row_group_positioning_context)
-            .unwrap_or(positioning_context_for_table);
+        // The PositioningContext for cells is, in order or preference:
+        // 1. the PositioningContext of the row,
+        // 2. the PositioningContext of the row group
+        // 3. the PositioningContext of the table.
+        // In the cases of row group and table, update the parent_absolute_start value accordingly
+        let positioning_context =
+            if let Some(row_context) = row_fragment_layout.positioning_context.as_mut() {
+                row_context
+            } else if let Some(row_group_layout) =
+                row_group_fragment_layout.and_then(|layout| layout.positioning_context.as_mut())
+            {
+                row_fragment_layout
+                    .parent_absolute_start
+                    .get_or_insert((RowAbsPosOwner::RowGroup, row_group_layout.len()));
+                row_group_layout
+            } else {
+                row_fragment_layout
+                    .parent_absolute_start
+                    .get_or_insert((RowAbsPosOwner::Table, positioning_context_for_table.len()));
+
+                positioning_context_for_table
+            };
 
         let layout = match self.cells_laid_out[row_index][column_index].take() {
             Some(layout) => layout,
@@ -2283,6 +2301,7 @@ struct RowFragmentLayout<'a> {
     containing_block: ContainingBlock<'a>,
     positioning_context: Option<PositioningContext>,
     fragments: Vec<Fragment>,
+    parent_absolute_start: Option<(RowAbsPosOwner, PositioningContextLength)>,
 }
 
 impl<'a> RowFragmentLayout<'a> {
@@ -2306,6 +2325,7 @@ impl<'a> RowFragmentLayout<'a> {
             positioning_context: PositioningContext::new_for_layout_box_base(&table_row.base),
             containing_block,
             fragments: Vec::new(),
+            parent_absolute_start: None,
         }
     }
     fn finish(
@@ -2321,6 +2341,9 @@ impl<'a> RowFragmentLayout<'a> {
                 relative_adjustement(&self.row.base.style, containing_block_for_children);
         }
 
+        let row_rect_in_table = self
+            .rect
+            .as_physical(Some(containing_block_for_logical_conversion));
         let (inline_size, block_size) = if let Some(row_group_layout) = row_group_fragment_layout {
             self.rect.start_corner -= row_group_layout.rect.start_corner;
             (
@@ -2365,6 +2388,29 @@ impl<'a> RowFragmentLayout<'a> {
         }
 
         let fragment = Fragment::Box(row_fragment.into());
+
+        // Adjust the absolute element based on relative position of Row to Row Group
+        // or Row to Table
+        if let Some((owner, start)) = self.parent_absolute_start {
+            match owner {
+                RowAbsPosOwner::RowGroup => {
+                    let row_group_context = row_group_fragment_layout
+                        .as_mut()
+                        .and_then(|layout| layout.positioning_context.as_mut())
+                        .expect("owner was recorded as row group");
+
+                    row_group_context.adjust_static_position_of_hoisted_fragments(&fragment, start);
+                },
+                RowAbsPosOwner::Table => {
+                    table_positioning_context
+                        .adjust_static_position_of_hoisted_fragments_with_offset(
+                            &row_rect_in_table.origin.to_vector(),
+                            start,
+                        );
+                },
+            }
+        }
+
         self.row.base.set_fragment(fragment.clone());
         fragment
     }
