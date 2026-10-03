@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
 use std::sync::{Arc, LazyLock};
@@ -117,7 +118,7 @@ impl<T> From<HyperRustlsHttpsConnector<T>> for InstrumentedConnector<T> {
 
 pub struct InstrumentedStream<T> {
     inner: MaybeHttpsStream<T>,
-    tls_info: Option<TlsHandshakeInfo>,
+    tls_info: RefCell<Option<TlsHandshakeInfo>>,
 }
 
 impl<T: Unpin> Unpin for InstrumentedStream<T> {}
@@ -177,7 +178,7 @@ where
         match stream {
             MaybeHttpsStream::Http(inner) => Self {
                 inner: MaybeHttpsStream::Http(inner),
-                tls_info: None,
+                tls_info: RefCell::new(None),
             },
             MaybeHttpsStream::Https(tls_stream) => {
                 let (_tcp, tls) = tls_stream.inner().get_ref();
@@ -185,7 +186,7 @@ where
 
                 Self {
                     inner: MaybeHttpsStream::Https(tls_stream),
-                    tls_info: Some(tls_info),
+                    tls_info: RefCell::new(Some(tls_info)),
                 }
             },
         }
@@ -208,8 +209,8 @@ where
                 }
             },
         };
-        if let Some(info) = &self.tls_info {
-            connected.extra(info.clone())
+        if let Some(info) = self.tls_info.borrow_mut().take() {
+            connected.extra(info)
         } else {
             connected
         }
