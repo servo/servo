@@ -41,7 +41,7 @@ use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::create_writable_stream;
-use crate::dom::stream::writablestreamdefaultcontroller::UnderlyingSinkType;
+use crate::dom::stream::writablestreamdefaultcontroller::UnderlyingSinkTypeRef;
 use crate::dom::types::{PromiseNativeHandler, TransformStreamDefaultController, WritableStream};
 use crate::realms::enter_auto_realm;
 
@@ -525,7 +525,7 @@ impl TransformStream {
             global,
             writable_high_water_mark,
             writable_size_algorithm,
-            UnderlyingSinkType::Transform(Dom::from_ref(self), start_promise.to_traced()),
+            UnderlyingSinkTypeRef::Transform(self, start_promise.to_traced()),
         )?;
         self.writable.set(Some(&writable));
 

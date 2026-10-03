@@ -8,7 +8,7 @@ use indexmap::IndexSet;
 use js::context::{JSContext, NoGC};
 use script_bindings::codegen::GenericBindings::ElementInternalsBinding::CustomStateSetMethods;
 use script_bindings::like::Setlike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::str::DOMString;
 
@@ -36,7 +36,7 @@ impl CustomStateSet {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window, element: &HTMLElement) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(element)), window, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited(element)), window)
     }
 
     pub(crate) fn set_for_layout(&self) -> AtomicRef<'_, IndexSet<DOMString>> {

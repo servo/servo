@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 use servo_base::generic_channel::{GenericCallback, GenericSend};
 use servo_url::ImmutableOrigin;
@@ -46,7 +46,7 @@ impl CacheStorage {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<CacheStorage> {
-        reflect_dom_object_with_cx(Box::new(CacheStorage::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(CacheStorage::new_inherited()), global)
     }
 
     /// Setup the callback to the backend service, if this hasn't been done already.

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
@@ -40,7 +40,7 @@ impl MediaDevices {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<MediaDevices> {
-        reflect_dom_object_with_cx(Box::new(MediaDevices::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(MediaDevices::new_inherited()), global)
     }
 }
 
