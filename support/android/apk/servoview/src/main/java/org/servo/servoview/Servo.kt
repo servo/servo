@@ -14,8 +14,10 @@ import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -127,10 +129,10 @@ class ServoNavigator {
         }
     }
 
-    var canGoBackState = mutableStateOf(false)
+    var canGoBack by mutableStateOf(false)
         internal set
 
-    var canGoForwardState = mutableStateOf(false)
+    var canGoForward by mutableStateOf(false)
         internal set
 
     fun navigate(uri: String) {
@@ -357,8 +359,8 @@ class Servo(
         }
 
         override fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean) {
-            navigator.canGoBackState.value = canGoBack
-            navigator.canGoForwardState.value = canGoForward
+            navigator.canGoBack = canGoBack
+            navigator.canGoForward = canGoForward
         }
 
         override fun onMediaSessionMetadata(title: String, artist: String, album: String) {
