@@ -1733,14 +1733,21 @@ impl VirtualMethods for HTMLImageElement {
         self.super_type()
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
+
         match attr.local_name() {
-            &local_name!("src") |
-            &local_name!("srcset") |
-            &local_name!("width") |
-            &local_name!("sizes") => {
-                // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
-                // The element's src, srcset, width, or sizes attributes are set, changed, or
-                // removed.
+            // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
+            // > The element's src, srcset, width, or sizes attributes are set, changed, or
+            // > removed.
+            //
+            // The specification is wrong here. `width` should not be counted as a relevant
+            // mutation and no other browser does this. It used to be on the list because
+            // it was used as a fallback for `srcset`, but no browser implements that fallback.
+            // See the following issues:
+            // - The width attribute should not be a relevant mutation
+            //   <https://github.com/whatwg/html/issues/9371>
+            // - Srcset implementations do not take width as a fallback when sizes is not present
+            //   <https://github.com/whatwg/html/pull/5900>
+            &local_name!("src") | &local_name!("srcset") | &local_name!("sizes") => {
                 self.update_the_image_data(cx);
             },
             &local_name!("crossorigin") => {
