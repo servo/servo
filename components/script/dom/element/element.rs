@@ -145,6 +145,7 @@ use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
+use crate::dom::html::htmlmarqueeelement::HTMLMarqueeElement;
 use crate::dom::html::htmlobjectelement::HTMLObjectElement;
 use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmloutputelement::HTMLOutputElement;
@@ -1394,6 +1395,8 @@ impl<'dom> LayoutDom<'dom, Element> {
             this.get_width()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
+            this.get_width()
         } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
             this.get_width()
         } else if let Some(this) = self.downcast::<HTMLTableElement>() {
@@ -1433,6 +1436,8 @@ impl<'dom> LayoutDom<'dom, Element> {
         let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.get_height()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
             this.get_height()
         } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
             this.get_height()
