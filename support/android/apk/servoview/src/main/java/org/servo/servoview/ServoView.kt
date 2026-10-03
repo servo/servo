@@ -45,10 +45,6 @@ class ServoView(
         holder.addCallback(surfaceHolderCallback)
     }
 
-    fun stop() {
-        servo.stop()
-    }
-
     fun mediaSessionAction(action: Int) {
         servo.mediaSessionAction(action)
     }
