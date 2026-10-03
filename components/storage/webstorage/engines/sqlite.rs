@@ -9,9 +9,23 @@ use log::error;
 use rusqlite::Connection;
 use servo_base::threadpool::ThreadPool;
 
+use crate::shared::migrations::{Migration, apply};
 use crate::shared::{DB_IN_MEMORY_INIT_PRAGMAS, DB_IN_MEMORY_PRAGMAS, DB_INIT_PRAGMAS, DB_PRAGMAS};
 use crate::webstorage::OriginEntry;
 use crate::webstorage::engines::WebStorageEngine;
+
+/// Version 1 has to stay `IF NOT EXISTS`: existing databases already have these tables.
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        statements: "CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT);",
+    },
+    Migration {
+        version: 2,
+        statements: r#"DELETE FROM data WHERE rowid NOT IN (SELECT MAX(rowid) FROM data GROUP BY key);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_data_key ON data(key);"#,
+    },
+];
 
 pub struct SqliteEngine {
     connection: Connection,
@@ -30,7 +44,7 @@ impl SqliteEngine {
     }
 
     pub fn init_db(db_path: Option<&PathBuf>) -> rusqlite::Result<Connection> {
-        let connection = if let Some(path) = db_path {
+        let mut connection = if let Some(path) = db_path {
             if let Some(parent) = path.parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
@@ -55,7 +69,7 @@ impl SqliteEngine {
             }
             conn
         };
-        connection.execute("CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT);", [])?;
+        apply(&mut connection, MIGRATIONS)?;
         Ok(connection)
     }
 }
@@ -92,15 +106,10 @@ impl WebStorageEngine for SqliteEngine {
 
     fn set(&mut self, key: &str, value: &str) -> Result<(), Self::Error> {
         // update or insert
-        //
-        // TODO: Replace this with an UPSERT once the schema guarantees a
-        // UNIQUE/PRIMARY KEY constraint on `key`.
-        let tx = self.connection.transaction()?;
-        let rows = tx.execute("UPDATE data SET value = ? WHERE key = ?", [value, key])?;
-        if rows == 0 {
-            tx.execute("INSERT INTO data (key, value) VALUES (?, ?)", [key, value])?;
-        }
-        tx.commit()?;
+        self.connection.execute(
+            "INSERT INTO data (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value;",
+            [key, value],
+        )?;
         Ok(())
     }
 
