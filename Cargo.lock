@@ -2085,6 +2085,7 @@ dependencies = [
  "const-oid",
  "crypto-common 0.2.2",
  "ctutils",
+ "zeroize",
 ]
 
 [[package]]
@@ -9339,6 +9340,7 @@ dependencies = [
  "itertools 0.15.0",
  "k12",
  "keccak",
+ "kem",
  "keyboard-types",
  "libc",
  "log",
@@ -9409,6 +9411,7 @@ dependencies = [
  "sha1 0.11.0",
  "sha2 0.11.0",
  "sha3 0.12.0",
+ "shake",
  "smallvec",
  "sponge-cursor",
  "strum",
@@ -10156,6 +10159,9 @@ name = "sponge-cursor"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a0219bd7d979d58245a4f41f695e1ac9f8befdffadd7f61f1bae9e39abc6620"
+dependencies = [
+ "zeroize",
+]
 
 [[package]]
 name = "sqlite-wasm-rs"

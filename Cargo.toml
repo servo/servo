@@ -144,6 +144,7 @@ jni = "0.22"
 js = { package = "mozjs", version = "=0.26.7", default-features = false, features = ["intl", "libz-sys"] }
 k12 = "0.5"
 keccak = "0.2"
+kem = "0.3"
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.13.1", features = ["euclid"] }
 libc = "0.2"
@@ -231,7 +232,8 @@ serde_with = "3.13"
 servo_arc = { git = "https://github.com/servo/stylo", rev = "9e2238d5cef5863c2857e9c95887fcdad010092d" }
 sha1 = "0.11"
 sha2 = "0.11"
-sha3 = "0.12"
+sha3 = { version = "0.12", features = ["zeroize"] }
+shake = { version = "0.1", features = ["zeroize"] }
 signal-hook-registry = "1.4.8"
 skrifa = "0.46.2"
 smallvec = { version = "1.15", features = ["serde", "union"] }
