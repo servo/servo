@@ -160,7 +160,7 @@ class MediaSession(private val view: ServoView, private val context: Context) {
     fun hideMediaSessionControls() {
         Log.d("MediaSession", "hideMediaSessionControls")
         context.getSystemService<NotificationManager>()?.cancel(notificationID.get())
-        context.unregisterReceiver(mediaSessionActionReceiver)
+        mediaSessionActionReceiver?.let(context::unregisterReceiver)
         mediaSessionActionReceiver = null
     }
 

@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
     private val urlTextFieldState = TextFieldState()
     private var isRefreshing by mutableStateOf(false)
-    private var mediaSession: MediaSession? = null
+    private lateinit var mediaSession: MediaSession
     private lateinit var historyManager: HistoryManager
     private var currentUrl = ""
     private var currentTitle = ""
@@ -94,6 +94,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                 scope = lifecycleScope,
             )
 
+        mediaSession = MediaSession(servoView, applicationContext)
         historyManager = HistoryManager(this)
 
         val historyActivityResultLauncher =
@@ -278,7 +279,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
     override fun onDestroy() {
         super.onDestroy()
-        mediaSession?.hideMediaSessionControls()
+        mediaSession.hideMediaSessionControls()
     }
 
     private fun onHistoryBackMenuItemClicked(navigator: ServoNavigator) {
@@ -351,16 +352,11 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
     override fun onMediaSessionMetadata(title: String, artist: String, album: String) {
         Log.d("onMediaSessionMetadata", "$title $artist $album")
-        val mediaSession =
-            mediaSession ?: MediaSession(servoView, applicationContext).also { mediaSession = it }
         mediaSession.updateMetadata(title, artist, album)
     }
 
     override fun onMediaSessionPlaybackStateChange(state: Int) {
         Log.d("onMediaSessionPlaybackStateChange", state.toString())
-        val mediaSession =
-            mediaSession ?: MediaSession(servoView, applicationContext).also { mediaSession = it }
-
         mediaSession.setPlaybackState(state)
 
         if (state == MediaSession.PLAYBACK_STATE_NONE) {
