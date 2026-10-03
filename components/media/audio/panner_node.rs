@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::f32::consts::PI as PI32;
 use std::f64::consts::PI;
 
@@ -421,5 +422,9 @@ impl AudioNodeEngine for PannerNode {
                 PannerNodeMessage::SetConeGain(val) => self.cone_outer_gain = val,
             }
         }
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }

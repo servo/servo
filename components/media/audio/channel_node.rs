@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
+
 use malloc_size_of_derive::MallocSizeOf;
 
 use crate::audio_node::{
@@ -65,6 +67,10 @@ impl AudioNodeEngine for ChannelMergerNode {
     fn set_channel_count(&mut self, _: u8) {
         panic!("channel merger nodes cannot have their channel count changed");
     }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
 }
 
 #[derive(AudioNodeCommon)]
@@ -117,5 +123,9 @@ impl AudioNodeEngine for ChannelSplitterNode {
 
     fn set_channel_count(&mut self, _: u8) {
         panic!("channel splitter nodes cannot have their channel count changed");
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }

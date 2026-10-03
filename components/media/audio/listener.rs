@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
+
 use crate::audio_node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::{Block, Chunk};
 use crate::param::{Param, ParamDir, ParamType};
@@ -89,5 +91,9 @@ impl AudioNodeEngine for AudioListenerNode {
             ParamType::Up(ParamDir::Z) => &mut self.up_z,
             _ => panic!("Unknown param {:?} for AudioListenerNode", id),
         }
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
