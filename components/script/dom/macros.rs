@@ -175,10 +175,10 @@ macro_rules! make_enumerated_getter(
                     // Step 1.2 Otherwise, return no state.
                     return DOMString::from_static($missing);
                 },
-                Some(value) => {
+                Some(mut value) => {
                     // Step 2. If the attribute's value is an ASCII case-insensitive match for one of the keywords
                     // defined for the attribute, then return the state represented by that keyword.
-                    let value = value.to_ascii_lowercase();
+                    value.make_ascii_lowercase();
                     let value: DOMString = value.into();
                     $(
                         if value.str() == $choices {
