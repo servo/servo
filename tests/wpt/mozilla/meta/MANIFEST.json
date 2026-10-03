@@ -258,6 +258,35 @@
       {}
      ]
     ],
+    "input-range-overflow-hidden.html": [
+     "fcffbdc11d0f66fe9bb9830377e36e4ea058a1e8",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/input-range-overflow-hidden-ref.html",
+        "=="
+       ]
+      ],
+      {
+       "fuzzy": [
+        [
+         null,
+         [
+          [
+           0,
+           6
+          ],
+          [
+           0,
+           20
+          ]
+         ]
+        ]
+       ]
+      }
+     ]
+    ],
     "input-range.html": [
      "ed42641aa50cb89647ac3671da73d40b30f55f0d",
      [
@@ -8530,8 +8559,12 @@
      "d24a8715c8b453906323e89a1d605ba3e77351f0",
      []
     ],
+    "input-range-overflow-hidden-ref.html": [
+     "4de8b4f77a40a3951edd8b9ef75efd5d2644a363",
+     []
+    ],
     "input-range-ref.html": [
-     "a805e58f2bf0f48b597a3fef54ac7fa7c50db3b5",
+     "19fd28bc6629d995dddabae520c89c9352fd3993",
      []
     ],
     "input-text-caret-mixed-language-ref.html": [
