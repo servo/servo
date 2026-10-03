@@ -193,14 +193,6 @@ class Servo(
         }
     }
 
-    fun version(): String {
-        return jni.version()
-    }
-
-    fun performUpdates() {
-        scope.launch(glDispatcher) { jni.performUpdates() }
-    }
-
     fun resize(size: Size) {
         scope.launch(glDispatcher) { jni.resize(size) }
     }
@@ -225,10 +217,6 @@ class Servo(
         scope.launch(glDispatcher) { jni.loadUri(uri) }
     }
 
-    fun scroll(dx: Int, dy: Int, x: Int, y: Int) {
-        scope.launch(glDispatcher) { jni.scroll(dx, dy, x, y) }
-    }
-
     fun onKeyDown(keyCode: Int, event: KeyEvent) {
         scope.launch(glDispatcher) { jni.keydown(keyCode, event.unicodeChar) }
     }
@@ -251,22 +239,6 @@ class Servo(
 
     fun touchCancel(x: Float, y: Float, pointerId: Int) {
         scope.launch(glDispatcher) { jni.touchCancel(x, y, pointerId) }
-    }
-
-    fun pinchZoomStart(factor: Float, x: Float, y: Float) {
-        scope.launch(glDispatcher) { jni.pinchZoomStart(factor, x, y) }
-    }
-
-    fun pinchZoom(factor: Float, x: Float, y: Float) {
-        scope.launch(glDispatcher) { jni.pinchZoom(factor, x, y) }
-    }
-
-    fun pinchZoomEnd(factor: Float, x: Float, y: Float) {
-        scope.launch(glDispatcher) { jni.pinchZoomEnd(factor, x, y) }
-    }
-
-    fun click(x: Float, y: Float) {
-        scope.launch(glDispatcher) { jni.click(x, y) }
     }
 
     fun pausePainting() {

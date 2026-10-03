@@ -27,7 +27,7 @@ use raw_window_handle::{
 pub use servo::MediaSessionPlaybackState;
 use servo::{
     self, DevicePixel, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType,
-    MouseButton, SelectElement, WebViewId,
+    SelectElement, WebViewId,
 };
 
 use super::app::{App, AppInitOptions};
@@ -69,16 +69,6 @@ where
         Some(app) => (f)(app),
         None => throw(env, jni_str!("Servo not available in this thread")),
     });
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
-    mut env: EnvUnowned<'local>,
-    _class: JClass<'local>,
-) -> JString<'local> {
-    let version = crate::VERSION;
-    env.with_env(|env| -> jni::errors::Result<_> { env.new_string(version) })
-        .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 /// Initialize Servo. At that point, we need a valid GL context. In the future, this will
@@ -369,23 +359,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_goForward<'local>(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
-    mut env: EnvUnowned<'local>,
-    _: JClass<'local>,
-    dx: jint,
-    dy: jint,
-    x: jint,
-    y: jint,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("scroll");
-        call(env, |s| s.scroll(dx as f32, dy as f32, x as f32, y as f32));
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_doFrame<'local>(
     mut env: EnvUnowned<'local>,
     _: JClass<'local>,
@@ -539,72 +512,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_touchCancel<'local>(
     env.with_env(|env| -> jni::errors::Result<_> {
         debug!("touchCancel");
         call(env, |s| s.touch_cancel(x, y, pointer_id));
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomStart<'local>(
-    mut env: EnvUnowned<'local>,
-    _: JClass<'local>,
-    factor: jfloat,
-    x: jfloat,
-    y: jfloat,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("pinchZoomStart");
-        call(env, |s| s.pinchzoom_start(factor, x, y));
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoom<'local>(
-    mut env: EnvUnowned<'local>,
-    _: JClass<'local>,
-    factor: jfloat,
-    x: jfloat,
-    y: jfloat,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("pinchZoom");
-        call(env, |s| s.pinchzoom(factor, x, y));
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomEnd<'local>(
-    mut env: EnvUnowned<'local>,
-    _: JClass<'local>,
-    factor: jfloat,
-    x: jfloat,
-    y: jfloat,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("pinchZoomEnd");
-        call(env, |s| s.pinchzoom_end(factor, x, y));
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_click(
-    mut env: EnvUnowned,
-    _: JClass,
-    x: jfloat,
-    y: jfloat,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("click");
-        call(env, |s| {
-            s.mouse_down(x, y, MouseButton::Primary);
-            s.mouse_up(x, y, MouseButton::Primary);
-        });
         Ok(())
     })
     .resolve::<ThrowRuntimeExAndDefault>()
