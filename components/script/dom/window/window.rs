@@ -456,7 +456,7 @@ pub(crate) struct Window {
     layout_marker: DomRefCell<Rc<Cell<bool>>>,
 
     /// <https://dom.spec.whatwg.org/#window-current-event>
-    current_event: DomRefCell<Option<Dom<Event>>>,
+    current_event: MutNullableDom<Event>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-registered-reporting-observer-list>
     reporting_observer_list: DomRefCell<Vec<Dom<ReportingObserver>>>,
@@ -2292,7 +2292,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://dom.spec.whatwg.org/#dom-window-event>
     fn Event(&self, cx: &mut JSContext, rval: MutableHandleValue) {
-        if let Some(ref event) = *self.current_event.borrow() {
+        if let Some(event) = self.current_event.get() {
             event.reflector().get_jsobject().to_jsval(cx, rval);
         }
     }
@@ -2430,15 +2430,12 @@ impl Window {
     }
 
     pub(crate) fn current_event(&self) -> Option<DomRoot<Event>> {
-        self.current_event
-            .borrow()
-            .as_ref()
-            .map(|e| DomRoot::from_ref(&**e))
+        self.current_event.get()
     }
 
     pub(crate) fn set_current_event(&self, event: Option<&Event>) -> Option<DomRoot<Event>> {
         let current = self.current_event();
-        *self.current_event.borrow_mut() = event.map(Dom::from_ref);
+        self.current_event.set(event);
         current
     }
 
@@ -4013,7 +4010,7 @@ impl Window {
             player_context,
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
-            current_event: DomRefCell::new(None),
+            current_event: MutNullableDom::new(None),
             trusted_types: Default::default(),
             reporting_observer_list: Default::default(),
             report_list: Default::default(),
