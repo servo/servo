@@ -2179,6 +2179,18 @@ impl Element {
             .map(map_func)
     }
 
+    pub(crate) fn attribute_str_ref<'a>(
+        &'a self,
+        namespace: &Namespace,
+        local_name: &LocalName,
+    ) -> Option<crate::dom::element::attributes::accessors::AttrStrRef<'a>> {
+        crate::dom::element::attributes::accessors::AttrStrRef::maybe_new(
+            self.attrs.borrow(),
+            namespace,
+            local_name,
+        )
+    }
+
     /// This is the inner logic for:
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-namespace>
     ///

@@ -12,7 +12,38 @@ use crate::dom::bindings::codegen::UnionTypes::{TrustedHTMLOrString, TrustedScri
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::element::Element;
 use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::element::storage::AttributesBorrow;
 use crate::dom::node::NodeTraits;
+
+/// A reference to an attribute value as `&str`. Keeps the borrow alive.
+pub(crate) struct AttrStrRef<'a> {
+    attributes_borrow: AttributesBorrow<'a>,
+    position: usize,
+}
+
+impl<'a> AttrStrRef<'a> {
+    /// Create a new [`AttrStrRef`] from localname.
+    pub(crate) fn maybe_new(
+        attrs: AttributesBorrow<'a>,
+        namespace: &Namespace,
+        local_name: &LocalName,
+    ) -> Option<AttrStrRef<'a>> {
+        attrs
+            .clone()
+            .iter()
+            .position(|attribute| {
+                attribute.local_name() == local_name && attribute.namespace() == namespace
+            })
+            .map(|position| AttrStrRef {
+                attributes_borrow: attrs,
+                position,
+            })
+    }
+
+    pub(crate) fn as_attr_ref<'b>(&'b self) -> AttrRef<'b> {
+        self.attributes_borrow.get(self.position).unwrap()
+    }
+}
 
 impl Element {
     /// Callers should convert the `LocalName` to ASCII lowercase before calling.
@@ -27,6 +58,20 @@ impl Element {
         );
 
         self.get_attribute_string_value_with_namespace(&ns!(), local_name)
+    }
+
+    /// This returns an attribute reference that can be seen as a `&str`. This keeps the borrow on attributes alive.
+    /// Callers should convert the `LocalName` to ASCII lowercase before calling.
+    pub(crate) fn get_attribute_string_ref<'a>(
+        &'a self,
+        local_name: &LocalName,
+    ) -> Option<AttrStrRef<'a>> {
+        debug_assert_eq!(
+            *local_name,
+            local_name.to_ascii_lowercase(),
+            "All namespace-less attribute accesses should use a lowercase ASCII name"
+        );
+        self.attribute_str_ref(&ns!(), local_name)
     }
 
     pub(crate) fn get_attribute_string_value_with_namespace(
@@ -76,13 +121,13 @@ impl Element {
     }
 
     pub(crate) fn get_url_attribute(&self, local_name: &LocalName) -> USVString {
-        let Some(value) = self.get_attribute_string_value(local_name) else {
+        let Some(value) = self.get_attribute_string_ref(local_name) else {
             return Default::default();
         };
         self.owner_document()
-            .encoding_parse_a_url(&value)
+            .encoding_parse_a_url(&value.as_attr_ref().value())
             .map(|parsed| USVString(parsed.into_string()))
-            .unwrap_or_else(|_| USVString(value))
+            .unwrap_or_else(|_| USVString(value.as_attr_ref().value().to_string()))
     }
 
     pub(crate) fn set_url_attribute(
@@ -98,13 +143,16 @@ impl Element {
         &self,
         local_name: &LocalName,
     ) -> TrustedScriptURLOrUSVString {
-        let Some(value) = self.get_attribute_string_value(local_name) else {
+        let Some(value) = self.get_attribute_string_ref(local_name) else {
             return TrustedScriptURLOrUSVString::USVString(USVString::default());
         };
+        let value_ref = value.as_attr_ref();
         self.owner_document()
-            .encoding_parse_a_url(&value)
+            .encoding_parse_a_url(&value_ref.value())
             .map(|parsed| TrustedScriptURLOrUSVString::USVString(USVString(parsed.into_string())))
-            .unwrap_or_else(|_| TrustedScriptURLOrUSVString::USVString(USVString(value)))
+            .unwrap_or_else(|_| {
+                TrustedScriptURLOrUSVString::USVString(USVString(value_ref.value().to_string()))
+            })
     }
 
     pub(crate) fn get_trusted_html_attribute(&self, local_name: &LocalName) -> TrustedHTMLOrString {
