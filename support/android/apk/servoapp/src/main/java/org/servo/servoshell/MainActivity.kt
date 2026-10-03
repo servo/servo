@@ -39,12 +39,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -122,6 +126,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     .windowSizeClass
                     .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
+            val servoFocusRequester = remember { FocusRequester() }
             Scaffold(
                 topBar = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -167,7 +172,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             urlTextFieldState,
                             onSearch = { search ->
                                 navigator.navigate(search)
-                                servoView.requestFocus()
+                                servoFocusRequester.requestFocus()
                             },
                             modifier = Modifier.weight(1f).padding(end = 10.dp),
                         )
@@ -248,9 +253,10 @@ class MainActivity : ComponentActivity(), Servo.Client {
             ) { innerPadding ->
                 Servo(
                     servoView = servoView,
-                    modifier = Modifier.padding(innerPadding),
+                    modifier = Modifier.padding(innerPadding).focusRequester(servoFocusRequester),
                 )
                 BackHandler(enabled = navigator.canGoBack) { navigator.back() }
+                LaunchedEffect(servoFocusRequester) { servoFocusRequester.requestFocus() }
                 alertMessage?.let { alertMessage ->
                     AlertDialog(
                         onDismissRequest = { this.alertMessage = null },
@@ -264,8 +270,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
                 }
             }
         }
-
-        servoView.requestFocus()
 
         val sdcard = getExternalFilesDir("")
         val host = sdcard!!.toPath().resolve("android_hosts").toString()
