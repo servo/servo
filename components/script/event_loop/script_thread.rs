@@ -3243,6 +3243,9 @@ impl ScriptThread {
                 // Clear the image cache now, instead of waiting for the Window to be
                 // garbage collected. See servo/servo#45239.
                 window.image_cache().clear();
+                window.send_to_constellation(ScriptToConstellationMessage::ClearCanvasResources(
+                    webview_id,
+                ));
 
                 debug!("{pipeline_id}: Clearing JavaScript runtime");
                 window.clear_js_runtime();
