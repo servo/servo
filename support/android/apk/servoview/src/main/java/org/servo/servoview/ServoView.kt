@@ -12,31 +12,13 @@ import android.util.Log
 import android.util.Size
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import kotlinx.coroutines.CoroutineScope
 
 @SuppressLint("ViewConstructor")
 class ServoView(
     context: Context,
-    client: Servo.Client,
-    servoArgs: String?,
-    servoLog: String?,
-    experimentalMode: Boolean,
-    initialUri: String?,
+    internal val servo: Servo,
     internal val navigator: ServoNavigator,
-    scope: CoroutineScope,
 ) : SurfaceView(context) {
-    internal val servo =
-        Servo(
-            servoArgs,
-            initialUri,
-            servoLog,
-            experimentalMode,
-            scope,
-            client,
-            context,
-            navigator,
-        )
-
     init {
         isFocusable = true
         isFocusableInTouchMode = true
