@@ -103,17 +103,21 @@ impl IntersectionObserverEntry {
         let mut domrectreadonly_from_dictionary = |dictionary: &DOMRectInit| {
             DOMRectReadOnly::new_from_dictionary(cx, window.as_global_scope(), proto, dictionary)
         };
-        let observer = Box::new(Self::new_inherited(
-            init.time,
-            Some(&*domrectreadonly_from_dictionary(&init.rootBounds)),
-            &domrectreadonly_from_dictionary(&init.boundingClientRect),
-            &domrectreadonly_from_dictionary(&init.intersectionRect),
-            init.isIntersecting,
-            init.isVisible,
-            init.intersectionRatio,
-            &init.target,
-        ));
-        reflect_dom_object_with_proto(cx, observer, window, proto)
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(Self::new_inherited(
+                init.time,
+                Some(&*domrectreadonly_from_dictionary(&init.rootBounds)),
+                &domrectreadonly_from_dictionary(&init.boundingClientRect),
+                &domrectreadonly_from_dictionary(&init.intersectionRect),
+                init.isIntersecting,
+                init.isVisible,
+                init.intersectionRatio,
+                &init.target,
+            )),
+            window,
+            proto,
+        )
     }
 }
 

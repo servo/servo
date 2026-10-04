@@ -96,21 +96,27 @@ impl<
 impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlobalGeneric<D>>
     IterableIterator<D, T>
 {
+    fn new_inherited(iterable: &T, type_: IteratorType) -> Self {
+        Self {
+            reflector: Reflector::new(),
+            type_,
+            iterable: Dom::from_ref(iterable),
+            index: Cell::new(0),
+            _marker: NoTrace(PhantomData),
+        }
+    }
     /// Create a new iterator instance for the provided iterable DOM interface.
     pub(crate) fn new(
         realm: &mut CurrentRealm,
         iterable: &T,
         type_: IteratorType,
     ) -> DomRoot<Self> {
-        let iterator = Box::new(IterableIterator {
-            reflector: Reflector::new(),
-            type_,
-            iterable: Dom::from_ref(iterable),
-            index: Cell::new(0),
-            _marker: NoTrace(PhantomData),
-        });
         let global = D::GlobalScope::from_current_realm(realm);
-        <D as DomHelpers<D>>::reflect_dom_object_with_cx(realm, iterator, &*global)
+        <D as DomHelpers<D>>::reflect_dom_object_with_cx(
+            realm,
+            Box::new(Self::new_inherited(iterable, type_)),
+            &*global,
+        )
     }
 
     /// Return the next value from the iterable object.

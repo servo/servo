@@ -38,12 +38,16 @@ impl MediaQueryListEvent {
         media: DOMString,
         matches: bool,
     ) -> DomRoot<MediaQueryListEvent> {
-        let ev = Box::new(MediaQueryListEvent {
-            event: Event::new_inherited(),
-            media,
-            matches: Cell::new(matches),
-        });
-        reflect_dom_object_with_proto(cx, ev, global, proto)
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(MediaQueryListEvent {
+                event: Event::new_inherited(),
+                media,
+                matches: Cell::new(matches),
+            }),
+            global,
+            proto,
+        )
     }
 
     pub(crate) fn new(
