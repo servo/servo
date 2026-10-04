@@ -1,7 +1,3 @@
-# META: timeout=long
-
-# Longer timeout required due to a large number of input action and event dispatch subtests.
-
 import pytest
 
 from webdriver.bidi.modules.input import Actions, get_element_origin

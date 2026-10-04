@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: implicit columns generated for items locked to a row</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-placement-algo">
+<meta name="assert" content="When more items are locked to a single row than the explicit grid has columns, step 2 of the placement algorithm adds implicit columns to hold the items that do not fit, sized by grid-auto-columns. The items already in the row keep their explicit track sizes, and a column added for one row is shared with the others rather than added again.">
+<style>
+.grid {
+    display: grid;
+    position: relative;
+    grid-template-columns: 50px 50px 50px;
+    grid-auto-columns: 30px;
+}
+.oneRow { grid-template-rows: 40px; }
+.twoRows { grid-template-rows: 40px 40px; }
+.dense { grid-auto-flow: row dense; }
+/* Sizes the grid to its tracks, so the track count itself is observable. */
+.maxContent { width: max-content; }
+.autoColumns { grid-auto-columns: auto; }
+.cyclingColumns { grid-auto-columns: 30px 10px; }
+.columnGap { column-gap: 10px; }
+.grid > div { background: silver; }
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+<div id="log"></div>
+
+<!-- One item more than there are explicit columns, so a single implicit column is added. -->
+<div class="grid oneRow">
+  <div style="grid-row: 1" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-row: 1" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+  <div style="grid-row: 1" data-offset-x="100" data-offset-y="0" data-expected-width="50" data-expected-height="40">i3</div>
+  <div style="grid-row: 1" data-offset-x="150" data-offset-y="0" data-expected-width="30" data-expected-height="40">i4</div>
+</div>
+
+<!-- Two items past the explicit columns, so the grid has to grow twice. -->
+<div class="grid oneRow">
+  <div style="grid-row: 1" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-row: 1" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+  <div style="grid-row: 1" data-offset-x="100" data-offset-y="0" data-expected-width="50" data-expected-height="40">i3</div>
+  <div style="grid-row: 1" data-offset-x="150" data-offset-y="0" data-expected-width="30" data-expected-height="40">i4</div>
+  <div style="grid-row: 1" data-offset-x="180" data-offset-y="0" data-expected-width="30" data-expected-height="40">i5</div>
+</div>
+
+<!-- Dense packing searches each row from its first column, and reaches the same result here. -->
+<div class="grid oneRow dense">
+  <div style="grid-row: 1" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-row: 1" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+  <div style="grid-row: 1" data-offset-x="100" data-offset-y="0" data-expected-width="50" data-expected-height="40">i3</div>
+  <div style="grid-row: 1" data-offset-x="150" data-offset-y="0" data-expected-width="30" data-expected-height="40">i4</div>
+</div>
+
+<!-- A column added for one row does not pull a shorter row out of order. -->
+<div class="grid twoRows">
+  <div style="grid-row: 1" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-row: 1" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+  <div style="grid-row: 1" data-offset-x="100" data-offset-y="0" data-expected-width="50" data-expected-height="40">i3</div>
+  <div style="grid-row: 1" data-offset-x="150" data-offset-y="0" data-expected-width="30" data-expected-height="40">i4</div>
+  <div style="grid-row: 2" data-offset-x="0" data-offset-y="40" data-expected-width="50" data-expected-height="40">i5</div>
+  <div style="grid-row: 2" data-offset-x="50" data-offset-y="40" data-expected-width="50" data-expected-height="40">i6</div>
+</div>
+
+<!-- Two rows which both overflow share one implicit column, so the grid is 180px and not 210px. -->
+<div class="grid twoRows maxContent" data-expected-width="180">
+  <div style="grid-row: 1" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-row: 1" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+  <div style="grid-row: 1" data-offset-x="100" data-offset-y="0" data-expected-width="50" data-expected-height="40">i3</div>
+  <div style="grid-row: 1" data-offset-x="150" data-offset-y="0" data-expected-width="30" data-expected-height="40">i4</div>
+  <div style="grid-row: 2" data-offset-x="0" data-offset-y="40" data-expected-width="50" data-expected-height="40">i5</div>
+  <div style="grid-row: 2" data-offset-x="50" data-offset-y="40" data-expected-width="50" data-expected-height="40">i6</div>
+  <div style="grid-row: 2" data-offset-x="100" data-offset-y="40" data-expected-width="50" data-expected-height="40">i7</div>
+  <div style="grid-row: 2" data-offset-x="150" data-offset-y="40" data-expected-width="30" data-expected-height="40">i8</div>
+</div>
+
+<!-- grid-auto-columns is auto by default, so the implicit column is sized to its item. -->
+<div class="grid oneRow maxContent autoColumns" data-expected-width="175">
+  <div style="grid-row: 1" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-row: 1" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+  <div style="grid-row: 1" data-offset-x="100" data-offset-y="0" data-expected-width="50" data-expected-height="40">i3</div>
+  <div style="grid-row: 1; width: 25px" data-offset-x="150" data-offset-y="0" data-expected-width="25" data-expected-height="40">i4</div>
+</div>
+
+<!-- A gutter sits between the last explicit column and the implicit one. -->
+<div class="grid oneRow columnGap">
+  <div style="grid-row: 1" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-row: 1" data-offset-x="60" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+  <div style="grid-row: 1" data-offset-x="120" data-offset-y="0" data-expected-width="50" data-expected-height="40">i3</div>
+  <div style="grid-row: 1" data-offset-x="180" data-offset-y="0" data-expected-width="30" data-expected-height="40">i4</div>
+</div>
+
+<!-- Implicit columns cycle forwards through grid-auto-columns, starting from the first size. -->
+<div class="grid oneRow cyclingColumns">
+  <div style="grid-row: 1" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-row: 1" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+  <div style="grid-row: 1" data-offset-x="100" data-offset-y="0" data-expected-width="50" data-expected-height="40">i3</div>
+  <div style="grid-row: 1" data-offset-x="150" data-offset-y="0" data-expected-width="30" data-expected-height="40">i4</div>
+  <div style="grid-row: 1" data-offset-x="180" data-offset-y="0" data-expected-width="10" data-expected-height="40">i5</div>
+</div>
+
+</body>

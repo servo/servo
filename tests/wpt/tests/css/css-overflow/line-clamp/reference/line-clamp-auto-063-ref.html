@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Reference</title>
+
+<style>
+  #clamp {
+    font: 16px / 32px serif;
+    background-color: yellow;
+    display: flow-root;
+  }
+  #max-height {
+    max-height: 3lh;
+  }
+  #margin {
+    margin: 1lh;
+  }
+</style>
+
+<div id="clamp">
+  <div id="max-height">
+    <div id="margin">
+      Line 1 <br>
+      Line 2 <br>
+      Line 3 <br>
+      This line overflows the clamp container and ends with an ellipsis…
+    </div>
+  </div>
+</div>

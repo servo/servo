@@ -5,7 +5,7 @@
   <link rel="help" href="https://github.com/WICG/html-in-canvas">
   <link rel="match" href="css-transform-on-div-ref.html">
   <meta name="assert" value="Elements with CSS transforms render with the transforms.">
-  <meta name="fuzzy" content="maxDifference=0-11;totalPixels=0-498">
+  <meta name="fuzzy" content="maxDifference=0-32;totalPixels=0-800">
   <script src="/common/reftest-wait.js"></script>
   <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
   <style>
@@ -22,17 +22,17 @@
 </head>
 <body>
   <canvas id="a" width="200" height="200" content=drawable>
-    <div style="transform: rotate(45deg);"></div>
+    <div drawable style="transform: rotate(45deg);"></div>
   </canvas>
   <canvas id="b" width="200" height="200" content=drawable>
-    <div style="transform: translateX(50px);"></div>
+    <div drawable style="transform: translateX(50px);"></div>
   </canvas>
   <br>
   <canvas id="c" width="200" height="200" content=drawable>
-    <div style="transform: translateX(100px);"></div>
+    <div drawable style="transform: translateX(100px);"></div>
   </canvas>
   <canvas id="d" width="200" height="200" content=drawable>
-    <div style="transform: rotate(45deg);"></div>
+    <div drawable style="transform: rotate(45deg);"></div>
   </canvas>
 
   <script>

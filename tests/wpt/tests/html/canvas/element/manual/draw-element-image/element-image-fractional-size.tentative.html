@@ -11,7 +11,7 @@
 }
 </style>
 <canvas id="canvas" width="300" height="300" content=drawable>
-  <div id="child"></div>
+  <div drawable id="child"></div>
 </canvas>
 
 <script>
@@ -68,6 +68,11 @@ promise_test(async t => {
   child.style.height = '200px';
   canvas.width = dpWidth * 0.5;
   canvas.height = dpHeight * 0.25;
+
+  // Previously captured ElementImage should reflect the updated canvas grid
+  // size combined with its painted CSS box size.
+  assert_approx_equals(elementImage.width, 100.5 * 0.5 * (dpWidth / 300), 0.001);
+  assert_approx_equals(elementImage.height, 200.75 * 0.25 * (dpHeight / 300), 0.001);
 
   await waitForCanvasPaint(canvas);
 

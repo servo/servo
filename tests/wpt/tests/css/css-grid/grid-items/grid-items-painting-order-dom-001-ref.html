@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+    <style>
+        .grid {
+            display: block;
+            width: 300px;
+            height: 175px;
+            float: left;
+        }
+
+        .item {
+            width: 100px;
+            height: 100px;
+        }
+
+        .grid :nth-child(1) {
+            background-color: #CCC;
+        }
+
+        .grid :nth-child(2) {
+            background-color: #999;
+        }
+
+        .grid :nth-child(3) {
+            background-color: #333;
+        }
+
+        .firstRowFirstColumn {
+            position: relative;
+            left: 0px;
+        }
+
+        .secondRowFirstColumn {
+            position: relative;
+            left: 10px;
+        }
+
+        .bothRowFirstColumn {
+            position: relative;
+            left: 20px;
+        }
+
+        #grid1 .firstRowFirstColumn {
+            top: 0px;
+        }
+
+        #grid1 .secondRowFirstColumn {
+            top: -40px;
+        }
+
+        #grid1 .bothRowFirstColumn {
+            top: -180px;
+        }
+
+        #grid2 .firstRowFirstColumn {
+            top: -200px;
+        }
+
+        #grid2 .secondRowFirstColumn {
+            top: 60px;
+        }
+
+        #grid2 .bothRowFirstColumn {
+            top: -80px;
+        }
+
+        #grid3 .firstRowFirstColumn {
+            top: -100px;
+        }
+
+        #grid3 .secondRowFirstColumn {
+            top: -140px;
+        }
+
+        #grid3 .bothRowFirstColumn {
+            top: 20px;
+        }
+
+        #grid4 .firstRowFirstColumn {
+            top: -100px;
+        }
+
+        #grid4 .secondRowFirstColumn {
+            top: 60px;
+        }
+
+        #grid4 .bothRowFirstColumn {
+            top: -180px;
+        }
+
+        #grid5 .firstRowFirstColumn {
+            top: 0px;
+        }
+
+        #grid5 .secondRowFirstColumn {
+            top: -140px;
+        }
+
+        #grid5 .bothRowFirstColumn {
+            top: -80px;
+        }
+
+        #grid6 .firstRowFirstColumn {
+            top: -200px;
+        }
+
+        #grid6 .secondRowFirstColumn {
+            top: -40px;
+        }
+
+        #grid6 .bothRowFirstColumn {
+            top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        The test shows 6 grids each of them with 3 items sorted differently in the DOM.<br>
+        Grid items should be painted from lighter (bottom) to darker (top) according to DOM ordering.
+    </div>
+    <div id="grid1" class="grid">
+        <div class="item firstRowFirstColumn"></div>
+        <div class="item secondRowFirstColumn"></div>
+        <div class="item bothRowFirstColumn"></div>
+    </div>
+    <div id="grid2" class="grid">
+        <div class="item secondRowFirstColumn"></div>
+        <div class="item bothRowFirstColumn"></div>
+        <div class="item firstRowFirstColumn"></div>
+    </div>
+    <div id="grid3" class="grid">
+        <div class="item bothRowFirstColumn"></div>
+        <div class="item firstRowFirstColumn"></div>
+        <div class="item secondRowFirstColumn"></div>
+    </div>
+    <div id="grid4" class="grid">
+        <div class="item secondRowFirstColumn"></div>
+        <div class="item firstRowFirstColumn"></div>
+        <div class="item bothRowFirstColumn"></div>
+    </div>
+    <div id="grid5" class="grid">
+        <div class="item firstRowFirstColumn"></div>
+        <div class="item bothRowFirstColumn"></div>
+        <div class="item secondRowFirstColumn"></div>
+    </div>
+    <div id="grid6" class="grid">
+        <div class="item bothRowFirstColumn"></div>
+        <div class="item secondRowFirstColumn"></div>
+        <div class="item firstRowFirstColumn"></div>
+    </div>
+</body>
+</html>

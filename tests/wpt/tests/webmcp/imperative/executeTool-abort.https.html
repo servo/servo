@@ -35,12 +35,19 @@ promise_test(async t => {
 
   const events = [];
 
-  const { promise: toolActivatedPromise, resolve: resolveToolActivated } = Promise.withResolvers();
-  window.addEventListener('toolactivated', e => {
+  const modelContextEvents = [];
+  const {
+    promise: modelContextToolActivatedPromise,
+    resolve: resolveModelContextToolActivated
+  } = Promise.withResolvers();
+  const modelContextHandler = e => {
     assert_equals(e.toolName, 'abort_propagate_tool');
     events.push('toolactivated');
-    resolveToolActivated();
-  }, { once: true });
+    modelContextEvents.push(e);
+    resolveModelContextToolActivated();
+  };
+  document.modelContext.addEventListener('toolactivated', modelContextHandler);
+  t.add_cleanup(() => document.modelContext.removeEventListener('toolactivated', modelContextHandler));
 
   const { promise: toolStartedPromise, resolve: resolveToolStarted } = Promise.withResolvers();
   const { promise: signalAbortPromise, resolve: resolveSignalAbort } = Promise.withResolvers();
@@ -65,15 +72,29 @@ promise_test(async t => {
   const controller = new AbortController();
   const executionPromise = document.modelContext.executeTool(tool, {}, { signal: controller.signal });
 
-  const { promise: toolCancelPromise, resolve: resolveToolCancel } = Promise.withResolvers();
-  window.addEventListener('toolcancel', e => {
+  const modelContextCancelEvents = [];
+  const {
+    promise: modelContextToolCancelPromise,
+    resolve: resolveModelContextToolCancel
+  } = Promise.withResolvers();
+  const modelContextCancelHandler = e => {
     assert_equals(e.toolName, 'abort_propagate_tool');
     events.push('toolcancel');
-    resolveToolCancel();
-  }, { once: true });
+    modelContextCancelEvents.push(e);
+    resolveModelContextToolCancel();
+  };
+  document.modelContext.addEventListener('toolcancel', modelContextCancelHandler);
+  t.add_cleanup(() => document.modelContext.removeEventListener('toolcancel', modelContextCancelHandler));
 
   await toolStartedPromise;
-  await toolActivatedPromise;
+  await modelContextToolActivatedPromise;
+
+  assert_equals(modelContextEvents.length, 1);
+  const modelContextEvent = modelContextEvents[0];
+  assert_true(modelContextEvent instanceof ToolActivatedEvent,
+      'toolactivated dispatched at the ModelContext is a ToolActivatedEvent');
+  assert_equals(modelContextEvent.toolName, 'abort_propagate_tool');
+  assert_equals(modelContextEvent.target, document.modelContext);
 
   controller.abort('custom cancellation reason');
 
@@ -81,10 +102,19 @@ promise_test(async t => {
   await Promise.all([
     executionPromise.catch(e => { events.push('execution_rejected'); executionRejectionValue = e; }),
     signalAbortPromise,
-    toolCancelPromise,
+    modelContextToolCancelPromise,
   ]);
 
   assert_array_equals(events, ['tool started', 'toolactivated', 'execution_rejected', 'signal_aborted', 'toolcancel']);
+  assert_array_equals(modelContextEvents, [modelContextEvent], 'toolactivated is dispatched once per execution');
+
+  assert_equals(modelContextCancelEvents.length, 1, 'toolcancel is dispatched once per execution');
+  const modelContextCancelEvent = modelContextCancelEvents[0];
+  assert_true(modelContextCancelEvent instanceof ToolCancelEvent,
+      'toolcancel dispatched at the ModelContext is a ToolCancelEvent');
+  assert_equals(modelContextCancelEvent.toolName, 'abort_propagate_tool');
+  assert_equals(modelContextCancelEvent.target, document.modelContext);
+
   assert_equals(executionRejectionValue, 'custom cancellation reason');
   assert_true(targetSignalAbortReason instanceof DOMException);
   assert_equals(targetSignalAbortReason.name, 'AbortError');

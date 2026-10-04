@@ -93,6 +93,25 @@
             span[method_name]("<p>fails</p>");
           });
         }, `${method_name} throws HierarchyRequestError if parent is a DocumentFragment`);
+
+        test(() => {
+          const doctype = document.implementation.createDocumentType("html", "", "");
+          assert_false(method_name in doctype);
+          assert_equals(doctype[method_name], undefined);
+        }, `${method_name} is not exposed on DocumentType`);
+
+        for (const [type_name, create_node] of [
+          ["Element", () => document.createElement("div")],
+          ["Comment", () => document.createComment("ref")],
+          ["Text", () => document.createTextNode("ref")],
+          ["ProcessingInstruction", () => document.createProcessingInstruction("target", "data")],
+        ]) {
+          test(() => {
+            const node = create_node();
+            node[method_name]("<span>noop</span>");
+            assert_equals(node.parentNode, null);
+          }, `${method_name} on disconnected ${type_name} is a no-op`);
+        }
       }
     }
   </script>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: fit-content() track sizing</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-single-span-items">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-stretch">
+<meta name="assert" content="A fit-content() track's growth limit is the maximum of its items' max-content contributions, clamped by the fit-content() argument and then floored by the items' automatic minimum size. Its max track sizing function is max-content rather than auto, so Stretch auto tracks does not expand it and leftover space in the grid container is not distributed to it.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: 60px;
+    grid-auto-rows: fit-content(40px);
+    height: 300px;
+  }
+
+  .zeroMinimumSize {
+    min-height: 0;
+  }
+</style>
+
+<div class="grid" id="definiteHeight">
+  <div><div style="height: 10px"></div></div>
+</div>
+
+<div class="grid" id="minHeight" style="height: auto; min-height: 300px">
+  <div><div style="height: 10px"></div></div>
+</div>
+
+<div class="grid" id="automaticMinimumSizeFloor">
+  <div><div style="height: 10px"></div></div>
+  <div><div style="height: 100px"></div></div>
+</div>
+
+<div class="grid" id="contentLargerThanArgument">
+  <div class="zeroMinimumSize"><div style="height: 100px"></div></div>
+</div>
+
+<div class="grid" id="smallArgument" style="grid-auto-rows: fit-content(30px)">
+  <div class="zeroMinimumSize"><div style="height: 100px"></div></div>
+</div>
+
+<div class="grid" id="largeArgument" style="grid-auto-rows: fit-content(200px)">
+  <div class="zeroMinimumSize"><div style="height: 100px"></div></div>
+</div>
+
+<div class="grid" id="percentageArgument" style="grid-auto-rows: fit-content(50%)">
+  <div class="zeroMinimumSize"><div style="height: 400px"></div></div>
+</div>
+
+<div class="grid" id="calculatedArgument" style="grid-auto-rows: fit-content(calc(10% + 5px))">
+  <div class="zeroMinimumSize"><div style="height: 400px"></div></div>
+</div>
+
+<div class="grid" id="spanningItem">
+  <div style="grid-row: span 2; min-height: 0"><div style="height: 200px"></div></div>
+</div>
+
+<div class="grid" id="zoomedGrid" style="zoom: 2">
+  <div class="zeroMinimumSize"><div style="height: 400px"></div></div>
+</div>
+
+<div class="grid" id="implicitColumn" style="width: 300px; grid-auto-columns: fit-content(40px)">
+  <div style="grid-column: 2; min-width: 0"><div style="width: 400px; height: 10px"></div></div>
+</div>
+
+<div class="grid" id="autoRow" style="grid-auto-rows: auto">
+  <div><div style="height: 10px"></div></div>
+</div>
+
+<div class="grid" id="autoRowAndFitContentRow" style="grid-auto-rows: fit-content(40px) auto">
+  <div><div style="height: 10px"></div></div>
+  <div><div style="height: 10px"></div></div>
+</div>
+
+<script>
+function usedRowSizes(gridContainer) {
+  return getComputedStyle(gridContainer).gridTemplateRows;
+}
+
+test(() => {
+  assert_equals(usedRowSizes(definiteHeight), "10px");
+}, "A fit-content() row is not stretched to a definite grid container height");
+
+test(() => {
+  assert_equals(usedRowSizes(minHeight), "10px");
+}, "A fit-content() row is not stretched to the grid container's min-height");
+
+test(() => {
+  assert_equals(usedRowSizes(automaticMinimumSizeFloor), "10px 100px");
+}, "A fit-content() row is floored by its item's automatic minimum size, above the argument");
+
+test(() => {
+  assert_equals(usedRowSizes(contentLargerThanArgument), "40px");
+}, "A fit-content() row's growth limit is clamped by its argument");
+
+test(() => {
+  assert_equals(usedRowSizes(smallArgument), "30px");
+}, "A fit-content() argument smaller than the content sizes the row");
+
+test(() => {
+  assert_equals(usedRowSizes(largeArgument), "100px");
+}, "A fit-content() argument larger than the content does not size the row");
+
+test(() => {
+  assert_equals(usedRowSizes(percentageArgument), "150px");
+}, "A percentage fit-content() argument resolves against the grid container's definite height");
+
+test(() => {
+  assert_equals(usedRowSizes(calculatedArgument), "35px");
+}, "A calc() fit-content() argument resolves against the grid container's definite height");
+
+test(() => {
+  assert_equals(usedRowSizes(spanningItem), "40px 40px");
+}, "An item spanning fit-content() rows does not grow either past its argument");
+
+test(() => {
+  assert_equals(usedRowSizes(zoomedGrid), "40px");
+}, "A fit-content() argument is applied on a zoomed grid container");
+
+test(() => {
+  assert_equals(getComputedStyle(implicitColumn).gridTemplateColumns, "60px 40px");
+}, "A fit-content() column's growth limit is clamped by its argument");
+
+test(() => {
+  assert_equals(usedRowSizes(autoRow), "300px");
+}, "An auto row in the same position is stretched");
+
+test(() => {
+  assert_equals(usedRowSizes(autoRowAndFitContentRow), "10px 290px");
+}, "Leftover space goes to the auto row rather than the fit-content() row beside it");
+</script>

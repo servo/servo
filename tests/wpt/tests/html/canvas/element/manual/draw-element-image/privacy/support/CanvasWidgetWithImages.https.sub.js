@@ -21,7 +21,7 @@ class CanvasWidget extends HTMLElement {
         }
       </style>
       <canvas id=canvas width="100" height="200" content=drawable>
-        <div id=child>
+        <div id=child drawable>
         </div>
       </canvas>
     `;

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-template-areas-property">
+<link rel="help" href="https://drafts.csswg.org/mediaqueries-4/#width">
+<link rel="match" href="grid-template-areas-media-query-001-ref.html">
+<meta name="assert" content="Named grid areas defined inside a matching media query place the items.">
+<html>
+<style type="text/css">
+.grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+
+    grid-template-areas: "one"
+                         "two"
+                         "three";
+}
+
+.one {
+    grid-area: one;
+    background-color: beige;
+}
+
+.two {
+    grid-area: two;
+    background-color: antiquewhite;
+}
+
+.three {
+    grid-area: three;
+    background-color: bisque;
+}
+
+.one, .two, .three { min-height: 100px; }
+
+@media screen and (min-width: 500px) {
+    .grid {
+       grid-template-columns: 1fr 1fr;
+       grid-template-areas: "one one"
+                            "two three";
+  }
+}
+
+@media screen and (min-width: 700px) {
+    .grid {
+       grid-template-columns: 2fr 1fr 1fr;
+       grid-template-areas: "one two three";
+    }
+}
+</style>
+</head>
+<body>
+<p>The test passes if you see 3 blocks bellow arranged on a single row</p>
+<div class="grid">
+    <div class="one"></div>
+    <div class="two"></div>
+    <div class="three"></div>
+</div>
+</body>
+</html>

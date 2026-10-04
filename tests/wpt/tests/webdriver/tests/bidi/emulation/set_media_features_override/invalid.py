@@ -118,6 +118,14 @@ async def test_params_features_invalid_type(bidi_session, top_context, value):
         )
 
 
+async def test_params_features_invalid_feature_name(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.emulation.set_media_features_override(
+            features={"test": "test"},
+            contexts=[top_context["context"]],
+        )
+
+
 @pytest.mark.parametrize("value", get_invalid_cases("string", nullable=True))
 async def test_params_features_entry_string_invalid_type(
     bidi_session, top_context, value

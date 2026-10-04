@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: Grid item padding exceeding its grid area</title>
+<link rel="author" title="Yulun Wu" href="mailto:yulun_wu@apple.com">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#stretch-fit-size">
+<link rel="match" href="grid-item-border-padding-005-ref.html">
+<meta name="assert" content="Checks that a stretched grid item whose padding alone exceeds its grid area stretches to a zero content box and overflows the area, instead of shrinking its border box below its padding.">
+<style>
+.grid {
+    display: grid;
+}
+.inlineAxisGrid {
+    grid-template-columns: 50px;
+}
+.blockAxisGrid {
+    grid-template-columns: 50px;
+    grid-template-rows: 50px;
+}
+.inlineAxisItem {
+    height: 50px;
+    padding: 0 40px;
+    background-color: green;
+}
+.blockAxisItem {
+    width: 50px;
+    padding: 40px 0;
+    background-color: green;
+}
+</style>
+<p>Test passes if there are two green boxes below, the first 80px wide and the second 80px tall.</p>
+<!-- Padding exceeding a 50px column. -->
+<div class="grid inlineAxisGrid">
+    <div class="inlineAxisItem"></div>
+</div>
+<!-- Padding exceeding a 50px row. -->
+<div class="grid blockAxisGrid">
+    <div class="blockAxisItem"></div>
+</div>

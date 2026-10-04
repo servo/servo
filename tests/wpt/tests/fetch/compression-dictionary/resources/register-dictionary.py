@@ -45,7 +45,10 @@ def main(request, response):
         if b"extra-header-option" in request.GET:
             options += b", " + request.GET.first(b"extra-header-option")
         response.headers.set(b"Use-As-Dictionary", options)
-    response.headers.set(b"Cache-Control", b"max-age=" + max_age)
+    if b"cache-control" in request.GET:
+        response.headers.set(b"Cache-Control", request.GET.first(b"cache-control"))
+    else:
+        response.headers.set(b"Cache-Control", b"max-age=" + max_age)
     if b"age" in request.GET:
         response.headers.set(b"Age", request.GET.first(b"age"))
     response.headers.set(b"Vary", b"available-dictionary,accept-encoding")

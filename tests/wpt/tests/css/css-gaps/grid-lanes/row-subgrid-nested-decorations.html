@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: two nested row subgrids inherit grid-lanes
+  tracks and paint independent decorations
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-subgrid-nested-decorations-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 400px;
+    position: relative;
+    width: 320px;
+  }
+  .lanes {
+    background: #dce6f0;
+    display: grid-lanes;
+    gap: 20px;
+    grid-template-rows: repeat(6, 50px);
+    height: 400px;
+    padding: 0 20px;
+    row-rule: 6px solid #243c9c;
+    width: 280px;
+  }
+  .subgrid {
+    background: #ffe0a3;
+    column-gap: 20px;
+    column-rule: 6px solid #b83b00;
+    display: grid;
+    grid-row: 2 / span 4;
+    grid-template-columns: 30px 180px 30px;
+    grid-template-rows: subgrid;
+    row-rule: 6px solid #9c1755;
+    width: 280px;
+  }
+  .inner-subgrid {
+    background: #c8e8cf;
+    column-gap: 20px;
+    column-rule: 6px solid #00613c;
+    display: grid;
+    grid-column: 2;
+    grid-row: 2 / span 3;
+    grid-template-columns: repeat(2, 80px);
+    grid-template-rows: subgrid;
+    row-rule: 6px solid #005a73;
+    width: 180px;
+  }
+  .cell {
+    background: #087f75;
+  }
+  .first-cell {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .second-cell {
+    grid-column: 2;
+    grid-row: 2;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="subgrid">
+      <div class="inner-subgrid">
+        <div class="cell first-cell"></div>
+        <div class="cell second-cell"></div>
+      </div>
+    </div>
+  </div>
+</div>

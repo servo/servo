@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-flex-tracks">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-stretch">
+<link rel="match" href="grid-flex-and-auto-columns-fill-available-width-001-ref.html">
+<meta name="assert" content="A 1fr column and an auto column together fill the whole width of the grid container.">
+<html>
+<head>
+    <link href="/css/support/grid.css" rel="stylesheet">
+    <style type="text/css">
+        #grid-1 {
+            grid-template-columns: 1fr;
+        }
+
+        #grid-2 {
+            grid-template-columns: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Description</h1>
+    <p>Flex and content sized column should use all the available width and you should not see the grid background (grey at the end).</p>
+    <h1>Grid 1 flex column</h1>
+    <div id="grid-1" class="grid">
+        <div class="firstRowFirstColumn">grid item</div>
+    </div>
+    <h1>Grid 1 auto column</h1>
+    <div id="grid-2" class="grid">
+        <div class="firstRowFirstColumn">
+            grid item grid item grid item grid item grid item grid item grid item grid item grid item grid item
+            grid item grid item grid item grid item grid item grid item grid item grid item grid item grid item
+            grid item grid item grid item grid item grid item grid item grid item grid item grid item grid item
+            grid item grid item grid item grid item grid item grid item grid item grid item grid item grid item
+        </div>
+    </div>
+</body>
+</html>

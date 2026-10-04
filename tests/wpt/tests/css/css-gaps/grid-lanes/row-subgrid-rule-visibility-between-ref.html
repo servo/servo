@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 190px;
+    position: relative;
+    width: 120px;
+  }
+  .lanes {
+    background: lightgray;
+    display: grid-lanes;
+    grid-template-rows: repeat(3, 50px);
+    height: 190px;
+    row-gap: 20px;
+    width: 120px;
+  }
+  .subgrid {
+    column-gap: 20px;
+    display: grid;
+    grid-row: 1 / span 3;
+    grid-template-columns: repeat(2, 50px);
+    grid-template-rows: subgrid;
+  }
+  .cell {
+    background: teal;
+  }
+  .top-left {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .top-right {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .middle-left {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .row-rule {
+    background: gold;
+    height: 6px;
+    left: 0;
+    position: absolute;
+    top: 57px;
+    width: 50px;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="subgrid">
+      <div class="cell top-left"></div>
+      <div class="cell top-right"></div>
+      <div class="cell middle-left"></div>
+    </div>
+  </div>
+  <div class="row-rule"></div>
+</div>

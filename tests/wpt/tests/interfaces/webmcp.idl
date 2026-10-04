@@ -14,6 +14,8 @@ interface ModelContext : EventTarget {
   Promise<DOMString> executeTool(RegisteredTool tool, optional any inputObject, optional ModelContextExecuteToolOptions options = {});
 
   attribute EventHandler ontoolchange;
+  attribute EventHandler ontoolactivated;
+  attribute EventHandler ontoolcancel;
 };
 
 dictionary ModelContextTool {
@@ -31,6 +33,7 @@ dictionary ToolAnnotations {
   boolean readOnlyHint = false;
   boolean untrustedContentHint = false;
   boolean consequentialHint = false;
+  boolean debugging = false;
 };
 
 dictionary ToolExecuteCallbackOptions {
@@ -63,4 +66,24 @@ dictionary RegisteredTool {
   required Window window;
   required USVString origin;
   ToolAnnotations annotations;
+};
+
+[Exposed=Window, SecureContext]
+interface ToolActivatedEvent : Event {
+  constructor(DOMString type, optional ToolActivatedEventInit eventInitDict = {});
+  readonly attribute DOMString toolName;
+};
+
+dictionary ToolActivatedEventInit : EventInit {
+  DOMString toolName = "";
+};
+
+[Exposed=Window, SecureContext]
+interface ToolCancelEvent : Event {
+  constructor(DOMString type, optional ToolCancelEventInit eventInitDict = {});
+  readonly attribute DOMString toolName;
+};
+
+dictionary ToolCancelEventInit : EventInit {
+  DOMString toolName = "";
 };

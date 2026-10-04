@@ -4,7 +4,7 @@
 /*---
 esid: sec-intl.locale
 description: >
-  Remove any uvalue (aka type) equal to "true".
+  Remove any uvalue (aka type) equal to "yes" if and only if "yes" is an alias for "true".
 info: |
   Intl.Locale ( tag [ , options ] )
     ...
@@ -16,47 +16,31 @@ features: [Intl.Locale]
 ---*/
 
 // Generate all possible `ukey` values.
+// https://unicode.org/reports/tr35/#ukey
 function* ukeys() {
-  const lowerA = 'a'.charCodeAt(0);
-  const lowerZ = 'z'.charCodeAt(0);
+  const lowerAlpha = 'abcdefghijklmnopqrstuvwxyz';
+  const lowerAlphanum = lowerAlpha + '0123456789';
 
-  for (let first = lowerA; first <= lowerZ; ++first) {
-    for (let second = lowerA; second <= lowerZ; ++second) {
-      yield String.fromCharCode(first, second);
+  for (let i = 0; i < lowerAlphanum.length; ++i) {
+    for (let j = 0; j < lowerAlpha.length; ++j) {
+      yield lowerAlphanum[i] + lowerAlpha[j];
     }
   }
 }
 
-function canonicalizeUValue(ukey, uvalue) {
-  assert.sameValue(uvalue, "yes", "unexpected uvalue");
-
-  switch (ukey) {
-    case "kb":
-    case "kc":
-    case "kh":
-    case "kk":
-    case "kn":
-      // Canonicalized to "true", which then gets removed.
-      return "";
-    default:
-      return uvalue;
-  }
+// Whether ukey has a "yes" alias for "true" in
+// https://github.com/unicode-org/cldr/blob/maint/maint-48/common/bcp47/collation.xml
+function hasAlias(ukey) {
+  return ukey === "kb" || ukey === "kc" || ukey === "kh" || ukey === "kk" || ukey === "kn";
 }
 
 for (let ukey of ukeys()) {
-  let canonicalized = new Intl.Locale(`en-u-${ukey}-yes`).toString();
+  const localeId = `en-u-${ukey}-yes`;
+  const normalizedLocaleId = hasAlias(ukey) ? `en-u-${ukey}` : localeId;
 
-  if (canonicalizeUValue(ukey, "yes") === "yes") {
-    assert.sameValue(
-      canonicalized,
-      `en-u-${ukey}-yes`,
-      `new Intl.Locale("en-u-${ukey}-yes").toString() returns "en-u-${ukey}-yes"`
-    );
-  } else {
-    assert.sameValue(
-      canonicalized,
-      `en-u-${ukey}`,
-      `new Intl.Locale("en-u-${ukey}-yes").toString() returns "en-u-${ukey}"`
-    );
-  }
+  assert.sameValue(
+    new Intl.Locale(localeId).toString(),
+    normalizedLocaleId,
+    `new Intl.Locale("${localeId}").toString() must be "${normalizedLocaleId}"`
+  );
 }

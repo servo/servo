@@ -18,12 +18,12 @@
 </style>
 
 <canvas id=canvas width="200" height="200" content=drawable>
-  <div id=child>
+  <div id=child drawable>
     <div id=grandchild></div>
   </div>
 </canvas>
 <canvas id=canvaswithoutlayout content=drawable>
-  <div id=child2></div>
+  <div id=child2 drawable></div>
 </div>
 
 </canvas>
@@ -34,7 +34,7 @@ promise_test(async () => {
 
   assert_throws_dom("InvalidStateError",
     () => canvas.getContext("2d").drawElementImage(grandchild, 20, 30),
-    "Can't draw non-direct children.");
+    "Can't draw non-drawable descendants.");
 
   canvas.removeAttribute("content"); // Remove attribute.
   assert_throws_dom("InvalidStateError",

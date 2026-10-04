@@ -178,4 +178,56 @@ document.querySelectorAll('.test').forEach(testContainer => {
       'Same option should match :active-option after pressing space.');
   }, `${description}: Keyboard behavior for filterable select.`);
 });
+
+promise_test(async () => {
+  const input = document.createElement('input');
+  const select = document.createElement('select');
+  select.id = 'empty-select';
+  select.size = 2;
+  input.setAttribute('filter', select.id);
+  document.body.append(input, select);
+
+  input.focus();
+  await pressKey(enterKey);
+  await pressKey(arrowDown);
+  await pressKey(arrowUp);
+  assert_equals(select.querySelector(':active-option'), null,
+    'No option should match :active-option in an empty select.');
+
+  const optionOne = document.createElement('option');
+  optionOne.textContent = 'one';
+  const optionTwo = document.createElement('option');
+  optionTwo.textContent = 'two';
+  select.append(optionOne, optionTwo);
+
+  await pressKey(arrowDown);
+  assert_equals(select.querySelector(':active-option'), optionOne,
+    'First option should become active after pressing arrow down when options were added after focus.');
+
+  await pressKey(arrowDown);
+  assert_equals(select.querySelector(':active-option'), optionTwo,
+    'Second option should become active after pressing arrow down.');
+
+  optionTwo.remove();
+  assert_equals(select.querySelector(':active-option'), null,
+    'No option should be active after removing the active option.');
+
+  await pressKey(enterKey);
+  assert_equals(select.selectedOptions.length, 0,
+    'Pressing enter with no active option should not select anything.');
+
+  await pressKey(arrowDown);
+  assert_equals(select.querySelector(':active-option'), optionOne,
+    'First option should become active after pressing arrow down after active option removal.');
+
+  input.removeAttribute('filter');
+  input.blur();
+  assert_equals(select.querySelector(':active-option'), optionOne,
+    'Option one remains active if filter attribute was removed before blur.');
+
+  input.setAttribute('filter', select.id);
+  input.focus();
+  assert_equals(select.querySelector(':active-option'), optionOne,
+    'Focusing input again should not crash when active_option_ was already set.');
+}, 'No active option, removal of active option, and re-focusing.');
 </script>

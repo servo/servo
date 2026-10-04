@@ -150,10 +150,33 @@ async function runFullCycleTest(t, options) {
     }
   });
 
+  let shouldRunDescriptionTest = options.checkDescription;
   let next_encode_ts = 0;
   const encoder_init = {
     output(chunk, metadata) {
       let config = metadata.decoderConfig;
+
+      if (shouldRunDescriptionTest) {
+          shouldRunDescriptionTest = false;
+          if (encoder_config.hevc) {
+              promise_test(async () => {
+                  if (encoder_config.hevc.format === 'annexb')
+                      assert_equals(config.description, undefined);
+                  else
+                      assert_greater_than(config.description.byteLength, 0);
+              }, `Validate ${encoder_config.hevc.format} format`);
+          }
+
+          if (encoder_config.avc) {
+              promise_test(async () => {
+                  if (encoder_config.avc.format === 'annexb')
+                      assert_equals(config.description, undefined);
+                  else
+                      assert_greater_than(config.description.byteLength, 0);
+              }, `Validate ${encoder_config.avc.format} format`);
+          }
+      }
+
       // Issue a configure if there's a new config, or on the
       // first chunk if testing rate control
       if (!options.rateControl && config ||
@@ -213,7 +236,7 @@ async function runFullCycleTest(t, options) {
 }
 
 promise_test(async t => {
-  return runFullCycleTest(t, {});
+  return runFullCycleTest(t, {checkDescription: true});
 }, 'Encoding and decoding cycle');
 
 promise_test(async t => {

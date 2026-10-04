@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is site-keyed, child is origin-keyed, child is cross-site to the parent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  navigateIframe,
+  testGetter
+} from "../resources/helpers.mjs";
+
+promise_setup(async () => {
+  const iframe = document.createElement("iframe");
+  const navigatePromise = navigateIframe(iframe, "{{hosts[alt][]}}", "?1");
+  document.body.append(iframe);
+  await navigatePromise;
+});
+
+// Cross-site documents are always in different agent clusters, but the child's
+// request is still respected, so the child's agent cluster is origin-keyed.
+testGetter(self, false, "parent");
+testGetter(0, true, "child");
+</script>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-containers">
+<link rel="help" href="https://drafts.csswg.org/css2/#floats">
+<link rel="match" href="grid-empty-floating-positioned-and-inline-001-ref.html">
+<meta name="assert" content="Empty grid containers that are floated, absolutely positioned or inline-level lay out like the equivalent empty block containers.">
+<html>
+<head>
+    <style>
+        span { width: 100px; height: 100px; }
+        .grid { display: grid; background-color: green; }
+        .inline-grid { display: inline-grid; background-color: green; }
+    </style>
+</head>
+<body>
+<p>In this paragraph <span class="grid" style="float:left"></span> there should be <span class="grid" style="float:right"></span>
+two empty grids.  One will float to the left and one will float to the right.  They should both be empty.</p>
+<br clear=all>
+<p>This grid should be positioned to the right. <span class="grid" style="position:absolute;right:8px"></span></p>
+
+<p style="margin-top:115px">
+<span style="float:left;background-color:orange"></span><span class="inline-grid"></span> The green grid
+should be to the right of the floating orange box.
+</p>

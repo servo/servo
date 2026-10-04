@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: No longer being a scroll container removes scroll markers</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #scroller {
+    scroll-marker-group: after;
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+
+  #item::scroll-marker {
+    content: "";
+    display: block;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="scroller"><div id="item"></div></div>
+<script>
+  scroller.offsetTop;
+  scroller.style.overflow = "visible";
+</script>

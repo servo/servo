@@ -65,6 +65,43 @@ function createPaymentMethodManifestUrl(testId, options = {}) {
 }
 
 /**
+ * Creates a Web App Manifest URL pointing to web-app-manifest.py.
+ *
+ * @param {string} testId - The unique test run token.
+ * @param {Object} [options] - URL configuration options.
+ * @param {string} [options.host] - Custom host (default: location.host).
+ * @param {string} [options.app] - Optional app identifier for
+ *     logging/differentiation.
+ * @param {string} [options.redirect_location] - Target URL for redirect.
+ * @param {number} [options.status] - Response HTTP status code.
+ * @param {string} [options.body] - Custom response body.
+ * @param {string} [options.content_type] - Custom Content-Type header.
+ * @returns {string} Fully qualified web app manifest URL.
+ */
+function createWebAppManifestUrl(testId, options = {}) {
+  const host = options.host || location.host;
+  const url = new URL(
+      `https://${host}/payment-method-manifest/resources/web-app-manifest.py`);
+  url.searchParams.set('id', testId);
+  if (options.app !== undefined) {
+    url.searchParams.set('app', options.app);
+  }
+  if (options.redirect_location !== undefined) {
+    url.searchParams.set('redirect_location', options.redirect_location);
+  }
+  if (options.status !== undefined) {
+    url.searchParams.set('status', options.status);
+  }
+  if (options.body !== undefined) {
+    url.searchParams.set('body', options.body);
+  }
+  if (options.content_type !== undefined) {
+    url.searchParams.set('content_type', options.content_type);
+  }
+  return url.href;
+}
+
+/**
  * Waits for and retrieves server access logs recorded by manifest-server.py for a given test ID.
  *
  * Since manifest fetching and ingesting is asynchronous, this method allows for

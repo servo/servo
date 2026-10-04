@@ -1,0 +1,94 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Parser options that need vetting, with a default policy without createParserOptions</title>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-parser-options-algorithm">
+<link rel="help" href="https://github.com/w3c/trusted-types/issues/615">
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'; connect-src 'none';">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/trusted-types/support/csp-violations.js"></script>
+<script src="support/trustedhtml-parser-options.js"></script>
+<body>
+<script>
+  let createHTMLCalls = 0;
+  trustedTypes.createPolicy("default", {
+    createHTML: s => {
+      createHTMLCalls++;
+      return s;
+    },
+  });
+  const policy = trustedTypes.createPolicy("policy", { createHTML: s => s });
+
+  function resetCreateHTMLCalls(t) {
+    createHTMLCalls = 0;
+    t.add_cleanup(() => { createHTMLCalls = 0; });
+  }
+
+  for (const sink of sinks) {
+    const unvettedOptions = sink.hasRunScripts ?
+        [...unvettedSanitizerOptions, ...unvettedRunScriptsOptions] : unvettedSanitizerOptions;
+
+    for (const [label, getOptions] of unvettedOptions) {
+      promise_test(async t => {
+        resetCreateHTMLCalls(t);
+        const target = sink.createTarget(t);
+        const violation = await trusted_type_violation_for(TypeError, () =>
+          sink.parse(target, markup, getOptions())
+        );
+        assert_equals(violation.sample, `${sink.sample}|`);
+        assert_equals(createHTMLCalls, 0, "default policy's createHTML was not called");
+        if (target) {
+          assert_equals(target.childNodes.length, 0, "target is unchanged");
+        }
+      }, `${sink.name}: string with ${label} throws without calling createHTML`);
+
+      promise_test(async t => {
+        const target = sink.createTarget(t);
+        const violation = await trusted_type_violation_for(TypeError, () =>
+          sink.parse(target, policy.createHTML(markup), getOptions())
+        );
+        assert_equals(violation.sample, `${sink.sample}|`);
+      }, `${sink.name}: TrustedHTML with ${label} throws`);
+    }
+
+    const allowedOptions = sink.hasRunScripts ?
+        vettingFreeOptions : [...vettingFreeOptions, ...unvettedRunScriptsOptions];
+    for (const [label, getOptions] of allowedOptions) {
+      promise_test(async t => {
+        resetCreateHTMLCalls(t);
+        const target = sink.createTarget(t);
+        let root;
+        await no_trusted_type_violation_for(() => {
+          root = sink.parse(target, markup, getOptions());
+        });
+        assert_equals(createHTMLCalls, 1, "default policy's createHTML was called");
+        assert_not_equals(root.querySelector("#inner"), null);
+      }, `${sink.name}: string with ${label} is converted by createHTML`);
+    }
+  }
+
+  promise_test(async t => {
+    resetCreateHTMLCalls(t);
+    resetScriptRan(t);
+    const element = document.createElement("div");
+    document.body.append(element);
+    t.add_cleanup(() => element.remove());
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    await no_trusted_type_violation_for(() => {
+      range.insertNode(range.createContextualFragment(scriptMarkup));
+    });
+    assert_equals(createHTMLCalls, 1, "default policy's createHTML was called");
+    assert_true(window.scriptRan, "script ran");
+  }, "Range.createContextualFragment: string is converted by createHTML, as its runScripts is not author-supplied");
+
+  promise_test(async t => {
+    resetCreateHTMLCalls(t);
+    const element = document.createElement("div");
+    await no_trusted_type_violation_for(() => {
+      element.innerHTML = markup;
+    });
+    assert_equals(createHTMLCalls, 1, "default policy's createHTML was called");
+    assert_not_equals(element.querySelector("#inner"), null);
+  }, "Element.innerHTML: string is converted by createHTML");
+</script>

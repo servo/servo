@@ -7,11 +7,11 @@
 <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 
 <canvas id="canvas" content=drawable width="200" height="300">
-  <div id="target" style="width: 100px; height: 300px;">
+  <div drawable id="target" style="width: 100px; height: 300px;">
     <div id="sibling_div_a" style="width: 100px; height: 100px; background: #0f0;"></div>
     <canvas id="nested_canvas" content=drawable width="100" height="100">
-      <div id="nested_canvas_target_a" style="width: 50px; height: 50px; background: #00f;"></div>
-      <div id="nested_canvas_target_b" style="width: 50px; height: 50px; background: #0ff;"></div>
+      <div drawable id="nested_canvas_target_a" style="width: 50px; height: 50px; background: #00f;"></div>
+      <div drawable id="nested_canvas_target_b" style="width: 50px; height: 50px; background: #0ff;"></div>
     </canvas>
     <div id="sibling_div_b" style="width: 100px; height: 100px; background: #ff0; position: relative; margin-top: -10px;"></div>
   </div>

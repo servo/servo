@@ -227,6 +227,12 @@
             span[method_name]();
           });
         }, `${method_name} throw if parent is a DocumentFragment`);
+
+        test(() => {
+          const doctype = document.implementation.createDocumentType("html", "", "");
+          assert_false(method_name in doctype);
+          assert_equals(doctype[method_name], undefined);
+        }, `${method_name} is not exposed on DocumentType`);
       }
     }
 

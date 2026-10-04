@@ -25,7 +25,7 @@
 </head>
 <body>
   <canvas id=canvas width="10" height="20" content=drawable>
-    <div id=child>
+    <div drawable id=child>
       <!-- This frame is loading from the same origin as the main frame, which
            is not the origin of this frame. -->
       <iframe id=crossOrigin width=10 height=10 src="https://{{host}}:{{ports[https][0]}}/html/canvas/element/manual/draw-element-image/resources/iframe-subframe-red.html"></iframe>

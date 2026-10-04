@@ -181,6 +181,13 @@ promise_test(async t => {
     const x_input = document.getElementById('x-input2');
     const input = x_input.shadowRoot.getElementById('input2');
     const label = document.getElementById('label2');
+    assert_array_equals(Array.from(input['labels']), [label]);
+
+    label.removeAttribute('for');
+    assert_array_equals(Array.from(input['labels']), []);
+
+    label.setAttribute('for', x_input.id);
+    assert_array_equals(Array.from(input['labels']), [label]);
 
     label.htmlFor = '';
     assert_array_equals(Array.from(input['labels']), []);

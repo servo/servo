@@ -39,8 +39,13 @@
             {video:{displaySurface:"browser"}, selfBrowserSurface:"include"});
     }
 
+    function stopOnCleanup(t, ...tracks) {
+      t.add_cleanup(() => tracks.forEach(track => track.stop()));
+    }
+
     promise_test(async t => {
       const stream = await getDisplayMedia();
+      stopOnCleanup(t, ...stream.getTracks());
       assert_true(stream.active, "stream should be active.");
 
       assert_equals(stream.getVideoTracks().length, 1);
@@ -59,6 +64,57 @@
       assert_true(stream.active, "stream should be active.");
       assert_false(videoTrack.muted, "track should not be muted.");
     }, "Tests that cropping MediaStreamTrack objects works as expected");
+
+    promise_test(async t => {
+      const stream = await getDisplayMedia();
+      stopOnCleanup(t, ...stream.getTracks());
+      assert_true(stream.active, "stream should be active.");
+
+      const [videoTrack] = stream.getVideoTracks();
+      const clone = videoTrack.clone();
+      stopOnCleanup(t, clone);
+      assert_equals(clone.readyState, "live");
+
+      const div = document.getElementById('test-div');
+      const cropTarget = await CropTarget.fromElement(div);
+
+      await Promise.all([
+        videoTrack.cropTo(cropTarget),
+        clone.cropTo(null),
+      ]);
+
+      assert_true(stream.active, "stream should be active.");
+      assert_false(videoTrack.muted, "track should not be muted.");
+      assert_false(clone.muted, "clone track should not be muted.");
+    }, "Tests that cropping cloned MediaStreamTrack objects works independently");
+
+    promise_test(async t => {
+      const stream = await getDisplayMedia();
+      stopOnCleanup(t, ...stream.getTracks());
+      assert_true(stream.active, "stream should be active.");
+
+      const [videoTrack] = stream.getVideoTracks();
+      const div = document.getElementById('test-div');
+      const cropTarget = await CropTarget.fromElement(div);
+
+      await videoTrack.cropTo(cropTarget);
+
+      const clone1 = videoTrack.clone();
+      stopOnCleanup(t, clone1);
+      assert_equals(clone1.readyState, "live");
+
+      await clone1.cropTo(null);
+
+      const cloneOfClone = clone1.clone();
+      const cloneOfOriginal = videoTrack.clone();
+      stopOnCleanup(t, cloneOfClone, cloneOfOriginal);
+
+      assert_true(stream.active, "stream should be active.");
+      assert_false(videoTrack.muted, "track should not be muted.");
+      assert_false(clone1.muted, "clone track should not be muted.");
+      assert_false(cloneOfClone.muted, "clone of clone track should not be muted.");
+      assert_false(cloneOfOriginal.muted, "clone of original track should not be muted.");
+    }, "Tests that cloning cropped tracks preserves target and allows independent cropTo");
 
   </script>
 </body>

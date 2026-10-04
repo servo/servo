@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<title>XSLTProcessor.transformToDocument: script already started</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/scripting.html#scriptTagXSLT">
+<link rel=help href="https://issues.chromium.org/issues/565252325">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// XSLTProcessor.transformToDocument creates a Document with a null browsing
+// context, and any script elements created need to have their "already started"
+// flag set to true and never get executed.
+//
+// See: https://html.spec.whatwg.org/multipage/scripting.html#scriptTagXSLT
+
+const xslSource = `<xsl:stylesheet version="1.0"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <xsl:output method="xml"/>
+  <xsl:template match="/">
+    <xsl:copy-of select="/*"/>
+  </xsl:template>
+</xsl:stylesheet>`;
+
+function transformXml(xmlString) {
+  const parser = new DOMParser();
+  const xslDoc = parser.parseFromString(xslSource, "application/xml");
+  const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+  const processor = new XSLTProcessor();
+  processor.importStylesheet(xslDoc);
+  return processor.transformToDocument(xmlDoc);
+}
+
+test(() => {
+  window.mark = 0;
+  const outDoc = transformXml(
+    "<svg xmlns='http://www.w3.org/2000/svg'><script>window.mark = 1;</sc" + "ript></svg>");
+  document.body.appendChild(outDoc.documentElement);
+  assert_equals(window.mark, 0);
+}, "transformToDocument as XML, svg script, appendChild");
+
+test(() => {
+  window.mark = 0;
+  const outDoc = transformXml(
+    "<svg xmlns='http://www.w3.org/2000/svg'><script>window.mark = 1;</sc" + "ript></svg>");
+  document.body.appendChild(document.importNode(outDoc.documentElement, true));
+  assert_equals(window.mark, 0);
+}, "transformToDocument as XML, svg script, append importNode result");
+
+test(() => {
+  window.mark = 0;
+  const outDoc = transformXml(
+    "<svg xmlns='http://www.w3.org/2000/svg'><script>window.mark = 1;</sc" + "ript></svg>");
+  document.body.appendChild(document.adoptNode(outDoc.documentElement));
+  assert_equals(window.mark, 0);
+}, "transformToDocument as XML, svg script, append adoptNode result");
+
+test(() => {
+  window.mark = 0;
+  const outDoc = transformXml(
+    "<svg xmlns='http://www.w3.org/2000/svg'><script>window.mark = 1;</sc" + "ript></svg>");
+  document.body.appendChild(outDoc.documentElement.cloneNode(true));
+  assert_equals(window.mark, 0);
+}, "transformToDocument as XML, svg script, append cloneNode result");
+
+test(() => {
+  window.mark = 0;
+  const outDoc = transformXml(
+    "<html xmlns='http://www.w3.org/1999/xhtml'><body><script>window.mark = 1;</sc" + "ript></body></html>");
+  document.body.appendChild(document.importNode(outDoc.documentElement, true));
+  assert_equals(window.mark, 0);
+}, "transformToDocument as XML, xhtml root, append importNode result");
+
+test(() => {
+  window.mark = 0;
+  const outDoc = transformXml(
+    "<html xmlns='http://www.w3.org/1999/xhtml'><body><script>window.mark = 1;</sc" + "ript></body></html>");
+  const cloned = outDoc.documentElement.cloneNode(true);
+  document.body.appendChild(document.importNode(cloned, true));
+  assert_equals(window.mark, 0);
+}, "transformToDocument as XML, xhtml root, cloneNode then importNode");
+
+test(() => {
+  window.mark = 0;
+  const outDoc = transformXml(
+    "<html xmlns='http://www.w3.org/1999/xhtml'><body><script>window.mark = 1;</sc" + "ript></body></html>");
+  const script = outDoc.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "script")[0];
+  document.body.appendChild(document.importNode(script, true));
+  assert_equals(window.mark, 0);
+}, "transformToDocument as XML, xhtml script, append importNode result");
+
+test(() => {
+  window.mark = 0;
+  const outDoc = transformXml(
+    "<html xmlns='http://www.w3.org/1999/xhtml'><body><script>window.mark = 1;</sc" + "ript></body></html>");
+  const script = outDoc.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "script")[0];
+  document.body.appendChild(document.adoptNode(script));
+  assert_equals(window.mark, 0);
+}, "transformToDocument as XML, xhtml script, append adoptNode result");
+
+test(() => {
+  window.mark = 0;
+  const outDoc = transformXml(
+    "<html xmlns='http://www.w3.org/1999/xhtml'><body><script>window.mark = 1;</sc" + "ript></body></html>");
+  const script = outDoc.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "script")[0];
+  document.body.appendChild(script.cloneNode(true));
+  assert_equals(window.mark, 0);
+}, "transformToDocument as XML, xhtml script, append cloneNode result");
+</script>

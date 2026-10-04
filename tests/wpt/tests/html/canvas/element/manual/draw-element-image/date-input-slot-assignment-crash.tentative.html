@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Testcase for crash involving slot assignment and type=date input</title>
+<canvas content=drawable>
+  <div id="host1">
+    <template shadowrootmode=open>
+      <slot name=a></slot>
+    </template>
+    <div id=manuallyslotted slot=a>
+      <div id="host2">
+        <template shadowrootmode=open>
+          <slot></slot>
+        </template>
+        <input id=d type=date value="2001-02-03">
+        <span id=y></span>
+        <span id=z></span>
+      </div>
+    </div>
+  </div>
+</canvas>
+<script>
+  let slot1 = host1.shadowRoot.querySelector('slot');
+  let slot2 = host2.shadowRoot.querySelector('slot');
+  window.addEventListener("load", event => {
+    run(y);
+    host2.firstChild.remove();
+    slot2.assignedNodes();
+    run(z);
+  });
+  function run(element) {
+    d.focus();
+    manuallyslotted.slot = 'x';
+    slot1.assignedNodes();
+    element.slot = 'away';
+    manuallyslotted.slot = 'a';
+    slot1.assignedNodes();
+  }
+</script>

@@ -11,7 +11,7 @@
 }
 </style>
 <canvas id="canvas" width="200" height="200" content=drawable>
-  <div id="child"></div>
+  <div drawable id="child"></div>
 </canvas>
 
 <script>
@@ -112,6 +112,7 @@ promise_test(async t => {
   nestedCanvas.width = 100;
   nestedCanvas.height = 100;
   const childDiv = document.createElement('div');
+  childDiv.setAttribute('drawable', '');
   childDiv.style.width = '100px';
   childDiv.style.height = '100px';
   nestedCanvas.appendChild(childDiv);
@@ -224,22 +225,24 @@ promise_test(async t => {
   canvas.width = dpWidth * 3;
   canvas.height = dpHeight * 1.5;
 
-  // Before paint, captureElementImage should still return the last painted size.
+  // ElementImage width and height are based on the current canvas grid size,
+  // so existing and newly captured ElementImages immediately reflect the new
+  // canvas pixel grid dimensions even before the next paint.
+  assert_equals(elementImageA.width, dpWidth * 1.5);
+  assert_equals(elementImageA.height, dpHeight * 0.75);
+
   let elementImageB = canvas.captureElementImage(child);
-  assert_equals(elementImageB.width, dpWidth);
-  assert_equals(elementImageB.height, dpHeight * 0.25);
+  assert_equals(elementImageB.width, dpWidth * 1.5);
+  assert_equals(elementImageB.height, dpHeight * 0.75);
 
   await waitForCanvasPaint(canvas);
 
-  // After paint, captureElementImage should reflect the new canvas pixel grid size.
   let elementImageC = canvas.captureElementImage(child);
   assert_equals(elementImageC.width, dpWidth * 1.5);
   assert_equals(elementImageC.height, dpHeight * 0.75);
-
-  // Previously captured ElementImages should retain their original canvas grid size.
-  assert_equals(elementImageA.width, dpWidth);
-  assert_equals(elementImageA.height, dpHeight * 0.25);
-  assert_equals(elementImageB.width, dpWidth);
-  assert_equals(elementImageB.height, dpHeight * 0.25);
+  assert_equals(elementImageA.width, dpWidth * 1.5);
+  assert_equals(elementImageA.height, dpHeight * 0.75);
+  assert_equals(elementImageB.width, dpWidth * 1.5);
+  assert_equals(elementImageB.height, dpHeight * 0.75);
 }, 'ElementImage width and height update when canvas pixel grid size changes');
 </script>

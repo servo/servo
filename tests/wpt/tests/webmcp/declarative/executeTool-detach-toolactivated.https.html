@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: toolactivated is not dispatched when filling a declarative tool form detaches its document</title>
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webmcp/resources/helpers.js"></script>
+
+<body>
+<script>
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  const iframeDocument = iframe.contentDocument;
+  const iframeModelContext = iframeDocument.modelContext;
+
+  iframeDocument.body.innerHTML = `
+    <form toolname="detaching_form_tool" tooldescription="Form that detaches its document">
+      <input name="text" type="text">
+      <button type="submit">Submit</button>
+    </form>`;
+  const tool = await waitForTool('detaching_form_tool');
+
+  // Filling out the form synchronously detaches the document hosting the
+  // tool.
+  iframeDocument.querySelector('input').addEventListener('input',
+      () => iframe.remove(), { once: true });
+
+  const events = [];
+  iframeModelContext.addEventListener('toolactivated', e => events.push(e));
+
+  await promise_rejects_dom(t, 'UnknownError',
+      document.modelContext.executeTool(tool, { text: 'hello' }));
+
+  assert_false(iframe.isConnected, 'the iframe is detached');
+  assert_array_equals(events, [],
+      'toolactivated is not dispatched at the detached document ModelContext');
+}, 'toolactivated is not dispatched when filling out a declarative tool form ' +
+   'detaches the tool document');
+</script>

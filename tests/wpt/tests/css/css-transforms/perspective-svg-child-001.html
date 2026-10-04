@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Perspective on the SVG root applies to a 3D-transformed SVG child</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+<link rel="help" href="https://issues.chromium.org/41310059">
+<link rel="match" href="perspective-svg-child-ref.html">
+<!-- The rect is pushed to z = -200px under a 200px perspective, so it is
+     scaled by 200 / (200 + 200) = 0.5 about the default perspective origin
+     (100, 100): from (40, 40) 120x120 to (70, 70) 60x60. -->
+<svg width="200" height="200" style="perspective: 200px">
+  <rect x="40" y="40" width="120" height="120" fill="green"
+        style="transform: translateZ(-200px)"/>
+</svg>

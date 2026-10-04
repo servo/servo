@@ -46,6 +46,9 @@
   test_valid_selector("::slotted(*)::marker");
   test_valid_selector("::slotted(select)::picker(select)");
   test_valid_selector("::slotted(*)::picker-icon");
+  test_valid_selector("::slotted(*)::scroll-marker-group");
+  test_valid_selector("::slotted(*)::scroll-marker");
+  test_valid_selector("::slotted(*)::scroll-button(up)");
 
   // Other pseudo elements not valid after ::slotted
   test_invalid_selector("::slotted(*)::first-line");

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Line clamped containers do not crash when font-size: 0 is used</title>
+<link rel="author" title="Seva Alipov" href="mailto:salipov@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2075419"/>
+
+<style>
+.clamp {
+  line-clamp: auto 1;
+  font-size: 0;
+}
+</style>
+
+<div class="clamp">
+  <br>
+  <br>
+</div>

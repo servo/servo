@@ -9,7 +9,7 @@
 <body>
   <div id="outside-canvas" style="width: 100px; height: 100px;"></div>
   <canvas id="canvas" width="100" height="100" content=drawable>
-    <div id="inside-canvas" style="width: 10px; height: 10px;"></div>
+    <div id="inside-canvas" drawable style="width: 10px; height: 10px;"></div>
     <div id="nested-parent">
       <div id="nested-drawable" drawable style="width: 5px; height: 5px;"></div>
       <div id="nested-non-drawable" style="width: 5px; height: 5px;"></div>
@@ -20,10 +20,10 @@
     </svg>
   </canvas>
   <canvas id="other-canvas" width="100" height="100" content=drawable>
-    <div id="other-inside" style="width: 10px; height: 10px;"></div>
+    <div id="other-inside" drawable style="width: 10px; height: 10px;"></div>
   </canvas>
   <canvas id="canvas-not-drawable" width="100" height="100">
-    <div id="inside-not-drawable" style="width: 10px; height: 10px;"></div>
+    <div id="drawable-inside-not-drawable" drawable style="width: 10px; height: 10px;"></div>
   </canvas>
   <svg id="svg-root" width="100" height="100">
     <rect id="svg-rect-outside" width="50" height="50"></rect>
@@ -134,7 +134,7 @@
 
     test(() => {
       const canvasNotDrawable = document.getElementById('canvas-not-drawable');
-      const insideNotDrawable = document.getElementById('inside-not-drawable');
+      const insideNotDrawable = document.getElementById('drawable-inside-not-drawable');
       assert_throws_dom('InvalidStateError', () => {
         canvasNotDrawable.getElementTransform(insideNotDrawable);
       });

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup grid grammar conflict fallback</title>
+<meta name="assert" content="Grid wrap and flow conflicts fall back to hard edges (non-wrapping) independently per axis, and legacy spellings are ignored.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup-v2.explainer/#grid-wrapping-and-flow">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<table focusgroup="grid wrap rowflow">
+  <tr><td id=axisConflict1 tabindex=0>1</td><td id=axisConflict2 tabindex=0>2</td></tr>
+  <tr><td id=axisConflict3 tabindex=0>3</td><td id=axisConflict4 tabindex=0>4</td></tr>
+</table>
+<script>
+promise_test(async () => {
+  await focusAndSendDirectionalInput(axisConflict2, kRight);
+  assert_equals(document.activeElement, axisConflict2);
+}, "A row wrap/flow conflict produces a hard inline edge (non-wrapping)");
+
+promise_test(async () => {
+  await focusAndSendDirectionalInput(axisConflict3, kDown);
+  assert_equals(document.activeElement, axisConflict1);
+}, "A row conflict preserves independent column wrapping");
+</script>
+
+<table focusgroup="grid nowrap flow">
+  <tr><td id=nowrapConflict1 tabindex=0>1</td><td id=nowrapConflict2 tabindex=0>2</td></tr>
+  <tr><td id=nowrapConflict3 tabindex=0>3</td><td id=nowrapConflict4 tabindex=0>4</td></tr>
+</table>
+<script>
+promise_test(async () => {
+  await focusAndSendDirectionalInput(nowrapConflict2, kRight);
+  assert_equals(document.activeElement, nowrapConflict2);
+  await focusAndSendDirectionalInput(nowrapConflict3, kDown);
+  assert_equals(document.activeElement, nowrapConflict3);
+}, "Nowrap with flow produces hard edges (non-wrapping) on both axes");
+</script>
+
+<table focusgroup="grid row-wrap col-wrap">
+  <tr><td id=legacy1 tabindex=0>1</td><td id=legacy2 tabindex=0>2</td></tr>
+  <tr><td id=legacy3 tabindex=0>3</td><td id=legacy4 tabindex=0>4</td></tr>
+</table>
+<script>
+promise_test(async () => {
+  await focusAndSendDirectionalInput(legacy2, kRight);
+  assert_equals(document.activeElement, legacy2);
+  await focusAndSendDirectionalInput(legacy3, kDown);
+  assert_equals(document.activeElement, legacy3);
+}, "Legacy hyphenated grid modifier spellings are ignored");
+</script>

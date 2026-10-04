@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Here's the set-up for this test:
+// Step 1 (first window) Opens new window to set storage.
+// Step 2 (second window) Sets storage and sends message back.
+// Step 3 (first window) Does no-cors fetch request to clear site data.
+// Step 4 (fetch target) Tries to clear site data.
+// Step 5 (first window) Asks second window to find storage after waiting for clear.
+// Step 6 (second window) Sees if storage is still set.
+async_test(t => {
+    let new_window;
+
+    window.addEventListener("message", t.step_func(e => {
+        switch(e.data) {
+            case "set":
+                // Step 3
+                fetch(
+                    "https://{{hosts[alt][]}}:{{ports[https][0]}}/clear-site-data/support/no-cors-fetch-clear-site-data.html",
+                    {mode: 'no-cors', credentials: 'include'}
+                ).then((r) => {
+                    // Step 5
+                    setTimeout(() => {
+                        new_window.postMessage("find", "*");
+                    }, 1000);
+                });
+                break;
+            case "found":
+                t.done();
+                break;
+            case "missing":
+                assert_false("Data should not be cleared.");
+                break;
+        }
+    }));
+
+    // Step 1
+    new_window = window.open("https://{{hosts[alt][]}}:{{ports[https][0]}}/clear-site-data/support/no-cors-fetch-util.html");
+    t.add_cleanup(new_window.close);
+}, "Clearing site data via no-cors cross-site request should not work on unpartitioned data.");
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo Test: CSSPseudoElement for ::scroll-button()</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#CSSPseudoElement-interface">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #scroller {
+    width: 100px;
+    height: 100px;
+    overflow: auto;
+  }
+
+  #scroller::scroll-button(*) {
+    content: "";
+    display: inline-block;
+    height: 10px;
+    padding: 0;
+    border: none;
+  }
+
+  /* Each scroll button has its own width, to tell them apart. */
+  #scroller::scroll-button(block-start) { width: 10px; }
+  #scroller::scroll-button(inline-start) { width: 20px; }
+  #scroller::scroll-button(inline-end) { width: 30px; }
+  #scroller::scroll-button(block-end) { width: 40px; }
+</style>
+<div id="scroller">
+  <div style="width: 500px; height: 500px"></div>
+</div>
+<script>
+  function scrollButton(direction) {
+    const pseudo = scroller.pseudo(`::scroll-button(${direction})`);
+    assert_true(pseudo instanceof CSSPseudoElement,
+                `::scroll-button(${direction}) is a CSSPseudoElement`);
+    return pseudo;
+  }
+
+  function width(pseudo) {
+    return pseudo.getBoxQuads()[0].getBounds().width;
+  }
+
+  test(() => {
+    const button = scrollButton("block-start");
+    assert_equals(button.type, "::scroll-button");
+    assert_equals(button.element, scroller);
+    assert_equals(button.parent, scroller);
+  }, "pseudo() returns a CSSPseudoElement for ::scroll-button()");
+
+  test(() => {
+    assert_equals(width(scrollButton("block-start")), 10, "block-start");
+    assert_equals(width(scrollButton("inline-start")), 20, "inline-start");
+    assert_equals(width(scrollButton("inline-end")), 30, "inline-end");
+    assert_equals(width(scrollButton("block-end")), 40, "block-end");
+  }, "Each direction refers to its own scroll button");
+
+  test(() => {
+    assert_equals(scrollButton("up"), scrollButton("block-start"), "up");
+    assert_equals(scrollButton("right"), scrollButton("inline-end"), "right");
+  }, "A physical direction returns the CSSPseudoElement of the logical direction it maps to");
+
+  test(t => {
+    t.add_cleanup(() => { scroller.style.writingMode = ""; });
+    scroller.style.writingMode = "vertical-rl";
+    assert_equals(scrollButton("up"), scrollButton("inline-start"));
+  }, "Physical directions map according to the writing mode");
+
+  test(() => {
+    assert_equals(scrollButton("BLOCK-START"), scrollButton("block-start"),
+                  "BLOCK-START");
+    assert_equals(scrollButton("UP"), scrollButton("block-start"), "UP");
+  }, "The direction is ASCII case-insensitive");
+
+  const logicalDirections =
+      ["block-start", "inline-start", "inline-end", "block-end"];
+
+  test(() => {
+    for (const direction of logicalDirections) {
+      assert_equals(scrollButton(direction).selectorText,
+                    `::scroll-button(${direction})`, direction);
+    }
+    assert_equals(scrollButton("INLINE-END").selectorText,
+                  "::scroll-button(inline-end)", "INLINE-END");
+  }, "selectorText of ::scroll-button() includes the logical direction");
+
+  // Physical directions return the CSSPseudoElement of the logical direction
+  // they map to, so that's what selectorText reflects.
+  test(() => {
+    const expected = {
+      up: "block-start",
+      left: "inline-start",
+      right: "inline-end",
+      down: "block-end",
+    };
+    for (const [physical, logical] of Object.entries(expected)) {
+      assert_equals(scrollButton(physical).selectorText,
+                    `::scroll-button(${logical})`, physical);
+    }
+    assert_equals(scrollButton("UP").selectorText,
+                  "::scroll-button(block-start)", "UP");
+  }, "selectorText of ::scroll-button() with a physical direction is the logical direction it maps to");
+
+  test(t => {
+    t.add_cleanup(() => { scroller.style.writingMode = ""; });
+    scroller.style.writingMode = "vertical-rl";
+    const expected = {
+      up: "inline-start",
+      left: "block-end",
+      right: "block-start",
+      down: "inline-end",
+    };
+    for (const [physical, logical] of Object.entries(expected)) {
+      assert_equals(scrollButton(physical).selectorText,
+                    `::scroll-button(${logical})`, physical);
+    }
+  }, "selectorText of ::scroll-button() with a physical direction depends on the writing mode");
+
+  test(t => {
+    t.add_cleanup(() => { scroller.style.direction = ""; });
+    scroller.style.direction = "rtl";
+    assert_equals(scrollButton("left").selectorText,
+                  "::scroll-button(inline-end)", "left");
+    assert_equals(scrollButton("right").selectorText,
+                  "::scroll-button(inline-start)", "right");
+  }, "selectorText of ::scroll-button() with a physical direction depends on the direction");
+
+  test(() => {
+    assert_equals(scroller.pseudo("::scroll-button(*)"), null);
+  }, "pseudo() returns null for ::scroll-button(*)");
+
+  test(() => {
+    const before = scroller.pseudo("::before");
+    assert_equals(before.pseudo("::scroll-button(block-start)"), null);
+  }, "Pseudo-elements don't have scroll buttons");
+
+  test(() => {
+    const div = document.createElement("div");
+    assert_true(div.pseudo("::scroll-button(up)") instanceof CSSPseudoElement);
+  }, "pseudo() returns a CSSPseudoElement for ::scroll-button() of a disconnected element");
+</script>

@@ -1,7 +1,3 @@
-# META: timeout=long
-
-# Longer timeout required due to a large number of navigation, frame, or browser lifecycle subtests.
-
 from pathlib import Path
 
 from tests.support.classic.asserts import assert_success

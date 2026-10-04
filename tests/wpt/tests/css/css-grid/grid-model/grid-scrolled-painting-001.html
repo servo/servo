@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#overflow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#z-order">
+<link rel="match" href="grid-scrolled-painting-001-ref.html">
+<meta name="assert" content="A scrolled grid container paints its items at the scrolled positions.">
+<html>
+<link href="/css/support/width-keyword-classes.css" rel="stylesheet">
+<link href="/css/support/grid.css" rel="stylesheet">
+<body>
+<style>
+    .grid {
+        grid-template-rows: repeat(5, 100px);
+        grid-template-columns: repeat(5, 100px);
+        background-color: red;
+    }
+
+    .gridItem {
+        height: 100%;
+        width: 100%;
+        background-color: green;
+    }
+
+    .scrolledDiv {
+        height: 100px;
+        width: 100px;
+        overflow: hidden;
+    }
+</style>
+<div>This test checks that we correctly paint scrolled grid container.</div>
+<div>There should be no red below.</div>
+
+<div>Default writing mode (horizontal-lr)</div>
+
+<!-- An item in the middle of the grid. -->
+<div class="scrolledDiv" data-scroll-top="200" data-scroll-left="100">
+    <div class="grid fit-content">
+        <div class="gridItem" style="grid-column: 2; grid-row: 3"></div>
+    </div>
+</div>
+
+<!-- Bottom-right corner of the grid. -->
+<div class="scrolledDiv" data-scroll-top="400" data-scroll-left="400">
+    <div class="grid fit-content">
+        <div class="gridItem" style="grid-column: 5; grid-row: 5"></div>
+    </div>
+</div>
+
+<!-- Scroll between 2 horizontal grid items. -->
+<div class="scrolledDiv" data-scroll-top="400" data-scroll-left="150">
+    <div class="grid fit-content">
+        <div class="gridItem" style="grid-column: 2; grid-row: 5"></div>
+        <div class="gridItem" style="grid-column: 3; grid-row: 5"></div>
+    </div>
+</div>
+
+<!-- Scroll between 2 vertical grid items. -->
+<div class="scrolledDiv" data-scroll-top="150" data-scroll-left="400">
+    <div class="grid fit-content">
+        <div class="gridItem" style="grid-column: 5; grid-row: 2"></div>
+        <div class="gridItem" style="grid-column: 5; grid-row: 3"></div>
+    </div>
+</div>
+
+
+<div>Flipped writing mode (vertical-rl)</div>
+
+
+<!-- An item in the middle of the grid. -->
+<div class="scrolledDiv" data-scroll-top="100" data-scroll-left="200">
+    <div class="grid fit-content verticalLR">
+        <div class="gridItem" style="grid-column: 2; grid-row: 3"></div>
+    </div>
+</div>
+
+<!-- Bottom-right corner of the grid. -->
+<div class="scrolledDiv" data-scroll-top="400" data-scroll-left="400">
+    <div class="grid fit-content verticalLR">
+        <div class="gridItem" style="grid-column: 5; grid-row: 5"></div>
+    </div>
+</div>
+
+<!-- Scroll between 2 vertical grid items. -->
+<div class="scrolledDiv" data-scroll-top="150" data-scroll-left="400">
+    <div class="grid fit-content verticalLR">
+        <div class="gridItem" style="grid-column: 2; grid-row: 5"></div>
+        <div class="gridItem" style="grid-column: 3; grid-row: 5"></div>
+    </div>
+</div>
+
+<!-- Scroll between 2 horizontal grid items. -->
+<div class="scrolledDiv" data-scroll-top="400" data-scroll-left="150">
+    <div class="grid fit-content verticalLR">
+        <div class="gridItem" style="grid-column: 5; grid-row: 2"></div>
+        <div class="gridItem" style="grid-column: 5; grid-row: 3"></div>
+    </div>
+</div>
+
+<script>
+    var scrolledDivs = document.getElementsByClassName("scrolledDiv");
+    for (i = 0; i < scrolledDivs.length; ++i) {
+        scrolledDiv = scrolledDivs[i];
+        scrolledDiv.scrollTop = scrolledDiv.getAttribute("data-scroll-top");
+        scrolledDiv.scrollLeft = scrolledDiv.getAttribute("data-scroll-left");
+    }
+</script>
+</body>
+</html>

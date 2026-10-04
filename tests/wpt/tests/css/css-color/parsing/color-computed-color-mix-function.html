@@ -600,7 +600,22 @@
     fuzzy_test_computed_color(`color-mix(in srgb, red calc(50% + (sign(100em - 1px) * 10%)), blue)`, `color(srgb 0.6 0 0.4)`);
 
     // Carry forward hue that became powerless due to conversion of colorspace
-    fuzzy_test_computed_color(`color-mix(in oklch, hsl(0 100% 100%), blue)`, `oklch(0.726007 0.156607 264.052)`);
+    fuzzy_test_computed_color(`color-mix(in hsl, hsl(0 100% 100%), blue)`, `color(srgb 1 0.5 1)`);                       // hsl -> hsl => does not convert => doesn't make the powerless hue missing: result is pinkish (different if hue was 'none')
+    fuzzy_test_computed_color(`color-mix(in hsl, hwb(0 50.0 50.0), blue)`, `color(srgb 0.25 0.25 0.75)`);                // conversion makes the powerless hue missing: result is bluish
+    fuzzy_test_computed_color(`color-mix(in hsl, lch(100% 0 0), blue)`, `color(srgb 0.625 0.625 0.875)`);
+    fuzzy_test_computed_color(`color-mix(in hsl, oklch(100% 0 0), blue)`, `color(srgb 0.625 0.625 0.875)`);
+    fuzzy_test_computed_color(`color-mix(in hwb, hsl(0 100% 100%), blue)`, `color(srgb 0.5 0.5 1)`);
+    fuzzy_test_computed_color(`color-mix(in hwb, hwb(0 50.0 50.0), blue)`, `color(srgb 0.75 0.25 0.75)`);
+    fuzzy_test_computed_color(`color-mix(in hwb, lch(100% 0 0), blue)`, `color(srgb 0.5 0.5 1)`);
+    fuzzy_test_computed_color(`color-mix(in hwb, oklch(100% 0 0), blue)`, `color(srgb 0.5 0.5 1)`);
+    fuzzy_test_computed_color(`color-mix(in lch, hsl(0 100% 100%), blue)`, `lch(64.784 65.6 301.364)`, 0.001);
+    fuzzy_test_computed_color(`color-mix(in lch, hwb(0 50.0 50.0), blue)`, `lch(41.4786 65.6 301.364)`, 0.001);
+    fuzzy_test_computed_color(`color-mix(in lch, lch(100% 0 0), blue)`, `lch(64.784 65.6 330.682)`, 0.001);
+    fuzzy_test_computed_color(`color-mix(in lch, oklch(100% 0 0), blue)`, `lch(64.784 65.6 301.364)`, 0.001);
+    fuzzy_test_computed_color(`color-mix(in oklch, hsl(0 100% 100%), blue)`, `oklch(0.726 0.1566 264.052)`, 0.001);
+    fuzzy_test_computed_color(`color-mix(in oklch, hwb(0 50.0 50.0), blue)`, `oklch(0.525 0.1566 264.052)`, 0.001);
+    fuzzy_test_computed_color(`color-mix(in oklch, lch(100% 0 0), blue)`, `oklch(0.726 0.1566 264.052)`, 0.001);
+    fuzzy_test_computed_color(`color-mix(in oklch, oklch(100% 0 0), blue)`, `oklch(0.726 0.15661 312.026)`, 0.001);
 
     // Carry forward analogous sets with all missing components.
     fuzzy_test_computed_color(`color-mix(in oklch, oklab(0.1 none none), oklch(0.3 0.2 90deg))`, `oklch(0.2 0.2 90)`);

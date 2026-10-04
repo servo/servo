@@ -2168,10 +2168,10 @@ if (interop2026) {
 }
 
 ['audio', 'video'].forEach(kind => {
-  const waitUntilTrackEventWithTimeout = (obj, name, t, timeout = 1000/*ms*/) => {
-    return new Promise((resolve) => {
+  const waitUntilTrackEventWithTimeout = (obj, name, t, timeout = 4000/*ms*/) => {
+    return new Promise((resolve, reject) => {
       obj.addEventListener(name, resolve, {once: true});
-      t.step_timeout(resolve, timeout)
+      t.step_timeout(() => reject('timeout'), timeout)
     });
   }
 
@@ -2244,8 +2244,12 @@ if (rest) {
     assert_false(pc2.getReceivers()[0].track.muted, `track is unmuted`);
 
     pc1.getTransceivers()[0].direction = 'inactive';
-    await exchangeOfferAnswer(pc1, pc2);
-    await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'mute', t);
+    // The mute event is queued in the success task for
+    // pc2.setRemoteDescription(offer); checking after offer/answer finishes
+    // might be too late and miss the event.
+    await Promise.all([
+      exchangeOfferAnswer(pc1, pc2),
+      waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'mute', t)]);
     assert_true(pc2.getReceivers()[0].track.muted, `track is muted`);
   }, `track with ${kind} gets muted when setting the transceiver direction to 'inactive'`);
 
@@ -2274,8 +2278,12 @@ if (rest) {
     assert_false(pc2.getReceivers()[0].track.muted, `track is unmuted`);
 
     pc1.getTransceivers()[0].direction = 'inactive';
-    await exchangeOfferAnswer(pc1, pc2);
-    await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'mute', t);
+    // The mute event is queued in the success task for
+    // pc2.setRemoteDescription(offer); checking after offer/answer finishes
+    // might be too late and miss the event.
+    await Promise.all([
+      exchangeOfferAnswer(pc1, pc2),
+      waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'mute', t)]);
     assert_true(pc2.getReceivers()[0].track.muted, `track is muted`);
 
     pc1.getTransceivers()[0].direction = 'sendrecv';
@@ -2313,14 +2321,22 @@ if ((kind == 'audio')? interop2026 : rest) {
     pc1.getSenders()[0].replaceTrack(null);
 
     pc1.getTransceivers()[0].direction = 'inactive';
-    await exchangeOfferAnswer(pc1, pc2);
-    await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'mute', t);
+    // The mute event is queued in the success task for
+    // pc2.setRemoteDescription(offer); checking after offer/answer finishes
+    // might be too late and miss the event.
+    await Promise.all([
+      exchangeOfferAnswer(pc1, pc2),
+      waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'mute', t)]);
     assert_true(pc2.getReceivers()[0].track.muted, `track is muted`);
 
     pc1.getTransceivers()[0].direction = 'sendrecv';
     await exchangeOfferAnswer(pc1, pc2);
-    await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'unmute', t);
-    assert_true(pc2.getReceivers()[0].track.muted, `track remains muted`);
+    try {
+      await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'unmute', t);
+      assert_unreached('unmute event should not fire');
+    } catch (e) {
+      assert_true(pc2.getReceivers()[0].track.muted, `track remains muted`);
+    }
   }, `track with ${kind} stays muted when setting the transceiver direction to 'sendrecv' after 'inactive' but no packets flow`);
 }
 });

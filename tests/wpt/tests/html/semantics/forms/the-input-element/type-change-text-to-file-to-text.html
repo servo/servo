@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Changing an input's type from text to file and back to text resets its value</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#input-type-change">
+<link rel="help" href="https://github.com/web-platform-tests/wpt/issues/2611">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    const input = document.createElement("input");
+    input.value = "foo";
+    input.type = "file";
+    input.type = "text";
+    assert_equals(input.value, "");
+  }, "Without a value attribute, the value is the empty string after text to file to text");
+
+  test(() => {
+    const input = document.createElement("input");
+    input.setAttribute("value", "bar");
+    input.value = "foo";
+    input.type = "file";
+    input.type = "text";
+    assert_equals(input.value, "bar");
+  }, "With a value attribute, the value is the attribute's value after text to file to text");
+
+  test(() => {
+    const input = document.createElement("input");
+    input.value = "foo";
+    input.type = "file";
+    input.type = "text";
+    input.setAttribute("value", "baz");
+    assert_equals(input.value, "baz");
+  }, "The dirty value flag is false after text to file to text");
+</script>

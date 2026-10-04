@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>View transitions: relocking content-visibility:auto during transition end does not crash</title>
+<style>
+#box { width: 600px; height: 40px }
+#box::before { content: "B"; display: block; width: 200px; height: 20px }
+#box.shift::before { margin-left: 300px }
+#lock { content-visibility: auto; position: absolute; top: 200px; width: 50px; height: 20px }
+#lock div { width: 10px; height: 10px; view-transition-name: a }
+#pool.cv div { content-visibility: auto }
+::view-transition { display: none }
+</style>
+<div id="host">
+  <div id="box"></div>
+  <div id="lock"><div></div></div>
+</div>
+<div id="pool"></div>
+<input id="input" list="x0">
+<datalist id="x0"><option value="a" id="opt" disabled></datalist>
+<script>
+const frame = () => new Promise(r => requestAnimationFrame(r));
+let pseudo;
+new PerformanceObserver(l => {
+  for (const e of l.getEntries()) {
+    for (const s of e.sources) {
+      if (s.node && s.node !== box && s.node.parentNode === box)
+        pseudo = s.node;
+    }
+  }
+}).observe({ type: 'layout-shift' });
+
+onload = async () => {
+  const root = host.attachShadow({ mode: 'open' });
+  root.innerHTML = '<slot></slot><svg></svg>';
+  root.lastChild.appendChild(document.createElement('slot')).name = 'v';
+  pool.innerHTML = '<div></div>'.repeat(16);
+
+  for (let i = 0; i < 6 && !pseudo; i++) {
+    await frame();
+    box.classList.toggle('shift');
+  }
+
+  await document.startViewTransition(() => { lock.style.top = '9000px'; }).finished;
+  await frame();
+
+  lock.slot = 'v';
+  if (pseudo)
+    Element.prototype.setAttribute.call(pseudo, 'id', 'x0');
+  input.focus();
+  await frame();
+
+  opt.disabled = false;
+  pool.className = 'cv';
+  box.slot = 'none';
+  const skipped = document.startViewTransition();
+  // The transition is skipped right away, so `ready` rejects; that's expected.
+  skipped.ready.catch(() => {});
+  skipped.skipTransition();
+
+  document.documentElement.classList.remove('test-wait');
+};
+</script>
+</html>

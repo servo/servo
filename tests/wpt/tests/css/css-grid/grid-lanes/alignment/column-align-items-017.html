@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: `fill-reverse` with `align-items/self` and `flow-start/end` indicating the start of placement</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="match" href="column-align-items-017-ref.html">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .label {
+      font: 16px/1 monospace;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: column fill-reverse;
+      grid-template-columns: repeat(2, 80px);
+      gap: 4px;
+      width: 180px;
+      height: 120px;
+      border: 1px solid;
+      margin-bottom: 4px;
+    }
+
+    item {
+      display: block;
+      width: 48px;
+      height: 26px;
+      color: white;
+      background: #2ca02c;
+    }
+
+    .tall {
+      height: 44px;
+      background: #1f77b4;
+    }
+  </style>
+</head>
+<body>
+  <div class="label">align-items: flow-start</div>
+  <div class="grid-lanes" style="align-items: flow-start;">
+    <item class="tall">1</item>
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+  </div>
+
+  <div class="label">align-items: flow-end</div>
+  <div class="grid-lanes" style="align-items: flow-end;">
+    <item class="tall">1</item>
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+  </div>
+
+  <div class="label">align-self: flow-start (item 3)</div>
+  <div class="grid-lanes">
+    <item class="tall">1</item>
+    <item>2</item>
+    <item style="align-self: flow-start;">3</item>
+    <item>4</item>
+  </div>
+
+  <div class="label">align-self: flow-end (item 3)</div>
+  <div class="grid-lanes">
+    <item class="tall">1</item>
+    <item>2</item>
+    <item style="align-self: flow-end;">3</item>
+    <item>4</item>
+  </div>
+</body>
+</html>

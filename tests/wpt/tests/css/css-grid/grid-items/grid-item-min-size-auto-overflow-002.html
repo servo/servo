@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#min-size-auto">
+<link rel="match" href="grid-item-min-size-auto-overflow-002-ref.html">
+<meta name="assert" content="min-width: auto and min-height: auto only give grid items an automatic minimum size when their overflow is visible.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link href="/css/support/grid.css" rel="stylesheet">
+<style>
+.grid {
+    grid-template-columns: 50px;
+    grid-template-rows: 50px;
+    height: 50px;
+    width: 50px;
+    margin: 50px;
+}
+
+div.grid > div { font: 50px/1 Ahem; }
+
+.overflowVisible { overflow: visible; }
+.overflowHidden { overflow: hidden; }
+.overflowScroll { overflow: scroll; }
+.overflowAuto { overflow: auto; }
+
+</style>
+
+<p>This test checks that min-width|height auto behavior for grid items only applies if overflow is visible.</p>
+<p>The test passes if you see three 50x50 squares and one 100x100 square.</p>
+
+<div class="grid">
+    <div class="overflowHidden">XX<br>XX</div>
+</div>
+
+<div class="grid">
+    <div class="overflowScroll">XX<br>XX</div>
+</div>
+
+<div class="grid">
+    <div class="overflowAuto">XX<br>XX</div>
+</div>
+
+<div class="grid">
+    <div class="overflowVisible">XX<br>XX</div>
+</div>

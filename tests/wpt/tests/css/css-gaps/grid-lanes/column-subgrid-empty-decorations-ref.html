@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 220px;
+    position: relative;
+    width: 330px;
+  }
+  .lanes {
+    background: #dce6f0;
+    display: grid-lanes;
+    gap: 20px;
+    grid-template-columns: repeat(5, 50px);
+    height: 220px;
+    width: 330px;
+  }
+  .before,
+  .after,
+  .side {
+    background: #52677d;
+  }
+  .before,
+  .after {
+    height: 30px;
+  }
+  .track-two {
+    grid-column: 2;
+  }
+  .track-three {
+    grid-column: 3;
+  }
+  .track-four {
+    grid-column: 4;
+  }
+  .side {
+    grid-column: 1;
+    height: 220px;
+  }
+  .subgrid {
+    background: #ffe0a3;
+    display: grid;
+    grid-column: 2 / span 3;
+    grid-template-columns: subgrid;
+    grid-template-rows: repeat(2, 50px);
+    height: 120px;
+    row-gap: 20px;
+  }
+  .rule {
+    position: absolute;
+  }
+  .column-rule {
+    width: 6px;
+  }
+  .parent-rule {
+    background: #243c9c;
+  }
+  .parent-outside {
+    height: 220px;
+    top: 0;
+  }
+  .parent-first {
+    left: 57px;
+  }
+  .parent-fourth {
+    left: 267px;
+  }
+  .parent-before {
+    height: 30px;
+    top: 0;
+  }
+  .parent-after {
+    height: 30px;
+    top: 190px;
+  }
+  .second {
+    left: 127px;
+  }
+  .third {
+    left: 197px;
+  }
+  .child-column {
+    background: #b83b00;
+    height: 120px;
+    top: 50px;
+  }
+  .child-row {
+    background: #9c1755;
+    height: 6px;
+    left: 70px;
+    top: 107px;
+    width: 190px;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="before track-two"></div>
+    <div class="before track-three"></div>
+    <div class="before track-four"></div>
+    <div class="side"></div>
+    <div class="subgrid"></div>
+    <div class="after track-two"></div>
+    <div class="after track-three"></div>
+    <div class="after track-four"></div>
+  </div>
+  <div class="rule column-rule parent-rule parent-first parent-outside"></div>
+  <div class="rule column-rule parent-rule parent-fourth parent-outside"></div>
+  <div class="rule column-rule parent-rule second parent-before"></div>
+  <div class="rule column-rule parent-rule second parent-after"></div>
+  <div class="rule column-rule parent-rule third parent-before"></div>
+  <div class="rule column-rule parent-rule third parent-after"></div>
+  <div class="rule column-rule child-column second"></div>
+  <div class="rule column-rule child-column third"></div>
+  <div class="rule child-row"></div>
+</div>

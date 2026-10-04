@@ -7,7 +7,8 @@
     "virtualenv": true,
     "requirements": [
       "../manifest/requirements.txt",
-      "../wptrunner/requirements.txt"
+      "../wptrunner/requirements.txt",
+      "../serve/requirements.txt"
     ],
     "conditional_requirements": {
       "commandline_flag": {

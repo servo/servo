@@ -18,10 +18,19 @@
     let createParserOptions = (options) => options;
     const default_policy = trustedTypes.createPolicy("default", {
       createHTML: (html) => html,
-      createParserOptions: (options) => createParserOptions(options),
+      createParserOptions: (options, type, sink) =>
+        createParserOptions(options, type, sink),
     });
 
     let policy_id = 0;
+
+    function expected_sink_name(target_type, pos, method_name) {
+      if (pos === "append" || pos === "prepend") {
+        const iface = target_type === "ShadowRoot" ? "ShadowRoot" : "Element";
+        return `${iface} ${method_name}`;
+      }
+      return `Node ${method_name}`;
+    }
 
     function create_tests(target_type, pos, safe) {
       const method_name = `${pos}HTML${safe ? "" : "Unsafe"}`;
@@ -36,10 +45,16 @@
       for (const run_scripts_at_caller of [true, false]) {
         for (const run_scripts_at_policy of [true, false]) {
           test((t) => {
-            createParserOptions = (options) => ({
-              ...options,
-              runScripts: run_scripts_at_policy,
-            });
+            let recorded_type = null;
+            let recorded_sink = null;
+            createParserOptions = (options, type, sink) => {
+              recorded_type = type;
+              recorded_sink = sink;
+              return {
+                ...options,
+                runScripts: run_scripts_at_policy,
+              };
+            };
 
             const { target, ref, object } = prepare(t);
             window.did_run = false;
@@ -57,6 +72,16 @@
               window.did_run,
               run_scripts_at_policy && run_scripts_at_caller && !safe && target_type !== "template.content",
             );
+            if (safe) {
+              assert_equals(recorded_type, null);
+              assert_equals(recorded_sink, null);
+            } else {
+              assert_equals(recorded_type, "TrustedHTMLParserOptions");
+              assert_equals(
+                recorded_sink,
+                expected_sink_name(target_type, pos, method_name),
+              );
+            }
 
             check_position(target, pos, ref);
           }, `Policies can disable scripts but not enable them: ${variant} (runScripts=${run_scripts_at_caller} => ${run_scripts_at_policy})`);
@@ -126,8 +151,15 @@
 
     // Test that createParserOptions is checked before validation checks (like null parent / invalid parent).
     for (const pos of ["before", "after", "replaceWith", "append", "prepend"]) {
+      const is_container_method = pos === "append" || pos === "prepend";
+      const expected_iface = is_container_method ? "Element" : "Node";
+
       test((t) => {
-        createParserOptions = (options) => {
+        let recorded_type = null;
+        let recorded_sink = null;
+        createParserOptions = (options, type, sink) => {
+          recorded_type = type;
+          recorded_sink = sink;
           throw new Error("createParserOptions called");
         };
         t.add_cleanup(() => {
@@ -140,12 +172,18 @@
           assert_unreached("Should have thrown");
         } catch (e) {
           assert_equals(e.message, "createParserOptions called");
+          assert_equals(recorded_type, "TrustedHTMLParserOptions");
+          assert_equals(recorded_sink, `${expected_iface} ${pos}HTMLUnsafe`);
         }
       }, `${pos}HTMLUnsafe checks createParserOptions before hierarchy checks`);
 
       const method_name = `stream${pos.charAt(0).toUpperCase() + pos.slice(1)}HTMLUnsafe`;
       test((t) => {
-        createParserOptions = (options) => {
+        let recorded_type = null;
+        let recorded_sink = null;
+        createParserOptions = (options, type, sink) => {
+          recorded_type = type;
+          recorded_sink = sink;
           throw new Error("createParserOptions called");
         };
         t.add_cleanup(() => {
@@ -158,6 +196,8 @@
           assert_unreached("Should have thrown");
         } catch (e) {
           assert_equals(e.message, "createParserOptions called");
+          assert_equals(recorded_type, "TrustedHTMLParserOptions");
+          assert_equals(recorded_sink, `${expected_iface} ${method_name}`);
         }
       }, `${method_name} checks createParserOptions before hierarchy checks`);
     }

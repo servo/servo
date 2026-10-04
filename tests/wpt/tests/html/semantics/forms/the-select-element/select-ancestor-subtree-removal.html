@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Option selectedness is preserved when an ancestor of the select is removed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<div id=wrapper1>
+  <select id=select1>
+    <option id=option1a>one</option>
+    <option id=option1b>two</option>
+  </select>
+</div>
+
+<script>
+// The option removing steps run for every shadow-including inclusive
+// descendant of the removed node, not just the subtree root. Removing an
+// ancestor of a select must therefore not detach the contained options from
+// the select, which still contains them.
+test(() => {
+  const wrapper = document.getElementById('wrapper1');
+  const select = document.getElementById('select1');
+  const optionA = document.getElementById('option1a');
+  const optionB = document.getElementById('option1b');
+
+  assert_true(optionA.selected,
+    'The first option should be selected at the start of the test.');
+
+  wrapper.remove();
+
+  assert_true(optionA.selected,
+    'The first option should stay selected after removing an ancestor of the select.');
+  assert_equals(select.value, 'one',
+    'select.value should be unchanged after removing an ancestor of the select.');
+
+  // Deselecting the only selected option runs the selectedness setting
+  // algorithm via "ask for a reset", which reselects the first enabled option
+  // because the display size is 1. This only happens if the option is still
+  // associated with the select.
+  optionA.selected = false;
+
+  assert_true(optionA.selected,
+    'Deselecting the only selected option should reselect it.');
+  assert_false(optionB.selected,
+    'The second option should not be selected.');
+  assert_equals(select.value, 'one',
+    'select.value should be unchanged after deselecting the selected option.');
+}, 'Removing an ancestor of a select keeps its options associated with it.');
+</script>
+
+<div id=wrapper2>
+  <select id=select2>
+    <option id=option2a>one</option>
+    <option id=option2b>two</option>
+  </select>
+</div>
+
+<script>
+test(() => {
+  const wrapper = document.getElementById('wrapper2');
+  const select = document.getElementById('select2');
+  const optionA = document.getElementById('option2a');
+  const optionB = document.getElementById('option2b');
+
+  wrapper.remove();
+
+  // Selecting a second option runs the selectedness setting algorithm, which
+  // deselects all but the last selected option in tree order.
+  optionB.selected = true;
+
+  assert_false(optionA.selected,
+    'The first option should be deselected after selecting the second one.');
+  assert_true(optionB.selected,
+    'The second option should be selected.');
+  assert_equals(select.value, 'two',
+    'select.value should reflect the newly selected option.');
+}, 'Selecting an option in a select whose ancestor was removed deselects the others.');
+</script>
+
+<div id=wrapper3>
+  <select id=select3>
+    <option id=option3a>one</option>
+    <option id=option3b>two</option>
+  </select>
+</div>
+
+<script>
+test(() => {
+  const wrapper = document.getElementById('wrapper3');
+  const select = document.getElementById('select3');
+  const optionA = document.getElementById('option3a');
+  const optionB = document.getElementById('option3b');
+
+  wrapper.remove();
+
+  // Removing the option itself does change its nearest ancestor select, so the
+  // selectedness setting algorithm runs for the select it was removed from.
+  optionA.remove();
+
+  assert_true(optionB.selected,
+    'The remaining option should become selected after removing the selected option.');
+  assert_equals(select.value, 'two',
+    'select.value should reflect the remaining option.');
+}, 'Removing an option from a select whose ancestor was removed runs the selectedness setting algorithm.');
+</script>

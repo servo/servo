@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://drafts.csswg.org/css-forms-1/#base-appearance-layout">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/14251">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  /* Set a non-default cursor on body to ensure controls don't inherit cursor. */
+  cursor: pointer;
+}
+.base, .base::picker(select), .base::file-selector-button {
+  appearance: base;
+}
+</style>
+
+<label id="label">label</label>
+<input id="range" type="range">
+<div id="container"></div>
+
+<script>
+test(() => {
+  const label = document.getElementById('label');
+  assert_equals(getComputedStyle(label).cursor, 'default');
+}, 'cursor for <label>');
+
+test(() => {
+  const range = document.getElementById('range');
+  assert_equals(getComputedStyle(range).cursor, 'default');
+}, 'cursor for <input type=range>');
+
+const testCases = [
+  { tag: 'button', expectedEnabled: 'default' },
+  { tag: 'select', expectedEnabled: 'default' },
+  { tag: 'select', attrs: { multiple: '' }, expectedEnabled: 'default' },
+  { tag: 'textarea', expectedEnabled: 'text' },
+  { tag: 'input', attrs: { type: 'text' }, expectedEnabled: 'text' },
+  { tag: 'input', attrs: { type: 'search' }, expectedEnabled: 'text' },
+  { tag: 'input', attrs: { type: 'tel' }, expectedEnabled: 'text' },
+  { tag: 'input', attrs: { type: 'url' }, expectedEnabled: 'text' },
+  { tag: 'input', attrs: { type: 'email' }, expectedEnabled: 'text' },
+  { tag: 'input', attrs: { type: 'password' }, expectedEnabled: 'text' },
+  { tag: 'input', attrs: { type: 'number' }, expectedEnabled: 'text' },
+  { tag: 'input', attrs: { type: 'checkbox' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'radio' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'button' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'submit' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'reset' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'color' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'file' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'date' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'datetime-local' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'month' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'time' }, expectedEnabled: 'default' },
+  { tag: 'input', attrs: { type: 'week' }, expectedEnabled: 'default' },
+];
+
+const container = document.getElementById('container');
+
+for (const tc of testCases) {
+  const desc = tc.attrs
+    ? `<${tc.tag} ${Object.entries(tc.attrs).map(([k, v]) => v ? `${k}=${v}` : k).join(' ')}>`
+    : `<${tc.tag}>`;
+
+  test(() => {
+    const el = document.createElement(tc.tag);
+    el.className = 'base';
+    if (tc.attrs) {
+      for (const [k, v] of Object.entries(tc.attrs)) {
+        el.setAttribute(k, v);
+      }
+    }
+    container.appendChild(el);
+    assert_equals(getComputedStyle(el).cursor, tc.expectedEnabled, 'enabled cursor');
+    if (tc.attrs?.type === 'file') {
+      assert_equals(
+        getComputedStyle(el, '::file-selector-button').cursor,
+        'default',
+        'enabled ::file-selector-button cursor'
+      );
+    }
+
+    const isDropdownSelect = tc.tag == 'select' && !tc.tag.attrs?.hasOwnProperty('multiple');
+    if (isDropdownSelect) {
+      assert_equals(
+        getComputedStyle(el, '::picker(select)').cursor,
+        'default',
+        'enabled ::picker(select) cursor');
+    }
+
+    el.disabled = true;
+    assert_equals(getComputedStyle(el).cursor, 'not-allowed', 'disabled cursor');
+    if (tc.attrs?.type === 'file') {
+      assert_equals(
+        getComputedStyle(el, '::file-selector-button').cursor,
+        'not-allowed',
+        'disabled ::file-selector-button cursor'
+      );
+    }
+
+    if (isDropdownSelect) {
+      assert_equals(
+        getComputedStyle(el, '::picker(select)').cursor,
+        'not-allowed',
+        'disabled ::picker(select) cursor');
+    }
+  }, `cursor for base appearance ${desc}`);
+}
+</script>

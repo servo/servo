@@ -1,0 +1,121 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>TrustedHTML with parser options that need vetting, without a default policy</title>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-parser-options-algorithm">
+<link rel="help" href="https://github.com/w3c/trusted-types/issues/615">
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'; connect-src 'none';">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/trusted-types/support/csp-violations.js"></script>
+<script src="support/trustedhtml-parser-options.js"></script>
+<body>
+<script>
+  const policy = trustedTypes.createPolicy("policy", {
+    createHTML: s => s,
+    createParserOptions: options => options,
+  });
+
+  for (const sink of sinks) {
+    for (const [label, getOptions] of unvettedSanitizerOptions) {
+      promise_test(async t => {
+        const target = sink.createTarget(t);
+        const violation = await trusted_type_violation_for(TypeError, () =>
+          sink.parse(target, policy.createHTML(markup), getOptions())
+        );
+        assert_equals(violation.blockedURI, "trusted-types-sink");
+        assert_equals(violation.sample, `${sink.sample}|`);
+        if (target) {
+          assert_equals(target.childNodes.length, 0, "target is unchanged");
+        }
+      }, `${sink.name}: TrustedHTML with ${label} throws`);
+    }
+
+    for (const [label, getOptions] of unvettedRunScriptsOptions) {
+      if (sink.hasRunScripts) {
+        promise_test(async t => {
+          resetScriptRan(t);
+          const target = sink.createTarget(t);
+          const violation = await trusted_type_violation_for(TypeError, () =>
+            sink.parse(target, policy.createHTML(scriptMarkup), getOptions())
+          );
+          assert_equals(violation.sample, `${sink.sample}|`);
+          assert_false(window.scriptRan, "script did not run");
+          assert_equals(target.childNodes.length, 0, "target is unchanged");
+        }, `${sink.name}: TrustedHTML with ${label} throws`);
+      } else {
+        promise_test(async t => {
+          const target = sink.createTarget(t);
+          let root;
+          await no_trusted_type_violation_for(() => {
+            root = sink.parse(target, policy.createHTML(markup), getOptions());
+          });
+          assert_not_equals(root.querySelector("#inner"), null);
+        }, `${sink.name}: TrustedHTML with ${label} is allowed, as runScripts is not an option`);
+      }
+    }
+
+    for (const [label, getOptions] of vettingFreeOptions) {
+      promise_test(async t => {
+        const target = sink.createTarget(t);
+        let root;
+        await no_trusted_type_violation_for(() => {
+          root = sink.parse(target, policy.createHTML(markup), getOptions());
+        });
+        assert_not_equals(root.querySelector("#wrapper"), null);
+        assert_not_equals(root.querySelector("#inner"), null);
+      }, `${sink.name}: TrustedHTML with ${label} is allowed`);
+    }
+
+    promise_test(async t => {
+      const target = sink.createTarget(t);
+      let root;
+      await no_trusted_type_violation_for(() => {
+        root = sink.parse(target, policy.createHTML(markup),
+            policy.createParserOptions({ sanitizer: { replaceWithChildrenElements: ["div"] } }));
+      });
+      assert_equals(root.querySelector("#wrapper"), null);
+      assert_not_equals(root.querySelector("#inner"), null);
+    }, `${sink.name}: TrustedHTML with a sanitizer in TrustedHTMLParserOptions is allowed`);
+
+    if (sink.hasRunScripts) {
+      promise_test(async t => {
+        resetScriptRan(t);
+        const target = sink.createTarget(t);
+        await no_trusted_type_violation_for(() => {
+          sink.parse(target, policy.createHTML(scriptMarkup),
+              policy.createParserOptions({ runScripts: true }));
+        });
+        assert_true(window.scriptRan, "script ran");
+      }, `${sink.name}: TrustedHTML with runScripts true in TrustedHTMLParserOptions is allowed`);
+    }
+
+    promise_test(async t => {
+      const target = sink.createTarget(t);
+      const violation = await trusted_type_violation_for(TypeError, () =>
+        sink.parse(target, markup, { sanitizer: { removeElements: ["span"] } })
+      );
+      assert_equals(violation.sample, `${sink.sample}|`, "violation is for the options, not the string");
+    }, `${sink.name}: string with a sanitizer config throws`);
+  }
+
+  promise_test(async t => {
+    resetScriptRan(t);
+    const element = document.createElement("div");
+    document.body.append(element);
+    t.add_cleanup(() => element.remove());
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    await no_trusted_type_violation_for(() => {
+      range.insertNode(range.createContextualFragment(policy.createHTML(scriptMarkup)));
+    });
+    assert_true(window.scriptRan, "script ran");
+  }, "Range.createContextualFragment: TrustedHTML is allowed, as its runScripts is not author-supplied");
+
+  promise_test(async t => {
+    const element = document.createElement("div");
+    await no_trusted_type_violation_for(() => {
+      element.innerHTML = policy.createHTML(markup);
+    });
+    assert_not_equals(element.querySelector("#inner"), null);
+  }, "Element.innerHTML: TrustedHTML is allowed");
+</script>

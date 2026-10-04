@@ -91,6 +91,7 @@ the global scope.
 ### Browsing Context ###
 ```eval_rst
 .. js:autofunction:: test_driver.create_window
+.. js:autofunction:: test_driver.navigate
 ```
 
 ### Window State ###

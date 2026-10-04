@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo Test: pseudoTarget of a click on a ::scroll-button()</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#CSSPseudoElement-interface">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #scroller {
+    width: 100px;
+    height: 100px;
+    overflow: auto;
+  }
+
+  /* Put the scroll button in the top left corner of the page. */
+  #scroller::scroll-button(inline-end) {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 20px;
+  }
+</style>
+<div id="scroller">
+  <div style="width: 500px; height: 500px"></div>
+</div>
+<script>
+  promise_test(async () => {
+    // pseudoTarget is null after dispatch, so read it in the listener.
+    let pseudoTarget = null;
+    scroller.addEventListener("click", e => { pseudoTarget = e.pseudoTarget; });
+    await new test_driver.Actions()
+      .pointerMove(10, 10)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_true(pseudoTarget instanceof CSSPseudoElement,
+                "pseudoTarget is a CSSPseudoElement");
+    assert_equals(pseudoTarget, scroller.pseudo("::scroll-button(inline-end)"));
+    assert_equals(pseudoTarget.selectorText, "::scroll-button(inline-end)");
+  }, "Clicking a ::scroll-button() sets pseudoTarget to its CSSPseudoElement");
+</script>

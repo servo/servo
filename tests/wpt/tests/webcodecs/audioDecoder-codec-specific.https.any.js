@@ -137,6 +137,12 @@ const PCM_S24_DATA = pcm('pcm-s24', 0x66, 3);
 const PCM_S32_DATA = pcm('pcm-s32', 0x66, 4);
 const PCM_F32_DATA = pcm('pcm-f32', 0x72, 4);
 
+// Per the Vorbis I spec (section 4.3.8), the first packet returns no audio and
+// only primes the decoder. Output starts at the center of its window, so the
+// first half of that window (128 samples of a 256-sample short block in this
+// file) is never output.
+const VORBIS_FIRST_CHUNK_DURATION_US = Math.round(1000 * 1000 * 128 / 48000);
+
 const VORBIS_DATA = {
   src: 'sfx-vorbis.ogg',
   config: {
@@ -149,12 +155,15 @@ const VORBIS_DATA = {
     sampleRate: 48000,
   },
   chunks: [
-    {offset: 3968, size: 44}, {offset: 4012, size: 21},
-    {offset: 4033, size: 57}, {offset: 4090, size: 37},
-    {offset: 4127, size: 37}, {offset: 4164, size: 107},
-    {offset: 4271, size: 172}
+    {offset: 3968, size: 44, duration: VORBIS_FIRST_CHUNK_DURATION_US},
+    {offset: 4012, size: 21}, {offset: 4033, size: 57},
+    {offset: 4090, size: 37}, {offset: 4127, size: 37},
+    {offset: 4164, size: 107}, {offset: 4271, size: 172}
   ],
   duration: 21333,
+  // The first chunk is dropped, so the first output of a stream starting at a
+  // negative timestamp is shifted by the first chunk's duration.
+  discard_padding: VORBIS_FIRST_CHUNK_DURATION_US,
   // Vorbis requires 2 packets before emitting the first audio frame.
   packet_delay: 1
 };
@@ -270,12 +279,14 @@ promise_setup(async () => {
     CHUNK_DATA = CODEC_DATA.chunks.map((chunk, i) => view(buf, chunk));
   }
 
-  CHUNKS = CHUNK_DATA.map((encodedData, i) => new EncodedAudioChunk({
-                            type: 'key',
-                            timestamp: i * CODEC_DATA.duration,
-                            duration: CODEC_DATA.duration,
-                            data: encodedData
-                          }));
+  let timestamp = 0;
+  CHUNKS = CHUNK_DATA.map((encodedData, i) => {
+    const duration = CODEC_DATA.chunks[i]?.duration ?? CODEC_DATA.duration;
+    const chunk = new EncodedAudioChunk(
+        {type: 'key', timestamp, duration, data: encodedData});
+    timestamp += duration;
+    return chunk;
+  });
 });
 
 promise_test(t => {
@@ -415,6 +426,11 @@ promise_test(async t => {
   await decoder.flush();
   assert_equals(outputs, 2 - (CODEC_DATA.packet_delay ?? 0), 'outputs');
 
+  // Flushing resets the decoder, so codecs with a packet delay (e.g. Vorbis)
+  // need the first packet to be queued again to prime the decoder.
+  if (CODEC_DATA.packet_delay > 0) {
+    decoder.decode(CHUNKS[0]);
+  }
   decoder.decode(CHUNKS[2]);
   await decoder.flush();
   assert_equals(outputs, 3 - (CODEC_DATA.packet_delay ?? 0), 'outputs');

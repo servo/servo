@@ -1,7 +1,3 @@
-# META: timeout=long
-
-# Longer timeout required due to creating and managing isolated user contexts.
-
 import pytest
 
 from . import OFFLINE_NETWORK_CONDITIONS

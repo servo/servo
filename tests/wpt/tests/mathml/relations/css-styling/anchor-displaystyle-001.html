@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>displaystyle on a</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#the-a-element">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+    <link rel="match" href="anchor-displaystyle-001-ref.html"/>
+    <meta name="assert" content="displaystyle on an a element is mapped to math-style, including when the a element is a link.">
+    <link rel="stylesheet" href="/fonts/ahem.css">
+    <style>
+      math {
+          font: 25px Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <math>
+      <a displaystyle="true">
+        <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+      </a>
+      <a displaystyle="false">
+        <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+      </a>
+    </math>
+
+    <math>
+      <a href="about:blank" displaystyle="true">
+        <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+      </a>
+      <a href="about:blank" displaystyle="false">
+        <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+      </a>
+    </math>
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_movablelimits");</script>
+  </body>
+</html>

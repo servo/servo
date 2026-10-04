@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>WebGL canvas moved into a content=drawable canvas after first paint should update</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<canvas id="container" content="drawable" width="100" height="100"></canvas>
+<canvas id="webgl" width="100" height="100"></canvas>
+
+<script>
+function waitForPaintEvent(canvas) {
+  return new Promise(resolve => {
+    canvas.addEventListener('paint', resolve, {once: true});
+  });
+}
+
+promise_test(async (t) => {
+  const ctx = container.getContext('2d');
+  const gl = webgl.getContext('webgl2');
+
+  container.onpaint = () => {
+    ctx.reset();
+    ctx.drawElementImage(webgl, 0, 0);
+  };
+
+  // Draw blue initially while outside the container canvas.
+  gl.clearColor(0, 0, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // Wait for initial paint/commit so the WebGL canvas is composited outside
+  // the container canvas first.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  // Move the WebGL canvas into the container canvas after the first paint.
+  container.appendChild(webgl);
+
+  // Update the WebGL canvas to cyan; this should automatically trigger
+  // a paint event on container.
+  gl.clearColor(0, 1, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  await waitForPaintEvent(container);
+  assert_array_equals(ctx.getImageData(50, 50, 1, 1).data, [0, 255, 255, 255],
+                      "2D canvas should update to cyan");
+
+  // Update the WebGL canvas again to green to verify repeated updates inside
+  // the subtree continue to trigger paint events and update snapshots.
+  gl.clearColor(0, 1, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  container.requestPaint();
+  await waitForPaintEvent(container);
+
+  assert_array_equals(ctx.getImageData(50, 50, 1, 1).data, [0, 255, 0, 255],
+                      "2D canvas should update to green");
+}, "WebGL canvas moved into a content=drawable canvas after first paint should reflect subsequent updates");
+</script>

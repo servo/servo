@@ -315,5 +315,144 @@
       }, 'Nested shadows use the nearest mixin along each tree branch');
     </script>
 
+    <style>
+      @mixin --dynamic-document-mixin() {
+        @result {
+          color: red;
+        }
+      }
+    </style>
+    <div id="host8">
+      <template shadowrootmode="open">
+        <style>
+          #target {
+            @apply --dynamic-document-mixin;
+          }
+        </style>
+        <div id="target">This text should become green.</div>
+      </template>
+    </div>
+    <script>
+      test(() => {
+        const target = document.getElementById('host8')
+                               .shadowRoot.getElementById('target');
+        assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
+
+        const style = document.createElement('style');
+        style.textContent = `
+          @mixin --dynamic-document-mixin() {
+            @result {
+              color: green;
+            }
+          }
+        `;
+        document.body.append(style);
+
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+
+        style.sheet.cssRules[0].cssRules[0].cssRules[0].style.color = 'blue';
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 0, 255)');
+      }, 'Changing a document mixin invalidates dependent shadow styles');
+    </script>
+
+    <style>
+      @mixin --dynamic-nested-mixin() {
+        @result {
+          color: red;
+        }
+      }
+    </style>
+    <div id="host9">
+      <template shadowrootmode="open">
+        <style>
+          @mixin --local-mixin() {
+            @result {
+              background-color: blue;
+            }
+          }
+        </style>
+        <div id="inner-host">
+          <template shadowrootmode="open">
+            <style>
+              #target {
+                @apply --dynamic-nested-mixin;
+                @apply --local-mixin;
+              }
+            </style>
+            <div id="target">This text should become green.</div>
+          </template>
+        </div>
+      </template>
+    </div>
+    <script>
+      test(() => {
+        const target = document.getElementById('host9')
+                               .shadowRoot.getElementById('inner-host')
+                               .shadowRoot.getElementById('target');
+        assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
+        assert_equals(getComputedStyle(target).backgroundColor,
+                      'rgb(0, 0, 255)');
+
+        const style = document.createElement('style');
+        style.textContent = `
+          @mixin --dynamic-nested-mixin() {
+            @result {
+              color: green;
+            }
+          }
+        `;
+        document.body.append(style);
+
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+        assert_equals(getComputedStyle(target).backgroundColor,
+                      'rgb(0, 0, 255)');
+      }, 'Changing a document mixin invalidates through a local mixin scope');
+    </script>
+
+    <script>
+      test(() => {
+        const mixinSheet = new CSSStyleSheet();
+        mixinSheet.replaceSync(`
+          @mixin --shared-dynamic-mixin() {
+            @result {
+              color: red;
+            }
+          }
+        `);
+
+        const targets = [];
+        for (let i = 0; i < 2; ++i) {
+          const outerHost = document.createElement('div');
+          const outerRoot = outerHost.attachShadow({mode: 'open'});
+          outerRoot.adoptedStyleSheets = [mixinSheet];
+
+          const innerHost = document.createElement('div');
+          outerRoot.append(innerHost);
+          const innerRoot = innerHost.attachShadow({mode: 'open'});
+          innerRoot.innerHTML = `
+            <style>
+              #target {
+                @apply --shared-dynamic-mixin;
+              }
+            </style>
+            <div id="target"></div>
+          `;
+          targets.push(innerRoot.getElementById('target'));
+          document.body.append(outerHost);
+        }
+
+        for (const target of targets) {
+          assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
+        }
+
+        mixinSheet.cssRules[0].cssRules[0].cssRules[0].style.color =
+            'green';
+
+        for (const target of targets) {
+          assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+        }
+      }, 'A shared adopted mixin invalidates all dependent shadow branches');
+    </script>
+
   </body>
 </html>

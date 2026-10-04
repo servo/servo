@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Chrome issue 567611695</title>
+<link rel="help" href="https://crbug.com/567611695">
+<script>
+  const w = new Worker(URL.createObjectURL(new Blob([`
+    const x = new OffscreenCanvas(1, 1).getContext('2d');
+    x.filter = 'blur(calc(1px * sign(1%))) ';
+    x.fillRect(0, 0, 1, 1);
+    postMessage(0);
+  `])));
+  w.onmessage = () => {
+    w.terminate();
+    document.documentElement.className = "";
+  };
+</script>

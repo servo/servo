@@ -206,8 +206,8 @@
      * resolves when the action is complete. This is required for WebDriver
      * Classic actions, as they require a specific context.
      * @param name: The name of the action to create.
-     * @param context: The context in which to run the action. `null` for the
-     * current window.
+     * @param context: The context in which to run the action: a `WindowProxy`,
+     * a WebDriver window handle, or `null` for the current window.
      * @param params: The properties to pass to the action.
      * @return {Promise<any>}: A promise that resolves with the action result
      * when the action is complete.
@@ -215,7 +215,10 @@
     const create_context_action = function (name, context, params) {
         const context_params = {...params};
         if (context) {
-            context_params.context = get_window_id(context);
+            // A string context is already a WebDriver window handle,
+            // only WindowProxy needs converting to an id.
+            context_params.context = typeof context === "string" ?
+                context : get_window_id(context);
         }
         if (context === null && !is_test_context()) {
             context_params.context = get_window_id(window);
@@ -544,6 +547,10 @@
 
     window.test_driver_internal.create_window = function(type=null, context=null) {
         return create_context_action("create_window", context, {type});
+    };
+
+    window.test_driver_internal.navigate = function(url, context=null) {
+        return create_context_action("navigate", context, {url});
     };
 
     window.test_driver_internal.minimize_window = function(context=null) {

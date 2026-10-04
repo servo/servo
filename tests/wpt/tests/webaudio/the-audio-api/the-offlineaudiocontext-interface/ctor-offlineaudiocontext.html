@@ -80,13 +80,14 @@
                 .throw(TypeError);
 
             options = {sampleRate: 12345};
-            // length is required.
+            // length defaults to null.
             should(
                 () => {
-                  new OfflineAudioContext(options);
+                  context2 = new OfflineAudioContext(options);
                 },
                 'new OfflineAudioContext(' + JSON.stringify(options) + ')')
-                .throw(TypeError);
+                .notThrow();
+            should(context2.length, 'c2.length').beEqualTo(null);
 
             // Valid constructor.  Verify that the resulting context has the
             // correct values.

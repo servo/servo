@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Quirks mode: tables inherit color after the first body is removed</title>
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function createDocument(t) {
+  const frame = document.createElement('iframe');
+  t.add_cleanup(() => frame.remove());
+  document.body.append(frame);
+  frame.contentDocument.open();
+  frame.contentDocument.write('<body style="color: red"></body>');
+  frame.contentDocument.close();
+  assert_equals(frame.contentDocument.compatMode, 'BackCompat');
+  return frame.contentDocument;
+}
+
+test(t => {
+  const doc = createDocument(t);
+  const firstBody = doc.body;
+  const table = doc.createElement('table');
+  const secondBody = doc.createElement('body');
+  secondBody.style.color = 'green';
+  doc.documentElement.append(table, secondBody);
+  assert_equals(doc.defaultView.getComputedStyle(table).color, 'rgb(255, 0, 0)');
+
+  firstBody.remove();
+  assert_equals(doc.body, secondBody);
+  assert_equals(doc.defaultView.getComputedStyle(table).color, 'rgb(0, 128, 0)');
+}, 'Removing the first body updates an existing table to the remaining body color');
+</script>

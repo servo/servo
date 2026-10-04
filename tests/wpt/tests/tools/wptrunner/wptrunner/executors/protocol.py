@@ -875,9 +875,12 @@ class TestDriverProtocolPart(ProtocolPart):
         pass
 
     def switch_to_window(self, wptrunner_id, initial_window=None):
-        """Switch to a window given a wptrunner window id
+        """Switch to a window given a wptrunner window id or a WebDriver
+        window handle
 
-        :param str wptrunner_id: Testdriver-specific id for the target window
+        :param str wptrunner_id: Testdriver-specific id for the target window,
+                                 or the WebDriver window handle of a top-level
+                                 browsing context
         :param str initial_window: WebDriver window id for the test window"""
         if wptrunner_id is None:
             return
@@ -886,6 +889,14 @@ class TestDriverProtocolPart(ProtocolPart):
             initial_window = self.parent.base.current_window
 
         stack = [str(item) for item in self.parent.base.window_handles()]
+
+        if wptrunner_id in stack:
+            # A WebDriver window handle is a direct identification of
+            # a top-level browsing context, so search is not needed
+            if wptrunner_id != initial_window:
+                self.parent.base.set_window(wptrunner_id)
+            return
+
         first = True
         while stack:
             item = stack.pop()

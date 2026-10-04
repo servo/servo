@@ -6,7 +6,7 @@
 // https://wicg.github.io/webhid/
 
 idl_test(
-  ['webhid'],
+  ['hid'],
   ['html', 'dom'],
   idl_array => {
     if (self.GLOBAL.isWindow()) {

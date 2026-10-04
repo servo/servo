@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid items placed into trailing implicit columns</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-tracks">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#line-placement">
+<meta name="assert" content="A grid item whose definite column placement lands past the last explicit column line creates a trailing implicit column that is sized by grid-auto-columns.">
+<style>
+.grid {
+    display: grid;
+    position: relative;
+}
+.grid > div { background: green; }
+
+/* Single trailing implicit column via an explicit start / explicit end. */
+#explicit-end {
+    grid-template-columns: 50px;
+    grid-template-rows: 30px 30px;
+    grid-auto-columns: 100px;
+}
+
+/* Single-value grid-column (explicit start, auto end) resolving to a single-cell span. */
+#auto-end {
+    grid-template-columns: 60px;
+    grid-template-rows: 30px;
+    grid-auto-columns: 80px;
+}
+
+/* Multiple trailing implicit columns cycle through the grid-auto-columns track list. */
+#cycling {
+    grid-template-columns: 40px;
+    grid-template-rows: 30px 30px 30px;
+    grid-auto-columns: 20px 30px;
+}
+
+/* column-gap is applied at the boundary between the explicit and implicit columns. */
+#with-gap {
+    grid-template-columns: 50px;
+    grid-template-rows: 30px;
+    grid-auto-columns: 100px;
+    column-gap: 10px;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+<div id="log"></div>
+
+<div class="grid" id="explicit-end">
+    <div style="grid-column: 1 / 2; grid-row: 1 / 2;"
+        data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="30"></div>
+    <div style="grid-column: 2 / 3; grid-row: 2 / 3;"
+        data-offset-x="50" data-offset-y="30" data-expected-width="100" data-expected-height="30"></div>
+</div>
+
+<div class="grid" id="auto-end">
+    <div style="grid-column: 2; grid-row: 1 / 2;"
+        data-offset-x="60" data-offset-y="0" data-expected-width="80" data-expected-height="30"></div>
+</div>
+
+<div class="grid" id="cycling">
+    <div style="grid-column: 2 / 3; grid-row: 1 / 2;"
+        data-offset-x="40" data-offset-y="0" data-expected-width="20" data-expected-height="30"></div>
+    <div style="grid-column: 3 / 4; grid-row: 2 / 3;"
+        data-offset-x="60" data-offset-y="30" data-expected-width="30" data-expected-height="30"></div>
+    <div style="grid-column: 4 / 5; grid-row: 3 / 4;"
+        data-offset-x="90" data-offset-y="60" data-expected-width="20" data-expected-height="30"></div>
+</div>
+
+<div class="grid" id="with-gap">
+    <div style="grid-column: 2 / 3; grid-row: 1 / 2;"
+        data-offset-x="60" data-offset-y="0" data-expected-width="100" data-expected-height="30"></div>
+</div>
+
+</body>

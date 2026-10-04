@@ -4,9 +4,9 @@
 
 'use strict';
 
-// https://webbluetoothcg.github.io/web-bluetooth/
+// https://bluetooth.spec.whatwg.org/scanning.html
 
-idl_test(['web-bluetooth'], ['dom', 'html', 'permissions'], idl_array => {
+idl_test(['bluetooth'], ['dom', 'html', 'permissions'], idl_array => {
   try {
     self.event = new BluetoothAdvertisingEvent('type');
   } catch (e) {

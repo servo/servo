@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color: color-mix() with currentcolor when the parent's color changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#color-mix">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#parent {
+  color: black;
+}
+#parent.red {
+  color: red;
+}
+#mix {
+  color: color-mix(in srgb, currentcolor, white);
+}
+</style>
+
+<div id="parent">
+  <div id="mix">
+    <div id="child"></div>
+  </div>
+</div>
+
+<script>
+const color = id => getComputedStyle(document.getElementById(id)).color;
+
+test(() => {
+  assert_equals(color("mix"), "color(srgb 0.5 0.5 0.5)");
+  document.getElementById("parent").classList.add("red");
+  assert_equals(color("mix"), "color(srgb 1 0.5 0.5)");
+  assert_equals(color("child"), "color(srgb 1 0.5 0.5)");
+}, "color-mix() with currentcolor is recomputed when the parent's color changes");
+</script>

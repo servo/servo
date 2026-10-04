@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: a row subgrid with a smaller gap centers its own rule on the parent track boundary</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-subgrid-gap-override-decorations-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 140px;
+    width: 180px;
+  }
+  .lanes {
+    background: lightgray;
+    column-gap: 20px;
+    display: grid-lanes;
+    grid-template-rows: repeat(2, 60px);
+    height: 140px;
+    row-gap: 20px;
+    row-rule: 8px solid red;
+    row-rule-break: normal;
+    width: 180px;
+  }
+  .parent-item {
+    background: purple;
+    width: 30px;
+  }
+  .first {
+    grid-row: 1;
+  }
+  .second {
+    grid-row: 2;
+  }
+  .subgrid {
+    background: transparent;
+    column-gap: 20px;
+    display: grid;
+    grid-row: 1 / span 2;
+    grid-template-columns: repeat(2, 30px);
+    grid-template-rows: subgrid;
+    row-gap: 8px;
+    row-rule: 2px solid lime;
+  }
+  .cell {
+    background: teal;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="parent-item first"></div>
+    <div class="parent-item second"></div>
+    <div class="subgrid">
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+    </div>
+    <div class="parent-item first"></div>
+    <div class="parent-item second"></div>
+  </div>
+</div>

@@ -128,6 +128,38 @@ async def test_iframe(
     )
 
 
+@pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
+async def test_existing_nested_iframes(
+    bidi_session,
+    new_tab,
+    url,
+    create_iframe,
+    domain,
+    is_feature_enabled,
+):
+    default_is_some_feature_enabled = await is_feature_enabled(
+        new_tab, SOME_FEATURE_NAME, SOME_FEATURE_SOME_VALUE
+    )
+    iframe = await create_iframe(new_tab, url("/", domain=domain))
+    nested_iframe = await create_iframe(iframe, url("/"))
+
+    for features, expected in [
+        ({SOME_FEATURE_NAME: SOME_FEATURE_SOME_VALUE}, True),
+        (None, default_is_some_feature_enabled),
+    ]:
+        await bidi_session.emulation.set_media_features_override(
+            contexts=[new_tab["context"]],
+            features=features,
+        )
+        for context in [nested_iframe, iframe, new_tab]:
+            assert (
+                await is_feature_enabled(
+                    context, SOME_FEATURE_NAME, SOME_FEATURE_SOME_VALUE
+                )
+                == expected
+            )
+
+
 async def test_overrides_user_contexts(
     bidi_session,
     top_context,

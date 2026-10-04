@@ -28,7 +28,12 @@ t.step(function() {
 });
 
 onload = t.step_func(function() {
-  assert_array_equals(eventOrder, ["inline script #1", "inline script #3", "inline script #2", "end inline script #2", "end inline script #1"]);
+  // The atomic insertion of the fragment first runs the outer script's
+  // children changed steps (executing the concatenated Text node children,
+  // i.e. "inline script #2" and "end inline script #2"), and only then runs
+  // the post-connection steps for the inner script ("inline script #3"). See
+  // https://html.spec.whatwg.org/multipage/scripting.html#script-processing-model
+  assert_array_equals(eventOrder, ["inline script #1", "inline script #2", "end inline script #2", "inline script #3", "end inline script #1"]);
   t.done();
 });
 </script>

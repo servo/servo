@@ -162,5 +162,35 @@
     let groupTargetViaVT = vt.pseudo("::view-transition-group(target)");
     assert_equals(groupTargetViaVT, groupTarget, "Fetching named group from root VT proxy works");
   }, "CSSPseudoElement isolates view transitions with different names and validates them during traversal");
+
+  test(() => {
+    const html = document.documentElement;
+    assert_equals(html.pseudo("::view-transition").selectorText, "::view-transition");
+
+    const newVT = html.pseudo("::view-transition-new(target)");
+    assert_equals(newVT.selectorText, "::view-transition-new(target)");
+    assert_equals(newVT.parent.selectorText, "::view-transition-image-pair(target)");
+    assert_equals(newVT.parent.parent.selectorText, "::view-transition-group(target)");
+    assert_equals(newVT.parent.parent.parent.selectorText, "::view-transition");
+    assert_equals(html.pseudo("::view-transition-old(target)").selectorText,
+                  "::view-transition-old(target)");
+
+    // Proxies created via CSSPseudoElement.pseudo().
+    const group = html.pseudo("::view-transition").pseudo("::view-transition-group(viaParent)");
+    assert_equals(group.selectorText, "::view-transition-group(viaParent)");
+    const imagePair = group.pseudo("::view-transition-image-pair(viaParent)");
+    assert_equals(imagePair.selectorText, "::view-transition-image-pair(viaParent)");
+    assert_equals(imagePair.pseudo("::view-transition-old(viaParent)").selectorText,
+                  "::view-transition-old(viaParent)");
+    assert_equals(imagePair.pseudo("::view-transition-new(viaParent)").selectorText,
+                  "::view-transition-new(viaParent)");
+
+    assert_equals(html.pseudo("::VIEW-TRANSITION-GROUP(MixedCase)").selectorText,
+                  "::view-transition-group(MixedCase)",
+                  "view transition names are case-sensitive");
+    assert_equals(html.pseudo("::view-transition-group(\\31 23)").selectorText,
+                  "::view-transition-group(\\31 23)",
+                  "view transition names are serialized as identifiers");
+  }, "selectorText of view transition pseudo-elements includes the name");
 </script>
 </html>

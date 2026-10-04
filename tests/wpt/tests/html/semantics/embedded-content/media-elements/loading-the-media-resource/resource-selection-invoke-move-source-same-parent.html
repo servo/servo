@@ -1,0 +1,19 @@
+<!doctype html>
+<title>invoking resource selection by moving &lt;source> within the same media element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<video><source id=a><source></video>
+<script>
+async_test(function(t) {
+  var v = document.querySelector('video');
+  var a = document.getElementById('a');
+  window.onload = t.step_func(function() {
+    assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState before moving source');
+    a.onerror = t.step_func_done(function() {
+      assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState after source is reconsidered');
+    });
+    v.moveBefore(a, null);
+  });
+});
+</script>
