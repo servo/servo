@@ -164,6 +164,7 @@ use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::html::internals::elementinternals::ElementInternals;
 use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::iterators::ShadowIncluding;
+use crate::dom::mathmlelement::MathMLElement;
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
@@ -1478,6 +1479,10 @@ impl<'dom> LayoutDom<'dom, Element> {
             svg_element.synthesize_presentational_hints(document, &mut push);
         }
 
+        if let Some(mathml_element) = self.downcast::<MathMLElement>() {
+            mathml_element.synthesize_presentational_hints(document, &mut push);
+        }
+
         // Aspect ratio when providing both width and height.
         // https://html.spec.whatwg.org/multipage/#attributes-for-embedded-content-and-images
         if (self.is::<HTMLImageElement>() || self.is::<HTMLVideoElement>()) &&
@@ -2575,7 +2580,7 @@ impl Element {
 
     /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
     pub(crate) fn update_nonce_post_connection(&self, cx: &mut JSContext) {
-        // Whenever an element including HTMLOrSVGElement becomes browsing-context connected,
+        // Whenever an element including HTMLOrSVGOrMathMLElement becomes browsing-context connected,
         // the user agent must execute the following steps on the element:
         if !self.upcast::<Node>().is_connected_with_browsing_context() {
             return;

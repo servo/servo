@@ -21,4 +21,4 @@ interface SVGElement : Element {
 SVGElement includes GlobalEventHandlers;
 //SVGElement includes SVGElementInstance;
 SVGElement includes ElementCSSInlineStyle;
-SVGElement includes HTMLOrSVGElement;
+SVGElement includes HTMLOrSVGOrMathMLElement;
