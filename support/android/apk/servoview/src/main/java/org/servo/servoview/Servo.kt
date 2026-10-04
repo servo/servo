@@ -119,6 +119,8 @@ class ServoNavigator {
         data object Forward : NavigationEvent
 
         data object Reload : NavigationEvent
+
+        data object Stop : NavigationEvent
     }
 
     private val coroutineScope = CoroutineScope(EmptyCoroutineContext)
@@ -131,6 +133,7 @@ class ServoNavigator {
                 NavigationEvent.Back -> servo.goBack()
                 NavigationEvent.Forward -> servo.goForward()
                 NavigationEvent.Reload -> servo.reload()
+                NavigationEvent.Stop -> servo.stop()
             }
         }
     }
@@ -155,6 +158,10 @@ class ServoNavigator {
 
     fun reload() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.Reload) }
+    }
+
+    fun stop() {
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Stop) }
     }
 }
 
