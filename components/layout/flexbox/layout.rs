@@ -2195,18 +2195,6 @@ impl FlexItem<'_> {
         used_main_size: Au,
         line_cross_size: Au,
     ) -> Option<Au> {
-        // `finish_with_final_cross_size` uses the cross axis of the container, which isn't
-        // the right one for items in orthogonal flows, so leave them to the general case.
-        if self.box_.style().writing_mode.is_horizontal() !=
-            flex_context
-                .containing_block
-                .style
-                .writing_mode
-                .is_horizontal()
-        {
-            return None;
-        }
-
         match flex_context.config.flex_axis {
             FlexAxis::Column => Some(self.used_cross_size(
                 Direction::Inline,
