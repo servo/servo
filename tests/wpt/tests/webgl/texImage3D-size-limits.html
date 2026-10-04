@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>texImage3D size limits of 3D and 2D array textures</title>
+<link rel="author" title="mxmgorin" href="mailto:102797145+mxmgorin@users.noreply.github.com">
+<link rel="help" href="https://registry.khronos.org/OpenGL/specs/es/3.0/es_spec_3.0.pdf#nameddest=subsection.3.8.3">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function setup(target) {
+    var gl = document.createElement("canvas").getContext("webgl2");
+    gl.bindTexture(target, gl.createTexture());
+    return gl;
+}
+
+function texImage3D(gl, target, level, width, height, depth) {
+    gl.texImage3D(target, level, gl.RGBA8, width, height, depth, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    return gl.getError();
+}
+
+test(function() {
+    var gl = setup(WebGL2RenderingContext.TEXTURE_2D_ARRAY);
+    var max = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    var target = gl.TEXTURE_2D_ARRAY;
+    assert_equals(texImage3D(gl, target, 0, max, 1, 1), gl.NO_ERROR, "width");
+    assert_equals(texImage3D(gl, target, 0, 1, max, 1), gl.NO_ERROR, "height");
+    assert_equals(texImage3D(gl, target, 0, max + 1, 1, 1), gl.INVALID_VALUE, "width + 1");
+    assert_equals(texImage3D(gl, target, 1, max / 2 + 1, 1, 1), gl.INVALID_VALUE, "width + 1 at level 1");
+}, "2D array width and height are limited by MAX_TEXTURE_SIZE");
+
+test(function() {
+    var gl = setup(WebGL2RenderingContext.TEXTURE_2D_ARRAY);
+    var layers = gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS);
+    var target = gl.TEXTURE_2D_ARRAY;
+    assert_equals(texImage3D(gl, target, 0, 1, 1, layers), gl.NO_ERROR, "level 0");
+    assert_equals(texImage3D(gl, target, 1, 1, 1, layers), gl.NO_ERROR, "level 1");
+    assert_equals(texImage3D(gl, target, 0, 1, 1, layers + 1), gl.INVALID_VALUE, "one layer too many");
+}, "2D array layers are limited by MAX_ARRAY_TEXTURE_LAYERS at every level");
+
+test(function() {
+    var gl = setup(WebGL2RenderingContext.TEXTURE_3D);
+    var max = gl.getParameter(gl.MAX_3D_TEXTURE_SIZE);
+    var target = gl.TEXTURE_3D;
+    assert_equals(texImage3D(gl, target, 0, 1, 1, max), gl.NO_ERROR, "depth");
+    assert_equals(texImage3D(gl, target, 0, 1, 1, max + 1), gl.INVALID_VALUE, "depth + 1");
+    assert_equals(texImage3D(gl, target, 1, 1, 1, max / 2 + 1), gl.INVALID_VALUE, "depth + 1 at level 1");
+}, "3D textures are limited by MAX_3D_TEXTURE_SIZE in every dimension");
+
+test(function() {
+    var gl = setup(WebGL2RenderingContext.TEXTURE_3D);
+    for (var level of [32, 64, 1 << 30]) {
+        assert_equals(texImage3D(gl, gl.TEXTURE_3D, level, 1, 1, 1), gl.INVALID_VALUE, "level " + level);
+    }
+}, "Levels beyond log2(MAX_3D_TEXTURE_SIZE) are rejected");
+</script>
