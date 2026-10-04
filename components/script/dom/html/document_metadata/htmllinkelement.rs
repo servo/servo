@@ -979,7 +979,10 @@ impl HTMLLinkElement {
         // Step 2. Let destination be the current state of el's as attribute (a destination), or "script" if it is in no state.
         let destination = el
             .get_attribute_string_value(&local_name!("as"))
-            .map(|value| value.to_ascii_lowercase())
+            .map(|mut value| {
+                value.make_ascii_lowercase();
+                value
+            })
             .and_then(|value| match value.as_str() {
                 // `Destination::from_str` will map an empty string to `Destination::None`
                 "" => None,
