@@ -1,2 +1,3 @@
 rules:
-- clipboard-event-handlers.html: [clipboard-events]
+- clipboard-event-handlers.html: [clipboard-events, mathml]
+- "**": [mathml]

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#z-order">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#overflow">
+<link rel="match" href="grid-item-overflow-offscreen-painting-001-ref.html">
+<meta name="assert" content="Grid items whose content overflows into the visible area are painted even when the grid area itself is outside it.">
+<meta charset="utf-8">
+
+<p>This test verifies grid layout painting when the item has overflowing contents.</p>
+<p>This test passes if it matches the reference. You should see green and not red.</p>
+
+<iframe height="100px" width="200px" srcdoc="
+  <style>
+    body {
+      background: red;
+      overflow: hidden;
+    }
+   .grid {
+      display: grid;
+      grid: 50px 50px / 100px 100px;
+      margin-left: -300px;
+      margin-top: -200px;
+    }
+  </style>
+
+  <div class='grid'>
+    <div>
+      <div style='background: green; width: 800px; height: 600px;'></div>
+    </div>
+  </div>
+">
+</iframe>
+
+<iframe height="100px" width="200px" srcdoc="
+  <style>
+    body {
+      background: red;
+      overflow: hidden;
+    }
+   .grid {
+      display: grid;
+      grid: 400px 50px 50px / 500px 100px 100px;
+      margin-left: -800px;
+      margin-top: -700px;
+    }
+  </style>
+
+  <div class='grid'>
+    <div style='grid-column: 2; grid-row: 2;'>
+      <div style='background: green; width: 800px; height: 600px;'></div>
+    </div>
+  </div>
+">
+</iframe>

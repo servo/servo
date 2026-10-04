@@ -6,9 +6,9 @@
 [
   Exposed=Window
 ] partial interface RTCPeerConnection {
-  static Promise<DOMString> startDiagnosticLogging(optional RTCDiagnosticLoggingOptions options = {});
-  static Promise<undefined> finishDiagnosticLogging(optional RTCDiagnosticLoggingOptions options = {});
-  static Promise<undefined> discardDiagnosticLogging();
+  static DOMString startDiagnosticLogging(optional RTCDiagnosticLoggingOptions options = {});
+  static undefined stopDiagnosticLogging();
+  static undefined cancelDiagnosticLogging();
 };
 
 dictionary RTCDiagnosticLoggingOptions {

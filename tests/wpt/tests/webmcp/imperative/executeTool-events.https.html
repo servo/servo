@@ -7,15 +7,20 @@
 
 <script>
 promise_test(async t => {
-  const events = [];
-  window.addEventListener('toolactivated', e => events.push('activated:' + e.toolName));
-  window.addEventListener('toolcancel', e => events.push('cancel:' + e.toolName));
+  const modelContextEvents = [];
+  const modelContextHandler = e => modelContextEvents.push(e);
+  document.modelContext.addEventListener('toolactivated', modelContextHandler);
+  document.modelContext.addEventListener('toolcancel', modelContextHandler);
+  t.add_cleanup(() => {
+    document.modelContext.removeEventListener('toolactivated', modelContextHandler);
+    document.modelContext.removeEventListener('toolcancel', modelContextHandler);
+  });
 
   const activatedPromise = new Promise(resolve => {
-    window.addEventListener('toolactivated', resolve, { once: true });
+    document.modelContext.addEventListener('toolactivated', resolve, { once: true });
   });
   const cancelPromise = new Promise(resolve => {
-    window.addEventListener('toolcancel', resolve, { once: true });
+    document.modelContext.addEventListener('toolcancel', resolve, { once: true });
   });
 
   const regController = new AbortController();
@@ -33,13 +38,116 @@ promise_test(async t => {
   const execPromise = document.modelContext.executeTool(tool, {}, { signal: controller.signal });
 
   await activatedPromise;
-  assert_array_equals(events, ['activated:slow']);
+  assert_equals(modelContextEvents.length, 1);
+
+  // The event dispatched at the ModelContext is a `ToolActivatedEvent`.
+  const activatedEvent = modelContextEvents[0];
+  assert_true(activatedEvent instanceof ToolActivatedEvent, 'event is a ToolActivatedEvent');
+  assert_equals(activatedEvent.type, 'toolactivated');
+  assert_equals(activatedEvent.toolName, 'slow');
+  assert_equals(activatedEvent.target, document.modelContext, 'event is targeted at the ModelContext');
+  assert_false(activatedEvent.bubbles, 'event does not bubble');
+  assert_false(activatedEvent.cancelable, 'event is not cancelable');
+  assert_false(activatedEvent.composed, 'event is not composed');
+  assert_true(activatedEvent.isTrusted, 'event is trusted');
 
   const rejectPromise = promise_rejects_dom(t, 'AbortError', execPromise);
   controller.abort();
   await cancelPromise;
   await rejectPromise;
 
-  assert_array_equals(events, ['activated:slow', 'cancel:slow']);
-}, 'toolactivated and toolcancel events are dispatched on window during tool execution and cancellation');
+  assert_equals(modelContextEvents.length, 2);
+
+  // The event dispatched at the ModelContext is a `ToolCancelEvent`.
+  const cancelEvent = modelContextEvents[1];
+  assert_true(cancelEvent instanceof ToolCancelEvent, 'event is a ToolCancelEvent');
+  assert_equals(cancelEvent.type, 'toolcancel');
+  assert_equals(cancelEvent.toolName, 'slow');
+  assert_equals(cancelEvent.target, document.modelContext, 'event is targeted at the ModelContext');
+  assert_false(cancelEvent.bubbles, 'event does not bubble');
+  assert_false(cancelEvent.cancelable, 'event is not cancelable');
+  assert_false(cancelEvent.composed, 'event is not composed');
+  assert_true(cancelEvent.isTrusted, 'event is trusted');
+
+  assert_array_equals(modelContextEvents, [activatedEvent, cancelEvent],
+      'toolactivated and toolcancel are each dispatched once per execution');
+}, 'toolactivated and toolcancel events are dispatched on document.modelContext during tool execution and cancellation');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await new Promise(resolve => iframe.onload = resolve);
+
+  const iframeModelContext = iframe.contentDocument.modelContext;
+  await iframeModelContext.registerTool({
+    name: 'iframe_tool',
+    description: 'Tool registered in a same-origin child document',
+    execute: () => 'iframe result',
+  });
+
+  const callerEvents = [];
+  const callerHandler = e => callerEvents.push(e.toolName);
+  document.modelContext.addEventListener('toolactivated', callerHandler);
+  t.add_cleanup(() => document.modelContext.removeEventListener('toolactivated', callerHandler));
+
+  const targetEvents = [];
+  iframeModelContext.addEventListener('toolactivated', e => targetEvents.push(e.toolName));
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(tool => tool.name === 'iframe_tool');
+  assert_true(!!tool, '"iframe_tool" is visible to the parent document');
+
+  assert_equals(await document.modelContext.executeTool(tool, {}), 'iframe result');
+
+  assert_array_equals(targetEvents, ['iframe_tool'],
+      'toolactivated is dispatched at the ModelContext of the document hosting the tool');
+  assert_array_equals(callerEvents, [],
+      'toolactivated is not dispatched at the caller document ModelContext');
+}, 'toolactivated is dispatched at the ModelContext of the tool target document');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await new Promise(resolve => iframe.onload = resolve);
+
+  const iframeModelContext = iframe.contentDocument.modelContext;
+  await iframeModelContext.registerTool({
+    name: 'iframe_slow_tool',
+    description: 'Slow tool registered in a same-origin child document',
+    execute: () => new Promise(() => {}),
+  });
+
+  const callerEvents = [];
+  const callerHandler = e => callerEvents.push(e.toolName);
+  document.modelContext.addEventListener('toolcancel', callerHandler);
+  t.add_cleanup(() => document.modelContext.removeEventListener('toolcancel', callerHandler));
+
+  const targetEvents = [];
+  const targetCancelPromise = new Promise(resolve => {
+    iframeModelContext.addEventListener('toolcancel', e => {
+      targetEvents.push(e.toolName);
+      resolve();
+    });
+  });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(tool => tool.name === 'iframe_slow_tool');
+  assert_true(!!tool, '"iframe_slow_tool" is visible to the parent document');
+
+  const controller = new AbortController();
+  const execPromise = document.modelContext.executeTool(tool, {}, { signal: controller.signal });
+  const rejectPromise = promise_rejects_dom(t, 'AbortError', execPromise);
+  controller.abort();
+  await targetCancelPromise;
+  await rejectPromise;
+
+  assert_array_equals(targetEvents, ['iframe_slow_tool'],
+      'toolcancel is dispatched at the ModelContext of the document hosting the tool');
+  assert_array_equals(callerEvents, [],
+      'toolcancel is not dispatched at the caller document ModelContext');
+}, 'toolcancel is dispatched at the ModelContext of the tool target document');
 </script>

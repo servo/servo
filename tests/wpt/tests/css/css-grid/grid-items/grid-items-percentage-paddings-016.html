@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="match" href="grid-items-percentage-paddings-016-ref.html">
+<meta name="assert" content="Percentage paddings on stretched grid items in fixed-size tracks resolve against the inline size of the grid area, not the grid container.">
+<style>
+.grid {
+    display: grid;
+    justify-items: normal;
+    width: 300px;
+    height: 300px;
+    grid-template-columns: 150px 150px;
+    grid-template-rows: 150px 150px;
+    background-color: green;
+}
+/* Percentage padding resolves against the 150px grid area inline size, not
+   the 300px grid container, so 2% == 3px. */
+.topLeft {
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+    padding: 2% 4% 6% 8%;
+    background-color: blue;
+}
+.topRight {
+    grid-row: 1 / 2;
+    grid-column: 2 / 3;
+    padding: 8% 6% 4% 2%;
+    background-color: blue;
+}
+.bottomLeft {
+    grid-row: 2 / 3;
+    grid-column: 1 / 2;
+    padding: 10% 4% 10% 4%;
+    background-color: blue;
+}
+.bottomRight {
+    grid-row: 2 / 3;
+    grid-column: 2 / 3;
+    padding: 6%;
+    background-color: blue;
+}
+.topLeftContent {
+    width: 20px;
+    height: 20px;
+    background-color: yellow;
+}
+.topRightContent {
+    width: 20px;
+    height: 40px;
+    background-color: yellow;
+}
+.bottomLeftContent {
+    width: 40px;
+    height: 20px;
+    background-color: yellow;
+}
+.bottomRightContent {
+    width: 40px;
+    height: 40px;
+    background-color: yellow;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+    <div class="topLeft"><div class="topLeftContent"></div></div>
+    <div class="topRight"><div class="topRightContent"></div></div>
+    <div class="bottomLeft"><div class="bottomLeftContent"></div></div>
+    <div class="bottomRight"><div class="bottomRightContent"></div></div>
+</div>
+</body>
+</html>

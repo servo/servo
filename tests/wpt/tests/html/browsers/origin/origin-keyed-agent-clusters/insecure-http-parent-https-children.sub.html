@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Children request origin-keying over HTTPS, but the parent is over insecure HTTP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  waitForIframe,
+  setBothDocumentDomains,
+  testSameAgentCluster,
+  testGetter
+} from "./resources/helpers.mjs";
+
+async function insertHTTPSIframe(host) {
+  const url = new URL("resources/send-oac-header.py", location.href);
+  url.protocol = "https:";
+  url.host = `${host}:{{ports[https][0]}}`;
+  url.searchParams.set("header", "?1");
+
+  const iframe = document.createElement("iframe");
+  const waitPromise = waitForIframe(iframe, url.href);
+  iframe.src = url.href;
+  document.body.append(iframe);
+  await waitPromise;
+  await setBothDocumentDomains(iframe.contentWindow);
+}
+
+promise_setup(async () => {
+  await insertHTTPSIframe("{{hosts[][www]}}");
+  await insertHTTPSIframe("{{hosts[][www1]}}");
+});
+
+// The top-level document is over insecure HTTP, so the children are not in a secure context and
+// their origin-keying requests are ignored. So they end up in the same site-keyed agent cluster.
+testSameAgentCluster([0, 1]);
+
+testGetter(0, false, "child1");
+testGetter(1, false, "child2");
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<html>
+<head>
+<style>
+/* Reference: the single bordered grid item occupies column 1 / row 1 of the
+   test's grid (a 734x64 area). The "filler" item there only exists to size the
+   second row/column tracks; it paints nothing, so it is omitted here.
+   Reconstruct the bordered box as a border-box block at the body's content
+   origin, matching the grid area's position and size. */
+.borderedItem {
+    box-sizing: border-box;
+    width: 734px;
+    height: 64px;
+    border-width: 13px 27px 31px 9px;
+    border-style: solid;
+    font: 20px/1 Ahem;
+}
+</style>
+</head>
+<body>
+<div class="borderedItem">xx</div>
+</body>
+</html>

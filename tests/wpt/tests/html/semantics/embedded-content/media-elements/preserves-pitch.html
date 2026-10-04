@@ -42,6 +42,13 @@ test(function(t) {
 
 var audio;
 
+// Number of times we try to detect a pitch, if the analyser only received
+// silence.
+var MAX_DETECT_ATTEMPTS = 3;
+
+// Enough media time to refill the analyser's FFT window at 2x playbackRate.
+var RETRY_DELAY_IN_MEDIA_SECONDS = 0.1;
+
 function addTestCleanups(t, detector) {
     t.add_cleanup(() => {
         audio.pause();
@@ -61,7 +68,13 @@ function testPreservesPitch(preservesPitch, playbackRate, expectedPitch, descrip
         function waitUntil(time) {
             return new Promise((resolve) => {
                 audio.ontimeupdate = () => {
-                    if (audio.currentTime >= time) {
+                    // `timeupdate` is also fired when playback stalls to wait
+                    // for more data, and the analyser only receives silence
+                    // during stalls. Only resolve while there is enough data
+                    // to play.
+                    if (audio.currentTime >= time &&
+                        audio.readyState >= audio.HAVE_FUTURE_DATA) {
+                        audio.ontimeupdate = null;
                         resolve();
                     }
                 };
@@ -74,6 +87,15 @@ function testPreservesPitch(preservesPitch, playbackRate, expectedPitch, descrip
         await waitUntil(0.5);
 
         var pitch = detector.detect();
+
+        // A pitch of 0Hz means that the analyser only received silence, e.g.
+        // if playback stalled right before `timeupdate` was handled. Let more
+        // audio play, and try again.
+        for (let attempt = 1; pitch.value == 0 && attempt < MAX_DETECT_ATTEMPTS;
+             ++attempt) {
+            await waitUntil(audio.currentTime + RETRY_DELAY_IN_MEDIA_SECONDS);
+            pitch = detector.detect();
+        }
 
         // 25Hz is larger than the margin we get from 48kHz and 44.1kHz
         // audio being analyzed by a FFT of size 2048. If we get something

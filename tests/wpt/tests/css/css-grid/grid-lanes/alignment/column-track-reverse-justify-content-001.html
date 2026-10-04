@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: `track-reverse` causes 'flow-start'/'flow-end' behave like 'end'/'start' with `justify-content`</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="match" href="column-track-reverse-justify-content-001-ref.html">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .label {
+      font: 16px/1 monospace;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: column track-reverse;
+      grid-template-columns: repeat(2, 60px);
+      gap: 4px;
+      width: 300px;
+      height: 40px;
+      border: 1px solid;
+      margin-bottom: 4px;
+    }
+
+    item {
+      display: block;
+      width: 56px;
+      height: 26px;
+      color: white;
+      background: #2ca02c;
+    }
+  </style>
+</head>
+<body>
+  <div class="label">justify-content: flow-start</div>
+  <div class="grid-lanes" style="justify-content: flow-start;">
+    <item>1</item>
+    <item>2</item>
+  </div>
+
+  <div class="label">justify-content: flow-end</div>
+  <div class="grid-lanes" style="justify-content: flow-end;">
+    <item>1</item>
+    <item>2</item>
+  </div>
+</body>
+</html>

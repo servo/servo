@@ -246,7 +246,43 @@ export async function fedcm_settles_without_dialog(t, cred_promise) {
   if (result instanceof IdentityCredential) {
     return result;
   }
+  // Cancel the unexpected dialog so that the pending request does not block
+  // later requests.
+  try {
+    await window.test_driver.cancel_fedcm_dialog();
+    // The WebDriver reply and the FedCM Mojo reply travel on separate IPC
+    // channels, so the cancel can resolve before the renderer has settled
+    // `cred_promise`. Wait for it too, otherwise the request is still pending
+    // when the next subtest starts. Its rejection is discarded so that the
+    // message below is what the test reports.
+    await cred_promise.catch(() => {});
+  } catch (ex) {
+    // Failure is not critical.
+  }
   throw "expected request to finish, got dialog: " + result;
+}
+
+// Waits for `cred_promise`, from a request that is expected to be auto
+// re-authenticated, to settle. This fails if the request shows a dialog other
+// than the auto re-authentication notice, e.g. an account chooser, instead of
+// waiting for an account to be selected.
+export async function fedcm_expect_auto_reauthn(t, cred_promise) {
+  let dialog_promise = fedcm_get_dialog_type_promise(t);
+  let result = await Promise.race([cred_promise, dialog_promise]);
+  // Intentionally pass through any exceptions.
+  if (result instanceof IdentityCredential || result == 'AutoReauthn') {
+    return cred_promise;
+  }
+  // Cancel the unexpected dialog so that the pending request does not block
+  // later requests.
+  try {
+    await window.test_driver.cancel_fedcm_dialog();
+    // See the comment in fedcm_settles_without_dialog().
+    await cred_promise.catch(() => {});
+  } catch (ex) {
+    // Failure is not critical.
+  }
+  throw 'expected auto re-authentication, got dialog: ' + result;
 }
 
 export async function fedcm_expect_dialog(cred_promise, other_promise) {

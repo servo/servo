@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>selectedcontent updates when an ancestor of the select is removed or moved</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<div id=wrapper1>
+  <select id=select1>
+    <button>
+      <selectedcontent></selectedcontent>
+    </button>
+    <option id=option1a>one</option>
+    <option id=option1b>two</option>
+  </select>
+</div>
+
+<script>
+promise_test(async () => {
+  const wrapper = document.getElementById('wrapper1');
+  const select = document.getElementById('select1');
+  const optionA = document.getElementById('option1a');
+  const optionB = document.getElementById('option1b');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should match the selected option at the start of the test.');
+
+  wrapper.remove();
+
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should be unchanged after removing an ancestor of the select.');
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should not be updated by a microtask when no selectedness changed.');
+
+  // "ask for a reset" updates descendant selectedcontent elements
+  // synchronously, which requires the option to still be associated with the
+  // select after the subtree removal.
+  optionB.selected = true;
+
+  assert_false(optionA.selected,
+    'The first option should be deselected.');
+  assert_equals(selectedcontent.innerHTML, 'two',
+    'selectedcontent should be updated synchronously when selecting another option.');
+}, 'selectedcontent stays up to date after an ancestor of the select is removed.');
+</script>
+
+<div id=oldParent>
+  <div id=wrapper2>
+    <select id=select2>
+      <button>
+        <selectedcontent></selectedcontent>
+      </button>
+      <option id=option2a>one</option>
+      <option id=option2b>two</option>
+    </select>
+  </div>
+</div>
+<div id=newParent></div>
+
+<script>
+promise_test(async () => {
+  const wrapper = document.getElementById('wrapper2');
+  const newParent = document.getElementById('newParent');
+  const select = document.getElementById('select2');
+  const optionA = document.getElementById('option2a');
+  const optionB = document.getElementById('option2b');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should match the selected option at the start of the test.');
+
+  // The option moving steps also run for every shadow-including inclusive
+  // descendant of the moved node. Moving an ancestor of the select does not
+  // change any option's nearest ancestor select.
+  newParent.moveBefore(wrapper, null);
+
+  assert_true(optionA.selected,
+    'The first option should stay selected after moving an ancestor of the select.');
+  assert_equals(select.value, 'one',
+    'select.value should be unchanged after moving an ancestor of the select.');
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should be unchanged after moving an ancestor of the select.');
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should not be updated by a microtask when no selectedness changed.');
+
+  optionB.selected = true;
+
+  assert_false(optionA.selected,
+    'The first option should be deselected.');
+  assert_equals(selectedcontent.innerHTML, 'two',
+    'selectedcontent should be updated synchronously when selecting another option.');
+}, 'selectedcontent stays up to date after an ancestor of the select is moved.');
+</script>

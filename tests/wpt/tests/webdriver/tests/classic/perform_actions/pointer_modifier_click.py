@@ -1,7 +1,3 @@
-# META: timeout=long
-
-# Longer timeout required due to a large number of input action and event dispatch subtests.
-
 import pytest
 
 from tests.classic.perform_actions.support.refine import get_events

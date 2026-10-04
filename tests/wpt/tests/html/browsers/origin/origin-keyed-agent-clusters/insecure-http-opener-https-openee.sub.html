@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Openee requests origin-keying over HTTPS, opener is over insecure HTTP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import { testGetter } from "./resources/helpers.mjs";
+
+function waitForMessage(source) {
+  return new Promise(resolve => {
+    window.addEventListener("message", function handler(e) {
+      if (e.source === source) {
+        window.removeEventListener("message", handler);
+        resolve(e.data);
+      }
+    });
+  });
+}
+
+let openee;
+promise_setup(async () => {
+  const url = new URL("resources/send-oac-header.py", location.href);
+  url.protocol = "https:";
+  url.host = "{{hosts[][www]}}:{{ports[https][0]}}";
+  url.searchParams.set("header", "?1");
+  url.searchParams.set("send-loaded-message", "");
+
+  openee = window.open(url.href);
+  add_completion_callback(() => openee.close());
+  assert_equals(await waitForMessage(openee), "loaded");
+});
+
+// The openee is a top-level document over HTTPS, so it is in a secure context and its request is
+// honored, even though its opener is over insecure HTTP.
+testGetter(() => openee, true, "openee");
+testGetter(self, false, "opener");
+</script>

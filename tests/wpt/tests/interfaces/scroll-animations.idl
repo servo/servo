@@ -23,14 +23,14 @@ interface ScrollTimeline : AnimationTimeline {
 };
 
 dictionary ViewTimelineOptions {
-  Element subject;
+  required Element subject;
   ScrollAxis axis = "block";
   (DOMString or sequence<(CSSNumericValue or CSSKeywordValue)>) inset = "auto";
 };
 
 [Exposed=Window]
 interface ViewTimeline : ScrollTimeline {
-  constructor(optional ViewTimelineOptions options = {});
+  constructor(ViewTimelineOptions options);
   readonly attribute Element subject;
   readonly attribute CSSNumericValue startOffset;
   readonly attribute CSSNumericValue endOffset;

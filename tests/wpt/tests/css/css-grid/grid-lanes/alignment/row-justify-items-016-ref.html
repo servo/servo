@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .label {
+      font: 16px/1 monospace;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: row fill-reverse;
+      grid-template-rows: repeat(2, 50px);
+      gap: 4px;
+      width: 180px;
+      height: 110px;
+      border: 1px solid;
+      margin-bottom: 4px;
+    }
+
+    item {
+      display: block;
+      width: 38px;
+      height: 32px;
+      color: white;
+      background: #2ca02c;
+    }
+
+    .wide {
+      width: 78px;
+      background: #1f77b4;
+    }
+  </style>
+</head>
+<body>
+  <div class="label">justify-items: flow-start</div>
+  <div class="grid-lanes" style="justify-items: end;">
+    <item class="wide">1</item>
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+  </div>
+
+  <div class="label">justify-items: flow-end</div>
+  <div class="grid-lanes" style="justify-items: start;">
+    <item class="wide">1</item>
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+  </div>
+
+  <div class="label">justify-self: flow-start (item 3)</div>
+  <div class="grid-lanes">
+    <item class="wide">1</item>
+    <item>2</item>
+    <item style="justify-self: end;">3</item>
+    <item>4</item>
+  </div>
+
+  <div class="label">justify-items: flow-end; justify-self: flow-start (item 3)</div>
+  <div class="grid-lanes" style="justify-items: start;">
+    <item class="wide">1</item>
+    <item>2</item>
+    <item style="justify-self: end;">3</item>
+    <item>4</item>
+  </div>
+</body>
+</html>

@@ -184,6 +184,14 @@ const interpolationTests = [
     midPoint: "\"bar\"",
   },
 
+  // ::marker supports `quotes`.
+  {
+    property: "quotes",
+    from: '"[" "]"',
+    to: '"«" "»"',
+    midPoint: '"«" "»"',
+  },
+
   // ::marker supports text properties.
   {
     property: "hyphens",

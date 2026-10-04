@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-spanning-items">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<link rel="match" href="grid-spanning-item-with-paddings-auto-rows-001-ref.html">
+<meta name="assert" content="The paddings of an item spanning two auto rows contribute to the row sizes, and its horizontal paddings to the column size.">
+<html>
+<link href="/css/support/grid.css" rel="stylesheet">
+<!-- Companion to grid-spanning-item-with-paddings-auto-columns-001.html for the block
+     axis: a grid item spanning two content-sized rows distributes its size
+     contribution (including top+bottom padding) across those rows (CSS Grid
+     Layout 1 §12.5, #algo-spanning-items). The second-column markers reveal
+     each computed row height. -->
+<style>
+.grid {
+    /* Sized to the content so the auto columns do not stretch: column 1 keeps
+       the spanner's 100px contribution and column 2 keeps the markers' 30px,
+       leaving the second-column markers at x = 100px. */
+    width: 130px;
+    grid-template-rows: auto auto;
+    justify-items: normal;
+}
+
+.spanner {
+    grid-column: 1 / 2;
+    grid-row: 1 / 3;
+    box-sizing: content-box;
+    width: 40px;
+    height: 20px;
+    padding: 10px 20px 30px 40px;
+}
+
+.topRowMarker {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    width: 30px;
+    background-color: blue;
+}
+
+.bottomRowMarker {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    width: 30px;
+    background-color: purple;
+}
+</style>
+
+<body>
+    <div class="grid">
+        <div class="spanner"></div>
+        <div class="topRowMarker"></div>
+        <div class="bottomRowMarker"></div>
+    </div>
+</body>
+</html>

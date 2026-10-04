@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: flexible tracks stay equal when the grid container shrinks around an aspect-ratio item</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-flex-tracks">
+<link rel="match" href="aspect-ratio-grid-item-dynamic-container-shrink-001-ref.html">
+<meta name="assert" content="A stretched grid item with an aspect ratio transfers its row size into its inline size. When the grid container shrinks, that contribution has to be measured again against the new row size, otherwise the previous row size floors the flexible track and the two 1fr columns end up with different sizes.">
+<style>
+#grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 200px;
+}
+#item-with-aspect-ratio {
+    aspect-ratio: 1.5;
+    background: green;
+}
+#sibling {
+    background: black;
+}
+</style>
+<p>Test passes if the green and the black rectangle have the same width.</p>
+<div id="grid">
+    <div id="item-with-aspect-ratio"></div>
+    <div id="sibling"></div>
+</div>
+<script>
+document.body.offsetHeight;
+document.getElementById("grid").style.width = "150px";
+</script>

@@ -1,0 +1,317 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>sizes=auto: retaining last rendered width when unrendered</title>
+<link rel="help" href="https://html.spec.whatwg.org/#parse-a-sizes-attribute">
+<link rel="help" href="https://html.spec.whatwg.org/#relevant-mutations">
+<link rel="help" href="https://html.spec.whatwg.org/#allows-auto-sizes">
+<link rel="help" href="https://html.spec.whatwg.org/#dom-img-complete">
+<link rel="help" href="https://github.com/whatwg/html/pull/13004">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+// Notes on observability:
+//
+// * A lazy image that is not being rendered (display:none or disconnected) never intersects the
+//   viewport, so its fetch stays deferred and it never fires load. To observe which source was
+//   selected while unrendered, we let selection happen while the image is still lazy, and then
+//   switch loading to eager. Changing the loading attribute is not a relevant mutation; it only
+//   invokes the lazy load resumption steps, which fetch the already-selected source.
+//
+// * Under the previous spec, stopping being rendered was a relevant mutation. That would select
+//   a new source and create a (deferred) pending request, so currentSrc would not change, but
+//   img.complete would become false. Under the new spec, nothing happens and complete stays true.
+
+const dpr = window.devicePixelRatio || 1;
+const smallW = Math.max(1, Math.round(50 * dpr));
+const largeW = Math.max(2, Math.round(500 * dpr));
+const xlargeW = Math.max(3, Math.round(1200 * dpr));
+
+function makeSrcset(token) {
+  return `/images/green-1x1.png?small-${token} ${smallW}w, ` +
+         `/images/green-16x16.png?large-${token} ${largeW}w, ` +
+         `/images/green-256x256.png?xlarge-${token} ${xlargeW}w`;
+}
+
+function nextLoad(img) {
+  return new Promise((resolve, reject) => {
+    img.addEventListener('load', resolve, {once: true});
+    img.addEventListener('error', () => reject(new Error('Image failed to load: ' + img.currentSrc)), {once: true});
+  });
+}
+
+function flushStyleAndLayout(element) {
+  element.getBoundingClientRect();
+}
+
+async function createAutoSizedImage(sizes, width, token, parent = document.body) {
+  const image = document.createElement('img');
+  image.loading = 'lazy';
+  image.sizes = sizes;
+  image.style.cssText = `width: ${width}px; height: 10px;`;
+  const loadPromise = nextLoad(image);
+  image.srcset = makeSrcset(token);
+  parent.append(image);
+  await loadPromise;
+  assert_true(image.currentSrc.includes(`small-${token}`),
+              `Initial source should be small candidate (got: ${image.currentSrc})`);
+  assert_true(image.complete, 'Image should be complete after initial load');
+  return image;
+}
+
+async function waitForPossibleReselection() {
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => step_timeout(resolve, 50));
+}
+
+// Runs `mutate` (which should cause a relevant mutation) while `image` is still lazy, lets
+// "update the image data" select a source, then sets loading=eager so the deferred fetch of the
+// selected source resumes, and waits for it to load.
+async function selectWhileLazyThenLoad(image, mutate) {
+  const loadPromise = nextLoad(image);
+  mutate();
+  await new Promise(resolve => step_timeout(resolve, 0));
+  image.loading = 'eager';
+  await loadPromise;
+}
+
+function assertNoReselection(image, token, message) {
+  assert_true(image.currentSrc.includes(`small-${token}`),
+              `${message}: currentSrc must not change (got: ${image.currentSrc})`);
+  assert_true(image.complete,
+              `${message}: no pending request must be created, so complete must remain true`);
+}
+
+// 1. Stopping being rendered is not a relevant mutation.
+promise_test(async () => {
+  const image = await createAutoSizedImage('auto', 50, 'detach-auto');
+  image.remove();
+  await waitForPossibleReselection();
+  assertNoReselection(image, 'detach-auto', 'Detached image');
+}, 'A detached sizes=auto image does not reselect its source');
+
+promise_test(async () => {
+  const image = await createAutoSizedImage('auto, 500px', 50, 'detach-explicit');
+  image.remove();
+  await waitForPossibleReselection();
+  assertNoReselection(image, 'detach-explicit', 'Detached image with explicit fallback');
+}, 'A detached sizes=auto image with explicit fallback does not reselect its source');
+
+promise_test(async t => {
+  const image = await createAutoSizedImage('auto', 50, 'hidden-auto');
+  t.add_cleanup(() => image.remove());
+  image.style.display = 'none';
+  flushStyleAndLayout(image);
+  await waitForPossibleReselection();
+  assertNoReselection(image, 'hidden-auto', 'display:none image');
+}, 'A display:none sizes=auto image does not reselect its source');
+
+promise_test(async t => {
+  const image = await createAutoSizedImage('auto, 500px', 50, 'hidden-explicit');
+  t.add_cleanup(() => image.remove());
+  image.style.display = 'none';
+  flushStyleAndLayout(image);
+  await waitForPossibleReselection();
+  assertNoReselection(image, 'hidden-explicit', 'display:none image with explicit fallback');
+}, 'A display:none sizes=auto image with explicit fallback does not reselect its source');
+
+promise_test(async t => {
+  const container = document.createElement('div');
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+  const image = await createAutoSizedImage('auto', 50, 'hidden-ancestor', container);
+  container.style.display = 'none';
+  flushStyleAndLayout(container);
+  await waitForPossibleReselection();
+  assertNoReselection(image, 'hidden-ancestor', 'Image inside hidden ancestor');
+}, 'An image inside an ancestor that stops being rendered does not reselect its source');
+
+// 2. While connected but not rendered, source selection uses the last auto-sizes width.
+promise_test(async t => {
+  const image = await createAutoSizedImage('auto', 50, 'retained-hidden');
+  t.add_cleanup(() => image.remove());
+  image.style.display = 'none';
+  flushStyleAndLayout(image);
+
+  await selectWhileLazyThenLoad(image, () => {
+    image.srcset = makeSrcset('retained-hidden-new');
+  });
+
+  assert_true(image.currentSrc.includes('small-retained-hidden-new'),
+              `Source selection while display:none must use the last auto-sizes width (got: ${image.currentSrc})`);
+}, 'A display:none sizes=auto image uses its last auto-sizes width on subsequent mutation');
+
+promise_test(async t => {
+  const image = await createAutoSizedImage('auto', 50, 'retained-sizes-change');
+  t.add_cleanup(() => image.remove());
+  image.style.display = 'none';
+  flushStyleAndLayout(image);
+
+  // The new sizes value still allows auto-sizes; its fallback would select the large candidate.
+  await selectWhileLazyThenLoad(image, () => {
+    image.sizes = 'auto, 500px';
+    image.srcset = makeSrcset('retained-sizes-change-new');
+  });
+
+  assert_true(image.currentSrc.includes('small-retained-sizes-change-new'),
+              `Last auto-sizes width must still be used when sizes changes while unrendered (got: ${image.currentSrc})`);
+}, 'Changing the sizes attribute while unrendered still uses the last auto-sizes width');
+
+// 3. Disconnecting resets the last auto-sizes width, so later selection uses the fallback.
+promise_test(async () => {
+  const image = await createAutoSizedImage('auto', 50, 'detach-mutation');
+  image.remove();
+
+  await selectWhileLazyThenLoad(image, () => {
+    image.srcset = makeSrcset('detach-mutation-new');
+  });
+
+  // With no source size, the default of 100vw is used.
+  assert_true(image.currentSrc.includes('xlarge-detach-mutation-new'),
+              `Source selection while disconnected must fall back to 100vw (got: ${image.currentSrc})`);
+}, 'A disconnected sizes=auto image does not use its previous rendered width');
+
+promise_test(async () => {
+  const image = await createAutoSizedImage('auto, 500px', 50, 'detach-explicit-mutation');
+  image.remove();
+
+  await selectWhileLazyThenLoad(image, () => {
+    image.srcset = makeSrcset('detach-explicit-mutation-new');
+  });
+
+  assert_true(image.currentSrc.includes('large-detach-explicit-mutation-new'),
+              `Source selection while disconnected must use the explicit fallback (got: ${image.currentSrc})`);
+}, 'A disconnected sizes=auto image with explicit fallback uses the fallback on mutation');
+
+// 4. Images that were never rendered have no last auto-sizes width and use the fallback.
+promise_test(async () => {
+  const image = document.createElement('img');
+  image.loading = 'lazy';
+  image.sizes = 'auto, 500px';
+  await selectWhileLazyThenLoad(image, () => {
+    image.srcset = makeSrcset('never-rendered-detached');
+  });
+  assert_true(image.currentSrc.includes('large-never-rendered-detached'),
+              `A never-rendered disconnected image must use the fallback size (got: ${image.currentSrc})`);
+}, 'A disconnected image that was never rendered uses the fallback size');
+
+promise_test(async t => {
+  const container = document.createElement('div');
+  container.style.display = 'none';
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+
+  const image = document.createElement('img');
+  image.loading = 'lazy';
+  image.sizes = 'auto, 500px';
+  image.style.cssText = 'width: 50px; height: 10px;';
+  container.append(image);
+  flushStyleAndLayout(image);
+
+  await selectWhileLazyThenLoad(image, () => {
+    image.srcset = makeSrcset('never-rendered-hidden');
+  });
+  assert_true(image.currentSrc.includes('large-never-rendered-hidden'),
+              `A never-rendered display:none image must use the fallback size (got: ${image.currentSrc})`);
+}, 'A display:none image that was never rendered uses the fallback size');
+
+// 5. Starting being rendered again updates the last auto-sizes width.
+promise_test(async t => {
+  // The 10px fallback selects the small candidate, so it is distinguishable from a retained 400px.
+  const image = await createAutoSizedImage('auto, 10px', 50, 'reattach');
+  t.add_cleanup(() => image.remove());
+  image.remove();
+
+  image.style.width = '400px';
+  const loadPromise = nextLoad(image);
+  document.body.append(image);
+  await loadPromise;
+  assert_true(image.currentSrc.includes('large-reattach'),
+              `Starting being rendered at a new width must reselect the source (got: ${image.currentSrc})`);
+
+  // Verify the new width is retained once the image stops being rendered.
+  image.style.display = 'none';
+  flushStyleAndLayout(image);
+  await selectWhileLazyThenLoad(image, () => {
+    image.srcset = makeSrcset('reattach-new');
+  });
+  assert_true(image.currentSrc.includes('large-reattach-new'),
+              `Last auto-sizes width should have been updated to 400px (got: ${image.currentSrc})`);
+}, 'A re-rendered sizes=auto image updates its last auto-sizes width');
+
+// 6. Not allowing auto-sizes means the last auto-sizes width is not used.
+promise_test(async t => {
+  const image = await createAutoSizedImage('auto, 500px', 50, 'losing-auto');
+  t.add_cleanup(() => image.remove());
+  image.style.display = 'none';
+  flushStyleAndLayout(image);
+
+  // An eager image does not allow auto-sizes, and is fetched even though it is not rendered.
+  image.loading = 'eager';
+  const loadPromise = nextLoad(image);
+  image.srcset = makeSrcset('losing-auto-new');
+  await loadPromise;
+
+  assert_true(image.currentSrc.includes('large-losing-auto-new'),
+              `When the image does not allow auto-sizes, auto is ignored and the fallback is used (got: ${image.currentSrc})`);
+}, 'Removing lazy loading causes an unrendered image to ignore its last auto-sizes width');
+
+// 7. <picture> with <source sizes="auto">.
+promise_test(async t => {
+  const picture = document.createElement('picture');
+  const source = document.createElement('source');
+  source.setAttribute('sizes', 'auto');
+  source.srcset = makeSrcset('picture-initial');
+  const image = document.createElement('img');
+  image.loading = 'lazy';
+  image.sizes = 'auto';
+  image.style.cssText = 'width: 50px; height: 10px;';
+  picture.append(source, image);
+
+  const loadPromise = nextLoad(image);
+  document.body.append(picture);
+  t.add_cleanup(() => picture.remove());
+  await loadPromise;
+  assert_true(image.currentSrc.includes('small-picture-initial'),
+              `Initial picture source selection should use the rendered img width (got: ${image.currentSrc})`);
+
+  picture.style.display = 'none';
+  flushStyleAndLayout(image);
+  await waitForPossibleReselection();
+  assertNoReselection(image, 'picture-initial', 'Hidden picture');
+
+  await selectWhileLazyThenLoad(image, () => {
+    source.srcset = makeSrcset('picture-new');
+  });
+  assert_true(image.currentSrc.includes('small-picture-new'),
+              `Source selection while the picture is display:none must use the img's last auto-sizes width (got: ${image.currentSrc})`);
+}, 'A <source sizes=auto> uses the img last auto-sizes width when unrendered');
+
+// 8. moveBefore() does not run the removing steps, so it does not reset the last auto-sizes width.
+promise_test(async t => {
+  assert_implements(document.body.moveBefore, 'moveBefore is supported');
+
+  const hiddenContainer = document.createElement('div');
+  hiddenContainer.style.display = 'none';
+  document.body.append(hiddenContainer);
+  t.add_cleanup(() => hiddenContainer.remove());
+
+  const image = await createAutoSizedImage('auto', 50, 'move-before');
+  t.add_cleanup(() => image.remove());
+
+  hiddenContainer.moveBefore(image, null);
+  flushStyleAndLayout(image);
+  await waitForPossibleReselection();
+  assertNoReselection(image, 'move-before', 'Image moved into display:none container');
+
+  await selectWhileLazyThenLoad(image, () => {
+    image.srcset = makeSrcset('move-before-new');
+  });
+  assert_true(image.currentSrc.includes('small-move-before-new'),
+              `Source selection after moveBefore into display:none must use the last auto-sizes width (got: ${image.currentSrc})`);
+}, 'moveBefore does not reset the last auto-sizes width');
+</script>
+</body>

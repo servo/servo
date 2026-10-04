@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The effect value of a keyframe effect: an easing on a keyframe that
+  specifies no value for the target property is not used</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#the-effect-value-of-a-keyframe-animation-effect">
+<meta name="assert" content="A keyframe carrying an easing but no value for the animated property is removed from the property-specific keyframes before interval selection, so a synthesized implicit keyframe supplies the start of the interval, and the easing used is that keyframe's linear easing rather than the removed keyframe's.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// https://drafts.csswg.org/web-animations-1/#the-effect-value-of-a-keyframe-animation-effect
+// takes three steps that decide this, in order:
+//
+//   "Remove any keyframes from property-specific keyframes that do not have a
+//    property value for target property."
+//   "If there is no keyframe in property-specific keyframes with a computed
+//    keyframe offset of 0, create a new keyframe with a computed keyframe offset
+//    of 0, a property value set to underlying value, a keyframe-specific
+//    composite operation of replace, and a keyframe-specific easing function of
+//    the linear easing function, and prepend it [...]"
+//   "Let transformed distance be the result of evaluating the easing function
+//    associated with the first keyframe in interval endpoints [...]"
+//
+// So a keyframe with an easing and no value for the property is gone before the
+// interval is chosen, and the keyframe that replaces it is linear. The easing
+// cannot reach the property.
+//
+// The easing is specified as a step function so that "applied" and "not applied"
+// are far apart at every sample rather than differing by a rounding error.
+
+test(t => {
+  const target = createDiv(t);
+  target.style.width = '100px';
+
+  const anim = target.animate(
+      [ { easing: 'steps(2, start)' },
+        { width: '200px' } ],
+      { duration: 1000, fill: 'both' });
+  anim.pause();
+
+  // Linear from the underlying 100px to 200px.
+  for (const [time, expected] of [[0, 100], [250, 125], [500, 150], [750, 175]]) {
+    anim.currentTime = time;
+    assert_equals(getComputedStyle(target).width, `${expected}px`,
+        `width at ${time}ms should be ${expected}px, interpolated linearly, ` +
+        `because the easing on the keyframe with no width is discarded`);
+  }
+}, 'An easing on a keyframe with no value for the target property is not applied');
+
+test(t => {
+  const target = createDiv(t);
+  target.style.width = '100px';
+
+  // Control: the same easing, on a keyframe that does specify the property, so
+  // the keyframe survives the removal step. Here it must be applied.
+  const anim = target.animate(
+      [ { width: '100px', easing: 'steps(2, start)' },
+        { width: '200px' } ],
+      { duration: 1000, fill: 'both' });
+  anim.pause();
+
+  for (const [time, expected] of [[0, 150], [250, 150], [499, 150], [500, 200]]) {
+    anim.currentTime = time;
+    assert_equals(getComputedStyle(target).width, `${expected}px`,
+        `width at ${time}ms should be ${expected}px, because the easing sits on ` +
+        `a keyframe that does specify width and so survives`);
+  }
+}, 'Control: the same easing on a keyframe that does specify the property is applied');
+
+</script>
+</body>

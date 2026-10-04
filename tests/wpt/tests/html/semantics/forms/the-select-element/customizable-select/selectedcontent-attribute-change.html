@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>selectedcontent is updated when an attribute change resets selectedness</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<select id=select1 size=2>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option id=option1>A</option>
+</select>
+
+<script>
+test(() => {
+  const select = document.getElementById('select1');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.textContent, '',
+    'selectedcontent should be empty while no option is selected.');
+
+  select.size = 1;
+
+  assert_equals(selectedcontent.textContent, 'A',
+    'selectedcontent should be updated when reducing the display size to 1.');
+}, 'Reducing a select\'s size to 1 updates selectedcontent.');
+</script>
+
+<select id=select2 multiple size=1>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option id=option2>B</option>
+</select>
+
+<script>
+test(() => {
+  const select = document.getElementById('select2');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  select.removeAttribute('multiple');
+
+  assert_equals(selectedcontent.textContent, 'B',
+    'selectedcontent should be updated when removing the multiple attribute.');
+}, 'Removing a select\'s multiple attribute updates selectedcontent.');
+</script>
+
+<select id=select3>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option id=option3 disabled>C</option>
+</select>
+
+<script>
+test(() => {
+  const select = document.getElementById('select3');
+  const option = document.getElementById('option3');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.textContent, '',
+    'selectedcontent should be empty while every option is disabled.');
+
+  option.disabled = false;
+
+  assert_equals(selectedcontent.textContent, 'C',
+    'selectedcontent should be updated when enabling an option.');
+}, 'Removing an option\'s disabled attribute updates selectedcontent.');
+</script>
+
+<select id=select4>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <optgroup id=optgroup4 disabled>
+    <option id=option4>D</option>
+  </optgroup>
+</select>
+
+<script>
+test(() => {
+  const select = document.getElementById('select4');
+  const optgroup = document.getElementById('optgroup4');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.textContent, '',
+    'selectedcontent should be empty while the optgroup is disabled.');
+
+  optgroup.disabled = false;
+
+  assert_equals(selectedcontent.textContent, 'D',
+    'selectedcontent should be updated when enabling an optgroup.');
+}, 'Removing an optgroup\'s disabled attribute updates selectedcontent.');
+</script>
+
+<select id=select5>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option id=option5a>E</option>
+  <option id=option5b>F</option>
+</select>
+
+<script>
+test(() => {
+  const select = document.getElementById('select5');
+  const optionB = document.getElementById('option5b');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.textContent, 'E',
+    'selectedcontent should match the selected option at the start of the test.');
+
+  optionB.setAttribute('selected', '');
+
+  assert_equals(selectedcontent.textContent, 'F',
+    'selectedcontent should be updated when adding the selected attribute.');
+}, 'Adding an option\'s selected attribute updates selectedcontent.');
+</script>
+
+<select id=select6 size=3>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option id=option6 selected>G</option>
+</select>
+
+<script>
+// An attribute change that leaves selectedness alone must not touch
+// selectedcontent, because "replace all" would otherwise replace its children.
+test(t => {
+  const select = document.getElementById('select6');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.textContent, 'G',
+    'selectedcontent should match the selected option at the start of the test.');
+  const originalChild = selectedcontent.firstChild;
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true, subtree: true});
+
+  // The display size stays greater than 1 and the selected option is unchanged.
+  select.size = 2;
+
+  assert_equals(select.value, 'G',
+    'The selected option should be unchanged.');
+  assert_equals(selectedcontent.firstChild, originalChild,
+    'selectedcontent children should not be replaced.');
+  assert_equals(observer.takeRecords().length, 0,
+    'A size change that does not change selectedness should not mutate selectedcontent.');
+}, 'An attribute change that does not change selectedness does not update selectedcontent.');
+</script>
+
+<select id=select7 multiple>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option id=option7a>H</option>
+  <option id=option7b selected>I</option>
+</select>
+
+<script>
+// selectedcontent is not kept up to date while the multiple attribute is
+// present, so removing it has to update selectedcontent even when no option's
+// selectedness changes.
+test(() => {
+  const select = document.getElementById('select7');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  select.removeAttribute('multiple');
+
+  assert_equals(select.value, 'I',
+    'The selected option should be unchanged.');
+  assert_equals(selectedcontent.innerHTML, 'I',
+    'selectedcontent should be updated when removing the multiple attribute.');
+}, 'Removing a select\'s multiple attribute updates selectedcontent when selectedness does not change.');
+</script>

@@ -3,7 +3,7 @@
 <head>
 <title>Custom Elements: CEReactions on HTMLOptionElement interface</title>
 <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
-<meta name="assert" content="text of HTMLOptionElement interface must have CEReactions">
+<meta name="assert" content="text and selected of HTMLOptionElement interface must have CEReactions">
 <meta name="help" content="https://dom.spec.whatwg.org/#node">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -29,6 +29,18 @@ test_with_window(function (contentWindow, contentDocument) {
     assert_equals(option.innerHTML, 'world');
     assert_array_equals(element.takeLog().types(), ['disconnected']);
 }, 'text on HTMLOptionElement must enqueue disconnectedCallback when removing a custom element');
+
+test_with_window(function (contentWindow, contentDocument) {
+    const element = define_custom_element_in_window(contentWindow, 'custom-element', []);
+    contentDocument.body.innerHTML = `<select><button><selectedcontent></selectedcontent></button><option>one</option><option><custom-element>two</custom-element></option></select>`;
+    assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
+
+    const select = contentDocument.querySelector('select');
+    const selectedcontent = contentDocument.querySelector('selectedcontent');
+    select.options[1].selected = true;
+    assert_equals(selectedcontent.innerHTML, '<custom-element>two</custom-element>');
+    assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
+}, 'selected on HTMLOptionElement must enqueue connectedCallback when cloning a custom element into selectedcontent');
 
 </script>
 </body>

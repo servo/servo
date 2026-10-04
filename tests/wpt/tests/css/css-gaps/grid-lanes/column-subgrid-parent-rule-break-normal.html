@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: a parent grid-lanes column rule breaks around an undecorated subgrid</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-parent-rule-break-normal-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 180px;
+    width: 190px;
+  }
+  .lanes {
+    background: lightgray;
+    column-gap: 20px;
+    column-rule: 6px solid blue;
+    column-rule-break: normal;
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 50px);
+    height: 180px;
+    row-gap: 20px;
+    width: 190px;
+  }
+  .before,
+  .after,
+  .side {
+    background: purple;
+  }
+  .before,
+  .after {
+    height: 30px;
+  }
+  .before-one,
+  .after-one {
+    grid-column: 1;
+  }
+  .before-two,
+  .after-two {
+    grid-column: 2;
+  }
+  .side {
+    grid-column: 3;
+    height: 180px;
+  }
+  .subgrid {
+    display: grid;
+    grid-column: 1 / span 2;
+    grid-template-columns: subgrid;
+    grid-template-rows: repeat(2, 30px);
+    row-gap: 20px;
+  }
+  .cell {
+    background: teal;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="before before-one"></div>
+    <div class="before before-two"></div>
+    <div class="side"></div>
+    <div class="subgrid">
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+    </div>
+    <div class="after after-one"></div>
+    <div class="after after-two"></div>
+  </div>
+</div>

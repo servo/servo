@@ -24,9 +24,11 @@ text {
 <script>
 // Ahem advances one em per character, so "ABCD" at 20px is naturally 80 units wide and
 // every number below is exact. textLength="200" asks for a 2.5x stretch.
-const EPSILON = 0.01;
+const EPSILON = 1 / 64;
 
-test(() => {
+promise_setup(() => document.fonts.ready);
+
+promise_test(async () => {
   const text = document.getElementById('natural');
   assert_equals(text.getNumberOfChars(), 4);
   assert_approx_equals(text.getComputedTextLength(), 80, EPSILON);
@@ -37,7 +39,7 @@ test(() => {
   assert_approx_equals(text.getEndPositionOfChar(3).x, 80, EPSILON);
 }, 'control: without textLength the advances are one em each');
 
-test(() => {
+promise_test(async () => {
   const text = document.getElementById('spacing');
   // 'spacing' distributes the extra 120 units into the 3 gaps, 40 each. The glyphs keep
   // their own advance, so getComputedTextLength stays at the natural 80.
@@ -51,7 +53,7 @@ test(() => {
   assert_approx_equals(text.getEndPositionOfChar(3).x, 200, EPSILON);
 }, 'lengthAdjust="spacing" moves the characters apart and leaves each advance alone');
 
-test(() => {
+promise_test(async () => {
   const text = document.getElementById('glyphs');
   // 'spacingAndGlyphs' scales the glyphs themselves, so each advance really is 2.5x wider
   // and the sum of the advances is the requested textLength.
@@ -64,7 +66,7 @@ test(() => {
   }
 }, 'lengthAdjust="spacingAndGlyphs" scales the advances, the positions and the extents');
 
-test(() => {
+promise_test(async () => {
   const text = document.getElementById('glyphs');
   // The stretch is along the inline axis only, so nothing is rotated and the glyph boxes
   // keep their height.
@@ -75,7 +77,7 @@ test(() => {
   }
 }, 'lengthAdjust="spacingAndGlyphs" does not rotate or change the height of a character');
 
-test(() => {
+promise_test(async () => {
   const text = document.getElementById('glyphs');
   assert_approx_equals(text.getSubStringLength(0, 1), 50, EPSILON);
   assert_approx_equals(text.getSubStringLength(1, 2), 100, EPSILON);
@@ -93,7 +95,7 @@ function charAt(text, x) {
   return text.getCharNumAtPosition(point);
 }
 
-test(() => {
+promise_test(async () => {
   const text = document.getElementById('spacing');
   // Characters keep their 20 unit advance and sit at 0, 60, 120 and 180.
   assert_equals(charAt(text, 10), 0);
@@ -104,7 +106,7 @@ test(() => {
   assert_equals(charAt(text, 201), -1);
 }, 'getCharNumAtPosition finds the characters where lengthAdjust="spacing" put them');
 
-test(() => {
+promise_test(async () => {
   const text = document.getElementById('glyphs');
   // Characters are 50 wide and sit at 0, 50, 100 and 150.
   assert_equals(charAt(text, 1), 0);

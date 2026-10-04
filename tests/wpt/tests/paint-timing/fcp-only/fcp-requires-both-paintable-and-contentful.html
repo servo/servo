@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Paint Timing: First contentful paint requires an element that is both paintable and contentful</title>
+<link rel="author" title="Shubham Gupta" href="mailto:shubhamg13.work@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<body>
+<style>
+  #paintable-not-contentful {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+
+  #contentful-not-paintable {
+    width: 100px;
+    height: 100px;
+    opacity: 0;
+  }
+</style>
+<!-- This image is contentful (an available image) but not paintable (used
+     opacity is not greater than zero). -->
+<img id="contentful-not-paintable" src="/images/blue.png">
+<!-- This element is paintable (rendered, visible, opaque, intersects the
+     scrolling area) but not contentful (no contentful image or text). -->
+<div id="paintable-not-contentful"></div>
+<script>
+  setup({"hide_test_state": true});
+  promise_test(async t => {
+    // The image is contentful but not paintable, and the div is paintable but
+    // not contentful. Since no element is both, first-contentful-paint must
+    // not be reported.
+    await new Promise(resolve => window.addEventListener('load', resolve));
+    await assertNoFirstContentfulPaint(t);
+  }, 'FCP requires an element that is both paintable and contentful.');
+</script>
+</body>

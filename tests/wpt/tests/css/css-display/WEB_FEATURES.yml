@@ -1,4 +1,5 @@
 rules:
+- display-math-*: [mathml, display]
 - display-contents-*: [display-contents]
 - display-flow-root-list-item-*: [display-list-item, display-flow-root]
 - display-flow-root-*: [display-flow-root]

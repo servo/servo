@@ -15,9 +15,8 @@ select, select::picker(select) {
 <select size="2"></select>
 
 <script>
-  promise_test(async () => {
-    step_timeout(() => {
-      document.querySelector('select').size = 1;
-    }, 10);
+  promise_test(async t => {
+    await new Promise(resolve => t.step_timeout(resolve, 10));
+    document.querySelector('select').size = 1;
   }, 'Changing the size attribute should not crash.');
 </script>

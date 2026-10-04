@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 380px;
+    position: relative;
+    width: 180px;
+  }
+  .lanes {
+    background: lightgray;
+    column-gap: 20px;
+    direction: rtl;
+    display: grid-lanes;
+    grid-template-rows: 40px 60px 80px 50px 70px;
+    height: 380px;
+    row-gap: 20px;
+    width: 180px;
+  }
+  .outer,
+  .parent-item {
+    background: purple;
+  }
+  .outer {
+    width: 180px;
+  }
+  .parent-item {
+    width: 30px;
+  }
+  .track-one {
+    grid-row: 1;
+  }
+  .track-two {
+    grid-row: 2;
+  }
+  .track-three {
+    grid-row: 3;
+  }
+  .track-four {
+    grid-row: 4;
+  }
+  .track-five {
+    grid-row: 5;
+  }
+  .subgrid {
+    background: transparent;
+    column-gap: 20px;
+    direction: ltr;
+    display: grid;
+    grid-row: 2 / span 3;
+    grid-template-columns: repeat(2, 30px);
+    grid-template-rows: subgrid;
+  }
+  .cell {
+    background: teal;
+  }
+  .parent-rule,
+  .child-rule {
+    position: absolute;
+  }
+  .parent-rule {
+    height: 8px;
+    left: 0;
+    width: 180px;
+  }
+  .parent-top-outer {
+    background: blue;
+    top: 46px;
+  }
+  .parent-top-inner {
+    background: gold;
+    top: 126px;
+  }
+  .parent-bottom-inner {
+    background: blue;
+    top: 226px;
+  }
+  .parent-bottom-outer {
+    background: gold;
+    top: 296px;
+  }
+  .child-rule {
+    height: 4px;
+    left: 50px;
+    width: 80px;
+  }
+  .child-top {
+    background: green;
+    top: 128px;
+  }
+  .child-bottom {
+    background: red;
+    top: 228px;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="outer track-one"></div>
+    <div class="parent-item track-two"></div>
+    <div class="parent-item track-three"></div>
+    <div class="parent-item track-four"></div>
+    <div class="outer track-five"></div>
+    <div class="subgrid">
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+    </div>
+    <div class="parent-item track-two"></div>
+    <div class="parent-item track-three"></div>
+    <div class="parent-item track-four"></div>
+  </div>
+  <div class="parent-rule parent-top-outer"></div>
+  <div class="parent-rule parent-top-inner"></div>
+  <div class="parent-rule parent-bottom-inner"></div>
+  <div class="parent-rule parent-bottom-outer"></div>
+  <div class="child-rule child-top"></div>
+  <div class="child-rule child-bottom"></div>
+</div>

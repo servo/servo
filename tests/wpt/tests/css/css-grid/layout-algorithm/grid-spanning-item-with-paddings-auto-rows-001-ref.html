@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<link href="/css/support/grid.css" rel="stylesheet">
+<!-- The spanner's border box is 40 + 40 + 20 = 100px wide and 20 + 10 + 30 =
+     60px tall (split evenly across two rows). Reproduce the marker positions
+     with author-specified fixed track sizes instead of content-based sizing. -->
+<style>
+.grid {
+    width: 130px;
+    grid-template-columns: 100px 30px;
+    grid-template-rows: 30px 30px;
+    justify-items: normal;
+}
+
+.topRowMarker {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    width: 30px;
+    background-color: blue;
+}
+
+.bottomRowMarker {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    width: 30px;
+    background-color: purple;
+}
+</style>
+
+<body>
+    <div class="grid">
+        <div class="topRowMarker"></div>
+        <div class="bottomRowMarker"></div>
+    </div>
+</body>
+</html>

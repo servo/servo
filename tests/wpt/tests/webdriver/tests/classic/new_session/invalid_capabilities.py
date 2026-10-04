@@ -1,7 +1,3 @@
-# META: timeout=long
-
-# Longer timeout required due to a large number of parameterized invalid argument subtests.
-
 import pytest
 
 from .conftest import product, flatten

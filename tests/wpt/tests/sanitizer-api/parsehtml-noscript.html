@@ -1,0 +1,59 @@
+<!doctype html>
+<head>
+  <title>
+    Document.parseHTML() and parseHTMLUnsafe() parse noscript with scripting
+    disabled
+  </title>
+  <link rel="help" href="https://html.spec.whatwg.org/#dom-parsehtml" />
+  <link rel="help" href="https://html.spec.whatwg.org/#dom-parsehtmlunsafe" />
+  <link rel="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    // The new document has no browsing context, so scripting is disabled and the
+    // parser treats <noscript> content as markup, regardless of the options.
+    const input = "<noscript><p>x</noscript>y";
+
+    function assert_markup_noscript(doc) {
+      const noscript = doc.head.firstChild;
+      assert_equals(noscript.localName, "noscript");
+      assert_equals(noscript.childNodes.length, 0, "noscript is empty");
+      assert_equals(doc.body.childNodes.length, 1, "body has one child");
+      const p = doc.body.firstChild;
+      assert_equals(p.localName, "p");
+      assert_equals(p.textContent, "xy");
+    }
+
+    for (const [name, options] of [
+      ["no options", undefined],
+      ["empty options", {}],
+      ["empty sanitizer config", { sanitizer: {} }],
+      [
+        "sanitizer allowing noscript",
+        { sanitizer: { elements: ["html", "head", "body", "noscript", "p"] } },
+      ],
+    ]) {
+      test((t) => {
+        assert_markup_noscript(Document.parseHTMLUnsafe(input, options));
+      }, `parseHTMLUnsafe() parses noscript as markup (${name})`);
+    }
+
+    test((t) => {
+      assert_markup_noscript(
+        Document.parseHTML(input, {
+          sanitizer: { elements: ["html", "head", "body", "noscript", "p"] },
+        }),
+      );
+    }, "parseHTML() parses noscript as markup when noscript is allowed");
+
+    test((t) => {
+      const doc = Document.parseHTML(input);
+      assert_equals(doc.head.childNodes.length, 0, "noscript is removed");
+      assert_equals(doc.body.childNodes.length, 1, "body has one child");
+      assert_equals(doc.body.firstChild.localName, "p");
+      assert_equals(doc.body.firstChild.textContent, "xy");
+    }, "parseHTML() removes noscript by default but keeps the markup it contained");
+  </script>
+</body>

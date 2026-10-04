@@ -31,8 +31,8 @@ window.onload = async () => {
     }
   });
 
-  window.addEventListener('toolcancel', (event) => {
-    if (event.detail === 'toolA') {
+  document.modelContext.addEventListener('toolcancel', (event) => {
+    if (event.toolName === 'toolA') {
       // Synchronously resolve toolB promise during toolA cancel.
       // This will queue the microtask to remove toolB from pending_executions_
       // and trigger a re-hash.

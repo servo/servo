@@ -100,6 +100,26 @@
     "output": "application/xml"
   },
   {
+    "input": "text/example+xml",
+    "output": "application/xml"
+  },
+  {
+    "input": "image/example+xml",
+    "output": "application/xml"
+  },
+  {
+    "input": "font/example+xml",
+    "output": "application/xml"
+  },
+  {
+    "input": "TEXT/EXAMPLE+XML",
+    "output": "application/xml"
+  },
+  {
+    "input": "text/example+xml; charset=utf-8",
+    "output": "application/xml"
+  },
+  {
     "input": "image/png;7a752164-f10e-11ed-a05b-0242ac120003",
     "output": "image/png"
   },

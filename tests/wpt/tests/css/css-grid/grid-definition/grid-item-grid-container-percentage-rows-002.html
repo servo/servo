@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing">
+<link rel="match" href="grid-item-grid-container-percentage-rows-002-ref.html">
+<meta name="assert" content="Percentage rows resolve against the height of a grid container that is itself a grid item.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link href="/css/support/grid.css" rel="stylesheet">
+<link href="/css/support/alignment.css" rel="stylesheet">
+
+<style>
+.outerGrid {
+    width: 200px;
+    border: 5px solid;
+    background: magenta;
+    margin-bottom: 10px;
+}
+
+.innerGrid {
+    display: grid;
+}
+
+.gridItem {
+    background: cyan;
+    font: 10px/1 Ahem;
+}
+
+.floatLeft {
+    float: left;
+    width: 250px;
+}
+</style>
+
+<p>This test checks that percentage rows are properly resolved for a grid container that is a grid item.</p>
+
+<div class="floatLeft">
+
+<div class="grid outerGrid" style="grid: 50px / 1fr;">
+    <div class="grid" style="grid: 50% / 1fr;">
+        <div class="gridItem"></div>
+    </div>
+</div>
+
+<div class="grid outerGrid alignItemsStart" style="grid: 50px / 1fr;">
+    <div class="grid alignItemsStart" style="grid: 50% / 1fr;">
+        <div class="gridItem">X X<br>XX</div>
+    </div>
+</div>
+
+<div class="grid outerGrid" style="height: 50px; grid: 2fr 1fr / 1fr;">
+    <div class="grid" style="grid: 50% / 1fr;">
+        <div class="gridItem"></div>
+    </div>
+</div>
+
+<div class="grid outerGrid alignItemsStart" style="height: 50px; grid: 2fr 1fr / 1fr;">
+    <div class="grid alignItemsStart" style="grid: 50% / 1fr;">
+        <div class="gridItem">X X<br>XX</div>
+    </div>
+</div>
+
+</div>
+
+<div class="floatLeft">
+
+<div class="grid outerGrid" style="height: 50px; grid: 3fr 1fr / 1fr;">
+    <div class="grid" style="grid: 3fr 1fr / 1fr;">
+        <div class="gridItem"></div>
+    </div>
+</div>
+
+<div class="grid outerGrid alignItemsStart" style="height: 50px; grid: 3fr 1fr / 1fr;">
+    <div class="grid alignItemsStart" style="grid: 3fr 1fr / 1fr;">
+        <div class="gridItem">X X<br>XX</div>
+    </div>
+</div>
+
+<div class="grid outerGrid" style="height: 50px; grid: 100% / 1fr;">
+    <div class="grid" style="grid: 50% / 1fr;">
+        <div class="gridItem" style="height: 50%"></div>
+    </div>
+</div>
+
+<div class="grid outerGrid alignItemsStart" style="height: 50px; grid: 100% / 1fr;">
+    <div class="grid alignItemsStart" style="grid: 50% / 1fr;">
+        <div class="gridItem" style="height: 75%">X X<br>XX</div>
+    </div>
+</div>
+
+</div>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id=unrelated>Unrelated</div>
+<style>
+  button {
+    interest-delay: 0s;
+  }
+</style>
+<script>
+function checkPseudos(invoker,target,expectInterest,msg) {
+  assert_equals(invoker.matches(':interest-source'),expectInterest,`${msg}: :interest-source mismatch`);
+  assert_equals(target.matches(':interest-target'),expectInterest,`${msg}: :interest-target mismatch`);
+}
+
+async function setup(t) {
+  const invoker = document.createElement('button');
+  invoker.id = 'invoker';
+  invoker.textContent = 'Invoker';
+  invoker.setAttribute('interestfor','target');
+  const target = document.createElement('div');
+  target.id = 'target';
+  target.popover = 'auto';
+  target.textContent = 'Target popover';
+  document.body.append(invoker,target);
+  t.add_cleanup(() => {
+    invoker.remove();
+    target.remove();
+  });
+  await hoverOver(unrelated);
+  await hoverOver(invoker);
+  checkPseudos(invoker,target,true,'hovering invoker shows interest');
+  assert_true(target.matches(':popover-open'),'target popover should be open');
+  // Prevent any delayed interest changes during the rest of the test.
+  invoker.setAttribute('style','interest-delay: 10000s');
+  return {invoker,target};
+}
+
+promise_test(async (t) => {
+  const {invoker,target} = await setup(t);
+  let loseInterestCount = 0;
+  target.addEventListener('loseinterest',() => (++loseInterestCount));
+  target.addEventListener('beforetoggle',(e) => {
+    if (e.newState === 'closed') {
+      // This hides the popover again, from within the hidePopover() call,
+      // which happens without firing events.
+      target.popover = 'manual';
+    }
+  },{once: true});
+  target.hidePopover();
+  assert_false(target.matches(':popover-open'),'target popover should be closed');
+  assert_equals(target.popover,'manual');
+  assert_equals(loseInterestCount,0,'loseinterest should not be fired');
+  checkPseudos(invoker,target,false,'changing popover attribute during hidePopover()');
+  await hoverOver(unrelated);
+  checkPseudos(invoker,target,false,'after hovering away');
+},'Changing the popover attribute during hidePopover() clears interest');
+
+promise_test(async (t) => {
+  const {invoker,target} = await setup(t);
+  let loseInterestCount = 0;
+  target.addEventListener('loseinterest',() => (++loseInterestCount));
+  invoker.disabled = true;
+  target.hidePopover();
+  assert_false(target.matches(':popover-open'),'target popover should be closed');
+  assert_equals(loseInterestCount,0,'loseinterest should not be fired');
+  checkPseudos(invoker,target,false,'disabling the invoker before hidePopover()');
+  invoker.disabled = false;
+  checkPseudos(invoker,target,false,'re-enabling the invoker does not restore interest');
+  await hoverOver(unrelated);
+  checkPseudos(invoker,target,false,'after hovering away');
+},'Disabling the invoker before hidePopover() clears interest');
+
+promise_test(async (t) => {
+  const {invoker,target} = await setup(t);
+  let loseInterestCount = 0;
+  target.addEventListener('loseinterest',(e) => {
+    ++loseInterestCount;
+    assert_true(e.cancelable,'loseinterest should be cancelable');
+    e.preventDefault();
+  });
+  target.hidePopover();
+  assert_false(target.matches(':popover-open'),'target popover should be closed');
+  assert_equals(loseInterestCount,1,'loseinterest should be fired once');
+  checkPseudos(invoker,target,true,'canceling loseinterest during hidePopover()');
+},'Canceling loseinterest during hidePopover() maintains interest');
+</script>

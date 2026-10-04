@@ -62,6 +62,7 @@
         {style:'#foo { height:100px } #flex { display:inline-flex } #test { height:100% }', body:'<div id=foo><div id=flex><div id=test></div></div></div>', q:0, s:0},
         {style:'#foo { position:absolute } #test { height:100% }', body:'<div id=foo><div><div id=test></div></div></div>', q:0, s:0},
         {style:'#foo { position:relative } #test { height:100% }', body:'<div id=foo><div><div id=test></div></div></div>', q:184, s:0},
+        {style:'#foo { position:sticky } #test { height:100% }', body:'<div id=foo><div><div id=test></div></div></div>', q:184, s:0},
         {style:'#foo { height:100px } #test { height:100%; position:absolute }', body:'<div id=foo><div><div id=test></div></div></div>', q:200, s:200},
         {style:'#foo { height:100px } #test { height:100%; position:fixed }', body:'<div id=foo><div><div id=test></div></div></div>', q:200, s:200},
         {style:'#foo { height:100px } #test { height:100%; position:relative }', body:'<div id=foo><div><div id=test></div></div></div>', q:100, s:0},

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Layout Instability: a shifted pseudo-element is not exposed as a source node</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/#sec-layout-shift-attribution" />
+<style>
+
+body { margin: 10px; }
+#target { width: 300px; height: 100px; }
+#target::before {
+  content: "";
+  display: block;
+  position: relative;
+  width: 300px;
+  height: 100px;
+  background: blue;
+}
+#target.shift::before { top: 60px; }
+
+</style>
+<div id="target"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+const strrect = r => `${r.x},${r.y} ${r.width}x${r.height}`;
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+  const target = document.querySelector("#target");
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Shift only the ::before box; #target itself does not move.
+  target.classList.add("shift");
+  await watcher.promise;
+
+  const sources = watcher.lastEntry.sources;
+  assert_equals(sources.length, 1);
+
+  const source = sources[0];
+  // Pseudo-elements are not DOM nodes, so they are not exposed.
+  assert_equals(source.node, null);
+  assert_equals(strrect(source.previousRect), "10,10 300x100");
+  assert_equals(strrect(source.currentRect), "10,70 300x100");
+}, "A shifted pseudo-element is reported with a null source node.");
+
+</script>

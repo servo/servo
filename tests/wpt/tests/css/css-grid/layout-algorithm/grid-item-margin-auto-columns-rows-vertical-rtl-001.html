@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#layout-algorithm">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<link rel="match" href="grid-item-margin-auto-columns-rows-vertical-rtl-001-ref.html">
+<meta name="assert" content="The grid's 'auto' rows and columns are sized to include the items' margins, and items are placed accordingly, in vertical-rl and vertical-lr grids with direction: rtl.">
+<html>
+<link href="/css/support/grid.css" rel="stylesheet">
+<link href="/css/support/alignment.css" rel="stylesheet">
+<style>
+.grid {
+    grid-template-rows: auto auto;
+    grid-template-columns: auto auto;
+    width: 200px;
+}
+
+.gridItem {
+    width: 20px;
+    height: 40px;
+}
+
+.marginTop {
+    margin-top: 20px;
+}
+
+.marginBottom {
+    margin-bottom: 20px;
+}
+
+.testContainer {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+</style>
+</head>
+<body>
+
+<div>This test checks that the grid's rows and columns 'auto' sizes are updated accordingly to its grid-item's before and start margins.</div>
+
+<div class="testContainer">
+    <div class="grid contentStart verticalRL directionRTL">
+        <div class="gridItem marginTop firstRowFirstColumn"></div>
+        <div class="gridItem firstRowSecondColumn"></div>
+        <div class="gridItem secondRowFirstColumn"></div>
+        <div class="gridItem marginBottom secondRowSecondColumn"></div>
+    </div>
+</div>
+
+<div class="testContainer">
+    <div class="grid contentStart verticalRL directionRTL">
+        <div class="gridItem marginTop firstRowFirstColumn"></div>
+        <div class="gridItem firstRowSecondColumn"></div>
+        <div class="gridItem marginBottom secondRowFirstColumn"></div>
+        <div class="gridItem secondRowSecondColumn"></div>
+    </div>
+</div>
+
+<div class="testContainer">
+    <div class="grid contentStart verticalLR directionRTL">
+        <div class="gridItem marginTop firstRowFirstColumn"></div>
+        <div class="gridItem firstRowSecondColumn"></div>
+        <div class="gridItem secondRowFirstColumn"></div>
+        <div class="gridItem marginBottom secondRowSecondColumn"></div>
+    </div>
+</div>
+
+<div class="testContainer">
+    <div class="grid contentStart verticalLR directionRTL">
+        <div class="gridItem marginTop firstRowFirstColumn"></div>
+        <div class="gridItem firstRowSecondColumn"></div>
+        <div class="gridItem marginBottom secondRowFirstColumn"></div>
+        <div class="gridItem secondRowSecondColumn"></div>
+    </div>
+</div>
+
+</body>
+</html>

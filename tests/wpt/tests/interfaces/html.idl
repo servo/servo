@@ -32,7 +32,7 @@ interface HTMLOptionsCollection : HTMLCollection {
   [CEReactions] setter undefined (unsigned long index, HTMLOptionElement? option);
   [CEReactions] undefined add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
   [CEReactions] undefined remove(long index);
-  attribute long selectedIndex;
+  [CEReactions] attribute long selectedIndex;
 };
 
 [Exposed=(Window,Worker)]
@@ -1017,8 +1017,8 @@ interface HTMLSelectElement : HTMLElement {
   [CEReactions] setter undefined (unsigned long index, HTMLOptionElement? option);
 
   [SameObject] readonly attribute HTMLCollection selectedOptions;
-  attribute long selectedIndex;
-  attribute DOMString value;
+  [CEReactions] attribute long selectedIndex;
+  [CEReactions] attribute DOMString value;
 
   readonly attribute boolean willValidate;
   readonly attribute ValidityState validity;
@@ -1056,7 +1056,7 @@ interface HTMLOptionElement : HTMLElement {
   readonly attribute HTMLFormElement? form;
   [CEReactions, ReflectSetter] attribute DOMString label;
   [CEReactions, Reflect="selected"] attribute boolean defaultSelected;
-  attribute boolean selected;
+  [CEReactions] attribute boolean selected;
   [CEReactions, ReflectSetter] attribute DOMString value;
 
   [CEReactions] attribute DOMString text;

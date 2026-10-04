@@ -43,6 +43,13 @@ promise_test(async t => {
   const newImage = container.pseudo("::view-transition-new(target)");
   assert_equals(newImage.parent, imagePair, "Hierarchy works for scoped VT");
 
+  assert_equals(vt.selectorText, "::view-transition");
+  assert_equals(group.selectorText, "::view-transition-group(target)");
+  assert_equals(imagePair.selectorText, "::view-transition-image-pair(target)");
+  assert_equals(newImage.selectorText, "::view-transition-new(target)");
+  assert_equals(container.pseudo("::view-transition-old(target)").selectorText,
+                "::view-transition-old(target)");
+
   const root = document.documentElement;
   const rootVt = root.pseudo("::view-transition");
   assert_not_equals(vt, rootVt, "Proxies for different originating elements must be different instances");

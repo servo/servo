@@ -16,21 +16,24 @@ features: [Intl.Locale]
 ---*/
 
 // Generate all possible `ukey` values.
+// https://unicode.org/reports/tr35/#ukey
 function* ukeys() {
-  const lowerA = 'a'.charCodeAt(0);
-  const lowerZ = 'z'.charCodeAt(0);
+  const lowerAlpha = 'abcdefghijklmnopqrstuvwxyz';
+  const lowerAlphanum = lowerAlpha + '0123456789';
 
-  for (let first = lowerA; first <= lowerZ; ++first) {
-    for (let second = lowerA; second <= lowerZ; ++second) {
-      yield String.fromCharCode(first, second);
+  for (let i = 0; i < lowerAlphanum.length; ++i) {
+    for (let j = 0; j < lowerAlpha.length; ++j) {
+      yield lowerAlphanum[i] + lowerAlpha[j];
     }
   }
 }
 
 for (let ukey of ukeys()) {
+  const localeId = `en-u-${ukey}-true`;
+  const normalizedLocaleId = `en-u-${ukey}`;
   assert.sameValue(
-    new Intl.Locale(`en-u-${ukey}-true`).toString(),
-    `en-u-${ukey}`,
-    `new Intl.Locale("en-u-${ukey}-true").toString() returns "en-u-${ukey}"`
+    new Intl.Locale(localeId).toString(),
+    normalizedLocaleId,
+    `new Intl.Locale("${localeId}").toString() must be "${normalizedLocaleId}"`
   );
 }

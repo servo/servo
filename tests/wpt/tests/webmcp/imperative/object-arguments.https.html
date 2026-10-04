@@ -45,20 +45,32 @@ promise_test(async t => {
       document.modelContext.executeTool(registeredTool, nullArgs),
       "null should be rejected");
 
-  const undefinedArgs = null;
-  await promise_rejects_js(t, TypeError,
-      document.modelContext.executeTool(registeredTool, undefinedArgs),
-      "undefined should be rejected");
-
   // Pass an object whose toJSON() method returns undefined, and observe
   // a failure.
   const nullishObject = { toJSON: () => undefined };
   await promise_rejects_js(t, TypeError,
       document.modelContext.executeTool(registeredTool, nullishObject),
       "Object whose toJSON() returns undefined should be rejected");
+
   // Omitting input argument defaults to {}
+  executeReceivedArgs = null;
   const defaultResult = await document.modelContext.executeTool(registeredTool);
   assert_equals(defaultResult, "Success");
+  assert_object_equals(executeReceivedArgs, {});
+
+  // Per Web IDL, explicitly passing undefined for an optional argument is the
+  // same as omitting it, so it also defaults to {}.
+  executeReceivedArgs = null;
+  const undefinedResult =
+      await document.modelContext.executeTool(registeredTool, undefined);
+  assert_equals(undefinedResult, "Success");
+  assert_object_equals(executeReceivedArgs, {});
+
+  // Same as above, but with a subsequent argument present.
+  executeReceivedArgs = null;
+  const undefinedWithOptionsResult =
+      await document.modelContext.executeTool(registeredTool, undefined, {});
+  assert_equals(undefinedWithOptionsResult, "Success");
   assert_object_equals(executeReceivedArgs, {});
 }, "tool execution requires a JSON Object input argument; and Arrays are Objects");
 </script>

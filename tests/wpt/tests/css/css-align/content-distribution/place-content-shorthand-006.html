@@ -10,14 +10,20 @@
 <div id="test"></div>
 <script>
     let classes = Object.assign({"Normal":"normal"}, contentPositionClasses, distributionClasses, baselineClasses);
+    let computedClasses = Object.assign({"Normal":"normal"}, contentPositionComputedClasses, distributionClasses, baselineClasses);
     for (var key1 in classes) {
         let alignValue = classes[key1];
+        let expectedAlignValue = computedClasses[key1];
         let classes2 = Object.assign({"Normal":"normal", "Left":"left", "Right":"right"}, contentPositionClasses, distributionClasses);
+        let computedClasses2 = Object.assign({"Normal":"normal", "Left":"left", "Right":"right"}, contentPositionComputedClasses, distributionClasses);
         for (var key2 in classes2) {
             let justifyValue = classes2[key2];
+            let expectedJustifyValue = computedClasses2[key2];
             var value = (alignValue + " " + justifyValue).trim();
             test(function() {
-                checkPlaceShorhand("place-content", value, alignValue, justifyValue)
+                checkPlaceShorthand(
+                    "place-content", value, alignValue, justifyValue,
+                    expectedAlignValue, expectedJustifyValue)
             }, "Checking place-content: " + value);
         }
     }

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: opposite directions assign parent and subgrid column rule colors</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-opposite-direction-rule-colors-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 180px;
+    position: relative;
+    width: 380px;
+  }
+  .lanes {
+    background: lightgray;
+    column-gap: 20px;
+    column-rule-break: normal;
+    column-rule-style: solid;
+    column-rule-width: 8px;
+    direction: rtl;
+    display: grid-lanes;
+    grid-template-columns: 40px 60px 80px 50px 70px;
+    height: 180px;
+    row-gap: 20px;
+    row-rule-style: none;
+    rule-color: blue, gold;
+    width: 380px;
+  }
+  .outer,
+  .parent-item {
+    background: purple;
+  }
+  .outer {
+    height: 180px;
+  }
+  .parent-item {
+    height: 30px;
+  }
+  .track-one {
+    grid-column: 1;
+  }
+  .track-two {
+    grid-column: 2;
+  }
+  .track-three {
+    grid-column: 3;
+  }
+  .track-four {
+    grid-column: 4;
+  }
+  .track-five {
+    grid-column: 5;
+  }
+  .subgrid {
+    background: transparent;
+    column-rule-style: solid;
+    column-rule-width: 4px;
+    direction: ltr;
+    display: grid;
+    grid-column: 2 / span 3;
+    grid-template-columns: subgrid;
+    grid-template-rows: repeat(2, 30px);
+    row-gap: 20px;
+    row-rule-style: none;
+    rule-color: green, red;
+  }
+  .cell {
+    background: teal;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="outer track-one"></div>
+    <div class="parent-item track-two"></div>
+    <div class="parent-item track-three"></div>
+    <div class="parent-item track-four"></div>
+    <div class="outer track-five"></div>
+    <div class="subgrid">
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+    </div>
+    <div class="parent-item track-two"></div>
+    <div class="parent-item track-three"></div>
+    <div class="parent-item track-four"></div>
+  </div>
+</div>

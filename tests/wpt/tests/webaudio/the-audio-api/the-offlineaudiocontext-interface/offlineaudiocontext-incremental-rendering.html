@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<head>
+<title>Test OfflineAudioContext incremental rendering</title>
+</head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+const RENDER_LENGTH = 1000;
+const QUANTUM_SIZE = 256;
+const CHUNK_SIZE = 300;
+
+promise_test(async () => {
+  const context = new OfflineAudioContext({
+    numberOfChannels: 2,
+    sampleRate: 44100,
+    renderSizeHint: QUANTUM_SIZE,
+    length: RENDER_LENGTH,
+  });
+
+  const buffer = await context.startRendering();
+  assert_equals(buffer.length, RENDER_LENGTH,
+      'The final buffer should be trimmed to the context length');
+  assert_equals(context.state, 'closed',
+      'The context should close after rendering its finite length');
+  assert_equals(context.length, RENDER_LENGTH,
+      'The context length should remain the requested length');
+}, 'Finite length and no chunk size returns the remaining length');
+
+promise_test(async () => {
+  const context = new OfflineAudioContext({
+    numberOfChannels: 2,
+    sampleRate: 44100,
+    renderSizeHint: QUANTUM_SIZE,
+    length: null,
+  });
+
+  const buffer = await context.startRendering();
+  assert_equals(buffer.length, QUANTUM_SIZE,
+      'The default buffer size should be one render quantum');
+  assert_equals(context.length, null,
+      'Rendering a chunk should not set the context length');
+}, 'Null length and no chunk size returns one render quantum');
+
+promise_test(async () => {
+  const context = new OfflineAudioContext({
+    numberOfChannels: 2,
+    sampleRate: 44100,
+    renderSizeHint: QUANTUM_SIZE,
+    length: null,
+  });
+
+  const buffer = await context.startRendering(CHUNK_SIZE);
+  assert_equals(buffer.length, 2 * QUANTUM_SIZE,
+      'The chunk size should be rounded up to a render quantum boundary');
+  assert_equals(context.length, null,
+      'Rendering a chunk should not set the context length');
+}, 'Null length and a chunk size returns the rounded chunk size');
+
+promise_test(async () => {
+  const context = new OfflineAudioContext({
+    numberOfChannels: 2,
+    sampleRate: 44100,
+    renderSizeHint: QUANTUM_SIZE,
+    length: RENDER_LENGTH,
+  });
+
+  const firstBuffer = await context.startRendering(CHUNK_SIZE);
+  assert_equals(firstBuffer.length, 2 * QUANTUM_SIZE,
+      'A chunk with available space should use the rounded chunk size');
+
+  const finalBuffer = await context.startRendering(CHUNK_SIZE);
+  assert_equals(finalBuffer.length, RENDER_LENGTH - firstBuffer.length,
+      'The final chunk should be trimmed to the remaining context length');
+  assert_equals(firstBuffer.length + finalBuffer.length, RENDER_LENGTH,
+      'The returned buffers should contain exactly the context length');
+  assert_equals(context.state, 'closed',
+      'The context should close after rendering its finite length');
+}, 'Finite length and a chunk size returns rounded chunks and the remainder');
+
+promise_test(async t => {
+  const context = new OfflineAudioContext({
+    numberOfChannels: 2,
+    sampleRate: 44100,
+    renderSizeHint: QUANTUM_SIZE,
+    length: RENDER_LENGTH,
+  });
+
+  const renderPromises = [
+    context.startRendering(QUANTUM_SIZE),
+    context.startRendering(QUANTUM_SIZE),
+    context.startRendering(QUANTUM_SIZE),
+    context.startRendering(QUANTUM_SIZE),
+  ];
+  await promise_rejects_dom(
+      t, 'InvalidStateError', context.startRendering(CHUNK_SIZE),
+      'Rendering another chunk should reject when all frames are committed');
+  const buffers = await Promise.all(renderPromises);
+  assert_array_equals(
+      buffers.map(buffer => buffer.length),
+      [QUANTUM_SIZE, QUANTUM_SIZE, QUANTUM_SIZE,
+       RENDER_LENGTH - 3 * QUANTUM_SIZE],
+      'Four buffers should contain exactly the context length');
+}, 'startRendering rejects when committed frames reach the render length');
+
+promise_test(async () => {
+  const context = new OfflineAudioContext({
+    numberOfChannels: 1,
+    sampleRate: 44100,
+    renderSizeHint: QUANTUM_SIZE,
+    length: 2 * QUANTUM_SIZE,
+  });
+
+  const suspendPromise =
+      context.suspend(QUANTUM_SIZE / context.sampleRate);
+  await context.startRendering(QUANTUM_SIZE);
+  assert_equals(
+      context.state, 'running',
+      'Reaching a chunk boundary should not suspend without another render');
+
+  const secondRenderPromise = context.startRendering(QUANTUM_SIZE);
+  await suspendPromise;
+  assert_equals(
+      context.state, 'suspended',
+      'The next render should suspend before processing its first quantum');
+
+  await context.resume();
+  const secondBuffer = await secondRenderPromise;
+  assert_equals(secondBuffer.length, QUANTUM_SIZE,
+      'The second chunk should complete after rendering resumes');
+  assert_equals(context.state, 'closed',
+      'The finite context should close after the second chunk completes');
+}, 'suspend at a chunk boundary is applied by the next startRendering call');
+
+</script>
+</html>

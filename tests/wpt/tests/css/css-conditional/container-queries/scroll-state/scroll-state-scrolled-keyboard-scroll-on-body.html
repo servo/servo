@@ -7,6 +7,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/web-animations/testcommon.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
 <style>
 html {
@@ -40,6 +41,7 @@ div {
   setup(() => assert_implements_scroll_state_container_queries());
 
   promise_test(async t => {
+    let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(document.body);
     await new test_driver.Actions()
       .addPointer("TestPointer", "mouse")
       .pointerMove(100, 100)
@@ -54,6 +56,7 @@ div {
       .keyDown('\uE00D')
       .keyUp('\uE00D')
       .send();
+    await scrollEndPromise;
     await waitForAnimationFrames(2);
     assert_equals(getComputedStyle(target).getPropertyValue("--y"), "yes");
 

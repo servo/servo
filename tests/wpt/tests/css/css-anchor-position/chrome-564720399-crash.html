@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<style>
+#anchor {
+  position: fixed;
+  anchor-name: --anchor;
+}
+#target {
+  position: fixed;
+  position-anchor: --anchor;
+  position-area: block-start;
+  position-try-fallbacks: flip-block;
+  container-type: anchored;
+}
+#target canvas {
+  position: fixed;
+}
+@container anchored(fallback: flip-block) {
+  #target canvas {
+    /* Attempts to establish a fixed-pos containing block. */
+    translate: 0px;
+  }
+}
+</style>
+<div id="anchor">anchor</div>
+<div id="target">target<canvas></canvas></div>
+

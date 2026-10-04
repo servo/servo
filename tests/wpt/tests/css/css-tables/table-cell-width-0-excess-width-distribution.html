@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Tables: cells after width: 0 columns stay in the row when fixed-width columns take the excess width</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#distributing-width-to-columns">
+<link rel="match" href="table-cell-width-0-excess-width-distribution-ref.html">
+<meta name="assert" content="Distributing excess width to constrained columns grows only the ones with a nonzero max-content width, so the empty width: 0 columns do not grow and the header cells after them still fill the row.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+  width: 656px;
+}
+table {
+  border-spacing: 0;
+  font: 20px/1 Ahem;
+  color: transparent;
+}
+th {
+  font-weight: normal;
+  background-color: green;
+}
+.zero-width {
+  width: 0;
+  padding: 0;
+}
+.narrow-fixed-width {
+  width: 85.79px;
+}
+.wide-fixed-width {
+  width: 255px;
+}
+.percent-width {
+  width: 1%;
+}
+.content {
+  margin-right: 20px;
+  margin-left: 10px;
+  width: 225px;
+}
+</style>
+<p>Test passes if there is a filled green rectangle.</p>
+<div class="container">
+  <table>
+    <tr>
+      <th colspan="2"></th>
+      <th class="zero-width"></th>
+      <th class="zero-width"></th>
+      <th></th>
+      <th class="zero-width"></th>
+      <th class="zero-width"></th>
+      <th class="percent-width">XXXX</th>
+      <th>XXXX XXXX</th>
+    </tr>
+    <tr>
+      <td></td>
+      <td class="narrow-fixed-width"></td>
+      <td class="wide-fixed-width"><div class="content"></div></td>
+    </tr>
+  </table>
+</div>

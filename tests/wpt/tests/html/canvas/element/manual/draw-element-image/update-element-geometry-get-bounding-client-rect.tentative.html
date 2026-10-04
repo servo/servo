@@ -10,17 +10,17 @@
 </head>
 <body style="margin: 0;" onload="runTest()">
   <canvas id="canvas" style="position: absolute; left: 10px; top: 20px; width: 400px; height: 400px;" content=drawable>
-    <div id="target" style="position: absolute; left: 0; top: 0; width: 100px; height: 50px;">
+    <div id="target" drawable style="position: absolute; left: 0; top: 0; width: 100px; height: 50px;">
       <span id="nested-inline" drawable style="font: 25px/1 Ahem;">X</span>
       <div id="nested-block" drawable style="width: 20px; height: 30px;"></div>
       <div id="nested-non-drawable" style="width: 15px; height: 25px;"></div>
     </div>
   </canvas>
   <canvas id="canvas-not-drawable" width="100" height="100">
-    <div id="child-not-drawable"></div>
+    <div id="drawable-child-of-not-drawable" drawable></div>
   </canvas>
   <canvas id="other-canvas" width="100" height="100" content=drawable>
-    <div id="other-child"></div>
+    <div id="other-child" drawable></div>
   </canvas>
   <div id="outside" style="position: absolute; left: 10px; top: 10px; width: 100px; height: 50px;"></div>
 
@@ -37,7 +37,7 @@
       test(() => {
         const canvas = document.getElementById('canvas');
         const notDrawableCanvas = document.getElementById('canvas-not-drawable');
-        const child = document.getElementById('child-not-drawable');
+        const child = document.getElementById('drawable-child-of-not-drawable');
         const outside = document.getElementById('outside');
         const otherChild = document.getElementById('other-child');
         const nestedNonDrawable = document.getElementById('nested-non-drawable');

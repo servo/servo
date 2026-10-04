@@ -2,7 +2,10 @@
 
 # Longer timeout required due to a large number of script evaluation and serialization subtests.
 
+import asyncio
 import pytest
+from webdriver.bidi.error import BidiException
+from webdriver.bidi.modules.script import ContextTarget, RealmTarget
 from webdriver.error import TimeoutException
 
 from ..realm_created.realm_created import REALM_CREATED_EVENT
@@ -264,19 +267,21 @@ async def test_dedicated_worker(
     )
 
     worker_url = inline("setInterval(()=>{}, 1)", doctype="js")
-    url = inline(
-        f"""<script>
-        const worker = new Worker('{worker_url}');
-        setTimeout(() => {{
-            worker.terminate();
-        }}, 100);
-    </script>"""
-    )
+    url = inline(f"<script>window.worker = new Worker('{worker_url}');</script>")
     await bidi_session.browsing_context.navigate(
         url=url, context=top_context["context"], wait="complete"
     )
 
     await wait_for_bidi_events(created_events, 1)
+
+    # Terminate the worker only after its realm is created to avoid racing with
+    # worker initialization.
+    await bidi_session.script.evaluate(
+        expression="window.worker.terminate()",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False,
+    )
+
     await wait_for_bidi_events(destroyed_events, 1)
 
     assert len(created_events) == 1
@@ -290,7 +295,7 @@ async def test_dedicated_worker(
 async def test_shared_worker(
     bidi_session,
     subscribe_events,
-    top_context,
+    new_tab,
     wait_for_bidi_events,
     inline,
 ):
@@ -320,16 +325,17 @@ async def test_shared_worker(
         const worker = new SharedWorker('{worker_url}');
     </script>"""
     )
+    # Create the shared worker in `new_tab` instead of `top_context` so the tab
+    # can be closed to destroy the worker.
     await bidi_session.browsing_context.navigate(
-        url=url, context=top_context["context"], wait="complete"
+        url=url, context=new_tab["context"], wait="complete"
     )
 
     await wait_for_bidi_events(created_events, 1)
 
-    url = inline("")
-    await bidi_session.browsing_context.navigate(
-        url=url, context=top_context["context"], wait="complete"
-    )
+    # Close the tab instead of navigating away so BFCache cannot keep the
+    # document and its shared worker alive.
+    await bidi_session.browsing_context.close(context=new_tab["context"])
 
     await wait_for_bidi_events(destroyed_events, 1)
 
@@ -349,6 +355,9 @@ async def test_dedicated_worker_subscribe_to_one_context(
     top_context,
     inline,
 ):
+    # Verify that subscribing to `script.realmDestroyed` for a single context
+    # (`new_tab`) does not emit events when a worker in an unsubscribed context
+    # (`top_context`) is destroyed.
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
     )
@@ -356,8 +365,12 @@ async def test_dedicated_worker_subscribe_to_one_context(
         context=top_context["context"], url=inline("<div>bar</div>"), wait="complete"
     )
 
+    # Subscribe to `script.realmCreated` globally so we can wait for workers in
+    # both the unsubscribed and subscribed contexts to initialize before
+    # terminating them.
+    await subscribe_events(events=[REALM_CREATED_EVENT])
     await subscribe_events(
-        events=[REALM_CREATED_EVENT, REALM_DESTROYED_EVENT],
+        events=[REALM_DESTROYED_EVENT],
         contexts=[new_tab["context"]]
     )
 
@@ -368,8 +381,10 @@ async def test_dedicated_worker_subscribe_to_one_context(
         if data["type"] == "dedicated-worker":
             created_events.append(data)
 
+    # Record destruction events for any created worker so an unexpected event
+    # from the unsubscribed context is caught.
     async def on_realm_destroyed_event(method, data):
-        if len(created_events) > 0 and data["realm"] == created_events[0]["realm"]:
+        if data["realm"] in [e["realm"] for e in created_events]:
             destroyed_events.append(data)
 
     remove_realm_created_listener = bidi_session.add_event_listener(
@@ -379,47 +394,60 @@ async def test_dedicated_worker_subscribe_to_one_context(
         REALM_DESTROYED_EVENT, on_realm_destroyed_event
     )
 
-    worker_url = inline("setInterval(()=>{}, 1)", doctype="js")
-    url = inline(
-        f"""<script>
-        const worker = new Worker('{worker_url}');
-        setTimeout(() => {{
-            worker.terminate();
-        }}, 100);
-    </script>"""
+    # First, create and terminate a worker in the unsubscribed context.
+    worker_url_unsubscribed = inline("setInterval(()=>{}, 1)", doctype="js")
+    url_unsubscribed = inline(
+        f"<script>window.worker = new Worker('{worker_url_unsubscribed}');</script>"
     )
+    await bidi_session.browsing_context.navigate(
+        url=url_unsubscribed, context=top_context["context"], wait="complete"
+    )
+    await wait_for_bidi_events(created_events, 1)
+
+    # Start a pending evaluation in the unsubscribed worker realm that will
+    # reject as soon as the worker realm is destroyed.
+    unsubscribed_eval_task = asyncio.create_task(
+        bidi_session.script.evaluate(
+            expression="new Promise(() => {})",
+            target=RealmTarget(created_events[0]["realm"]),
+            await_promise=True,
+        )
+    )
+
+    # Terminate the worker only after its realm is created to avoid racing with
+    # worker initialization.
+    await bidi_session.script.evaluate(
+        expression="window.worker.terminate()",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False,
+    )
+
+    # Wait for the pending evaluation in the unsubscribed worker realm to fail,
+    # guaranteeing that the remote end has processed its realm destruction.
+    with pytest.raises(BidiException):
+        await unsubscribed_eval_task
+
+    # Next, create and terminate a worker in the subscribed context.
+    worker_url = inline("setInterval(()=>{}, 1)", doctype="js")
+    url = inline(f"<script>window.worker = new Worker('{worker_url}');</script>")
     await bidi_session.browsing_context.navigate(
         url=url, context=new_tab["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(created_events, 1)
+    await wait_for_bidi_events(created_events, 2)
+
+    await bidi_session.script.evaluate(
+        expression="window.worker.terminate()",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=False,
+    )
+
     await wait_for_bidi_events(destroyed_events, 1)
 
-    assert len(created_events) == 1
+    # Only the second (subscribed) worker's realm destruction should be reported.
+    assert len(created_events) == 2
     assert len(destroyed_events) == 1
-    assert destroyed_events[0]["realm"] == created_events[0]["realm"]
-
-    # Empty the events arrays
-    created_events = []
-    destroyed_events = []
-
-    # Create a worker in the second browsing context
-    worker_url_2 = inline("setInterval(()=>{}, 1)", doctype="js")
-    url_2 = inline(
-        f"""<script>
-        const worker = new Worker('{worker_url_2}');
-        setTimeout(() => {{
-            worker.terminate();
-        }}, 100);
-    </script>"""
-    )
-    await bidi_session.browsing_context.navigate(
-        url=url_2, context=top_context["context"], wait="complete"
-    )
-
-    # Check that no realm created or destroyed event was emitted.
-    with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(created_events, 1, timeout=0.5)
+    assert destroyed_events[0]["realm"] == created_events[1]["realm"]
 
     remove_realm_created_listener()
     remove_realm_destroyed_listener()
@@ -432,6 +460,9 @@ async def test_dedicated_worker_subscribe_to_user_context(
     create_user_context,
     inline,
 ):
+    # Verify that subscribing to `script.realmDestroyed` for `user_context_a`
+    # does not emit events when a worker in the default user context is
+    # destroyed.
     user_context_a = await create_user_context()
     context_a = await bidi_session.browsing_context.create(
         type_hint="tab", user_context=user_context_a
@@ -441,8 +472,14 @@ async def test_dedicated_worker_subscribe_to_user_context(
         context=context_a["context"], url=inline("<div>foo</div>"), wait="complete"
     )
 
+    # Create a context in the unsubscribed default user context.
+    context_b = await bidi_session.browsing_context.create(type_hint="tab")
+
+    # Subscribe to `script.realmCreated` globally so we can wait for workers in
+    # both user contexts to initialize before terminating them.
+    await subscribe_events(events=[REALM_CREATED_EVENT])
     await subscribe_events(
-        events=[REALM_CREATED_EVENT, REALM_DESTROYED_EVENT],
+        events=[REALM_DESTROYED_EVENT],
         user_contexts=[user_context_a]
     )
 
@@ -453,8 +490,10 @@ async def test_dedicated_worker_subscribe_to_user_context(
         if data["type"] == "dedicated-worker":
             created_events.append(data)
 
+    # Record destruction events for any created worker so an unexpected event
+    # from the unsubscribed user context is caught.
     async def on_realm_destroyed_event(method, data):
-        if len(created_events) > 0 and data["realm"] == created_events[0]["realm"]:
+        if data["realm"] in [e["realm"] for e in created_events]:
             destroyed_events.append(data)
 
     remove_realm_created_listener = bidi_session.add_event_listener(
@@ -464,50 +503,60 @@ async def test_dedicated_worker_subscribe_to_user_context(
         REALM_DESTROYED_EVENT, on_realm_destroyed_event
     )
 
-    worker_url = inline("setInterval(()=>{}, 1)", doctype="js")
-    url = inline(
-        f"""<script>
-        const worker = new Worker('{worker_url}');
-        setTimeout(() => {{
-            worker.terminate();
-        }}, 100);
-    </script>"""
+    # First, create and terminate a worker in the unsubscribed user context.
+    worker_url_unsubscribed = inline("setInterval(()=>{}, 1)", doctype="js")
+    url_unsubscribed = inline(
+        f"<script>window.worker = new Worker('{worker_url_unsubscribed}');</script>"
     )
+    await bidi_session.browsing_context.navigate(
+        url=url_unsubscribed, context=context_b["context"], wait="complete"
+    )
+    await wait_for_bidi_events(created_events, 1)
+
+    # Start a pending evaluation in the unsubscribed worker realm that will
+    # reject as soon as the worker realm is destroyed.
+    unsubscribed_eval_task = asyncio.create_task(
+        bidi_session.script.evaluate(
+            expression="new Promise(() => {})",
+            target=RealmTarget(created_events[0]["realm"]),
+            await_promise=True,
+        )
+    )
+
+    # Terminate the worker only after its realm is created to avoid racing with
+    # worker initialization.
+    await bidi_session.script.evaluate(
+        expression="window.worker.terminate()",
+        target=ContextTarget(context_b["context"]),
+        await_promise=False,
+    )
+
+    # Wait for the pending evaluation in the unsubscribed worker realm to fail,
+    # guaranteeing that the remote end has processed its realm destruction.
+    with pytest.raises(BidiException):
+        await unsubscribed_eval_task
+
+    # Next, create and terminate a worker in the subscribed user context.
+    worker_url = inline("setInterval(()=>{}, 1)", doctype="js")
+    url = inline(f"<script>window.worker = new Worker('{worker_url}');</script>")
     await bidi_session.browsing_context.navigate(
         url=url, context=context_a["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(created_events, 1)
+    await wait_for_bidi_events(created_events, 2)
+
+    await bidi_session.script.evaluate(
+        expression="window.worker.terminate()",
+        target=ContextTarget(context_a["context"]),
+        await_promise=False,
+    )
+
     await wait_for_bidi_events(destroyed_events, 1)
 
-    assert len(created_events) == 1
+    # Only the second (subscribed) worker's realm destruction should be reported.
+    assert len(created_events) == 2
     assert len(destroyed_events) == 1
-    assert destroyed_events[0]["realm"] == created_events[0]["realm"]
-
-    # Empty the events arrays
-    created_events = []
-    destroyed_events = []
-
-    # Create a context in the default user context
-    context_b = await bidi_session.browsing_context.create(type_hint="tab")
-
-    # Create a worker owned by the context in the default user context.
-    worker_url_2 = inline("setInterval(()=>{}, 1)", doctype="js")
-    url_2 = inline(
-        f"""<script>
-        const worker = new Worker('{worker_url_2}');
-        setTimeout(() => {{
-            worker.terminate();
-        }}, 100);
-    </script>"""
-    )
-    await bidi_session.browsing_context.navigate(
-        url=url_2, context=context_b["context"], wait="complete"
-    )
-
-    # Check that no realm created or destroyed event was emitted.
-    with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(created_events, 1, timeout=0.5)
+    assert destroyed_events[0]["realm"] == created_events[1]["realm"]
 
     remove_realm_created_listener()
     remove_realm_destroyed_listener()

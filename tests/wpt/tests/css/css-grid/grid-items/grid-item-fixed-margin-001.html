@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid item fixed margins in intrinsically sized tracks</title>
+<link rel="author" title="Yulun Wu" href="mailto:yulun_wu@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-single-span-items">
+<meta name="assert" content="Checks that a grid item's fixed margins are included in the contribution that sizes an intrinsic track, both when the item has a fixed preferred size and when its automatic preferred size is floored by a fixed minimum size.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.columnGrid {
+  width: 0;
+  grid-template-columns: auto;
+  grid-template-rows: 20px 20px;
+}
+.rowGrid {
+  height: 0;
+  grid-template-columns: 20px 20px;
+  grid-template-rows: auto;
+}
+.probe {
+  background-color: magenta;
+}
+.item {
+  background-color: cyan;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+
+<div id="log"></div>
+
+<!-- Item width: 60px; margin-left: 5px; in an auto column. -->
+<div class="grid columnGrid">
+  <div class="item" style="width: 60px; margin-left: 5px;" data-expected-width="60"></div>
+  <div class="probe" data-expected-width="65"></div>
+</div>
+
+<!-- Item min-width: 60px; margin-left: 5px; in an auto column. -->
+<div class="grid columnGrid">
+  <div class="item" style="min-width: 60px; margin-left: 5px;" data-expected-width="60"></div>
+  <div class="probe" data-expected-width="65"></div>
+</div>
+
+<!-- Item height: 60px; margin-top: 5px; in an auto row. -->
+<div class="grid rowGrid">
+  <div class="item" style="height: 60px; margin-top: 5px;" data-expected-height="60"></div>
+  <div class="probe" data-expected-height="65"></div>
+</div>
+
+<!-- Item min-height: 60px; margin-top: 5px; in an auto row. -->
+<div class="grid rowGrid">
+  <div class="item" style="min-height: 60px; margin-top: 5px;" data-expected-height="60"></div>
+  <div class="probe" data-expected-height="65"></div>
+</div>
+
+</body>

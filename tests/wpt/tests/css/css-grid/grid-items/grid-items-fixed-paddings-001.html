@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="match" href="grid-items-fixed-paddings-001-ref.html">
+<meta name="assert" content="Fixed paddings on stretched grid items in fixed-size tracks place the item's content at the padding offset.">
+<html>
+<head>
+<style>
+.grid {
+    display: grid;
+    width: 300px;
+    height: 300px;
+    grid-template-columns: 150px 150px;
+    grid-template-rows: 150px 150px;
+    background-color: green;
+}
+/* Verify fixed padding positions item content at (paddingLeft, paddingTop). */
+.topLeft {
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+    padding: 2px 4px 6px 8px;
+    background-color: blue;
+}
+.topRight {
+    grid-row: 1 / 2;
+    grid-column: 2 / 3;
+    padding: 10px 12px 14px 16px;
+    background-color: blue;
+}
+.bottomLeft {
+    grid-row: 2 / 3;
+    grid-column: 1 / 2;
+    padding: 18px 20px 22px 24px;
+    background-color: blue;
+}
+.bottomRight {
+    grid-row: 2 / 3;
+    grid-column: 2 / 3;
+    padding: 26px 28px 30px 32px;
+    background-color: blue;
+}
+.topLeftContent {
+    width: 20px;
+    height: 20px;
+    background-color: purple;
+}
+.topRightContent {
+    width: 20px;
+    height: 40px;
+    background-color: purple;
+}
+.bottomLeftContent {
+    width: 40px;
+    height: 20px;
+    background-color: purple;
+}
+.bottomRightContent {
+    width: 40px;
+    height: 40px;
+    background-color: purple;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+    <div class="topLeft"><div class="topLeftContent"></div></div>
+    <div class="topRight"><div class="topRightContent"></div></div>
+    <div class="bottomLeft"><div class="bottomLeftContent"></div></div>
+    <div class="bottomRight"><div class="bottomRightContent"></div></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>TrustedHTML with parser options that need vetting, vetted by a default policy's createParserOptions</title>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-parser-options-algorithm">
+<link rel="help" href="https://github.com/w3c/trusted-types/issues/615">
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'; connect-src 'none';">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/trusted-types/support/csp-violations.js"></script>
+<script src="support/trustedhtml-parser-options.js"></script>
+<body>
+<script>
+  let vettedOptions = [];
+  trustedTypes.createPolicy("default", {
+    createParserOptions: options => {
+      vettedOptions.push(options);
+      return options;
+    },
+  });
+  const policy = trustedTypes.createPolicy("policy", { createHTML: s => s });
+
+  function resetVettedOptions(t) {
+    vettedOptions = [];
+    t.add_cleanup(() => { vettedOptions = []; });
+  }
+
+  for (const sink of sinks) {
+    promise_test(async t => {
+      resetVettedOptions(t);
+      const target = sink.createTarget(t);
+      let root;
+      await no_trusted_type_violation_for(() => {
+        root = sink.parse(target, policy.createHTML(markup),
+            { sanitizer: { replaceWithChildrenElements: ["div"] } });
+      });
+      assert_equals(vettedOptions.length, 1, "createParserOptions was called once");
+      assert_true(vettedOptions[0].sanitizer instanceof Sanitizer, "createParserOptions got a Sanitizer");
+      assert_equals(root.querySelector("#wrapper"), null);
+      assert_not_equals(root.querySelector("#inner"), null);
+    }, `${sink.name}: TrustedHTML with a sanitizer config is allowed when vetted`);
+
+    if (sink.hasRunScripts) {
+      promise_test(async t => {
+        resetVettedOptions(t);
+        resetScriptRan(t);
+        const target = sink.createTarget(t);
+        await no_trusted_type_violation_for(() => {
+          sink.parse(target, policy.createHTML(scriptMarkup), { runScripts: true });
+        });
+        assert_equals(vettedOptions.length, 1, "createParserOptions was called once");
+        assert_true(vettedOptions[0].runScripts, "createParserOptions got runScripts true");
+        assert_true(window.scriptRan, "script ran");
+      }, `${sink.name}: TrustedHTML with runScripts true is allowed when vetted`);
+    }
+  }
+</script>

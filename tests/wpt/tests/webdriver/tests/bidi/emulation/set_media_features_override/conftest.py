@@ -3,8 +3,8 @@ import pytest_asyncio
 
 from webdriver.bidi.modules.script import ContextTarget
 
-SOME_FEATURE_NAME = "prefers-contrast"
-SOME_FEATURE_SOME_VALUE = "more"
+SOME_FEATURE_NAME = "prefers-color-scheme"
+SOME_FEATURE_SOME_VALUE = "dark"
 
 ANOTHER_FEATURE_NAME = "prefers-reduced-motion"
 ANOTHER_FEATURE_SOME_VALUE = "reduce"

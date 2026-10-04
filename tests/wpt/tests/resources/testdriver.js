@@ -1507,6 +1507,33 @@
         },
 
         /**
+         * Navigates the top-level browsing context to the given absolute URL.
+         *
+         * Matches the behaviour of the `Navigate To
+         * <https://www.w3.org/TR/webdriver/#navigate-to>`_
+         * WebDriver command.
+         *
+         * Navigating the browsing context in which the
+         * test is running will unload the test.
+         *
+         * @param {String} url - The URL to navigate to. This must be absolute.
+         * @param {(String|WindowProxy)} context - Browsing context in which
+         *                                         to run the call: a
+         *                                         ``WindowProxy``, a WebDriver
+         *                                         window handle as returned by
+         *                                         :js:func:`create_window`, or
+         *                                         null to use the current
+         *                                         browsing context.
+         *
+         * @returns {Promise} fulfilled when the WebDriver command returns, which
+         *                    depends on the session's page load strategy, or
+         *                    rejected if the WebDriver command errors.
+         */
+        navigate: function(url, context=null) {
+            return window.test_driver_internal.navigate(url, context);
+        },
+
+        /**
          * Send a sequence of actions
          *
          * This function sends a sequence of actions to perform.
@@ -2673,6 +2700,10 @@
 
         async create_window(type=null, context=null) {
             throw new Error("create_window() is not implemented by testdriver-vendor.js");
+        },
+
+        async navigate(url, context=null) {
+            throw new Error("navigate() is not implemented by testdriver-vendor.js");
         },
 
         async minimize_window(context=null) {

@@ -56,20 +56,18 @@
     document.documentElement.addEventListener("click", clickHandler);
     t.add_cleanup(() => document.documentElement.removeEventListener("click", clickHandler));
 
-    // Ensure we have a frame before starting the transition.
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
     let transition = document.startViewTransition(() => {
       document.getElementById("target").style.background = "purple";
+    });
+    t.add_cleanup(async () => {
+      transition.skipTransition();
+      await transition.finished;
     });
 
     await transition.ready;
 
     let html = document.documentElement;
     let vt = html.pseudo("::view-transition");
-
-    // Wait for the pseudo-elements to be fully generated and visible.
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
     let computedStyle = window.getComputedStyle(document.documentElement, "::view-transition");
     assert_equals(computedStyle.pointerEvents, "auto", "pointer-events should be auto");
@@ -90,9 +88,59 @@
     assert_not_equals(clickTarget, underneath, "event.target should NOT be the underneath div. Pseudo element should intercept the click. Hit target was: " + hitDescription);
     assert_equals(clickTarget, html, "event.target should be the document element");
     assert_equals(clickPseudoTarget, vt, "click on ::view-transition sets pseudoTarget");
-
-    transition.skipTransition();
+    assert_equals(clickPseudoTarget.selectorText, "::view-transition", "pseudoTarget.selectorText");
   }, "Clicking on view transition pseudo elements sets event.pseudoTarget correctly");
+
+  promise_test(async t => {
+    assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+
+    let clickPseudoTarget = null;
+    const clickHandler = (e) => {
+      clickPseudoTarget = e.pseudoTarget;
+    };
+    document.documentElement.addEventListener("click", clickHandler);
+    t.add_cleanup(() => document.documentElement.removeEventListener("click", clickHandler));
+
+    const transition = document.startViewTransition(() => {
+      document.getElementById("target").style.background = "green";
+    });
+    t.add_cleanup(async () => {
+      transition.skipTransition();
+      await transition.finished;
+    });
+
+    await transition.ready;
+
+    const html = document.documentElement;
+    const newPseudo = html.pseudo("::view-transition-new(target)");
+    const rect = newPseudo.getBoxQuads()[0].getBounds();
+    const x = rect.x + rect.width / 2;
+    const y = rect.y + rect.height / 2;
+
+    await new test_driver.Actions()
+      .pointerMove(Math.round(x), Math.round(y))
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    assert_not_equals(clickPseudoTarget, null, "click on ::view-transition-new(target) sets pseudoTarget");
+    assert_equals(clickPseudoTarget.type, "::view-transition-new", "pseudoTarget.type");
+    assert_equals(clickPseudoTarget.parent.type, "::view-transition-image-pair", "pseudoTarget.parent.type");
+    assert_equals(clickPseudoTarget.parent.parent.type, "::view-transition-group", "pseudoTarget.parent.parent.type");
+    assert_equals(clickPseudoTarget.parent.parent.parent.type, "::view-transition", "pseudoTarget.parent.parent.parent.type");
+
+    assert_equals(clickPseudoTarget, newPseudo,
+                  "pseudoTarget must be the same CSSPseudoElement instance as pseudo('::view-transition-new(target)')");
+    assert_equals(clickPseudoTarget.parent, html.pseudo("::view-transition-image-pair(target)"),
+                  "pseudoTarget.parent must be the same CSSPseudoElement instance as pseudo('::view-transition-image-pair(target)')");
+    assert_equals(clickPseudoTarget.parent.parent, html.pseudo("::view-transition-group(target)"),
+                  "pseudoTarget.parent.parent must be the same CSSPseudoElement instance as pseudo('::view-transition-group(target)')");
+
+    assert_equals(clickPseudoTarget.selectorText, "::view-transition-new(target)", "pseudoTarget.selectorText");
+    assert_equals(clickPseudoTarget.parent.selectorText, "::view-transition-image-pair(target)", "pseudoTarget.parent.selectorText");
+    assert_equals(clickPseudoTarget.parent.parent.selectorText, "::view-transition-group(target)", "pseudoTarget.parent.parent.selectorText");
+    assert_equals(clickPseudoTarget.parent.parent.parent.selectorText, "::view-transition", "pseudoTarget.parent.parent.parent.selectorText");
+  }, "Clicking on ::view-transition-new(name) sets event.pseudoTarget to the same CSSPseudoElement as pseudo()");
 </script>
 
 </html>

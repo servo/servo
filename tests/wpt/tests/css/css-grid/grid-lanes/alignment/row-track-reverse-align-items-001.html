@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: `flow-start` and `flow-end` behave like `end` and `start` for `align-items` and `align-self` when `track-reverse` is applied to rows, even for overflowing items</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="match" href="row-track-reverse-align-items-001-ref.html">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .label {
+      font: 16px/1 monospace;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: row track-reverse;
+      grid-template-rows: repeat(2, 40px);
+      gap: 4px;
+      width: 140px;
+      height: 100px;
+      border: 1px solid;
+      margin-bottom: 4px;
+    }
+
+    item {
+      display: block;
+      width: 40px;
+      height: 26px;
+      color: white;
+      background: #2ca02c;
+    }
+
+    .tall {
+      height: 54px;
+      color: black;
+      background: yellow;
+    }
+  </style>
+</head>
+<body>
+  <div class="label">align-items: flow-start</div>
+  <div class="grid-lanes" style="align-items: flow-start;">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <item class="tall">4</item>
+  </div>
+
+  <div class="label">align-items: flow-end</div>
+  <div class="grid-lanes" style="align-items: flow-end;">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <item class="tall">4</item>
+  </div>
+
+  <div class="label">align-self: flow-start (item 4)</div>
+  <div class="grid-lanes">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <item class="tall" style="align-self: flow-start;">4</item>
+  </div>
+
+  <div class="label">align-self: flow-end (item 4)</div>
+  <div class="grid-lanes">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <item class="tall" style="align-self: flow-end;">4</item>
+  </div>
+</body>
+</html>

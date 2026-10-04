@@ -4,6 +4,7 @@ rules:
 - cross-document.html: [channel-messaging]
 - detached-iframe.window.js: [channel-messaging]
 - dictionary-transferrable.any.js: [channel-messaging]
+- historical.any.js: [channel-messaging]
 - implied-start.any.js: [channel-messaging]
 - no-start.any.js: [channel-messaging]
 - user-activation.tentative.any.js: [channel-messaging]

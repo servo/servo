@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported('prerender'));
+
+promise_test(async t => {
+  const rcHelper = new PrerenderingRemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+  const prerenderedRC = await referrerRC.addPrerender();
+
+  // In the prerendered page, start an intercepted same-document navigation
+  // whose handler stays pending until `window.resolveHandler()` is called.
+  await prerenderedRC.executeScript(() => {
+    window.navigatesuccessFired = false;
+    window.navigateerrorFired = false;
+    navigation.addEventListener("navigatesuccess", () => {
+      window.navigatesuccessFired = true;
+    });
+    navigation.addEventListener("navigateerror", () => {
+      window.navigateerrorFired = true;
+    });
+    navigation.addEventListener("navigate", e => {
+      e.intercept({
+        handler: () => new Promise(resolve => window.resolveHandler = resolve)
+      });
+    }, { once: true });
+    window.finishedPromise = navigation.navigate("#dashboard", { history: "replace" })
+        .finished.then(() => "success", e => `error: ${e.name}`);
+  });
+  assert_equals(
+      await prerenderedRC.executeScript(() => typeof window.resolveHandler),
+      "function");
+
+  // Activate while the intercepted navigation is still ongoing.
+  await referrerRC.navigateExpectingPrerenderingActivation(prerenderedRC);
+
+  // Settle the handler. The navigation should finish successfully.
+  const result = await prerenderedRC.executeScript(() => {
+    window.resolveHandler();
+    return window.finishedPromise;
+  });
+  assert_equals(result, "success", "navigation.navigate() should finish");
+  assert_true(
+      await prerenderedRC.executeScript(() => window.navigatesuccessFired),
+      "navigatesuccess should fire");
+  assert_false(
+      await prerenderedRC.executeScript(() => window.navigateerrorFired),
+      "navigateerror should not fire");
+}, `An intercepted navigation that is ongoing during prerender activation should finish after activation`);
+</script>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>Single-axis scroll containers preserve DOM order for same-position snap areas</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-scope">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+.outer {
+  width: 200px;
+  height: 200px;
+  overflow: auto;
+  scroll-snap-type: both proximity;
+  scrollbar-width: none;
+}
+
+#inner {
+  width: 200px;
+  height: 800px;
+  overflow: auto clip;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  position: relative;
+  background-color: blue;
+}
+
+.snap {
+  scroll-snap-align: start;
+}
+
+#abs {
+  position: absolute;
+  top: 150px;
+  width: 100px;
+  height: 100px;
+  background-color: red;
+}
+
+#spacer {
+  height: 150px;
+}
+
+#inflow {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+
+#force_scroll {
+  height: 600px;
+}
+</style>
+
+<div class="outer" id="outer">
+  <div id="inner">
+    <!-- DOM order: abs, inflow -->
+    <div id="abs" class="snap"></div>
+    <div id="spacer"></div>
+    <div id="inflow" class="snap"></div>
+    <div id="force_scroll"></div>
+  </div>
+</div>
+
+<script>
+promise_test(async t => {
+  const outer = document.getElementById("outer");
+  const abs = document.getElementById("abs");
+  const inflow = document.getElementById("inflow");
+
+  assert_equals(outer.scrollTop, 0, "outer should start at 0");
+
+  await waitForAnimationFrames(2);
+
+  let snapchange_event = null;
+  outer.addEventListener("scrollsnapchange", (e) => {
+    snapchange_event = e;
+  });
+
+  const scrollend_promise = new Promise(resolve => {
+    outer.addEventListener("scrollend", resolve, { once: true });
+  });
+
+  outer.scrollTop = 120;
+  await scrollend_promise;
+
+  assert_equals(outer.scrollTop, 150, "outer should snap to 150");
+  assert_not_equals(snapchange_event, null, "scrollsnapchange should have fired");
+  assert_equals(snapchange_event.snapTargetBlock, abs, "should snap to 'abs' (first in DOM order)");
+}, "Single-axis scroll container propagates snap area preserving DOM order for same-position snap areas");
+</script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.item {
+    height: 50px;
+    width: 50px;
+    margin: 50px;
+    font: 50px/1 Ahem;
+}
+
+.overflowVisible {
+    overflow: visible;
+}
+
+.overflowHidden {
+    overflow: hidden;
+}
+
+.overflowScroll {
+    overflow-y: scroll;
+}
+
+.overflowAuto {
+    overflow: auto;
+}
+</style>
+
+<p>This test checks that min-width|height auto behavior for grid items only applies if overflow is visible.</p>
+<p>The test passes if you see three 50x50 squares and one 100x100 square.</p>
+
+<div class="item overflowHidden">XX<br>XX</div>
+
+<div class="item overflowScroll">XX<br>XX</div>
+
+<div class="item overflowAuto">XX<br>XX</div>
+
+<div class="item overflowVisible">XX<br>XX</div>

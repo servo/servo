@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#z-order">
+<link rel="match" href="grid-items-painted-once-001-ref.html">
+<meta name="assert" content="Grid items spanning several rows or columns, or placed in multi-cell grid areas, are painted exactly once.">
+<html>
+<head>
+    <link href="/css/support/grid.css" rel="stylesheet">
+    <style>
+        .grid2Rows2Columns {
+            grid-template-columns: auto auto;
+            grid-template-rows: auto auto;
+        }
+
+        .gridAreas2Rows {
+            grid-template-areas: "a a"
+                                 "b b";
+        }
+
+        .gridAreas2Columns {
+            grid-template-areas: "a b"
+                                 "a b";
+        }
+
+        .areaA {
+            grid-area: a;
+        }
+
+        .areaB {
+            grid-area: b;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        This test shows 4 grids where all the items are placed in several cells (span or areas).<br>
+        It passes if these grid items are painted only once.
+    </div>
+    <div class="grid grid2Rows2Columns">
+        <div class="firstRowBothColumn">item</div>
+        <div class="secondRowBothColumn">item</div>
+    </div>
+    <div class="grid grid2Rows2Columns">
+        <div class="bothRowFirstColumn">item</div>
+        <div class="bothRowSecondColumn">item</div>
+    </div>
+    <div class="grid gridAreas2Rows">
+        <div class="areaA">item</div>
+        <div class="areaB">item</div>
+    </div>
+    <div class="grid gridAreas2Columns">
+        <div class="areaA">item</div>
+        <div class="areaB">item</div>
+    </div>
+</body>
+</html>

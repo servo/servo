@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Tables: cells after a width: 0.001px column stay in the row when fixed-width columns take the excess width</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#distributing-width-to-columns">
+<link rel="match" href="table-cell-tiny-width-excess-width-distribution-ref.html">
+<meta name="assert" content="Distributing excess width to constrained columns grows them in proportion to their max-content width, so a width: 0.001px column takes a negligible share and the cells after it still fill the row.">
+<style>
+table {
+  width: 300px;
+  border-spacing: 0;
+}
+td {
+  background-color: green;
+}
+.fixed-width {
+  width: 20px;
+}
+.tiny-width {
+  width: 0.001px;
+  padding: 0;
+}
+.percent-width {
+  width: 1%;
+}
+.content {
+  width: 100px;
+  height: 20px;
+}
+</style>
+<p>Test passes if there is a filled green rectangle.</p>
+<table>
+  <tr>
+    <td class="fixed-width"></td>
+    <td class="tiny-width"></td>
+    <td class="percent-width"><div class="content"></div></td>
+  </tr>
+</table>

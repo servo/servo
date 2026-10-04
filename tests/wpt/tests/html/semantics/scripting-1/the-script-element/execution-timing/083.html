@@ -23,7 +23,10 @@
   </script>
   <script>
     fireFooEvent();
-    frames[0].location='about:blank'; // returning to about:blank should de-activate document that defined event listener..?
+    // Starts an asynchronous navigation; the document that defined the event
+    // listener stays fully active until the navigation completes, so the
+    // fireFooEvent() call in the next script block still fires the listener.
+    frames[0].location='about:blank';
   </script>
   <script>
     fireFooEvent();
@@ -34,9 +37,14 @@
 
   function test() {
     assert_equals(frames[0].location.toString(), "about:blank");
+    // The final fireFooEvent() must not invoke the listener: after the
+    // navigation completes, the listener callback's realm belongs to a Window
+    // whose associated document is no longer fully active. See
+    // https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke
     assert_array_equals(eventOrder, ['inline script #1',
       'IFRAME script',
       'end script #1',
+      'event: foo',
       'event: foo',
       'inline script #2'
     ]);

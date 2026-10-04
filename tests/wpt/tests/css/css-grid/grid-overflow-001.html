@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Grid Expands Scrollable Area</title>
+<link rel="help" href="https://www.w3.org/TR/css-grid-2/#overflow">
+<link rel="author" href="http://fantasai.inkedblade.net/contact" title="Elika J. Etemad">
+
+<link rel="match" href="grid-overflow-001-ref.html">
+
+<style>
+  .grid {
+    float: left;
+    margin: 1em;
+    border: solid;
+    border-width: 1px 2px 4px 6px;
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+    display: grid;
+    position: relative;
+
+    grid-template-columns: 120px 20px;
+    grid-template-rows: 110px 10px;
+    padding: 10px;
+  }
+
+  .grid > div:first-child {
+    border: solid aqua;
+    position: absolute;
+    inset: 0;
+  }
+
+  .grid > div {
+    border: solid orange;
+  }
+
+</style>
+
+<div class="grid" dir=ltr>
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" dir=rtl reverse-x>
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" dir=ltr style="writing-mode: vertical-rl" reverse-x>
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" dir=rtl style="writing-mode: vertical-rl" reverse-x reverse-y>
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" dir=ltr style="writing-mode: vertical-lr">
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" dir=rtl style="writing-mode: vertical-lr" reverse-y>
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" dir=ltr style="writing-mode: sideways-rl" reverse-x>
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" dir=rtl style="writing-mode: sideways-rl" reverse-x reverse-y>
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" dir=ltr style="writing-mode: sideways-lr" reverse-y>
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" dir=rtl style="writing-mode: sideways-lr">
+  <div></div>
+  <div></div>
+</div>
+
+<script>
+  var testElements = document.querySelectorAll('.grid');
+  for (const test of testElements) {
+    var invertX = (test.getAttribute('reverse-x') === null) ? 1 : -1;
+    var invertY = (test.getAttribute('reverse-y') === null) ? 1 : -1;
+    test.scrollBy(100 * invertX, 100 * invertY);
+  }
+  document.documentElement.removeAttribute('class');
+</script>
+

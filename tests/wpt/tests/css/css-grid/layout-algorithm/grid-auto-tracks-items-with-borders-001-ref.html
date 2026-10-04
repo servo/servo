@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<html>
+<head>
+<style>
+/* Reference: reconstruct the 2x2 grid geometry without a grid formatting
+   context. Each item is an absolutely-positioned border-box block placed at
+   its grid area's origin/size, so the (real) borders and Ahem text land in the
+   exact pixels the grid is expected to produce. Using real borders keeps the
+   asymmetric corner joins identical to the tested output. */
+.container {
+    position: relative;
+    width: 784px;
+    height: 120px;
+}
+.item {
+    position: absolute;
+    box-sizing: border-box;
+    border-style: solid;
+    font: 20px/1 Ahem;
+}
+.topLeft {
+    left: 0;
+    top: 0;
+    width: 374px;
+    height: 44px;
+    border-width: 2px 4px 6px 8px;
+    border-color: green;
+}
+.topRight {
+    left: 374px;
+    top: 0;
+    width: 410px;
+    height: 44px;
+    border-width: 10px 12px 14px 16px;
+    border-color: yellow;
+}
+.bottomLeft {
+    left: 0;
+    top: 44px;
+    width: 374px;
+    height: 76px;
+    border-width: 18px 20px 22px 24px;
+    border-color: yellow;
+}
+.bottomRight {
+    left: 374px;
+    top: 44px;
+    width: 410px;
+    height: 76px;
+    border-width: 26px 28px 30px 32px;
+    border-color: green;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="item topLeft">x</div>
+    <div class="item topRight">xx</div>
+    <div class="item bottomLeft">xxx</div>
+    <div class="item bottomRight">xxxx</div>
+</div>
+</body>
+</html>

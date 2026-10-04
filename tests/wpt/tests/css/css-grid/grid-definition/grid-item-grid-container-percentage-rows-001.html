@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-stretch">
+<link rel="match" href="grid-item-grid-container-percentage-rows-001-ref.html">
+<meta name="assert" content="Percentage rows resolve against the height of a grid container that is itself a stretched grid item.">
+<style>
+
+.outerGrid {
+    display: grid;
+    width: 200px;
+    height: 200px;
+    border: 5px solid;
+    grid: 200px / 200px;
+    background: magenta;
+}
+
+.innerGrid {
+    display: grid;
+    grid: 50% / 1fr;
+}
+
+.gridItem {
+    background: cyan;
+}
+
+</style>
+
+<p>This test checks that percentage rows are properly resolved for a grid container that is a stretched grid item.</p>
+<p>Test passes if you see a 200x200 box with top half cyan and bottom half magenta.</p>
+
+<div class="outerGrid">
+    <div class="innerGrid">
+        <div class="gridItem"></div>
+    </div>
+</div>

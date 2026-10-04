@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(t => {
+    const expectedBlockedURI =
+        'https://{{domains[www1]}}:{{ports[https][0]}}/worklets/resources/empty-worklet-script-with-cors-header.js';
+    return Promise.all([
+      new Promise(r => document.addEventListener('securitypolicyviolation',
+                                                 t.step_func(r),
+                                                 {once: true})),
+      promise_rejects_dom(t, 'AbortError', CSS.paintWorklet.addModule(
+          '/worklets/resources/import-remote-origin-empty-worklet-script.sub.js')),
+    ]).then(([event, _]) => {
+      assert_equals(event.blockedURI, expectedBlockedURI);
+    });
+  }, 'CSP violation on a nested import within a PaintWorklet module graph ' +
+     'fetch dispatches a securitypolicyviolation event on the Document');
+</script>

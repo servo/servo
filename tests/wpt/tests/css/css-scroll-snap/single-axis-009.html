@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>Single-axis scroll containers preserve old snap targets only when snap areas remain present</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-scope">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#re-snap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+.outer {
+  width: 200px;
+  height: 200px;
+  overflow: auto;
+  scroll-snap-type: both mandatory;
+  scrollbar-width: none;
+}
+
+#inner {
+  width: 200px;
+  height: 800px;
+  overflow: auto clip;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  position: relative;
+  background-color: blue;
+}
+
+.snap {
+  scroll-snap-align: start;
+  width: 100px;
+  height: 100px;
+  position: absolute;
+}
+
+.red {
+  background-color: red;
+}
+
+.green {
+  background-color: green;
+}
+</style>
+
+<div class="outer" id="outer">
+  <div id="inner">
+    <div id="target1" class="snap red" style="top: 0px; left: 0px;"></div>
+    <div id="target2" class="snap green" style="top: 200px; left: 0px;"></div>
+    <div style="height: 600px;"></div>
+  </div>
+</div>
+
+<script>
+promise_test(async t => {
+  const outer = document.getElementById("outer");
+  const target2 = document.getElementById("target2");
+
+  // 1. Snap outer vertically to target2 initially
+  outer.scrollTop = 200;
+  await waitForAnimationFrames(2);
+  assert_equals(outer.scrollTop, 200, "outer should initially snap vertically to target2 at 200");
+
+  // 2. Shift target2 vertically from top: 200px to top: 300px
+  target2.style.top = "300px";
+  await waitForAnimationFrames(2);
+  assert_equals(outer.scrollTop, 300, "outer should re-snap to target2 in the y axis when layout shifts");
+
+  // 3. Remove target2's snap area
+  target2.style.scrollSnapAlign = "none";
+  await waitForAnimationFrames(2);
+  assert_equals(outer.scrollTop, 0, "outer should drop target2 and snap to target1 at 0 when snap area is removed");
+}, "Outer scroller re-snaps to its previous y-axis snap target through a single-axis scroller only while that snap area remains");
+</script>

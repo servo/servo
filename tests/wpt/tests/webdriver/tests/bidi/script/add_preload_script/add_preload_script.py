@@ -1,7 +1,3 @@
-# META: timeout=long
-
-# Longer timeout required due to a large number of script evaluation and serialization subtests.
-
 import pytest
 
 from webdriver.bidi.modules.script import ContextTarget

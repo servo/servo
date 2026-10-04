@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<title>Implicit scopes remain isolated across sibling stylesheet mutations</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-styles">
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #fixture div { z-index: inherit; }
+</style>
+<div id="fixture" class="target">
+  <div id="left" class="target">
+    <style id="left-sheet">
+      @scope {
+        :scope, .target { background-color: blue; }
+      }
+    </style>
+    <div><div id="left-target" class="target"></div></div>
+  </div>
+  <div id="right" class="target">
+    <style id="right-sheet">
+      @scope {
+        :scope, .target { outline-style: solid; }
+      }
+    </style>
+    <div><div id="right-target" class="target"></div></div>
+  </div>
+  <div id="outside" class="target"></div>
+</div>
+<script>
+test(() => {
+  const fixture = document.getElementById('fixture');
+  const left = document.getElementById('left');
+  const right = document.getElementById('right');
+  const leftSheet = document.getElementById('left-sheet');
+  const rightSheet = document.getElementById('right-sheet');
+  let recalc = 0;
+
+  function checkStyles(blueIds, outlinedIds, description) {
+    for (const id of ['fixture', 'left', 'left-target',
+                     'right', 'right-target', 'outside']) {
+      const style = getComputedStyle(document.getElementById(id));
+      assert_equals(style.backgroundColor,
+                    blueIds.includes(id) ? 'rgb(0, 0, 255)' : 'rgba(0, 0, 0, 0)',
+                    `${description}: ${id} background`);
+      assert_equals(style.outlineStyle,
+                    outlinedIds.includes(id) ? 'solid' : 'none',
+                    `${description}: ${id} outline`);
+    }
+  }
+
+  function check(blueIds, outlinedIds, description) {
+    checkStyles(blueIds, outlinedIds, description);
+    fixture.style.zIndex = String(++recalc);
+    checkStyles(blueIds, outlinedIds, `${description}, full subtree recalc`);
+  }
+
+  check(['left', 'left-target'], ['right', 'right-target'], 'Separate scopes');
+
+  right.append(leftSheet);
+  check(['right', 'right-target'], ['right', 'right-target'],
+        'Move the left stylesheet to the right sibling');
+
+  rightSheet.remove();
+  check(['right', 'right-target'], [], 'Remove the original right stylesheet');
+
+  left.append(leftSheet);
+  check(['left', 'left-target'], [], 'Move the stylesheet back');
+
+  right.append(rightSheet);
+  check(['left', 'left-target'], ['right', 'right-target'],
+        'Reinsert the right stylesheet');
+
+  leftSheet.remove();
+  rightSheet.remove();
+  check([], [], 'Remove both stylesheets');
+}, 'Sibling implicit scopes update independently when sheets move or disappear');
+</script>

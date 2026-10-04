@@ -332,3 +332,67 @@ promise_test(async t => {
   // `data.buffer` didn't get detached
   assert_equals(data.length, 16, 'data.length');
 }, 'Test transfering same array buffer twice to ImageDecoder');
+
+promise_test(async t => {
+  for (const bad_sample_rate of [0, -1]) {
+    let buffer = new ArrayBuffer(32);
+    let unused_buffer = new ArrayBuffer(16);
+    assert_throws_js(TypeError, () => new AudioData({
+                                  format: 'f32',
+                                  sampleRate: bad_sample_rate,
+                                  numberOfFrames: 8,
+                                  numberOfChannels: 1,
+                                  timestamp: 0,
+                                  data: buffer,
+                                  transfer: [buffer, unused_buffer]
+                                }),
+                     `sampleRate ${bad_sample_rate} should throw TypeError`);
+    assert_equals(buffer.byteLength, 32, 'buffer should not be detached');
+    assert_equals(unused_buffer.byteLength, 16,
+                  'unused_buffer should not be detached');
+
+    // Verify the buffer is still usable and transferable on a subsequent valid
+    // call.
+    let audio_data = new AudioData({
+      format: 'f32',
+      sampleRate: 48000,
+      numberOfFrames: 8,
+      numberOfChannels: 1,
+      timestamp: 0,
+      data: buffer,
+      transfer: [buffer, unused_buffer]
+    });
+    assert_equals(buffer.byteLength, 0, 'buffer detached after valid call');
+    assert_equals(unused_buffer.byteLength, 0,
+                  'unused_buffer detached after valid call');
+    audio_data.close();
+  }
+}, 'Test throwing AudioData constructor does not detach transfer buffers');
+
+promise_test(async t => {
+  let unused_buffer = new ArrayBuffer(32);
+  assert_throws_js(TypeError, () => new ImageDecoder({
+                                data: new Uint8Array(0),
+                                type: 'image/png',
+                                transfer: [unused_buffer]
+                              }));
+  assert_equals(unused_buffer.byteLength, 32,
+                'unused_buffer should not be detached');
+}, 'Test throwing ImageDecoder constructor does not detach transfer buffers');
+
+promise_test(async t => {
+  let buffer = new ArrayBuffer(32);
+  let unused_buffer = new ArrayBuffer(16);
+  assert_throws_js(TypeError, () => new VideoFrame(buffer, {
+                                format: 'I420',
+                                codedWidth: 4,
+                                codedHeight: 4,
+                                displayWidth: 0,
+                                displayHeight: 4,
+                                timestamp: 0,
+                                transfer: [buffer, unused_buffer]
+                              }));
+  assert_equals(buffer.byteLength, 32, 'buffer should not be detached');
+  assert_equals(unused_buffer.byteLength, 16,
+                'unused_buffer should not be detached');
+}, 'Test throwing VideoFrame constructor does not detach transfer buffers');

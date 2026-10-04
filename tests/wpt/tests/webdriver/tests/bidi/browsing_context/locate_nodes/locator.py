@@ -1,7 +1,3 @@
-# META: timeout=long
-
-# Longer timeout required due to a large number of navigation, frame, or browser lifecycle subtests.
-
 import pytest
 
 from ... import any_string, recursive_compare

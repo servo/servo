@@ -1,0 +1,15 @@
+<!doctype html>
+<html class="test-wait">
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1978727">
+<iframe src="https://{{hosts[alt][]}}:{{ports[https][0]}}/common/blank.html"></iframe>
+<script>
+const frame = document.querySelector("iframe");
+frame.addEventListener("load", () => {
+  frame.addEventListener("load", () => {
+    document.documentElement.className = "";
+  }, { once: true });
+  frame.srcdoc = "<div></div>";
+  frame.setAttribute("sandbox", "");
+}, { once: true });
+</script>

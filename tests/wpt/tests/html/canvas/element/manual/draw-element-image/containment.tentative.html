@@ -18,10 +18,15 @@
   <div id=child2>
     <div id=grandchild2></div>
   </div>
+  <div id=child_drawable drawable></div>
 </canvas>
 <script>
 promise_test(async () => {
   child_asserts = {
+    contain: 'none',
+    isolation: 'isolate',
+    position: 'static'};
+  child_drawable_asserts = {
     contain: 'none',
     isolation: 'isolate',
     position: 'static'};
@@ -37,6 +42,10 @@ promise_test(async () => {
   for (a in child_asserts) {
     assert_equals(getComputedStyle(child1)[a], child_asserts[a]);
     assert_equals(getComputedStyle(child2)[a], child_asserts[a]);
+  }
+  for (a in child_drawable_asserts) {
+    assert_equals(getComputedStyle(child_drawable)[a],
+                  child_drawable_asserts[a]);
   }
   for (a in grandchild_asserts) {
     assert_equals(getComputedStyle(grandchild1)[a], grandchild_asserts[a]);

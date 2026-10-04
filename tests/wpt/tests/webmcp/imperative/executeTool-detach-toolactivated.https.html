@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: toolactivated is not dispatched when an imperative tool detaches its document</title>
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+async function createSameOriginIframe(t) {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+  return iframe;
+}
+
+promise_test(async t => {
+  const iframe = await createSameOriginIframe(t);
+  const iframeModelContext = iframe.contentDocument.modelContext;
+
+  // The `execute` callback lives in this (parent) realm, which stays alive
+  // after the iframe is detached.
+  await iframeModelContext.registerTool({
+    name: 'detaching_tool',
+    description: 'Tool that detaches its own document',
+    execute: () => {
+      iframe.remove();
+      return 'result';
+    },
+  });
+
+  // The listener is also from this (parent) realm, so it could still be
+  // invoked if the event were dispatched at the detached document.
+  const events = [];
+  iframeModelContext.addEventListener('toolactivated', e => events.push(e));
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(tool => tool.name === 'detaching_tool');
+  assert_true(!!tool, '"detaching_tool" is visible to the parent document');
+
+  await promise_rejects_dom(t, 'UnknownError',
+      document.modelContext.executeTool(tool, {}));
+
+  assert_false(iframe.isConnected, 'the iframe is detached');
+  assert_array_equals(events, [],
+      'toolactivated is not dispatched at the detached document ModelContext');
+}, 'toolactivated is not dispatched when a tool execute callback from ' +
+   'another realm detaches the tool document');
+
+promise_test(async t => {
+  const iframe = await createSameOriginIframe(t);
+  const iframeWindow = iframe.contentWindow;
+  const iframeModelContext = iframe.contentDocument.modelContext;
+
+  // The `execute` callback lives in the iframe realm, and detaches its own
+  // frame.
+  await iframeModelContext.registerTool({
+    name: 'self_detaching_tool',
+    description: 'Tool that detaches its own document from its own realm',
+    execute: new iframeWindow.Function(
+        'window.frameElement.remove(); return "result";'),
+  });
+
+  // One listener from this (parent) realm and one from the iframe realm.
+  const events = [];
+  iframeModelContext.addEventListener('toolactivated', e => events.push(e));
+  iframeWindow.toolActivatedEvents = [];
+  iframeModelContext.addEventListener('toolactivated',
+      new iframeWindow.Function('e', 'window.toolActivatedEvents.push(e);'));
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(tool => tool.name === 'self_detaching_tool');
+  assert_true(!!tool, '"self_detaching_tool" is visible to the parent document');
+
+  await promise_rejects_dom(t, 'UnknownError',
+      document.modelContext.executeTool(tool, {}));
+
+  assert_false(iframe.isConnected, 'the iframe is detached');
+  assert_array_equals(events, [],
+      'toolactivated is not dispatched to listeners from the parent realm');
+  assert_array_equals(iframeWindow.toolActivatedEvents, [],
+      'toolactivated is not dispatched to listeners from the iframe realm');
+}, 'toolactivated is not dispatched when a tool execute callback detaches ' +
+   'its own document');
+</script>

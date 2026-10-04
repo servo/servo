@@ -67,6 +67,30 @@
     test_layer_dropped('@mixin --m() { @media (width) { @layer bar; @result { div { color: green } } } }', 'a body-level @media');
     test_layer_dropped('@mixin --m() { @supports (width: 0) { @layer bar; @result { div { color: green } } } }', 'a body-level @supports');
     test_layer_dropped('@mixin --m() { @container (width) { @layer bar; @result { div { color: green } } } }', 'a body-level @container');
+
+    // @mixin is valid wherever @keyframes is valid.
+    function test_mixin_location(rule, description) {
+      test(() => {
+        let sheet = new CSSStyleSheet();
+        sheet.replaceSync(`${rule} {
+          @keyframes --k {}
+          @mixin --m() {}
+        }`);
+        assert_equals(sheet.cssRules.length, 1);
+        assert_equals(sheet.cssRules[0].cssRules.length, 2);
+        assert_true(
+            sheet.cssRules[0].cssRules[0].cssText.startsWith('@keyframes'));
+        assert_true(
+            sheet.cssRules[0].cssRules[1].cssText.startsWith('@mixin'));
+      }, `@mixin and @keyframes are valid within ${description}`);
+    }
+
+    test_mixin_location('@media (width)', '@media');
+    test_mixin_location('@container (width)', '@container');
+    test_mixin_location('@supports (width: 0)', '@supports');
+    test_mixin_location('@navigation (at: --foo)', '@navigation');
+    test_mixin_location('@layer foo', '@layer');
+
   </script>
 
   </body>
