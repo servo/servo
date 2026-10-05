@@ -14,7 +14,9 @@ use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
-use script_bindings::codegen::GenericBindings::ConvolverNodeBinding::{ConvolverNodeMethods, ConvolverOptions};
+use script_bindings::codegen::GenericBindings::ConvolverNodeBinding::{
+    ConvolverNodeMethods, ConvolverOptions,
+};
 use script_bindings::codegen::GenericBindings::DelayNodeBinding::{DelayNodeMethods, DelayOptions};
 use script_bindings::codegen::GenericBindings::PeriodicWaveBinding::PeriodicWaveMethods;
 use servo_base::id::PipelineId;
@@ -354,10 +356,13 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
     fn CreateConvolver(&self, cx: &mut JSContext) -> Fallible<DomRoot<ConvolverNode>> {
-        ConvolverNode::Constructor(cx, self.global().as_window(),
+        ConvolverNode::Constructor(
+            cx,
+            self.global().as_window(),
             None,
             self,
-            &ConvolverOptions::empty(),)
+            &ConvolverOptions::empty(),
+        )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator>
