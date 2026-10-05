@@ -133,7 +133,7 @@ struct ReadPixelsSizes {
 }
 
 impl WebGL2RenderingContext {
-    fn new_inherited(base: &WebGLRenderingContext) -> Option<WebGL2RenderingContext> {
+    fn new_inherited(base: &WebGLRenderingContext) -> WebGL2RenderingContext {
         let samplers = (0..base.limits().max_combined_texture_image_units)
             .map(|_| Default::default())
             .collect::<Vec<_>>()
@@ -148,7 +148,7 @@ impl WebGL2RenderingContext {
                 .collect::<Vec<_>>()
                 .into();
 
-        Some(WebGL2RenderingContext {
+        WebGL2RenderingContext {
             reflector_: Reflector::new(),
             base: Dom::from_ref(base),
             occlusion_query: MutNullableDom::new(None),
@@ -169,7 +169,7 @@ impl WebGL2RenderingContext {
             enable_rasterizer_discard: Cell::new(false),
             default_fb_readbuffer: Cell::new(constants::BACK),
             default_fb_drawbuffer: Cell::new(constants::BACK),
-        })
+        }
     }
 
     pub(crate) fn new(
@@ -181,9 +181,11 @@ impl WebGL2RenderingContext {
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         let base =
             WebGLRenderingContext::new(cx, window, canvas, WebGLVersion::WebGL2, size, attrs)?;
-
-        WebGL2RenderingContext::new_inherited(&base)
-            .map(|ctx| reflect_dom_object(cx, Box::new(ctx), window))
+        Some(reflect_dom_object(
+            cx,
+            Box::new(WebGL2RenderingContext::new_inherited(&base)),
+            window,
+        ))
     }
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
