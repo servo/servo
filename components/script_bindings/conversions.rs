@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::{ptr, slice};
+use std::{ffi, ptr, slice};
 
 use js::context::JSContext;
 use js::conversions::{
@@ -15,12 +15,12 @@ use js::glue::{
 use js::jsapi::{Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JSObject};
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::wrappers2::{
-    IsArrayObject, JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength,
-    JS_NewStringCopyN, UnwrapObjectDynamic,
+    IsArrayObject, JS_GetLatin1StringCharsAndLength, JS_GetProperty,
+    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, UnwrapObjectDynamic,
 };
 use js::rust::{
-    HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
-    is_dom_object, maybe_wrap_value,
+    HandleId, HandleObject, HandleValue, MutableHandleValue, ToString, get_object_class,
+    is_dom_class, is_dom_object, maybe_wrap_value,
 };
 use keyboard_types::Modifiers;
 use num_traits::Float;
@@ -28,6 +28,7 @@ use num_traits::Float;
 use crate::JSTraceable;
 use crate::codegen::GenericBindings::EventModifierInitBinding::EventModifierInit;
 use crate::codegen::PrototypeList;
+use crate::error::{Error, Fallible};
 use crate::inheritance::Castable;
 use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
@@ -620,5 +621,44 @@ impl<D: crate::DomTypes> EventModifierInit<D> {
             modifiers.insert(Modifiers::SYMBOL_LOCK);
         }
         modifiers
+    }
+}
+
+/// Get a property from a JS object.
+pub fn get_property_jsval(
+    cx: &mut JSContext,
+    object: HandleObject,
+    name: &ffi::CStr,
+    rval: MutableHandleValue,
+) -> Fallible<()> {
+    if unsafe { !JS_GetProperty(cx, object, name.as_ptr(), rval) } {
+        return Err(Error::JSFailed);
+    }
+
+    Ok(())
+}
+
+/// Get a property from a JS object, and convert it to a Rust value.
+pub fn get_property<T>(
+    cx: &mut JSContext,
+    object: HandleObject,
+    name: &ffi::CStr,
+    option: T::Config,
+) -> Fallible<Option<T>>
+where
+    T: FromJSValConvertible,
+{
+    rooted!(&in(cx) let mut result = UndefinedValue());
+    get_property_jsval(cx, object, name, result.handle_mut())?;
+
+    if result.is_undefined() {
+        return Ok(None);
+    }
+
+    let value = T::from_jsval(cx, result.handle(), option);
+    match value {
+        Ok(ConversionResult::Success(value)) => Ok(Some(value)),
+        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+        Err(()) => Err(Error::JSFailed),
     }
 }
