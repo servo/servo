@@ -7,7 +7,7 @@ use std::ops::Add;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::UserActivationBinding::UserActivationMethods;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -32,7 +32,7 @@ impl UserActivation {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<UserActivation> {
-        reflect_dom_object_with_cx(Box::new(UserActivation::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(UserActivation::new_inherited()), global)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#activation-notification>

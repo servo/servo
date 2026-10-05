@@ -13,7 +13,7 @@ use js::realm::CurrentRealm;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use script_bindings::callback::RootedCallback;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSender;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
@@ -45,7 +45,7 @@ impl XRTest {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<XRTest> {
-        reflect_dom_object_with_cx(Box::new(XRTest::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(XRTest::new_inherited()), global)
     }
 
     fn device_obtained(

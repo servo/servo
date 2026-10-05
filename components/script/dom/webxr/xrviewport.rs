@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use euclid::Rect;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::Viewport;
 
 use crate::dom::bindings::codegen::Bindings::XRViewportBinding::XRViewportMethods;
@@ -32,7 +32,7 @@ impl XRViewport {
         global: &GlobalScope,
         viewport: Rect<i32, Viewport>,
     ) -> DomRoot<XRViewport> {
-        reflect_dom_object_with_cx(Box::new(XRViewport::new_inherited(viewport)), global, cx)
+        reflect_dom_object(cx, Box::new(XRViewport::new_inherited(viewport)), global)
     }
 }
 

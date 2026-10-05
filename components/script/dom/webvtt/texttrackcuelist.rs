@@ -7,7 +7,7 @@ use std::ops::Deref;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::TextTrackCueListBinding::TextTrackCueListMethods;
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom, UnrootedDom};
@@ -37,10 +37,10 @@ impl TextTrackCueList {
         text_track: &TextTrack,
         window: &Window,
     ) -> DomRoot<TextTrackCueList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(TextTrackCueList::new_inherited(text_track)),
             window,
-            cx,
         )
     }
 

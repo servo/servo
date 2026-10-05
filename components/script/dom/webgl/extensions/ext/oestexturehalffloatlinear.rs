@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
 use crate::dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
@@ -28,7 +28,7 @@ impl OESTextureHalfFloatLinear {
 impl WebGLExtension for OESTextureHalfFloatLinear {
     type Extension = OESTextureHalfFloatLinear;
     fn new(cx: &mut JSContext, ctx: &WebGLRenderingContext) -> DomRoot<OESTextureHalfFloatLinear> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), &*ctx.global(), cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited()), &*ctx.global())
     }
 
     fn spec() -> WebGLExtensionSpec {

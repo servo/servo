@@ -5,7 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::WakeLockBinding::{
     WakeLockSentinelMethods, WakeLockType,
@@ -36,7 +36,7 @@ impl WakeLockSentinel {
         global: &GlobalScope,
         type_: WakeLockType,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(type_)), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited(type_)), global)
     }
 }
 

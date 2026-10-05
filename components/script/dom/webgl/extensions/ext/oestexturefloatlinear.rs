@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions, constants as webgl};
 use crate::dom::bindings::reflector::DomGlobal;
@@ -27,7 +27,7 @@ impl OESTextureFloatLinear {
 impl WebGLExtension for OESTextureFloatLinear {
     type Extension = OESTextureFloatLinear;
     fn new(cx: &mut JSContext, ctx: &WebGLRenderingContext) -> DomRoot<OESTextureFloatLinear> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), &*ctx.global(), cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited()), &*ctx.global())
     }
 
     fn spec() -> WebGLExtensionSpec {

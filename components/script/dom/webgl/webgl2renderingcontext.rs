@@ -16,7 +16,7 @@ use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleObject, Mutable
 use js::typedarray::{ArrayBufferView, Float32, Int32, Uint32};
 use pixels::{Alpha, Snapshot};
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
@@ -189,7 +189,7 @@ impl WebGL2RenderingContext {
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         WebGL2RenderingContext::new_inherited(cx, window, canvas, size, attrs)
-            .map(|ctx| reflect_dom_object_with_cx(Box::new(ctx), window, cx))
+            .map(|ctx| reflect_dom_object(cx, Box::new(ctx), window))
     }
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {

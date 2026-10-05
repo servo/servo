@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, ScreenMetrics};
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel;
 
 use crate::dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
@@ -28,7 +28,7 @@ impl Screen {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<Screen> {
-        reflect_dom_object_with_cx(Box::new(Screen::new_inherited(window)), window, cx)
+        reflect_dom_object(cx, Box::new(Screen::new_inherited(window)), window)
     }
 
     /// Retrives [`ScreenMetrics`] from the embedder.

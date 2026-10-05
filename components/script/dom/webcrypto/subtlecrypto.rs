@@ -48,7 +48,7 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers2::{JS_NewObject, JS_ParseJSON};
 use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_constellation_traits::{
     SerializableAesKeyAlgorithm, SerializableAlgorithm, SerializableCShakeParams,
     SerializableDigestAlgorithm, SerializableEcKeyAlgorithm, SerializableHmacKeyAlgorithm,
@@ -212,7 +212,7 @@ impl SubtleCrypto {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<SubtleCrypto> {
-        reflect_dom_object_with_cx(Box::new(SubtleCrypto::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(SubtleCrypto::new_inherited()), global)
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve

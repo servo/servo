@@ -9,7 +9,7 @@ use euclid::{Point2D, Point3D, Rect, RigidTransform3D, Rotation3D, Size2D, Trans
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSender;
 use webxr_api::{
     EntityType, Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockRegion,
@@ -60,7 +60,7 @@ impl FakeXRDevice {
         global: &GlobalScope,
         sender: GenericSender<MockDeviceMsg>,
     ) -> DomRoot<FakeXRDevice> {
-        reflect_dom_object_with_cx(Box::new(FakeXRDevice::new_inherited(sender)), global, cx)
+        reflect_dom_object(cx, Box::new(FakeXRDevice::new_inherited(sender)), global)
     }
 
     pub(crate) fn disconnect(&self, sender: ProfileGenericCallback<()>) {
