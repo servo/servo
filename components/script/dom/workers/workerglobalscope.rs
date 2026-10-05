@@ -4,7 +4,7 @@
 
 #![cfg_attr(crown, allow(crown::jscontext_first_arg))]
 
-use std::cell::{OnceCell, RefCell, RefMut};
+use std::cell::{Cell, OnceCell, RefCell, RefMut};
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
@@ -45,6 +45,7 @@ use servo_base::id::{PipelineId, PipelineNamespace};
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_constellation_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
+use style::Atom;
 use timers::TimerScheduler;
 use uuid::Uuid;
 
@@ -89,7 +90,7 @@ use crate::dom::serviceworker::cachestorage::CacheStorage;
 use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::ImageBitmap;
+use crate::dom::types::{EventTarget, ImageBitmap};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
@@ -389,6 +390,12 @@ pub(crate) struct WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
     #[ignore_malloc_size_of = "mozjs"]
     module_map: DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>,
+
+    /// Switch offline and online events
+    ///
+    /// online event: <https://html.spec.whatwg.org/multipage/#event-online>
+    /// offline event: <https://html.spec.whatwg.org/multipage/#event-offline>
+    is_online: Cell<bool>,
 }
 
 impl WorkerGlobalScope {
@@ -464,6 +471,7 @@ impl WorkerGlobalScope {
             origin: MutableOrigin::new(init.origin),
             font_context,
             module_map: Default::default(),
+            is_online: Cell::new(true),
         }
     }
 
@@ -747,6 +755,17 @@ impl WorkerGlobalScope {
 
     pub(crate) fn origin(&self) -> MutableOrigin {
         self.origin.clone()
+    }
+
+    pub(crate) fn set_network_online_state(&self, cx: &mut JSContext, is_online: bool) {
+        self.is_online.set(is_online);
+
+        let event_name = Atom::from(if is_online { "online" } else { "offline" });
+        self.upcast::<EventTarget>().fire_event(cx, event_name);
+    }
+
+    pub(crate) fn is_online(&self) -> bool {
+        self.is_online.get()
     }
 }
 

@@ -136,7 +136,7 @@ use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, Proc
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::script_execution::{RethrowErrors, ScriptOptions};
 use crate::dom::servoparser::{ParserContext, ServoParser};
-use crate::dom::types::DebuggerGlobalScope;
+use crate::dom::types::{DebuggerGlobalScope, SharedWorker};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
@@ -422,6 +422,12 @@ pub struct ScriptThread {
     privileged_urls: Vec<ServoUrl>,
 
     devtools_state: DevtoolsState,
+
+    /// Switch offline and online events
+    ///
+    /// online event: <https://html.spec.whatwg.org/multipage/#event-online>.
+    /// offline event: <https://html.spec.whatwg.org/multipage/#event-offline>.
+    is_online: Cell<bool>,
 }
 
 struct BHMExitSignal {
@@ -987,6 +993,7 @@ impl ScriptThread {
                     privileged_urls: state.privileged_urls,
                     this: weak_script_thread.clone(),
                     devtools_state: Default::default(),
+                    is_online: Cell::new(true),
                 }
             }),
             cx,
@@ -1957,7 +1964,28 @@ impl ScriptThread {
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(cx, GCReason::API);
             },
+            ScriptThreadMessage::SetNetworkOnlineState(is_online) => {
+                self.handle_network_online_state(is_online, cx);
+            },
         }
+    }
+
+    fn fire_network_online_events(&self, is_online: bool, cx: &mut JSContext) {
+        for (_, document) in self.documents.borrow().iter() {
+            // send to fully active documents
+            if document.is_fully_active() {
+                document.fire_online_or_offline_events(cx, is_online);
+            }
+
+            // send to dedicated workers
+            document
+                .window()
+                .as_global_scope()
+                .set_network_online_state_on_dedicated_workers(is_online);
+        }
+
+        // send to shared workers
+        SharedWorker::set_network_online_state(is_online);
     }
 
     fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: ScrollStateUpdate) {
@@ -4499,6 +4527,13 @@ impl ScriptThread {
         };
     }
 
+    fn handle_network_online_state(&self, is_online: bool, cx: &mut JSContext) {
+        let previous = self.is_online.replace(is_online);
+        if previous != is_online {
+            self.fire_network_online_events(is_online, cx);
+        }
+    }
+
     pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {
         crate::runtime::job_queue::enqueue(cx, job);
     }
@@ -4629,6 +4664,10 @@ impl ScriptThread {
                 .devtools_state
                 .wants_updates_for_node(pipeline, node)
         })
+    }
+
+    pub(crate) fn is_online() -> bool {
+        with_script_thread(|script_thread| script_thread.is_online.get())
     }
 }
 

@@ -109,6 +109,7 @@ pub(crate) enum DedicatedWorkerControlMsg {
     /// Shutdown the worker.
     Exit,
     AnimationFrameProviderUnsupported,
+    SetNetworkOnlineState(bool),
 }
 
 pub(crate) enum DedicatedWorkerScriptMsg {
@@ -980,6 +981,12 @@ impl DedicatedWorkerGlobalScope {
                 self.clear_animation_frame_callbacks_and_unregister();
                 self.upcast::<GlobalScope>()
                     .disable_owned_worker_animation_frame_providers();
+            },
+            MixedMessage::Control(DedicatedWorkerControlMsg::SetNetworkOnlineState(is_online)) => {
+                self.upcast::<WorkerGlobalScope>()
+                    .set_network_online_state(cx, is_online);
+                self.upcast::<GlobalScope>()
+                    .set_network_online_state_on_dedicated_workers(is_online);
             },
             MixedMessage::AnimationFrameTick(_) => {
                 // Step 6.1.2. Run the animation frame callbacks for that

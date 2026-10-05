@@ -5365,6 +5365,14 @@ impl Document {
         self.CreateElement(cx, name.into(), element_options)
             .expect("Must always be able to create element")
     }
+
+    /// Fire "online" or "offline" event on document window.
+    pub(crate) fn fire_online_or_offline_events(&self, cx: &mut JSContext, is_online: bool) {
+        let event_name = Atom::from(if is_online { "online" } else { "offline" });
+        self.window()
+            .upcast::<EventTarget>()
+            .fire_event(cx, event_name);
+    }
 }
 
 impl DocumentMethods<crate::DomTypeHolder> for Document {
