@@ -1630,7 +1630,10 @@ impl CanvasState {
         let font_context = &global.font_context();
         let font_style = self.font_style();
         let font_group = font_context.font_group(font_style);
-        let font = font_group.first(font_context).expect("couldn't find font");
+        let Some(font) = font_group.first(font_context) else {
+            warn!("Could not measure canvas text, because there was no first font.");
+            return TextMetrics::new(global, cx, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.);
+        };
         let ascent = font.metrics().ascent.to_f64_px();
         let descent = font.metrics().descent.to_f64_px();
         let runs = self.build_unshaped_text_runs(font_context, &text, &font_group);
