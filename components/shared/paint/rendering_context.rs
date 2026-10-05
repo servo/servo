@@ -129,11 +129,18 @@ impl SurfmanRenderingContext {
         let context_descriptor =
             device.create_context_descriptor(&ContextAttributes { flags, version })?;
 
-        let context = device
+        let mut context = device
             .create_context(&context_descriptor, None)
             .inspect_err(|_| {
                 print_diagnostics_information_on_context_creation_failure(&device, gl_api, version)
             })?;
+
+        // `glow::Context::from_loader_function` immediately queries `GL_VERSION`, so the
+        // context must be current.
+        if let Err(error) = device.make_context_current(&context) {
+            let _ = device.destroy_context(&mut context);
+            return Err(error);
+        }
 
         #[expect(unsafe_code)]
         let gleam_gl = {
