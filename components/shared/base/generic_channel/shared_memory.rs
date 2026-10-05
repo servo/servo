@@ -137,7 +137,7 @@ impl GenericSharedMemory {
     ///
     /// # Safety
     ///
-    /// This is safe if there is only one reader/writer on the data. In single process mode breaking invariant cases panics.
+    /// This is safe if there is only one reader/writer on the data. In single process mode breaking invariant causes panics.
     pub unsafe fn deref_mut(&mut self) -> &mut [u8] {
         match &mut self.0 {
             GenericSharedMemoryVariant::Ipc(ipc_shared_memory) => {
