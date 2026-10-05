@@ -1947,32 +1947,32 @@ impl WebGLImpl {
                     webgl::ParameterInt::AlphaBits if state.fake_no_alpha() => 0,
                     webgl::ParameterInt::DepthBits if state.fake_no_depth() => 0,
                     webgl::ParameterInt::StencilBits if state.fake_no_stencil() => 0,
-                    webgl::ParameterInt::RedBits if webgl2 => Self::draw_framebuffer_bits(
+                    webgl::ParameterInt::RedBits if webgl2 => Self::read_draw_framebuffer_bits(
                         gl,
                         gl::COLOR_ATTACHMENT0,
                         gl::FRAMEBUFFER_ATTACHMENT_RED_SIZE,
                     ),
-                    webgl::ParameterInt::GreenBits if webgl2 => Self::draw_framebuffer_bits(
+                    webgl::ParameterInt::GreenBits if webgl2 => Self::read_draw_framebuffer_bits(
                         gl,
                         gl::COLOR_ATTACHMENT0,
                         gl::FRAMEBUFFER_ATTACHMENT_GREEN_SIZE,
                     ),
-                    webgl::ParameterInt::BlueBits if webgl2 => Self::draw_framebuffer_bits(
+                    webgl::ParameterInt::BlueBits if webgl2 => Self::read_draw_framebuffer_bits(
                         gl,
                         gl::COLOR_ATTACHMENT0,
                         gl::FRAMEBUFFER_ATTACHMENT_BLUE_SIZE,
                     ),
-                    webgl::ParameterInt::AlphaBits if webgl2 => Self::draw_framebuffer_bits(
+                    webgl::ParameterInt::AlphaBits if webgl2 => Self::read_draw_framebuffer_bits(
                         gl,
                         gl::COLOR_ATTACHMENT0,
                         gl::FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE,
                     ),
-                    webgl::ParameterInt::DepthBits if webgl2 => Self::draw_framebuffer_bits(
+                    webgl::ParameterInt::DepthBits if webgl2 => Self::read_draw_framebuffer_bits(
                         gl,
                         gl::DEPTH_ATTACHMENT,
                         gl::FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE,
                     ),
-                    webgl::ParameterInt::StencilBits if webgl2 => Self::draw_framebuffer_bits(
+                    webgl::ParameterInt::StencilBits if webgl2 => Self::read_draw_framebuffer_bits(
                         gl,
                         gl::STENCIL_ATTACHMENT,
                         gl::FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE,
@@ -2756,7 +2756,7 @@ impl WebGLImpl {
 
     /// Reads one component size of a draw framebuffer attachment, or 0 when
     /// nothing is attached, as OpenGL ES 3.0.6 §4.4.5 defines the `*_BITS` values.
-    fn draw_framebuffer_bits(gl: &Gl, attachment: u32, pname: u32) -> i32 {
+    fn read_draw_framebuffer_bits(gl: &Gl, attachment: u32, pname: u32) -> i32 {
         unsafe {
             let object_type = gl.get_framebuffer_attachment_parameter_i32(
                 gl::DRAW_FRAMEBUFFER,
