@@ -9,10 +9,12 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::conversions::{ConversionResult, FromJSValConvertible};
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
+use js::typedarray::Uint8Array;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
 
@@ -21,6 +23,7 @@ use super::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
 };
+use crate::dom::bindings::conversions::ConversionBehavior;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -28,7 +31,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestream::{ReadableStream, bytes_from_chunk_jsval};
+use crate::dom::readablestream::ReadableStream;
 use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::types::ReadableStreamDefaultController;
@@ -147,38 +150,63 @@ impl ReadRequest {
                 // Spec: chunk steps, given chunk
                 let global = reader.global();
 
-                match bytes_from_chunk_jsval(cx, &chunk) {
-                    Ok(vec) => {
-                        // Step 2. Append the bytes represented by chunk to bytes.
-                        bytes.borrow_mut().extend_from_slice(&vec);
-
-                        // Step 3. Read-loop given reader, bytes, successSteps, and failureSteps.
-                        // Spec note: Avoid direct recursion; queue into a microtask.
-                        // Resolving the promise will queue a microtask to call into the native handler.
-                        let tick = Promise::new(cx, &global);
-                        tick.resolve_native(cx, &());
-
-                        let handler = PromiseNativeHandler::new(
-                            cx,
-                            &global,
-                            Some(Box::new(ContinueReadMicrotask {
-                                reader: Dom::from_ref(reader),
-                                request: self.clone(),
-                            })),
-                            None,
-                        );
-
-                        let mut realm = enter_auto_realm(cx, &*global);
-                        let cx = &mut realm.current_realm();
-                        tick.append_native_handler(cx, &handler);
-                    },
-                    Err(err) => {
-                        // Step 1. If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort.
+                // Step 1. If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort.
+                auto_root!(&in(cx) let array = match Uint8Array::from_jsval(cx, chunk.handle(), ()) {
+                    Ok(ConversionResult::Success(array)) => array,
+                    _ => {
                         rooted!(&in(cx) let mut v = UndefinedValue());
-                        err.to_jsval(cx, &global, v.handle_mut());
+                        Error::Type(c"Chunk is not a Uint8Array.".to_owned())
+                            .to_jsval(cx, &global, v.handle_mut());
                         (failure_steps)(cx, v.handle());
+                        return;
                     },
+                });
+
+                // Step 2. Append the bytes represented by chunk to bytes.
+                if array.is_shared() {
+                    let chunk_bytes = match Vec::<u8>::from_jsval(
+                        cx,
+                        chunk.handle(),
+                        ConversionBehavior::EnforceRange,
+                    ) {
+                        Ok(ConversionResult::Success(chunk_bytes)) => chunk_bytes,
+                        _ => {
+                            rooted!(&in(cx) let mut v = UndefinedValue());
+                            Error::Type(c"Unknown format for bytes read.".to_owned()).to_jsval(
+                                cx,
+                                &global,
+                                v.handle_mut(),
+                            );
+                            (failure_steps)(cx, v.handle());
+                            return;
+                        },
+                    };
+                    bytes.borrow_mut().extend_from_slice(&chunk_bytes);
+                } else {
+                    bytes
+                        .borrow_mut()
+                        .extend_from_slice(array.as_slice_safe(cx.no_gc()).unwrap_or(&[]));
                 }
+
+                // Step 3. Read-loop given reader, bytes, successSteps, and failureSteps.
+                // Spec note: Avoid direct recursion; queue into a microtask.
+                // Resolving the promise will queue a microtask to call into the native handler.
+                let tick = Promise::new(cx, &global);
+                tick.resolve_native(cx, &());
+
+                let handler = PromiseNativeHandler::new(
+                    cx,
+                    &global,
+                    Some(Box::new(ContinueReadMicrotask {
+                        reader: Dom::from_ref(reader),
+                        request: self.clone(),
+                    })),
+                    None,
+                );
+
+                let mut realm = enter_auto_realm(cx, &*global);
+                let cx = &mut realm.current_realm();
+                tick.append_native_handler(cx, &handler);
             },
         }
     }
