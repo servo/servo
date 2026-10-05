@@ -20,7 +20,7 @@ use hyper_util::client::legacy::connect::proxy::Tunnel;
 use hyper_util::client::legacy::connect::{
     Connected, Connection, HttpConnector as HyperHttpConnector,
 };
-use hyper_util::rt::TokioIo;
+use hyper_util::rt::{TokioIo, TokioTimer};
 use log::warn;
 use parking_lot::Mutex;
 use rustls::client::danger::ServerCertVerifier;
@@ -659,5 +659,12 @@ pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
 
     Client::builder(TokioExecutor {})
         .http1_title_case_headers(true)
+        // This is necessary for hyper to reap unused idle keep-alive connections.
+        .pool_timer(TokioTimer::new())
+        // Other browsers control the maximum connections per host, tyipcally set to 6, but hyper
+        // does not allow controlling this directly. Until we have code to manually do that, this
+        // limit controls the maximum idle connections per host, which we still don't want to grow
+        // without bound.
+        .pool_max_idle_per_host(6)
         .build(InstrumentedConnector::from(connector))
 }
