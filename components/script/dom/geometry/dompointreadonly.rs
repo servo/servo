@@ -178,7 +178,7 @@ impl DOMPointWriteMethods for DOMPointReadOnly {
     }
 }
 
-impl Serializable for DOMPointReadOnly {
+impl Serializable<crate::DomTypeHolder> for DOMPointReadOnly {
     type Index = DomPointIndex;
     type Data = DomPoint;
 

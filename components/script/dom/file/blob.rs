@@ -99,7 +99,7 @@ impl Blob {
     }
 }
 
-impl Serializable for Blob {
+impl Serializable<crate::DomTypeHolder> for Blob {
     type Index = BlobIndex;
     type Data = BlobImpl;
 

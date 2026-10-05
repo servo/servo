@@ -501,7 +501,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
     }
 }
 
-impl Serializable for DOMMatrix {
+impl Serializable<crate::DomTypeHolder> for DOMMatrix {
     type Index = DomMatrixIndex;
     type Data = DomMatrix;
 

@@ -150,7 +150,7 @@ impl File {
     }
 }
 
-impl Serializable for File {
+impl Serializable<crate::DomTypeHolder> for File {
     type Index = FileIndex;
     type Data = SerializableFile;
 

@@ -122,7 +122,7 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
     }
 }
 
-impl Serializable for QuotaExceededError {
+impl Serializable<crate::DomTypeHolder> for QuotaExceededError {
     type Index = QuotaExceededErrorIndex;
     type Data = SerializableQuotaExceededError;
 

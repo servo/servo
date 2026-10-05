@@ -161,7 +161,7 @@ fn reader_for_type(
     }
 }
 
-unsafe fn read_object<T: Serializable>(
+unsafe fn read_object<T: Serializable<crate::DomTypeHolder>>(
     cx: &mut JSContext,
     owner: &GlobalScope,
     r: *mut JSStructuredCloneReader,
@@ -203,7 +203,7 @@ unsafe fn read_object<T: Serializable>(
     ptr::null_mut()
 }
 
-unsafe fn write_object<T: Serializable>(
+unsafe fn write_object<T: Serializable<crate::DomTypeHolder>>(
     no_gc: &NoGC,
     interface: SerializableInterface,
     owner: &GlobalScope,
@@ -276,7 +276,7 @@ enum OperationError {
     Exception(Error),
 }
 
-unsafe fn try_serialize<T: Serializable + IDLInterface>(
+unsafe fn try_serialize<T: Serializable<crate::DomTypeHolder> + IDLInterface>(
     cx: &mut JSContext,
     val: SerializableInterface,
     object: RawHandleObject,

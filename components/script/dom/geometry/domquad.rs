@@ -195,7 +195,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
     }
 }
 
-impl Serializable for DOMQuad {
+impl Serializable<crate::DomTypeHolder> for DOMQuad {
     type Index = DomQuadIndex;
     type Data = DomQuad;
 

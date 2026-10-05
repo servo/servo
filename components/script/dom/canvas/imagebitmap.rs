@@ -602,7 +602,7 @@ impl ImageBitmap {
     }
 }
 
-impl Serializable for ImageBitmap {
+impl Serializable<crate::DomTypeHolder> for ImageBitmap {
     type Index = ImageBitmapIndex;
     type Data = SerializableImageBitmap;
 

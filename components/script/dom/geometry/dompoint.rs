@@ -129,7 +129,7 @@ impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
     }
 }
 
-impl Serializable for DOMPoint {
+impl Serializable<crate::DomTypeHolder> for DOMPoint {
     type Index = DomPointIndex;
     type Data = DomPoint;
 

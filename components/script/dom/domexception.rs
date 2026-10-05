@@ -247,7 +247,7 @@ impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
     }
 }
 
-impl Serializable for DOMException {
+impl Serializable<crate::DomTypeHolder> for DOMException {
     type Index = DomExceptionIndex;
     type Data = DomException;
 

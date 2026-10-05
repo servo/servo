@@ -212,7 +212,7 @@ impl ImageData {
     }
 }
 
-impl Serializable for ImageData {
+impl Serializable<crate::DomTypeHolder> for ImageData {
     type Index = ImageDataIndex;
     type Data = SerializableImageData;
 

@@ -67,7 +67,7 @@ impl FileList {
     }
 }
 
-impl Serializable for FileList {
+impl Serializable<crate::DomTypeHolder> for FileList {
     type Index = FileListIndex;
     type Data = SerializableFileList;
 

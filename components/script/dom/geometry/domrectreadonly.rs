@@ -199,7 +199,7 @@ pub(super) fn create_a_domrectreadonly_from_the_dictionary(other: &DOMRectInit) 
 
 type Type = DomRectId;
 
-impl Serializable for DOMRectReadOnly {
+impl Serializable<crate::DomTypeHolder> for DOMRectReadOnly {
     type Index = DomRectIndex;
     type Data = DomRect;
 

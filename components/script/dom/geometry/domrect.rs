@@ -127,7 +127,7 @@ impl DOMRectMethods<crate::DomTypeHolder> for DOMRect {
     }
 }
 
-impl Serializable for DOMRect {
+impl Serializable<crate::DomTypeHolder> for DOMRect {
     type Index = DomRectIndex;
     type Data = DomRect;
 

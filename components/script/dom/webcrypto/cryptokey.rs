@@ -229,7 +229,7 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
     }
 }
 
-impl Serializable for CryptoKey {
+impl Serializable<crate::DomTypeHolder> for CryptoKey {
     type Index = CryptoKeyIndex;
     type Data = SerializableCryptoKey;
 

@@ -984,7 +984,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 }
 
-impl Serializable for DOMMatrixReadOnly {
+impl Serializable<crate::DomTypeHolder> for DOMMatrixReadOnly {
     type Index = DomMatrixIndex;
     type Data = DomMatrix;
 
