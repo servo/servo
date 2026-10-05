@@ -5791,7 +5791,7 @@ class CGUnionConversionStruct(CGThing):
                 templateBody.append(arrayObject if arrayObject else callbackObject)
             if interfaceObject:
                 assert not object
-                templateBody.append(interfaceObject)
+                templateBody.prepend(interfaceObject)
             elif object:
                 templateBody.append(object)
             if mozMapObject:
