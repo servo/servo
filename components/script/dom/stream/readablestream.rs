@@ -11,7 +11,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::conversions::{FromJSValConvertible, ToJSValConvertible};
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -2465,20 +2465,6 @@ pub(crate) fn get_read_promise_bytes(
         ConversionBehavior::EnforceRange,
     )?
     .ok_or(Error::Type(c"Promise has no value property.".to_owned()))
-}
-
-/// Convert a raw stream `chunk` JS value to `Vec<u8>`.
-/// This mirrors the conversion used inside `get_read_promise_bytes`,
-/// but operates on the raw chunk (no `{ value, done }` wrapper).
-pub(crate) fn bytes_from_chunk_jsval(
-    cx: &mut JSContext,
-    chunk: &RootedTraceableBox<Heap<JSVal>>,
-) -> Result<Vec<u8>, Error> {
-    match Vec::<u8>::from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange) {
-        Ok(ConversionResult::Success(vec)) => Ok(vec),
-        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-        _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
-    }
 }
 
 /// <https://streams.spec.whatwg.org/#rs-transfer>
