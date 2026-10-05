@@ -160,7 +160,7 @@ impl CssPropertyName {
         Some(
             match self {
                 CssPropertyName::BackgroundColor => {
-                    let background_color = style.clone_background_color();
+                    let background_color = style.get_background_color();
                     if let Some(absolute_color) = background_color.as_absolute() {
                         // Used as an early-exit when figuring out on which element to resolve
                         // the style in `effective_command_value`
@@ -189,7 +189,7 @@ impl CssPropertyName {
                             return Some(color);
                         }
                     }
-                    style.clone_color().to_css_string()
+                    style.get_color().to_css_string()
                 },
                 CssPropertyName::FontFamily => {
                     // Detached font elements (e.g. does created with `document.createElement`
@@ -204,7 +204,7 @@ impl CssPropertyName {
                             return Some(face);
                         }
                     }
-                    style.clone_font_family().to_css_string()
+                    style.get_font_family().to_css_string()
                 },
                 CssPropertyName::FontSize => {
                     // Font size is special, in that it can't use the resolved styles to compute
@@ -235,8 +235,8 @@ impl CssPropertyName {
                             Some(format!("{}px", pixels).into())
                         });
                 },
-                CssPropertyName::FontWeight => style.clone_font_weight().to_css_string(),
-                CssPropertyName::FontStyle => style.clone_font_style().to_css_string(),
+                CssPropertyName::FontWeight => style.get_font_weight().to_css_string(),
+                CssPropertyName::FontStyle => style.get_font_style().to_css_string(),
                 CssPropertyName::TextDecoration => unreachable!("Should use longhands instead"),
                 CssPropertyName::TextDecorationLine => {
                     let text_decoration_line = style.get_text().text_decoration_line;

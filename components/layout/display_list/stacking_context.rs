@@ -498,7 +498,11 @@ impl Fragment {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 if mode == StackingContextBuildMode::SkipHoisted &&
-                    fragment.style().clone_position().is_absolutely_positioned()
+                    fragment
+                        .style()
+                        .get_box()
+                        .position
+                        .is_absolutely_positioned()
                 {
                     return;
                 }
@@ -899,18 +903,16 @@ impl BoxFragmentWithStyle<'_> {
         };
 
         let new_text_decoration;
-        let text_decorations = match style.clone_text_decoration_line() {
-            TextDecorationLine::NONE => text_decorations,
+        let text_decorations = match style.get_text_decoration_line() {
+            &TextDecorationLine::NONE => text_decorations,
             line => {
                 let mut new_vector = (**text_decorations).clone();
-                let color = &style.get_inherited_text().color;
+                let color = style.get_color();
                 new_vector.push(FragmentTextDecoration {
-                    line,
-                    color: style
-                        .clone_text_decoration_color()
-                        .resolve_to_absolute(color),
-                    style: style.clone_text_decoration_style(),
-                    thickness: style.clone_text_decoration_thickness(),
+                    line: *line,
+                    color: style.get_text_decoration_color().resolve_to_absolute(color),
+                    style: style.slow_clone_text_decoration_style(),
+                    thickness: style.slow_clone_text_decoration_thickness(),
                 });
                 new_text_decoration = Rc::new(new_vector);
                 &new_text_decoration
@@ -1313,20 +1315,20 @@ impl BoxFragment {
         let list = &style.get_box().transform;
         let length_rect = au_rect_to_length_rect(border_rect);
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
-        let rotate = match style.clone_rotate() {
-            GenericRotate::Rotate(angle) => (0., 0., 1., angle),
+        let rotate = match style.get_rotate() {
+            GenericRotate::Rotate(angle) => (0., 0., 1., *angle),
             GenericRotate::Rotate3D(x, y, z, angle) => {
                 // These are the raw, unormalized values from CSS, but euclid expects
                 // rotation input to be normalized, so we must do that first.
-                get_normalized_vector_and_angle(x, y, z, angle)
+                get_normalized_vector_and_angle(*x, *y, *z, *angle)
             },
             GenericRotate::None => (0., 0., 1., Angle::zero()),
         };
-        let scale = match style.clone_scale() {
-            GenericScale::Scale(sx, sy, sz) => (sx, sy, sz),
+        let scale = match style.get_scale() {
+            GenericScale::Scale(sx, sy, sz) => (*sx, *sy, *sz),
             GenericScale::None => (1., 1., 1.),
         };
-        let translation = match style.clone_translate() {
+        let translation = match style.get_translate() {
             GenericTranslate::Translate(x, y, z) => LayoutTransform::translation(
                 x.resolve(length_rect.size.width).px(),
                 y.resolve(length_rect.size.height).px(),

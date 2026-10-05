@@ -1704,9 +1704,9 @@ fn resolve_justify_self(
     // In that case, since `justify-items` doesn't apply to inline boxes, we need to treat
     // `justify-self: auto` as `normal`.
     // See the resolution in <https://github.com/w3c/csswg-drafts/issues/11462>.
-    let alignment = match style.clone_justify_self().0 {
+    let alignment = match style.get_justify_self().0 {
         AlignFlags::AUTO if has_inline_parent => AlignFlags::NORMAL,
-        AlignFlags::AUTO => containing_block_style.clone_justify_items().computed.0.0,
+        AlignFlags::AUTO => containing_block_style.get_justify_items().computed.0.0,
         alignment => alignment,
     };
     let is_ltr = |style: &ComputedValues| style.writing_mode.line_left_is_inline_start();
@@ -1775,7 +1775,7 @@ fn justify_self_alignment(
 
     // For `justify-self: normal`, fall back to the special 'text-align' values.
     let style = containing_block.style;
-    match style.clone_text_align() {
+    match style.get_text_align() {
         TextAlignKeyword::MozCenter => free_space / 2,
         TextAlignKeyword::MozLeft if !style.writing_mode.line_left_is_inline_start() => free_space,
         TextAlignKeyword::MozRight if style.writing_mode.line_left_is_inline_start() => free_space,
@@ -1902,7 +1902,7 @@ impl<'container> PlacementState<'container> {
         containing_block: &'container ContainingBlock<'container>,
     ) -> PlacementState<'container> {
         let is_inline_block_context =
-            containing_block.style.get_box().clone_display() == Display::InlineBlock;
+            containing_block.style.get_box().get_display() == &Display::InlineBlock;
         PlacementState {
             next_in_flow_margin_collapses_with_parent_start_margin:
                 collapsible_with_parent_start_margin.0,

@@ -292,7 +292,7 @@ impl FlexLineItem<'_> {
                 .layout_collected_children(flex_context.layout_context, &mut fragment);
         }
 
-        if style.clone_position() == Position::Relative {
+        if style.get_box().position == Position::Relative {
             fragment.base.translate_rect(
                 relative_adjustement(style, containing_block)
                     .to_physical_size(containing_block.style.writing_mode),
@@ -536,8 +536,8 @@ impl FlexContainer {
         let chosen_max_flex_fraction = normalize_flex_fraction(chosen_max_flex_fraction);
 
         let main_gap = match self.config.flex_axis {
-            FlexAxis::Row => self.style.clone_column_gap(),
-            FlexAxis::Column => self.style.clone_row_gap(),
+            FlexAxis::Row => self.style.get_column_gap(),
+            FlexAxis::Column => self.style.get_row_gap(),
         };
         let main_gap = match main_gap {
             LengthPercentageOrNormal::LengthPercentage(length_percentage) => {
@@ -682,8 +682,8 @@ impl FlexContainer {
             .map(|flex_item_box| FlexItem::new(&flex_context, flex_item_box))
             .collect::<Vec<_>>();
 
-        let row_gap = self.style.clone_row_gap();
-        let column_gap = self.style.clone_column_gap();
+        let row_gap = self.style.get_row_gap();
+        let column_gap = self.style.get_column_gap();
         let (cross_gap, main_gap) = match flex_context.config.flex_axis {
             FlexAxis::Row => (row_gap, column_gap),
             FlexAxis::Column => (column_gap, row_gap),
@@ -2644,7 +2644,7 @@ impl FlexItemBox {
             // > Indicates an automatic size based on the flex item’s content.
             FlexBasis::Content => Size::Initial,
 
-            FlexBasis::Size(size) => match Size::<LengthPercentage>::from(size.clone()) {
+            FlexBasis::Size(size) => match Size::<LengthPercentage>::from(size) {
                 // https://drafts.csswg.org/css-flexbox-1/#valdef-flex-basis-auto
                 // > When specified on a flex item, the `auto` keyword retrieves
                 // > the value of the main size property as the used `flex-basis`.

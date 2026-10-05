@@ -217,7 +217,7 @@ impl PositioningContext {
         new_context.layout_collected_children(layout_context, &mut new_fragment);
         self.append(new_context);
 
-        if base.style.clone_position() == Position::Relative {
+        if base.style.get_box().position == Position::Relative {
             new_fragment.base.translate_rect(
                 relative_adjustement(&base.style, containing_block)
                     .to_physical_vector(containing_block.style.writing_mode)
@@ -427,7 +427,8 @@ impl HoistedAbsolutelyPositionedBox {
             .borrow()
             .context
             .style()
-            .clone_position();
+            .get_box()
+            .position;
         assert!(position.is_absolutely_positioned());
         position
     }
@@ -637,7 +638,7 @@ impl IndependentFormattingContext {
         // in the inline axis.
         let inline_box_offsets = box_offset.inline_sides().percentages_relative_to(cbis);
         let inline_alignment = match inline_box_offsets.either_specified() {
-            true => style.clone_justify_self().0,
+            true => style.get_justify_self().0,
             false => resolved_alignment.inline,
         };
 
@@ -661,7 +662,7 @@ impl IndependentFormattingContext {
         // against this containing block.
         let block_box_offsets = box_offset.block_sides().percentages_relative_to(cbbs);
         let block_alignment = match block_box_offsets.either_specified() {
-            true => style.clone_align_self().0,
+            true => style.get_align_self().0,
             false => resolved_alignment.block,
         };
         let block_axis_solver = AbsoluteAxisSolver {

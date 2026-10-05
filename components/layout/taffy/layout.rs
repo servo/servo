@@ -351,7 +351,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
             child_specific_layout_infos: vec![None; self.children.len()],
         };
 
-        let (max_content_output, min_content_output) = match style.clone_display().inside() {
+        let (max_content_output, min_content_output) = match style.get_display().inside() {
             DisplayInside::Grid => {
                 let max_content_output = taffy::compute_grid_layout(
                     &mut grid_context,
@@ -408,8 +408,8 @@ impl TaffyContainer {
         };
 
         let container_style = &content_box_size_override.style;
-        let align_items = container_style.clone_align_items();
-        let justify_items = container_style.clone_justify_items();
+        let align_items = container_style.get_align_items();
+        let justify_items = container_style.get_justify_items();
         let pbm = self.layout_style().padding_border_margin(containing_block);
 
         let known_dimensions = taffy::Size {
@@ -445,7 +445,7 @@ impl TaffyContainer {
             available_space: taffy_containing_block.map(AvailableSpace::from),
         };
 
-        let output = match container_ctx.style.clone_display().inside() {
+        let output = match container_ctx.style.get_display().inside() {
             DisplayInside::Grid => {
                 taffy::compute_grid_layout(&mut container_ctx, DUMMY_NODE_ID, layout_input)
             },
@@ -569,11 +569,11 @@ impl TaffyContainer {
                             content_size,
                             LogicalVec2 {
                                 inline: resolve_alignment(
-                                    child.style.clone_align_self().0,
+                                    child.style.get_align_self().0,
                                     align_items.0,
                                 ),
                                 block: resolve_alignment(
-                                    child.style.clone_justify_self().0,
+                                    child.style.get_justify_self().0,
                                     justify_items.computed.0.0,
                                 ),
                             },

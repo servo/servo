@@ -17,7 +17,7 @@ use layout_api::AnimatingImages;
 use libc::c_void;
 use paint_api::ImageUpdate;
 use parking_lot::RwLock;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::refcounted::Trusted;
@@ -493,7 +493,7 @@ impl AnimationManager {
     /// immediately after a restyle, to ensure that these addresses are still valid.
     fn root_newly_animating_dom_nodes(
         &self,
-        sets: &FxHashMap<AnimationSetKey, ElementAnimationSet>,
+        sets: &style::FxHashMap<AnimationSetKey, ElementAnimationSet>,
     ) {
         let mut rooted_nodes = self.rooted_animation_nodes.borrow_mut();
         for (key, set) in sets.iter() {
@@ -511,9 +511,9 @@ impl AnimationManager {
     }
 
     // Unroot any nodes that we have rooted but are no longer tracking animations for.
-    fn unroot_unused_nodes(&self, sets: &FxHashMap<AnimationSetKey, ElementAnimationSet>) {
+    fn unroot_unused_nodes(&self, sets: &style::FxHashMap<AnimationSetKey, ElementAnimationSet>) {
         let pending_events = self.pending_events.borrow();
-        let nodes: FxHashSet<OpaqueNode> = sets.keys().map(|key| key.node).collect();
+        let nodes: style::FxHashSet<OpaqueNode> = sets.keys().map(|key| key.node).collect();
         self.rooted_animation_nodes.borrow_mut().retain(|node, _| {
             nodes.contains(&node.0) || pending_events.iter().any(|event| event.node == node.0)
         });

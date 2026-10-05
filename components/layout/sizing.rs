@@ -392,15 +392,15 @@ impl<T: Clone> Size<T> {
     }
 }
 
-impl From<StyleSize> for Size<LengthPercentage> {
-    fn from(size: StyleSize) -> Self {
+impl From<&StyleSize> for Size<LengthPercentage> {
+    fn from(size: &StyleSize) -> Self {
         match size {
-            StyleSize::LengthPercentage(lp) => Size::Numeric(lp.0),
+            StyleSize::LengthPercentage(lp) => Size::Numeric(lp.0.clone()),
             StyleSize::Auto => Size::Initial,
             StyleSize::MinContent => Size::MinContent,
             StyleSize::MaxContent => Size::MaxContent,
             StyleSize::FitContent => Size::FitContent,
-            StyleSize::FitContentFunction(lp) => Size::FitContentFunction(lp.0),
+            StyleSize::FitContentFunction(lp) => Size::FitContentFunction(lp.0.clone()),
             StyleSize::Stretch | StyleSize::WebkitFillAvailable => Size::Stretch,
             StyleSize::AnchorSizeFunction(_) | StyleSize::AnchorContainingCalcFunction(_) => {
                 unreachable!("anchor-size() should be disabled")
@@ -409,15 +409,15 @@ impl From<StyleSize> for Size<LengthPercentage> {
     }
 }
 
-impl From<StyleMaxSize> for Size<LengthPercentage> {
-    fn from(max_size: StyleMaxSize) -> Self {
+impl From<&StyleMaxSize> for Size<LengthPercentage> {
+    fn from(max_size: &StyleMaxSize) -> Self {
         match max_size {
-            StyleMaxSize::LengthPercentage(lp) => Size::Numeric(lp.0),
+            StyleMaxSize::LengthPercentage(lp) => Size::Numeric(lp.0.clone()),
             StyleMaxSize::None => Size::Initial,
             StyleMaxSize::MinContent => Size::MinContent,
             StyleMaxSize::MaxContent => Size::MaxContent,
             StyleMaxSize::FitContent => Size::FitContent,
-            StyleMaxSize::FitContentFunction(lp) => Size::FitContentFunction(lp.0),
+            StyleMaxSize::FitContentFunction(lp) => Size::FitContentFunction(lp.0.clone()),
             StyleMaxSize::Stretch | StyleMaxSize::WebkitFillAvailable => Size::Stretch,
             StyleMaxSize::AnchorSizeFunction(_) | StyleMaxSize::AnchorContainingCalcFunction(_) => {
                 unreachable!("anchor-size() should be disabled")

@@ -415,10 +415,7 @@ impl ComputedValuesExt for ComputedValues {
     ) -> LogicalVec2<Size<LengthPercentage>> {
         let position = self.get_position();
         LogicalVec2::from_physical_size(
-            &PhysicalSize::new(
-                position.clone_width().into(),
-                position.clone_height().into(),
-            ),
+            &PhysicalSize::new(position.get_width().into(), position.get_height().into()),
             containing_block_writing_mode,
         )
     }
@@ -430,8 +427,8 @@ impl ComputedValuesExt for ComputedValues {
         let position = self.get_position();
         LogicalVec2::from_physical_size(
             &PhysicalSize::new(
-                position.clone_min_width().into(),
-                position.clone_min_height().into(),
+                position.get_min_width().into(),
+                position.get_min_height().into(),
             ),
             containing_block_writing_mode,
         )
@@ -444,8 +441,8 @@ impl ComputedValuesExt for ComputedValues {
         let position = self.get_position();
         LogicalVec2::from_physical_size(
             &PhysicalSize::new(
-                position.clone_max_width().into(),
-                position.clone_max_height().into(),
+                position.get_max_width().into(),
+                position.get_max_height().into(),
             ),
             containing_block_writing_mode,
         )
@@ -502,9 +499,9 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<BorderStyleColor> {
-        let current_color = self.get_inherited_text().clone_color();
+        let current_color = self.get_color();
         LogicalSides::from_physical(
-            &BorderStyleColor::from_border(self.get_border(), &current_color),
+            &BorderStyleColor::from_border(self.get_border(), current_color),
             containing_block_writing_mode,
         )
     }
@@ -760,7 +757,7 @@ impl ComputedValuesExt for ComputedValues {
         // From <https://www.w3.org/TR/css-will-change/#valdef-will-change-custom-ident>:
         // > If any non-initial value of a property would create a stacking context on the element,
         // > specifying that property in will-change must create a stacking context on the element.
-        let will_change_bits = self.clone_will_change().bits;
+        let will_change_bits = self.get_will_change().bits;
         if will_change_bits
             .intersects(WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL | WillChangeBits::OPACITY)
         {
@@ -874,14 +871,14 @@ impl ComputedValuesExt for ComputedValues {
         // > generate a containing block for absolutely positioned elements, specifying that property in
         // > will-change must cause the element to generate a containing block for absolutely positioned elements.
         if self
-            .clone_will_change()
+            .get_will_change()
             .bits
             .intersects(WillChangeBits::POSITION)
         {
             return true;
         }
 
-        self.clone_position() != ComputedPosition::Static
+        self.get_box().position != ComputedPosition::Static
     }
 
     /// Returns true if this style establishes a containing block for
@@ -896,7 +893,7 @@ impl ComputedValuesExt for ComputedValues {
         // > If any non-initial value of a property would cause the element to generate a
         // > containing block for fixed positioned elements, specifying that property in will-change
         // > must cause the element to generate a containing block for fixed positioned elements.
-        let will_change_bits = self.clone_will_change().bits;
+        let will_change_bits = self.get_will_change().bits;
 
         // From <https://drafts.csswg.org/css-transforms-1/#transform-rendering>:
         // > any value other than `none` for the `transform` property also causes the element
@@ -946,10 +943,10 @@ impl ComputedValuesExt for ComputedValues {
         natural_aspect_ratio: Option<CSSFloat>,
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
-        let GenericAspectRatio {
-            auto,
+        let &GenericAspectRatio {
+            ref auto,
             ratio: mut preferred_ratio,
-        } = self.clone_aspect_ratio();
+        } = self.get_aspect_ratio();
 
         // For all cases where a ratio is specified:
         // "If the <ratio> is degenerate, the property instead behaves as auto."
@@ -994,7 +991,7 @@ impl ComputedValuesExt for ComputedValues {
             (false, PreferredRatio::Ratio(preferred_ratio)) => {
                 // If the `box-sizing` is `border-box`, use the padding and
                 // border when calculating the aspect ratio.
-                let box_sizing_adjustment = match self.clone_box_sizing() {
+                let box_sizing_adjustment = match self.get_box_sizing() {
                     BoxSizing::ContentBox => LogicalVec2::zero(),
                     BoxSizing::BorderBox => *padding_border_sums,
                 };
@@ -1057,7 +1054,7 @@ impl ComputedValuesExt for ComputedValues {
         resolved_auto_value: ItemPlacement,
         resolved_normal_value: AlignFlags,
     ) -> SelfAlignment {
-        SelfAlignment(match self.clone_align_self().0 {
+        SelfAlignment(match self.get_align_self().0 {
             AlignFlags::AUTO => resolved_auto_value.0,
             AlignFlags::NORMAL => resolved_normal_value,
             value => value,
@@ -1337,6 +1334,7 @@ impl From<stylo::Display> for Display {
             },
             stylo::DisplayInside::Flex => DisplayInside::Flex,
             stylo::DisplayInside::Grid => DisplayInside::Grid,
+            stylo::DisplayInside::GridLanes => unreachable!("Should be disabled behind a pref"),
             stylo::DisplayInside::Table => DisplayInside::Table,
 
             // These should not be values of DisplayInside, but oh well

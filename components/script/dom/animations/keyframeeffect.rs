@@ -374,7 +374,7 @@ fn process_a_keyframe_like_object(
     // Instead, we iterate over all properties on the object and then check if they correspond
     // to an animatable property.
     let urlextradata = document.url().into_url().into();
-    let parser_context = parser_context_for_document(
+    let mut parser_context = parser_context_for_document(
         document,
         CssRuleType::Style,
         ParsingMode::DEFAULT,
@@ -383,7 +383,8 @@ fn process_a_keyframe_like_object(
     rooted!(&in(cx) let object = keyframe_input.to_object());
 
     // Steps 2 - 6 are in get_property_declarations
-    keyframe_output.declarations = get_property_declarations(cx, object.handle(), &parser_context)?;
+    keyframe_output.declarations =
+        get_property_declarations(cx, object.handle(), &mut parser_context)?;
 
     // Step 7. Return keyframe output.
     Ok(keyframe_output)
@@ -394,7 +395,7 @@ fn process_a_keyframe_like_object(
 fn get_property_declarations(
     cx: &mut JSContext,
     object: HandleObject,
-    parser_context: &ParserContext<'_>,
+    parser_context: &mut ParserContext<'_>,
 ) -> Fallible<Vec<KeyframePropertyDeclaration>> {
     // The spec tells us to iterate over all animatable properties and see if they're defined
     // on the object. Instead we can iterate over the own properties of the object and see
@@ -490,7 +491,7 @@ fn get_property_declarations(
 fn parse_single_property_declaration(
     property: NonCustomPropertyId,
     input: &str,
-    parser_context: &ParserContext<'_>,
+    parser_context: &mut ParserContext<'_>,
 ) -> Option<KeyframePropertyDeclaration> {
     let mut declaration = SourcePropertyDeclaration::default();
     let mut parser = Parser::new(input);

@@ -296,13 +296,13 @@ pub fn process_resolved_style_request(
 
     let computed_style = |fragment: Option<&Fragment>| match longhand_id {
         LonghandId::MinWidth
-            if style.clone_min_width() == Size::Auto &&
+            if style.get_min_width() == &Size::Auto &&
                 !should_honor_min_size_auto(fragment, style) =>
         {
             String::from("0px")
         },
         LonghandId::MinHeight
-            if style.clone_min_height() == Size::Auto &&
+            if style.get_min_height() == &Size::Auto &&
                 !should_honor_min_size_auto(fragment, style) =>
         {
             String::from("0px")
@@ -470,7 +470,7 @@ fn should_honor_min_size_auto(fragment: Option<&Fragment>, style: &ComputedValue
     };
     let flags = box_fragment.base.flags;
     flags.contains(FragmentFlags::IS_FLEX_OR_GRID_ITEM) ||
-        style.clone_aspect_ratio() != AspectRatio::auto()
+        style.get_aspect_ratio() != &AspectRatio::auto()
 }
 
 fn resolve_grid_template(
@@ -494,9 +494,7 @@ fn resolve_grid_template(
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
         // > When an element generates a grid container box, the resolved value of its grid-template-rows or
         // > grid-template-columns property in a standalone axis is the used value, serialized with:
-        GenericGridTemplateComponent::None |
-        GenericGridTemplateComponent::TrackList(_) |
-        GenericGridTemplateComponent::Masonry => {
+        GenericGridTemplateComponent::None | GenericGridTemplateComponent::TrackList(_) => {
             (!track_info.positions.is_empty()).then(|| track_info.to_track_list_string())
         },
 
@@ -551,8 +549,8 @@ pub fn process_resolved_style_request_for_unstyled_node(
     match longhand_id {
         // <https://drafts.csswg.org/css-sizing-3/#automatic-minimum-size>
         // The resolved value of an automatic minimum size is zero when no box is generated.
-        LonghandId::MinWidth if style.clone_min_width() == Size::Auto => String::from("0px"),
-        LonghandId::MinHeight if style.clone_min_height() == Size::Auto => String::from("0px"),
+        LonghandId::MinWidth if style.get_min_width() == &Size::Auto => String::from("0px"),
+        LonghandId::MinHeight if style.get_min_height() == &Size::Auto => String::from("0px"),
 
         // No need to care about used values here, since we're on a display: none
         // subtree, use the computed value.
@@ -797,7 +795,7 @@ fn is_containing_block_for_position(
 fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayoutNode<'a>> {
     let (style, _flags) = style_and_flags_for_node(&node)?;
 
-    let mut current_position_value = style.clone_position();
+    let mut current_position_value = style.get_box().position;
     let mut current_ancestor = node;
 
     #[expect(unsafe_code)]
@@ -813,7 +811,7 @@ fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayou
             return Some(ancestor);
         }
 
-        current_position_value = ancestor_style.clone_position();
+        current_position_value = ancestor_style.get_box().position;
     }
     None
 }
@@ -876,7 +874,7 @@ pub(crate) fn process_scroll_container_query(
     // Notes: We don't follow the specification exactly below, but we follow the spirit.
     //
     // TODO: Handle the situation where the ancestor is "closed-shadow-hidden" from the element.
-    let mut current_position_value = style.clone_position();
+    let mut current_position_value = style.get_box().position;
     let mut current_ancestor = node;
 
     #[expect(unsafe_code)]
@@ -902,7 +900,7 @@ pub(crate) fn process_scroll_container_query(
             ));
         }
 
-        current_position_value = ancestor_style.clone_position();
+        current_position_value = ancestor_style.get_box().position;
     }
 
     match current_position_value {
@@ -1102,8 +1100,9 @@ fn rendered_text_collection_steps(
 
                 let text_content = node.text_content();
 
-                let white_space_collapse = style.clone_white_space_collapse();
-                let preserve_whitespace = white_space_collapse == WhiteSpaceCollapseValue::Preserve;
+                let white_space_collapse = style.get_white_space_collapse();
+                let preserve_whitespace =
+                    white_space_collapse == &WhiteSpaceCollapseValue::Preserve;
                 let is_inline = matches!(
                     display,
                     Display::InlineBlock | Display::InlineFlex | Display::InlineGrid
@@ -1136,7 +1135,7 @@ fn rendered_text_collection_steps(
                 }
 
                 let is_preformatted_element =
-                    white_space_collapse == WhiteSpaceCollapseValue::Preserve;
+                    white_space_collapse == &WhiteSpaceCollapseValue::Preserve;
 
                 let is_final_character_whitespace = transformed_text
                     .chars()
