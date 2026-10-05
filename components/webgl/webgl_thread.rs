@@ -857,8 +857,12 @@ impl WebGLThread {
                 .get_mut(&context_id)
                 .expect("Missing WebGL context");
 
-            // Ensure there are no pending GL errors from other parts of the pipeline.
-            debug_assert_eq!(unsafe { data.gl.get_error() }, gl::NO_ERROR);
+            // Some surfman backends fail to create the next surface while a GL error is pending.
+            let pending_error = unsafe { data.gl.get_error() };
+            debug_assert_eq!(pending_error, gl::NO_ERROR);
+            if pending_error != gl::NO_ERROR {
+                warn!("Discarding GL error {pending_error:#x} before swapping {context_id:?}");
+            }
 
             // Check to see if any of the current framebuffer bindings are the surface we're about
             // to swap out. If so, we'll have to reset them after destroying the surface.
@@ -2552,8 +2556,16 @@ impl WebGLImpl {
                     attach(attachment)
                 }
             },
-            WebGLCommand::ReadBuffer(buffer) => unsafe { gl.read_buffer(buffer) },
-            WebGLCommand::DrawBuffers(ref buffers) => unsafe { gl.draw_buffers(buffers) },
+            WebGLCommand::ReadBuffer(buffer) => unsafe {
+                gl.read_buffer(Self::default_framebuffer_color_buffer(buffer, ctx, device))
+            },
+            WebGLCommand::DrawBuffers(ref buffers) => {
+                let buffers: Vec<_> = buffers
+                    .iter()
+                    .map(|&buffer| Self::default_framebuffer_color_buffer(buffer, ctx, device))
+                    .collect();
+                unsafe { gl.draw_buffers(&buffers) }
+            },
         }
 
         // If debug asertions are enabled, then check the error state.
@@ -2880,6 +2892,23 @@ impl WebGLImpl {
             state.drawing_to_default_framebuffer =
                 request == WebGLFramebufferBindingRequest::Default;
             state.restore_invariant(gl);
+        }
+    }
+
+    /// Maps a WebGL default framebuffer color buffer to its GL name: when the surface is backed
+    /// by a framebuffer object, GL rejects `BACK` and uses `COLOR_ATTACHMENT0` for the color
+    /// buffer.
+    fn default_framebuffer_color_buffer(buffer: u32, ctx: &Context, device: &Device) -> u32 {
+        if buffer != gl::BACK {
+            return buffer;
+        }
+        let surface_info = device
+            .context_surface_info(ctx)
+            .expect("WebGL commands run with their context current")
+            .expect("WebGL contexts are created with a surface attached");
+        match surface_info.framebuffer_object {
+            Some(_) => gl::COLOR_ATTACHMENT0,
+            None => gl::BACK,
         }
     }
 
