@@ -8,7 +8,6 @@ import json
 import multiprocessing
 import os
 import re
-import resource
 import sys
 import tempfile
 import urllib.error
@@ -43,15 +42,26 @@ def raise_file_handle_limit() -> None:
     """
     This is equivalent to the file handle limit raise that's done internally
     in Servo. The issue is that macOS uses a very low file handle limit (256)
-    which is easily exhausted by the semaphore useage of WPT harness.
+    which is easily exhausted by the semaphore usage of WPT harness.
     """
-    FILE_HANDLE_LIMIT = 8192
-    soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
-    if soft_limit == resource.RLIM_INFINITY:
-        new_soft_limit = FILE_HANDLE_LIMIT
-    else:
-        new_soft_limit = min(hard_limit, FILE_HANDLE_LIMIT)
-    resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit))
+    if sys.platform == "win32":
+        return
+
+    import resource
+
+    try:
+        FILE_HANDLE_LIMIT = 8192
+        soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+        # Don't change the value if we would be lowering it.
+        if soft_limit > FILE_HANDLE_LIMIT:
+            return
+        if soft_limit == resource.RLIM_INFINITY:
+            new_soft_limit = FILE_HANDLE_LIMIT
+        else:
+            new_soft_limit = min(hard_limit, FILE_HANDLE_LIMIT)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit))
+    except Exception as _:
+        print("Could not raise the file handle limit")
 
 
 def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> int:
