@@ -660,6 +660,7 @@ pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
 
     Client::builder(TokioExecutor {})
         .http1_title_case_headers(true)
+        .timer(TokioTimer::new())
         // This is necessary for hyper to reap unused idle keep-alive connections.
         .pool_timer(TokioTimer::new())
         // Other browsers control the maximum connections per host, tyipcally set to 6, but hyper
