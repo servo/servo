@@ -13,7 +13,7 @@ use js::rust::HandleObject;
 use profile_traits::mem::MemoryReportResult;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::ServoInternalsHelpers;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::str::USVString;
 use servo_config::prefs::{self, PrefValue, Preferences};
 use servo_constellation_traits::ScriptToConstellationMessage;
@@ -58,7 +58,7 @@ impl ServoInternals {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<ServoInternals> {
-        reflect_dom_object_with_cx(Box::new(ServoInternals::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(ServoInternals::new_inherited()), global)
     }
 }
 

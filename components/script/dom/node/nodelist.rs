@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::dom::UnrootedDom;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use stylo_atoms::Atom;
 
 use crate::dom::ChildrenMutation;
@@ -52,7 +52,7 @@ impl NodeList {
         window: &Window,
         list_type: NodeListType,
     ) -> DomRoot<NodeList> {
-        reflect_dom_object_with_cx(Box::new(NodeList::new_inherited(list_type)), window, cx)
+        reflect_dom_object(cx, Box::new(NodeList::new_inherited(list_type)), window)
     }
 
     pub(crate) fn new_simple_list<T>(

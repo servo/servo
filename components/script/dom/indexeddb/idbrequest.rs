@@ -13,7 +13,7 @@ use js::jsapi::Heap;
 use js::jsval::{DoubleValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
-use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
+use script_bindings::reflector::{DomObject, reflect_dom_object};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{GenericSend, SendError};
 use storage_traits::indexeddb::{
@@ -419,7 +419,7 @@ impl IDBRequest {
     }
 
     pub fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<IDBRequest> {
-        reflect_dom_object_with_cx(Box::new(IDBRequest::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(IDBRequest::new_inherited()), global)
     }
 
     pub fn set_source(&self, source: Option<&IDBObjectStore>) {

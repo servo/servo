@@ -14,9 +14,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{
-    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto,
-};
+use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
 
 use super::byteteereadrequest::ByteTeeReadRequest;
 use super::readablebytestreamcontroller::ReadableByteStreamController;
@@ -369,7 +367,7 @@ impl ReadableStreamDefaultReader {
         global: &GlobalScope,
     ) -> DomRoot<ReadableStreamDefaultReader> {
         let closed_promise = Promise::new(cx, global);
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(&closed_promise)), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited(&closed_promise)), global)
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-reader>

@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 use servo_base::cross_process_instant::CrossProcessInstant;
 
@@ -65,7 +65,7 @@ impl PerformanceTiming {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<PerformanceTiming> {
-        reflect_dom_object_with_cx(Box::new(PerformanceTiming::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(PerformanceTiming::new_inherited()), global)
     }
 
     fn instant_to_millis(instant: Option<CrossProcessInstant>) -> u64 {

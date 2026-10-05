@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use net_traits::trim_http_whitespace;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::{
     NavigationPreloadManagerMethods, NavigationPreloadState,
@@ -39,7 +39,7 @@ impl NavigationPreloadManager {
         registration: &ServiceWorkerRegistration,
     ) -> DomRoot<NavigationPreloadManager> {
         let manager = NavigationPreloadManager::new_inherited(registration);
-        reflect_dom_object_with_cx(Box::new(manager), global, cx)
+        reflect_dom_object(cx, Box::new(manager), global)
     }
 }
 
