@@ -10,6 +10,7 @@ use js::context::JSContext;
 use js::realm::CurrentRealm;
 use profile_traits::generic_channel;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::{DOMString, TracedDOMString};
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::{
@@ -24,7 +25,6 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};
 use crate::dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use crate::dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
@@ -47,8 +47,8 @@ struct AttributeInstanceMap {
 #[dom_struct]
 pub(crate) struct BluetoothDevice {
     eventtarget: EventTarget,
-    id: DOMString,
-    name: Option<DOMString>,
+    id: TracedDOMString,
+    name: Option<TracedDOMString>,
     gatt: MutNullableDom<BluetoothRemoteGATTServer>,
     context: Dom<Bluetooth>,
     attribute_instance_map: AttributeInstanceMap,
@@ -63,8 +63,8 @@ impl BluetoothDevice {
     ) -> BluetoothDevice {
         BluetoothDevice {
             eventtarget: EventTarget::new_inherited(),
-            id,
-            name,
+            id: id.traced(),
+            name: name.map(DOMString::traced),
             gatt: Default::default(),
             context: Dom::from_ref(context),
             attribute_instance_map: AttributeInstanceMap {
@@ -291,12 +291,12 @@ impl BluetoothDevice {
 impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-id>
     fn Id(&self) -> DOMString {
-        self.id.clone()
+        self.id.clone().root()
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-name>
     fn GetName(&self) -> Option<DOMString> {
-        self.name.clone()
+        self.name.clone().map(TracedDOMString::root)
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt>
@@ -306,7 +306,7 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
             .global()
             .as_window()
             .bluetooth_extra_permission_data()
-            .allowed_devices_contains_id(self.id.clone()) &&
+            .allowed_devices_contains_id(&self.id) &&
             !self.is_represented_device_null()
         {
             return Some(self.get_gatt(cx));

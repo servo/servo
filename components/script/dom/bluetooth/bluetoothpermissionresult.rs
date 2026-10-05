@@ -20,7 +20,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bluetooth::{AllowedBluetoothDevice, AsyncBluetoothListener, Bluetooth};
+use crate::dom::bluetooth::{AsyncBluetoothListener, Bluetooth};
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
@@ -134,10 +134,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 self.global()
                     .as_window()
                     .bluetooth_extra_permission_data()
-                    .add_new_allowed_device(AllowedBluetoothDevice {
-                        deviceId: DOMString::from(device.id),
-                        mayUseGATT: true,
-                    });
+                    .add_new_allowed_device(device.id);
                 // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
                 // Step 3.
                 self.set_devices(vec![Dom::from_ref(&bt_device)]);

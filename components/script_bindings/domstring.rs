@@ -412,6 +412,12 @@ pub enum DOMStringErrorType {
     JSConversionError,
 }
 
+impl From<String> for TracedDOMString {
+    fn from(string: String) -> Self {
+        TracedDOMString(RefCell::new(DOMStringType::Rust(string)))
+    }
+}
+
 impl TracedDOMString {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub fn root(self) -> DOMString {
