@@ -38,6 +38,32 @@ def set_if_none(args: dict, key: str, value: bool | int | str) -> None:
         args[key] = value
 
 
+def raise_file_handle_limit() -> None:
+    """
+    This is equivalent to the file handle limit raise that's done internally
+    in Servo. The issue is that macOS uses a very low file handle limit (256)
+    which is easily exhausted by the semaphore usage of WPT harness.
+    """
+    if sys.platform == "win32":
+        return
+
+    import resource
+
+    try:
+        FILE_HANDLE_LIMIT = 8192
+        soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+        # Don't change the value if we would be lowering it.
+        if soft_limit > FILE_HANDLE_LIMIT:
+            return
+        if soft_limit == resource.RLIM_INFINITY:
+            new_soft_limit = FILE_HANDLE_LIMIT
+        else:
+            new_soft_limit = min(hard_limit, FILE_HANDLE_LIMIT)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit))
+    except Exception as _:
+        print("Could not raise the file handle limit")
+
+
 def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> int:
     print(f"Running WPT tests with {default_binary_path}")
 
@@ -58,6 +84,8 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
     set_if_none(kwargs, "config", os.path.join(WPT_PATH, "config.ini"))
     set_if_none(kwargs, "include_manifest", os.path.join(WPT_PATH, "include.ini"))
     set_if_none(kwargs, "manifest_update", False)
+
+    raise_file_handle_limit()
     set_if_none(kwargs, "processes", multiprocessing.cpu_count())
 
     set_if_none(kwargs, "ca_cert_path", os.path.join(CERTS_PATH, "cacert.pem"))
