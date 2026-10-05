@@ -16,6 +16,7 @@ path = "lib.rs"
 [dependencies]
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+servo-base = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 
 [lints]
