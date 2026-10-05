@@ -7,9 +7,10 @@ use std::collections::{HashMap, HashSet};
 use app_units::Au;
 use euclid::Rect;
 use layout_api::LCPCandidate;
-use paint_api::display_list::PaintTimingReport;
+use paint_api::display_list::{PaintTimingReport, ScrollTree};
 use servo_arc::Arc as ServoArc;
-use servo_base::id::LCPCandidateID;
+use servo_base::id::{LCPCandidateID, ScrollTreeNodeId};
+use servo_config::pref;
 use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
@@ -29,8 +30,8 @@ struct PendingImageRecord {
     bounds: LayoutRect,
     /// The element's content box.
     clip_rect: LayoutRect,
-    /// Cumulative transform to root space, computed at collection time.
-    transform: FastLayoutTransform,
+    /// The [`ScrollTreeNodeId`] of the image element, for resolving transform
+    spatial_node_id: ScrollTreeNodeId,
     /// The image URL. `None` for background images.
     url: Option<ServoUrl>,
     /// Intrinsic width, used for upscaling normalization.
@@ -49,14 +50,16 @@ struct TextRecord {
     /// The tag of containing box fragment these texts belongs to.
     tag: Tag,
     /// <https://w3c.github.io/paint-timing/#set-of-owned-text-nodes>
-    /// Collection of border_boxes of all Text nodes accumulated
+    /// Collection of border_boxes of all Text nodes accumulated.
     border_boxes: Vec<LayoutRect>,
+    /// The [`ScrollTreeNodeId`] of the containing element, for resolving transform
+    spatial_node_id: ScrollTreeNodeId,
     /// The containing element's computed style
     style: ServoArc<ComputedValues>,
 }
 
 enum LCPCandidateType<'a> {
-    Image(&'a PendingImageRecord),
+    Image(&'a PendingImageRecord, FastLayoutTransform),
     Text,
 }
 
@@ -82,6 +85,8 @@ pub(crate) struct PaintTimingHandler {
     elements_with_rendered_text: HashSet<OpaqueNode>,
     /// The set of pending text nodes that will fight for LCP candidate.
     elements_with_pending_rendered_text: HashMap<OpaqueNode, TextRecord>,
+    /// Whether the `largest_contentul_paint_enabled` preference is enabled.
+    largest_contentful_paint_enabled: bool,
 }
 
 impl PaintTimingHandler {
@@ -97,6 +102,7 @@ impl PaintTimingHandler {
             images_pending_rendering: Vec::new(),
             elements_with_rendered_text: HashSet::new(),
             elements_with_pending_rendered_text: HashMap::new(),
+            largest_contentful_paint_enabled: pref!(largest_contentful_paint_enabled),
         }
     }
 
@@ -116,16 +122,21 @@ impl PaintTimingHandler {
         tag: Option<Tag>,
         bounds: LayoutRect,
         clip_rect: LayoutRect,
-        transform: FastLayoutTransform,
+        spatial_node_id: ScrollTreeNodeId,
         url: Option<ServoUrl>,
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
+        // Skip pushing records if LargestContentfulPaint is disabled
+        if !self.largest_contentful_paint_enabled {
+            return;
+        }
+
         self.images_pending_rendering.push(PendingImageRecord {
             tag,
             bounds,
             clip_rect,
-            transform,
+            spatial_node_id,
             url,
             natural_width,
             natural_height,
@@ -134,22 +145,29 @@ impl PaintTimingHandler {
 
     pub(crate) fn accumulate_text_rect(
         &mut self,
-        tag: Tag,
+        containing_element_tag: Option<Tag>,
         rect: LayoutRect,
-        transform: FastLayoutTransform,
+        spatial_node_id: ScrollTreeNodeId,
         style: &ServoArc<ComputedValues>,
     ) {
-        let border_box = transform_f32_rectangle(rect.to_rect(), transform)
-            .unwrap_or_default()
-            .to_box2d();
+        // Skip pushing records if LargestContentfulPaint is disabled
+        if !self.largest_contentful_paint_enabled {
+            return;
+        }
+
+        // `containing_element_tag` is manadatory for union of TextNodes
+        let Some(tag) = containing_element_tag else {
+            return;
+        };
         self.elements_with_pending_rendered_text
             .entry(tag.node)
             .and_modify(|record| {
-                record.border_boxes.push(border_box);
+                record.border_boxes.push(rect);
             })
             .or_insert(TextRecord {
                 tag,
-                border_boxes: vec![border_box],
+                border_boxes: vec![rect],
+                spatial_node_id,
                 style: ServoArc::clone(style),
             });
     }
@@ -213,7 +231,7 @@ impl PaintTimingHandler {
         // Step 8: If imageRequest is not null, run the following steps to
         // adjust for image position and upscaling.
         // Note: This is skipped for Text aka the case of null request from specs
-        if let LCPCandidateType::Image(record) = candidate_type {
+        if let LCPCandidateType::Image(record, transform) = candidate_type {
             // TODO Step 8.1: If imageRequest's response's content length in bytes
             // is less than size * 0.004, then return null. (Not Implemented)
 
@@ -231,7 +249,7 @@ impl PaintTimingHandler {
             // Step 8.4: Let clientContentRect be the smallest DOMRectReadOnly
             // containing visibleDimensions with element's transforms applied.
             let client_content_rect =
-                transform_f32_rectangle(visible_dimensions.to_rect(), record.transform)
+                transform_f32_rectangle(visible_dimensions.to_rect(), transform)
                     .unwrap_or_default();
 
             // Step 8.5: Let intersectingClientContentRect be the intersection of
@@ -288,6 +306,7 @@ impl PaintTimingHandler {
     )]
     fn compute_new_lcp_candidate(
         &mut self,
+        scroll_tree: &ScrollTree,
         painted_images: Vec<PendingImageRecord>,
         painted_text_nodes: HashMap<OpaqueNode, TextRecord>,
     ) -> Option<LCPCandidate> {
@@ -314,17 +333,19 @@ impl PaintTimingHandler {
             // Step 4.3. Let intersectionRect be the value returned by the
             // intersection rect algorithm using imageElement as the target
             // and viewport as the root.
-            let intersection_rect =
-                transform_f32_rectangle(record.clip_rect.to_rect(), record.transform)
-                    .unwrap_or_default()
-                    .intersection(&self.viewport_rect.to_rect())
-                    .map(|rect| rect.to_box2d())
-                    .unwrap_or_default();
+            let transform = scroll_tree.cumulative_node_to_root_transform(record.spatial_node_id);
+            let intersection_rect = transform_f32_rectangle(record.clip_rect.to_rect(), transform)
+                .unwrap_or_default()
+                .intersection(&self.viewport_rect.to_rect())
+                .map(|rect| rect.to_box2d())
+                .unwrap_or_default();
 
             // Step 4.4. Let result be the effective visual size of imageElement
             // given intersectionRect and record's request.
-            let result =
-                self.effective_visual_size(intersection_rect, LCPCandidateType::Image(&record));
+            let result = self.effective_visual_size(
+                intersection_rect,
+                LCPCandidateType::Image(&record, transform),
+            );
 
             // Step 4.5. If result is null, continue.
             let Some(result) = result else {
@@ -372,9 +393,15 @@ impl PaintTimingHandler {
             // Step 5.3. Let intersectionRect be the union of the border boxes of
             // all Text nodes in textNode’s set of owned text nodes,
             // intersected with the visual viewport.
+            let transform = scroll_tree.cumulative_node_to_root_transform(record.spatial_node_id);
             let intersection_rect = record
                 .border_boxes
                 .into_iter()
+                .map(|border_box| {
+                    transform_f32_rectangle(border_box.to_rect(), transform)
+                        .unwrap_or_default()
+                        .to_box2d()
+                })
                 .reduce(|a, b| a.union(&b))
                 .unwrap_or_default()
                 .intersection(&self.viewport_rect)
@@ -419,6 +446,7 @@ impl PaintTimingHandler {
     /// <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
     fn report_largest_contentful_paint(
         &mut self,
+        scroll_tree: &ScrollTree,
         halt_lcp: bool,
         painted_images: Vec<PendingImageRecord>,
         painted_text_nodes: HashMap<OpaqueNode, TextRecord>,
@@ -426,7 +454,7 @@ impl PaintTimingHandler {
         // Step 1. Let window be document’s relevant global object.
         // Step 2. If either of window’s has dispatched scroll event or has
         // dispatched input event is true, return.
-        if halt_lcp {
+        if halt_lcp || !self.largest_contentful_paint_enabled {
             return;
         }
 
@@ -434,7 +462,8 @@ impl PaintTimingHandler {
         // contentful paint candidate given document, paintedImages,
         // paintedTextNodes, and document’s current largest contentful paint
         // candidate.
-        self.lcp_candidate = self.compute_new_lcp_candidate(painted_images, painted_text_nodes);
+        self.lcp_candidate =
+            self.compute_new_lcp_candidate(scroll_tree, painted_images, painted_text_nodes);
 
         // Step 4. If newCandidate is null, return.
         // Step 5. Set document’s current largest contentful paint candidate to
@@ -491,6 +520,7 @@ impl PaintTimingHandler {
         &mut self,
         paint_timing_eligible: bool,
         halt_lcp: bool,
+        scroll_tree: &ScrollTree,
     ) -> PaintTimingReport {
         // Step 1. If the document's browsing context is not paint-timing
         // eligible, return.
@@ -562,7 +592,12 @@ impl PaintTimingHandler {
 
         // Step 10.3. Report largest contentful paint given document,
         // paintTimingInfo, paintedImages and paintedTextNodes.
-        self.report_largest_contentful_paint(halt_lcp, painted_images, painted_text_nodes);
+        self.report_largest_contentful_paint(
+            scroll_tree,
+            halt_lcp,
+            painted_images,
+            painted_text_nodes,
+        );
 
         // Note: Append the newly reported paints aka [`PaintTimingReport`] to
         // the document's set of previously reported paints.

@@ -18,7 +18,6 @@ use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
-use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::background_blend_mode::SingleComputedValue as BackgroundBlendMode;
@@ -136,9 +135,6 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// Statistics collected about the reflow, in order to write tests for incremental layout.
     reflow_statistics: &'a mut ReflowStatistics,
 
-    /// Whether the `largest_contentul_paint_enabled` preference is enabled.
-    largest_contentful_paint_enabled: bool,
-
     /// The background color used for the shell.
     shell_background_color: AbsoluteColor,
 
@@ -238,7 +234,6 @@ impl DisplayListBuilder<'_> {
             device_pixel_ratio,
             paint_timing_handler,
             reflow_statistics,
-            largest_contentful_paint_enabled: pref!(largest_contentful_paint_enabled),
             shell_background_color,
             frame_focused,
         };
@@ -659,37 +654,6 @@ impl DisplayListBuilder<'_> {
         }
     }
 
-    #[expect(clippy::too_many_arguments)]
-    fn collect_image_record(
-        &mut self,
-        state: &TraversalState,
-        bounds: LayoutRect,
-        clip_rect: LayoutRect,
-        tag: Option<Tag>,
-        url: Option<ServoUrl>,
-        natural_width: Option<Au>,
-        natural_height: Option<Au>,
-    ) {
-        if !self.largest_contentful_paint_enabled {
-            return;
-        }
-
-        let transform = self
-            .paint_info
-            .scroll_tree
-            .cumulative_node_to_root_transform(state.spatial_id);
-
-        self.paint_timing_handler.append_image_record(
-            tag,
-            bounds,
-            clip_rect,
-            transform,
-            url,
-            natural_width,
-            natural_height,
-        );
-    }
-
     fn visit_stacking_context_reference_frame_info(
         &mut self,
         stacking_context: &StackingContext,
@@ -864,11 +828,11 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             if !fragment.showing_broken_image_icon {
                 self.mark_is_contentful();
 
-                self.collect_image_record(
-                    state,
+                self.paint_timing_handler.append_image_record(
+                    fragment.base.tag,
                     rect,
                     common.clip_rect,
-                    fragment.base.tag,
+                    state.spatial_id,
                     fragment.url.clone(),
                     fragment.natural_width,
                     fragment.natural_height,
@@ -1192,20 +1156,12 @@ impl Fragment {
         builder.mark_is_contentful();
 
         // Accumulate this text fragment for LCP by the containing element's tag
-        if let Some(tag) = state.containing_element_tag &&
-            builder.largest_contentful_paint_enabled
-        {
-            let transform = builder
-                .paint_info
-                .scroll_tree
-                .cumulative_node_to_root_transform(state.spatial_id);
-            builder.paint_timing_handler.accumulate_text_rect(
-                tag,
-                rect.to_webrender(),
-                transform,
-                &parent_style,
-            );
-        }
+        builder.paint_timing_handler.accumulate_text_rect(
+            state.containing_element_tag,
+            rect.to_webrender(),
+            state.spatial_id,
+            &parent_style,
+        );
 
         for text_decoration in state.text_decorations.iter() {
             if text_decoration
@@ -1925,11 +1881,11 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                         let natural_width = Some(Au::from_f32_px(size.width / dppx));
                         let natural_height = Some(Au::from_f32_px(size.height / dppx));
-                        builder.collect_image_record(
-                            state,
+                        builder.paint_timing_handler.append_image_record(
+                            self.fragment.base.tag,
                             layer.bounds,
                             layer.common.clip_rect,
-                            self.fragment.base.tag,
+                            state.spatial_id,
                             None,
                             natural_width,
                             natural_height,
