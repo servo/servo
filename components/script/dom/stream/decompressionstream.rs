@@ -19,15 +19,15 @@ use malloc_size_of::MallocShallowSizeOf;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
-use crate::dom::bindings::buffer_source::create_buffer_source;
+use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_slice};
 use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::CompressionFormat;
 use crate::dom::bindings::codegen::Bindings::DecompressionStreamBinding::DecompressionStreamMethods;
-use crate::dom::bindings::conversions::ToJSValConvertible;
+use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
+use crate::dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 #[cfg(feature = "brotli-compression-stream")]
 use crate::dom::stream::compressionstream::BROTLI_BUFFER_SIZE;
-use crate::dom::stream::compressionstream::convert_chunk_to_vec;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{
     GlobalScope, ReadableStream, TransformStream, TransformStreamDefaultController, WritableStream,
@@ -134,7 +134,13 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     controller: &TransformStreamDefaultController,
 ) -> Fallible<()> {
     // Step 1. If chunk is not a BufferSource type, then throw a TypeError.
-    let chunk = convert_chunk_to_vec(cx, chunk)?;
+    let conversion_result =
+        ArrayBufferViewOrArrayBuffer::from_jsval(cx, chunk, ()).map_err(|_| {
+            Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
+        })?;
+    let buffer_source = conversion_result.get_success_value().ok_or_else(|| {
+        Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
+    })?;
 
     // Step 2. Let buffer be the result of decompressing chunk with ds’s format and context. If
     // this results in an error, then throw a TypeError.
@@ -142,7 +148,7 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     let buffer = {
         let mut decompression_context = ds.context.borrow_mut();
         let buffer = decompression_context
-            .decompress(&chunk)
+            .decompress(get_buffer_source_slice(buffer_source, cx.no_gc()))
             .map_err(|_| Error::Type(c"Failed to decompress a chunk of compressed input".into()))?;
 
         // Step 3. If buffer is empty, return.
