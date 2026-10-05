@@ -37,7 +37,7 @@ use crate::{
 
 pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
-    F: FnMut(String),
+    F: FnMut(&str),
 {
     unsafe {
         let config = FcConfigGetCurrent();
@@ -71,7 +71,7 @@ where
                         continue;
                     },
                 };
-                callback(family_name.to_owned());
+                callback(family_name);
                 v += 1;
             }
         }
