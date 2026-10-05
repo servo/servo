@@ -61,6 +61,7 @@ def main() -> None:
     config = Configuration(config_file, parser_results)
     make_dir(os.path.join(out_dir, "Bindings"))
     make_dir(os.path.join(out_dir, "ConcreteBindings"))
+    make_dir(os.path.join(out_dir, "WebCryptoConcreteBindings"))
     make_dir(os.path.join(out_dir, "WebGPUConcreteBindings"))
 
     for name, filename in [
@@ -73,6 +74,7 @@ def main() -> None:
         ("InheritTypes", "InheritTypes.rs"),
         ("Bindings", "Bindings/mod.rs"),
         ("Bindings", "ConcreteBindings/mod.rs"),
+        ("Bindings", "WebCryptoConcreteBindings/mod.rs"),
         ("Bindings", "WebGPUConcreteBindings/mod.rs"),
         ("UnionTypes", "GenericUnionTypes.rs"),
         ("ConcreteUnionTypes", "UnionTypes.rs"),
@@ -85,7 +87,9 @@ def main() -> None:
     generate(config, "SupportedDomApis", os.path.join(doc_servo, "apis.html"))
 
     all_interface_descriptors = set(d.interface.identifier.name.replace('\'','') for d in config.descriptors)
-    s = set(item for item in config.sub_crates["script_webgpu"])
+    webcrypto_interface_descriptors = set(item for item in config.sub_crates["script_webcrypto"])
+    webgpu_interface_descriptors = set(item for item in config.sub_crates["script_webgpu"])
+    excluding = webcrypto_interface_descriptors | webgpu_interface_descriptors
     for webidl in webidls:
         filename = os.path.join(webidls_dir, webidl)
         prefix = "Bindings/%sBinding" % webidl[:-len(".webidl")]
@@ -94,7 +98,7 @@ def main() -> None:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
                 f.write(module.encode("utf-8"))
         prefix = "ConcreteBindings/%sBinding" % webidl[:-len(".webidl")]
-        module = CGConcreteBindingRoot(config, prefix, filename, only_interfaces = all_interface_descriptors -s).define()
+        module = CGConcreteBindingRoot(config, prefix, filename, only_interfaces = all_interface_descriptors - excluding).define()
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
                 f.write(module.encode("utf-8"))
@@ -102,7 +106,16 @@ def main() -> None:
     for webidl in webidls:
         filename = os.path.join(webidls_dir, webidl)
         prefix = "ConcreteBindings/%sBinding" % webidl[:-len(".webidl")]
-        module = CGConcreteBindingRoot(config, prefix, filename, only_interfaces = s, generic=True).define()
+        module = CGConcreteBindingRoot(config, prefix, filename, only_interfaces = webcrypto_interface_descriptors, generic=True).define()
+        prefix = "WebCryptoConcreteBindings/%sBinding" % webidl[:-len(".webidl")]
+        if module:
+            with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
+                f.write(module.encode("utf-8"))
+
+    for webidl in webidls:
+        filename = os.path.join(webidls_dir, webidl)
+        prefix = "ConcreteBindings/%sBinding" % webidl[:-len(".webidl")]
+        module = CGConcreteBindingRoot(config, prefix, filename, only_interfaces = webgpu_interface_descriptors, generic=True).define()
         prefix = "WebGPUConcreteBindings/%sBinding" % webidl[:-len(".webidl")]
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
@@ -110,12 +123,18 @@ def main() -> None:
 
 
     from codegen import GlobalGenRoots
-    root = GlobalGenRoots.ConcreteInheritTypes(config, s, generic = True)
+    root = GlobalGenRoots.ConcreteInheritTypes(config, webcrypto_interface_descriptors, generic = True)
+    code = root.define()
+    with open(os.path.join(out_dir, "WebCryptoConcreteInheritTypes.rs"), "wb") as f:
+        f.write(code.encode("utf-8"))
+
+    from codegen import GlobalGenRoots
+    root = GlobalGenRoots.ConcreteInheritTypes(config, webgpu_interface_descriptors, generic = True)
     code = root.define()
     with open(os.path.join(out_dir, "WebGPUConcreteInheritTypes.rs"), "wb") as f:
         f.write(code.encode("utf-8"))
 
-    root = GlobalGenRoots.ConcreteInheritTypes(config, all_interface_descriptors - s, generic = False)
+    root = GlobalGenRoots.ConcreteInheritTypes(config, all_interface_descriptors - excluding, generic = False)
     code = root.define()
     with open(os.path.join(out_dir, "ConcreteInheritTypes.rs"), "wb") as f:
         f.write(code.encode("utf-8"))
