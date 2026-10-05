@@ -288,23 +288,22 @@ th {
 thead, tbody, tfoot, table > tr { vertical-align: middle; }
 tr, td, th { vertical-align: inherit; }
 
-
-table, td, th { border-color: gray; }
 thead, tbody, tfoot, tr { border-color: inherit; }
+
 table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
-  [rules=cols i], [rules=all i],
+  [rules=cols i]
   [frame=void i], [frame=above i], [frame=below i],
   [frame=hsides i], [frame=lhs i], [frame=rhs i],
   [frame=vsides i], [frame=box i], [frame=border i]
 ),
 table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
-  [rules=cols i], [rules=all i]
+  [rules=cols i]
 ) > tr > :is(td, th),
 table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
-  [rules=cols i], [rules=all i]
+  [rules=cols i]
 ) > :is(thead, tbody, tfoot) > tr > :is(td, th) {
   border-color: black;
 }
