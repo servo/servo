@@ -85,6 +85,8 @@ static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     isConstructor: None,
 };
 
+/// # Safety
+/// config must outlive the proxy handler.
 pub unsafe fn create_proxy_handler(
     config: *const ObservableArrayProxyHandlerConfig,
 ) -> *const c_void {
