@@ -23,14 +23,11 @@ pub(crate) struct RTCRtpTransceiver {
 }
 
 impl RTCRtpTransceiver {
-    fn new_inherited(
-        direction: RTCRtpTransceiverDirection,
-        sender: &DomRoot<RTCRtpSender>,
-    ) -> Self {
+    fn new_inherited(direction: RTCRtpTransceiverDirection, sender: &RTCRtpSender) -> Self {
         Self {
             reflector_: Reflector::new(),
             direction: Cell::new(direction),
-            sender: sender.as_traced(),
+            sender: Dom::from_ref(sender),
         }
     }
 
