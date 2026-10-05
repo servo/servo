@@ -10,6 +10,7 @@ use embedder_traits::SelectedFile;
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
+use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{FileId, FileIndex};
 use servo_constellation_traits::{BlobImpl, SerializableFile};
@@ -21,7 +22,6 @@ use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlo
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::{Blob, normalize_type_string, process_blob_parts};
 use crate::dom::globalscope::GlobalScope;

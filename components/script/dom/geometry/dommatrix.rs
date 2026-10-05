@@ -11,6 +11,7 @@ use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::serializable::Serializable;
 use script_bindings::str::DOMString;
 use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{DomMatrixId, DomMatrixIndex};
@@ -23,7 +24,6 @@ use crate::dom::bindings::error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::Serializable;
 use crate::dom::dommatrixreadonly::{
     DOMMatrixReadOnly, dommatrixinit_to_matrix, entries_to_matrix, transform_to_matrix,
 };

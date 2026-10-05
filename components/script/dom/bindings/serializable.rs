@@ -5,7 +5,7 @@
 //! Trait representing the concept of [serializable objects]
 //! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
-pub(crate) use script_bindings::serializable::Serializable;
+use script_bindings::serializable::Serializable;
 use servo_base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 
 /// The key corresponding to the storage location

@@ -7,13 +7,13 @@ use std::slice::Iter;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{FileListId, FileListIndex};
 use servo_constellation_traits::SerializableFileList;
 
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::serializable::Serializable;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;

@@ -29,6 +29,7 @@ use js::rust::{
 };
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::IDLInterface;
+use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::{
     StructuredData, StructuredDataReader, StructuredDataWriter,
 };
@@ -42,7 +43,7 @@ use strum::IntoEnumIterator;
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::serializable::StorageKey;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
 #[cfg(feature = "webcrypto")]

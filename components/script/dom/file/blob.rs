@@ -15,6 +15,7 @@ use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_weak_referenceable_dom_object_with_proto};
+use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{BlobId, BlobIndex};
 use servo_constellation_traits::{BlobData, BlobImpl};
@@ -30,7 +31,6 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use crate::dom::globalscope::GlobalScope;

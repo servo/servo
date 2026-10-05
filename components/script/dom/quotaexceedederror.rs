@@ -12,13 +12,13 @@ use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
 use script_bindings::num::Finite;
 use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::root::DomRoot;
+use script_bindings::serializable::Serializable;
 use script_bindings::str::DOMString;
 use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{QuotaExceededErrorId, QuotaExceededErrorIndex};
 use servo_constellation_traits::SerializableQuotaExceededError;
 
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::serializable::Serializable;
 use crate::dom::types::{DOMException, GlobalScope};
 
 /// <https://webidl.spec.whatwg.org/#quotaexceedederror>

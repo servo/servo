@@ -9,6 +9,7 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
+use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{DomRectId, DomRectIndex};
 use servo_constellation_traits::DomRect;
@@ -18,7 +19,6 @@ use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::Serializable;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
