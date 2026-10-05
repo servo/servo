@@ -11,48 +11,41 @@ use crate::dom::bindings::conversions::is_dom_proxy;
 use crate::dom::bindings::utils::is_platform_object_static;
 use crate::engine::handle::JSEngineSetup;
 
-#[cfg(target_os = "linux")]
+#[cfg(unix)]
 #[expect(unsafe_code)]
-fn perform_platform_specific_initialization() {
-    // 4096 is default max on many linux systems
-    const MAX_FILE_LIMIT: libc::rlim_t = 4096;
+fn raise_file_handle_limit() {
+    // Chromium uses 8192 as the maximum number of file handles on macOS, Linux,
+    // chromeOS and Android. We do the same here for all Unix systems.
+    const MAX_FILE_LIMIT: libc::rlim_t = 8192;
 
     // Bump up our number of file descriptors to save us from impending doom caused by an onslaught
     // of iframes.
-    unsafe {
-        let mut rlim = libc::rlimit {
-            rlim_cur: 0,
-            rlim_max: 0,
-        };
-        match libc::getrlimit(libc::RLIMIT_NOFILE, &mut rlim) {
-            0 => {
-                if rlim.rlim_cur >= MAX_FILE_LIMIT {
-                    // we have more than enough
-                    return;
-                }
+    let mut rlimit = libc::rlimit {
+        rlim_cur: 0,
+        rlim_max: 0,
+    };
 
-                rlim.rlim_cur = match rlim.rlim_max {
-                    libc::RLIM_INFINITY => MAX_FILE_LIMIT,
-                    _ => {
-                        if rlim.rlim_max < MAX_FILE_LIMIT {
-                            rlim.rlim_max
-                        } else {
-                            MAX_FILE_LIMIT
-                        }
-                    },
-                };
-                match libc::setrlimit(libc::RLIMIT_NOFILE, &rlim) {
-                    0 => (),
-                    _ => warn!("Failed to set file count limit"),
-                };
-            },
-            _ => warn!("Failed to get file count limit"),
-        };
+    if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut rlimit) } != 0 {
+        warn!("Failed to get file count limit");
+        return;
+    }
+
+    if rlimit.rlim_cur >= MAX_FILE_LIMIT {
+        return;
+    }
+
+    rlimit.rlim_cur = match rlimit.rlim_max {
+        libc::RLIM_INFINITY => MAX_FILE_LIMIT,
+        _ => rlimit.rlim_max.min(MAX_FILE_LIMIT),
+    };
+
+    if unsafe { libc::setrlimit(libc::RLIMIT_NOFILE, &rlimit) } != 0 {
+        warn!("Failed to set file count limit");
     }
 }
 
-#[cfg(not(target_os = "linux"))]
-fn perform_platform_specific_initialization() {}
+#[cfg(not(unix))]
+fn raise_file_handle_limit() {}
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
@@ -186,7 +179,7 @@ pub fn init() -> JSEngineSetup {
         js::glue::InitializeMemoryReporter(Some(is_dom_object));
     }
 
-    perform_platform_specific_initialization();
+    raise_file_handle_limit();
 
     JSEngineSetup::default()
 }
