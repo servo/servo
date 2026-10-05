@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::{InputId, InputSource};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceArrayBinding::XRInputSourceArrayMethods;
@@ -33,7 +33,7 @@ impl XRInputSourceArray {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<XRInputSourceArray> {
-        reflect_dom_object_with_cx(Box::new(XRInputSourceArray::new_inherited()), window, cx)
+        reflect_dom_object(cx, Box::new(XRInputSourceArray::new_inherited()), window)
     }
 
     pub(crate) fn add_input_sources(

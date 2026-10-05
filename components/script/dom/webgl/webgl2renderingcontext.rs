@@ -16,7 +16,7 @@ use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleObject, Mutable
 use js::typedarray::{ArrayBufferView, Float32, Int32, Uint32};
 use pixels::{Alpha, Snapshot};
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
@@ -133,16 +133,7 @@ struct ReadPixelsSizes {
 }
 
 impl WebGL2RenderingContext {
-    fn new_inherited(
-        cx: &mut JSContext,
-        window: &Window,
-        canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
-        size: Size2D<u32>,
-        attrs: GLContextAttributes,
-    ) -> Option<WebGL2RenderingContext> {
-        let base =
-            WebGLRenderingContext::new(cx, window, canvas, WebGLVersion::WebGL2, size, attrs)?;
-
+    fn new_inherited(base: &WebGLRenderingContext) -> WebGL2RenderingContext {
         let samplers = (0..base.limits().max_combined_texture_image_units)
             .map(|_| Default::default())
             .collect::<Vec<_>>()
@@ -157,9 +148,9 @@ impl WebGL2RenderingContext {
                 .collect::<Vec<_>>()
                 .into();
 
-        Some(WebGL2RenderingContext {
+        WebGL2RenderingContext {
             reflector_: Reflector::new(),
-            base: Dom::from_ref(&*base),
+            base: Dom::from_ref(base),
             occlusion_query: MutNullableDom::new(None),
             primitives_query: MutNullableDom::new(None),
             samplers,
@@ -178,7 +169,7 @@ impl WebGL2RenderingContext {
             enable_rasterizer_discard: Cell::new(false),
             default_fb_readbuffer: Cell::new(constants::BACK),
             default_fb_drawbuffer: Cell::new(constants::BACK),
-        })
+        }
     }
 
     pub(crate) fn new(
@@ -188,8 +179,13 @@ impl WebGL2RenderingContext {
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        WebGL2RenderingContext::new_inherited(cx, window, canvas, size, attrs)
-            .map(|ctx| reflect_dom_object_with_cx(Box::new(ctx), window, cx))
+        let base =
+            WebGLRenderingContext::new(cx, window, canvas, WebGLVersion::WebGL2, size, attrs)?;
+        Some(reflect_dom_object(
+            cx,
+            Box::new(WebGL2RenderingContext::new_inherited(&base)),
+            window,
+        ))
     }
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {

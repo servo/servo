@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::XRPoseBinding::XRPoseMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -33,7 +33,7 @@ impl XRPose {
         transform: ApiRigidTransform,
     ) -> DomRoot<XRPose> {
         let transform = XRRigidTransform::new(cx, window, transform);
-        reflect_dom_object_with_cx(Box::new(XRPose::new_inherited(&transform)), window, cx)
+        reflect_dom_object(cx, Box::new(XRPose::new_inherited(&transform)), window)
     }
 }
 

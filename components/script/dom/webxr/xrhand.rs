@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::{FingerJoint, Hand, Joint};
 
 use crate::dom::bindings::codegen::Bindings::XRHandBinding::{XRHandJoint, XRHandMethods};
@@ -134,7 +134,7 @@ impl XRHand {
                 .expect("Invalid joint name");
             field.map(|_| XRJointSpace::new(cx, global, session, id, joint, hand_joint))
         });
-        reflect_dom_object_with_cx(Box::new(XRHand::new_inherited(source, &spaces)), global, cx)
+        reflect_dom_object(cx, Box::new(XRHand::new_inherited(source, &spaces)), global)
     }
 }
 

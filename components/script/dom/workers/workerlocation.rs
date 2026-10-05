@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
@@ -34,7 +34,7 @@ impl WorkerLocation {
         global: &WorkerGlobalScope,
         url: ServoUrl,
     ) -> DomRoot<WorkerLocation> {
-        reflect_dom_object_with_cx(Box::new(WorkerLocation::new_inherited(url)), global, cx)
+        reflect_dom_object(cx, Box::new(WorkerLocation::new_inherited(url)), global)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin>

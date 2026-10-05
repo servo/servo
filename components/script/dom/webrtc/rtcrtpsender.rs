@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::RTCRtpSenderBinding::{
     RTCRtcpParameters, RTCRtpParameters, RTCRtpSendParameters, RTCRtpSenderMethods,
@@ -28,7 +28,7 @@ impl RTCRtpSender {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited()), global)
     }
 }
 

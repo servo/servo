@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
@@ -69,7 +69,7 @@ impl TrustedTypePolicyFactory {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited()), global)
     }
 
     /// <https://www.w3.org/TR/trusted-types/#create-trusted-type-policy-algorithm>

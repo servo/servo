@@ -12,7 +12,7 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::CoreResourceMsg;
 use profile_traits::generic_channel;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::HistoryStateId;
 use servo_constellation_traits::{
@@ -63,8 +63,7 @@ impl History {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<History> {
-        let dom_root =
-            reflect_dom_object_with_cx(Box::new(History::new_inherited(window)), window, cx);
+        let dom_root = reflect_dom_object(cx, Box::new(History::new_inherited(window)), window);
         dom_root.state.set(NullValue());
         dom_root
     }

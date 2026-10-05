@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::TextTrackListBinding::TextTrackListMethods;
 use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
@@ -50,10 +50,10 @@ impl TextTrackList {
         window: &Window,
         tracks: &[&TextTrack],
     ) -> DomRoot<TextTrackList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(TextTrackList::new_inherited(media_element, tracks)),
             window,
-            cx,
         )
     }
 

@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_canvas_traits::webgl::{TexFormat, WebGLVersion};
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions, constants as webgl};
@@ -28,7 +28,7 @@ impl OESTextureFloat {
 impl WebGLExtension for OESTextureFloat {
     type Extension = OESTextureFloat;
     fn new(cx: &mut JSContext, ctx: &WebGLRenderingContext) -> DomRoot<OESTextureFloat> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), &*ctx.global(), cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited()), &*ctx.global())
     }
 
     fn spec() -> WebGLExtensionSpec {
