@@ -133,16 +133,7 @@ struct ReadPixelsSizes {
 }
 
 impl WebGL2RenderingContext {
-    fn new_inherited(
-        cx: &mut JSContext,
-        window: &Window,
-        canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
-        size: Size2D<u32>,
-        attrs: GLContextAttributes,
-    ) -> Option<WebGL2RenderingContext> {
-        let base =
-            WebGLRenderingContext::new(cx, window, canvas, WebGLVersion::WebGL2, size, attrs)?;
-
+    fn new_inherited(base: &WebGLRenderingContext) -> Option<WebGL2RenderingContext> {
         let samplers = (0..base.limits().max_combined_texture_image_units)
             .map(|_| Default::default())
             .collect::<Vec<_>>()
@@ -159,7 +150,7 @@ impl WebGL2RenderingContext {
 
         Some(WebGL2RenderingContext {
             reflector_: Reflector::new(),
-            base: Dom::from_ref(&*base),
+            base: Dom::from_ref(base),
             occlusion_query: MutNullableDom::new(None),
             primitives_query: MutNullableDom::new(None),
             samplers,
@@ -188,7 +179,10 @@ impl WebGL2RenderingContext {
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        WebGL2RenderingContext::new_inherited(cx, window, canvas, size, attrs)
+        let base =
+            WebGLRenderingContext::new(cx, window, canvas, WebGLVersion::WebGL2, size, attrs)?;
+
+        WebGL2RenderingContext::new_inherited(&base)
             .map(|ctx| reflect_dom_object(cx, Box::new(ctx), window))
     }
 
