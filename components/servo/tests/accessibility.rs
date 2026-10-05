@@ -1316,7 +1316,6 @@ fn test_accessibility_display_none_change_scroll() {
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let article = find_first_matching_node(root, |node| node.role() == Role::Article)
         .expect("Document should contain an article");
-    let article_id = article.locate().0;
     assert_rect_eq(
         article.bounding_box().expect("article should have bounds"),
         Rect::new(0.0, -500.0, 1000.0, -450.0),
@@ -1337,8 +1336,7 @@ fn test_accessibility_display_none_change_scroll() {
     tree.update_and_process_changes(update, &mut NoOpChangeHandler);
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let aside = find_first_matching_node(root, |node| node.role() == Role::Complementary)
-        .expect("Aside should contain an aside");
-    let aside_id = aside.locate().0;
+        .expect("Document should contain an aside");
     assert_eq!(aside.is_hidden(), false);
     assert_rect_eq(
         aside.bounding_box().expect("aside should have bounds"),
