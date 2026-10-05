@@ -76,6 +76,7 @@ use xml5ever::serialize::TraversalScope::{
 use crate::conversions::Convert;
 use crate::css::stylesheet_loader::StylesheetOwner;
 use crate::dom::RootedPromise;
+use crate::dom::accessors::AttrStrRef;
 use crate::dom::activation::Activatable;
 use crate::dom::animation::Animation;
 use crate::dom::animations::keyframeeffect::KeyframeEffect;
@@ -2183,12 +2184,8 @@ impl Element {
         &'a self,
         namespace: &Namespace,
         local_name: &LocalName,
-    ) -> Option<crate::dom::element::attributes::accessors::AttrStrRef<'a>> {
-        crate::dom::element::attributes::accessors::AttrStrRef::maybe_new(
-            self.attrs.borrow(),
-            namespace,
-            local_name,
-        )
+    ) -> Option<AttrStrRef<'a>> {
+        AttrStrRef::maybe_new(self.attrs.borrow(), namespace, local_name)
     }
 
     /// This is the inner logic for:

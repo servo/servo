@@ -28,16 +28,13 @@ impl<'a> AttrStrRef<'a> {
         namespace: &Namespace,
         local_name: &LocalName,
     ) -> Option<AttrStrRef<'a>> {
-        attrs
-            .clone()
-            .iter()
-            .position(|attribute| {
-                attribute.local_name() == local_name && attribute.namespace() == namespace
-            })
-            .map(|position| AttrStrRef {
-                attributes_borrow: attrs,
-                position,
-            })
+        let position = attrs.iter().position(|attribute| {
+            attribute.local_name() == local_name && attribute.namespace() == namespace
+        });
+        position.map(|position| AttrStrRef {
+            attributes_borrow: attrs,
+            position,
+        })
     }
 
     pub(crate) fn as_attr_ref<'b>(&'b self) -> AttrRef<'b> {

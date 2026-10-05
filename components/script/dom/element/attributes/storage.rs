@@ -359,11 +359,6 @@ impl<'a> AttributesBorrow<'a> {
     pub(crate) fn get(&self, index: usize) -> Option<AttrRef<'_>> {
         self.0.get(index).map(AttributeEntry::as_ref)
     }
-
-    #[inline]
-    pub(crate) fn clone(&self) -> Self {
-        AttributesBorrow(Ref::clone(&self.0))
-    }
 }
 
 impl AttributeStorage {
