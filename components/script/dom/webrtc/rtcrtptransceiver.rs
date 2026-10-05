@@ -30,7 +30,7 @@ impl RTCRtpTransceiver {
         Self {
             reflector_: Reflector::new(),
             direction: Cell::new(direction),
-            sender: Dom::from_ref(&sender),
+            sender: sender.as_traced(),
         }
     }
 
