@@ -590,9 +590,9 @@ pub struct LCPCandidateID(pub u64);
 /// Unlike [`LCPCandidateID`], which identifies a candidate, this identifies one *update*
 /// to a container: a container that grows repeatedly produces a new ID each time, since
 /// each update becomes its own `PerformanceContainerTiming` entry with its own paint
-/// time. Use [`ContainerTimingRecord::container_id`] to correlate updates belonging to
+/// time. Use [`ContainerTimingRecord::root_element`] to correlate updates belonging to
 /// the same container.
 ///
-/// [`ContainerTimingRecord::container_id`]: ../../layout_api/struct.ContainerTimingRecord.html
+/// [`ContainerTimingRecord::root_element`]: ../../layout_api/struct.ContainerTimingRecord.html
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct ContainerTimingID(pub u64);

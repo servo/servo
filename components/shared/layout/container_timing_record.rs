@@ -13,16 +13,14 @@ use webrender_api::units::LayoutPixel;
 pub struct ContainerTimingRecord {
     /// A unique identifier for this particular update.
     pub id: ContainerTimingID,
-    /// A stable identity for the container itself, from [`OpaqueNode::id`] of the
-    /// container root.
-    pub container_id: usize,
     /// The value of the `containertiming` attribute on the container element.
     pub identifier: String,
     /// The painted area within the container, in CSS pixels.
     pub size: f32,
     /// The viewport-clipped, union'd painted rect, in CSS pixels.
     pub intersection_rect: Box2D<f32, LayoutPixel>,
-    /// The container root element, for `PerformanceContainerTiming::rootElement`.
+    /// The container root element, for `PerformanceContainerTiming::rootElement`. This
+    /// is also a stable identity for the container across updates.
     pub root_element: OpaqueNode,
     /// The descendant whose paint triggered this update.
     pub last_painted_element: Option<OpaqueNode>,

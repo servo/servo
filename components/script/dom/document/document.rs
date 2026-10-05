@@ -687,12 +687,12 @@ pub(crate) struct Document {
     container_timing_records:
         DomRefCell<HashMapTracedValues<ContainerTimingID, ContainerTimingRecordAndElements>>,
     /// The first time each container was painted, keyed by
-    /// [`ContainerTimingRecord::container_id`]. Layout has no notion of when compositing
+    /// [`ContainerTimingRecord::root_element`]. Layout has no notion of when compositing
     /// happens, so this is remembered here, from the paint time of the first entry
     /// reported for a given container.
     /// <https://wicg.github.io/container-timing/#dom-performancecontainertiming-firstrendertime>
     #[no_trace]
-    container_first_render_times: DomRefCell<HashMap<usize, CrossProcessInstant>>,
+    container_first_render_times: DomRefCell<HashMap<OpaqueNode, CrossProcessInstant>>,
     /// The constructed stylesheet that is adopted by this [Document].
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     adopted_stylesheets: DomRefCell<Vec<Dom<CSSStyleSheet>>>,
@@ -3701,7 +3701,7 @@ impl Document {
                 let first_render_time = *self
                     .container_first_render_times
                     .safe_borrow_mut(cx)
-                    .entry(stored.record.container_id)
+                    .entry(stored.record.root_element)
                     .or_insert(paint_time);
                 Some(DomRoot::upcast::<PerformanceEntry>(
                     PerformanceContainerTiming::new(

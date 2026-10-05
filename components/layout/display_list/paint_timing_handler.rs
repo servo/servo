@@ -615,7 +615,6 @@ impl PaintTimingHandler {
             self.container_timing_next_uuid += 1;
             records.push(ContainerTimingRecord {
                 id,
-                container_id: container_root.id(),
                 identifier: record.identifier.clone(),
                 size: record.painted_region.area(),
                 intersection_rect: record.painted_region.bounds(),
