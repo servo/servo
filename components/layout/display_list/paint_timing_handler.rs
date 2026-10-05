@@ -180,7 +180,9 @@ impl PaintTimingHandler {
         // An element target is contentful when one or more of the following
         // apply:
         match fragment {
-            // > target has a text node child, representing non-empty text.
+            // > target has a text node child, representing non-empty text, and
+            // and the node’s used opacity is greater than zero.
+            // NOTE: We already check it with `paintable`.
             Fragment::Text(fragment) => {
                 !fragment.is_empty_for_text_cursor && !fragment.glyphs.is_empty()
             },

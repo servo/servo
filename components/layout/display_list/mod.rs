@@ -856,9 +856,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 
             // From <https://w3c.github.io/paint-timing/#timing-eligible>:
             // An element is timing-eligible if it is one of the following:
-            // > an img element.
-            // This should only apply to `<img>` elements that are also contentful.
-            // See <https://github.com/w3c/largest-contentful-paint/issues/177>:
+            // > an img element representing a contentful image.
             if !fragment.showing_broken_image_icon {
                 self.collect_image_record(
                     state,
