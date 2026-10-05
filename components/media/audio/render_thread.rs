@@ -237,9 +237,7 @@ impl AudioRenderThread {
             AudioNodeInit::ConstantSourceNode(options) => {
                 Box::new(ConstantSourceNode::new(options, ch))
             },
-            AudioNodeInit::ConvolverNode(options) => {
-                Box::new(ConvolverNode::new(options, ch))
-            },
+            AudioNodeInit::ConvolverNode(options) => Box::new(ConvolverNode::new(options, ch)),
             AudioNodeInit::MediaStreamDestinationNode(socket) => {
                 is_dest = true;
                 Box::new(MediaStreamDestinationNode::new(
