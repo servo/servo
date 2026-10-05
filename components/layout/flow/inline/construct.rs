@@ -457,7 +457,9 @@ impl InlineFormattingContextBuilder {
             }
         }
 
-        if new_text.is_empty() {
+        let needs_caret_placeholder = info.node.text_node_needs_caret_placeholder();
+        self.is_empty &= !needs_caret_placeholder;
+        if new_text.is_empty() && !needs_caret_placeholder {
             return;
         }
 
@@ -488,7 +490,8 @@ impl InlineFormattingContextBuilder {
                 character_range_in_ifc_text: new_character_range,
                 original_offset: original_size_before,
                 selection: AtomicRefCell::new(selection),
-                paint_caret: info.node.text_node_paints_caret(),
+                paints_caret: info.node.text_node_paints_caret(),
+                needs_caret_placeholder,
                 offset_map: self.offset_map.clone(),
             }
             .into(),

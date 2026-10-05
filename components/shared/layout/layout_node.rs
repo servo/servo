@@ -179,6 +179,13 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// (start == end)
     fn text_node_paints_caret(&self) -> bool;
 
+    /// For a text node, whether a caret placeholder should be inserted in the box tree.
+    /// Caret placeholders are used as a place to draw text carets in otherwise empty
+    /// elements (such as `<input>` fields). In addition, this forces the creation of an
+    /// inline formatting context for empty text nodes and the allocation of the line
+    /// strut height during layout to ensure that empty `<input>` fields render properly.
+    fn text_node_needs_caret_placeholder(&self) -> bool;
+
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     fn image_url(&self) -> Option<ServoUrl>;
 

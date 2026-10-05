@@ -239,25 +239,16 @@ impl<Element: TextControlElement> SpecificShadowTree<Element, TextInputWidget>
     // TODO(stevennovaryo): The rest of textual input shadow dom structure should act
     // like an exstension to this one.
     fn update(&self, cx: &mut JSContext, _: &TextInputWidget, element: &Element) {
-        // The addition of zero-width space here forces the text input to have an inline formatting
-        // context that might otherwise be trimmed if there's no text. This is important to ensure
-        // that the input element is at least as tall as the line gap of the caret:
-        // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
-        //
-        // This is also used to ensure that the caret will still be rendered when the input is empty.
-        // TODO: when this hack is removed, let `TextInput::sorted_selection_character_offsets_range`
-        // rely on `Rope::last_index()` to use an unbounded end in the `RangeAny` it returns.
         let value = element.value_text();
-        let value_text = match (value.is_empty(), element.is_password_field()) {
-            // For a password input, we replace all of the character with its replacement char.
-            (false, true) => value
+        let value_text = if element.is_password_field() {
+            value
                 .str()
                 .chars()
                 .map(|_| PASSWORD_REPLACEMENT_CHAR)
                 .collect::<String>()
-                .into(),
-            (false, _) => value,
-            (true, _) => DOMString::from_static("\u{200B}"),
+                .into()
+        } else {
+            value
         };
 
         if let Some(character_data) = self.value_character_data() &&

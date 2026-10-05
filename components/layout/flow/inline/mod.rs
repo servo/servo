@@ -1865,6 +1865,19 @@ impl InlineFormattingContextLayout<'_> {
                 is_empty_for_text_cursor: true,
             },
         ));
+
+        let strut_size = self
+            .current_inline_container_state()
+            .strut_block_sizes
+            .clone();
+        self.update_unbreakable_segment_for_new_content(
+            &strut_size,
+            Au::zero(),
+            Au::zero(),
+            Au::zero(),
+            SegmentContentFlags::empty(),
+        );
+
         self.current_line_segment.has_content = true;
         self.commit_current_segment_to_line();
     }

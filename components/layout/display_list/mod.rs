@@ -1466,7 +1466,7 @@ impl Fragment {
             return;
         }
 
-        if !fragment.run_data.paint_caret {
+        if !fragment.run_data.paints_caret {
             return;
         }
 
