@@ -68,7 +68,7 @@ use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_auto_realm};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
-use crate::dom::bindings::structuredclone::StructuredData;
+use script_bindings::structuredclone::StructuredData;
 
 use super::readablestreambyobreader::ReadIntoRequest;
 use crate::dom::bindings::buffer_source::{HeapBufferSource, create_buffer_source};

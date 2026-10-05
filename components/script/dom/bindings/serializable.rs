@@ -8,11 +8,10 @@
 use js::context::{JSContext, NoGC};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::DomObject;
-use script_bindings::structuredclone::MarkedAsSerializableInIdl;
+use script_bindings::structuredclone::{MarkedAsSerializableInIdl, StructuredData};
 use servo_base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 
 /// The key corresponding to the storage location

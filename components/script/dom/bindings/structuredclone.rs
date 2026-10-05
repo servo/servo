@@ -29,7 +29,7 @@ use js::rust::{
 };
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::IDLInterface;
-pub(crate) use script_bindings::structuredclone::{
+use script_bindings::structuredclone::{
     StructuredData, StructuredDataReader, StructuredDataWriter,
 };
 use servo_base::id::{Index, NamespaceIndex, PipelineNamespaceId};

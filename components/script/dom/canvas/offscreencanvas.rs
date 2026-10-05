@@ -17,6 +17,7 @@ use script_bindings::inheritance::Castable;
 #[cfg(feature = "webgl")]
 use script_bindings::reflector::DomObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::structuredclone::StructuredData;
 use script_bindings::weakref::WeakRef;
 use servo_base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
 #[cfg(feature = "webgl")]
@@ -40,7 +41,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
 use crate::dom::eventtarget::EventTarget;
