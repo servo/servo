@@ -20,6 +20,8 @@ extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate stylo_atoms;
 
+pub mod wasm_host;
+
 #[macro_use]
 mod tasks;
 

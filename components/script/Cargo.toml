@@ -215,6 +215,7 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 urlpattern = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
+wasmtime = { workspace = true, features = ["component-model"] }
 web_atoms = { workspace = true }
 webdriver = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
