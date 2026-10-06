@@ -346,7 +346,7 @@ impl SourceSet {
         let len = self.image_sources.len();
 
         // Using FxHash is ok here as the indices are just 0..len
-        let mut repeat_indices = FxHashSet::with_capacity_and_hasher(len, FxBuildHasher::default());
+        let mut repeat_indices = FxHashSet::with_capacity_and_hasher(len, FxBuildHasher);
 
         for outer_index in 0..len {
             if repeat_indices.contains(&outer_index) {
