@@ -11179,9 +11179,9 @@ dependencies = [
 
 [[package]]
 name = "udmf-sys"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9df7a0b7922a95eb8b827746d7f2d8f623331ab416aca833edd177e0775f961e"
+checksum = "8eaaf96a292e0d747b3b99c9ffdad7cb30bd5fa856a0f236bc71bcb85d9d7d67"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
