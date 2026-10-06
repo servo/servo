@@ -27,7 +27,11 @@ impl SpecificInputType for UrlInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#url-state-(type=url):suffering-from-a-type-mismatch>
-    fn suffers_from_type_mismatch(&self, _input: &HTMLInputElement, value: &RootedDOMString) -> bool {
+    fn suffers_from_type_mismatch(
+        &self,
+        _input: &HTMLInputElement,
+        value: &RootedDOMString,
+    ) -> bool {
         Url::parse(&value.str()).is_err()
     }
 

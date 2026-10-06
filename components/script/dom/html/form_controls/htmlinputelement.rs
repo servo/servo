@@ -1539,7 +1539,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
-    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<RootedDOMString>) -> ErrorResult {
+    fn SetSelectionRange(
+        &self,
+        start: u32,
+        end: u32,
+        direction: Option<RootedDOMString>,
+    ) -> ErrorResult {
         self.set_dom_range(
             Utf16CodeUnits::from(start),
             Utf16CodeUnits::from(end),
@@ -1848,7 +1853,9 @@ impl HTMLInputElement {
         self.value_dirty.set(false);
         self.checked_changed.set(false);
         // Step 2. Set value to empty string.
-        self.text_input.borrow_mut().set_content(RootedDOMString::new());
+        self.text_input
+            .borrow_mut()
+            .set_content(RootedDOMString::new());
         // Step 3. Set checkedness based on presence of content attribute.
         self.update_checkedness(cx, self.DefaultChecked(), false);
         // Step 4. Empty selected files

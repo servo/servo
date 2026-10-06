@@ -116,7 +116,11 @@ impl IDBDatabase {
         *self.object_store_names.borrow_mut() = names;
     }
 
-    pub(crate) fn rename_object_store_name(&self, old_name: &RootedDOMString, new_name: RootedDOMString) {
+    pub(crate) fn rename_object_store_name(
+        &self,
+        old_name: &RootedDOMString,
+        new_name: RootedDOMString,
+    ) {
         let mut object_store_names = self.object_store_names.borrow_mut();
         if let Some(position) = object_store_names.iter().position(|name| name == old_name) {
             object_store_names[position] = new_name;

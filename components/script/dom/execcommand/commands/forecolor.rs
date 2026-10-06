@@ -5,7 +5,7 @@
 use js::context::JSContext;
 use style::color::AbsoluteColor;
 
-use crate::dom::bindings::str::{RootedDOMString, FromInputValueString};
+use crate::dom::bindings::str::{FromInputValueString, RootedDOMString};
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::selection::Selection;

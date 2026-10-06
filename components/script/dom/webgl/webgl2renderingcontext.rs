@@ -4633,7 +4633,11 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.16>
-    fn GetUniformIndices(&self, program: &WebGLProgram, names: Vec<RootedDOMString>) -> Option<Vec<u32>> {
+    fn GetUniformIndices(
+        &self,
+        program: &WebGLProgram,
+        names: Vec<RootedDOMString>,
+    ) -> Option<Vec<u32>> {
         handle_potential_webgl_error!(
             self.base,
             self.base.validate_ownership(program),

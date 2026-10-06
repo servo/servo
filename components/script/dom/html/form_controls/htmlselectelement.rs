@@ -671,7 +671,11 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-nameditem>
-    fn NamedItem(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<DomRoot<HTMLOptionElement>> {
+    fn NamedItem(
+        &self,
+        cx: &mut JSContext,
+        name: RootedDOMString,
+    ) -> Option<DomRoot<HTMLOptionElement>> {
         self.Options(cx)
             .NamedGetter(cx, name)
             .and_then(DomRoot::downcast::<HTMLOptionElement>)

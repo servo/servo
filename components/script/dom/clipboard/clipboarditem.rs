@@ -48,11 +48,11 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
         // 1. If v is a DOMString, then follow the below steps:
         if v.get().is_string() {
             // 1.1 Let dataAsBytes be the result of UTF-8 encoding v.
-            let data_as_bytes = match RootedDOMString::from_jsval(cx, v, StringificationBehavior::Default)
-            {
-                Ok(ConversionResult::Success(s)) => s.as_bytes(cx.no_gc()).to_owned(),
-                _ => return,
-            };
+            let data_as_bytes =
+                match RootedDOMString::from_jsval(cx, v, StringificationBehavior::Default) {
+                    Ok(ConversionResult::Success(s)) => s.as_bytes(cx.no_gc()).to_owned(),
+                    _ => return,
+                };
 
             // 1.2 Let blobData be a Blob created using dataAsBytes with its type set to mimeType, serialized.
             let blob_data = Blob::new(

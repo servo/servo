@@ -110,8 +110,10 @@ impl MutationObserver {
             return;
         }
         // Step 1 Let interestedObservers be an empty map.
-        let mut interested_observers: FxHashMap<DomRoot<MutationObserver>, Option<RootedDOMString>> =
-            FxHashMap::default();
+        let mut interested_observers: FxHashMap<
+            DomRoot<MutationObserver>,
+            Option<RootedDOMString>,
+        > = FxHashMap::default();
 
         // Step 2 Let nodes be the inclusive ancestors of target.
         // Step 3 For each node in nodes ...

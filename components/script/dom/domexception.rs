@@ -200,7 +200,10 @@ impl DOMException {
 
         reflect_dom_object(
             cx,
-            Box::new(DOMException::new_inherited(RootedDOMString::from(message), name)),
+            Box::new(DOMException::new_inherited(
+                RootedDOMString::from(message),
+                name,
+            )),
             global,
         )
     }

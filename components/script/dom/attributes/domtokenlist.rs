@@ -146,7 +146,12 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-toggle>
-    fn Toggle(&self, cx: &mut JSContext, token: RootedDOMString, force: Option<bool>) -> Fallible<bool> {
+    fn Toggle(
+        &self,
+        cx: &mut JSContext,
+        token: RootedDOMString,
+        force: Option<bool>,
+    ) -> Fallible<bool> {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         let token = self.check_token_exceptions(&token)?;
         match atoms.iter().position(|atom| *atom == token) {

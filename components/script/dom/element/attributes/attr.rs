@@ -216,7 +216,9 @@ impl Attr {
 
     pub(crate) fn qualified_name(&self) -> RootedDOMString {
         match self.prefix() {
-            Some(ref prefix) => RootedDOMString::from(format!("{}:{}", prefix, &**self.local_name())),
+            Some(ref prefix) => {
+                RootedDOMString::from(format!("{}:{}", prefix, &**self.local_name()))
+            },
             None => RootedDOMString::from(&**self.local_name()),
         }
     }

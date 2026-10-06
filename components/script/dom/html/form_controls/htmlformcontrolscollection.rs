@@ -65,7 +65,11 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem>
-    fn NamedItem(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<RadioNodeListOrElement> {
+    fn NamedItem(
+        &self,
+        cx: &mut JSContext,
+        name: RootedDOMString,
+    ) -> Option<RadioNodeListOrElement> {
         // Step 1
         if name.is_empty() {
             return None;
@@ -110,7 +114,11 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem>
-    fn NamedGetter(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<RadioNodeListOrElement> {
+    fn NamedGetter(
+        &self,
+        cx: &mut JSContext,
+        name: RootedDOMString,
+    ) -> Option<RadioNodeListOrElement> {
         self.NamedItem(cx, name)
     }
 

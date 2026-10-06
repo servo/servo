@@ -286,7 +286,10 @@ impl LinkRelations {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#get-an-element%27s-noopener>
-    pub(crate) fn get_element_noopener(&self, target_attribute_value: Option<&RootedDOMString>) -> bool {
+    pub(crate) fn get_element_noopener(
+        &self,
+        target_attribute_value: Option<&RootedDOMString>,
+    ) -> bool {
         // Step 1. If element's link types include the noopener or noreferrer keyword, then return true.
         if self.contains(Self::NO_OPENER) || self.contains(Self::NO_REFERRER) {
             return true;

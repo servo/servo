@@ -519,7 +519,12 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
-    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<RootedDOMString>) -> ErrorResult {
+    fn SetSelectionRange(
+        &self,
+        start: u32,
+        end: u32,
+        direction: Option<RootedDOMString>,
+    ) -> ErrorResult {
         self.set_dom_range(
             Utf16CodeUnits::from(start),
             Utf16CodeUnits::from(end),
@@ -584,7 +589,9 @@ impl HTMLTextAreaElement {
     /// Used by WebDriver to clear the textarea element.
     pub(crate) fn clear(&self) {
         self.value_dirty.set(false);
-        self.text_input.borrow_mut().set_content(RootedDOMString::new());
+        self.text_input
+            .borrow_mut()
+            .set_content(RootedDOMString::new());
     }
 
     pub(crate) fn reset(&self, cx: &mut JSContext) {

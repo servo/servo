@@ -619,7 +619,7 @@ impl Node {
             0,                                  // twist
             PI / 2.0,                           // altitude_angle
             0.0,                                // azimuth_angle
-            RootedDOMString::new(),                   // pointer_type
+            RootedDOMString::new(),             // pointer_type
             false,                              // is_primary
             vec![],                             // coalesced_events
             vec![],                             // predicted_events

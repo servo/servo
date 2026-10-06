@@ -1299,7 +1299,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-prompt>
-    fn Prompt(&self, mut message: RootedDOMString, default: RootedDOMString) -> Option<RootedDOMString> {
+    fn Prompt(
+        &self,
+        mut message: RootedDOMString,
+        default: RootedDOMString,
+    ) -> Option<RootedDOMString> {
         // Step 1: If we cannot show simple dialogs for this, then return null.
         if self.cannot_show_simple_dialogs() {
             return None;

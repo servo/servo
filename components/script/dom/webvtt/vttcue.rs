@@ -195,7 +195,8 @@ impl VTTCue {
                         WebVTTNodeObjectKind::Language => "span",
                         WebVTTNodeObjectKind::Text(text) => {
                             // > Text node whose data is the value of the WebVTT Text Object.
-                            let text = document.CreateTextNode(cx, RootedDOMString::from(text.as_ref()));
+                            let text =
+                                document.CreateTextNode(cx, RootedDOMString::from(text.as_ref()));
                             current
                                 .AppendChild(cx, text.upcast())
                                 .expect("Must always be able to append");

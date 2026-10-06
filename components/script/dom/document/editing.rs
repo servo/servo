@@ -406,14 +406,20 @@ impl Document {
                 // > pressing Shift-Enter or Option-Enter while the cursor is in an editable
                 // > node, the user agent must call execCommand("insertlinebreak") on the
                 // > relevant document.
-                (RootedDOMString::from_static("insertlinebreak"), RootedDOMString::new())
+                (
+                    RootedDOMString::from_static("insertlinebreak"),
+                    RootedDOMString::new(),
+                )
             },
             EditingAction::InsertParagraph => {
                 // > When the user instructs the user agent to insert a line break inside an
                 // > editing host, such as by pressing the Enter key while the cursor is in an
                 // > editable node, the user agent must call execCommand("insertparagraph") on
                 // > the relevant document.
-                (RootedDOMString::from_static("insertparagraph"), RootedDOMString::new())
+                (
+                    RootedDOMString::from_static("insertparagraph"),
+                    RootedDOMString::new(),
+                )
             },
             // > When the user instructs the user agent to delete the previous character inside an
             // > editing host, such as by pressing the Backspace key while the cursor is in an
@@ -421,12 +427,18 @@ impl Document {
             // > document.
             //
             // TODO: Handle other types of motions here.
-            EditingAction::Backspace(..) => (RootedDOMString::from_static("delete"), RootedDOMString::new()),
+            EditingAction::Backspace(..) => (
+                RootedDOMString::from_static("delete"),
+                RootedDOMString::new(),
+            ),
             // > When the user instructs the user agent to delete the next character inside an
             // > editing host, such as by pressing the Delete key while the cursor is in an
             // > editable node, the user agent must call execCommand("forwarddelete") on the
             // > relevant document
-            EditingAction::Delete => (RootedDOMString::from_static("forwarddelete"), RootedDOMString::new()),
+            EditingAction::Delete => (
+                RootedDOMString::from_static("forwarddelete"),
+                RootedDOMString::new(),
+            ),
             // > When the user instructs the user agent to insert text inside an editing host, such
             // > as by typing on the keyboard while the cursor is in an editable node, the user
             // > agent must call execCommand("inserttext", false, value) on the relevant document,

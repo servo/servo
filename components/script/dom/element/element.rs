@@ -2972,7 +2972,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-prefix>
     fn GetPrefix(&self) -> Option<RootedDOMString> {
-        self.prefix.borrow().as_ref().map(|p| RootedDOMString::from(&**p))
+        self.prefix
+            .borrow()
+            .as_ref()
+            .map(|p| RootedDOMString::from(&**p))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-tagname>

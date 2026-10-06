@@ -43,7 +43,11 @@ impl SpecificInputType for RadioInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):suffering-from-being-missing>
-    fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &RootedDOMString) -> bool {
+    fn suffers_from_being_missing(
+        &self,
+        input: &HTMLInputElement,
+        _value: &RootedDOMString,
+    ) -> bool {
         if input.radio_group_name().is_none() {
             return false;
         }

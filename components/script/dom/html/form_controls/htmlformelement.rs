@@ -453,7 +453,11 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property>
-    fn NamedGetter(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<RadioNodeListOrElement> {
+    fn NamedGetter(
+        &self,
+        cx: &mut JSContext,
+        name: RootedDOMString,
+    ) -> Option<RadioNodeListOrElement> {
         let window = self.owner_window();
 
         let name = Atom::from(name);
@@ -1877,7 +1881,8 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or(RootedDOMString::new(), |t| owner(&t))
+            self.form_owner()
+                .map_or(RootedDOMString::new(), |t| owner(&t))
         }
     }
 

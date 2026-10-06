@@ -7,7 +7,7 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use time::{Month, OffsetDateTime};
 
-use crate::dom::bindings::str::{RootedDOMString, FromInputValueString, ToInputValueString};
+use crate::dom::bindings::str::{FromInputValueString, RootedDOMString, ToInputValueString};
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::SpecificInputType;
 use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;

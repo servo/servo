@@ -341,7 +341,12 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-load>
-    fn Load(&self, cx: &mut JSContext, font: RootedDOMString, text: RootedDOMString) -> RootedPromise {
+    fn Load(
+        &self,
+        cx: &mut JSContext,
+        font: RootedDOMString,
+        text: RootedDOMString,
+    ) -> RootedPromise {
         // Step 1. Let font face set be the FontFaceSet object this method was called on. Let
         // promise be a newly-created promise object.
         let load_promise = Promise::new(cx, &self.global());

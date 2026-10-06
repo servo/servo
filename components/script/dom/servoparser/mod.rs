@@ -1845,7 +1845,9 @@ impl TreeSink for Sink {
         let cx = &mut cx;
         let attrs = attrs
             .into_iter()
-            .map(|attr| ElementAttribute::new(attr.name, RootedDOMString::from(String::from(attr.value))))
+            .map(|attr| {
+                ElementAttribute::new(attr.name, RootedDOMString::from(String::from(attr.value)))
+            })
             .collect();
         let parsing_algorithm = if flags.template {
             ParsingAlgorithm::Fragment
