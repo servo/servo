@@ -153,6 +153,7 @@ impl FetchResponseListener for XHRContext {
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
+        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         network_listener::submit_timing(cx, global, &self, &response, &timing);
 

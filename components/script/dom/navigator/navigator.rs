@@ -712,6 +712,7 @@ impl FetchResponseListener for BeaconFetchListener {
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
+        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         submit_timing(cx, global, &self, &response, &timing);
     }
