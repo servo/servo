@@ -75,6 +75,7 @@ ctr = { version = "0.10", features = ["zeroize"] }
 ctutils = "0.4"
 data-url = "0.3"
 dirs = "7.0"
+document-features = "0.2"
 dpi = "0.1"
 dwrote = "0.11.5"
 ecdsa = "0.17"
