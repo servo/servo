@@ -11,8 +11,8 @@ use std::time::{Duration, Instant};
 use embedder_traits::{
     Cursor, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome, InputEventResult,
     KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType, TouchId,
-    TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    MouseLeftViewportEvent, MouseMoveEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
+    TouchId, TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
@@ -189,6 +189,8 @@ pub(crate) struct DocumentEventHandler {
     current_cursor: Cell<Option<Cursor>>,
     /// <http://w3c.github.io/touch-events/#dfn-active-touch-point>
     active_touch_points: DomRefCell<Vec<Dom<Touch>>>,
+    /// Whether the current touch sequence may still generate compatibility mouse events.
+    touch_sequence_click_allowed: Cell<bool>,
     /// The active keyboard modifiers for the WebView. This is updated when receiving any input event.
     #[no_trace]
     active_keyboard_modifiers: Cell<Modifiers>,
@@ -228,6 +230,7 @@ impl DocumentEventHandler {
             most_recent_mousemove_point: Default::default(),
             current_cursor: Default::default(),
             active_touch_points: Default::default(),
+            touch_sequence_click_allowed: Cell::new(true),
             active_keyboard_modifiers: Default::default(),
             active_pointer_ids: Default::default(),
             next_touch_pointer_id: Cell::new(1),
@@ -635,7 +638,15 @@ impl DocumentEventHandler {
         let old_mouse_move_point = self
             .most_recent_mousemove_point
             .replace(Some(hit_test_result.point_in_frame));
-        if old_mouse_move_point == Some(hit_test_result.point_in_frame) {
+        // Always dispatch compatibility `mousemove` events, even at the same
+        // point as the previous one.
+        let is_compatibility_event_for_touch = matches!(
+            input_event.event.event,
+            InputEvent::MouseMove(ref event) if event.is_compatibility_event_for_touch
+        );
+        if !is_compatibility_event_for_touch &&
+            old_mouse_move_point == Some(hit_test_result.point_in_frame)
+        {
             return;
         }
 
@@ -1477,6 +1488,7 @@ impl DocumentEventHandler {
 
         let (touch_dispatch_target, changed_touch) = match event.event_type {
             TouchEventType::Down => {
+                self.touch_sequence_click_allowed.set(true);
                 // Add a new touch point
                 self.active_touch_points
                     .safe_borrow_mut(cx.no_gc())
@@ -1570,9 +1582,69 @@ impl DocumentEventHandler {
             false,
             false,
         );
-        let event = touch_event.upcast::<Event>();
-        event.fire(cx, &touch_dispatch_target);
-        event.flags().into()
+        let dom_event = touch_event.upcast::<Event>();
+        dom_event.fire(cx, &touch_dispatch_target);
+        let flags = dom_event.flags();
+
+        // `preventDefault()` on `touchstart` or `touchend` suppresses compat mouse events.
+        if flags.contains(EventFlags::Canceled) &&
+            matches!(event.event_type, TouchEventType::Down | TouchEventType::Up)
+        {
+            self.touch_sequence_click_allowed.set(false);
+        }
+
+        // Generate the compatibility mouse events synchronously as part of
+        // `touchend`, before the embedder is told the touch event was handled.
+        if matches!(event.event_type, TouchEventType::Up) &&
+            event.can_synthesize_mouse_events &&
+            self.touch_sequence_click_allowed.get() &&
+            !flags.contains(EventFlags::Canceled) &&
+            self.active_touch_points.borrow().is_empty()
+        {
+            self.synthesize_compatibility_mouse_events(cx, &event, input_event);
+        }
+
+        flags.into()
+    }
+
+    /// Generate the compatibility mouse events for a tap while handling `touchend`.
+    ///
+    /// <http://w3c.github.io/touch-events/#mouse-events>
+    fn synthesize_compatibility_mouse_events(
+        &self,
+        cx: &mut JSContext,
+        event: &EmbedderTouchEvent,
+        input_event: &ConstellationInputEvent,
+    ) {
+        // Reuse the touch event's hit test result and keyboard modifiers.
+        let make_input_event =
+            |input_event_to_send: InputEvent, pressed_mouse_buttons: MouseButtons| {
+                ConstellationInputEvent {
+                    hit_test_result: input_event.hit_test_result.clone(),
+                    pressed_mouse_buttons,
+                    active_keyboard_modifiers: input_event.active_keyboard_modifiers,
+                    event: input_event_to_send.into(),
+                }
+            };
+
+        let point = event.point;
+        let mouse_move_input_event = make_input_event(
+            InputEvent::MouseMove(MouseMoveEvent::new_compatibility_for_touch(point)),
+            MouseButtons::empty(),
+        );
+        self.handle_native_mouse_move_event(cx, &mouse_move_input_event);
+
+        for (action, pressed_mouse_buttons) in [
+            (MouseButtonAction::Down, MouseButtons::Primary),
+            (MouseButtonAction::Up, MouseButtons::empty()),
+        ] {
+            let button_event = MouseButtonEvent::new(action, MouseButton::Primary, point);
+            self.handle_native_mouse_button_event(
+                cx,
+                button_event,
+                &make_input_event(InputEvent::MouseButton(button_event), pressed_mouse_buttons),
+            );
+        }
     }
 
     /// Updates the active touch points when a hit test fails early.

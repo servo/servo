@@ -221,7 +221,7 @@ impl TouchSequenceInfo {
     fn is_finished(&self) -> bool {
         matches!(
             self.state,
-            Finished | Flinging { .. } | PendingFling { .. } | PendingClick(_)
+            Finished | Flinging { .. } | PendingFling { .. } | PendingClick
         )
     }
 
@@ -279,7 +279,7 @@ pub(crate) enum TouchSequenceState {
         point: DevicePoint,
     },
     /// The touch sequence is finished, but a click is still pending, waiting on script.
-    PendingClick(DevicePoint),
+    PendingClick,
     /// touch sequence finished.
     Finished,
 }
@@ -651,10 +651,14 @@ impl TouchHandler {
         action
     }
 
-    pub(crate) fn on_touch_up(&mut self, touch_id: TouchId, point: Point2D<f32, DevicePixel>) {
+    pub(crate) fn on_touch_up(
+        &mut self,
+        touch_id: TouchId,
+        point: Point2D<f32, DevicePixel>,
+    ) -> bool {
         let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() else {
             warn!("Current touch sequence not found");
-            return;
+            return false;
         };
         let old = match touch_sequence
             .active_touch_points
@@ -672,7 +676,7 @@ impl TouchHandler {
                 if touch_sequence.prevent_click {
                     touch_sequence.state = Finished;
                 } else {
-                    touch_sequence.state = PendingClick(point);
+                    touch_sequence.state = PendingClick;
                 }
             },
             Panning { policy, velocity } => {
@@ -719,10 +723,12 @@ impl TouchHandler {
                     touch_sequence.state = Finished;
                 }
             },
-            PendingFling { .. } | Flinging { .. } | PendingClick(_) | Finished => {
+            PendingFling { .. } | Flinging { .. } | PendingClick | Finished => {
                 error!("Touch-up received, but touch handler already in post-touchup state.")
             },
         }
+
+        let pending_click = matches!(touch_sequence.state, PendingClick);
         #[cfg(debug_assertions)]
         if touch_sequence.active_touch_points.is_empty() {
             debug_assert!(
@@ -736,6 +742,7 @@ impl TouchHandler {
             touch_sequence.active_touch_points.len(),
             self.current_sequence_id
         );
+        pending_click
     }
 
     pub(crate) fn on_touch_cancel(&mut self, touch_id: TouchId, _point: Point2D<f32, DevicePixel>) {

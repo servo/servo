@@ -1463,12 +1463,7 @@ impl Painter {
             warn!("Handled input event for unknown webview: {webview_id}");
             return;
         };
-        webview_renderer.notify_input_event_handled(
-            &self.webrender_api,
-            &self.needs_repaint,
-            input_event_id,
-            result,
-        );
+        webview_renderer.notify_input_event_handled(&self.needs_repaint, input_event_id, result);
     }
 
     pub(crate) fn refresh_cursor(&self) {
