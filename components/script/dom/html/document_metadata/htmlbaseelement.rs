@@ -70,8 +70,9 @@ impl HTMLBaseElement {
         // with document's fallback base URL, and document's character encoding. (Thus, the base element isn't affected by itself.)
         let href_value = self
             .upcast::<Element>()
-            .get_attribute_string_value(&local_name!("href"))
+            .get_attribute_string_ref(&local_name!("href"))
             .expect("Must always have a href set when setting frozen base URL");
+        let href_value = href_value.as_attr_ref().value();
         let document_fallback_url = document.fallback_base_url();
         let url_record = document_fallback_url.join(&href_value).ok();
         // Step 3. If any of the following are true:

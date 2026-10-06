@@ -62,6 +62,14 @@ impl<'a> AttrStrRef<'a> {
             AttrRef::Raw(&EMPTY_CONTENTATTRIBUTE_DATA)
         }
     }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.attributes_borrow
+            .get(self.position)
+            .unwrap()
+            .value()
+            .is_empty()
+    }
 }
 
 impl Element {

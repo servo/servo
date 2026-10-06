@@ -5507,22 +5507,29 @@ pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString 
 
 pub(crate) fn referrer_policy_for_element(element: &Element) -> ReferrerPolicy {
     element
-        .get_attribute_string_value(&local_name!("referrerpolicy"))
-        .map(|value| ReferrerPolicy::from(value.as_ref()))
+        .get_attribute_string_ref(&local_name!("referrerpolicy"))
+        .map(|value| {
+            let value = value.as_attr_ref().value();
+            ReferrerPolicy::from(value.as_ref())
+        })
         .unwrap_or(element.owner_document().get_referrer_policy())
 }
 
 pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
     element
-        .get_attribute_string_value(&local_name!("crossorigin"))
-        .map(|value| CorsSettings::from_enumerated_attribute(value.as_ref()))
+        .get_attribute_string_ref(&local_name!("crossorigin"))
+        .map(|value| {
+            let value = value.as_attr_ref().value();
+            CorsSettings::from_enumerated_attribute(&value)
+        })
 }
 
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute-credentials-mode>
 pub(crate) fn cors_settings_attribute_credential_mode(element: &Element) -> CredentialsMode {
     element
-        .get_attribute_string_value(&local_name!("crossorigin"))
+        .get_attribute_string_ref(&local_name!("crossorigin"))
         .map(|value| {
+            let value = value.as_attr_ref().value();
             if value.eq_ignore_ascii_case("use-credentials") {
                 CredentialsMode::Include
             } else {

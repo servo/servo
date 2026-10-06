@@ -121,9 +121,10 @@ impl HTMLMetaElement {
         // empty string, then return.
         if let Some(content) = self
             .upcast::<Element>()
-            .get_attribute_string_value(&local_name!("content"))
+            .get_attribute_string_ref(&local_name!("content"))
             .filter(|value| !value.is_empty())
         {
+            let content = content.as_attr_ref().value();
             // Step 4. Let value be the value of element's content attribute, converted to ASCII
             // lowercase.
             // Step 5. If value is one of the values given in the first column of the following

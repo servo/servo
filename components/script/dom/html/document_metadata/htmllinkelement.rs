@@ -521,8 +521,11 @@ impl HTMLLinkElement {
         // representing the state of el's as attribute.
         let element = self.upcast::<Element>();
         element
-            .get_attribute_string_value(&local_name!("as"))
-            .and_then(|attr| LinkProcessingOptions::translate_a_preload_destination(&attr))
+            .get_attribute_string_ref(&local_name!("as"))
+            .and_then(|attr| {
+                let attr = attr.as_attr_ref().value();
+                LinkProcessingOptions::translate_a_preload_destination(&attr)
+            })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-link-options-from-element>
