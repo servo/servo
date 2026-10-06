@@ -5455,8 +5455,9 @@ impl TagName {
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
 pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
     element
-        .get_attribute_string_value(&local_name!("crossorigin"))
+        .get_attribute_string_ref(&local_name!("crossorigin"))
         .map(|value| {
+            let value = value.as_attr_ref().value();
             DOMString::from_static(
                 ["anonymous", "use-credentials"]
                     .into_iter()
@@ -5482,8 +5483,9 @@ pub(crate) fn set_cross_origin_attribute(
 /// <https://html.spec.whatwg.org/multipage/#referrer-policy-attribute>
 pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
     element
-        .get_attribute_string_value(&local_name!("referrerpolicy"))
+        .get_attribute_string_ref(&local_name!("referrerpolicy"))
         .map(|value| {
+            let value = value.as_attr_ref().value();
             DOMString::from(
                 [
                     "no-referrer",

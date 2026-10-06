@@ -37,8 +37,8 @@ pub(crate) struct AttrStrRefInner<'a> {
 pub(crate) struct AttrStrRef<'a>(Option<AttrStrRefInner<'a>>);
 
 impl<'a> AttrStrRef<'a> {
-    /// Create a new [`AttrStrRef`] from localname.
-    pub(crate) fn maybe_new(
+    /// Create a new [`AttrStrRef`] from localname. Returns None if the attribute was not found.
+    pub(in crate::dom::element) fn maybe_new(
         attrs: AttributesBorrow<'a>,
         namespace: &Namespace,
         local_name: &LocalName,
@@ -54,6 +54,7 @@ impl<'a> AttrStrRef<'a> {
         })
     }
 
+    /// Return the `AttrRef` from the `AttrStrRef`.
     pub(crate) fn as_attr_ref<'b>(&'b self) -> AttrRef<'b> {
         if let Some(inner) = &self.0 {
             inner.attributes_borrow.get(inner.position).unwrap()
@@ -65,6 +66,7 @@ impl<'a> AttrStrRef<'a> {
 
 impl Element {
     /// Callers should convert the `LocalName` to ASCII lowercase before calling.
+    /// Consider using `get_attribute_string_ref`.
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
     pub(crate) fn get_attribute_string_value(&self, local_name: &LocalName) -> Option<String> {
         // Step 1. If element is in the HTML namespace and its node document is an HTML document,
