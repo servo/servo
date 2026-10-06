@@ -31,7 +31,7 @@ where
     let family_names = unsafe { CTFontManagerCopyAvailableFontFamilyNames() };
     let family_names = unsafe { family_names.cast_unchecked::<CFString>() };
     for family_name in family_names.iter() {
-        callback(&family_name);
+        callback(&family_name.to_string());
     }
 }
 
