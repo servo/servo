@@ -85,6 +85,7 @@ pub enum ResolvedImage<'a> {
     Image {
         image: CachedImage,
         size: DeviceSize,
+        url: ServoUrl,
     },
 }
 
@@ -324,7 +325,11 @@ impl ImageResolver {
                 )?;
                 let metadata = image.metadata();
                 let size = Size2D::new(metadata.width, metadata.height).to_f32();
-                Ok(ResolvedImage::Image { image, size })
+                Ok(ResolvedImage::Image {
+                    image,
+                    size,
+                    url: image_url.clone().into(),
+                })
             },
             Image::ImageSet(image_set) => {
                 image_set
@@ -336,6 +341,7 @@ impl ImageResolver {
                             .map(|info| match info {
                                 ResolvedImage::Image {
                                     image: cached_image,
+                                    url,
                                     ..
                                 } => {
                                     // From <https://drafts.csswg.org/css-images-4/#image-set-notation>:
@@ -359,6 +365,7 @@ impl ImageResolver {
                                     ResolvedImage::Image {
                                         image: cached_image,
                                         size,
+                                        url,
                                     }
                                 },
                                 _ => info,
