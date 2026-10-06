@@ -3126,15 +3126,15 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             constants::UNSIGNED_INT => {},
             _ => return self.base.webgl_error(InvalidEnum),
         };
-        self.base.vertex_attrib_pointer_impl(
-            cx,
+        let res = self.current_vao(cx).vertex_attrib_pointer(
             index,
             size,
             type_,
             stride,
             offset,
             VertexAttribPointerKind::Integer,
-        )
+        );
+        handle_potential_webgl_error!(self.base, res);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4>

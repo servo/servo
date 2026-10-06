@@ -1150,27 +1150,6 @@ impl WebGLRenderingContext {
         Ok(())
     }
 
-    pub(crate) fn vertex_attrib_pointer_impl(
-        &self,
-        cx: &mut JSContext,
-        index: u32,
-        size: i32,
-        type_: u32,
-        stride: i32,
-        offset: i64,
-        kind: VertexAttribPointerKind,
-    ) {
-        let res = match self.webgl_version() {
-            WebGLVersion::WebGL1 => self
-                .current_vao(cx)
-                .vertex_attrib_pointer(index, size, type_, stride, offset, kind),
-            WebGLVersion::WebGL2 => self
-                .current_vao_webgl2(cx)
-                .vertex_attrib_pointer(index, size, type_, stride, offset, kind),
-        };
-        handle_potential_webgl_error!(self, res);
-    }
-
     pub(crate) fn vertex_attrib_divisor(&self, cx: &mut JSContext, index: u32, divisor: u32) {
         if index >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
@@ -4535,15 +4514,16 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         stride: i32,
         offset: i64,
     ) {
-        self.vertex_attrib_pointer_impl(
-            cx,
-            index,
-            size,
-            type_,
-            stride,
-            offset,
-            VertexAttribPointerKind::Float { normalized },
-        );
+        let kind = VertexAttribPointerKind::Float { normalized };
+        let res = match self.webgl_version() {
+            WebGLVersion::WebGL1 => self
+                .current_vao(cx)
+                .vertex_attrib_pointer(index, size, type_, stride, offset, kind),
+            WebGLVersion::WebGL2 => self
+                .current_vao_webgl2(cx)
+                .vertex_attrib_pointer(index, size, type_, stride, offset, kind),
+        };
+        handle_potential_webgl_error!(self, res);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4>
