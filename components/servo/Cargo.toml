@@ -18,11 +18,12 @@ crate-type = ["rlib"]
 [features]
 # Note: Servoshell does not use the default features of servo, so you also
 # need to add feature-groups that should be default to ports/servoshell/Cargo.toml
+## Enables standard features: bundled resources, clipboard support, JS JIT, and multi-process support.
 default = ["bundled", "clipboard", "js_jit", "multiprocess"]
-## Convenience feature groups, to select multiple related features for a sensible
+# Convenience feature groups, to select multiple related features for a sensible
 #  configuration with `--no-default-features` build
 #
-# A convenience feature to enable all default web features servo has.
+## A convenience feature to enable all default web features servo has.
 default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webgl", "webxr"]
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
@@ -33,6 +34,7 @@ background_hang_monitor = ["servo-background-hang-monitor/sampler"]
 # Allow brotli to be used for compression and decompression in TransportStream JavaScript API
 brotli-compression-stream = ["script/brotli-compression-stream"]
 
+## Bundles required default resources (such as user agent stylesheets) directly into the binary.
 # This is slightly magical, but this will also work on ohos, where `servo-default-resource` is not added,
 # which makes `baked-in-resources a no-op (as intended) on ohos (and perhaps other platforms in the future).
 baked-in-resources = ["dep:servo-default-resources"]
@@ -49,6 +51,7 @@ clipboard = ["dep:arboard", "dep:ohos-pasteboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
+## Enables the Gamepad API for web content and exposes the `GamepadDelegate` interface to the embedder.
 gamepad = [
     "script/gamepad",
     "servo-constellation/gamepad",
@@ -59,7 +62,8 @@ js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 
-# Allows multiprocess and ipc mode. If enabled this still needs the correct preference flags to use multi process mode.
+## Enables multi-process support and IPC mode (requires preference flags).
+## Exposes `run_content_process` for embedders.
 multiprocess = ["servo-base/multiprocess", "servo-constellation/multiprocess"]
 
 native-bluetooth = ["servo-bluetooth/native-bluetooth"]
@@ -101,6 +105,9 @@ webgpu = [
     "servo-constellation/webgpu",
     "servo-constellation-traits/webgpu",
 ]
+
+## Enables the WebXR Device API for virtual and augmented reality experiences.
+## Automatically enables the `webgl` and `gamepad` features.
 webxr = [
     "webgl",
     "gamepad",
@@ -118,6 +125,7 @@ cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools = { workspace = true }
 devtools_traits = { workspace = true }
+document-features = { workspace = true }
 dpi = { workspace = true }
 embedder_traits = { workspace = true }
 env_logger = { workspace = true }
