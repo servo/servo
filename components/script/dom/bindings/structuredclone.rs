@@ -12,7 +12,6 @@ use std::ptr::{self, NonNull};
 
 use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
-use js::gc::RootedVec;
 use js::glue::{
     CopyJSStructuredCloneData, GetLengthOfJSStructuredCloneData, WriteBytesToJSStructuredCloneData,
 };
@@ -30,17 +29,13 @@ use js::rust::{
 };
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::IDLInterface;
-use servo_base::id::{
-    BlobId, CryptoKeyId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, FileId,
-    FileListId, ImageBitmapId, ImageDataId, Index, MessagePortId, NamespaceIndex,
-    OffscreenCanvasId, PipelineNamespaceId, QuotaExceededErrorId,
+use script_bindings::structuredclone::{
+    StructuredData, StructuredDataReader, StructuredDataWriter,
 };
+use servo_base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 use servo_constellation_traits::{
-    BlobImpl, DomException, DomMatrix, DomPoint, DomQuad, DomRect, MessagePortImpl,
-    Serializable as SerializableInterface, SerializableCryptoKey, SerializableFile,
-    SerializableFileList, SerializableImageBitmap, SerializableImageData,
-    SerializableQuotaExceededError, StructuredSerializedData, TransferableOffscreenCanvas,
-    Transferrable as TransferrableInterface, TransformStreamData,
+    Serializable as SerializableInterface, StructuredSerializedData,
+    Transferrable as TransferrableInterface,
 };
 use strum::IntoEnumIterator;
 
@@ -641,101 +636,6 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     canTransfer: Some(can_transfer_callback),
     sabCloned: Some(sab_cloned_callback),
 };
-
-pub(crate) enum StructuredData<'a, 'b> {
-    Reader(&'a mut StructuredDataReader<'b>),
-    Writer(&'a mut StructuredDataWriter),
-}
-
-/// Reader and writer structs for results from, and inputs to, structured-data read/write operations.
-/// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
-#[repr(C)]
-pub(crate) struct StructuredDataReader<'a> {
-    /// A error record.
-    error: Option<Error>,
-    /// Rooted copies of every deserialized object to ensure they are not garbage collected.
-    roots: RootedVec<'a, Box<Heap<*mut JSObject>>>,
-    /// A map of port implementations,
-    /// used as part of the "transfer-receiving" steps of ports,
-    /// to produce the DOM ports stored in `message_ports` above.
-    pub(crate) port_impls: Option<FxHashMap<MessagePortId, MessagePortImpl>>,
-    /// A map of transform stream implementations,
-    pub(crate) transform_streams_port_impls: Option<FxHashMap<MessagePortId, TransformStreamData>>,
-    /// A map of blob implementations,
-    /// used as part of the "deserialize" steps of blobs,
-    /// to produce the DOM blobs stored in `blobs` above.
-    pub(crate) blob_impls: Option<FxHashMap<BlobId, BlobImpl>>,
-    /// A map of serialized files.
-    pub(crate) files: Option<FxHashMap<FileId, SerializableFile>>,
-    /// A map of serialized file lists.
-    pub(crate) file_lists: Option<FxHashMap<FileListId, SerializableFileList>>,
-    /// A map of serialized points.
-    pub(crate) points: Option<FxHashMap<DomPointId, DomPoint>>,
-    /// A map of serialized rects.
-    pub(crate) rects: Option<FxHashMap<DomRectId, DomRect>>,
-    /// A map of serialized quads.
-    pub(crate) quads: Option<FxHashMap<DomQuadId, DomQuad>>,
-    /// A map of serialized matrices.
-    pub(crate) matrices: Option<FxHashMap<DomMatrixId, DomMatrix>>,
-    /// A map of serialized exceptions.
-    pub(crate) exceptions: Option<FxHashMap<DomExceptionId, DomException>>,
-    /// A map of serialized quota exceeded errors.
-    pub(crate) quota_exceeded_errors:
-        Option<FxHashMap<QuotaExceededErrorId, SerializableQuotaExceededError>>,
-    // A map of serialized image bitmaps.
-    pub(crate) image_bitmaps: Option<FxHashMap<ImageBitmapId, SerializableImageBitmap>>,
-    /// A map of transferred image bitmaps.
-    pub(crate) transferred_image_bitmaps: Option<FxHashMap<ImageBitmapId, SerializableImageBitmap>>,
-    /// A map of transferred offscreen canvases.
-    pub(crate) offscreen_canvases:
-        Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
-    // A map of serialized image data.
-    pub(crate) image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
-    // A map of serialized crypto keys.
-    pub(crate) crypto_keys: Option<FxHashMap<CryptoKeyId, SerializableCryptoKey>>,
-}
-
-/// A data holder for transferred and serialized objects.
-#[derive(Default)]
-#[repr(C)]
-pub(crate) struct StructuredDataWriter {
-    /// Error record.
-    pub(crate) error: Option<Error>,
-    /// Transferred ports.
-    pub(crate) ports: Option<FxHashMap<MessagePortId, MessagePortImpl>>,
-    /// Transferred transform streams.
-    pub(crate) transform_streams_port: Option<FxHashMap<MessagePortId, TransformStreamData>>,
-    /// Serialized points.
-    pub(crate) points: Option<FxHashMap<DomPointId, DomPoint>>,
-    /// Serialized rects.
-    pub(crate) rects: Option<FxHashMap<DomRectId, DomRect>>,
-    /// Serialized quads.
-    pub(crate) quads: Option<FxHashMap<DomQuadId, DomQuad>>,
-    /// Serialized matrices.
-    pub(crate) matrices: Option<FxHashMap<DomMatrixId, DomMatrix>>,
-    /// Serialized exceptions.
-    pub(crate) exceptions: Option<FxHashMap<DomExceptionId, DomException>>,
-    /// Serialized quota exceeded errors.
-    pub(crate) quota_exceeded_errors:
-        Option<FxHashMap<QuotaExceededErrorId, SerializableQuotaExceededError>>,
-    /// Serialized blobs.
-    pub(crate) blobs: Option<FxHashMap<BlobId, BlobImpl>>,
-    /// Serialized files.
-    pub(crate) files: Option<FxHashMap<FileId, SerializableFile>>,
-    /// Serialized file lists.
-    pub(crate) file_lists: Option<FxHashMap<FileListId, SerializableFileList>>,
-    /// Serialized image bitmaps.
-    pub(crate) image_bitmaps: Option<FxHashMap<ImageBitmapId, SerializableImageBitmap>>,
-    /// Transferred image bitmaps.
-    pub(crate) transferred_image_bitmaps: Option<FxHashMap<ImageBitmapId, SerializableImageBitmap>>,
-    /// Transferred offscreen canvases.
-    pub(crate) offscreen_canvases:
-        Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
-    // A map of serialized image data.
-    pub(crate) image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
-    // A map of serialized crypto keys.
-    pub(crate) crypto_keys: Option<FxHashMap<CryptoKeyId, SerializableCryptoKey>>,
-}
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
 pub(crate) fn write(

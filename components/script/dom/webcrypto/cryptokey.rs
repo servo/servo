@@ -13,6 +13,7 @@ use js::rust::MutableHandleObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{CryptoKeyId, CryptoKeyIndex};
 use servo_constellation_traits::{SerializableCryptoKey, SerializableCryptoKeyHandle};
 use strum::VariantArray;
@@ -24,7 +25,6 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
-use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::KeyAlgorithmAndDerivatives;
 

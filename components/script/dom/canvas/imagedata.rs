@@ -15,6 +15,7 @@ use js::typedarray::{ClampedU8, HeapUint8ClampedArray, TypedArray, Uint8ClampedA
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::structuredclone::StructuredData;
 use script_bindings::trace::RootedTraceableBox;
 #[cfg(feature = "webgl")]
 use servo_base::generic_channel::GenericSharedMemory;
@@ -30,7 +31,6 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
-use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
