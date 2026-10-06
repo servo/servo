@@ -57,6 +57,7 @@ use crate::dom::webgl::validations::tex_image_2d::{
 use crate::dom::webgl::validations::tex_image_3d::{
     TexImage3DValidator, TexImage3DValidatorResult,
 };
+use crate::dom::webgl::vertexarrayobject::VertexAttribPointerKind;
 use crate::dom::webgl::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webgl::webglbuffer::WebGLBuffer;
 use crate::dom::webgl::webglframebuffer::{
@@ -301,14 +302,22 @@ impl WebGL2RenderingContext {
                 .location
                 .map(|l| l as usize)
                 .unwrap_or(usize::MAX)];
+            // The base type comes from the call that set the attribute:
+            //
+            // https://registry.khronos.org/webgl/specs/latest/2.0/#ATTRIBUTE_TYPE_MATCH
             let attrib_data_base_type = if !attrib.enabled_as_array {
                 match current_vertex_attrib {
                     VertexAttrib::Int(_, _, _, _) => constants::INT,
                     VertexAttrib::Uint(_, _, _, _) => constants::UNSIGNED_INT,
                     VertexAttrib::Float(_, _, _, _) => constants::FLOAT,
                 }
+            } else if attrib.kind.is_integer() {
+                match attrib.type_ {
+                    constants::BYTE | constants::SHORT | constants::INT => constants::INT,
+                    _ => constants::UNSIGNED_INT,
+                }
             } else {
-                attrib.type_
+                constants::FLOAT
             };
 
             let contains = groups
@@ -3117,8 +3126,15 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             constants::UNSIGNED_INT => {},
             _ => return self.base.webgl_error(InvalidEnum),
         };
-        self.base
-            .VertexAttribPointer(cx, index, size, type_, false, stride, offset)
+        let res = self.current_vao(cx).vertex_attrib_pointer(
+            index,
+            size,
+            type_,
+            stride,
+            offset,
+            VertexAttribPointerKind::Integer,
+        );
+        handle_potential_webgl_error!(self.base, res);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4>

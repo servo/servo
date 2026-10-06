@@ -72,7 +72,7 @@ use crate::dom::webgl::validations::tex_image_2d::{
     CompressedTexSubImage2DValidator, TexImage2DValidator, TexImage2DValidatorResult,
 };
 use crate::dom::webgl::validations::types::TexImageTarget;
-use crate::dom::webgl::vertexarrayobject::VertexAttribData;
+use crate::dom::webgl::vertexarrayobject::{VertexAttribData, VertexAttribPointerKind};
 use crate::dom::webgl::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webgl::webglbuffer::WebGLBuffer;
 use crate::dom::webgl::webglcontextevent::WebGLContextEvent;
@@ -3685,7 +3685,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 constants::VERTEX_ATTRIB_ARRAY_SIZE => retval.set(Int32Value(data.size as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_TYPE => retval.set(Int32Value(data.type_ as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_NORMALIZED => {
-                    retval.set(BooleanValue(data.normalized))
+                    retval.set(BooleanValue(data.kind.is_normalized()))
                 },
                 constants::VERTEX_ATTRIB_ARRAY_STRIDE => retval.set(Int32Value(data.stride as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => {
@@ -3697,6 +3697,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 },
                 ANGLEInstancedArraysConstants::VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE => {
                     retval.set(UInt32Value(data.divisor))
+                },
+                WebGL2RenderingContextConstants::VERTEX_ATTRIB_ARRAY_INTEGER
+                    if self.webgl_version() == WebGLVersion::WebGL2 =>
+                {
+                    retval.set(BooleanValue(data.kind.is_integer()))
                 },
                 _ => {
                     self.webgl_error(InvalidEnum);
@@ -4509,13 +4514,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         stride: i32,
         offset: i64,
     ) {
+        let kind = VertexAttribPointerKind::Float { normalized };
         let res = match self.webgl_version() {
             WebGLVersion::WebGL1 => self
                 .current_vao(cx)
-                .vertex_attrib_pointer(index, size, type_, normalized, stride, offset),
+                .vertex_attrib_pointer(index, size, type_, stride, offset, kind),
             WebGLVersion::WebGL2 => self
                 .current_vao_webgl2(cx)
-                .vertex_attrib_pointer(index, size, type_, normalized, stride, offset),
+                .vertex_attrib_pointer(index, size, type_, stride, offset, kind),
         };
         handle_potential_webgl_error!(self, res);
     }

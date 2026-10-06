@@ -10,7 +10,9 @@ use servo_canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArray
 
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::webgl::vertexarrayobject::{VertexArrayObject, VertexAttribData};
+use crate::dom::webgl::vertexarrayobject::{
+    VertexArrayObject, VertexAttribData, VertexAttribPointerKind,
+};
 use crate::dom::webgl::webglbuffer::WebGLBuffer;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
@@ -78,12 +80,12 @@ impl WebGLVertexArrayObjectOES {
         index: u32,
         size: i32,
         type_: u32,
-        normalized: bool,
         stride: i32,
         offset: i64,
+        kind: VertexAttribPointerKind,
     ) -> WebGLResult<()> {
         self.array_object
-            .vertex_attrib_pointer(index, size, type_, normalized, stride, offset)
+            .vertex_attrib_pointer(index, size, type_, stride, offset, kind)
     }
 
     pub(crate) fn vertex_attrib_divisor(&self, index: u32, value: u32) {
