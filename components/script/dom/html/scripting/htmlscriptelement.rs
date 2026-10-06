@@ -22,6 +22,7 @@ use net_traits::request::{
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::{DOMString, TracedDOMString};
 use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -40,7 +41,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
@@ -101,7 +101,7 @@ pub(crate) struct HTMLScriptElement {
     line_number: u64,
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#htmlscriptelement-script-text>
-    script_text: DomRefCell<DOMString>,
+    script_text: DomRefCell<TracedDOMString>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-script-external>
     from_an_external_file: Cell<bool>,
@@ -133,7 +133,7 @@ impl HTMLScriptElement {
             parser_document: Dom::from_ref(document),
             preparation_time_document: MutNullableDom::new(None),
             line_number: creator.return_line_number(),
-            script_text: DomRefCell::new(DOMString::new()),
+            script_text: Default::default(),
             from_an_external_file: Cell::new(false),
             blocking: Default::default(),
             marked_as_render_blocking: Default::default(),
@@ -537,21 +537,22 @@ fn fetch_a_classic_script(
 impl HTMLScriptElement {
     /// <https://w3c.github.io/trusted-types/dist/spec/#setting-slot-values-from-parser>
     pub(crate) fn set_initial_script_text(&self) {
-        *self.script_text.borrow_mut() = self.text();
+        *self.script_text.borrow_mut() = self.text().traced();
     }
 
-    /// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-prepare-the-script-text>
+    /// <https://w3c.github.io/trusted-types/dist/spec/#prepare-script-text>
     fn prepare_the_script_text(&self, cx: &mut JSContext) -> Fallible<()> {
         // Step 1. If script’s script text value is not equal to its child text content,
         // set script’s script text to the result of executing
         // Get Trusted Type compliant string, with the following arguments:
-        if *self.script_text.borrow() != self.text() {
-            *self.script_text.borrow_mut() = TrustedScript::get_trusted_type_compliant_string(
+        if *self.script_text.borrow() != *self.text() {
+            let result = TrustedScript::get_trusted_type_compliant_string(
                 cx,
                 &self.owner_global(),
                 self.Text(),
                 "HTMLScriptElement text",
             )?;
+            *self.script_text.borrow_mut() = result.traced();
         }
 
         Ok(())
@@ -1336,7 +1337,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             input,
             "HTMLScriptElement innerText",
         )?;
-        *self.script_text.borrow_mut() = value.clone();
+        *self.script_text.borrow_mut() = value.clone().traced();
         // Step 3: Run set the inner text steps with this and value.
         self.upcast::<HTMLElement>().set_inner_text(cx, value);
         Ok(())
@@ -1358,7 +1359,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             "HTMLScriptElement text",
         )?;
         // Step 2: Set this's script text value to the given value.
-        *self.script_text.borrow_mut() = value.clone();
+        *self.script_text.borrow_mut() = value.clone().traced();
         // Step 3: String replace all with the given value within this.
         Node::string_replace_all(cx, value, self.upcast::<Node>());
         Ok(())
@@ -1387,7 +1388,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             "HTMLScriptElement textContent",
         )?;
         // Step 2: Set this's script text value to value.
-        *self.script_text.borrow_mut() = value.clone();
+        *self.script_text.borrow_mut() = value.clone().traced();
         // Step 3: Run set text content with this and value.
         self.upcast::<Node>()
             .set_text_content_for_element(cx, Some(value));
