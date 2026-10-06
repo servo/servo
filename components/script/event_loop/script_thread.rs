@@ -3221,6 +3221,8 @@ impl ScriptThread {
                 parser.abort(cx);
             }
 
+            document.event_handler().clear_cursors();
+
             if !document.window_detached() {
                 debug!("{pipeline_id}: Shutting down layout");
                 document.window().layout_mut().exit_now();

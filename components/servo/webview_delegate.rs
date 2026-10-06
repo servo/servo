@@ -8,15 +8,15 @@ use std::rc::Rc;
 use embedder_traits::{
     AlertResponse, AllowOrDeny, AuthenticationResponse, BluetoothDeviceDescription,
     ConfirmResponse, ConsoleLogLevel, ContextMenuAction, ContextMenuElementInformation,
-    ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
-    FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
+    ContextMenuItem, EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern,
+    InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
     NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RgbColor, ScreenGeometry,
     SelectElementOptionOrOptgroup, SelectElementRequest, SimpleDialogRequest, TraversalId,
     WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use paint_api::rendering_context::RenderingContext;
 use servo_base::generic_channel::{GenericCallback, GenericSender, SendError};
-use servo_base::id::PipelineId;
+use servo_base::id::{CursorId, PipelineId};
 use servo_constellation_traits::EmbedderToConstellationMessage;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::sync::oneshot::Sender;
@@ -25,6 +25,7 @@ use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 use crate::proxies::ConstellationProxy;
 use crate::responders::{AutomaticResponder, OneshotSender, ServoErrorSender};
+use crate::webview::Cursor;
 use crate::{RegisterOrUnregister, Servo, WebView, WebViewBuilder};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
@@ -942,6 +943,8 @@ pub trait WebViewDelegate {
     /// The [`Cursor`] of the currently loaded page in this [`WebView`] has changed. The new
     /// cursor can accessed via [`WebView::cursor`].
     fn notify_cursor_changed(&self, _webview: WebView, _cursor: Cursor) {}
+    /// The cached custom cursor in this [`WebView`] have been removed from the stored registry.
+    fn notify_custom_cursor_removed(&self, _webview: WebView, _cursors: Vec<CursorId>) {}
     /// The favicon of the currently loaded page in this [`WebView`] has changed. The new
     /// favicon [`Image`](embedder_traits::Image) can accessed via [`WebView::favicon`].
     fn notify_favicon_changed(&self, _webview: WebView) {}

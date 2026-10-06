@@ -12,7 +12,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, Mutex};
 
 use dpi::PhysicalSize;
-use embedder_traits::{RefreshDriver, UrlRequest};
+use embedder_traits::{NamedCursor, RefreshDriver, UrlRequest};
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Point2D, Size2D};
 use http::{HeaderMap, HeaderName, HeaderValue};
@@ -394,7 +394,7 @@ fn test_cursor_change() {
 
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.cursor_changed.get());
-    assert_eq!(webview.cursor(), Cursor::Crosshair);
+    assert_eq!(webview.cursor(), Cursor::Named(NamedCursor::Crosshair));
 
     delegate.reset();
     webview.notify_input_event(InputEvent::MouseLeftViewport(
@@ -403,7 +403,7 @@ fn test_cursor_change() {
 
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.cursor_changed.get());
-    assert_eq!(webview.cursor(), Cursor::Default);
+    assert_eq!(webview.cursor(), Cursor::default());
 }
 
 // A test to ensure that the cursor doesn't change when hovering over a input with type color
@@ -429,7 +429,7 @@ fn test_cursor_unchanged_input_color() {
 
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.cursor_changed.get());
-    assert_eq!(webview.cursor(), Cursor::Text);
+    assert_eq!(webview.cursor(), Cursor::Named(NamedCursor::Text));
 
     delegate.reset();
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
@@ -438,7 +438,7 @@ fn test_cursor_unchanged_input_color() {
 
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.cursor_changed.get());
-    assert_eq!(webview.cursor(), Cursor::Default);
+    assert_eq!(webview.cursor(), Cursor::default());
 }
 
 /// A test that ensure that negative resize requests do not get passed to the embedder.
@@ -560,7 +560,7 @@ fn test_webview_resize_interactivity() {
 
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.cursor_changed.get());
-    assert_eq!(webview.cursor(), Cursor::Crosshair);
+    assert_eq!(webview.cursor(), Cursor::Named(NamedCursor::Crosshair));
 }
 
 #[test]

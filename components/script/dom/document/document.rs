@@ -848,6 +848,8 @@ impl Document {
             let msg = ScriptToConstellationMessage::DiscardDocument;
             let _ = global_scope.script_to_constellation_chan().send(msg);
         }
+        // Clear cursors
+        self.event_handler().clear_cursors();
     }
 
     pub(crate) fn track_websocket(&self, websocket: &WebSocket) {
