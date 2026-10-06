@@ -72,7 +72,7 @@ use crate::dom::webgl::validations::tex_image_2d::{
     CompressedTexSubImage2DValidator, TexImage2DValidator, TexImage2DValidatorResult,
 };
 use crate::dom::webgl::validations::types::TexImageTarget;
-use crate::dom::webgl::vertexarrayobject::VertexAttribData;
+use crate::dom::webgl::vertexarrayobject::{VertexAttribData, VertexAttribPointerKind};
 use crate::dom::webgl::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webgl::webglbuffer::WebGLBuffer;
 use crate::dom::webgl::webglcontextevent::WebGLContextEvent;
@@ -1148,6 +1148,27 @@ impl WebGLRenderingContext {
         });
         self.mark_as_dirty();
         Ok(())
+    }
+
+    pub(crate) fn vertex_attrib_pointer_impl(
+        &self,
+        cx: &mut JSContext,
+        index: u32,
+        size: i32,
+        type_: u32,
+        stride: i32,
+        offset: i64,
+        kind: VertexAttribPointerKind,
+    ) {
+        let res = match self.webgl_version() {
+            WebGLVersion::WebGL1 => self
+                .current_vao(cx)
+                .vertex_attrib_pointer(index, size, type_, stride, offset, kind),
+            WebGLVersion::WebGL2 => self
+                .current_vao_webgl2(cx)
+                .vertex_attrib_pointer(index, size, type_, stride, offset, kind),
+        };
+        handle_potential_webgl_error!(self, res);
     }
 
     pub(crate) fn vertex_attrib_divisor(&self, cx: &mut JSContext, index: u32, divisor: u32) {
@@ -3698,6 +3719,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 ANGLEInstancedArraysConstants::VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE => {
                     retval.set(UInt32Value(data.divisor))
                 },
+                WebGL2RenderingContextConstants::VERTEX_ATTRIB_ARRAY_INTEGER
+                    if self.webgl_version() == WebGLVersion::WebGL2 =>
+                {
+                    retval.set(BooleanValue(data.integer))
+                },
                 _ => {
                     self.webgl_error(InvalidEnum);
                     retval.set(NullValue())
@@ -4509,15 +4535,15 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         stride: i32,
         offset: i64,
     ) {
-        let res = match self.webgl_version() {
-            WebGLVersion::WebGL1 => self
-                .current_vao(cx)
-                .vertex_attrib_pointer(index, size, type_, normalized, stride, offset),
-            WebGLVersion::WebGL2 => self
-                .current_vao_webgl2(cx)
-                .vertex_attrib_pointer(index, size, type_, normalized, stride, offset),
-        };
-        handle_potential_webgl_error!(self, res);
+        self.vertex_attrib_pointer_impl(
+            cx,
+            index,
+            size,
+            type_,
+            stride,
+            offset,
+            VertexAttribPointerKind::Float { normalized },
+        );
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4>
