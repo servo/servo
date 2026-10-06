@@ -50,14 +50,14 @@ const ASCII_SPACE: u8 = 0x20;
 /// guaranteed to live as long as no garbage collection operation happens. Afterwards this
 /// pointer can  point to arbitrary memory. Callers should enforce this using `NoGC`. It is
 /// essential for callers that this function not trigger a garbage collection.
-unsafe fn get_latin1_string_bytes(rooted_traceable_box: &Heap<*mut JSString>) -> &[u8] {
-    debug_assert!(!rooted_traceable_box.get().is_null());
+unsafe fn get_latin1_string_bytes(string: &Heap<*mut JSString>) -> &[u8] {
+    debug_assert!(!string.get().is_null());
     let mut length = 0;
     unsafe {
         let chars = JS_GetLatin1StringCharsAndLength(
             Runtime::get().expect("JS runtime has shut down").as_ptr(),
             ptr::null(),
-            rooted_traceable_box.get(),
+            string.get(),
             &mut length,
         );
         assert!(!chars.is_null());
@@ -90,12 +90,12 @@ impl EncodedBytes<'_> {
 }
 
 #[derive(Zeroize)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 enum DOMStringType {
     /// A simple rust string
     Rust(String),
     /// A JS String stored in mozjs.
     #[zeroize(skip)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     JSString(Box<Heap<*mut JSString>>),
     #[cfg(test)]
     /// This is used for testing of the bindings to give
@@ -311,6 +311,7 @@ impl std::fmt::Debug for DOMStringType {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct TracedDOMString(RefCell<DOMStringType>);
 
+// TODO: Removed RootedTraceableBox if TracedDOMString is not a js type.
 #[derive(Default, MallocSizeOf, JSTraceable)]
 pub struct DOMString(RootedTraceableBox<TracedDOMString>);
 
@@ -419,7 +420,7 @@ impl From<String> for TracedDOMString {
 }
 
 impl TracedDOMString {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn root(self) -> DOMString {
         DOMString(RootedTraceableBox::from_box(Box::new(self)))
     }
@@ -1157,7 +1158,7 @@ impl From<DOMString> for String {
     }
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 impl From<TracedDOMString> for Vec<u8> {
     fn from(value: TracedDOMString) -> Self {
         value.ensure_rust_string();
