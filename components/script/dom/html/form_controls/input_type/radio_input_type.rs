@@ -14,12 +14,12 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::element::AttributeMutation;
 use crate::dom::element::attributes::storage::AttrRef;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::{HTMLInputElement, InputActivationState};
 use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
 use crate::dom::html::form_controls::input_type::{
-    InputType, SpecificInputActivationType, SpecificInputType,
+    InputType, SpecificInputActivationType, SpecificInputType, ValueChangeEvents,
 };
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::input_type::text_input_widget::TextInputWidget;
@@ -187,21 +187,11 @@ impl SpecificInputActivationType for RadioInputActivation {
             return;
         }
 
-        let target = input.upcast::<EventTarget>();
-
         // Step 2: Fire an event named input at the element with the bubbles and composed
         // attributes initialized to true.
-        target.fire_event_with_params(
-            cx,
-            atom!("input"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            EventComposed::Composed,
-        );
-
         // Step 3: Fire an event named change at the element with the bubbles attribute
         // initialized to true.
-        target.fire_bubbling_event(cx, atom!("change"));
+        input.fire_value_change_events(cx, ValueChangeEvents::Input | ValueChangeEvents::Change);
     }
 }
 
