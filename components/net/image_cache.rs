@@ -30,6 +30,7 @@ use profile_traits::path;
 use resvg::tiny_skia;
 use resvg::usvg::{self, fontdb};
 use rustc_hash::{FxHashMap, FxHashSet};
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_base::threadpool::ThreadPool;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -675,8 +676,9 @@ impl ImageCacheStore {
         };
         let url = pending_load.final_url.clone();
         let image_response = match load_result {
-            LoadResult::LoadedRasterImage(raster_image) => {
+            LoadResult::LoadedRasterImage(mut raster_image) => {
                 assert!(raster_image.id.is_some());
+                raster_image.load_time = Some(CrossProcessInstant::now());
                 ImageResponse::Loaded(Image::Raster(Arc::new(raster_image)), url.unwrap())
             },
             LoadResult::LoadedVectorImage(vector_image) => {
@@ -692,6 +694,7 @@ impl ImageCacheStore {
                     svg_id: None,
                     metadata,
                     cors_status: vector_image.cors_status,
+                    load_time: CrossProcessInstant::now(),
                 };
                 ImageResponse::Loaded(Image::Vector(vector_image), url.unwrap())
             },
@@ -1162,6 +1165,7 @@ impl ImageCache for ImageCacheImpl {
                     bytes: Arc::new(bytes),
                     id: None,
                     cors_status: vector_image.cors_status,
+                    load_time: None,
                     is_opaque: false,
                     loop_count: None,
                 }

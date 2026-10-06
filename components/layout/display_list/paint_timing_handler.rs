@@ -11,6 +11,7 @@ use layout_api::{ContainerTimingRecord, LCPCandidate};
 use paint_api::display_list::PaintTimingReport;
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{ContainerTimingID, LCPCandidateID};
 use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
@@ -34,8 +35,10 @@ struct PendingImageRecord {
     clip_rect: LayoutRect,
     /// Cumulative transform to root space, computed at collection time.
     transform: FastLayoutTransform,
-    /// The image URL. `None` for background images.
+    /// The image URL, if the image has one.
     url: Option<ServoUrl>,
+    /// <https://w3c.github.io/paint-timing/#pending-image-record-loadtime>
+    load_time: Option<CrossProcessInstant>,
     /// Intrinsic width, used for upscaling normalization.
     natural_width: Option<Au>,
     /// Intrinsic height, used for upscaling normalization.
@@ -221,6 +224,7 @@ impl PaintTimingHandler {
         url: Option<ServoUrl>,
         natural_width: Option<Au>,
         natural_height: Option<Au>,
+        load_time: Option<CrossProcessInstant>,
     ) {
         self.images_pending_rendering.push(PendingImageRecord {
             tag,
@@ -230,6 +234,7 @@ impl PaintTimingHandler {
             url,
             natural_width,
             natural_height,
+            load_time,
         });
     }
 
@@ -448,6 +453,7 @@ impl PaintTimingHandler {
                 result as usize,
                 record.url,
                 record.tag.map(|tag| tag.node),
+                record.load_time,
             ));
         }
 
@@ -505,6 +511,7 @@ impl PaintTimingHandler {
                 result as usize,
                 None,
                 Some(record.tag.node),
+                None,
             ));
         }
 

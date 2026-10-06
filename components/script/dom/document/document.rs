@@ -297,9 +297,6 @@ struct LCPCandidateAndElement {
     element: Option<Dom<Element>>,
     #[no_trace]
     candidate: LCPCandidate,
-    /// The time the candidate's image became completely available, if any.
-    #[no_trace]
-    load_time: Option<CrossProcessInstant>,
 }
 
 /// A Container Timing update paired with its resolved elements, parked until paint
@@ -3652,15 +3649,11 @@ impl Document {
     }
 
     pub(crate) fn store_lcp_candidate(&self, candidate: LCPCandidate, element: Option<&Element>) {
-        let load_time = element
-            .and_then(|element| element.downcast::<HTMLImageElement>())
-            .and_then(HTMLImageElement::load_time);
         self.lcp_candidates.borrow_mut().insert(
             candidate.id,
             LCPCandidateAndElement {
                 element: element.map(Dom::from_ref),
                 candidate,
-                load_time,
             },
         );
     }
@@ -3760,7 +3753,7 @@ impl Document {
                     self.window.as_global_scope(),
                     &stored_candidate.candidate,
                     stored_candidate.element.as_deref(),
-                    stored_candidate.load_time,
+                    stored_candidate.candidate.load_time,
                     paint_timing_info,
                 ))
             },

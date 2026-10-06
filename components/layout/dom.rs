@@ -509,6 +509,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
         }
         Some((
             ImageInfo {
+                load_time: self.load_time(),
                 image: resource,
                 showing_broken_image_icon: self.showing_broken_image_icon(),
                 url: self.image_url(),

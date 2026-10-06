@@ -291,6 +291,7 @@ pub(crate) fn decode_static_image(
         bytes: Arc::new(rgba.into_vec()),
         id: None,
         cors_status,
+        load_time: None,
         is_opaque,
         loop_count: None,
     })
@@ -368,6 +369,7 @@ where
     Some(RasterImage {
         metadata: ImageMetadata { width, height },
         cors_status,
+        load_time: None,
         frames,
         id: None,
         format: PixelFormat::RGBA8,
