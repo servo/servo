@@ -237,16 +237,6 @@ impl FetchResponseListener for ImageContext {
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
-    ) {
-        self.process_response_eof_with_body(cx, request_id, response, timing, None);
-    }
-
-    fn process_response_eof_with_body(
-        self,
-        cx: &mut js::context::JSContext,
-        request_id: RequestId,
-        response: Result<(), NetworkError>,
-        timing: ResourceFetchTiming,
         body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         self.image_cache.notify_pending_response(

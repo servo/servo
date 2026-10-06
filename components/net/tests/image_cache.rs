@@ -264,12 +264,13 @@ fn test_notify_pending_response_complete() {
         FetchResponseMsg::ProcessResponse(create_request_id(), Ok(create_test_metadata(None))),
     );
 
+    let jpeg_bytes = jpeg_image_bytes();
     let encoded_body = servo_arc::Arc::new(parking_lot::Mutex::new(ResponseBody::Done(
-        jpeg_image_bytes(),
+        jpeg_bytes.clone(),
     )));
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), jpeg_image_bytes().into()),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), jpeg_bytes.into()),
     );
 
     cache.notify_pending_response(
@@ -294,10 +295,12 @@ fn test_notify_pending_response_complete() {
         }
     }
 
-    let image = cache.get_image(url, origin, None).unwrap();
-    assert!(image.as_raster_image().is_some());
+    let image = cache.get_image(url, origin, None);
+    assert!(image.is_some());
+    assert!(image.unwrap().as_raster_image().is_some());
 }
 
+/// Tests if we
 #[test]
 fn test_encoded_image_decodes_from_cached_response_body() {
     let body = servo_arc::Arc::new(parking_lot::Mutex::new(ResponseBody::Done(
@@ -306,8 +309,8 @@ fn test_encoded_image_decodes_from_cached_response_body() {
     let image = EncodedImage {
         id: PendingImageId(1),
         metadata: ImageMetadata {
-            width: 1,
-            height: 1,
+            width: 320,
+            height: 427,
         },
         cors_status: CorsStatus::Safe,
         bytes: EncodedImageBytes::Cached(body.clone()),
@@ -317,7 +320,14 @@ fn test_encoded_image_decodes_from_cached_response_body() {
         panic!("Expected the HTTP cache body to be retained");
     };
     assert!(servo_arc::Arc::ptr_eq(source, &body));
-    assert!(image.decode_to_original_size().is_some());
+    let decoded = image.decode_to_original_size().unwrap();
+    assert_eq!(
+        decoded.metadata,
+        ImageMetadata {
+            width: 320,
+            height: 427,
+        }
+    );
 }
 
 #[test]

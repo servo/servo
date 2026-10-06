@@ -375,6 +375,7 @@ impl FetchResponseListener for StylesheetContext {
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
+        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         network_listener::submit_timing(cx, &self, &status, &timing);
 

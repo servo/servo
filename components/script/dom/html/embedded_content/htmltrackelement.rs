@@ -631,6 +631,7 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
+        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         let track = self.element.clone();
         let element = self.element.root();

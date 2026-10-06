@@ -342,6 +342,7 @@ impl FetchResponseListener for ClassicContext {
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
+        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         // Resource timing is expected to be available before "error" or "load" events are fired.
         network_listener::submit_timing(cx, &self, &response, &timing);
