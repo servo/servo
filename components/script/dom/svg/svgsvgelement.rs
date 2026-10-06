@@ -23,7 +23,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -127,7 +127,7 @@ impl SVGSVGElement {
         root_node: &Node,
     ) {
         let href = use_element.get_string_attribute(&local_name!("href"));
-        let Some(id_string) = href.str().strip_prefix("#").map(RootedDOMString::from) else {
+        let Some(id_string) = href.str().strip_prefix("#").map(RootedDomString::from) else {
             return;
         };
 
@@ -231,7 +231,7 @@ impl VirtualMethods for SVGSVGElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDomString) -> AttrValue {
         match *name {
             local_name!("width") | local_name!("height") => {
                 let value = &value.str();

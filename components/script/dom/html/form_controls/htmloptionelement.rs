@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -146,7 +146,7 @@ impl HTMLOptionElement {
     /// <https://html.spec.whatwg.org/multipage/#concept-option-label>
     ///
     /// Note that this is not equivalent to <https://html.spec.whatwg.org/multipage/#dom-option-label>.
-    pub(crate) fn displayed_label(&self) -> RootedDOMString {
+    pub(crate) fn displayed_label(&self) -> RootedDomString {
         // > The label of an option element is the value of the label content attribute, if there is one
         // > and its value is not the empty string, or, otherwise, the value of the element's text IDL attribute.
         let label = self
@@ -250,8 +250,8 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        text: RootedDOMString,
-        value: Option<RootedDOMString>,
+        text: RootedDomString,
+        value: Option<RootedDomString>,
         default_selected: bool,
         selected: bool,
     ) -> Fallible<DomRoot<HTMLOptionElement>> {
@@ -290,8 +290,8 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-text>
-    fn Text(&self) -> RootedDOMString {
-        let mut content = RootedDOMString::new();
+    fn Text(&self) -> RootedDomString {
+        let mut content = RootedDomString::new();
 
         let mut iterator = self.upcast::<Node>().traverse_preorder(ShadowIncluding::No);
         while let Some(node) = iterator.peek() {
@@ -313,11 +313,11 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
             iterator.next();
         }
 
-        RootedDOMString::from(str_join(split_html_space_chars(&content.str()), " "))
+        RootedDomString::from(str_join(split_html_space_chars(&content.str()), " "))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-text>
-    fn SetText(&self, cx: &mut JSContext, value: RootedDOMString) {
+    fn SetText(&self, cx: &mut JSContext, value: RootedDomString) {
         self.upcast::<Node>()
             .set_text_content_for_element(cx, Some(value))
     }
@@ -336,7 +336,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-option-value>
-    fn Value(&self) -> RootedDOMString {
+    fn Value(&self) -> RootedDomString {
         let element = self.upcast::<Element>();
         let attr = &local_name!("value");
         if element.has_attribute(attr) {
@@ -350,7 +350,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     make_setter!(SetValue, "value");
 
     /// <https://html.spec.whatwg.org/multipage/#attr-option-label>
-    fn Label(&self) -> RootedDOMString {
+    fn Label(&self) -> RootedDomString {
         let element = self.upcast::<Element>();
         let attr = &local_name!("label");
         if element.has_attribute(attr) {

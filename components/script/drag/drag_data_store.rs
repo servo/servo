@@ -11,7 +11,7 @@ use servo_constellation_traits::BlobImpl;
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 
@@ -19,21 +19,21 @@ use crate::dom::globalscope::GlobalScope;
 #[derive(MallocSizeOf)]
 pub(crate) enum Kind {
     Text {
-        data: RootedDOMString,
-        type_: RootedDOMString,
+        data: RootedDomString,
+        type_: RootedDomString,
     },
     File {
         bytes: Vec<u8>,
-        name: RootedDOMString,
+        name: RootedDomString,
         type_: String,
     },
 }
 
 impl Kind {
-    pub(crate) fn type_(&self) -> RootedDOMString {
+    pub(crate) fn type_(&self) -> RootedDomString {
         match self {
             Kind::Text { type_, .. } => type_.clone(),
-            Kind::File { type_, .. } => RootedDOMString::from(type_.clone()),
+            Kind::File { type_, .. } => RootedDomString::from(type_.clone()),
         }
     }
 
@@ -63,7 +63,7 @@ impl Kind {
         }
     }
 
-    fn text_type_matches(&self, text_type: &RootedDOMString) -> bool {
+    fn text_type_matches(&self, text_type: &RootedDomString) -> bool {
         matches!(self, Kind::Text { type_, .. } if type_.eq(text_type))
     }
 
@@ -136,7 +136,7 @@ impl DragDataStore {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-datatransfer-types>
-    pub(crate) fn types(&self) -> Vec<RootedDOMString> {
+    pub(crate) fn types(&self) -> Vec<RootedDomString> {
         let mut types = Vec::new();
 
         let has_files = self.item_list.values().fold(false, |has_files, item| {
@@ -153,17 +153,17 @@ impl DragDataStore {
         // Step 2.2 If there are any items in the item list whose kind is File,
         // add an entry to L consisting of the string "Files".
         if has_files {
-            types.push(RootedDOMString::from_static("Files"));
+            types.push(RootedDomString::from_static("Files"));
         }
         types
     }
 
-    pub(crate) fn find_matching_text(&self, type_: &RootedDOMString) -> Option<RootedDOMString> {
+    pub(crate) fn find_matching_text(&self, type_: &RootedDomString) -> Option<RootedDomString> {
         self.item_list
             .values()
             .find(|item| item.text_type_matches(type_))
             .and_then(|item| item.as_string())
-            .map(RootedDOMString::from)
+            .map(RootedDomString::from)
     }
 
     pub(crate) fn add(&mut self, kind: Kind) -> Fallible<u16> {
@@ -188,7 +188,7 @@ impl DragDataStore {
         Ok(item_id)
     }
 
-    pub(crate) fn set_data(&mut self, format: RootedDOMString, data: RootedDOMString) {
+    pub(crate) fn set_data(&mut self, format: RootedDomString, data: RootedDomString) {
         // Step 3-4
         let type_ = normalize_mime(format);
 
@@ -203,7 +203,7 @@ impl DragDataStore {
         self.next_item_id += 1;
     }
 
-    pub(crate) fn clear_data(&mut self, format: Option<RootedDOMString>) -> bool {
+    pub(crate) fn clear_data(&mut self, format: Option<RootedDomString>) -> bool {
         let mut was_modified = false;
 
         if let Some(format) = format {
@@ -278,15 +278,15 @@ impl DragDataStore {
     }
 }
 
-fn normalize_mime(mut format: RootedDOMString) -> RootedDOMString {
+fn normalize_mime(mut format: RootedDomString) -> RootedDomString {
     // Convert format to ASCII lowercase.
     format.make_ascii_lowercase();
 
     match &*format.str() {
         // If format equals "text", change it to "text/plain".
-        "text" => RootedDOMString::from_static("text/plain"),
+        "text" => RootedDomString::from_static("text/plain"),
         // If format equals "url", change it to "text/uri-list".
-        "url" => RootedDOMString::from_static("text/uri-list"),
-        s => RootedDOMString::from(s),
+        "url" => RootedDomString::from_static("text/uri-list"),
+        s => RootedDomString::from(s),
     }
 }

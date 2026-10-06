@@ -57,7 +57,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomOnceCell, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 #[cfg(feature = "webgl_backtrace")]
 use crate::dom::globalscope::GlobalScope;
@@ -307,7 +307,7 @@ impl WebGLRenderingContext {
                     atom!("webglcontextcreationerror"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::Cancelable,
-                    RootedDOMString::from(msg),
+                    RootedDomString::from(msg),
                 );
                 match canvas {
                     RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
@@ -2547,14 +2547,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14>
-    fn GetSupportedExtensions(&self) -> Option<Vec<RootedDOMString>> {
+    fn GetSupportedExtensions(&self) -> Option<Vec<RootedDomString>> {
         self.extension_manager
             .init_once(|| self.get_gl_extensions());
         let extensions = self.extension_manager.get_supported_extensions();
         Some(
             extensions
                 .iter()
-                .map(|name| RootedDOMString::from(*name))
+                .map(|name| RootedDomString::from(*name))
                 .collect(),
         )
     }
@@ -2563,7 +2563,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     fn GetExtension(
         &self,
         cx: &mut js::context::JSContext,
-        name: RootedDOMString,
+        name: RootedDomString,
         rval: MutableHandleObject,
     ) {
         self.extension_manager
@@ -2647,7 +2647,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn BindAttribLocation(&self, program: &WebGLProgram, index: u32, name: RootedDOMString) {
+    fn BindAttribLocation(&self, program: &WebGLProgram, index: u32, name: RootedDomString) {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return);
         handle_potential_webgl_error!(self, program.bind_attrib_location(index, name));
     }
@@ -3319,7 +3319,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn GetAttribLocation(&self, program: &WebGLProgram, name: RootedDOMString) -> i32 {
+    fn GetAttribLocation(&self, program: &WebGLProgram, name: RootedDomString) -> i32 {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return -1);
         handle_potential_webgl_error!(self, program.get_attrib_location(name), -1)
     }
@@ -3492,10 +3492,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn GetProgramInfoLog(&self, program: &WebGLProgram) -> Option<RootedDOMString> {
+    fn GetProgramInfoLog(&self, program: &WebGLProgram) -> Option<RootedDomString> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         match program.get_info_log() {
-            Ok(value) => Some(RootedDOMString::from(value)),
+            Ok(value) => Some(RootedDomString::from(value)),
             Err(e) => {
                 self.webgl_error(e);
                 None
@@ -3549,7 +3549,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn GetShaderInfoLog(&self, shader: &WebGLShader) -> Option<RootedDOMString> {
+    fn GetShaderInfoLog(&self, shader: &WebGLShader) -> Option<RootedDomString> {
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return None);
         Some(shader.info_log())
     }
@@ -3632,7 +3632,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         &self,
         cx: &mut JSContext,
         program: &WebGLProgram,
-        name: RootedDOMString,
+        name: RootedDomString,
     ) -> Option<DomRoot<WebGLUniformLocation>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         handle_potential_webgl_error!(self, program.get_uniform_location(cx, name), None)
@@ -4090,13 +4090,13 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn ShaderSource(&self, shader: &WebGLShader, source: RootedDOMString) {
+    fn ShaderSource(&self, shader: &WebGLShader, source: RootedDomString) {
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
         shader.set_source(source)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn GetShaderSource(&self, shader: &WebGLShader) -> Option<RootedDOMString> {
+    fn GetShaderSource(&self, shader: &WebGLShader) -> Option<RootedDomString> {
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return None);
         Some(shader.source())
     }

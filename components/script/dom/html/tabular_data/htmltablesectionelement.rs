@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
@@ -141,7 +141,7 @@ impl VirtualMethods for HTMLTableSectionElement {
         }
     }
 
-    fn parse_plain_attribute(&self, local_name: &LocalName, value: RootedDOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &LocalName, value: RootedDomString) -> AttrValue {
         match *local_name {
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
             local_name!("height") => AttrValue::from_dimension(value.into()),

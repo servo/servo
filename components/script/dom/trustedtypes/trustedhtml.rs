@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedtypes::trustedtypepolicy::TrustedType;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::{
@@ -25,11 +25,11 @@ use crate::dom::trustedtypes::trustedtypepolicyfactory::{
 pub struct TrustedHTML {
     reflector_: Reflector,
 
-    data: RootedDOMString,
+    data: RootedDomString,
 }
 
 impl TrustedHTML {
-    fn new_inherited(data: RootedDOMString) -> Self {
+    fn new_inherited(data: RootedDomString) -> Self {
         Self {
             reflector_: Reflector::new(),
             data,
@@ -38,7 +38,7 @@ impl TrustedHTML {
 
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
-        data: RootedDOMString,
+        data: RootedDomString,
         global: &GlobalScope,
     ) -> DomRoot<Self> {
         reflect_dom_object(cx, Box::new(Self::new_inherited(data)), global)
@@ -49,7 +49,7 @@ impl TrustedHTML {
         global: &GlobalScope,
         value: TrustedHTMLOrString,
         sink: &str,
-    ) -> Fallible<RootedDOMString> {
+    ) -> Fallible<RootedDomString> {
         match value {
             TrustedHTMLOrString::String(value) => {
                 TrustedTypePolicyFactory::get_trusted_type_compliant_string(
@@ -66,7 +66,7 @@ impl TrustedHTML {
         }
     }
 
-    pub(crate) fn data(&self) -> &RootedDOMString {
+    pub(crate) fn data(&self) -> &RootedDomString {
         &self.data
     }
 }
@@ -80,12 +80,12 @@ impl fmt::Display for TrustedHTML {
 
 impl TrustedHTMLMethods<crate::DomTypeHolder> for TrustedHTML {
     /// <https://www.w3.org/TR/trusted-types/#trustedhtml-stringification-behavior>
-    fn Stringifier(&self) -> RootedDOMString {
+    fn Stringifier(&self) -> RootedDomString {
         self.data.clone()
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedhtml-tojson>
-    fn ToJSON(&self) -> RootedDOMString {
+    fn ToJSON(&self) -> RootedDomString {
         self.data.clone()
     }
 }

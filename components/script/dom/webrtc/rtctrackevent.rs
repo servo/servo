@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::RTCTrackEventBinding::{self, RTCTra
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
@@ -71,7 +71,7 @@ impl RTCTrackEventMethods<crate::DomTypeHolder> for RTCTrackEvent {
         cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: RootedDOMString,
+        type_: RootedDomString,
         init: &RTCTrackEventBinding::RTCTrackEventInit,
     ) -> Fallible<DomRoot<RTCTrackEvent>> {
         Ok(RTCTrackEvent::new_with_proto(

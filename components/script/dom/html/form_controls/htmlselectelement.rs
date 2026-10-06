@@ -35,7 +35,7 @@ use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
@@ -163,7 +163,7 @@ impl UAShadowRoot<ShadowTree> for HTMLSelectElement {
             .AppendChild(cx, text_container.upcast::<Node>())
             .unwrap();
 
-        let text = Text::new(cx, RootedDOMString::new(), &document);
+        let text = Text::new(cx, RootedDomString::new(), &document);
         text_container
             .upcast::<Node>()
             .AppendChild(cx, text.upcast::<Node>())
@@ -608,8 +608,8 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     make_uint_setter!(SetSize, "size", DEFAULT_SELECT_SIZE);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-type>
-    fn Type(&self) -> RootedDOMString {
-        RootedDOMString::from(if self.Multiple() {
+    fn Type(&self) -> RootedDomString {
+        RootedDomString::from(if self.Multiple() {
             "select-multiple"
         } else {
             "select-one"
@@ -674,7 +674,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     fn NamedItem(
         &self,
         cx: &mut JSContext,
-        name: RootedDOMString,
+        name: RootedDomString,
     ) -> Option<DomRoot<HTMLOptionElement>> {
         self.Options(cx)
             .NamedGetter(cx, name)
@@ -692,7 +692,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-value>
-    fn Value(&self, cx: &JSContext) -> RootedDOMString {
+    fn Value(&self, cx: &JSContext) -> RootedDomString {
         self.list_of_options(cx.no_gc())
             .find(|opt_elem| opt_elem.Selected())
             .map(|opt_elem| opt_elem.Value())
@@ -700,7 +700,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-value>
-    fn SetValue(&self, cx: &mut JSContext, value: RootedDOMString) {
+    fn SetValue(&self, cx: &mut JSContext, value: RootedDomString) {
         let mut opt_iter = self.list_of_options(cx.no_gc());
         // Reset until we find an <option> with a matching value
         for opt in opt_iter.by_ref() {
@@ -781,12 +781,12 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self, cx: &mut JSContext) -> RootedDOMString {
+    fn ValidationMessage(&self, cx: &mut JSContext) -> RootedDomString {
         self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, cx: &mut JSContext, error: RootedDOMString) {
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: RootedDomString) {
         self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }
@@ -879,7 +879,7 @@ impl VirtualMethods for HTMLSelectElement {
         self.update_shadow_tree(cx);
     }
 
-    fn parse_plain_attribute(&self, local_name: &LocalName, value: RootedDOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &LocalName, value: RootedDomString) -> AttrValue {
         match *local_name {
             local_name!("size") => AttrValue::from_u32(value.into(), DEFAULT_SELECT_SIZE),
             _ => self

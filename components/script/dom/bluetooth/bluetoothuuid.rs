@@ -11,11 +11,11 @@ use crate::dom::bindings::codegen::Bindings::BluetoothUUIDBinding::BluetoothUUID
 use crate::dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use crate::dom::bindings::error::Error::Type;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::window::Window;
 
 #[expect(clippy::upper_case_acronyms)]
-pub(crate) type UUID = RootedDOMString;
+pub(crate) type UUID = RootedDomString;
 pub(crate) type BluetoothServiceUUID = StringOrUnsignedLong;
 pub(crate) type BluetoothCharacteristicUUID = StringOrUnsignedLong;
 pub(crate) type BluetoothDescriptorUUID = StringOrUnsignedLong;
@@ -632,7 +632,7 @@ fn resolve_uuid_name(
     name: StringOrUnsignedLong,
     assigned_numbers_table: &'static [(&'static str, u32)],
     prefix: &str,
-) -> Fallible<RootedDOMString> {
+) -> Fallible<RootedDomString> {
     match name {
         // Step 1.
         StringOrUnsignedLong::UnsignedLong(unsigned32) => Ok(canonical_uuid(unsigned32)),

@@ -17,7 +17,7 @@ use uuid::Uuid;
 use crate::dom::GlobalScope;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::blob::Blob;
@@ -130,7 +130,7 @@ pub(super) enum BroadcastChannelState {
     Managed(
         #[no_trace] BroadcastChannelRouterId,
         /// The map of channel-name to queue of channels, in order of creation.
-        HashMap<RootedDOMString, VecDeque<Dom<BroadcastChannel>>>,
+        HashMap<RootedDomString, VecDeque<Dom<BroadcastChannel>>>,
     ),
     /// This global is not managing any broadcast channels at this time.
     UnManaged,

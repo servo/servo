@@ -10,7 +10,7 @@ use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use crate::dom::bindings::codegen::Bindings::HTMLTableColElementBinding::HTMLTableColElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -116,7 +116,7 @@ impl VirtualMethods for HTMLTableColElement {
         }
     }
 
-    fn parse_plain_attribute(&self, local_name: &LocalName, value: RootedDOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &LocalName, value: RootedDomString) -> AttrValue {
         match *local_name {
             local_name!("span") => {
                 let mut attr = AttrValue::from_u32(value.into(), 1);

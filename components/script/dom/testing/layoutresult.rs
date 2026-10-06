@@ -4,7 +4,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::gc::MutableHandleValue;
-use script_bindings::domstring::RootedDOMString;
+use script_bindings::domstring::RootedDomString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::ServoTestUtilsBinding::LayoutResultMethods;
@@ -15,7 +15,7 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub(crate) struct LayoutResult {
     reflector_: Reflector,
-    phases: Vec<RootedDOMString>,
+    phases: Vec<RootedDomString>,
     rebuilt_fragment_count: u32,
     restyle_fragment_count: u32,
     only_descendants_changed_count: u32,
@@ -23,7 +23,7 @@ pub(crate) struct LayoutResult {
 
 impl LayoutResult {
     pub(crate) fn new_inherited(
-        phases: Vec<RootedDOMString>,
+        phases: Vec<RootedDomString>,
         rebuilt_fragment_count: u32,
         restyle_fragment_count: u32,
         only_descendants_changed_count: u32,
@@ -40,7 +40,7 @@ impl LayoutResult {
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        phases: Vec<RootedDOMString>,
+        phases: Vec<RootedDomString>,
         rebuilt_fragment_count: u32,
         restyle_fragment_count: u32,
         only_descendants_changed_count: u32,

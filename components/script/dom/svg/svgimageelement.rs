@@ -9,7 +9,7 @@ use style::attr::AttrValue;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::AttributeMutation;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -95,7 +95,7 @@ impl VirtualMethods for SVGImageElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDomString) -> AttrValue {
         match *name {
             local_name!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
             local_name!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),

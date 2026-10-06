@@ -29,7 +29,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::CSSFontFaceDescriptors;
@@ -203,19 +203,19 @@ pub(crate) enum CSSModificationAccess {
 macro_rules! css_properties(
     ( $([$getter:ident, $setter:ident, $id:expr],)* ) => (
         $(
-            fn $getter(&self) -> RootedDOMString {
+            fn $getter(&self) -> RootedDomString {
                 debug_assert!(
                     $id.enabled_for_all_content(),
                     "Someone forgot a #[Pref] annotation"
                 );
                 self.get_property_value($id)
             }
-            fn $setter(&self, cx: &mut JSContext, value: RootedDOMString) -> ErrorResult {
+            fn $setter(&self, cx: &mut JSContext, value: RootedDomString) -> ErrorResult {
                 debug_assert!(
                     $id.enabled_for_all_content(),
                     "Someone forgot a #[Pref] annotation"
                 );
-                self.set_property(cx, $id, value, RootedDOMString::new())
+                self.set_property(cx, $id, value, RootedDomString::new())
             }
         )*
     );
@@ -283,7 +283,7 @@ impl CSSStyleDeclaration {
         }
     }
 
-    fn get_computed_style(&self, property: PropertyId) -> RootedDOMString {
+    fn get_computed_style(&self, property: PropertyId) -> RootedDomString {
         match self.owner {
             CSSStyleOwner::CSSRule(..) => {
                 panic!("get_computed_style called on CSSStyleDeclaration with a CSSRule owner")
@@ -291,19 +291,19 @@ impl CSSStyleDeclaration {
             CSSStyleOwner::Element(ref el) => {
                 let node = el.upcast::<Node>();
                 if !node.is_connected() {
-                    return RootedDOMString::new();
+                    return RootedDomString::new();
                 }
                 let addr = node.to_trusted_node_address();
                 node.owner_window()
                     .resolved_style_query(addr, self.pseudo, property)
             },
-            CSSStyleOwner::Null => RootedDOMString::new(),
+            CSSStyleOwner::Null => RootedDomString::new(),
         }
     }
 
-    fn get_property_value(&self, id: PropertyId) -> RootedDOMString {
+    fn get_property_value(&self, id: PropertyId) -> RootedDomString {
         if matches!(self.owner, CSSStyleOwner::Null) {
-            return RootedDOMString::new();
+            return RootedDomString::new();
         }
 
         if self.readonly {
@@ -317,7 +317,7 @@ impl CSSStyleDeclaration {
             pdb.property_value_to_css(&id, &mut string).unwrap();
         });
 
-        RootedDOMString::from(string)
+        RootedDomString::from(string)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty>
@@ -325,8 +325,8 @@ impl CSSStyleDeclaration {
         &self,
         cx: &mut JSContext,
         id: PropertyId,
-        value: RootedDOMString,
-        priority: RootedDOMString,
+        value: RootedDomString,
+        priority: RootedDomString,
     ) -> ErrorResult {
         self.set_property_inner(cx, PotentiallyParsedPropertyId::Parsed(id), value, priority)
     }
@@ -339,8 +339,8 @@ impl CSSStyleDeclaration {
         &self,
         cx: &mut JSContext,
         id: PotentiallyParsedPropertyId,
-        value: RootedDOMString,
-        priority: RootedDOMString,
+        value: RootedDomString,
+        priority: RootedDomString,
     ) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
@@ -455,7 +455,7 @@ pub(crate) static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyL
 
 enum PotentiallyParsedPropertyId {
     Parsed(PropertyId),
-    NotParsed(RootedDOMString),
+    NotParsed(RootedDomString),
 }
 
 impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
@@ -474,45 +474,45 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item>
-    fn Item(&self, index: u32) -> RootedDOMString {
+    fn Item(&self, index: u32) -> RootedDomString {
         self.IndexedGetter(index).unwrap_or_default()
     }
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue>
-    fn GetPropertyValue(&self, property: RootedDOMString) -> RootedDOMString {
+    fn GetPropertyValue(&self, property: RootedDomString) -> RootedDomString {
         if let Some(css_font_face_descriptors) = self.downcast::<CSSFontFaceDescriptors>() {
             css_font_face_descriptors.get_property_value(&property.str())
         } else {
             let Ok(id) = PropertyId::parse_enabled_for_all_content(&property.str()) else {
-                return RootedDOMString::new();
+                return RootedDomString::new();
             };
             self.get_property_value(id)
         }
     }
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority>
-    fn GetPropertyPriority(&self, property: RootedDOMString) -> RootedDOMString {
+    fn GetPropertyPriority(&self, property: RootedDomString) -> RootedDomString {
         if self.is::<CSSFontFaceDescriptors>() {
             // Font face descriptors do not have priorities.
             // https://searchfox.org/firefox-main/rev/91c8ca3faa6ccbb72d65d89401fd31fd3313afc4/layout/style/CSSFontFaceRule.cpp#84-89
-            return RootedDOMString::new();
+            return RootedDomString::new();
         }
 
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
-            return RootedDOMString::new();
+            return RootedDomString::new();
         }
         let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
             Ok(id) => id,
-            Err(..) => return RootedDOMString::new(),
+            Err(..) => return RootedDomString::new(),
         };
 
         self.owner.with_block(|pdb| {
             if pdb.property_priority(&id).important() {
-                RootedDOMString::from_static("important")
+                RootedDomString::from_static("important")
             } else {
                 // Step 4
-                RootedDOMString::new()
+                RootedDomString::new()
             }
         })
     }
@@ -521,9 +521,9 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     fn SetProperty(
         &self,
         cx: &mut JSContext,
-        property: RootedDOMString,
-        value: RootedDOMString,
-        priority: RootedDOMString,
+        property: RootedDomString,
+        value: RootedDomString,
+        priority: RootedDomString,
     ) -> ErrorResult {
         self.set_property_inner(
             cx,
@@ -537,8 +537,8 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     fn RemoveProperty(
         &self,
         cx: &mut JSContext,
-        property: RootedDOMString,
-    ) -> Fallible<RootedDOMString> {
+        property: RootedDomString,
+    ) -> Fallible<RootedDomString> {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed(Some(
@@ -548,7 +548,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
         let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
             Ok(id) => id,
-            Err(..) => return Ok(RootedDOMString::new()),
+            Err(..) => return Ok(RootedDomString::new()),
         };
 
         let mut string = String::new();
@@ -558,7 +558,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         });
 
         // Step 6
-        Ok(RootedDOMString::from(string))
+        Ok(RootedDomString::from(string))
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-parentrule>
@@ -571,22 +571,22 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
-    fn CssFloat(&self) -> RootedDOMString {
+    fn CssFloat(&self) -> RootedDomString {
         self.get_property_value(PropertyId::NonCustom(LonghandId::Float.into()))
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
-    fn SetCssFloat(&self, cx: &mut JSContext, value: RootedDOMString) -> ErrorResult {
+    fn SetCssFloat(&self, cx: &mut JSContext, value: RootedDomString) -> ErrorResult {
         self.set_property(
             cx,
             PropertyId::NonCustom(LonghandId::Float.into()),
             value,
-            RootedDOMString::new(),
+            RootedDomString::new(),
         )
     }
 
     /// <https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface>
-    fn IndexedGetter(&self, index: u32) -> Option<RootedDOMString> {
+    fn IndexedGetter(&self, index: u32) -> Option<RootedDomString> {
         if matches!(self.owner, CSSStyleOwner::Null) {
             return None;
         }
@@ -594,29 +594,29 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
             // Readonly style declarations are used for getComputedStyle.
             // TODO: include custom properties whose computed value is not the guaranteed-invalid value.
             let longhand = ENABLED_LONGHAND_PROPERTIES.get(index as usize)?;
-            return Some(RootedDOMString::from(longhand.name()));
+            return Some(RootedDomString::from(longhand.name()));
         }
         self.owner.with_block(|pdb| {
             let declaration = pdb.declarations().get(index as usize)?;
-            Some(RootedDOMString::from(declaration.id().name()))
+            Some(RootedDomString::from(declaration.id().name()))
         })
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext>
-    fn CssText(&self) -> RootedDOMString {
+    fn CssText(&self) -> RootedDomString {
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
-            return RootedDOMString::new();
+            return RootedDomString::new();
         }
         self.owner.with_block(|pdb| {
             let mut serialization = String::new();
             pdb.to_css(&mut serialization).unwrap();
-            RootedDOMString::from(serialization)
+            RootedDomString::from(serialization)
         })
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext>
-    fn SetCssText(&self, cx: &mut JSContext, value: RootedDOMString) -> ErrorResult {
+    fn SetCssText(&self, cx: &mut JSContext, value: RootedDomString) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
             return Err(Error::NoModificationAllowed(Some(

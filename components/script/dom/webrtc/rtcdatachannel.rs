@@ -32,7 +32,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -81,7 +81,7 @@ pub(crate) struct RTCDataChannel {
     negotiated: bool,
     id: Option<u16>,
     ready_state: Cell<RTCDataChannelState>,
-    binary_type: DomRefCell<RootedDOMString>,
+    binary_type: DomRefCell<RootedDomString>,
     peer_connection: Dom<RTCPeerConnection>,
     droppable: DroppableRTCDataChannel,
 }
@@ -115,7 +115,7 @@ impl RTCDataChannel {
             negotiated: options.negotiated,
             id: options.id,
             ready_state: Cell::new(RTCDataChannelState::Connecting),
-            binary_type: DomRefCell::new(RootedDOMString::from_static("blob")),
+            binary_type: DomRefCell::new(RootedDomString::from_static("blob")),
             peer_connection: Dom::from_ref(peer_connection),
             droppable: DroppableRTCDataChannel::new(WeakRef::new(peer_connection), servo_media_id),
         }
@@ -187,7 +187,7 @@ impl RTCDataChannel {
             sentAlert: None,
         };
         let message = match error {
-            WebRtcError::Backend(message) => RootedDOMString::from(message),
+            WebRtcError::Backend(message) => RootedDomString::from(message),
         };
         let error = RTCError::new(cx, window, &init, message);
         let event = RTCErrorEvent::new(cx, window, atom!("error"), false, false, &error);
@@ -364,12 +364,12 @@ impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
     }
 
     /// <https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype>
-    fn BinaryType(&self) -> RootedDOMString {
+    fn BinaryType(&self) -> RootedDomString {
         self.binary_type.borrow().clone()
     }
 
     /// <https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype>
-    fn SetBinaryType(&self, value: RootedDOMString) -> Fallible<()> {
+    fn SetBinaryType(&self, value: RootedDomString) -> Fallible<()> {
         if value != "blob" || value != "arraybuffer" {
             return Err(Error::Syntax(None));
         }

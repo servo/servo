@@ -8,7 +8,7 @@ use js::context::JSContext;
 use rand::TryRng;
 use rand::rngs::SysRng;
 use script_bindings::codegen::GenericBindings::CryptoKeyBinding::CryptoKeyMethods;
-use script_bindings::domstring::RootedDOMString;
+use script_bindings::domstring::RootedDomString;
 use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
@@ -373,7 +373,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let mut jwk = JsonWebKey::default();
 
             // Step 4.2. Set the kty attribute of jwk to the string "oct".
-            jwk.kty = Some(RootedDOMString::from_static("oct"));
+            jwk.kty = Some(RootedDomString::from_static("oct"));
 
             // Step 4.3. Set the k attribute of jwk to be a string containing data, encoded according
             // to Section 6.4 of JSON Web Algorithms [JWA].
@@ -416,7 +416,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     )));
                 },
             };
-            jwk.alg = Some(RootedDOMString::from(hash_algorithm));
+            jwk.alg = Some(RootedDomString::from(hash_algorithm));
 
             // Step 4.7. Set the key_ops attribute of jwk to the usages attribute of key.
             jwk.set_key_ops(key.usages());

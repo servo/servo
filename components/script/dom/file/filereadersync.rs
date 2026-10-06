@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::FileReaderSyncMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::blob::Blob;
 use crate::dom::filereader::FileReaderSharedFunctionality;
 use crate::dom::globalscope::GlobalScope;
@@ -58,7 +58,7 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
     }
 
     /// <https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection>
-    fn ReadAsBinaryString(&self, blob: &Blob) -> Fallible<RootedDOMString> {
+    fn ReadAsBinaryString(&self, blob: &Blob) -> Fallible<RootedDomString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
@@ -69,7 +69,7 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
     }
 
     /// <https://w3c.github.io/FileAPI/#readAsTextSync>
-    fn ReadAsText(&self, blob: &Blob, label: Option<RootedDOMString>) -> Fallible<RootedDOMString> {
+    fn ReadAsText(&self, blob: &Blob, label: Option<RootedDomString>) -> Fallible<RootedDomString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
@@ -85,7 +85,7 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
     }
 
     /// <https://w3c.github.io/FileAPI/#readAsDataURLSync-section>
-    fn ReadAsDataURL(&self, blob: &Blob) -> Fallible<RootedDOMString> {
+    fn ReadAsDataURL(&self, blob: &Blob) -> Fallible<RootedDomString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 

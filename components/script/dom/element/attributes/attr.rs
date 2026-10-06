@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
@@ -95,19 +95,19 @@ impl Attr {
 
 impl AttrMethods<crate::DomTypeHolder> for Attr {
     /// <https://dom.spec.whatwg.org/#dom-attr-localname>
-    fn LocalName(&self) -> RootedDOMString {
+    fn LocalName(&self) -> RootedDomString {
         // FIXME(ajeffrey): convert directly from LocalName to DOMString
-        RootedDOMString::from(&**self.local_name())
+        RootedDomString::from(&**self.local_name())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-value>
-    fn Value(&self) -> RootedDOMString {
+    fn Value(&self) -> RootedDomString {
         // FIXME(ajeffrey): convert directly from AttrValue to DOMString
-        RootedDOMString::from(&**self.value())
+        RootedDomString::from(&**self.value())
     }
 
     /// <https://dom.spec.whatwg.org/#set-an-existing-attribute-value>
-    fn SetValue(&self, cx: &mut JSContext, value: RootedDOMString) -> Fallible<()> {
+    fn SetValue(&self, cx: &mut JSContext, value: RootedDomString) -> Fallible<()> {
         // Step 2. Otherwise:
         if let Some(owner) = self.owner() {
             // Step 2.1. Let element be attribute’s element.
@@ -139,23 +139,23 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-name>
-    fn Name(&self) -> RootedDOMString {
+    fn Name(&self) -> RootedDomString {
         // FIXME(ajeffrey): convert directly from LocalName to DOMString
-        RootedDOMString::from(&**self.name())
+        RootedDomString::from(&**self.name())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-namespaceuri>
-    fn GetNamespaceURI(&self) -> Option<RootedDOMString> {
+    fn GetNamespaceURI(&self) -> Option<RootedDomString> {
         match *self.namespace() {
             ns!() => None,
-            ref url => Some(RootedDOMString::from(&**url)),
+            ref url => Some(RootedDomString::from(&**url)),
         }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-prefix>
-    fn GetPrefix(&self) -> Option<RootedDOMString> {
+    fn GetPrefix(&self) -> Option<RootedDomString> {
         // FIXME(ajeffrey): convert directly from LocalName to DOMString
-        self.prefix().map(|p| RootedDOMString::from(&**p))
+        self.prefix().map(|p| RootedDomString::from(&**p))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-ownerelement>
@@ -183,7 +183,7 @@ impl Attr {
         self.value.borrow()
     }
 
-    fn set_value(&self, value: RootedDOMString) {
+    fn set_value(&self, value: RootedDomString) {
         *self.value.borrow_mut() = AttrValue::String(value.into());
     }
 
@@ -214,12 +214,12 @@ impl Attr {
         self.owner.get()
     }
 
-    pub(crate) fn qualified_name(&self) -> RootedDOMString {
+    pub(crate) fn qualified_name(&self) -> RootedDomString {
         match self.prefix() {
             Some(ref prefix) => {
-                RootedDOMString::from(format!("{}:{}", prefix, &**self.local_name()))
+                RootedDomString::from(format!("{}:{}", prefix, &**self.local_name()))
             },
-            None => RootedDOMString::from(&**self.local_name()),
+            None => RootedDomString::from(&**self.local_name()),
         }
     }
 }

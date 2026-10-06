@@ -39,7 +39,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{RootedDOMString, USVString, is_token};
+use crate::dom::bindings::str::{RootedDomString, USVString, is_token};
 use crate::dom::blob::Blob;
 use crate::dom::closeevent::CloseEvent;
 use crate::dom::csp::{GlobalCspReporting, Violation};
@@ -203,7 +203,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        url: RootedDOMString,
+        url: RootedDomString,
         protocols: Option<StringOrStringSequence>,
     ) -> Fallible<DomRoot<WebSocket>> {
         // Step 1. Let baseURL be this's relevant settings object's API base URL.
@@ -354,8 +354,8 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
     event_handler!(message, GetOnmessage, SetOnmessage);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket-url>
-    fn Url(&self) -> RootedDOMString {
-        RootedDOMString::from(self.url.as_str())
+    fn Url(&self) -> RootedDomString {
+        RootedDomString::from(self.url.as_str())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket-readystate>
@@ -379,8 +379,8 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket-protocol>
-    fn Protocol(&self) -> RootedDOMString {
-        RootedDOMString::from(self.protocol.borrow().clone())
+    fn Protocol(&self) -> RootedDomString {
+        RootedDomString::from(self.protocol.borrow().clone())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket-send>
@@ -581,7 +581,7 @@ impl TaskOnce for CloseTask {
         // Step 3.
         let clean_close = !self.failed;
         let code = self.code.unwrap_or(close_code::NO_STATUS);
-        let reason = RootedDOMString::from(self.reason.unwrap_or_default());
+        let reason = RootedDomString::from(self.reason.unwrap_or_default());
         let close_event = CloseEvent::new(
             cx,
             &ws.global(),

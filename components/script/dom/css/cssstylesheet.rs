@@ -34,7 +34,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
@@ -87,9 +87,9 @@ pub(crate) struct CSSStyleSheet {
 impl CSSStyleSheet {
     fn new_inherited(
         owner: Option<&Element>,
-        type_: RootedDOMString,
-        href: Option<RootedDOMString>,
-        title: Option<RootedDOMString>,
+        type_: RootedDomString,
+        href: Option<RootedDomString>,
+        title: Option<RootedDomString>,
         stylesheet: Arc<StyleStyleSheet>,
         constructor_document: Option<&Document>,
     ) -> CSSStyleSheet {
@@ -112,9 +112,9 @@ impl CSSStyleSheet {
         cx: &mut JSContext,
         window: &Window,
         owner: Option<&Element>,
-        type_: RootedDOMString,
-        href: Option<RootedDOMString>,
-        title: Option<RootedDOMString>,
+        type_: RootedDomString,
+        href: Option<RootedDomString>,
+        title: Option<RootedDomString>,
         stylesheet: Arc<StyleStyleSheet>,
         constructor_document: Option<&Document>,
     ) -> DomRoot<CSSStyleSheet> {
@@ -138,9 +138,9 @@ impl CSSStyleSheet {
         window: &Window,
         proto: Option<HandleObject>,
         owner: Option<&Element>,
-        type_: RootedDOMString,
-        href: Option<RootedDOMString>,
-        title: Option<RootedDOMString>,
+        type_: RootedDomString,
+        href: Option<RootedDomString>,
+        title: Option<RootedDomString>,
         stylesheet: Arc<StyleStyleSheet>,
         constructor_document: Option<&Document>,
     ) -> DomRoot<CSSStyleSheet> {
@@ -178,11 +178,11 @@ impl CSSStyleSheet {
         self.style_stylesheet.borrow().disabled()
     }
 
-    pub(crate) fn href(&self) -> Option<RootedDOMString> {
+    pub(crate) fn href(&self) -> Option<RootedDomString> {
         self.upcast::<StyleSheet>().GetHref()
     }
 
-    pub(crate) fn title(&self) -> RootedDOMString {
+    pub(crate) fn title(&self) -> RootedDomString {
         self.upcast::<StyleSheet>().GetTitle().unwrap_or_default()
     }
 
@@ -389,7 +389,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             window,
             proto,
             None, // owner
-            RootedDOMString::from_static("text/css"),
+            RootedDomString::from_static("text/css"),
             None, // href
             None, // title
             stylesheet,
@@ -419,7 +419,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule>
-    fn InsertRule(&self, cx: &mut JSContext, rule: RootedDOMString, index: u32) -> Fallible<u32> {
+    fn InsertRule(&self, cx: &mut JSContext, rule: RootedDomString, index: u32) -> Fallible<u32> {
         // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
             return Err(Error::Security(Some(
@@ -469,8 +469,8 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     fn AddRule(
         &self,
         cx: &mut js::context::JSContext,
-        selector: RootedDOMString,
-        block: RootedDOMString,
+        selector: RootedDomString,
+        block: RootedDomString,
         optional_index: Option<u32>,
     ) -> Fallible<i32> {
         // > 1. Let *rule* be an empty string.

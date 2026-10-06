@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeS
 use crate::dom::bindings::codegen::Bindings::PerformancePaintTimingBinding::PerformancePaintTimingMethods;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
@@ -31,11 +31,11 @@ impl PerformancePaintTiming {
         paint_timing_info: PaintTimingInfo,
     ) -> PerformancePaintTiming {
         let name = match metric_type {
-            ProgressiveWebMetricType::FirstPaint => RootedDOMString::from_static("first-paint"),
+            ProgressiveWebMetricType::FirstPaint => RootedDomString::from_static("first-paint"),
             ProgressiveWebMetricType::FirstContentfulPaint => {
-                RootedDOMString::from_static("first-contentful-paint")
+                RootedDomString::from_static("first-contentful-paint")
             },
-            _ => RootedDOMString::new(),
+            _ => RootedDomString::new(),
         };
         PerformancePaintTiming {
             entry: PerformanceEntry::new_inherited(

@@ -11,7 +11,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::TextTrackCueListBinding::TextTrackCueListMethods;
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom, UnrootedDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::window::Window;
@@ -139,7 +139,7 @@ impl TextTrackCueListMethods<crate::DomTypeHolder> for TextTrackCueList {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcuelist-getcuebyid>
-    fn GetCueById(&self, id: RootedDOMString) -> Option<DomRoot<TextTrackCue>> {
+    fn GetCueById(&self, id: RootedDomString) -> Option<DomRoot<TextTrackCue>> {
         if id.is_empty() {
             None
         } else {

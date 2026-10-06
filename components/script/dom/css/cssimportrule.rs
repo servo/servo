@@ -17,7 +17,7 @@ use super::cssrule::{CSSRule, SpecificCSSRule};
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSImportRuleBinding::CSSImportRuleMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
@@ -69,7 +69,7 @@ impl SpecificCSSRule for CSSImportRule {
         CssRuleType::Import
     }
 
-    fn get_css(&self) -> RootedDOMString {
+    fn get_css(&self) -> RootedDomString {
         let guard = self.css_rule.shared_lock().read();
         self.import_rule
             .borrow()
@@ -81,11 +81,11 @@ impl SpecificCSSRule for CSSImportRule {
 
 impl CSSImportRuleMethods<crate::DomTypeHolder> for CSSImportRule {
     /// <https://drafts.csswg.org/cssom-1/#dom-cssimportrule-layername>
-    fn GetLayerName(&self) -> Option<RootedDOMString> {
+    fn GetLayerName(&self) -> Option<RootedDomString> {
         let guard = self.css_rule.shared_lock().read();
         match &self.import_rule.borrow().read_with(&guard).layer {
             ImportLayer::None => None,
-            ImportLayer::Anonymous => Some(RootedDOMString::new()),
+            ImportLayer::Anonymous => Some(RootedDomString::new()),
             ImportLayer::Named(name) => Some(name.to_css_string().into()),
         }
     }

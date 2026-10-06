@@ -4,7 +4,7 @@
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use script_bindings::domstring::RootedDOMString;
+use script_bindings::domstring::RootedDomString;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::event::Event;
@@ -35,7 +35,7 @@ impl SpecificInputType for CheckboxInputType {
     fn suffers_from_being_missing(
         &self,
         input: &HTMLInputElement,
-        _value: &RootedDOMString,
+        _value: &RootedDomString,
     ) -> bool {
         input.Required() && !input.Checked()
     }

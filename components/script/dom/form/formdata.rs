@@ -17,7 +17,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
@@ -141,9 +141,9 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         self.data.borrow_mut().push((
             NoTrace(LocalName::from(name.0.clone())),
             FormDatumUnrooted {
-                ty: RootedDOMString::from_static("string"),
-                name: RootedDOMString::from(name.0),
-                value: FormDatumValueUnrooted::String(RootedDOMString::from(str_value.0)),
+                ty: RootedDomString::from_static("string"),
+                name: RootedDomString::from(name.0),
+                value: FormDatumValueUnrooted::String(RootedDomString::from(str_value.0)),
             },
         ));
     }
@@ -161,8 +161,8 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         self.data.borrow_mut().push((
             NoTrace(LocalName::from(name.0.clone())),
             FormDatumUnrooted {
-                ty: RootedDOMString::from_static("file"),
-                name: RootedDOMString::from(name.0),
+                ty: RootedDomString::from_static("file"),
+                name: RootedDomString::from(name.0),
                 value: FormDatumValueUnrooted::File(file.as_traced()),
             },
         ));
@@ -227,9 +227,9 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         data.push((
             NoTrace(local_name),
             FormDatumUnrooted {
-                ty: RootedDOMString::from_static("string"),
-                name: RootedDOMString::from(name.0),
-                value: FormDatumValueUnrooted::String(RootedDOMString::from(str_value.0)),
+                ty: RootedDomString::from_static("string"),
+                name: RootedDomString::from(name.0),
+                value: FormDatumValueUnrooted::String(RootedDomString::from(str_value.0)),
             },
         ));
     }
@@ -246,8 +246,8 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         data.push((
             NoTrace(LocalName::from(name.0.clone())),
             FormDatumUnrooted {
-                ty: RootedDOMString::from_static("file"),
-                name: RootedDOMString::from(name.0),
+                ty: RootedDomString::from_static("file"),
+                name: RootedDomString::from(name.0),
                 value: FormDatumValueUnrooted::File(file.as_traced()),
             },
         ));
@@ -264,9 +264,9 @@ impl FormData {
     ) -> DomRoot<File> {
         // Steps 3-4
         let name = match opt_filename {
-            Some(filename) => RootedDOMString::from(filename.0),
+            Some(filename) => RootedDomString::from(filename.0),
             None => match blob.downcast::<File>() {
-                None => RootedDOMString::from_static("blob"),
+                None => RootedDomString::from_static("blob"),
                 // If it is already a file and no filename was given,
                 // then neither step 3 nor step 4 happens, so instead of
                 // creating a new File object we use the existing one.

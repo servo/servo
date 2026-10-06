@@ -62,7 +62,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
 use crate::dom::csp::parse_csp_list_from_metadata;
@@ -169,7 +169,7 @@ pub(crate) struct ServoParser {
 
 pub(crate) struct ElementAttribute {
     name: QualName,
-    value: RootedDOMString,
+    value: RootedDomString,
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -179,7 +179,7 @@ pub(crate) enum ParsingAlgorithm {
 }
 
 impl ElementAttribute {
-    pub(crate) fn new(name: QualName, value: RootedDOMString) -> ElementAttribute {
+    pub(crate) fn new(name: QualName, value: RootedDomString) -> ElementAttribute {
         ElementAttribute { name, value }
     }
 }
@@ -189,7 +189,7 @@ impl ServoParser {
     pub(crate) fn parse_html_document(
         cx: &mut JSContext,
         document: &Document,
-        input: Option<RootedDOMString>,
+        input: Option<RootedDomString>,
         url: ServoUrl,
         encoding_hint_from_content_type: Option<&'static Encoding>,
         encoding_of_container_document: Option<&'static Encoding>,
@@ -234,7 +234,7 @@ impl ServoParser {
     pub(crate) fn parse_html_fragment<'el>(
         cx: &mut JSContext,
         context: &'el Element,
-        input: RootedDOMString,
+        input: RootedDomString,
         allow_declarative_shadow_roots: bool,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<'el> {
         let context_node = context.upcast::<Node>();
@@ -339,7 +339,7 @@ impl ServoParser {
     pub(crate) fn parse_xml_document(
         cx: &mut JSContext,
         document: &Document,
-        input: Option<RootedDOMString>,
+        input: Option<RootedDomString>,
         url: ServoUrl,
         encoding_hint_from_content_type: Option<&'static Encoding>,
     ) {
@@ -413,7 +413,7 @@ impl ServoParser {
     }
 
     /// Steps 6-8 of <https://html.spec.whatwg.org/multipage/#document.write()>
-    pub(crate) fn write(&self, cx: &mut JSContext, text: RootedDOMString) {
+    pub(crate) fn write(&self, cx: &mut JSContext, text: RootedDomString) {
         assert!(self.can_write());
 
         if self.document.has_pending_parsing_blocking_script() {
@@ -1846,7 +1846,7 @@ impl TreeSink for Sink {
         let attrs = attrs
             .into_iter()
             .map(|attr| {
-                ElementAttribute::new(attr.name, RootedDOMString::from(String::from(attr.value)))
+                ElementAttribute::new(attr.name, RootedDomString::from(String::from(attr.value)))
             })
             .collect();
         let parsing_algorithm = if flags.template {
@@ -1874,7 +1874,7 @@ impl TreeSink for Sink {
         let cx = &mut cx;
         let comment = Comment::new(
             cx,
-            RootedDOMString::from(String::from(text)),
+            RootedDomString::from(String::from(text)),
             &self.document,
             None,
         );
@@ -1889,8 +1889,8 @@ impl TreeSink for Sink {
         let doc = &*self.document;
         let pi = ProcessingInstruction::new(
             cx,
-            RootedDOMString::from(String::from(target)),
-            RootedDOMString::from(String::from(data)),
+            RootedDomString::from(String::from(target)),
+            RootedDomString::from(String::from(data)),
             doc,
         );
         Dom::from_ref(pi.upcast())
@@ -2009,9 +2009,9 @@ impl TreeSink for Sink {
         let doc = &*self.document;
         let doctype = DocumentType::new(
             cx,
-            RootedDOMString::from(String::from(name)),
-            Some(RootedDOMString::from(String::from(public_id))),
-            Some(RootedDOMString::from(String::from(system_id))),
+            RootedDomString::from(String::from(name)),
+            Some(RootedDomString::from(String::from(public_id))),
+            Some(RootedDomString::from(String::from(system_id))),
             doc,
         );
         doc.upcast::<Node>()
@@ -2032,7 +2032,7 @@ impl TreeSink for Sink {
             elem.set_attribute_from_parser(
                 cx,
                 attr.name,
-                RootedDOMString::from(String::from(attr.value)),
+                RootedDomString::from(String::from(attr.value)),
             );
         }
     }

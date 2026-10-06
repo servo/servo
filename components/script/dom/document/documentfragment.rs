@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, ToLayoutOptional};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::document::tree_ordered_index_map::TreeOrderedIndexMap;
 use crate::dom::element::Element;
@@ -116,7 +116,7 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid>
-    fn GetElementById(&self, cx: &JSContext, id: RootedDOMString) -> Option<DomRoot<Element>> {
+    fn GetElementById(&self, cx: &JSContext, id: RootedDomString) -> Option<DomRoot<Element>> {
         self.id_map.get(cx, self.upcast(), &Atom::from(id))
     }
 
@@ -161,7 +161,7 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     fn QuerySelector(
         &self,
         cx: &mut JSContext,
-        selectors: RootedDOMString,
+        selectors: RootedDomString,
     ) -> Fallible<Option<DomRoot<Element>>> {
         self.upcast::<Node>().query_selector(cx.no_gc(), selectors)
     }
@@ -170,7 +170,7 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     fn QuerySelectorAll(
         &self,
         cx: &mut JSContext,
-        selectors: RootedDOMString,
+        selectors: RootedDomString,
     ) -> Fallible<DomRoot<NodeList>> {
         self.upcast::<Node>().query_selector_all(cx, selectors)
     }

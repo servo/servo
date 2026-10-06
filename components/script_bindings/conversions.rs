@@ -32,7 +32,7 @@ use crate::inheritance::Castable;
 use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
 use crate::root::DomRoot;
-use crate::str::{ByteString, RootedDOMString, USVString};
+use crate::str::{ByteString, RootedDomString, USVString};
 use crate::trace::RootedTraceableBox;
 use crate::utils::{DOMClass, DOMJSClass};
 
@@ -70,18 +70,18 @@ pub enum StringificationBehavior {
 }
 
 // https://heycam.github.io/webidl/#es-DOMString
-impl FromJSValConvertible for RootedDOMString {
+impl FromJSValConvertible for RootedDomString {
     type Config = StringificationBehavior;
 
     fn from_jsval(
         cx: &mut JSContext,
         value: HandleValue,
         null_behavior: StringificationBehavior,
-    ) -> Result<ConversionResult<RootedDOMString>, ()> {
+    ) -> Result<ConversionResult<RootedDomString>, ()> {
         if null_behavior == StringificationBehavior::Empty && value.get().is_null() {
-            Ok(ConversionResult::Success(RootedDOMString::new()))
+            Ok(ConversionResult::Success(RootedDomString::new()))
         } else {
-            match RootedDOMString::from_js_string(cx, value) {
+            match RootedDomString::from_js_string(cx, value) {
                 Ok(domstring) => Ok(ConversionResult::Success(domstring)),
                 Err(_) => Err(()),
             }
@@ -380,7 +380,7 @@ where
 /// integer.
 ///
 /// Handling of invalid UTF-16 in strings depends on the relevant option.
-pub fn jsid_to_string(cx: &js::context::JSContext, id: HandleId) -> Option<RootedDOMString> {
+pub fn jsid_to_string(cx: &js::context::JSContext, id: HandleId) -> Option<RootedDomString> {
     let id_raw = *id;
     if id_raw.is_string() {
         let jsstr = ptr::NonNull::new(id_raw.to_string()).unwrap();

@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::TrustedScriptBinding::TrustedScript
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::csp::CspReporting;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedtypes::trustedtypepolicy::TrustedType;
@@ -25,11 +25,11 @@ use crate::dom::trustedtypes::trustedtypepolicyfactory::{
 pub struct TrustedScript {
     reflector_: Reflector,
 
-    data: RootedDOMString,
+    data: RootedDomString,
 }
 
 impl TrustedScript {
-    fn new_inherited(data: RootedDOMString) -> Self {
+    fn new_inherited(data: RootedDomString) -> Self {
         Self {
             reflector_: Reflector::new(),
             data,
@@ -38,7 +38,7 @@ impl TrustedScript {
 
     pub(crate) fn new(
         cx: &mut JSContext,
-        data: RootedDOMString,
+        data: RootedDomString,
         global: &GlobalScope,
     ) -> DomRoot<Self> {
         reflect_dom_object(cx, Box::new(Self::new_inherited(data)), global)
@@ -49,7 +49,7 @@ impl TrustedScript {
         global: &GlobalScope,
         value: TrustedScriptOrString,
         sink: &str,
-    ) -> Fallible<RootedDOMString> {
+    ) -> Fallible<RootedDomString> {
         match value {
             TrustedScriptOrString::String(value) => {
                 TrustedTypePolicyFactory::get_trusted_type_compliant_string(
@@ -66,7 +66,7 @@ impl TrustedScript {
         }
     }
 
-    pub(crate) fn data(&self) -> &RootedDOMString {
+    pub(crate) fn data(&self) -> &RootedDomString {
         &self.data
     }
 
@@ -75,10 +75,10 @@ impl TrustedScript {
     pub(crate) fn can_compile_string_with_trusted_type(
         cx: &mut JSContext,
         global: &GlobalScope,
-        code_string: RootedDOMString,
+        code_string: RootedDomString,
         compilation_type: CompilationType,
-        parameter_strings: Vec<RootedDOMString>,
-        body_string: RootedDOMString,
+        parameter_strings: Vec<RootedDomString>,
+        body_string: RootedDomString,
         parameter_args: Vec<TrustedScriptOrString>,
         body_arg: HandleValue,
     ) -> bool {
@@ -167,12 +167,12 @@ impl fmt::Display for TrustedScript {
 
 impl TrustedScriptMethods<crate::DomTypeHolder> for TrustedScript {
     /// <https://www.w3.org/TR/trusted-types/#trustedscript-stringification-behavior>
-    fn Stringifier(&self) -> RootedDOMString {
+    fn Stringifier(&self) -> RootedDomString {
         self.data.clone()
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedscript-tojson>
-    fn ToJSON(&self) -> RootedDOMString {
+    fn ToJSON(&self) -> RootedDomString {
         self.data.clone()
     }
 }

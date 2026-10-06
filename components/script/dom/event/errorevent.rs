@@ -20,15 +20,15 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{AsHandleValue, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub(crate) struct ErrorEvent {
     event: Event,
-    message: DomRefCell<RootedDOMString>,
-    filename: DomRefCell<RootedDOMString>,
+    message: DomRefCell<RootedDomString>,
+    filename: DomRefCell<RootedDomString>,
     lineno: Cell<u32>,
     colno: Cell<u32>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
@@ -39,8 +39,8 @@ impl ErrorEvent {
     fn new_inherited() -> ErrorEvent {
         ErrorEvent {
             event: Event::new_inherited(),
-            message: DomRefCell::new(RootedDOMString::new()),
-            filename: DomRefCell::new(RootedDOMString::new()),
+            message: DomRefCell::new(RootedDomString::new()),
+            filename: DomRefCell::new(RootedDomString::new()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
             error: Heap::default(),
@@ -62,8 +62,8 @@ impl ErrorEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        message: RootedDOMString,
-        filename: RootedDOMString,
+        message: RootedDomString,
+        filename: RootedDomString,
         lineno: u32,
         colno: u32,
         error: HandleValue,
@@ -81,8 +81,8 @@ impl ErrorEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        message: RootedDOMString,
-        filename: RootedDOMString,
+        message: RootedDomString,
+        filename: RootedDomString,
         lineno: u32,
         colno: u32,
         error: HandleValue,
@@ -107,17 +107,17 @@ impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        type_: RootedDOMString,
+        type_: RootedDomString,
         init: &ErrorEventInit,
     ) -> Fallible<DomRoot<ErrorEvent>> {
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
-            None => RootedDOMString::new(),
+            None => RootedDomString::new(),
         };
 
         let file_name = match init.filename.as_ref() {
             Some(filename) => filename.clone(),
-            None => RootedDOMString::new(),
+            None => RootedDomString::new(),
         };
 
         let line_num = init.lineno.unwrap_or(0);
@@ -156,12 +156,12 @@ impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-errorevent-message>
-    fn Message(&self) -> RootedDOMString {
+    fn Message(&self) -> RootedDomString {
         self.message.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-errorevent-filename>
-    fn Filename(&self) -> RootedDOMString {
+    fn Filename(&self) -> RootedDomString {
         self.filename.borrow().clone()
     }
 

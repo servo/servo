@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
@@ -28,7 +28,7 @@ pub(crate) struct Text {
 }
 
 impl Text {
-    pub(crate) fn new_inherited(text: RootedDOMString, document: &Document) -> Text {
+    pub(crate) fn new_inherited(text: RootedDomString, document: &Document) -> Text {
         Text {
             characterdata: CharacterData::new_inherited(text, document),
         }
@@ -36,7 +36,7 @@ impl Text {
 
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
-        text: RootedDOMString,
+        text: RootedDomString,
         document: &Document,
     ) -> DomRoot<Text> {
         Self::new_with_proto(cx, text, document, None)
@@ -44,7 +44,7 @@ impl Text {
 
     fn new_with_proto(
         cx: &mut js::context::JSContext,
-        text: RootedDOMString,
+        text: RootedDomString,
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<Text> {
@@ -63,7 +63,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        text: RootedDOMString,
+        text: RootedDomString,
     ) -> Fallible<DomRoot<Text>> {
         let document = window.Document();
         Ok(Text::new_with_proto(cx, text, &document, proto))
@@ -110,7 +110,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-text-wholetext>
-    fn WholeText(&self, cx: &JSContext) -> RootedDOMString {
+    fn WholeText(&self, cx: &JSContext) -> RootedDomString {
         let first = self
             .upcast::<Node>()
             .inclusively_preceding_siblings_unrooted(cx.no_gc())
@@ -125,7 +125,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
             let cdata = node.downcast::<CharacterData>().unwrap();
             text.push_str(&cdata.data());
         }
-        RootedDOMString::from(text)
+        RootedDomString::from(text)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-slotable-assignedslot>

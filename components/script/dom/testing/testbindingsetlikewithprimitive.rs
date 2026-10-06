@@ -15,7 +15,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::codegen::Bindings::TestBindingSetlikeWithPrimitiveBinding::TestBindingSetlikeWithPrimitiveMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::setlike;
 
@@ -24,7 +24,7 @@ use crate::setlike;
 pub(crate) struct TestBindingSetlikeWithPrimitive {
     reflector: Reflector,
     #[custom_trace]
-    internal: DomRefCell<IndexSet<RootedDOMString>>,
+    internal: DomRefCell<IndexSet<RootedDomString>>,
 }
 
 impl TestBindingSetlikeWithPrimitive {
@@ -62,7 +62,7 @@ impl TestBindingSetlikeWithPrimitiveMethods<crate::DomTypeHolder>
 }
 
 impl Setlike for TestBindingSetlikeWithPrimitive {
-    type Key = RootedDOMString;
+    type Key = RootedDomString;
 
     setlike!(self, internal);
 }

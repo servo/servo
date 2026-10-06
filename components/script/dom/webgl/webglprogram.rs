@@ -22,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGL
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::webgl::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
@@ -425,7 +425,7 @@ impl WebGLProgram {
     pub(crate) fn bind_attrib_location(
         &self,
         index: u32,
-        name: RootedDOMString,
+        name: RootedDomString,
     ) -> WebGLResult<()> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
@@ -490,7 +490,7 @@ impl WebGLProgram {
     }
 
     /// glGetAttribLocation
-    pub(crate) fn get_attrib_location(&self, name: RootedDOMString) -> WebGLResult<i32> {
+    pub(crate) fn get_attrib_location(&self, name: RootedDomString) -> WebGLResult<i32> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -513,7 +513,7 @@ impl WebGLProgram {
     }
 
     /// glGetFragDataLocation
-    pub(crate) fn get_frag_data_location(&self, name: RootedDOMString) -> WebGLResult<i32> {
+    pub(crate) fn get_frag_data_location(&self, name: RootedDomString) -> WebGLResult<i32> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -539,7 +539,7 @@ impl WebGLProgram {
     pub(crate) fn get_uniform_location(
         &self,
         cx: &mut JSContext,
-        name: RootedDOMString,
+        name: RootedDomString,
     ) -> WebGLResult<Option<DomRoot<WebGLUniformLocation>>> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
@@ -594,7 +594,7 @@ impl WebGLProgram {
         )))
     }
 
-    pub(crate) fn get_uniform_block_index(&self, name: RootedDOMString) -> WebGLResult<u32> {
+    pub(crate) fn get_uniform_block_index(&self, name: RootedDomString) -> WebGLResult<u32> {
         if !self.link_called.get() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -613,7 +613,7 @@ impl WebGLProgram {
         Ok(receiver.recv().unwrap())
     }
 
-    pub(crate) fn get_uniform_indices(&self, names: Vec<RootedDOMString>) -> WebGLResult<Vec<u32>> {
+    pub(crate) fn get_uniform_indices(&self, names: Vec<RootedDomString>) -> WebGLResult<Vec<u32>> {
         if !self.link_called.get() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -801,7 +801,7 @@ impl WebGLProgram {
     }
 }
 
-fn validate_glsl_name(name: &RootedDOMString) -> WebGLResult<bool> {
+fn validate_glsl_name(name: &RootedDomString) -> WebGLResult<bool> {
     if name.is_empty() {
         return Ok(false);
     }
@@ -857,7 +857,7 @@ fn validate_glsl_char(c: char) -> WebGLResult<()> {
     }
 }
 
-fn parse_uniform_name(name: &RootedDOMString) -> Option<(String, Option<i32>)> {
+fn parse_uniform_name(name: &RootedDomString) -> Option<(String, Option<i32>)> {
     let name = name.str();
     if !name.ends_with(']') {
         return Some((String::from(name), None));

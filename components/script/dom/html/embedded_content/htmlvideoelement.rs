@@ -34,7 +34,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -458,7 +458,7 @@ impl VirtualMethods for HTMLVideoElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDomString) -> AttrValue {
         match name {
             &local_name!("width") | &local_name!("height") => {
                 AttrValue::from_dimension(value.into())

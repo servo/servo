@@ -35,7 +35,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{AsHandleValue, Dom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::csp::CspReporting;
 use crate::dom::document::RefreshRedirectDue;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
@@ -58,7 +58,7 @@ type CompletionStep = Box<dyn FnOnce(&mut JSContext, &GlobalScope) + 'static>;
 
 /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
 /// OrderingIdentifier per spec ("orderingIdentifier")
-type OrderingIdentifier = RootedDOMString;
+type OrderingIdentifier = RootedDomString;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct OrderingEntry {
@@ -211,7 +211,7 @@ pub(crate) enum OneshotTimerCallback {
         /// Step 1. timerKey
         timer_key: i32,
         /// Step 4. orderingIdentifier
-        ordering_id: RootedDOMString,
+        ordering_id: RootedDomString,
         /// Spec: milliseconds (the algorithm input)
         milliseconds: u64,
         /// Perform completionSteps.
@@ -309,7 +309,7 @@ impl OneshotTimers {
     /// Helper for Step 4.2: maintain per-ordering sorted queue by (milliseconds, startSeq, handle).
     fn runsteps_enqueue_sorted(
         &self,
-        ordering_id: &RootedDOMString,
+        ordering_id: &RootedDomString,
         handle: OneshotTimerHandle,
         milliseconds: u64,
     ) {
@@ -746,7 +746,7 @@ pub(crate) enum TimerCallback {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 enum InternalTimerCallback {
-    StringTimerCallback(RootedDOMString, InitiatingScriptFetchInfo),
+    StringTimerCallback(RootedDomString, InitiatingScriptFetchInfo),
     FunctionTimerCallback(
         TracedCallback<Function>,
         #[ignore_malloc_size_of = "mozjs"] Rc<Box<[Heap<JSVal>]>>,
@@ -754,7 +754,7 @@ enum InternalTimerCallback {
 }
 
 pub(crate) enum RootedInternalTimerCallback {
-    StringTimerCallback(RootedDOMString, InitiatingScriptFetchInfo),
+    StringTimerCallback(RootedDomString, InitiatingScriptFetchInfo),
     FunctionTimerCallback(
         RootedCallback<Function>,
         RootedTraceableBox<Rc<Box<[Heap<JSVal>]>>>,

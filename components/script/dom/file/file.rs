@@ -22,7 +22,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::blob::{Blob, normalize_type_string, process_blob_parts};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -30,7 +30,7 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct File {
     blob: Blob,
-    name: RootedDOMString,
+    name: RootedDomString,
     modified: SystemTime,
     // TODO: This depends on the `webkitdirectory` from `HTMLInputElement`.
     // Then need to change `SelectedFile` in embedder,
@@ -41,7 +41,7 @@ pub(crate) struct File {
 impl File {
     fn new_inherited(
         blob_impl: &BlobImpl,
-        name: RootedDOMString,
+        name: RootedDomString,
         modified: Option<SystemTime>,
         webkit_relative_path: USVString,
     ) -> File {
@@ -58,7 +58,7 @@ impl File {
         cx: &mut JSContext,
         global: &GlobalScope,
         blob_impl: BlobImpl,
-        name: RootedDOMString,
+        name: RootedDomString,
         modified: Option<SystemTime>,
     ) -> DomRoot<File> {
         Self::new_with_proto(
@@ -77,7 +77,7 @@ impl File {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         blob_impl: BlobImpl,
-        name: RootedDOMString,
+        name: RootedDomString,
         modified: Option<SystemTime>,
         webkit_relative_path: USVString,
     ) -> DomRoot<File> {
@@ -102,7 +102,7 @@ impl File {
         window: &Window,
         selected: SelectedFile,
     ) -> DomRoot<File> {
-        let name = RootedDOMString::from(
+        let name = RootedDomString::from(
             selected
                 .filename
                 .to_str()
@@ -127,7 +127,7 @@ impl File {
         self.blob.get_bytes()
     }
 
-    pub(crate) fn name(&self) -> &RootedDOMString {
+    pub(crate) fn name(&self) -> &RootedDomString {
         &self.name
     }
 
@@ -195,7 +195,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         fileBits: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
-        filename: RootedDOMString,
+        filename: RootedDomString,
         filePropertyBag: &FileBinding::FilePropertyBag,
     ) -> Fallible<DomRoot<File>> {
         let bytes: Vec<u8> =
@@ -223,7 +223,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-name>
-    fn Name(&self) -> RootedDOMString {
+    fn Name(&self) -> RootedDomString {
         self.name.clone()
     }
 

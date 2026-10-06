@@ -58,7 +58,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{ByteString, RootedDOMString, USVString, is_token};
+use crate::dom::bindings::str::{ByteString, RootedDomString, USVString, is_token};
 use crate::dom::blob::{Blob, normalize_type_string};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
@@ -600,7 +600,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 Some(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
-                    content_type: Some(RootedDOMString::from(content_type)),
+                    content_type: Some(RootedDomString::from(content_type)),
                     source: BodySource::Object,
                 })
             },
@@ -902,7 +902,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-overridemimetype()-method>
-    fn OverrideMimeType(&self, no_gc: &NoGC, mime: RootedDOMString) -> ErrorResult {
+    fn OverrideMimeType(&self, no_gc: &NoGC, mime: RootedDomString) -> ErrorResult {
         // 1. If this’s state is loading or done, then throw an "InvalidStateError"
         //   DOMException.
         match self.ready_state.get() {
@@ -1525,7 +1525,7 @@ impl XMLHttpRequest {
         ServoParser::parse_html_document(
             cx,
             &document,
-            Some(RootedDOMString::from(decoded)),
+            Some(RootedDomString::from(decoded)),
             wr.get_url(),
             None,
             None,
@@ -1543,7 +1543,7 @@ impl XMLHttpRequest {
         ServoParser::parse_xml_document(
             cx,
             &document,
-            Some(RootedDOMString::from(decoded)),
+            Some(RootedDomString::from(decoded)),
             wr.get_url(),
             None,
         );
@@ -1716,7 +1716,7 @@ impl XHRTimeoutCallback {
     }
 }
 
-fn serialize_document(doc: &Document) -> Fallible<RootedDOMString> {
+fn serialize_document(doc: &Document) -> Fallible<RootedDomString> {
     let mut writer = vec![];
     if serialize(
         &mut writer,
@@ -1734,7 +1734,7 @@ fn serialize_document(doc: &Document) -> Fallible<RootedDOMString> {
             "Could not serialize document".into(),
         )));
     };
-    Ok(RootedDOMString::from(string))
+    Ok(RootedDomString::from(string))
 }
 
 /// Returns whether `bs` is a `field-value`, as defined by

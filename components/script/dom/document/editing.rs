@@ -21,7 +21,7 @@ use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods as
 use script_bindings::dom::UnrootedDom;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::text::Utf32CodeUnitsOrNodeOffset;
 
@@ -306,8 +306,8 @@ impl Document {
                     // Step 7.1.2.1 For each clipboard-part on the OS clipboard:
 
                     // Step 7.1.2.1.1 If clipboard-part contains plain text, then
-                    let data = RootedDOMString::from(text_contents);
-                    let type_ = RootedDOMString::from_static("text/plain");
+                    let data = RootedDomString::from(text_contents);
+                    let type_ = RootedDomString::from_static("text/plain");
                     let _ = drag_data_store.add(Kind::Text { data, type_ });
 
                     // Step 7.1.2.1.2 TODO If clipboard-part represents file references, then for each file reference
@@ -407,8 +407,8 @@ impl Document {
                 // > node, the user agent must call execCommand("insertlinebreak") on the
                 // > relevant document.
                 (
-                    RootedDOMString::from_static("insertlinebreak"),
-                    RootedDOMString::new(),
+                    RootedDomString::from_static("insertlinebreak"),
+                    RootedDomString::new(),
                 )
             },
             EditingAction::InsertParagraph => {
@@ -417,8 +417,8 @@ impl Document {
                 // > editable node, the user agent must call execCommand("insertparagraph") on
                 // > the relevant document.
                 (
-                    RootedDOMString::from_static("insertparagraph"),
-                    RootedDOMString::new(),
+                    RootedDomString::from_static("insertparagraph"),
+                    RootedDomString::new(),
                 )
             },
             // > When the user instructs the user agent to delete the previous character inside an
@@ -428,16 +428,16 @@ impl Document {
             //
             // TODO: Handle other types of motions here.
             EditingAction::Backspace(..) => (
-                RootedDOMString::from_static("delete"),
-                RootedDOMString::new(),
+                RootedDomString::from_static("delete"),
+                RootedDomString::new(),
             ),
             // > When the user instructs the user agent to delete the next character inside an
             // > editing host, such as by pressing the Delete key while the cursor is in an
             // > editable node, the user agent must call execCommand("forwarddelete") on the
             // > relevant document
             EditingAction::Delete => (
-                RootedDOMString::from_static("forwarddelete"),
-                RootedDOMString::new(),
+                RootedDomString::from_static("forwarddelete"),
+                RootedDomString::new(),
             ),
             // > When the user instructs the user agent to insert text inside an editing host, such
             // > as by typing on the keyboard while the cursor is in an editable node, the user
@@ -446,8 +446,8 @@ impl Document {
             // > characters at once or in quick succession, this specification does not define
             // > whether it is treated as one insertion or several consecutive insertions.
             EditingAction::InsertText(text) => (
-                RootedDOMString::from_static("inserttext"),
-                RootedDOMString::from(text.as_str()),
+                RootedDomString::from_static("inserttext"),
+                RootedDomString::from(text.as_str()),
             ),
         };
 

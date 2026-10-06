@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{
     RTCErrorDetailType, RTCErrorInit, RTCErrorMethods,
 };
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::domexception::DOMException;
 use crate::dom::window::Window;
 
@@ -27,11 +27,11 @@ pub(crate) struct RTCError {
 }
 
 impl RTCError {
-    fn new_inherited(init: &RTCErrorInit, message: RootedDOMString) -> RTCError {
+    fn new_inherited(init: &RTCErrorInit, message: RootedDomString) -> RTCError {
         RTCError {
             exception: DOMException::new_inherited(
                 message,
-                RootedDOMString::from_static("OperationError"),
+                RootedDomString::from_static("OperationError"),
             ),
             error_detail: init.errorDetail,
             sdp_line_number: init.sdpLineNumber,
@@ -46,7 +46,7 @@ impl RTCError {
         cx: &mut JSContext,
         window: &Window,
         init: &RTCErrorInit,
-        message: RootedDOMString,
+        message: RootedDomString,
     ) -> DomRoot<RTCError> {
         Self::new_with_proto(cx, window, None, init, message)
     }
@@ -56,7 +56,7 @@ impl RTCError {
         window: &Window,
         proto: Option<HandleObject>,
         init: &RTCErrorInit,
-        message: RootedDOMString,
+        message: RootedDomString,
     ) -> DomRoot<RTCError> {
         reflect_dom_object_with_proto(
             cx,
@@ -74,7 +74,7 @@ impl RTCErrorMethods<crate::DomTypeHolder> for RTCError {
         window: &Window,
         proto: Option<HandleObject>,
         init: &RTCErrorInit,
-        message: RootedDOMString,
+        message: RootedDomString,
     ) -> DomRoot<RTCError> {
         RTCError::new_with_proto(cx, window, proto, init, message)
     }

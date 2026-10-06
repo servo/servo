@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluat
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::dom::xpathexpression::XPathExpression;
@@ -62,7 +62,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
     fn CreateExpression(
         &self,
         cx: &mut JSContext,
-        expression: RootedDOMString,
+        expression: RootedDomString,
         resolver: Option<RootedCallback<XPathNSResolver>>,
     ) -> Fallible<DomRoot<XPathExpression>> {
         let parsed_expression = parse_expression(
@@ -89,7 +89,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
     fn Evaluate(
         &self,
         cx: &mut JSContext,
-        expression: RootedDOMString,
+        expression: RootedDomString,
         context_node: &Node,
         resolver: Option<RootedCallback<XPathNSResolver>>,
         result_type: u16,

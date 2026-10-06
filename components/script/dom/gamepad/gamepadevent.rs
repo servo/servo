@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::GamepadEventBinding::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 
@@ -92,7 +92,7 @@ impl GamepadEventMethods<crate::DomTypeHolder> for GamepadEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: RootedDOMString,
+        type_: RootedDomString,
         init: &GamepadEventInit,
     ) -> DomRoot<GamepadEvent> {
         GamepadEvent::new_with_proto(

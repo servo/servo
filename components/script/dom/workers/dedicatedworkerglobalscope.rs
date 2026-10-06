@@ -52,7 +52,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::csp::Violation;
@@ -308,7 +308,7 @@ impl DedicatedWorkerGlobalScope {
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         webview_id: WebViewId,
-        worker_name: RootedDOMString,
+        worker_name: RootedDomString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
         from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
@@ -367,7 +367,7 @@ impl DedicatedWorkerGlobalScope {
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         webview_id: WebViewId,
-        worker_name: RootedDOMString,
+        worker_name: RootedDomString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
         from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
@@ -1125,7 +1125,7 @@ pub(crate) fn fetch_a_classic_worker_script(
 
 impl DedicatedWorkerGlobalScopeMethods<crate::DomTypeHolder> for DedicatedWorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-name>
-    fn Name(&self) -> RootedDOMString {
+    fn Name(&self) -> RootedDomString {
         self.workerglobalscope.worker_name()
     }
 

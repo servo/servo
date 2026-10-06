@@ -39,7 +39,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
@@ -871,7 +871,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 
     // https://drafts.csswg.org/geometry/#dommatrixreadonly-stringification-behavior
-    fn Stringifier(&self, cx: &mut js::context::JSContext) -> Fallible<RootedDOMString> {
+    fn Stringifier(&self, cx: &mut js::context::JSContext) -> Fallible<RootedDomString> {
         // Step 1. If one or more of m11 element through m44 element are a non-finite value,
         // then throw an "InvalidStateError" DOMException.
         let mat = self.matrix.borrow();
@@ -897,7 +897,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
 
         let mut to_string = |f: f64| {
             rooted!(&in(cx) let rooted_value = jsval::DoubleValue(f));
-            RootedDOMString::from_js_string(cx, rooted_value.handle())
+            RootedDomString::from_js_string(cx, rooted_value.handle())
                 .unwrap_or_else(|_| panic!("Pointer cannot be null"))
         };
 

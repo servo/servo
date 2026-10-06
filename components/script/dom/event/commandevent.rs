@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::CommandEventBinding::CommandEventMe
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -28,13 +28,13 @@ pub(crate) struct CommandEvent {
     /// <https://html.spec.whatwg.org/multipage/#dom-commandevent-source>
     source: Option<Dom<Element>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-commandevent-command>
-    command: RootedDOMString,
+    command: RootedDomString,
 }
 
 impl CommandEvent {
     pub(crate) fn new_inherited(
         source: Option<&Element>,
-        command: RootedDOMString,
+        command: RootedDomString,
     ) -> CommandEvent {
         CommandEvent {
             event: Event::new_inherited(),
@@ -52,7 +52,7 @@ impl CommandEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         source: Option<&Element>,
-        command: RootedDOMString,
+        command: RootedDomString,
     ) -> DomRoot<CommandEvent> {
         let event = Box::new(CommandEvent::new_inherited(source, command));
         let event = reflect_dom_object_with_proto(cx, event, window, proto);
@@ -70,7 +70,7 @@ impl CommandEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         source: Option<&Element>,
-        command: RootedDOMString,
+        command: RootedDomString,
     ) -> DomRoot<CommandEvent> {
         Self::new_with_proto(
             cx, window, None, type_, bubbles, cancelable, source, command,
@@ -84,7 +84,7 @@ impl CommandEventMethods<crate::DomTypeHolder> for CommandEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: RootedDOMString,
+        type_: RootedDomString,
         init: &CommandEventBinding::CommandEventInit,
     ) -> Fallible<DomRoot<CommandEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
@@ -107,7 +107,7 @@ impl CommandEventMethods<crate::DomTypeHolder> for CommandEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-commandevent-command>
-    fn Command(&self) -> RootedDOMString {
+    fn Command(&self) -> RootedDomString {
         // The command attribute must return the value it was initialized to.
         self.command.clone()
     }

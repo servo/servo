@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransferMe
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::datatransferitemlist::DataTransferItemList;
 use crate::dom::element::Element;
 use crate::dom::filelist::FileList;
@@ -41,8 +41,8 @@ const VALID_EFFECTS_ALLOWED: [&str; 9] = [
 #[dom_struct]
 pub(crate) struct DataTransfer {
     reflector_: Reflector,
-    drop_effect: DomRefCell<RootedDOMString>,
-    effect_allowed: DomRefCell<RootedDOMString>,
+    drop_effect: DomRefCell<RootedDomString>,
+    effect_allowed: DomRefCell<RootedDomString>,
     items: Dom<DataTransferItemList>,
     #[conditional_malloc_size_of]
     #[no_trace]
@@ -56,8 +56,8 @@ impl DataTransfer {
     ) -> DataTransfer {
         DataTransfer {
             reflector_: Reflector::new(),
-            drop_effect: DomRefCell::new(RootedDOMString::from_static("none")),
-            effect_allowed: DomRefCell::new(RootedDOMString::from_static("none")),
+            drop_effect: DomRefCell::new(RootedDomString::from_static("none")),
+            effect_allowed: DomRefCell::new(RootedDomString::from_static("none")),
             items: Dom::from_ref(item_list),
             data_store,
         }
@@ -108,24 +108,24 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>
-    fn DropEffect(&self) -> RootedDOMString {
+    fn DropEffect(&self) -> RootedDomString {
         self.drop_effect.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>
-    fn SetDropEffect(&self, value: RootedDOMString) {
+    fn SetDropEffect(&self, value: RootedDomString) {
         if VALID_DROP_EFFECTS.contains(&&*value.str()) {
             *self.drop_effect.borrow_mut() = value;
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed>
-    fn EffectAllowed(&self) -> RootedDOMString {
+    fn EffectAllowed(&self) -> RootedDomString {
         self.effect_allowed.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed>
-    fn SetEffectAllowed(&self, value: RootedDOMString) {
+    fn SetEffectAllowed(&self, value: RootedDomString) {
         if self
             .data_store
             .borrow()
@@ -171,17 +171,17 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-getdata>
-    fn GetData(&self, mut format: RootedDOMString) -> RootedDOMString {
+    fn GetData(&self, mut format: RootedDomString) -> RootedDomString {
         // Step 1 If the DataTransfer object is not associated with a drag data store, then return the empty string.
         let option = self.data_store.borrow();
         let data_store = match option.as_ref() {
             Some(value) => value,
-            None => return RootedDOMString::new(),
+            None => return RootedDomString::new(),
         };
 
         // Step 2 If the drag data store's mode is the protected mode, then return the empty string.
         if data_store.mode() == Mode::Protected {
-            return RootedDOMString::new();
+            return RootedDomString::new();
         }
 
         // Step 3 Let format be the first argument, converted to ASCII lowercase.
@@ -191,11 +191,11 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
 
         let type_override = match_domstring_ascii!(format,
             // Step 5 If format equals "text", change it to "text/plain".
-            "text" => Some(RootedDOMString::from_static("text/plain")),
+            "text" => Some(RootedDomString::from_static("text/plain")),
             // Step 6 If format equals "url", change it to "text/uri-list" and set convert-to-URL to true.
             "url" => {
                 convert_to_url = true;
-                Some(RootedDOMString::from_static("text/uri-list"))
+                Some(RootedDomString::from_static("text/uri-list"))
             },
             _ => None,
         );
@@ -217,12 +217,12 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
         } else {
             // Step 7 If there is no item in the drag data store item list
             // whose kind is text and whose type string is equal to format, return the empty string.
-            RootedDOMString::new()
+            RootedDomString::new()
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-setdata>
-    fn SetData(&self, format: RootedDOMString, data: RootedDOMString) {
+    fn SetData(&self, format: RootedDomString, data: RootedDomString) {
         // Step 1 If the DataTransfer object is no longer associated with a drag data store, return. Nothing happens.
         let mut option = self.data_store.borrow_mut();
         let data_store = match option.as_mut() {
@@ -240,7 +240,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-cleardata>
-    fn ClearData(&self, format: Option<RootedDOMString>) {
+    fn ClearData(&self, format: Option<RootedDomString>) {
         // Step 1 If the DataTransfer is not associated with a data store, return.
         let mut option = self.data_store.borrow_mut();
         let data_store = match option.as_mut() {

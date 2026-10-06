@@ -17,7 +17,7 @@ use super::cssrule::{CSSRule, SpecificCSSRule};
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSLayerStatementRuleBinding::CSSLayerStatementRuleMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::types::CSSGroupingRule;
 use crate::dom::window::Window;
@@ -70,7 +70,7 @@ impl SpecificCSSRule for CSSLayerStatementRule {
         CssRuleType::LayerStatement
     }
 
-    fn get_css(&self) -> RootedDOMString {
+    fn get_css(&self) -> RootedDomString {
         let guard = self.css_rule.shared_lock().read();
         self.layer_statement_rule
             .borrow()
@@ -82,7 +82,7 @@ impl SpecificCSSRule for CSSLayerStatementRule {
 impl CSSLayerStatementRuleMethods<crate::DomTypeHolder> for CSSLayerStatementRule {
     /// <https://drafts.csswg.org/css-cascade-5/#dom-csslayerstatementrule-namelist>
     fn NameList(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        let names: Vec<RootedDOMString> = self
+        let names: Vec<RootedDomString> = self
             .layer_statement_rule
             .borrow()
             .names

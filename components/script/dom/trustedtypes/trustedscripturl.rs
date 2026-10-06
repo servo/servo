@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::TrustedScriptURLBinding::TrustedScr
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptURLOrUSVString;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedtypes::trustedtypepolicy::TrustedType;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::{
@@ -22,11 +22,11 @@ use crate::dom::trustedtypes::trustedtypepolicyfactory::{
 pub struct TrustedScriptURL {
     reflector_: Reflector,
 
-    data: RootedDOMString,
+    data: RootedDomString,
 }
 
 impl TrustedScriptURL {
-    fn new_inherited(data: RootedDOMString) -> Self {
+    fn new_inherited(data: RootedDomString) -> Self {
         Self {
             reflector_: Reflector::new(),
             data,
@@ -35,7 +35,7 @@ impl TrustedScriptURL {
 
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
-        data: RootedDOMString,
+        data: RootedDomString,
         global: &GlobalScope,
     ) -> DomRoot<Self> {
         reflect_dom_object(cx, Box::new(Self::new_inherited(data)), global)
@@ -46,7 +46,7 @@ impl TrustedScriptURL {
         global: &GlobalScope,
         value: TrustedScriptURLOrUSVString,
         sink: &str,
-    ) -> Fallible<RootedDOMString> {
+    ) -> Fallible<RootedDomString> {
         match value {
             TrustedScriptURLOrUSVString::USVString(value) => {
                 TrustedTypePolicyFactory::get_trusted_type_compliant_string(
@@ -64,7 +64,7 @@ impl TrustedScriptURL {
         }
     }
 
-    pub(crate) fn data(&self) -> &RootedDOMString {
+    pub(crate) fn data(&self) -> &RootedDomString {
         &self.data
     }
 }
@@ -78,12 +78,12 @@ impl fmt::Display for TrustedScriptURL {
 
 impl TrustedScriptURLMethods<crate::DomTypeHolder> for TrustedScriptURL {
     /// <https://www.w3.org/TR/trusted-types/#trustedscripturl-stringification-behavior>
-    fn Stringifier(&self) -> RootedDOMString {
+    fn Stringifier(&self) -> RootedDomString {
         self.data.clone()
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedscripturl-tojson>
-    fn ToJSON(&self) -> RootedDOMString {
+    fn ToJSON(&self) -> RootedDomString {
         self.data.clone()
     }
 }

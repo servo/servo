@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
@@ -15,13 +15,13 @@ use crate::dom::node::Node;
 #[dom_struct]
 pub(crate) struct ProcessingInstruction {
     characterdata: CharacterData,
-    target: RootedDOMString,
+    target: RootedDomString,
 }
 
 impl ProcessingInstruction {
     fn new_inherited(
-        target: RootedDOMString,
-        data: RootedDOMString,
+        target: RootedDomString,
+        data: RootedDomString,
         document: &Document,
     ) -> ProcessingInstruction {
         ProcessingInstruction {
@@ -32,8 +32,8 @@ impl ProcessingInstruction {
 
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
-        target: RootedDOMString,
-        data: RootedDOMString,
+        target: RootedDomString,
+        data: RootedDomString,
         document: &Document,
     ) -> DomRoot<ProcessingInstruction> {
         Node::reflect_node(
@@ -45,14 +45,14 @@ impl ProcessingInstruction {
 }
 
 impl ProcessingInstruction {
-    pub(crate) fn target(&self) -> &RootedDOMString {
+    pub(crate) fn target(&self) -> &RootedDomString {
         &self.target
     }
 }
 
 impl ProcessingInstructionMethods<crate::DomTypeHolder> for ProcessingInstruction {
     /// <https://dom.spec.whatwg.org/#dom-processinginstruction-target>
-    fn Target(&self) -> RootedDOMString {
+    fn Target(&self) -> RootedDomString {
         self.target.clone()
     }
 }

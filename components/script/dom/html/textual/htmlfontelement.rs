@@ -18,7 +18,7 @@ use stylo_atoms::Atom;
 use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -106,7 +106,7 @@ impl HTMLFontElementMethods<crate::DomTypeHolder> for HTMLFontElement {
     make_getter!(Size, "size");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-font-size>
-    fn SetSize(&self, cx: &mut JSContext, value: RootedDOMString) {
+    fn SetSize(&self, cx: &mut JSContext, value: RootedDomString) {
         let element = self.upcast::<Element>();
         element.set_attribute(cx, &local_name!("size"), parse_size(&value));
     }
@@ -130,7 +130,7 @@ impl VirtualMethods for HTMLFontElement {
             .attribute_affects_presentational_hints(attr)
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDomString) -> AttrValue {
         match *name {
             local_name!("face") => AttrValue::from_atomic(value.into()),
             local_name!("color") => AttrValue::from_legacy_color(value.into()),
@@ -176,7 +176,7 @@ impl LayoutDom<'_, HTMLFontElement> {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size>
-fn parse_size(input: &RootedDOMString) -> AttrValue {
+fn parse_size(input: &RootedDomString) -> AttrValue {
     let original_input = input;
     // Steps 1 & 2 are not relevant
 

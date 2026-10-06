@@ -39,7 +39,7 @@ use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionE
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::event::Event;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
@@ -665,11 +665,11 @@ impl AnimationManager {
             };
 
             let property_or_animation_name =
-                RootedDOMString::from(event.property_or_animation_name.clone());
+                RootedDomString::from(event.property_or_animation_name.clone());
             let pseudo_element = event
                 .pseudo_element
-                .map_or_else(RootedDOMString::new, |pseudo_element| {
-                    RootedDOMString::from(pseudo_element.to_css_string())
+                .map_or_else(RootedDomString::new, |pseudo_element| {
+                    RootedDomString::from(pseudo_element.to_css_string())
                 });
             let elapsed_time = Finite::new(event.elapsed_time as f32).unwrap();
             let window = node.owner_window();

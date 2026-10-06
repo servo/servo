@@ -37,7 +37,7 @@ use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, W
 use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 use script_traits::{ConstellationInputEvent, MouseButtons};
 use servo_config::pref;
 use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
@@ -1278,7 +1278,7 @@ impl DocumentEventHandler {
             0,                                     // twist
             PI / 2.0,                              // altitude_angle
             0.0,                                   // azimuth_angle
-            RootedDOMString::from_static("mouse"), // pointer_type
+            RootedDomString::from_static("mouse"), // pointer_type
             true,                                  // is_primary
             vec![],                                // coalesced_events
             vec![],                                // predicted_events
@@ -1686,7 +1686,7 @@ impl DocumentEventHandler {
             cancelable,
             Some(&self.window),
             0,
-            RootedDOMString::from(composition_event.data),
+            RootedDomString::from(composition_event.data),
         );
 
         let event = event.upcast::<Event>();
@@ -2540,7 +2540,7 @@ impl DocumentEventHandler {
             0,
             PI / 2.0,
             0.0,
-            RootedDOMString::from(pointer_type),
+            RootedDomString::from(pointer_type),
             is_primary,
             vec![],
             vec![],
@@ -2590,7 +2590,7 @@ impl DocumentEventHandler {
             0,
             PI / 2.0,
             0.0,
-            RootedDOMString::from(pointer_type),
+            RootedDomString::from(pointer_type),
             is_primary,
             vec![],
             vec![],

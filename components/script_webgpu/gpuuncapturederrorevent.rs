@@ -16,7 +16,7 @@ use stylo_atoms::Atom;
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::gpuerror::GPUError;
 use crate::traits::Equivalence;
 
@@ -78,7 +78,7 @@ where
         cx: &mut js::context::JSContext,
         global: &D::GlobalScope,
         proto: Option<HandleObject>,
-        event_type: RootedDOMString,
+        event_type: RootedDomString,
         init: &GPUUncapturedErrorEventInit<D>,
     ) -> DomRoot<Self> {
         GPUUncapturedErrorEvent::new_with_proto(cx, global, proto, event_type.into(), init)

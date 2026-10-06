@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeS
 use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 // TODO UA may choose to limit how many resources are included as PerformanceResourceTiming objects
 // recommended minimum is 150, can be changed by setResourceTimingBufferSize in performance
@@ -41,7 +41,7 @@ pub(crate) enum InitiatorType {
 pub(crate) struct PerformanceResourceTiming {
     entry: PerformanceEntry,
     initiator_type: InitiatorType,
-    next_hop: Option<RootedDOMString>,
+    next_hop: Option<RootedDomString>,
     #[no_trace]
     worker_start: Option<CrossProcessInstant>,
     #[no_trace]
@@ -91,7 +91,7 @@ impl PerformanceResourceTiming {
         };
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
-                RootedDOMString::from(url.into_string()),
+                RootedDomString::from(url.into_string()),
                 entry_type,
                 start_time,
                 duration,
@@ -151,26 +151,26 @@ impl PerformanceResourceTiming {
 // https://w3c.github.io/resource-timing/
 impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResourceTiming {
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-initiatortype>
-    fn InitiatorType(&self) -> RootedDOMString {
+    fn InitiatorType(&self) -> RootedDomString {
         match self.initiator_type {
-            InitiatorType::Beacon => RootedDOMString::from_static("beacon"),
-            InitiatorType::Css => RootedDOMString::from_static("css"),
-            InitiatorType::LocalName(ref n) => RootedDOMString::from(n.clone()),
-            InitiatorType::Navigation => RootedDOMString::from_static("navigation"),
-            InitiatorType::XMLHttpRequest => RootedDOMString::from_static("xmlhttprequest"),
-            InitiatorType::Fetch => RootedDOMString::from_static("fetch"),
-            InitiatorType::Track => RootedDOMString::from_static("track"),
-            InitiatorType::Other => RootedDOMString::from_static("other"),
+            InitiatorType::Beacon => RootedDomString::from_static("beacon"),
+            InitiatorType::Css => RootedDomString::from_static("css"),
+            InitiatorType::LocalName(ref n) => RootedDomString::from(n.clone()),
+            InitiatorType::Navigation => RootedDomString::from_static("navigation"),
+            InitiatorType::XMLHttpRequest => RootedDomString::from_static("xmlhttprequest"),
+            InitiatorType::Fetch => RootedDomString::from_static("fetch"),
+            InitiatorType::Track => RootedDomString::from_static("track"),
+            InitiatorType::Other => RootedDomString::from_static("other"),
         }
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-nexthopprotocol
     // returns the ALPN protocol ID of the network protocol used to fetch the resource
     // when a proxy is configured
-    fn NextHopProtocol(&self) -> RootedDOMString {
+    fn NextHopProtocol(&self) -> RootedDomString {
         match self.next_hop {
             Some(ref protocol) => protocol.clone(),
-            None => RootedDOMString::new(),
+            None => RootedDomString::new(),
         }
     }
 

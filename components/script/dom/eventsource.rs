@@ -34,7 +34,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -96,7 +96,7 @@ pub(crate) struct EventSource {
     url: ServoUrl,
     #[no_trace]
     request: DomRefCell<Option<RequestBuilder>>,
-    last_event_id: DomRefCell<RootedDOMString>,
+    last_event_id: DomRefCell<RootedDomString>,
     reconnection_time: Cell<Duration>,
     generation_id: Cell<GenerationId>,
 
@@ -259,7 +259,7 @@ impl EventSourceContext {
         let event_source = self.event_source.root();
         // Step 1
         *event_source.last_event_id.safe_borrow_mut(cx.no_gc()) =
-            RootedDOMString::from(self.last_event_id.clone());
+            RootedDomString::from(self.last_event_id.clone());
         // Step 2
         if self.data.is_empty() {
             self.data.clear();
@@ -291,7 +291,7 @@ impl EventSourceContext {
                 false,
                 false,
                 data.handle(),
-                RootedDOMString::from(self.origin.clone()),
+                RootedDomString::from(self.origin.clone()),
                 None,
                 event_source.last_event_id.borrow().clone(),
                 Vec::with_capacity(0),
@@ -518,7 +518,7 @@ impl EventSource {
             eventtarget: EventTarget::new_inherited(),
             url,
             request: DomRefCell::new(None),
-            last_event_id: DomRefCell::new(RootedDOMString::new()),
+            last_event_id: DomRefCell::new(RootedDomString::new()),
             reconnection_time: Cell::new(DEFAULT_RECONNECTION_TIME),
             generation_id: Cell::new(GenerationId(0)),
 
@@ -579,7 +579,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        url: RootedDOMString,
+        url: RootedDomString,
         event_source_init: &EventSourceInit,
     ) -> Fallible<DomRoot<EventSource>> {
         // Step 2. Let settings be the relevant settings object for the `EventSource` constructor.
@@ -673,8 +673,8 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
     event_handler!(error, GetOnerror, SetOnerror);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-eventsource-url>
-    fn Url(&self) -> RootedDOMString {
-        RootedDOMString::from(self.url.as_str())
+    fn Url(&self) -> RootedDomString {
+        RootedDomString::from(self.url.as_str())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-eventsource-withcredentials>

@@ -8,7 +8,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::MimeTypeArrayBinding::MimeTypeArrayMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mimetype::MimeType;
 
@@ -41,7 +41,7 @@ impl MimeTypeArrayMethods<crate::DomTypeHolder> for MimeTypeArray {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-mimetypearray-nameditem>
-    fn NamedItem(&self, _name: RootedDOMString) -> Option<DomRoot<MimeType>> {
+    fn NamedItem(&self, _name: RootedDomString) -> Option<DomRoot<MimeType>> {
         None
     }
 
@@ -51,12 +51,12 @@ impl MimeTypeArrayMethods<crate::DomTypeHolder> for MimeTypeArray {
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: RootedDOMString) -> Option<DomRoot<MimeType>> {
+    fn NamedGetter(&self, _name: RootedDomString) -> Option<DomRoot<MimeType>> {
         None
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
-    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDomString> {
         vec![]
     }
 }

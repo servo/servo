@@ -14,13 +14,13 @@ use crate::dom::bindings::codegen::Bindings::VTTRegionBinding::{ScrollSetting, V
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::window::Window;
 
 #[dom_struct]
 pub(crate) struct VTTRegion {
     reflector_: Reflector,
-    id: DomRefCell<RootedDOMString>,
+    id: DomRefCell<RootedDomString>,
     width: Cell<f64>,
     lines: Cell<u32>,
     region_anchor_x: Cell<f64>,
@@ -34,7 +34,7 @@ impl VTTRegion {
     fn new_inherited() -> Self {
         VTTRegion {
             reflector_: Reflector::new(),
-            id: DomRefCell::new(RootedDOMString::default()),
+            id: DomRefCell::new(RootedDomString::default()),
             width: Cell::new(100_f64),
             lines: Cell::new(3),
             region_anchor_x: Cell::new(0_f64),
@@ -61,12 +61,12 @@ impl VTTRegionMethods<crate::DomTypeHolder> for VTTRegion {
     }
 
     /// <https://w3c.github.io/webvtt/#dom-vttregion-id>
-    fn Id(&self) -> RootedDOMString {
+    fn Id(&self) -> RootedDomString {
         self.id.borrow().clone()
     }
 
     /// <https://w3c.github.io/webvtt/#dom-vttregion-id>
-    fn SetId(&self, value: RootedDOMString) {
+    fn SetId(&self, value: RootedDomString) {
         *self.id.borrow_mut() = value;
     }
 

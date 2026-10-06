@@ -10,7 +10,7 @@ use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use crate::dom::bindings::codegen::Bindings::HTMLMarqueeElementBinding::HTMLMarqueeElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -73,7 +73,7 @@ impl VirtualMethods for HTMLMarqueeElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDomString) -> AttrValue {
         match *name {
             local_name!("width") => AttrValue::from_dimension(value.into()),
             local_name!("height") => AttrValue::from_dimension(value.into()),

@@ -16,7 +16,7 @@ use super::cssconditionrule::CSSConditionRule;
 use super::cssrule::SpecificCSSRule;
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::css::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
@@ -64,7 +64,7 @@ impl CSSSupportsRule {
     }
 
     /// <https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface>
-    pub(crate) fn get_condition_text(&self) -> RootedDOMString {
+    pub(crate) fn get_condition_text(&self) -> RootedDomString {
         self.supports_rule.borrow().condition.to_css_string().into()
     }
 
@@ -84,7 +84,7 @@ impl SpecificCSSRule for CSSSupportsRule {
         CssRuleType::Supports
     }
 
-    fn get_css(&self) -> RootedDOMString {
+    fn get_css(&self) -> RootedDomString {
         let guard = self.css_condition_rule.shared_lock().read();
         self.supports_rule.borrow().to_css_string(&guard).into()
     }

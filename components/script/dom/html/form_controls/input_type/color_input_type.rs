@@ -18,7 +18,7 @@ use style_traits::{ParsingMode, ToCss};
 
 use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::{FromInputValueString, RootedDOMString};
+use crate::dom::bindings::str::{FromInputValueString, RootedDomString};
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -65,7 +65,7 @@ impl ColorInputType {
     /// <https://html.spec.whatwg.org/multipage/#update-a-color-well-control-color>
     pub(crate) fn update_a_color_well_control_color(
         input: &HTMLInputElement,
-        element_value: &mut RootedDOMString,
+        element_value: &mut RootedDomString,
     ) {
         // Step 1. Assert: element is an input element whose type attribute is in the Color state.
         // Step 2. Let value be the result of running these steps:
@@ -88,7 +88,7 @@ impl ColorInputType {
     fn serialize_a_color_well_control_color(
         input: &HTMLInputElement,
         mut color: AbsoluteColor,
-        destination: &mut RootedDOMString,
+        destination: &mut RootedDomString,
     ) {
         // Step 1. Assert: element is an input element whose type attribute is in the Color state.
 
@@ -166,14 +166,14 @@ impl SpecificInputType for ColorInputType {
         None
     }
 
-    fn sanitize_value(&self, input: &HTMLInputElement, value: &mut RootedDOMString) {
+    fn sanitize_value(&self, input: &HTMLInputElement, value: &mut RootedDomString) {
         // > The value sanitization algorithm is as follows:
         // > Run update a color well control color for the element.
         Self::update_a_color_well_control_color(input, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#color-state-(type=color):suffering-from-bad-input>
-    fn suffers_from_bad_input(&self, value: &RootedDOMString) -> bool {
+    fn suffers_from_bad_input(&self, value: &RootedDomString) -> bool {
         !value.str().is_valid_simple_color_string()
     }
 

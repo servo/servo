@@ -6,7 +6,7 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use time::OffsetDateTime;
 
-use crate::dom::bindings::str::{FromInputValueString, RootedDOMString, ToInputValueString};
+use crate::dom::bindings::str::{FromInputValueString, RootedDomString, ToInputValueString};
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::SpecificInputType;
 use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
@@ -22,7 +22,7 @@ impl SpecificInputType for DateInputType {
         Some(&self.text_input_widget)
     }
 
-    fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut RootedDOMString) {
+    fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut RootedDomString) {
         if !value.str().is_valid_date_string() {
             value.clear();
         }
@@ -42,7 +42,7 @@ impl SpecificInputType for DateInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#date-state-(type=date):concept-input-value-string-number>
-    fn convert_number_to_string(&self, input: f64) -> Option<RootedDOMString> {
+    fn convert_number_to_string(&self, input: f64) -> Option<RootedDomString> {
         OffsetDateTime::from_unix_timestamp_nanos((input * 1e6) as i128)
             .ok()
             .map(|value| value.to_date_string().into())
@@ -51,19 +51,19 @@ impl SpecificInputType for DateInputType {
     /// <https://html.spec.whatwg.org/multipage/#date-state-(type=date):concept-input-value-string-date>
     /// This does the safe Rust part of conversion; the unsafe JS Date part
     /// is in GetValueAsDate
-    fn convert_string_to_naive_datetime(&self, value: RootedDOMString) -> Option<OffsetDateTime> {
+    fn convert_string_to_naive_datetime(&self, value: RootedDomString) -> Option<OffsetDateTime> {
         value.str().parse_date_string()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#date-state-(type=date):concept-input-value-date-string>
     /// This does the safe Rust part of conversion; the unsafe JS Date part
     /// is in SetValueAsDate
-    fn convert_datetime_to_dom_string(&self, value: OffsetDateTime) -> RootedDOMString {
+    fn convert_datetime_to_dom_string(&self, value: OffsetDateTime) -> RootedDomString {
         value.to_date_string().into()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#date-state-(type=date):suffering-from-bad-input>
-    fn suffers_from_bad_input(&self, value: &RootedDOMString) -> bool {
+    fn suffers_from_bad_input(&self, value: &RootedDomString) -> bool {
         !value.str().is_valid_date_string()
     }
 

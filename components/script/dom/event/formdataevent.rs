@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::FormDataEventBinding::FormDataEvent
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::formdata::FormData;
 use crate::dom::window::Window;
@@ -70,7 +70,7 @@ impl FormDataEventMethods<crate::DomTypeHolder> for FormDataEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: RootedDOMString,
+        type_: RootedDomString,
         init: &FormDataEventBinding::FormDataEventInit,
     ) -> Fallible<DomRoot<FormDataEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);

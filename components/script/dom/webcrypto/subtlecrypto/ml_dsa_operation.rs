@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
@@ -1043,10 +1043,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Set the kty attribute of jwk to "AKP".
-            jwk.kty = Some(RootedDOMString::from_static("AKP"));
+            jwk.kty = Some(RootedDomString::from_static("AKP"));
 
             // Step 3.4. Set the alg attribute of jwk to the name member of normalizedAlgorithm.
-            jwk.alg = Some(RootedDOMString::from(key_algorithm.name.as_str()));
+            jwk.alg = Some(RootedDomString::from(key_algorithm.name.as_str()));
 
             // Step 3.5. Set the pub attribute of jwk to the base64url encoded public key
             // corresponding to the [[handle]] internal slot of key.

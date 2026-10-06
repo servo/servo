@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::TextDecoderStreamBinding::TextDecod
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::encoding::textdecodercommon::TextDecoderCommon;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
@@ -145,7 +145,7 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        label: RootedDOMString,
+        label: RootedDomString,
         options: &TextDecoderBinding::TextDecoderOptions,
     ) -> Fallible<DomRoot<TextDecoderStream>> {
         let encoding = match Encoding::for_label_no_replacement(&label.as_bytes(cx.no_gc())) {
@@ -168,8 +168,8 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-encoding>
-    fn Encoding(&self) -> RootedDOMString {
-        RootedDOMString::from(self.decoder.encoding().name().to_ascii_lowercase())
+    fn Encoding(&self) -> RootedDomString {
+        RootedDomString::from(self.decoder.encoding().name().to_ascii_lowercase())
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-fatal>

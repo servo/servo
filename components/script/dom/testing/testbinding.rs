@@ -50,7 +50,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{ByteString, RootedDOMString, USVString};
+use crate::dom::bindings::str::{ByteString, RootedDomString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::blob::Blob;
@@ -165,10 +165,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Finite::wrap(0.)
     }
     fn SetDoubleAttribute(&self, _: Finite<f64>) {}
-    fn StringAttribute(&self) -> RootedDOMString {
-        RootedDOMString::new()
+    fn StringAttribute(&self) -> RootedDomString {
+        RootedDomString::new()
     }
-    fn SetStringAttribute(&self, _: RootedDOMString) {}
+    fn SetStringAttribute(&self, _: RootedDomString) {}
     fn UsvstringAttribute(&self) -> USVString {
         USVString(String::new())
     }
@@ -194,7 +194,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn SetUnionAttribute(&self, _: HTMLElementOrLong) {}
     fn Union2Attribute(&self) -> EventOrString {
-        EventOrString::String(RootedDOMString::new())
+        EventOrString::String(RootedDomString::new())
     }
     fn SetUnion2Attribute(&self, _: EventOrString) {}
     fn Union3Attribute(&self) -> EventOrUSVString {
@@ -296,29 +296,29 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Some(ByteString::new(vec![]))
     }
     fn SetByteStringAttributeNullable(&self, _: Option<ByteString>) {}
-    fn GetStringAttributeNullable(&self) -> Option<RootedDOMString> {
-        Some(RootedDOMString::new())
+    fn GetStringAttributeNullable(&self) -> Option<RootedDomString> {
+        Some(RootedDomString::new())
     }
-    fn SetStringAttributeNullable(&self, _: Option<RootedDOMString>) {}
+    fn SetStringAttributeNullable(&self, _: Option<RootedDomString>) {}
     fn GetUsvstringAttributeNullable(&self) -> Option<USVString> {
         Some(USVString(String::new()))
     }
     fn SetUsvstringAttributeNullable(&self, _: Option<USVString>) {}
-    fn SetBinaryRenamedAttribute(&self, _: RootedDOMString) {}
+    fn SetBinaryRenamedAttribute(&self, _: RootedDomString) {}
     fn ForwardedAttribute(&self) -> DomRoot<TestBinding> {
         DomRoot::from_ref(self)
     }
-    fn BinaryRenamedAttribute(&self) -> RootedDOMString {
-        RootedDOMString::new()
+    fn BinaryRenamedAttribute(&self) -> RootedDomString {
+        RootedDomString::new()
     }
-    fn SetBinaryRenamedAttribute2(&self, _: RootedDOMString) {}
-    fn BinaryRenamedAttribute2(&self) -> RootedDOMString {
-        RootedDOMString::new()
+    fn SetBinaryRenamedAttribute2(&self, _: RootedDomString) {}
+    fn BinaryRenamedAttribute2(&self) -> RootedDomString {
+        RootedDomString::new()
     }
-    fn Attr_to_automatically_rename(&self) -> RootedDOMString {
-        RootedDOMString::new()
+    fn Attr_to_automatically_rename(&self) -> RootedDomString {
+        RootedDomString::new()
     }
-    fn SetAttr_to_automatically_rename(&self, _: RootedDOMString) {}
+    fn SetAttr_to_automatically_rename(&self, _: RootedDomString) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> {
         Some(TestEnum::_empty)
     }
@@ -345,7 +345,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn SetUnionAttributeNullable(&self, _: Option<HTMLElementOrLong>) {}
     fn GetUnion2AttributeNullable(&self) -> Option<EventOrString> {
-        Some(EventOrString::String(RootedDOMString::new()))
+        Some(EventOrString::String(RootedDomString::new()))
     }
     fn SetUnion2AttributeNullable(&self, _: Option<EventOrString>) {}
     fn GetUnion3AttributeNullable(&self) -> Option<BlobOrBoolean> {
@@ -405,8 +405,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ReceiveDouble(&self) -> Finite<f64> {
         Finite::wrap(0.)
     }
-    fn ReceiveString(&self) -> RootedDOMString {
-        RootedDOMString::new()
+    fn ReceiveString(&self) -> RootedDomString {
+        RootedDomString::new()
     }
     fn ReceiveUsvstring(&self) -> USVString {
         USVString(String::new())
@@ -432,7 +432,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         HTMLElementOrLong::Long(0)
     }
     fn ReceiveUnion2(&self) -> EventOrString {
-        EventOrString::String(RootedDOMString::new())
+        EventOrString::String(RootedDomString::new())
     }
     fn ReceiveUnion3(&self) -> StringOrLongSequence {
         StringOrLongSequence::LongSequence(vec![])
@@ -444,7 +444,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         BlobOrBlobSequence::BlobSequence(vec![])
     }
     fn ReceiveUnion6(&self) -> StringOrUnsignedLong {
-        StringOrUnsignedLong::String(RootedDOMString::new())
+        StringOrUnsignedLong::String(RootedDomString::new())
     }
     fn ReceiveUnion7(&self) -> StringOrBoolean {
         StringOrBoolean::Boolean(true)
@@ -514,8 +514,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ReceiveNullableDouble(&self) -> Option<Finite<f64>> {
         Some(Finite::wrap(0.))
     }
-    fn ReceiveNullableString(&self) -> Option<RootedDOMString> {
-        Some(RootedDOMString::new())
+    fn ReceiveNullableString(&self) -> Option<RootedDomString> {
+        Some(RootedDomString::new())
     }
     fn ReceiveNullableUsvstring(&self) -> Option<USVString> {
         Some(USVString(String::new()))
@@ -540,10 +540,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Some(HTMLElementOrLong::Long(0))
     }
     fn ReceiveNullableUnion2(&self) -> Option<EventOrString> {
-        Some(EventOrString::String(RootedDOMString::new()))
+        Some(EventOrString::String(RootedDomString::new()))
     }
     fn ReceiveNullableUnion3(&self) -> Option<StringOrLongSequence> {
-        Some(StringOrLongSequence::String(RootedDOMString::new()))
+        Some(StringOrLongSequence::String(RootedDomString::new()))
     }
     fn ReceiveNullableUnion4(&self) -> Option<LongSequenceOrBoolean> {
         Some(LongSequenceOrBoolean::Boolean(true))
@@ -612,7 +612,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
                 nullableUsvstringValue: None,
                 octetValue: 0,
                 shortValue: 0,
-                stringValue: RootedDOMString::new(),
+                stringValue: RootedDomString::new(),
                 unrestrictedFloatValue: 0.0,
                 unsignedLongLongValue: 0,
                 unsignedLongValue: 0,
@@ -632,7 +632,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             elementSequence: None,
             shortValue: None,
             stringValue: None,
-            type_: Some(RootedDOMString::from_static("success")),
+            type_: Some(RootedDomString::from_static("success")),
             unrestrictedDoubleValue: None,
             unrestrictedFloatValue: None,
             unsignedLongLongValue: None,
@@ -668,7 +668,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassFloat(&self, _: Finite<f32>) {}
     fn PassUnrestrictedDouble(&self, _: f64) {}
     fn PassDouble(&self, _: Finite<f64>) {}
-    fn PassString(&self, _: RootedDOMString) {}
+    fn PassString(&self, _: RootedDomString) {}
     fn PassUsvstring(&self, _: USVString) {}
     fn PassByteString(&self, _: ByteString) {}
     fn PassEnum(&self, _: TestEnum) {}
@@ -703,55 +703,55 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         return_value.extend(seq.handle().iter().map(|value| Heap::boxed(*value)));
     }
     fn PassObjectSequence(&self, _: CustomAutoRooterGuard<Vec<*mut JSObject>>) {}
-    fn PassStringSequence(&self, _: Vec<RootedDOMString>) {}
+    fn PassStringSequence(&self, _: Vec<RootedDomString>) {}
     fn PassInterfaceSequence(&self, _: Vec<DomRoot<Blob>>) {}
 
     fn PassOverloaded(&self, _: CustomAutoRooterGuard<typedarray::ArrayBuffer>) {}
-    fn PassOverloaded_(&self, _: RootedDOMString) {}
+    fn PassOverloaded_(&self, _: RootedDomString) {}
 
-    fn PassOverloadedDict(&self, _: &Node) -> RootedDOMString {
-        RootedDOMString::from_static("node")
+    fn PassOverloadedDict(&self, _: &Node) -> RootedDomString {
+        RootedDomString::from_static("node")
     }
 
-    fn PassOverloadedDict_(&self, u: &TestURLLike) -> RootedDOMString {
+    fn PassOverloadedDict_(&self, u: &TestURLLike) -> RootedDomString {
         u.href.clone()
     }
 
-    fn PassOverloadedUnionOfObjectAndString(&self, _: ObjectOrString) -> RootedDOMString {
-        RootedDOMString::from_static("union")
+    fn PassOverloadedUnionOfObjectAndString(&self, _: ObjectOrString) -> RootedDomString {
+        RootedDomString::from_static("union")
     }
-    fn PassOverloadedUnionOfObjectAndString_(&self, _: bool) -> RootedDOMString {
-        RootedDOMString::from_static("boolean")
+    fn PassOverloadedUnionOfObjectAndString_(&self, _: bool) -> RootedDomString {
+        RootedDomString::from_static("boolean")
     }
-    fn PassOverloadedUnionOfObjectAndNumber(&self, _: ObjectOrLong) -> RootedDOMString {
-        RootedDOMString::from_static("union")
+    fn PassOverloadedUnionOfObjectAndNumber(&self, _: ObjectOrLong) -> RootedDomString {
+        RootedDomString::from_static("union")
     }
-    fn PassOverloadedUnionOfObjectAndNumber_(&self, _: bool) -> RootedDOMString {
-        RootedDOMString::from_static("boolean")
+    fn PassOverloadedUnionOfObjectAndNumber_(&self, _: bool) -> RootedDomString {
+        RootedDomString::from_static("boolean")
     }
-    fn PassOverloadedUnionOfObjectAndBoolean(&self, _: ObjectOrBoolean) -> RootedDOMString {
-        RootedDOMString::from_static("union")
+    fn PassOverloadedUnionOfObjectAndBoolean(&self, _: ObjectOrBoolean) -> RootedDomString {
+        RootedDomString::from_static("union")
     }
-    fn PassOverloadedUnionOfObjectAndBoolean_(&self, _: i32) -> RootedDOMString {
-        RootedDOMString::from_static("number")
+    fn PassOverloadedUnionOfObjectAndBoolean_(&self, _: i32) -> RootedDomString {
+        RootedDomString::from_static("number")
     }
-    fn PassOverloadedUnionOfStringAndNumber(&self, _: StringOrLong) -> RootedDOMString {
-        RootedDOMString::from_static("union")
+    fn PassOverloadedUnionOfStringAndNumber(&self, _: StringOrLong) -> RootedDomString {
+        RootedDomString::from_static("union")
     }
-    fn PassOverloadedUnionOfStringAndNumber_(&self, _: bool) -> RootedDOMString {
-        RootedDOMString::from_static("boolean")
+    fn PassOverloadedUnionOfStringAndNumber_(&self, _: bool) -> RootedDomString {
+        RootedDomString::from_static("boolean")
     }
-    fn PassOverloadedUnionOfStringAndBoolean(&self, _: StringOrBoolean) -> RootedDOMString {
-        RootedDOMString::from_static("union")
+    fn PassOverloadedUnionOfStringAndBoolean(&self, _: StringOrBoolean) -> RootedDomString {
+        RootedDomString::from_static("union")
     }
-    fn PassOverloadedUnionOfStringAndBoolean_(&self, _: i32) -> RootedDOMString {
-        RootedDOMString::from_static("number")
+    fn PassOverloadedUnionOfStringAndBoolean_(&self, _: i32) -> RootedDomString {
+        RootedDomString::from_static("number")
     }
-    fn PassOverloadedUnionOfNumberAndBoolean(&self, _: LongOrBoolean) -> RootedDOMString {
-        RootedDOMString::from_static("union")
+    fn PassOverloadedUnionOfNumberAndBoolean(&self, _: LongOrBoolean) -> RootedDomString {
+        RootedDomString::from_static("union")
     }
-    fn PassOverloadedUnionOfNumberAndBoolean_(&self, _: RootedDOMString) -> RootedDOMString {
-        RootedDOMString::from_static("string")
+    fn PassOverloadedUnionOfNumberAndBoolean_(&self, _: RootedDomString) -> RootedDomString {
+        RootedDomString::from_static("string")
     }
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}
@@ -767,7 +767,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassNullableFloat(&self, _: Option<Finite<f32>>) {}
     fn PassNullableUnrestrictedDouble(&self, _: Option<f64>) {}
     fn PassNullableDouble(&self, _: Option<Finite<f64>>) {}
-    fn PassNullableString(&self, _: Option<RootedDOMString>) {}
+    fn PassNullableString(&self, _: Option<RootedDomString>) {}
     fn PassNullableUsvstring(&self, _: Option<USVString>) {}
     fn PassNullableByteString(&self, _: Option<ByteString>) {}
     // fn PassNullableEnum(self, _: Option<TestEnum>) {}
@@ -797,7 +797,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOptionalFloat(&self, _: Option<Finite<f32>>) {}
     fn PassOptionalUnrestrictedDouble(&self, _: Option<f64>) {}
     fn PassOptionalDouble(&self, _: Option<Finite<f64>>) {}
-    fn PassOptionalString(&self, _: Option<RootedDOMString>) {}
+    fn PassOptionalString(&self, _: Option<RootedDomString>) {}
     fn PassOptionalUsvstring(&self, _: Option<USVString>) {}
     fn PassOptionalByteString(&self, _: Option<ByteString>) {}
     fn PassOptionalEnum(&self, _: Option<TestEnum>) {}
@@ -827,7 +827,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOptionalNullableFloat(&self, _: Option<Option<Finite<f32>>>) {}
     fn PassOptionalNullableUnrestrictedDouble(&self, _: Option<Option<f64>>) {}
     fn PassOptionalNullableDouble(&self, _: Option<Option<Finite<f64>>>) {}
-    fn PassOptionalNullableString(&self, _: Option<Option<RootedDOMString>>) {}
+    fn PassOptionalNullableString(&self, _: Option<Option<RootedDomString>>) {}
     fn PassOptionalNullableUsvstring(&self, _: Option<Option<USVString>>) {}
     fn PassOptionalNullableByteString(&self, _: Option<Option<ByteString>>) {}
     // fn PassOptionalNullableEnum(self, _: Option<Option<TestEnum>>) {}
@@ -856,7 +856,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOptionalUnsignedLongWithDefault(&self, _: u32) {}
     fn PassOptionalLongLongWithDefault(&self, _: i64) {}
     fn PassOptionalUnsignedLongLongWithDefault(&self, _: u64) {}
-    fn PassOptionalStringWithDefault(&self, _: RootedDOMString) {}
+    fn PassOptionalStringWithDefault(&self, _: RootedDomString) {}
     fn PassOptionalUsvstringWithDefault(&self, _: USVString) {}
     fn PassOptionalBytestringWithDefault(&self, _: ByteString) {}
     fn PassOptionalEnumWithDefault(&self, _: TestEnum) {}
@@ -875,7 +875,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     // fn PassOptionalNullableFloatWithDefault(self, _: Option<Finite<f32>>) {}
     // fn PassOptionalNullableUnrestrictedDoubleWithDefault(self, _: Option<f64>) {}
     // fn PassOptionalNullableDoubleWithDefault(self, _: Option<Finite<f64>>) {}
-    fn PassOptionalNullableStringWithDefault(&self, _: Option<RootedDOMString>) {}
+    fn PassOptionalNullableStringWithDefault(&self, _: Option<RootedDomString>) {}
     fn PassOptionalNullableUsvstringWithDefault(&self, _: Option<USVString>) {}
     fn PassOptionalNullableByteStringWithDefault(&self, _: Option<ByteString>) {}
     // fn PassOptionalNullableEnumWithDefault(self, _: Option<TestEnum>) {}
@@ -905,7 +905,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     // fn PassOptionalNullableFloatWithNonNullDefault(self, _: Option<Finite<f32>>) {}
     // fn PassOptionalNullableUnrestrictedDoubleWithNonNullDefault(self, _: Option<f64>) {}
     // fn PassOptionalNullableDoubleWithNonNullDefault(self, _: Option<Finite<f64>>) {}
-    fn PassOptionalNullableStringWithNonNullDefault(&self, _: Option<RootedDOMString>) {}
+    fn PassOptionalNullableStringWithNonNullDefault(&self, _: Option<RootedDomString>) {}
     fn PassOptionalNullableUsvstringWithNonNullDefault(&self, _: Option<USVString>) {}
     // fn PassOptionalNullableEnumWithNonNullDefault(self, _: Option<TestEnum>) {}
     fn PassOptionalOverloaded(&self, a: &TestBinding, _: u32, _: u32) -> DomRoot<TestBinding> {
@@ -927,7 +927,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassVariadicFloat(&self, _: Vec<Finite<f32>>) {}
     fn PassVariadicUnrestrictedDouble(&self, _: Vec<f64>) {}
     fn PassVariadicDouble(&self, _: Vec<Finite<f64>>) {}
-    fn PassVariadicString(&self, _: Vec<RootedDOMString>) {}
+    fn PassVariadicString(&self, _: Vec<RootedDomString>) {}
     fn PassVariadicUsvstring(&self, _: Vec<USVString>) {}
     fn PassVariadicByteString(&self, _: Vec<ByteString>) {}
     fn PassVariadicEnum(&self, _: Vec<TestEnum>) {}
@@ -941,13 +941,13 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassVariadicUnion7(&self, _: Vec<ByteStringOrLong>) {}
     fn PassVariadicAny(&self, _: Vec<HandleValue>) {}
     fn PassVariadicObject(&self, _: Vec<*mut JSObject>) {}
-    fn BooleanMozPreference(&self, pref_name: RootedDOMString) -> bool {
+    fn BooleanMozPreference(&self, pref_name: RootedDomString) -> bool {
         prefs::get()
             .get_value(&pref_name.str())
             .try_into()
             .unwrap_or(false)
     }
-    fn StringMozPreference(&self, pref_name: RootedDOMString) -> RootedDOMString {
+    fn StringMozPreference(&self, pref_name: RootedDomString) -> RootedDomString {
         let string: String = prefs::get()
             .get_value(&pref_name.str())
             .try_into()
@@ -971,41 +971,41 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
 
-    fn PassRecordPromise(&self, _: Record<RootedDOMString, RootedPromise>) {}
-    fn PassRecord(&self, _: Record<RootedDOMString, i32>) {}
+    fn PassRecordPromise(&self, _: Record<RootedDomString, RootedPromise>) {}
+    fn PassRecord(&self, _: Record<RootedDomString, i32>) {}
     fn PassRecordWithUSVStringKey(&self, _: Record<USVString, i32>) {}
     fn PassRecordWithByteStringKey(&self, _: Record<ByteString, i32>) {}
-    fn PassNullableRecord(&self, _: Option<Record<RootedDOMString, i32>>) {}
-    fn PassRecordOfNullableInts(&self, _: Record<RootedDOMString, Option<i32>>) {}
-    fn PassOptionalRecordOfNullableInts(&self, _: Option<Record<RootedDOMString, Option<i32>>>) {}
+    fn PassNullableRecord(&self, _: Option<Record<RootedDomString, i32>>) {}
+    fn PassRecordOfNullableInts(&self, _: Record<RootedDomString, Option<i32>>) {}
+    fn PassOptionalRecordOfNullableInts(&self, _: Option<Record<RootedDomString, Option<i32>>>) {}
     fn PassOptionalNullableRecordOfNullableInts(
         &self,
-        _: Option<Option<Record<RootedDOMString, Option<i32>>>>,
+        _: Option<Option<Record<RootedDomString, Option<i32>>>>,
     ) {
     }
-    fn PassCastableObjectRecord(&self, _: Record<RootedDOMString, DomRoot<TestBinding>>) {}
+    fn PassCastableObjectRecord(&self, _: Record<RootedDomString, DomRoot<TestBinding>>) {}
     fn PassNullableCastableObjectRecord(
         &self,
-        _: Record<RootedDOMString, Option<DomRoot<TestBinding>>>,
+        _: Record<RootedDomString, Option<DomRoot<TestBinding>>>,
     ) {
     }
     fn PassCastableObjectNullableRecord(
         &self,
-        _: Option<Record<RootedDOMString, DomRoot<TestBinding>>>,
+        _: Option<Record<RootedDomString, DomRoot<TestBinding>>>,
     ) {
     }
     fn PassNullableCastableObjectNullableRecord(
         &self,
-        _: Option<Record<RootedDOMString, Option<DomRoot<TestBinding>>>>,
+        _: Option<Record<RootedDomString, Option<DomRoot<TestBinding>>>>,
     ) {
     }
-    fn PassOptionalRecord(&self, _: Option<Record<RootedDOMString, i32>>) {}
-    fn PassOptionalNullableRecord(&self, _: Option<Option<Record<RootedDOMString, i32>>>) {}
-    fn PassOptionalNullableRecordWithDefaultValue(&self, _: Option<Record<RootedDOMString, i32>>) {}
-    fn PassOptionalObjectRecord(&self, _: Option<Record<RootedDOMString, DomRoot<TestBinding>>>) {}
-    fn PassStringRecord(&self, _: Record<RootedDOMString, RootedDOMString>) {}
-    fn PassByteStringRecord(&self, _: Record<RootedDOMString, ByteString>) {}
-    fn PassRecordOfRecords(&self, _: Record<RootedDOMString, Record<RootedDOMString, i32>>) {}
+    fn PassOptionalRecord(&self, _: Option<Record<RootedDomString, i32>>) {}
+    fn PassOptionalNullableRecord(&self, _: Option<Option<Record<RootedDomString, i32>>>) {}
+    fn PassOptionalNullableRecordWithDefaultValue(&self, _: Option<Record<RootedDomString, i32>>) {}
+    fn PassOptionalObjectRecord(&self, _: Option<Record<RootedDomString, DomRoot<TestBinding>>>) {}
+    fn PassStringRecord(&self, _: Record<RootedDomString, RootedDomString>) {}
+    fn PassByteStringRecord(&self, _: Record<RootedDomString, ByteString>) {}
+    fn PassRecordOfRecords(&self, _: Record<RootedDomString, Record<RootedDomString, i32>>) {}
     fn PassRecordUnion(&self, _: UnionTypes::LongOrStringByteStringRecord) {}
     fn PassRecordUnion2(&self, _: UnionTypes::TestBindingOrStringByteStringRecord) {}
     fn PassRecordUnion3(
@@ -1013,7 +1013,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         _: UnionTypes::TestBindingOrByteStringSequenceSequenceOrStringByteStringRecord,
     ) {
     }
-    fn ReceiveRecord(&self) -> Record<RootedDOMString, i32> {
+    fn ReceiveRecord(&self) -> Record<RootedDomString, i32> {
         Record::new()
     }
     fn ReceiveRecordWithUSVStringKey(&self) -> Record<USVString, i32> {
@@ -1022,19 +1022,19 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ReceiveRecordWithByteStringKey(&self) -> Record<ByteString, i32> {
         Record::new()
     }
-    fn ReceiveNullableRecord(&self) -> Option<Record<RootedDOMString, i32>> {
+    fn ReceiveNullableRecord(&self) -> Option<Record<RootedDomString, i32>> {
         Some(Record::new())
     }
-    fn ReceiveRecordOfNullableInts(&self) -> Record<RootedDOMString, Option<i32>> {
+    fn ReceiveRecordOfNullableInts(&self) -> Record<RootedDomString, Option<i32>> {
         Record::new()
     }
-    fn ReceiveNullableRecordOfNullableInts(&self) -> Option<Record<RootedDOMString, Option<i32>>> {
+    fn ReceiveNullableRecordOfNullableInts(&self) -> Option<Record<RootedDomString, Option<i32>>> {
         Some(Record::new())
     }
-    fn ReceiveRecordOfRecords(&self) -> Record<RootedDOMString, Record<RootedDOMString, i32>> {
+    fn ReceiveRecordOfRecords(&self) -> Record<RootedDomString, Record<RootedDomString, i32>> {
         Record::new()
     }
-    fn ReceiveAnyRecord(&self) -> Record<RootedDOMString, JSVal> {
+    fn ReceiveAnyRecord(&self) -> Record<RootedDomString, JSVal> {
         Record::new()
     }
 
@@ -1062,7 +1062,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         &self,
         cx: &mut JSContext,
         p: &Promise,
-        value: RootedDOMString,
+        value: RootedDomString,
         delay: u64,
     ) {
         let promise = p.duplicate(cx);
@@ -1156,8 +1156,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     fn GetDictionaryWithParent(
         &self,
-        s1: RootedDOMString,
-        s2: RootedDOMString,
+        s1: RootedDomString,
+        s2: RootedDomString,
     ) -> TestDictionaryWithParent {
         TestDictionaryWithParent {
             parent: TestDictionaryParent {
@@ -1236,7 +1236,7 @@ impl TestBinding {
 pub(crate) struct TestBindingCallback {
     #[ignore_malloc_size_of = "unclear ownership semantics"]
     promise: TrustedPromise,
-    value: RootedDOMString,
+    value: RootedDomString,
 }
 
 impl TestBindingCallback {

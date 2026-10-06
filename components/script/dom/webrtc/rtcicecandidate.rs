@@ -12,24 +12,24 @@ use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::window::Window;
 
 #[dom_struct]
 pub(crate) struct RTCIceCandidate {
     reflector: Reflector,
-    candidate: RootedDOMString,
-    sdp_m_id: Option<RootedDOMString>,
+    candidate: RootedDomString,
+    sdp_m_id: Option<RootedDomString>,
     sdp_m_line_index: Option<u16>,
-    username_fragment: Option<RootedDOMString>,
+    username_fragment: Option<RootedDomString>,
 }
 
 impl RTCIceCandidate {
     pub(crate) fn new_inherited(
-        candidate: RootedDOMString,
-        sdp_m_id: Option<RootedDOMString>,
+        candidate: RootedDomString,
+        sdp_m_id: Option<RootedDomString>,
         sdp_m_line_index: Option<u16>,
-        username_fragment: Option<RootedDOMString>,
+        username_fragment: Option<RootedDomString>,
     ) -> RTCIceCandidate {
         RTCIceCandidate {
             reflector: Reflector::new(),
@@ -43,10 +43,10 @@ impl RTCIceCandidate {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
-        candidate: RootedDOMString,
-        sdp_m_id: Option<RootedDOMString>,
+        candidate: RootedDomString,
+        sdp_m_id: Option<RootedDomString>,
         sdp_m_line_index: Option<u16>,
-        username_fragment: Option<RootedDOMString>,
+        username_fragment: Option<RootedDomString>,
     ) -> DomRoot<RTCIceCandidate> {
         Self::new_with_proto(
             cx,
@@ -63,10 +63,10 @@ impl RTCIceCandidate {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        candidate: RootedDOMString,
-        sdp_m_id: Option<RootedDOMString>,
+        candidate: RootedDomString,
+        sdp_m_id: Option<RootedDomString>,
         sdp_m_line_index: Option<u16>,
-        username_fragment: Option<RootedDOMString>,
+        username_fragment: Option<RootedDomString>,
     ) -> DomRoot<RTCIceCandidate> {
         reflect_dom_object_with_proto(
             cx,
@@ -107,12 +107,12 @@ impl RTCIceCandidateMethods<crate::DomTypeHolder> for RTCIceCandidate {
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-candidate>
-    fn Candidate(&self) -> RootedDOMString {
+    fn Candidate(&self) -> RootedDomString {
         self.candidate.clone()
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-sdpmid>
-    fn GetSdpMid(&self) -> Option<RootedDOMString> {
+    fn GetSdpMid(&self) -> Option<RootedDomString> {
         self.sdp_m_id.clone()
     }
 
@@ -122,7 +122,7 @@ impl RTCIceCandidateMethods<crate::DomTypeHolder> for RTCIceCandidate {
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-usernamefragment>
-    fn GetUsernameFragment(&self) -> Option<RootedDOMString> {
+    fn GetUsernameFragment(&self) -> Option<RootedDomString> {
         self.username_fragment.clone()
     }
 

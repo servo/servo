@@ -7,7 +7,7 @@ use script_bindings::reflector::Reflector;
 
 use crate::dom::bindings::codegen::Bindings::MimeTypeBinding::MimeTypeMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::plugin::Plugin;
 
 #[dom_struct]
@@ -17,17 +17,17 @@ pub(crate) struct MimeType {
 
 impl MimeTypeMethods<crate::DomTypeHolder> for MimeType {
     /// <https://html.spec.whatwg.org/multipage/#dom-mimetype-type>
-    fn Type(&self) -> RootedDOMString {
+    fn Type(&self) -> RootedDomString {
         unreachable!()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-mimetype-description>
-    fn Description(&self) -> RootedDOMString {
+    fn Description(&self) -> RootedDomString {
         unreachable!()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-mimetype-suffixes>
-    fn Suffixes(&self) -> RootedDOMString {
+    fn Suffixes(&self) -> RootedDomString {
         unreachable!()
     }
 

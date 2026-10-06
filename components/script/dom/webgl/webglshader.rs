@@ -32,7 +32,7 @@ use {
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum ShaderCompilationStatus {
@@ -77,8 +77,8 @@ impl Drop for DroppableWebGLShader {
 pub(crate) struct WebGLShader {
     webgl_object: WebGLObject,
     gl_type: u32,
-    source: DomRefCell<RootedDOMString>,
-    info_log: DomRefCell<RootedDOMString>,
+    source: DomRefCell<RootedDomString>,
+    info_log: DomRefCell<RootedDomString>,
     attached_counter: Cell<u32>,
     compilation_status: Cell<ShaderCompilationStatus>,
     droppable: DroppableWebGLShader,
@@ -299,17 +299,17 @@ impl WebGLShader {
     }
 
     /// glGetShaderInfoLog
-    pub(crate) fn info_log(&self) -> RootedDOMString {
+    pub(crate) fn info_log(&self) -> RootedDomString {
         self.info_log.borrow().clone()
     }
 
     /// Get the shader source
-    pub(crate) fn source(&self) -> RootedDOMString {
+    pub(crate) fn source(&self) -> RootedDomString {
         self.source.borrow().clone()
     }
 
     /// glShaderSource
-    pub(crate) fn set_source(&self, source: RootedDOMString) {
+    pub(crate) fn set_source(&self, source: RootedDomString) {
         *self.source.borrow_mut() = source;
     }
 

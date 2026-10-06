@@ -73,7 +73,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, UnrootedDom};
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
@@ -2771,17 +2771,17 @@ impl HTMLMediaElement {
 
             // Step 1. Create an AudioTrack object to represent the audio track.
             let kind = match i {
-                0 => RootedDOMString::from_static("main"),
-                _ => RootedDOMString::new(),
+                0 => RootedDomString::from_static("main"),
+                _ => RootedDomString::new(),
             };
 
             let audio_track = AudioTrack::new(
                 cx,
                 self.global().as_window(),
-                RootedDOMString::new(),
+                RootedDomString::new(),
                 kind,
-                RootedDOMString::new(),
-                RootedDOMString::new(),
+                RootedDomString::new(),
+                RootedDomString::new(),
                 Some(&*audio_track_list),
             );
 
@@ -2838,17 +2838,17 @@ impl HTMLMediaElement {
 
             // Step 1. Create a VideoTrack object to represent the video track.
             let kind = match i {
-                0 => RootedDOMString::from_static("main"),
-                _ => RootedDOMString::new(),
+                0 => RootedDomString::from_static("main"),
+                _ => RootedDomString::new(),
             };
 
             let video_track = VideoTrack::new(
                 cx,
                 self.global().as_window(),
-                RootedDOMString::new(),
+                RootedDomString::new(),
                 kind,
-                RootedDOMString::new(),
-                RootedDOMString::new(),
+                RootedDomString::new(),
+                RootedDomString::new(),
                 Some(&*video_track_list),
             );
 
@@ -3238,7 +3238,7 @@ impl HTMLMediaElement {
         *self.media_controls_id.borrow_mut() = Some(id);
         script
             .upcast::<Node>()
-            .set_text_content_for_element(cx, Some(RootedDOMString::from(media_controls_script)));
+            .set_text_content_for_element(cx, Some(RootedDomString::from(media_controls_script)));
         if let Err(e) = shadow_root
             .upcast::<Node>()
             .AppendChild(cx, script.upcast::<Node>())
@@ -3259,7 +3259,7 @@ impl HTMLMediaElement {
 
         style
             .upcast::<Node>()
-            .set_text_content_for_element(cx, Some(RootedDOMString::from(MEDIA_CONTROL_CSS)));
+            .set_text_content_for_element(cx, Some(RootedDomString::from(MEDIA_CONTROL_CSS)));
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
@@ -3570,11 +3570,11 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     make_url_setter!(SetSrc, "src");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin>
-    fn GetCrossOrigin(&self) -> Option<RootedDOMString> {
+    fn GetCrossOrigin(&self) -> Option<RootedDomString> {
         reflect_cross_origin_attribute(self.upcast::<Element>())
     }
     /// <https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin>
-    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
+    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<RootedDomString>) {
         set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
@@ -3664,7 +3664,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype>
-    fn CanPlayType(&self, type_: RootedDOMString) -> CanPlayTypeResult {
+    fn CanPlayType(&self, type_: RootedDomString) -> CanPlayTypeResult {
         match ServoMedia::get().can_play_type(&type_.str()) {
             SupportsMediaType::No => CanPlayTypeResult::_empty,
             SupportsMediaType::Maybe => CanPlayTypeResult::Maybe,
@@ -3896,8 +3896,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         &self,
         cx: &mut JSContext,
         kind: TextTrackKind,
-        label: RootedDOMString,
-        language: RootedDOMString,
+        label: RootedDomString,
+        language: RootedDomString,
     ) -> DomRoot<TextTrack> {
         let window = self.owner_window();
         // Step 1. Create a new TextTrack object.
@@ -3909,7 +3909,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         let track = TextTrack::new(
             cx,
             &window,
-            RootedDOMString::new(),
+            RootedDomString::new(),
             kind,
             label,
             language,

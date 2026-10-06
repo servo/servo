@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, UnrootedDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmltrackelement::HTMLTrackElement;
@@ -33,11 +33,11 @@ pub(crate) struct TextTrack {
     /// <https://html.spec.whatwg.org/multipage/#text-track-kind>
     kind: Cell<TextTrackKind>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-label>
-    label: DomRefCell<RootedDOMString>,
+    label: DomRefCell<RootedDomString>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-language>
-    language: DomRefCell<RootedDOMString>,
+    language: DomRefCell<RootedDomString>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-identifier>
-    id: DomRefCell<RootedDOMString>,
+    id: DomRefCell<RootedDomString>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-mode>
     mode: Cell<TextTrackMode>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-list-of-cues>
@@ -53,10 +53,10 @@ pub(crate) struct TextTrack {
 
 impl TextTrack {
     pub(crate) fn new_inherited(
-        id: RootedDOMString,
+        id: RootedDomString,
         kind: TextTrackKind,
-        label: RootedDOMString,
-        language: RootedDOMString,
+        label: RootedDomString,
+        language: RootedDomString,
         mode: TextTrackMode,
         track_list: Option<&TextTrackList>,
     ) -> TextTrack {
@@ -79,10 +79,10 @@ impl TextTrack {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
-        id: RootedDOMString,
+        id: RootedDomString,
         kind: TextTrackKind,
-        label: RootedDOMString,
-        language: RootedDOMString,
+        label: RootedDomString,
+        language: RootedDomString,
         mode: TextTrackMode,
         track_list: Option<&TextTrackList>,
     ) -> DomRoot<TextTrack> {
@@ -120,7 +120,7 @@ impl TextTrack {
         active_cue_list
     }
 
-    pub(crate) fn id(&self) -> Ref<'_, RootedDOMString> {
+    pub(crate) fn id(&self) -> Ref<'_, RootedDomString> {
         self.id.borrow()
     }
 
@@ -178,7 +178,7 @@ impl TextTrack {
         *self.id.borrow_mut() = track_element
             .upcast::<Element>()
             .get_id()
-            .map(|value| RootedDOMString::from(&*value))
+            .map(|value| RootedDomString::from(&*value))
             .unwrap_or_default();
     }
 
@@ -235,17 +235,17 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-label>
-    fn Label(&self) -> RootedDOMString {
+    fn Label(&self) -> RootedDomString {
         self.label.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-language>
-    fn Language(&self) -> RootedDOMString {
+    fn Language(&self) -> RootedDomString {
         self.language.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-id>
-    fn Id(&self) -> RootedDOMString {
+    fn Id(&self) -> RootedDomString {
         self.id.borrow().clone()
     }
 

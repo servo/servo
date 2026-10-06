@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourceEventBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 use crate::dom::xrframe::XRFrame;
@@ -80,7 +80,7 @@ impl XRInputSourceEventMethods<crate::DomTypeHolder> for XRInputSourceEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: RootedDOMString,
+        type_: RootedDomString,
         init: &XRInputSourceEventBinding::XRInputSourceEventInit,
     ) -> Fallible<DomRoot<XRInputSourceEvent>> {
         Ok(XRInputSourceEvent::new_with_proto(

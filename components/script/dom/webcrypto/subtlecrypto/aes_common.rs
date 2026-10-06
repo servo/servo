@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
@@ -556,7 +556,7 @@ pub(crate) fn export_key(
             let mut jwk = JsonWebKey::default();
 
             // Step 2.2. Set the kty attribute of jwk to the string "oct".
-            jwk.kty = Some(RootedDOMString::from_static("oct"));
+            jwk.kty = Some(RootedDomString::from_static("oct"));
 
             // Step 2.3. Set the k attribute of jwk to be a string containing the raw octets of the
             // key represented by [[handle]] internal slot of key, encoded according to Section 6.4
@@ -597,7 +597,7 @@ pub(crate) fn export_key(
                             128, 192 or 256".to_string(),
                         )))
                     };
-                    jwk.alg = Some(RootedDOMString::from(alg));
+                    jwk.alg = Some(RootedDomString::from(alg));
                 },
                 AesAlgorithm::AesCbc => {
                     // Step 2.4.
@@ -622,7 +622,7 @@ pub(crate) fn export_key(
                             128, 192 or 256".to_string(),
                         )))
                     };
-                    jwk.alg = Some(RootedDOMString::from(alg));
+                    jwk.alg = Some(RootedDomString::from(alg));
                 },
                 AesAlgorithm::AesGcm => {
                     // Step 2.4.
@@ -647,7 +647,7 @@ pub(crate) fn export_key(
                             128, 192 or 256".to_string(),
                         )))
                     };
-                    jwk.alg = Some(RootedDOMString::from(alg));
+                    jwk.alg = Some(RootedDomString::from(alg));
                 },
                 AesAlgorithm::AesKw => {
                     // Step 2.4.
@@ -672,7 +672,7 @@ pub(crate) fn export_key(
                             128, 192 or 256".to_string(),
                         )))
                     };
-                    jwk.alg = Some(RootedDOMString::from(alg));
+                    jwk.alg = Some(RootedDomString::from(alg));
                 },
                 AesAlgorithm::AesOcb => {
                     // Step 2.4.
@@ -697,7 +697,7 @@ pub(crate) fn export_key(
                             128, 192 or 256".to_string(),
                         )))
                     };
-                    jwk.alg = Some(RootedDOMString::from(alg));
+                    jwk.alg = Some(RootedDomString::from(alg));
                 },
             }
 

@@ -21,7 +21,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::window::Window;
@@ -204,7 +204,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move |cx| {
                     let promise = trusted_promise.root(cx);
-                    let message = RootedDOMString::from_static("preempted");
+                    let message = RootedDomString::from_static("preempted");
                     promise.resolve_native(cx, &message);
                 }),
             );
@@ -273,7 +273,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move |cx| {
                     let promise = trusted_promise.root(cx);
-                    let message = RootedDOMString::from_static("preempted");
+                    let message = RootedDomString::from_static("preempted");
                     promise.resolve_native(cx, &message);
                 }),
             );
@@ -319,7 +319,7 @@ impl GamepadHapticActuator {
             .take()
             .map(|promise| promise.root(cx));
         if let Some(promise) = playing_effect_promise {
-            let message = RootedDOMString::from_static("complete");
+            let message = RootedDomString::from_static("complete");
             promise.resolve_native(cx, &message);
         }
     }
@@ -352,7 +352,7 @@ impl GamepadHapticActuator {
                         return;
                     }
                     let promise = trusted_promise.root(cx);
-                    let message = RootedDOMString::from_static("complete");
+                    let message = RootedDomString::from_static("complete");
                     promise.resolve_native(cx, &message);
                 })
             );
@@ -377,7 +377,7 @@ impl GamepadHapticActuator {
                 let Some(promise) = playing_effect_promise else {
                     return;
                 };
-                let message = RootedDOMString::from_static("preempted");
+                let message = RootedDomString::from_static("preempted");
                 promise.resolve_native(cx, &message);
             }),
         );

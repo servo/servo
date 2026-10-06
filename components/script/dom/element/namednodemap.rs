@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMe
 use crate::dom::bindings::domname::namespace_from_domstring;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::Element;
 use crate::dom::window::Window;
 
@@ -57,7 +57,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem>
-    fn GetNamedItem(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<DomRoot<Attr>> {
+    fn GetNamedItem(&self, cx: &mut JSContext, name: RootedDomString) -> Option<DomRoot<Attr>> {
         self.owner.get_attribute_by_name(cx, name)
     }
 
@@ -65,8 +65,8 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     fn GetNamedItemNS(
         &self,
         cx: &mut JSContext,
-        namespace: Option<RootedDOMString>,
-        local_name: RootedDOMString,
+        namespace: Option<RootedDomString>,
+        local_name: RootedDomString,
     ) -> Option<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner
@@ -87,7 +87,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     fn RemoveNamedItem(
         &self,
         cx: &mut JSContext,
-        name: RootedDOMString,
+        name: RootedDomString,
     ) -> Fallible<DomRoot<Attr>> {
         let name = self.owner.parsed_name(name);
         self.owner
@@ -99,8 +99,8 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     fn RemoveNamedItemNS(
         &self,
         cx: &mut JSContext,
-        namespace: Option<RootedDOMString>,
-        local_name: RootedDOMString,
+        namespace: Option<RootedDomString>,
+        local_name: RootedDomString,
     ) -> Fallible<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner
@@ -114,12 +114,12 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<DomRoot<Attr>> {
+    fn NamedGetter(&self, cx: &mut JSContext, name: RootedDomString) -> Option<DomRoot<Attr>> {
         self.GetNamedItem(cx, name)
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
-    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDomString> {
         let mut names = vec![];
         let html_element_in_html_document = self.owner.html_element_in_html_document();
         for attr in self.owner.attrs().borrow().iter() {
@@ -129,7 +129,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
             }
 
             if !names.iter().any(|name| name == s) {
-                names.push(RootedDOMString::from(s));
+                names.push(RootedDomString::from(s));
             }
         }
         names

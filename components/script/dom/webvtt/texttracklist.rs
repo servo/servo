@@ -13,7 +13,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, UnrootedDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
@@ -176,7 +176,7 @@ impl TextTrackListMethods<crate::DomTypeHolder> for TextTrackList {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttracklist-gettrackbyid>
-    fn GetTrackById(&self, no_gc: &NoGC, id: RootedDOMString) -> Option<DomRoot<TextTrack>> {
+    fn GetTrackById(&self, no_gc: &NoGC, id: RootedDomString) -> Option<DomRoot<TextTrack>> {
         // > The getTrackById(id) method must return the first TextTrack in
         // > the TextTrackList object whose id IDL attribute would return
         // > a value equal to the value of the id argument.

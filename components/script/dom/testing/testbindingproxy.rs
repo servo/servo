@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::context::NoGC;
 
 use crate::dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::testbinding::TestBinding;
 
 #[dom_struct]
@@ -20,28 +20,28 @@ impl TestBindingProxyMethods<crate::DomTypeHolder> for TestBindingProxy {
     fn Length(&self) -> u32 {
         0
     }
-    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDomString> {
         vec![]
     }
-    fn GetNamedItem(&self, _: RootedDOMString) -> RootedDOMString {
-        RootedDOMString::new()
+    fn GetNamedItem(&self, _: RootedDomString) -> RootedDomString {
+        RootedDomString::new()
     }
-    fn SetNamedItem(&self, _: RootedDOMString, _: RootedDOMString) {}
-    fn GetItem(&self, _: u32) -> RootedDOMString {
-        RootedDOMString::new()
+    fn SetNamedItem(&self, _: RootedDomString, _: RootedDomString) {}
+    fn GetItem(&self, _: u32) -> RootedDomString {
+        RootedDomString::new()
     }
-    fn SetItem(&self, _: u32, _: RootedDOMString) {}
-    fn RemoveItem(&self, _: RootedDOMString) {}
-    fn Stringifier(&self) -> RootedDOMString {
-        RootedDOMString::new()
+    fn SetItem(&self, _: u32, _: RootedDomString) {}
+    fn RemoveItem(&self, _: RootedDomString) {}
+    fn Stringifier(&self) -> RootedDomString {
+        RootedDomString::new()
     }
-    fn IndexedGetter(&self, _: u32) -> Option<RootedDOMString> {
+    fn IndexedGetter(&self, _: u32) -> Option<RootedDomString> {
         None
     }
-    fn NamedDeleter(&self, _: RootedDOMString) {}
-    fn IndexedSetter(&self, _: u32, _: RootedDOMString) {}
-    fn NamedSetter(&self, _: RootedDOMString, _: RootedDOMString) {}
-    fn NamedGetter(&self, _: RootedDOMString) -> Option<RootedDOMString> {
+    fn NamedDeleter(&self, _: RootedDomString) {}
+    fn IndexedSetter(&self, _: u32, _: RootedDomString) {}
+    fn NamedSetter(&self, _: RootedDomString, _: RootedDomString) {}
+    fn NamedGetter(&self, _: RootedDomString) -> Option<RootedDomString> {
         None
     }
 }

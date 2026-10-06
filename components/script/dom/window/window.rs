@@ -137,7 +137,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{
     CustomTraceable, HashMapTracedValues, JSTraceable, RootedTraceableBox,
@@ -313,7 +313,7 @@ pub(crate) struct Window {
     local_storage: MutNullableDom<Storage>,
     /// <https://cookiestore.spec.whatwg.org/#globals>
     cookie_store: MutNullableDom<CookieStore>,
-    status: DomRefCell<RootedDOMString>,
+    status: DomRefCell<RootedDomString>,
     trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
     /// The start of something resembling
@@ -1101,7 +1101,7 @@ impl ResourceTimingListener for FontFetchListener {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#atob>
-pub(crate) fn base64_btoa(input: RootedDOMString) -> Fallible<RootedDOMString> {
+pub(crate) fn base64_btoa(input: RootedDomString) -> Fallible<RootedDomString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
     //  is greater than U+00FF."
@@ -1123,12 +1123,12 @@ pub(crate) fn base64_btoa(input: RootedDOMString) -> Fallible<RootedDOMString> {
         let config =
             base64::engine::general_purpose::GeneralPurposeConfig::new().with_encode_padding(true);
         let engine = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
-        Ok(RootedDOMString::from(engine.encode(octets)))
+        Ok(RootedDomString::from(engine.encode(octets)))
     }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#atob>
-pub(crate) fn base64_atob(input: RootedDOMString) -> Fallible<RootedDOMString> {
+pub(crate) fn base64_atob(input: RootedDomString) -> Fallible<RootedDomString> {
     // "Remove all space characters from input."
     fn is_html_space(c: char) -> bool {
         HTML_SPACE_CHARACTERS.contains(&c)
@@ -1187,11 +1187,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn Alert_(&self) {
         // Step 2: If the method was invoked with no arguments, then let message be the
         // empty string; otherwise, let message be the method's first argument.
-        self.Alert(RootedDOMString::new());
+        self.Alert(RootedDomString::new());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-alert>
-    fn Alert(&self, mut message: RootedDOMString) {
+    fn Alert(&self, mut message: RootedDomString) {
         // Step 1: If we cannot show simple dialogs for this, then return.
         if self.cannot_show_simple_dialogs() {
             return;
@@ -1250,7 +1250,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-confirm>
-    fn Confirm(&self, mut message: RootedDOMString) -> bool {
+    fn Confirm(&self, mut message: RootedDomString) -> bool {
         // Step 1: If we cannot show simple dialogs for this, then return false.
         if self.cannot_show_simple_dialogs() {
             return false;
@@ -1301,9 +1301,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-prompt>
     fn Prompt(
         &self,
-        mut message: RootedDOMString,
-        default: RootedDOMString,
-    ) -> Option<RootedDOMString> {
+        mut message: RootedDomString,
+        default: RootedDomString,
+    ) -> Option<RootedDomString> {
         // Step 1: If we cannot show simple dialogs for this, then return null.
         if self.cannot_show_simple_dialogs() {
             return None;
@@ -1403,8 +1403,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         url: USVString,
-        target: RootedDOMString,
-        features: RootedDOMString,
+        target: RootedDomString,
+        features: RootedDomString,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         self.window_proxy().open(cx, url, target, features)
     }
@@ -1836,12 +1836,12 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa>
-    fn Btoa(&self, btoa: RootedDOMString) -> Fallible<RootedDOMString> {
+    fn Btoa(&self, btoa: RootedDomString) -> Fallible<RootedDomString> {
         base64_btoa(btoa)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-atob>
-    fn Atob(&self, atob: RootedDOMString) -> Fallible<RootedDOMString> {
+    fn Atob(&self, atob: RootedDomString) -> Fallible<RootedDomString> {
         base64_atob(atob)
     }
 
@@ -1919,11 +1919,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // This method intentionally does nothing
     }
 
-    fn WebdriverElement(&self, id: RootedDOMString) -> Option<DomRoot<Element>> {
+    fn WebdriverElement(&self, id: RootedDomString) -> Option<DomRoot<Element>> {
         find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
 
-    fn WebdriverFrame(&self, browsing_context_id: RootedDOMString) -> Option<DomRoot<WindowProxy>> {
+    fn WebdriverFrame(&self, browsing_context_id: RootedDomString) -> Option<DomRoot<WindowProxy>> {
         self.Document()
             .iframes()
             .iter()
@@ -1937,7 +1937,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .and_then(|iframe| iframe.GetContentWindow())
     }
 
-    fn WebdriverWindow(&self, webview_id: RootedDOMString) -> DomRoot<WindowProxy> {
+    fn WebdriverWindow(&self, webview_id: RootedDomString) -> DomRoot<WindowProxy> {
         let window_proxy = &self
             .window_proxy
             .get()
@@ -1950,7 +1950,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         DomRoot::from_ref(window_proxy)
     }
 
-    fn WebdriverShadowRoot(&self, id: RootedDOMString) -> Option<DomRoot<ShadowRoot>> {
+    fn WebdriverShadowRoot(&self, id: RootedDomString) -> Option<DomRoot<ShadowRoot>> {
         find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
 
@@ -1959,7 +1959,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         &self,
         cx: &mut JSContext,
         element: &Element,
-        pseudo: Option<RootedDOMString>,
+        pseudo: Option<RootedDomString>,
     ) -> DomRoot<CSSStyleDeclaration> {
         // Step 2: Let obj be elt.
         // We don't store CSSStyleOwner directly because it stores a `Dom` which must be
@@ -2219,17 +2219,17 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-status>
-    fn Status(&self) -> RootedDOMString {
+    fn Status(&self) -> RootedDomString {
         self.status.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-status>
-    fn SetStatus(&self, status: RootedDOMString) {
+    fn SetStatus(&self, status: RootedDomString) {
         *self.status.borrow_mut() = status
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-matchmedia>
-    fn MatchMedia(&self, cx: &mut JSContext, query: RootedDOMString) -> DomRoot<MediaQueryList> {
+    fn MatchMedia(&self, cx: &mut JSContext, query: RootedDomString) -> DomRoot<MediaQueryList> {
         let media_query_list = MediaList::parse_media_list(&query.str(), self);
         let document = self.Document();
         let mql = MediaQueryList::new(cx, &document, media_query_list);
@@ -2270,17 +2270,17 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-name>
-    fn SetName(&self, name: RootedDOMString) {
+    fn SetName(&self, name: RootedDomString) {
         if let Some(proxy) = self.undiscarded_window_proxy() {
             proxy.set_name(name);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-name>
-    fn Name(&self) -> RootedDOMString {
+    fn Name(&self) -> RootedDomString {
         match self.undiscarded_window_proxy() {
             Some(proxy) => proxy.get_name(),
-            None => RootedDOMString::new(),
+            None => RootedDomString::new(),
         }
     }
 
@@ -2306,7 +2306,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-nameditem>
-    fn NamedGetter(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<NamedPropertyValue> {
+    fn NamedGetter(&self, cx: &mut JSContext, name: RootedDomString) -> Option<NamedPropertyValue> {
         if name.is_empty() {
             return None;
         }
@@ -2396,7 +2396,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<RootedDOMString> {
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<RootedDomString> {
         self.Document().SupportedPropertyNames(no_gc)
     }
 
@@ -3137,12 +3137,12 @@ impl Window {
         element: TrustedNodeAddress,
         pseudo: Option<PseudoElement>,
         property: PropertyId,
-    ) -> RootedDOMString {
+    ) -> RootedDomString {
         self.layout_reflow(QueryMsg::ResolvedStyleQuery(property.clone()));
 
         let document = self.Document();
         let animations = document.animation_manager().sets();
-        RootedDOMString::from(self.layout.borrow().query_resolved_style(
+        RootedDomString::from(self.layout.borrow().query_resolved_style(
             element,
             pseudo,
             property,
@@ -3976,7 +3976,7 @@ impl Window {
             session_storage: Default::default(),
             local_storage: Default::default(),
             cookie_store: Default::default(),
-            status: DomRefCell::new(RootedDOMString::new()),
+            status: DomRefCell::new(RootedDomString::new()),
             parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DomRefCell::new(Some(runtime)),

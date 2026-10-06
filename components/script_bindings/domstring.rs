@@ -309,53 +309,53 @@ impl std::fmt::Debug for DOMStringType {
 #[repr(transparent)]
 #[derive(Debug, Default, MallocSizeOf, JSTraceable)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub struct TracedDOMString(RefCell<DOMStringType>);
+pub struct TracedDomString(RefCell<DOMStringType>);
 
 // TODO: Removed RootedTraceableBox if TracedDOMString is not a js type.
 #[derive(Default, MallocSizeOf, JSTraceable)]
-pub struct RootedDOMString(RootedTraceableBox<TracedDOMString>);
+pub struct RootedDomString(RootedTraceableBox<TracedDomString>);
 
-impl std::fmt::Debug for RootedDOMString {
+impl std::fmt::Debug for RootedDomString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("DOMString").field(&*self.0).finish()
     }
 }
 
-impl DerefMut for RootedDOMString {
+impl DerefMut for RootedDomString {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl Deref for RootedDOMString {
-    type Target = TracedDOMString;
+impl Deref for RootedDomString {
+    type Target = TracedDomString;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl Clone for TracedDOMString {
+impl Clone for TracedDomString {
     fn clone(&self) -> Self {
-        TracedDOMString(RefCell::new(DOMStringType::Rust(
+        TracedDomString(RefCell::new(DOMStringType::Rust(
             self.ensure_rust_string().clone(),
         )))
     }
 }
 
-impl Clone for RootedDOMString {
+impl Clone for RootedDomString {
     fn clone(&self) -> Self {
-        TracedDOMString(RefCell::new(DOMStringType::Rust(
+        TracedDomString(RefCell::new(DOMStringType::Rust(
             self.ensure_rust_string().clone(),
         )))
         .root()
     }
 }
 
-impl RootedDOMString {
+impl RootedDomString {
     /// Creates a new `DOMString`.
-    pub fn new() -> RootedDOMString {
-        TracedDOMString::default().root()
+    pub fn new() -> RootedDomString {
+        TracedDomString::default().root()
     }
 
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
@@ -365,7 +365,7 @@ impl RootedDOMString {
     pub fn from_js_string(
         cx: &mut JSContext,
         value: HandleValue,
-    ) -> Result<RootedDOMString, DOMStringErrorType> {
+    ) -> Result<RootedDomString, DOMStringErrorType> {
         // Step 1: If V is null
         // and the conversion is to an IDL type associated
         // with the [LegacyNullToEmptyString] extended attribute,
@@ -391,16 +391,16 @@ impl RootedDOMString {
                     jsstr_to_string(cx, NonNull::new(*string_ptr).unwrap())
                 })
             };
-            Ok(TracedDOMString(RefCell::new(inner)).root())
+            Ok(TracedDomString(RefCell::new(inner)).root())
         }
     }
 
     /// Creates a DOMString from a `&'static str` reference. More efficient than allocating the string.
-    pub fn from_static(s: &'static str) -> RootedDOMString {
-        TracedDOMString(RefCell::new(DOMStringType::RustStatic(s))).root()
+    pub fn from_static(s: &'static str) -> RootedDomString {
+        TracedDomString(RefCell::new(DOMStringType::RustStatic(s))).root()
     }
 
-    pub fn traced(self) -> TracedDOMString {
+    pub fn traced(self) -> TracedDomString {
         *self.0.into_box()
     }
 
@@ -413,16 +413,16 @@ pub enum DOMStringErrorType {
     JSConversionError,
 }
 
-impl From<String> for TracedDOMString {
+impl From<String> for TracedDomString {
     fn from(string: String) -> Self {
-        TracedDOMString(RefCell::new(DOMStringType::Rust(string)))
+        TracedDomString(RefCell::new(DOMStringType::Rust(string)))
     }
 }
 
-impl TracedDOMString {
+impl TracedDomString {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub fn root(self) -> RootedDOMString {
-        RootedDOMString(RootedTraceableBox::from_box(Box::new(self)))
+    pub fn root(self) -> RootedDomString {
+        RootedDomString(RootedTraceableBox::from_box(Box::new(self)))
     }
 
     /// Transforms the internal storage of this [`DOMString`] into a Rust string if it is not
@@ -647,9 +647,9 @@ impl TracedDOMString {
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub fn replace(self, needle: &str, replace_char: &str) -> RootedDOMString {
+    pub fn replace(self, needle: &str, replace_char: &str) -> RootedDomString {
         let new_string = self.str().to_owned();
-        TracedDOMString(RefCell::new(DOMStringType::Rust(
+        TracedDomString(RefCell::new(DOMStringType::Rust(
             new_string.replace(needle, replace_char),
         )))
         .root()
@@ -921,31 +921,31 @@ impl Deref for BytesView<'_> {
     }
 }
 
-impl Ord for TracedDOMString {
+impl Ord for TracedDomString {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.str().cmp(&other.str())
     }
 }
 
-impl PartialOrd for TracedDOMString {
+impl PartialOrd for TracedDomString {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.str().partial_cmp(&other.str())
     }
 }
 
-impl PartialOrd for RootedDOMString {
+impl PartialOrd for RootedDomString {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.0.partial_cmp(&other.0)
     }
 }
 
-impl Extend<char> for TracedDOMString {
+impl Extend<char> for TracedDomString {
     fn extend<T: IntoIterator<Item = char>>(&mut self, iter: T) {
         self.0.borrow_mut().ensure_rust_string().extend(iter)
     }
 }
 
-impl ToJSValConvertible for RootedDOMString {
+impl ToJSValConvertible for RootedDomString {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
         let val = self.0.0.borrow();
         match *val {
@@ -969,31 +969,31 @@ impl ToJSValConvertible for RootedDOMString {
     }
 }
 
-impl std::hash::Hash for TracedDOMString {
+impl std::hash::Hash for TracedDomString {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.str().hash(state);
     }
 }
 
-impl std::hash::Hash for RootedDOMString {
+impl std::hash::Hash for RootedDomString {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.str().hash(state);
     }
 }
 
-impl std::fmt::Display for TracedDOMString {
+impl std::fmt::Display for TracedDomString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self.str().deref(), f)
     }
 }
 
-impl std::fmt::Display for RootedDOMString {
+impl std::fmt::Display for RootedDomString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self.str().deref(), f)
     }
 }
 
-impl std::cmp::PartialEq<str> for TracedDOMString {
+impl std::cmp::PartialEq<str> for TracedDomString {
     fn eq(&self, other: &str) -> bool {
         if other.is_ascii() {
             // This is safe as the bytes do not leave this function and no GC can happen.
@@ -1005,62 +1005,62 @@ impl std::cmp::PartialEq<str> for TracedDOMString {
     }
 }
 
-impl std::cmp::PartialEq<str> for RootedDOMString {
+impl std::cmp::PartialEq<str> for RootedDomString {
     fn eq(&self, other: &str) -> bool {
         self.0.eq(other)
     }
 }
 
-impl std::cmp::PartialEq<&str> for TracedDOMString {
+impl std::cmp::PartialEq<&str> for TracedDomString {
     fn eq(&self, other: &&str) -> bool {
         self.eq(*other)
     }
 }
 
-impl std::cmp::PartialEq<&str> for RootedDOMString {
+impl std::cmp::PartialEq<&str> for RootedDomString {
     fn eq(&self, other: &&str) -> bool {
         self.0.eq(*other)
     }
 }
 
-impl std::cmp::PartialEq<String> for TracedDOMString {
+impl std::cmp::PartialEq<String> for TracedDomString {
     fn eq(&self, other: &String) -> bool {
         self.eq(other.as_str())
     }
 }
 
-impl std::cmp::PartialEq<String> for RootedDOMString {
+impl std::cmp::PartialEq<String> for RootedDomString {
     fn eq(&self, other: &String) -> bool {
         self.0.eq(other.as_str())
     }
 }
 
-impl std::cmp::PartialEq<TracedDOMString> for String {
-    fn eq(&self, other: &TracedDOMString) -> bool {
+impl std::cmp::PartialEq<TracedDomString> for String {
+    fn eq(&self, other: &TracedDomString) -> bool {
         other.eq(self)
     }
 }
 
-impl std::cmp::PartialEq<RootedDOMString> for String {
-    fn eq(&self, other: &RootedDOMString) -> bool {
+impl std::cmp::PartialEq<RootedDomString> for String {
+    fn eq(&self, other: &RootedDomString) -> bool {
         other.0.eq(self)
     }
 }
 
-impl std::cmp::PartialEq<TracedDOMString> for str {
-    fn eq(&self, other: &TracedDOMString) -> bool {
+impl std::cmp::PartialEq<TracedDomString> for str {
+    fn eq(&self, other: &TracedDomString) -> bool {
         other.eq(self)
     }
 }
 
-impl std::cmp::PartialEq<RootedDOMString> for str {
-    fn eq(&self, other: &RootedDOMString) -> bool {
+impl std::cmp::PartialEq<RootedDomString> for str {
+    fn eq(&self, other: &RootedDomString) -> bool {
         other.0.eq(self)
     }
 }
 
-impl std::cmp::PartialEq for TracedDOMString {
-    fn eq(&self, other: &TracedDOMString) -> bool {
+impl std::cmp::PartialEq for TracedDomString {
+    fn eq(&self, other: &TracedDomString) -> bool {
         let no_gc = unsafe { NoGC::new() };
         let result = match (self.encoded_bytes(&no_gc), other.encoded_bytes(&no_gc)) {
             (EncodedBytes::Latin1(bytes), EncodedBytes::Latin1(other_bytes)) => {
@@ -1090,56 +1090,56 @@ impl std::cmp::PartialEq for TracedDOMString {
     }
 }
 
-impl std::cmp::PartialEq for RootedDOMString {
+impl std::cmp::PartialEq for RootedDomString {
     fn eq(&self, other: &Self) -> bool {
         *self.0 == *other.0
     }
 }
 
-impl std::cmp::Eq for TracedDOMString {}
+impl std::cmp::Eq for TracedDomString {}
 
-impl std::cmp::Eq for RootedDOMString {}
+impl std::cmp::Eq for RootedDomString {}
 
-impl From<std::string::String> for RootedDOMString {
+impl From<std::string::String> for RootedDomString {
     fn from(string: String) -> Self {
-        TracedDOMString(RefCell::new(DOMStringType::Rust(string))).root()
+        TracedDomString(RefCell::new(DOMStringType::Rust(string))).root()
     }
 }
 
 /// If you have a static str use the provided `DOMString::from_static`.
-impl From<&str> for RootedDOMString {
+impl From<&str> for RootedDomString {
     fn from(string: &str) -> Self {
         String::from(string).into()
     }
 }
 
-impl From<RootedDOMString> for LocalName {
-    fn from(dom_string: RootedDOMString) -> LocalName {
+impl From<RootedDomString> for LocalName {
+    fn from(dom_string: RootedDomString) -> LocalName {
         dom_string.with_str_reference(|string| LocalName::from(string))
     }
 }
 
-impl From<&RootedDOMString> for LocalName {
-    fn from(dom_string: &RootedDOMString) -> LocalName {
+impl From<&RootedDomString> for LocalName {
+    fn from(dom_string: &RootedDomString) -> LocalName {
         dom_string.with_str_reference(|string| LocalName::from(string))
     }
 }
 
-impl From<RootedDOMString> for Namespace {
-    fn from(dom_string: RootedDOMString) -> Namespace {
+impl From<RootedDomString> for Namespace {
+    fn from(dom_string: RootedDomString) -> Namespace {
         dom_string.with_str_reference(|string| Namespace::from(string))
     }
 }
 
-impl From<RootedDOMString> for Atom {
-    fn from(dom_string: RootedDOMString) -> Atom {
+impl From<RootedDomString> for Atom {
+    fn from(dom_string: RootedDomString) -> Atom {
         dom_string.with_str_reference(|string| Atom::from(string))
     }
 }
 
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-impl From<TracedDOMString> for String {
-    fn from(val: TracedDOMString) -> Self {
+impl From<TracedDomString> for String {
+    fn from(val: TracedDomString) -> Self {
         val.ensure_rust_string();
         let inner = val.0.take();
         match inner {
@@ -1152,15 +1152,15 @@ impl From<TracedDOMString> for String {
     }
 }
 
-impl From<RootedDOMString> for String {
-    fn from(value: RootedDOMString) -> Self {
+impl From<RootedDomString> for String {
+    fn from(value: RootedDomString) -> Self {
         String::from(value.traced())
     }
 }
 
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-impl From<TracedDOMString> for Vec<u8> {
-    fn from(value: TracedDOMString) -> Self {
+impl From<TracedDomString> for Vec<u8> {
+    fn from(value: TracedDomString) -> Self {
         value.ensure_rust_string();
         let inner = value.0.take();
         match inner {
@@ -1173,25 +1173,25 @@ impl From<TracedDOMString> for Vec<u8> {
     }
 }
 
-impl From<RootedDOMString> for Vec<u8> {
-    fn from(value: RootedDOMString) -> Self {
+impl From<RootedDomString> for Vec<u8> {
+    fn from(value: RootedDomString) -> Self {
         Vec::<u8>::from(value.traced())
     }
 }
 
-impl From<Cow<'_, str>> for RootedDOMString {
+impl From<Cow<'_, str>> for RootedDomString {
     fn from(value: Cow<'_, str>) -> Self {
-        TracedDOMString(RefCell::new(DOMStringType::Rust(value.into_owned()))).root()
+        TracedDomString(RefCell::new(DOMStringType::Rust(value.into_owned()))).root()
     }
 }
 
-impl Zeroize for TracedDOMString {
+impl Zeroize for TracedDomString {
     fn zeroize(&mut self) {
         self.0.get_mut().zeroize();
     }
 }
 
-impl Zeroize for RootedDOMString {
+impl Zeroize for RootedDomString {
     fn zeroize(&mut self) {
         self.0.zeroize()
     }
@@ -1264,20 +1264,20 @@ mod tests {
     const UTF8_PILLCROW: [u8; 2] = [194, 182];
     const LATIN1_POWER2: u8 = 0xB2;
 
-    fn from_latin1(l1vec: Vec<u8>) -> RootedDOMString {
-        TracedDOMString(RefCell::new(DOMStringType::Latin1Vec(l1vec))).root()
+    fn from_latin1(l1vec: Vec<u8>) -> RootedDomString {
+        TracedDomString(RefCell::new(DOMStringType::Latin1Vec(l1vec))).root()
     }
 
     #[test]
     fn string_functions() {
-        let s = RootedDOMString::from("AbBcC❤&%$#");
+        let s = RootedDomString::from("AbBcC❤&%$#");
         let s_copy = s.clone();
         assert_eq!(s.to_ascii_lowercase(), "abbcc❤&%$#");
         assert_eq!(s, s_copy);
         assert_eq!(s.len_utf8().0, 12);
         assert_eq!(s_copy.len_utf8().0, 12);
         assert!(s.starts_with('A'));
-        let s2 = RootedDOMString::from("");
+        let s2 = RootedDomString::from("");
         assert!(s2.is_empty());
     }
 
@@ -1372,8 +1372,8 @@ mod tests {
     fn partial_eq() {
         let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$']);
         let string = String::from("abc%$");
-        let s2 = RootedDOMString::from(string.clone());
-        let s3 = RootedDOMString::from_static("abc%$");
+        let s2 = RootedDomString::from(string.clone());
+        let s3 = RootedDomString::from_static("abc%$");
         assert_eq!(s, s2);
         assert_eq!(s, string);
         assert_eq!(s, s3);
@@ -1409,7 +1409,7 @@ mod tests {
     #[test]
     fn test_hash() {
         use std::hash::{DefaultHasher, Hash, Hasher};
-        fn hash_value(d: &RootedDOMString) -> u64 {
+        fn hash_value(d: &RootedDomString) -> u64 {
             let mut hasher = DefaultHasher::new();
             d.hash(&mut hasher);
             hasher.finish()
@@ -1418,8 +1418,8 @@ mod tests {
         let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$', 0xB2]);
         let s_converted = from_latin1(vec![b'a', b'b', b'c', b'%', b'$', 0xB2]);
         s_converted.ensure_rust_string();
-        let s2 = RootedDOMString::from("abc%$²");
-        let s3 = RootedDOMString::from_static("abc%$²");
+        let s2 = RootedDomString::from("abc%$²");
+        let s3 = RootedDomString::from_static("abc%$²");
 
         let hash_s = hash_value(&s);
         let hash_s_converted = hash_value(&s_converted);
@@ -1463,7 +1463,7 @@ mod tests {
         }
 
         {
-            let s = RootedDOMString::from("abcde");
+            let s = RootedDomString::from("abcde");
             match_domstring_ascii!( s,
                 "abc" => assert!(false),
                 "bcd" => assert!(false),
@@ -1471,7 +1471,7 @@ mod tests {
             );
         }
         {
-            let s = RootedDOMString::from("abc%$");
+            let s = RootedDomString::from("abc%$");
             match_domstring_ascii!( s,
                 "bcd" => assert!(false),
                 "abc%$" => assert!(true),
@@ -1487,7 +1487,7 @@ mod tests {
             );
         }
         {
-            let s = RootedDOMString::from_static("abc");
+            let s = RootedDomString::from_static("abc");
             match_domstring_ascii!( s,
                 "abc" => assert!(true),
                 "bcd" => assert!(false),
@@ -1528,7 +1528,7 @@ mod tests {
         }
 
         {
-            let s = RootedDOMString::from("abcde");
+            let s = RootedDomString::from("abcde");
             let res = match_domstring_ascii!( s,
                 "abc" => false,
                 "bcd" => false,
@@ -1537,7 +1537,7 @@ mod tests {
             assert_eq!(res, true);
         }
         {
-            let s = RootedDOMString::from("abc%$");
+            let s = RootedDomString::from("abc%$");
             let res = match_domstring_ascii!( s,
                 "bcd" => false,
                 "abc%$" => true,
@@ -1560,7 +1560,7 @@ mod tests {
     #[cfg(debug_assertions)]
     #[should_panic]
     fn test_match_panic() {
-        let s = RootedDOMString::from("abcd");
+        let s = RootedDomString::from("abcd");
         let _res = match_domstring_ascii!(s,
             "❤" => true,
             _ => false,);
@@ -1570,7 +1570,7 @@ mod tests {
     #[cfg(debug_assertions)]
     #[should_panic]
     fn test_match_panic2() {
-        let s = RootedDOMString::from("abcd");
+        let s = RootedDomString::from("abcd");
         let _res = match_domstring_ascii!(s,
             "abc" => false,
             "❤" => true,
@@ -1590,14 +1590,14 @@ mod tests {
             assert_eq!(&*s.str(), "abc%$²");
         }
         {
-            let mut s = RootedDOMString::from("   \n  abc%$ ");
+            let mut s = RootedDomString::from("   \n  abc%$ ");
 
             s.strip_leading_and_trailing_ascii_whitespace();
             s.ensure_rust_string();
             assert_eq!(&*s.str(), "abc%$");
         }
         {
-            let mut s = RootedDOMString::from_static("   \n  abc%$ ");
+            let mut s = RootedDomString::from_static("   \n  abc%$ ");
 
             s.strip_leading_and_trailing_ascii_whitespace();
             s.ensure_rust_string();
@@ -1638,7 +1638,7 @@ mod tests {
         s.ensure_rust_string();
         assert!(!s.contains_html_space_characters());
 
-        let s = RootedDOMString::from_static("aba aaa");
+        let s = RootedDomString::from_static("aba aaa");
         assert!(s.contains_html_space_characters());
         s.ensure_rust_string();
         assert!(s.contains_html_space_characters());
@@ -1648,16 +1648,16 @@ mod tests {
     fn atom() {
         let s = from_latin1(vec![b'a', b'a', b'a', 0x20, b'a', b'a']);
         let atom1 = Atom::from(s);
-        let s2 = RootedDOMString::from("aaa aa");
+        let s2 = RootedDomString::from("aaa aa");
         let atom2 = Atom::from(s2);
         assert_eq!(atom1, atom2);
         let s3 = from_latin1(vec![b'a', b'a', b'a', 0xB2, b'a', b'a']);
         let atom3 = Atom::from(s3);
         assert_ne!(atom1, atom3);
-        let s3 = RootedDOMString::from_static("aaa\u{03B1}aa");
+        let s3 = RootedDomString::from_static("aaa\u{03B1}aa");
         let atom3 = Atom::from(s3);
         assert_ne!(atom1, atom3);
-        let s4 = RootedDOMString::from_static("aaa aa");
+        let s4 = RootedDomString::from_static("aaa aa");
         let atom4 = Atom::from(s4);
         assert_eq!(atom2, atom4);
     }
@@ -1666,13 +1666,13 @@ mod tests {
     fn namespace() {
         let s = from_latin1(vec![b'a', b'a', b'a', ASCII_SPACE, b'a', b'a']);
         let atom1 = Namespace::from(s);
-        let s2 = RootedDOMString::from("aaa aa");
+        let s2 = RootedDomString::from("aaa aa");
         let atom2 = Namespace::from(s2);
         assert_eq!(atom1, atom2);
         let s3 = from_latin1(vec![b'a', b'a', b'a', LATIN1_POWER2, b'a', b'a']);
         let atom3 = Namespace::from(s3);
         assert_ne!(atom1, atom3);
-        let s4 = RootedDOMString::from_static("aaa aa");
+        let s4 = RootedDomString::from_static("aaa aa");
         let atom4 = Namespace::from(s4);
         assert_eq!(atom2, atom4);
     }
@@ -1681,13 +1681,13 @@ mod tests {
     fn localname() {
         let s = from_latin1(vec![b'a', b'a', b'a', ASCII_SPACE, b'a', b'a']);
         let atom1 = LocalName::from(s);
-        let s2 = RootedDOMString::from("aaa aa");
+        let s2 = RootedDomString::from("aaa aa");
         let atom2 = LocalName::from(s2);
         assert_eq!(atom1, atom2);
         let s3 = from_latin1(vec![b'a', b'a', b'a', LATIN1_POWER2, b'a', b'a']);
         let atom3 = LocalName::from(s3);
         assert_ne!(atom1, atom3);
-        let s4 = RootedDOMString::from_static("aaa aa");
+        let s4 = RootedDomString::from_static("aaa aa");
         let atom4 = LocalName::from(s4);
         assert_eq!(atom2, atom4);
     }
@@ -1702,11 +1702,11 @@ mod tests {
         assert!(s.is_ascii_lowercase());
         let s = from_latin1(vec![b'`', b'a', b'a', b'a', b'z']);
         assert!(!s.is_ascii_lowercase());
-        let s = RootedDOMString::from("`aaaz");
+        let s = RootedDomString::from("`aaaz");
         assert!(!s.is_ascii_lowercase());
-        let s = RootedDOMString::from("aaaz");
+        let s = RootedDomString::from("aaaz");
         assert!(s.is_ascii_lowercase());
-        let s = RootedDOMString::from_static("aaaz");
+        let s = RootedDomString::from_static("aaaz");
         assert!(s.is_ascii_lowercase());
     }
 
@@ -1749,18 +1749,18 @@ mod tests {
         }
 
         let str = "abc%$²".to_owned();
-        let s = RootedDOMString::from(str.clone());
+        let s = RootedDomString::from(str.clone());
         {
             let no_gc = unsafe { NoGC::new() };
             assert_eq!(&*s.as_bytes(&no_gc), str.as_bytes());
         }
         let str = "AbBcC❤&%$#".to_owned();
-        let s = RootedDOMString::from(str.clone());
+        let s = RootedDomString::from(str.clone());
         {
             let no_gc = unsafe { NoGC::new() };
             assert_eq!(&*s.as_bytes(&no_gc), str.as_bytes());
         }
-        let s = RootedDOMString::from_static("AbBcC❤&%$#");
+        let s = RootedDomString::from_static("AbBcC❤&%$#");
 
         {
             let no_gc = unsafe { NoGC::new() };

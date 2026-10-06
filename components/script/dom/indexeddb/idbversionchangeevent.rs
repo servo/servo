@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::IDBVersionChangeEventBinding::{
 use crate::dom::bindings::import::module::HandleObject;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -130,7 +130,7 @@ impl IDBVersionChangeEventMethods<crate::DomTypeHolder> for IDBVersionChangeEven
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        type_: RootedDOMString,
+        type_: RootedDomString,
         init: &IDBVersionChangeEventInit,
     ) -> DomRoot<Self> {
         Self::new_with_proto(

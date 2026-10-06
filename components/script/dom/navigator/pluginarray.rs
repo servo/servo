@@ -8,7 +8,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::PluginArrayBinding::PluginArrayMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::plugin::Plugin;
 
@@ -44,7 +44,7 @@ impl PluginArrayMethods<crate::DomTypeHolder> for PluginArray {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-pluginarray-nameditem>
-    fn NamedItem(&self, _name: RootedDOMString) -> Option<DomRoot<Plugin>> {
+    fn NamedItem(&self, _name: RootedDomString) -> Option<DomRoot<Plugin>> {
         None
     }
 
@@ -54,12 +54,12 @@ impl PluginArrayMethods<crate::DomTypeHolder> for PluginArray {
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: RootedDOMString) -> Option<DomRoot<Plugin>> {
+    fn NamedGetter(&self, _name: RootedDomString) -> Option<DomRoot<Plugin>> {
         None
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
-    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDomString> {
         vec![]
     }
 }

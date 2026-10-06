@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use layout_api::ReflowPhasesRun;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
-use script_bindings::domstring::RootedDOMString;
+use script_bindings::domstring::RootedDomString;
 use script_bindings::reflector::Reflector;
 use script_bindings::root::DomRoot;
 use servo_base::Epoch;
@@ -42,19 +42,19 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
 
         let mut phases = Vec::new();
         if phases_run.contains(ReflowPhasesRun::RanLayout) {
-            phases.push(RootedDOMString::from_static("RanLayout"))
+            phases.push(RootedDomString::from_static("RanLayout"))
         }
         if phases_run.contains(ReflowPhasesRun::BuiltStackingContextTree) {
-            phases.push(RootedDOMString::from_static("BuiltStackingContextTree"))
+            phases.push(RootedDomString::from_static("BuiltStackingContextTree"))
         }
         if phases_run.contains(ReflowPhasesRun::BuiltDisplayList) {
-            phases.push(RootedDOMString::from_static("BuiltDisplayList"))
+            phases.push(RootedDomString::from_static("BuiltDisplayList"))
         }
         if phases_run.contains(ReflowPhasesRun::UpdatedScrollNodeOffset) {
-            phases.push(RootedDOMString::from_static("UpdatedScrollNodeOffset"))
+            phases.push(RootedDomString::from_static("UpdatedScrollNodeOffset"))
         }
         if phases_run.contains(ReflowPhasesRun::UpdatedImageData) {
-            phases.push(RootedDOMString::from_static("UpdatedImageData"))
+            phases.push(RootedDomString::from_static("UpdatedImageData"))
         }
 
         LayoutResult::new(

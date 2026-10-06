@@ -14,7 +14,7 @@ use time::Duration;
 
 use crate::dom::bindings::codegen::Bindings::PerformanceMeasureBinding::PerformanceMeasureMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
 
@@ -27,7 +27,7 @@ pub(crate) struct PerformanceMeasure {
 
 impl PerformanceMeasure {
     fn new_inherited(
-        name: RootedDOMString,
+        name: RootedDomString,
         start_time: CrossProcessInstant,
         duration: Duration,
     ) -> PerformanceMeasure {
@@ -45,7 +45,7 @@ impl PerformanceMeasure {
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        name: RootedDOMString,
+        name: RootedDomString,
         start_time: CrossProcessInstant,
         duration: Duration,
     ) -> DomRoot<PerformanceMeasure> {

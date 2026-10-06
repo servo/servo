@@ -15,16 +15,16 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::traits::Equivalence;
 
 #[dom_struct]
 pub struct GPUAdapterInfo<D: DomTypes> {
     reflector_: Reflector,
-    vendor: RootedDOMString,
-    architecture: RootedDOMString,
-    device: RootedDOMString,
-    description: RootedDOMString,
+    vendor: RootedDomString,
+    architecture: RootedDomString,
+    device: RootedDomString,
+    description: RootedDomString,
     subgroup_min_size: u32,
     subgroup_max_size: u32,
     is_fallback_adapter: bool,
@@ -34,10 +34,10 @@ pub struct GPUAdapterInfo<D: DomTypes> {
 
 impl<D: Equivalence> GPUAdapterInfo<D> {
     fn new_inherited(
-        vendor: RootedDOMString,
-        architecture: RootedDOMString,
-        device: RootedDOMString,
-        description: RootedDOMString,
+        vendor: RootedDomString,
+        architecture: RootedDomString,
+        device: RootedDomString,
+        description: RootedDomString,
         subgroup_min_size: u32,
         subgroup_max_size: u32,
         is_fallback_adapter: bool,
@@ -59,10 +59,10 @@ impl<D: Equivalence> GPUAdapterInfo<D> {
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
-        vendor: RootedDOMString,
-        architecture: RootedDOMString,
-        device: RootedDOMString,
-        description: RootedDOMString,
+        vendor: RootedDomString,
+        architecture: RootedDomString,
+        device: RootedDomString,
+        description: RootedDomString,
         subgroup_min_size: u32,
         subgroup_max_size: u32,
         is_fallback_adapter: bool,
@@ -104,22 +104,22 @@ impl<D: Equivalence> GPUAdapterInfo<D> {
 
 impl<D: DomTypes> GPUAdapterInfoMethods<D> for GPUAdapterInfo<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-vendor>
-    fn Vendor(&self) -> RootedDOMString {
+    fn Vendor(&self) -> RootedDomString {
         self.vendor.clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-architecture>
-    fn Architecture(&self) -> RootedDOMString {
+    fn Architecture(&self) -> RootedDomString {
         self.architecture.clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-device>
-    fn Device(&self) -> RootedDOMString {
+    fn Device(&self) -> RootedDomString {
         self.device.clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-description>
-    fn Description(&self) -> RootedDOMString {
+    fn Description(&self) -> RootedDomString {
         self.description.clone()
     }
 

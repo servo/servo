@@ -28,7 +28,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomGlobal as _;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
@@ -178,12 +178,12 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation>
-    fn GlobalCompositeOperation(&self) -> RootedDOMString {
+    fn GlobalCompositeOperation(&self) -> RootedDomString {
         self.canvas_state.global_composite_operation()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation>
-    fn SetGlobalCompositeOperation(&self, op_str: RootedDOMString) {
+    fn SetGlobalCompositeOperation(&self, op_str: RootedDomString) {
         self.canvas_state.set_global_composite_operation(op_str)
     }
 
@@ -415,7 +415,7 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
         &self,
         cx: &mut JSContext,
         image: CanvasImageSource,
-        repetition: RootedDOMString,
+        repetition: RootedDomString,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         self.canvas_state
             .create_pattern(&self.global(), cx, image, repetition)
@@ -512,12 +512,12 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor>
-    fn ShadowColor(&self) -> RootedDOMString {
+    fn ShadowColor(&self) -> RootedDomString {
         self.canvas_state.shadow_color()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor>
-    fn SetShadowColor(&self, value: RootedDOMString) {
+    fn SetShadowColor(&self, value: RootedDomString) {
         self.canvas_state.set_shadow_color(None, value)
     }
 }

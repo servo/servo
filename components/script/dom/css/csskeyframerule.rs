@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::CSSKeyframe
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
@@ -99,7 +99,7 @@ impl SpecificCSSRule for CSSKeyframeRule {
         CssRuleType::Keyframe
     }
 
-    fn get_css(&self) -> RootedDOMString {
+    fn get_css(&self) -> RootedDomString {
         let guard = self.css_rule.shared_lock().read();
         self.keyframe_rule
             .borrow()

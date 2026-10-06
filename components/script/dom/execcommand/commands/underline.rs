@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
@@ -19,8 +19,8 @@ pub(crate) fn execute_underline_command(
     // > If queryCommandState("underline") returns true, set the selection's value to null.
     // > Otherwise set the selection's value to "underline". Either way, return true.
     let value = (!document
-        .command_state_for_command(cx, RootedDOMString::from_static("underline")))
-    .then_some(RootedDOMString::from_static("underline"));
+        .command_state_for_command(cx, RootedDomString::from_static("underline")))
+    .then_some(RootedDomString::from_static("underline"));
     selection.set_the_selection_value(cx, value, CommandName::Underline, document);
 
     true

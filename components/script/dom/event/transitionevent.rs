@@ -16,7 +16,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 
@@ -26,7 +26,7 @@ pub(crate) struct TransitionEvent {
     #[no_trace]
     property_name: Atom,
     elapsed_time: Finite<f32>,
-    pseudo_element: RootedDOMString,
+    pseudo_element: RootedDomString,
 }
 
 impl TransitionEvent {
@@ -75,7 +75,7 @@ impl TransitionEventMethods<crate::DomTypeHolder> for TransitionEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: RootedDOMString,
+        type_: RootedDomString,
         init: &TransitionEventInit,
     ) -> Fallible<DomRoot<TransitionEvent>> {
         Ok(TransitionEvent::new_with_proto(
@@ -88,8 +88,8 @@ impl TransitionEventMethods<crate::DomTypeHolder> for TransitionEvent {
     }
 
     /// <https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-propertyName>
-    fn PropertyName(&self) -> RootedDOMString {
-        RootedDOMString::from(&*self.property_name)
+    fn PropertyName(&self) -> RootedDomString {
+        RootedDomString::from(&*self.property_name)
     }
 
     /// <https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-elapsedTime>
@@ -98,7 +98,7 @@ impl TransitionEventMethods<crate::DomTypeHolder> for TransitionEvent {
     }
 
     /// <https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-pseudoElement>
-    fn PseudoElement(&self) -> RootedDOMString {
+    fn PseudoElement(&self) -> RootedDomString {
         self.pseudo_element.clone()
     }
 

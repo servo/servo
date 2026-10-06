@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::Wind
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bluetooth::{AsyncBluetoothListener, Bluetooth};
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::globalscope::GlobalScope;
@@ -123,8 +123,8 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 let bt_device = BluetoothDevice::new(
                     cx,
                     &self.global(),
-                    RootedDOMString::from(device.id.clone()),
-                    device.name.map(RootedDOMString::from),
+                    RootedDomString::from(device.id.clone()),
+                    device.name.map(RootedDomString::from),
                     &bluetooth,
                 );
                 bluetooth

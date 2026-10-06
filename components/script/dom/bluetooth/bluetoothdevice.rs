@@ -10,7 +10,7 @@ use js::context::JSContext;
 use js::realm::CurrentRealm;
 use profile_traits::generic_channel;
 use script_bindings::cell::DomRefCell;
-use script_bindings::domstring::{RootedDOMString, TracedDOMString};
+use script_bindings::domstring::{RootedDomString, TracedDomString};
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::{
@@ -47,8 +47,8 @@ struct AttributeInstanceMap {
 #[dom_struct]
 pub(crate) struct BluetoothDevice {
     eventtarget: EventTarget,
-    id: TracedDOMString,
-    name: Option<TracedDOMString>,
+    id: TracedDomString,
+    name: Option<TracedDomString>,
     gatt: MutNullableDom<BluetoothRemoteGATTServer>,
     context: Dom<Bluetooth>,
     attribute_instance_map: AttributeInstanceMap,
@@ -57,14 +57,14 @@ pub(crate) struct BluetoothDevice {
 
 impl BluetoothDevice {
     pub(crate) fn new_inherited(
-        id: RootedDOMString,
-        name: Option<RootedDOMString>,
+        id: RootedDomString,
+        name: Option<RootedDomString>,
         context: &Bluetooth,
     ) -> BluetoothDevice {
         BluetoothDevice {
             eventtarget: EventTarget::new_inherited(),
             id: id.traced(),
-            name: name.map(RootedDOMString::traced),
+            name: name.map(RootedDomString::traced),
             gatt: Default::default(),
             context: Dom::from_ref(context),
             attribute_instance_map: AttributeInstanceMap {
@@ -79,8 +79,8 @@ impl BluetoothDevice {
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        id: RootedDOMString,
-        name: Option<RootedDOMString>,
+        id: RootedDomString,
+        name: Option<RootedDomString>,
         context: &Bluetooth,
     ) -> DomRoot<BluetoothDevice> {
         reflect_dom_object(
@@ -116,7 +116,7 @@ impl BluetoothDevice {
             cx,
             &server.global(),
             &server.Device(),
-            RootedDOMString::from(service.uuid.clone()),
+            RootedDomString::from(service.uuid.clone()),
             service.is_primary,
             service.instance_id.clone(),
         );
@@ -158,7 +158,7 @@ impl BluetoothDevice {
             cx,
             &service.global(),
             service,
-            RootedDOMString::from(characteristic.uuid.clone()),
+            RootedDomString::from(characteristic.uuid.clone()),
             &properties,
             characteristic.instance_id.clone(),
         );
@@ -198,7 +198,7 @@ impl BluetoothDevice {
             cx,
             &characteristic.global(),
             characteristic,
-            RootedDOMString::from(descriptor.uuid.clone()),
+            RootedDomString::from(descriptor.uuid.clone()),
             descriptor.instance_id.clone(),
         );
         descriptor_map_ref.safe_borrow_mut(cx.no_gc()).insert(
@@ -290,13 +290,13 @@ impl BluetoothDevice {
 
 impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-id>
-    fn Id(&self) -> RootedDOMString {
+    fn Id(&self) -> RootedDomString {
         self.id.clone().root()
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-name>
-    fn GetName(&self) -> Option<RootedDOMString> {
-        self.name.clone().map(TracedDOMString::root)
+    fn GetName(&self) -> Option<RootedDomString> {
+        self.name.clone().map(TracedDomString::root)
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt>

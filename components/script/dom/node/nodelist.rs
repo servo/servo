@@ -13,7 +13,7 @@ use stylo_atoms::Atom;
 use crate::dom::ChildrenMutation;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::HTMLFormElement;
@@ -102,7 +102,7 @@ impl NodeList {
         cx: &mut JSContext,
         window: &Window,
         document: &Document,
-        name: RootedDOMString,
+        name: RootedDomString,
     ) -> DomRoot<NodeList> {
         NodeList::new(
             cx,
@@ -293,11 +293,11 @@ impl RadioList {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ElementsByNameList {
     document: Dom<Document>,
-    name: RootedDOMString,
+    name: RootedDomString,
 }
 
 impl ElementsByNameList {
-    pub(crate) fn new(document: &Document, name: RootedDOMString) -> ElementsByNameList {
+    pub(crate) fn new(document: &Document, name: RootedDomString) -> ElementsByNameList {
         ElementsByNameList {
             document: Dom::from_ref(document),
             name,

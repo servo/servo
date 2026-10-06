@@ -15,7 +15,7 @@ use super::cssstylesheet::CSSStyleSheet;
 use super::csssupportsrule::CSSSupportsRule;
 use crate::dom::bindings::codegen::Bindings::CSSConditionRuleBinding::CSSConditionRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 
 #[dom_struct]
 pub(crate) struct CSSConditionRule {
@@ -61,7 +61,7 @@ impl CSSConditionRule {
 
 impl CSSConditionRuleMethods<crate::DomTypeHolder> for CSSConditionRule {
     /// <https://drafts.csswg.org/css-conditional-3/#dom-cssconditionrule-conditiontext>
-    fn ConditionText(&self) -> RootedDOMString {
+    fn ConditionText(&self) -> RootedDomString {
         if let Some(rule) = self.downcast::<CSSMediaRule>() {
             rule.get_condition_text()
         } else if let Some(rule) = self.downcast::<CSSSupportsRule>() {

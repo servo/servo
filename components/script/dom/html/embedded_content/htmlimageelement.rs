@@ -40,7 +40,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayoutOptional};
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -1534,12 +1534,12 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     make_setter!(SetSizes, "sizes");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin>
-    fn GetCrossOrigin(&self) -> Option<RootedDOMString> {
+    fn GetCrossOrigin(&self) -> Option<RootedDomString> {
         reflect_cross_origin_attribute(self.upcast::<Element>())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin>
-    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
+    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<RootedDomString>) {
         set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
@@ -1653,7 +1653,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-referrerpolicy>
-    fn ReferrerPolicy(&self) -> RootedDOMString {
+    fn ReferrerPolicy(&self) -> RootedDomString {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
 
@@ -1798,7 +1798,7 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDomString) -> AttrValue {
         match name {
             &local_name!("width") | &local_name!("height") => {
                 AttrValue::from_dimension(value.into())

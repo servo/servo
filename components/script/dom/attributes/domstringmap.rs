@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMe
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -27,7 +27,7 @@ static DATA_PREFIX: &str = "data-";
 static DATA_HYPHEN_SEPARATOR: char = '\x2d';
 
 /// <https://html.spec.whatwg.org/multipage/#concept-domstringmap-pairs>
-fn to_camel_case(name: &str) -> Option<RootedDOMString> {
+fn to_camel_case(name: &str) -> Option<RootedDomString> {
     // Step 2. For each content attribute on the DOMStringMap's associated element whose
     // first five characters are the string "data-" and whose remaining characters (if any)
     // do not include any ASCII upper alphas, in the order that those attributes
@@ -68,12 +68,12 @@ fn to_camel_case(name: &str) -> Option<RootedDOMString> {
     //
     // We do the iteration in the calling function, to avoid needlessly computing attribute
     // values when we only need the names. Therefore, we only return the name.
-    Some(RootedDOMString::from(result))
+    Some(RootedDomString::from(result))
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-setitem>
 /// and <https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem>
-fn to_snake_case(name: &RootedDOMString, should_throw: bool) -> Option<String> {
+fn to_snake_case(name: &RootedDomString, should_throw: bool) -> Option<String> {
     let name = name.str();
     let mut result = String::with_capacity(DATA_PREFIX.len() + name.len());
     // > Insert the string data- at the front of name.
@@ -138,7 +138,7 @@ impl DOMStringMap {
 // https://html.spec.whatwg.org/multipage/#domstringmap
 impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
     /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem>
-    fn NamedDeleter(&self, cx: &mut JSContext, name: RootedDOMString) {
+    fn NamedDeleter(&self, cx: &mut JSContext, name: RootedDomString) {
         // Step 1. For each ASCII upper alpha in name, insert a U+002D HYPHEN-MINUS character (-) before the character
         // and replace the character with the same character converted to ASCII lowercase.
         // Step 2. Insert the string data- at the front of name.
@@ -152,8 +152,8 @@ impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
     fn NamedSetter(
         &self,
         cx: &mut JSContext,
-        name: RootedDOMString,
-        value: RootedDOMString,
+        name: RootedDomString,
+        value: RootedDomString,
     ) -> ErrorResult {
         // Step 2. For each ASCII upper alpha in name, insert a U+002D HYPHEN-MINUS character (-)
         // before the character and replace the character with the same character converted to ASCII lowercase.
@@ -176,7 +176,7 @@ impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-nameditem>
-    fn NamedGetter(&self, name: RootedDOMString) -> Option<RootedDOMString> {
+    fn NamedGetter(&self, name: RootedDomString) -> Option<RootedDomString> {
         // > To determine the value of a named property name for a DOMStringMap,
         // > return the value component of the name-value pair whose name component is
         // > name in the list returned from getting the DOMStringMap's name-value pairs.
@@ -185,11 +185,11 @@ impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
             .borrow()
             .iter()
             .find(|attr| to_camel_case(attr.local_name()).as_ref() == Some(&name))
-            .map(|attr| RootedDOMString::from(&**attr.value()))
+            .map(|attr| RootedDomString::from(&**attr.value()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names>
-    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDomString> {
         // > The supported property names on a DOMStringMap object at any instant are
         // > the names of each pair returned from getting the DOMStringMap's name-value
         // > pairs at that instant, in the order returned.

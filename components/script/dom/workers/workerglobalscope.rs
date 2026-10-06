@@ -67,7 +67,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 #[cfg(feature = "webcrypto")]
@@ -302,7 +302,7 @@ impl ResourceTimingListener for ScriptFetchContext {
 pub(crate) struct WorkerGlobalScope {
     globalscope: GlobalScope,
 
-    worker_name: RootedDOMString,
+    worker_name: RootedDomString,
     worker_type: WorkerType,
 
     #[no_trace]
@@ -395,7 +395,7 @@ impl WorkerGlobalScope {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(
         init: WorkerGlobalScopeInit,
-        worker_name: RootedDOMString,
+        worker_name: RootedDomString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
         runtime: Runtime,
@@ -537,7 +537,7 @@ impl WorkerGlobalScope {
         *self.worker_url.borrow_mut() = url;
     }
 
-    pub(crate) fn worker_name(&self) -> RootedDOMString {
+    pub(crate) fn worker_name(&self) -> RootedDomString {
         self.worker_name.clone()
     }
 
@@ -932,12 +932,12 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa>
-    fn Btoa(&self, btoa: RootedDOMString) -> Fallible<RootedDOMString> {
+    fn Btoa(&self, btoa: RootedDomString) -> Fallible<RootedDomString> {
         base64_btoa(btoa)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-atob>
-    fn Atob(&self, atob: RootedDOMString) -> Fallible<RootedDOMString> {
+    fn Atob(&self, atob: RootedDomString) -> Fallible<RootedDomString> {
         base64_atob(atob)
     }
 

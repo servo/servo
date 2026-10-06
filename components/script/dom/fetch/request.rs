@@ -35,7 +35,7 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{ByteString, RootedDOMString, USVString};
+use crate::dom::bindings::str::{ByteString, RootedDomString, USVString};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::stream::readablestream::ReadableStream;
@@ -686,7 +686,7 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-integrity>
-    fn Integrity(&self) -> RootedDOMString {
+    fn Integrity(&self) -> RootedDomString {
         self.request.borrow().integrity_metadata.clone().into()
     }
 

@@ -8,7 +8,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject, Value};
 use js::rust::MutableHandleObject;
 use script_bindings::reflector::{DomObject, reflect_dom_object};
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerAddDebuggeeEventBinding::DebuggerAddDebuggeeEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -23,7 +23,7 @@ pub(crate) struct DebuggerAddDebuggeeEvent {
     #[ignore_malloc_size_of = "Measured by the JS engine"]
     global: Heap<*mut JSObject>,
     pipeline_id: Dom<PipelineId>,
-    worker_id: Option<RootedDOMString>,
+    worker_id: Option<RootedDomString>,
 }
 
 impl DebuggerAddDebuggeeEvent {
@@ -32,7 +32,7 @@ impl DebuggerAddDebuggeeEvent {
         debugger_global: &GlobalScope,
         global: &GlobalScope,
         pipeline_id: &PipelineId,
-        worker_id: Option<RootedDOMString>,
+        worker_id: Option<RootedDomString>,
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
@@ -65,7 +65,7 @@ impl DebuggerAddDebuggeeEventMethods<crate::DomTypeHolder> for DebuggerAddDebugg
         DomRoot::from_ref(&self.pipeline_id)
     }
 
-    fn GetWorkerId(&self) -> Option<RootedDOMString> {
+    fn GetWorkerId(&self) -> Option<RootedDomString> {
         self.worker_id.clone()
     }
 

@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::CSSNestedDeclarationsBinding::CSSNe
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
@@ -80,7 +80,7 @@ impl SpecificCSSRule for CSSNestedDeclarations {
         CssRuleType::NestedDeclarations
     }
 
-    fn get_css(&self) -> RootedDOMString {
+    fn get_css(&self) -> RootedDomString {
         let guard = self.css_rule.shared_lock().read();
         self.nesteddeclarationsrule
             .borrow()

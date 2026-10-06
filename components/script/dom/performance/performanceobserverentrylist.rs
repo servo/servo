@@ -11,7 +11,7 @@ use super::performance::PerformanceEntryList;
 use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding::PerformanceObserverEntryListMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
@@ -50,7 +50,7 @@ impl PerformanceObserverEntryListMethods<crate::DomTypeHolder> for PerformanceOb
     }
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver>
-    fn GetEntriesByType(&self, entry_type: RootedDOMString) -> Vec<DomRoot<PerformanceEntry>> {
+    fn GetEntriesByType(&self, entry_type: RootedDomString) -> Vec<DomRoot<PerformanceEntry>> {
         let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
             return Vec::new();
         };
@@ -62,8 +62,8 @@ impl PerformanceObserverEntryListMethods<crate::DomTypeHolder> for PerformanceOb
     /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver>
     fn GetEntriesByName(
         &self,
-        name: RootedDOMString,
-        entry_type: Option<RootedDOMString>,
+        name: RootedDomString,
+        entry_type: Option<RootedDomString>,
     ) -> Vec<DomRoot<PerformanceEntry>> {
         let entry_type = match entry_type {
             Some(entry_type) => {

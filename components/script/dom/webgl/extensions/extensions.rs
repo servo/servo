@@ -8,7 +8,7 @@ use std::iter::FromIterator;
 use js::context::JSContext;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::{FxHashMap, FxHashSet};
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 use servo_canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 type GLenum = u32;
 
@@ -232,7 +232,7 @@ impl WebGLExtensions {
     pub(crate) fn get_or_init_extension(
         &self,
         cx: &mut JSContext,
-        name: &RootedDOMString,
+        name: &RootedDomString,
         ctx: &WebGLRenderingContext,
         rval: MutableHandleObject,
     ) {

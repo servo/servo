@@ -22,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::PointerEventBinding::PointerEventMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::Element;
 use crate::dom::event::Event;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
@@ -185,9 +185,9 @@ impl SpecificInputType for RangeInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#range-state-(type=range):value-sanitization-algorithm>
-    fn sanitize_value(&self, input: &HTMLInputElement, value: &mut RootedDOMString) {
+    fn sanitize_value(&self, input: &HTMLInputElement, value: &mut RootedDomString) {
         if !value.is_valid_floating_point_number_string() {
-            *value = RootedDOMString::from(input.default_range_value().to_string());
+            *value = RootedDomString::from(input.default_range_value().to_string());
         }
         if let Ok(fval) = &value.parse::<f64>() {
             let mut fval = *fval;
@@ -232,7 +232,7 @@ impl SpecificInputType for RangeInputType {
                     }
                 }
             }
-            *value = RootedDOMString::from(fval.to_string());
+            *value = RootedDomString::from(fval.to_string());
         };
     }
 
@@ -242,14 +242,14 @@ impl SpecificInputType for RangeInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#range-state-(type=range):concept-input-value-string-number>
-    fn convert_number_to_string(&self, input: f64) -> Option<RootedDOMString> {
-        let mut value = RootedDOMString::from(input.to_string());
+    fn convert_number_to_string(&self, input: f64) -> Option<RootedDomString> {
+        let mut value = RootedDomString::from(input.to_string());
         value.set_best_representation_of_the_floating_point_number();
         Some(value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#range-state-(type=range):suffering-from-bad-input>
-    fn suffers_from_bad_input(&self, value: &RootedDOMString) -> bool {
+    fn suffers_from_bad_input(&self, value: &RootedDomString) -> bool {
         !value.is_valid_floating_point_number_string()
     }
 

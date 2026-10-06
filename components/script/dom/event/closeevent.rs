@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 
@@ -23,12 +23,12 @@ pub(crate) struct CloseEvent {
     event: Event,
     was_clean: bool,
     code: u16,
-    reason: RootedDOMString,
+    reason: RootedDomString,
 }
 
 #[expect(non_snake_case)]
 impl CloseEvent {
-    pub(crate) fn new_inherited(was_clean: bool, code: u16, reason: RootedDOMString) -> CloseEvent {
+    pub(crate) fn new_inherited(was_clean: bool, code: u16, reason: RootedDomString) -> CloseEvent {
         CloseEvent {
             event: Event::new_inherited(),
             was_clean,
@@ -46,7 +46,7 @@ impl CloseEvent {
         cancelable: EventCancelable,
         wasClean: bool,
         code: u16,
-        reason: RootedDOMString,
+        reason: RootedDomString,
     ) -> DomRoot<CloseEvent> {
         Self::new_with_proto(
             cx, global, None, type_, bubbles, cancelable, wasClean, code, reason,
@@ -63,7 +63,7 @@ impl CloseEvent {
         cancelable: EventCancelable,
         wasClean: bool,
         code: u16,
-        reason: RootedDOMString,
+        reason: RootedDomString,
     ) -> DomRoot<CloseEvent> {
         let event = Box::new(CloseEvent::new_inherited(wasClean, code, reason));
         let ev = reflect_dom_object_with_proto(cx, event, global, proto);
@@ -81,7 +81,7 @@ impl CloseEventMethods<crate::DomTypeHolder> for CloseEvent {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        type_: RootedDOMString,
+        type_: RootedDomString,
         init: &CloseEventBinding::CloseEventInit,
     ) -> Fallible<DomRoot<CloseEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
@@ -110,7 +110,7 @@ impl CloseEventMethods<crate::DomTypeHolder> for CloseEvent {
     }
 
     /// <https://websockets.spec.whatwg.org/#dom-closeevent-reason>
-    fn Reason(&self) -> RootedDOMString {
+    fn Reason(&self) -> RootedDomString {
         self.reason.clone()
     }
 

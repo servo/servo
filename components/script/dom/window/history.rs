@@ -28,7 +28,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::bindings::structuredclone;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -192,7 +192,7 @@ impl History {
         &self,
         cx: &mut JSContext,
         data: HandleValue,
-        _title: RootedDOMString,
+        _title: RootedDomString,
         url: Option<USVString>,
         push_or_replace: PushOrReplace,
     ) -> ErrorResult {
@@ -395,7 +395,7 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
         &self,
         cx: &mut JSContext,
         data: HandleValue,
-        title: RootedDOMString,
+        title: RootedDomString,
         url: Option<USVString>,
     ) -> ErrorResult {
         self.push_or_replace_state(cx, data, title, url, PushOrReplace::Push)
@@ -406,7 +406,7 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
         &self,
         cx: &mut JSContext,
         data: HandleValue,
-        title: RootedDOMString,
+        title: RootedDomString,
         url: Option<USVString>,
     ) -> ErrorResult {
         self.push_or_replace_state(cx, data, title, url, PushOrReplace::Replace)

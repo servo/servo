@@ -23,7 +23,7 @@ use js::rust::wrappers2::{
 use js::rust::{HandleId, HandleValue, IdVector, MutableHandleValue};
 
 use crate::conversions::jsid_to_string;
-use crate::str::{ByteString, RootedDOMString, USVString};
+use crate::str::{ByteString, RootedDomString, USVString};
 
 pub trait RecordKey: Eq + Hash + Sized {
     fn to_utf16_vec(&self) -> Vec<u16>;
@@ -33,7 +33,7 @@ pub trait RecordKey: Eq + Hash + Sized {
     fn from_id(cx: &mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()>;
 }
 
-impl RecordKey for RootedDOMString {
+impl RecordKey for RootedDomString {
     fn to_utf16_vec(&self) -> Vec<u16> {
         self.str().encode_utf16().collect::<Vec<_>>()
     }

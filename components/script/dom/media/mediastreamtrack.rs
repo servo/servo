@@ -10,7 +10,7 @@ use servo_media::streams::registry::MediaStreamId;
 use crate::dom::bindings::codegen::Bindings::MediaStreamTrackBinding::MediaStreamTrackMethods;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 
@@ -58,15 +58,15 @@ impl MediaStreamTrack {
 
 impl MediaStreamTrackMethods<crate::DomTypeHolder> for MediaStreamTrack {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-kind>
-    fn Kind(&self) -> RootedDOMString {
+    fn Kind(&self) -> RootedDomString {
         match self.ty {
-            MediaStreamType::Video => RootedDOMString::from_static("video"),
-            MediaStreamType::Audio => RootedDOMString::from_static("audio"),
+            MediaStreamType::Video => RootedDomString::from_static("video"),
+            MediaStreamType::Audio => RootedDomString::from_static("audio"),
         }
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-id>
-    fn Id(&self) -> RootedDOMString {
+    fn Id(&self) -> RootedDomString {
         self.id.id().to_string().into()
     }
 

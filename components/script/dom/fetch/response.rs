@@ -14,7 +14,7 @@ use net_traits::http_status::HttpStatus;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 use servo_url::ServoUrl;
 use url::Position;
 
@@ -279,7 +279,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         response.Headers(cx).set_guard(Guard::Response);
 
         // 4. Perform initialize a response given responseObject, init, and (body, "application/json").
-        body.content_type = Some(RootedDOMString::from_static("application/json"));
+        body.content_type = Some(RootedDomString::from_static("application/json"));
         initialize_response(cx, Some(body), init, response)
     }
 

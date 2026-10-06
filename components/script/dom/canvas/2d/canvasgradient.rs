@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Ca
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 
 /// <https://html.spec.whatwg.org/multipage/#canvasgradient>
@@ -55,7 +55,7 @@ impl CanvasGradient {
 
 impl CanvasGradientMethods<crate::DomTypeHolder> for CanvasGradient {
     /// <https://html.spec.whatwg.org/multipage/#dom-canvasgradient-addcolorstop>
-    fn AddColorStop(&self, offset: Finite<f64>, color: RootedDOMString) -> ErrorResult {
+    fn AddColorStop(&self, offset: Finite<f64>, color: RootedDomString) -> ErrorResult {
         if *offset < 0f64 || *offset > 1f64 {
             return Err(Error::IndexSize(None));
         }

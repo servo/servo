@@ -11,7 +11,7 @@ use xml5ever::serialize::{SerializeOpts, TraversalScope, serialize};
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::node::Node;
 use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::window::Window;
@@ -55,7 +55,7 @@ impl XMLSerializerMethods<crate::DomTypeHolder> for XMLSerializer {
     }
 
     /// <https://w3c.github.io/DOM-Parsing/#the-xmlserializer-interface>
-    fn SerializeToString(&self, root: &Node) -> Fallible<RootedDOMString> {
+    fn SerializeToString(&self, root: &Node) -> Fallible<RootedDomString> {
         let mut writer = vec![];
         match serialize(
             &mut writer,
@@ -64,7 +64,7 @@ impl XMLSerializerMethods<crate::DomTypeHolder> for XMLSerializer {
                 traversal_scope: TraversalScope::IncludeNode,
             },
         ) {
-            Ok(_) => Ok(RootedDOMString::from(String::from_utf8(writer).unwrap())),
+            Ok(_) => Ok(RootedDomString::from(String::from_utf8(writer).unwrap())),
             Err(_) => Err(Error::Type(
                 c"root must be a Node or an Attr object".to_owned(),
             )),

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
@@ -18,10 +18,10 @@ pub(crate) fn execute_bold_command(
 ) -> bool {
     // > If queryCommandState("bold") returns true, set the selection's value to "normal".
     // > Otherwise set the selection's value to "bold". Either way, return true.
-    let value = if document.command_state_for_command(cx, RootedDOMString::from_static("bold")) {
-        Some(RootedDOMString::from_static("normal"))
+    let value = if document.command_state_for_command(cx, RootedDomString::from_static("bold")) {
+        Some(RootedDomString::from_static("normal"))
     } else {
-        Some(RootedDOMString::from_static("bold"))
+        Some(RootedDomString::from_static("bold"))
     };
     selection.set_the_selection_value(cx, value, CommandName::Bold, document);
 

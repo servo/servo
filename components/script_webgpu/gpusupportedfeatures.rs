@@ -23,7 +23,7 @@ use webgpu_traits::Features;
 use crate::JSTraceable;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::traits::Equivalence;
 
 #[dom_struct]
@@ -163,7 +163,7 @@ pub(crate) fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
 }
 
 impl<D: DomTypes> Setlike for GPUSupportedFeatures<D> {
-    type Key = RootedDOMString;
+    type Key = RootedDomString;
 
     #[inline(always)]
     fn get_index(&self, cx: &mut JSContext, index: u32) -> Option<Self::Key> {

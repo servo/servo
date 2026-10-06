@@ -41,7 +41,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheet::StyleSheet as DOMStyleSheet;
@@ -212,7 +212,7 @@ impl HTMLLinkElement {
                     cx,
                     &self.owner_window(),
                     Some(self.upcast::<Element>()),
-                    RootedDOMString::from_static("text/css"),
+                    RootedDomString::from_static("text/css"),
                     Some(self.Href().into()),
                     None, // todo handle title
                     sheet,
@@ -451,7 +451,7 @@ impl VirtualMethods for HTMLLinkElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDomString) -> AttrValue {
         match name {
             &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self
@@ -1116,13 +1116,13 @@ impl StylesheetOwner for HTMLLinkElement {
         self.parser_inserted() ||
             self.blocking
                 .get()
-                .is_some_and(|list| list.Contains(RootedDOMString::from_static("render")))
+                .is_some_and(|list| list.Contains(RootedDomString::from_static("render")))
     }
 
     fn referrer_policy(&self, cx: &mut js::context::JSContext) -> ReferrerPolicy {
         if self
             .RelList(cx)
-            .Contains(RootedDOMString::from_static("noreferrer"))
+            .Contains(RootedDomString::from_static("noreferrer"))
         {
             return ReferrerPolicy::NoReferrer;
         }
@@ -1148,7 +1148,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     make_getter!(Rel, "rel");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-link-rel>
-    fn SetRel(&self, cx: &mut JSContext, rel: RootedDOMString) {
+    fn SetRel(&self, cx: &mut JSContext, rel: RootedDomString) {
         self.upcast::<Element>()
             .set_tokenlist_attribute(cx, &local_name!("rel"), rel);
     }
@@ -1269,17 +1269,17 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-link-crossorigin>
-    fn GetCrossOrigin(&self) -> Option<RootedDOMString> {
+    fn GetCrossOrigin(&self) -> Option<RootedDomString> {
         reflect_cross_origin_attribute(self.upcast::<Element>())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-link-crossorigin>
-    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
+    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<RootedDomString>) {
         set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-link-referrerpolicy>
-    fn ReferrerPolicy(&self) -> RootedDOMString {
+    fn ReferrerPolicy(&self) -> RootedDomString {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
 

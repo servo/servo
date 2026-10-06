@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
@@ -23,7 +23,7 @@ pub(crate) fn execute_subscript_command(
     if state.is_none_or(|state| !state) {
         selection.set_the_selection_value(
             cx,
-            Some(RootedDOMString::from_static("subscript")),
+            Some(RootedDomString::from_static("subscript")),
             CommandName::Subscript,
             document,
         );

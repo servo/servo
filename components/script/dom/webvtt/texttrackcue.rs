@@ -11,7 +11,7 @@ use script_bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TextTrackCueBinding::TextTrackCueMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::webvtt::rules_for_rendering::RulesForUpdatingTheTextTrackRendering;
@@ -20,7 +20,7 @@ use crate::dom::webvtt::rules_for_rendering::RulesForUpdatingTheTextTrackRenderi
 pub(crate) struct TextTrackCue {
     eventtarget: EventTarget,
     /// <https://html.spec.whatwg.org/multipage/#text-track-cue-identifier>
-    id: DomRefCell<RootedDOMString>,
+    id: DomRefCell<RootedDomString>,
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-track>
     text_track: MutNullableDom<TextTrack>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-cue-start-time>
@@ -41,7 +41,7 @@ pub(crate) struct TextTrackCue {
 
 impl TextTrackCue {
     pub(crate) fn new_inherited(
-        id: RootedDOMString,
+        id: RootedDomString,
         start_time: f64,
         end_time: f64,
         text_track: Option<&TextTrack>,
@@ -60,7 +60,7 @@ impl TextTrackCue {
         }
     }
 
-    pub(crate) fn id(&self) -> RootedDOMString {
+    pub(crate) fn id(&self) -> RootedDomString {
         self.id.borrow().clone()
     }
 
@@ -107,12 +107,12 @@ impl TextTrackCue {
 
 impl TextTrackCueMethods<crate::DomTypeHolder> for TextTrackCue {
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-id>
-    fn Id(&self) -> RootedDOMString {
+    fn Id(&self) -> RootedDomString {
         self.id()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-id>
-    fn SetId(&self, value: RootedDOMString) {
+    fn SetId(&self, value: RootedDomString) {
         *self.id.borrow_mut() = value;
     }
 

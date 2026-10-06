@@ -6,7 +6,7 @@ use embedder_traits::InputMethodType;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use script_bindings::domstring::RootedDOMString;
+use script_bindings::domstring::RootedDomString;
 use script_bindings::root::DomRoot;
 use stylo_atoms::{Atom, atom};
 use time::OffsetDateTime;
@@ -377,7 +377,7 @@ bitflags! {
 }
 
 pub(crate) trait SpecificInputType {
-    fn sanitize_value(&self, _input: &HTMLInputElement, _value: &mut RootedDOMString) {}
+    fn sanitize_value(&self, _input: &HTMLInputElement, _value: &mut RootedDomString) {}
 
     fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>>;
 
@@ -385,21 +385,21 @@ pub(crate) trait SpecificInputType {
         None
     }
 
-    fn convert_number_to_string(&self, _value: f64) -> Option<RootedDOMString> {
+    fn convert_number_to_string(&self, _value: f64) -> Option<RootedDomString> {
         unreachable!("Should not have called convert_number_to_string for non-Date types")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-string-date>
     /// This does the safe Rust part of conversion; the unsafe JS Date part
     /// is in GetValueAsDate
-    fn convert_string_to_naive_datetime(&self, _value: RootedDOMString) -> Option<OffsetDateTime> {
+    fn convert_string_to_naive_datetime(&self, _value: RootedDomString) -> Option<OffsetDateTime> {
         None
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-date-string>
     /// This does the safe Rust part of conversion; the unsafe JS Date part
     /// is in SetValueAsDate
-    fn convert_datetime_to_dom_string(&self, _value: OffsetDateTime) -> RootedDOMString {
+    fn convert_datetime_to_dom_string(&self, _value: OffsetDateTime) -> RootedDomString {
         unreachable!("Should not have called convert_datetime_to_string for non-Date types")
     }
 
@@ -407,7 +407,7 @@ pub(crate) trait SpecificInputType {
     fn suffers_from_being_missing(
         &self,
         input: &HTMLInputElement,
-        value: &RootedDOMString,
+        value: &RootedDomString,
     ) -> bool {
         input.Required() &&
             input.value_mode() == ValueMode::Value &&
@@ -415,20 +415,20 @@ pub(crate) trait SpecificInputType {
             value.is_empty()
     }
 
-    fn suffers_from_bad_input(&self, _value: &RootedDOMString) -> bool {
+    fn suffers_from_bad_input(&self, _value: &RootedDomString) -> bool {
         false
     }
 
     fn suffers_from_type_mismatch(
         &self,
         _input: &HTMLInputElement,
-        _value: &RootedDOMString,
+        _value: &RootedDomString,
     ) -> bool {
         false
     }
 
-    fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> RootedDOMString {
-        RootedDOMString::new()
+    fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> RootedDomString {
+        RootedDomString::new()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#signal-a-type-change>
@@ -452,7 +452,7 @@ pub(crate) trait SpecificInputType {
 
     fn show_the_picker_if_applicable(&self, _input: &HTMLInputElement) {}
 
-    fn select_files(&self, _input: &HTMLInputElement, _test_paths: Option<Vec<RootedDOMString>>) {}
+    fn select_files(&self, _input: &HTMLInputElement, _test_paths: Option<Vec<RootedDomString>>) {}
 
     fn get_files(&self) -> Option<DomRoot<FileList>> {
         None

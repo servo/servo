@@ -10,7 +10,7 @@ use html5ever::{LocalName, Namespace, Prefix, ns};
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
 
@@ -237,8 +237,8 @@ impl<'a> AttrRef<'a> {
     }
 
     /// Returns the attribute value as a `DOMString`, equivalent to `Attr::Value()`.
-    pub(crate) fn to_dom_string(self) -> RootedDOMString {
-        RootedDOMString::from(&**self.value())
+    pub(crate) fn to_dom_string(self) -> RootedDomString {
+        RootedDomString::from(&**self.value())
     }
 
     /// Returns a summary for devtools.

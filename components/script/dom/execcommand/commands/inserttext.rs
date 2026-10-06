@@ -10,7 +10,7 @@ use script_bindings::inheritance::Castable;
 
 use crate::dom::Node;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
@@ -24,7 +24,7 @@ pub(crate) fn execute_insert_text_command(
     cx: &mut JSContext,
     document: &Document,
     selection: &Selection,
-    value: RootedDOMString,
+    value: RootedDomString,
 ) -> bool {
     // Step 1. Delete the selection, with strip wrappers false.
     selection.delete_the_selection(
@@ -56,7 +56,7 @@ pub(crate) fn execute_insert_text_command(
                 cx,
                 document,
                 selection,
-                RootedDOMString::from(el.to_string()),
+                RootedDomString::from(el.to_string()),
             );
         }
 

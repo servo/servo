@@ -32,7 +32,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::fontface::FontFace;
@@ -344,8 +344,8 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     fn Load(
         &self,
         cx: &mut JSContext,
-        font: RootedDOMString,
-        text: RootedDOMString,
+        font: RootedDomString,
+        text: RootedDomString,
     ) -> RootedPromise {
         // Step 1. Let font face set be the FontFaceSet object this method was called on. Let
         // promise be a newly-created promise object.

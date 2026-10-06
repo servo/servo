@@ -14,7 +14,7 @@ use script_bindings::error::{Error, Fallible};
 use script_bindings::num::Finite;
 use script_bindings::reflector::Reflector;
 use script_bindings::root::Dom;
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 use style::parser::Parse;
 use style::stylesheets::CssRuleType;
 use style::values::generics::easing::TimingKeyword;
@@ -310,7 +310,7 @@ impl From<IterationDurationOrAuto> for UnrestrictedDoubleOrString {
     fn from(value: IterationDurationOrAuto) -> Self {
         match value {
             IterationDurationOrAuto::Auto => {
-                UnrestrictedDoubleOrString::String(RootedDOMString::from_static("auto"))
+                UnrestrictedDoubleOrString::String(RootedDomString::from_static("auto"))
             },
             IterationDurationOrAuto::Duration(double) => {
                 UnrestrictedDoubleOrString::UnrestrictedDouble(double)

@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
@@ -453,7 +453,7 @@ pub(crate) fn import_key(
                 // set to hash and op set to digest.
                 let normalized_hash = normalize_algorithm::<DigestOperation>(
                     cx,
-                    &AlgorithmIdentifier::String(RootedDOMString::from(hash)),
+                    &AlgorithmIdentifier::String(RootedDomString::from(hash)),
                 )?;
 
                 // Step 2.8.2. If normalizedHash is not equal to the hash member of
@@ -696,7 +696,7 @@ pub(crate) fn export_key(
             let mut jwk = JsonWebKey::default();
 
             // Step 3.2. Set the kty attribute of jwk to the string "RSA".
-            jwk.kty = Some(RootedDOMString::from_static("RSA"));
+            jwk.kty = Some(RootedDomString::from_static("RSA"));
 
             // Step 3.3. Let hash be the name attribute of the hash attribute of the [[algorithm]]
             // internal slot of key.
@@ -737,7 +737,7 @@ pub(crate) fn export_key(
                             ))));
                         },
                     };
-                    jwk.alg = Some(RootedDOMString::from(alg));
+                    jwk.alg = Some(RootedDomString::from(alg));
                 },
                 RsaAlgorithm::RsaPss => {
                     // Step 3.4.
@@ -766,7 +766,7 @@ pub(crate) fn export_key(
                             ))));
                         },
                     };
-                    jwk.alg = Some(RootedDOMString::from(alg));
+                    jwk.alg = Some(RootedDomString::from(alg));
                 },
                 RsaAlgorithm::RsaOaep => {
                     // Step 3.4.
@@ -795,7 +795,7 @@ pub(crate) fn export_key(
                             ))));
                         },
                     };
-                    jwk.alg = Some(RootedDOMString::from(alg));
+                    jwk.alg = Some(RootedDomString::from(alg));
                 },
             }
 

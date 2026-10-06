@@ -12,7 +12,7 @@ use stylo_atoms::Atom;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::Element;
 use crate::dom::node::NodeTraits;
 
@@ -57,7 +57,7 @@ impl DOMTokenList {
         )
     }
 
-    fn check_token_exceptions(&self, token: &RootedDOMString) -> Fallible<Atom> {
+    fn check_token_exceptions(&self, token: &RootedDomString) -> Fallible<Atom> {
         let token = token.str();
         match &*token {
             "" => Err(Error::Syntax(None)),
@@ -104,22 +104,22 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-item>
-    fn Item(&self, index: u32) -> Option<RootedDOMString> {
+    fn Item(&self, index: u32) -> Option<RootedDomString> {
         self.element
             .get_tokenlist_attribute(&self.local_name)
             .get(index as usize)
-            .map(|token| RootedDOMString::from(&**token))
+            .map(|token| RootedDomString::from(&**token))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-contains>
-    fn Contains(&self, token: RootedDOMString) -> bool {
+    fn Contains(&self, token: RootedDomString) -> bool {
         self.element
             .get_tokenlist_attribute(&self.local_name)
             .contains(&Atom::from(token))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-add>
-    fn Add(&self, cx: &mut JSContext, tokens: Vec<RootedDOMString>) -> ErrorResult {
+    fn Add(&self, cx: &mut JSContext, tokens: Vec<RootedDomString>) -> ErrorResult {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = self.check_token_exceptions(token)?;
@@ -132,7 +132,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-remove>
-    fn Remove(&self, cx: &mut JSContext, tokens: Vec<RootedDOMString>) -> ErrorResult {
+    fn Remove(&self, cx: &mut JSContext, tokens: Vec<RootedDomString>) -> ErrorResult {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = self.check_token_exceptions(token)?;
@@ -149,7 +149,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     fn Toggle(
         &self,
         cx: &mut JSContext,
-        token: RootedDOMString,
+        token: RootedDomString,
         force: Option<bool>,
     ) -> Fallible<bool> {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
@@ -175,12 +175,12 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-value>
-    fn Value(&self) -> RootedDOMString {
+    fn Value(&self) -> RootedDomString {
         self.element.get_string_attribute(&self.local_name)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-value>
-    fn SetValue(&self, cx: &mut JSContext, value: RootedDOMString) {
+    fn SetValue(&self, cx: &mut JSContext, value: RootedDomString) {
         self.element
             .set_tokenlist_attribute(cx, &self.local_name, value);
     }
@@ -189,8 +189,8 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     fn Replace(
         &self,
         cx: &mut JSContext,
-        token: RootedDOMString,
-        new_token: RootedDOMString,
+        token: RootedDomString,
+        new_token: RootedDomString,
     ) -> Fallible<bool> {
         if token.is_empty() || new_token.is_empty() {
             // Step 1.
@@ -237,12 +237,12 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-supports>
-    fn Supports(&self, token: RootedDOMString) -> Fallible<bool> {
+    fn Supports(&self, token: RootedDomString) -> Fallible<bool> {
         self.validation_steps(&token.str())
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32) -> Option<RootedDOMString> {
+    fn IndexedGetter(&self, index: u32) -> Option<RootedDomString> {
         self.Item(index)
     }
 }

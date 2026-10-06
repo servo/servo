@@ -22,7 +22,7 @@ use servo_base::text::{AssumeUnder4GB, RangeAny, Utf8CodeUnits, Utf16CodeUnits, 
 use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::editing::SelectionGranularity;
 use crate::dom::event::Event;
@@ -70,8 +70,8 @@ pub enum SelectionDirection {
     None,
 }
 
-impl From<RootedDOMString> for SelectionDirection {
-    fn from(direction: RootedDOMString) -> SelectionDirection {
+impl From<RootedDomString> for SelectionDirection {
+    fn from(direction: RootedDomString) -> SelectionDirection {
         match_domstring_ascii!(direction,
             "forward" => SelectionDirection::Forward,
             "backward" => SelectionDirection::Backward,
@@ -80,12 +80,12 @@ impl From<RootedDOMString> for SelectionDirection {
     }
 }
 
-impl From<SelectionDirection> for RootedDOMString {
-    fn from(direction: SelectionDirection) -> RootedDOMString {
+impl From<SelectionDirection> for RootedDomString {
+    fn from(direction: SelectionDirection) -> RootedDomString {
         match direction {
-            SelectionDirection::Forward => RootedDOMString::from_static("forward"),
-            SelectionDirection::Backward => RootedDOMString::from_static("backward"),
-            SelectionDirection::None => RootedDOMString::from_static("none"),
+            SelectionDirection::Forward => RootedDomString::from_static("forward"),
+            SelectionDirection::Backward => RootedDomString::from_static("backward"),
+            SelectionDirection::None => RootedDomString::from_static("none"),
         }
     }
 }
@@ -213,7 +213,7 @@ pub enum KeyReaction {
 
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
-    pub fn new(lines: Lines, initial: RootedDOMString, clipboard_provider: T) -> TextInput<T> {
+    pub fn new(lines: Lines, initial: RootedDomString, clipboard_provider: T) -> TextInput<T> {
         Self {
             rope: Rope::new(initial),
             mode: lines,
@@ -266,7 +266,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         if self.selection_start() == self.selection_end() {
             return false;
         }
-        self.replace_selection(&RootedDOMString::new());
+        self.replace_selection(&RootedDomString::new());
         true
     }
 
@@ -295,7 +295,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         if self.selection_origin.is_none() {
             self.selection_origin = Some(self.edit_point);
         }
-        self.replace_selection(&RootedDOMString::from(string.into()));
+        self.replace_selection(&RootedDomString::from(string.into()));
     }
 
     /// The start of the selection (or the edit point, if there is no selection). Always less than
@@ -410,7 +410,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Replace the current selection with the given [`DOMString`]. If the [`Rope`] is in
     /// single line mode this *will* strip newlines, as opposed to [`Self::set_content`],
     /// which does not.
-    pub fn replace_selection(&mut self, insert: &RootedDOMString) {
+    pub fn replace_selection(&mut self, insert: &RootedDomString) {
         let string_to_insert = if let Some(max_length) = self.max_length {
             let utf16_length_without_selection =
                 self.len_utf16().saturating_sub(self.selection_utf16_len());
@@ -741,7 +741,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Get the current contents of the text input. Multiple lines are joined by \n.
-    pub fn get_content(&self) -> RootedDOMString {
+    pub fn get_content(&self) -> RootedDomString {
         self.rope.contents().into()
     }
 
@@ -751,7 +751,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Note that when the [`Rope`] is in single line mode, this will **not** strip newlines.
     /// Newline stripping only happens for incremental updates to the [`Rope`] as `<input>`
     /// elements currently need to store unsanitized values while being created.
-    pub fn set_content(&mut self, content: RootedDOMString) {
+    pub fn set_content(&mut self, content: RootedDomString) {
         self.rope = Rope::new(content.str().replace("\r\n", "\n").replace("\r", "\n"));
         self.was_last_change_by_set_content = true;
 

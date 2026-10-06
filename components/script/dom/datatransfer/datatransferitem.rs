@@ -19,7 +19,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{RootedDOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::file::File;
 use crate::dom::filesystem::FileSystem;
 use crate::dom::filesystemdirectoryentry::FileSystemDirectoryEntry;
@@ -89,18 +89,18 @@ impl DataTransferItem {
 
 impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-kind>
-    fn Kind(&self) -> RootedDOMString {
+    fn Kind(&self) -> RootedDomString {
         self.item_kind()
-            .map_or(RootedDOMString::new(), |item| match *item {
-                Kind::Text { .. } => RootedDOMString::from_static("string"),
-                Kind::File { .. } => RootedDOMString::from_static("file"),
+            .map_or(RootedDomString::new(), |item| match *item {
+                Kind::Text { .. } => RootedDomString::from_static("string"),
+                Kind::File { .. } => RootedDomString::from_static("file"),
             })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-type>
-    fn Type(&self) -> RootedDOMString {
+    fn Type(&self) -> RootedDomString {
         self.item_kind()
-            .map_or(RootedDOMString::new(), |item| item.type_())
+            .map_or(RootedDomString::new(), |item| item.type_())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasstring>
@@ -142,7 +142,7 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
                             .safe_borrow_mut(cx.no_gc())
                             .swap_remove(index)
                             .callback);
-                        let _ = callback.Call__(cx, RootedDOMString::from(string), ExceptionHandling::Report);
+                        let _ = callback.Call__(cx, RootedDomString::from(string), ExceptionHandling::Report);
                     }
                 }));
         }

@@ -14,7 +14,7 @@ use stylo_atoms::Atom;
 use super::cssstylevalue::CSSStyleValue;
 use crate::dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StylePropertyMapReadOnlyMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::globalscope::GlobalScope;
 
@@ -65,7 +65,7 @@ impl StylePropertyMapReadOnly {
 
 impl StylePropertyMapReadOnlyMethods<crate::DomTypeHolder> for StylePropertyMapReadOnly {
     /// <https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-get>
-    fn Get(&self, property: RootedDOMString) -> Option<DomRoot<CSSStyleValue>> {
+    fn Get(&self, property: RootedDomString) -> Option<DomRoot<CSSStyleValue>> {
         // TODO: avoid constructing an Atom
         self.entries
             .get(&Atom::from(property))
@@ -73,18 +73,18 @@ impl StylePropertyMapReadOnlyMethods<crate::DomTypeHolder> for StylePropertyMapR
     }
 
     /// <https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-has>
-    fn Has(&self, property: RootedDOMString) -> bool {
+    fn Has(&self, property: RootedDomString) -> bool {
         // TODO: avoid constructing an Atom
         self.entries.contains_key(&Atom::from(property))
     }
 
     /// <https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-getproperties>
-    fn GetProperties(&self) -> Vec<RootedDOMString> {
-        let mut result: Vec<RootedDOMString> = self
+    fn GetProperties(&self) -> Vec<RootedDomString> {
+        let mut result: Vec<RootedDomString> = self
             .entries
             .0
             .keys()
-            .map(|key| RootedDOMString::from(&**key))
+            .map(|key| RootedDomString::from(&**key))
             .collect();
         // https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-getproperties
         // requires this sort order

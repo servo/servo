@@ -5,7 +5,7 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::domstring::parse_floating_point_number;
 
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::SpecificInputType;
 use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
@@ -21,7 +21,7 @@ impl SpecificInputType for NumberInputType {
         Some(&self.text_input_widget)
     }
 
-    fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut RootedDOMString) {
+    fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut RootedDomString) {
         if !value.is_valid_floating_point_number_string() {
             value.clear();
         }
@@ -39,14 +39,14 @@ impl SpecificInputType for NumberInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#number-state-(type=number):concept-input-value-string-number>
-    fn convert_number_to_string(&self, input: f64) -> Option<RootedDOMString> {
-        let mut value = RootedDOMString::from(input.to_string());
+    fn convert_number_to_string(&self, input: f64) -> Option<RootedDomString> {
+        let mut value = RootedDomString::from(input.to_string());
         value.set_best_representation_of_the_floating_point_number();
         Some(value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#number-state-(type=number):suffering-from-bad-input>
-    fn suffers_from_bad_input(&self, value: &RootedDOMString) -> bool {
+    fn suffers_from_bad_input(&self, value: &RootedDomString) -> bool {
         !value.is_valid_floating_point_number_string()
     }
 

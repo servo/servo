@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::videotrack::VideoTrack;
@@ -99,7 +99,7 @@ impl TrackEventMethods<crate::DomTypeHolder> for TrackEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: RootedDOMString,
+        type_: RootedDomString,
         init: &TrackEventBinding::TrackEventInit,
     ) -> Fallible<DomRoot<TrackEvent>> {
         Ok(TrackEvent::new_with_proto(

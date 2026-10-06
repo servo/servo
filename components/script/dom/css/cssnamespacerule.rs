@@ -15,7 +15,7 @@ use super::cssrule::{CSSRule, SpecificCSSRule};
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSNamespaceRuleBinding::CSSNamespaceRuleMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
@@ -64,7 +64,7 @@ impl CSSNamespaceRule {
 
 impl CSSNamespaceRuleMethods<crate::DomTypeHolder> for CSSNamespaceRule {
     /// <https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix>
-    fn Prefix(&self) -> RootedDOMString {
+    fn Prefix(&self) -> RootedDomString {
         self.namespace_rule
             .borrow()
             .prefix
@@ -74,7 +74,7 @@ impl CSSNamespaceRuleMethods<crate::DomTypeHolder> for CSSNamespaceRule {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssnamespacerule-namespaceuri>
-    fn NamespaceURI(&self) -> RootedDOMString {
+    fn NamespaceURI(&self) -> RootedDomString {
         (**self.namespace_rule.borrow().url).into()
     }
 }
@@ -84,7 +84,7 @@ impl SpecificCSSRule for CSSNamespaceRule {
         CssRuleType::Namespace
     }
 
-    fn get_css(&self) -> RootedDOMString {
+    fn get_css(&self) -> RootedDomString {
         let guard = self.css_rule.shared_lock().read();
         self.namespace_rule.borrow().to_css_string(&guard).into()
     }

@@ -30,7 +30,7 @@ use libc::c_uint;
 use script_bindings::cell::DomRefCell;
 pub(crate) use script_bindings::error::*;
 use script_bindings::root::DomRoot;
-use script_bindings::str::RootedDOMString;
+use script_bindings::str::RootedDomString;
 
 use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, root_from_handleobject,
@@ -200,7 +200,7 @@ pub(crate) fn create_dom_exception(
             return Ok(DomRoot::upcast(QuotaExceededError::new(
                 cx,
                 global,
-                RootedDOMString::new(),
+                RootedDomString::new(),
                 quota,
                 requested,
             )));

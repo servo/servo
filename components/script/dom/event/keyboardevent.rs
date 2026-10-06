@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::RootedDOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
@@ -27,10 +27,10 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct KeyboardEvent {
     uievent: UIEvent,
-    key: DomRefCell<RootedDOMString>,
+    key: DomRefCell<RootedDomString>,
     #[no_trace]
     typed_key: DomRefCell<Key>,
-    code: DomRefCell<RootedDOMString>,
+    code: DomRefCell<RootedDomString>,
     #[no_trace]
     original_code: DomRefCell<Option<Code>>,
     location: Cell<u32>,
@@ -88,7 +88,7 @@ impl KeyboardEvent {
             Some(window), /* view */
             0,            /* detail */
             keyboard_event.key.clone(),
-            RootedDOMString::from(keyboard_event.code.to_string()),
+            RootedDomString::from(keyboard_event.code.to_string()),
             Some(keyboard_event.code),
             keyboard_event.location as u32,
             keyboard_event.repeat,
@@ -110,7 +110,7 @@ impl KeyboardEvent {
         view: Option<&Window>,
         _detail: i32,
         key: Key,
-        code: RootedDOMString,
+        code: RootedDomString,
         original_code: Option<Code>,
         location: u32,
         repeat: bool,
@@ -125,7 +125,7 @@ impl KeyboardEvent {
             can_bubble,
             cancelable,
             view,
-            RootedDOMString::from(key.to_string()),
+            RootedDomString::from(key.to_string()),
             location,
             repeat,
         );
@@ -156,7 +156,7 @@ impl KeyboardEvent {
         can_bubble_arg: bool,
         cancelable_arg: bool,
         view_arg: Option<&Window>,
-        key_arg: RootedDOMString,
+        key_arg: RootedDomString,
         location_arg: u32,
         repeat: bool,
     ) {
@@ -183,7 +183,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        event_type: RootedDOMString,
+        event_type: RootedDomString,
         init: &KeyboardEventBinding::KeyboardEventInit,
     ) -> Fallible<DomRoot<KeyboardEvent>> {
         let mut modifiers = Modifiers::empty();
@@ -217,15 +217,15 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
     /// <https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent>
     fn InitKeyboardEvent(
         &self,
-        event_type: RootedDOMString,
+        event_type: RootedDomString,
         can_bubble_arg: bool,
         cancelable_arg: bool,
         view_arg: Option<&Window>,
-        key_arg: RootedDOMString,
+        key_arg: RootedDomString,
         location_arg: u32,
-        _modifiers_list_arg: RootedDOMString,
+        _modifiers_list_arg: RootedDomString,
         repeat: bool,
-        _locale: RootedDOMString,
+        _locale: RootedDomString,
     ) {
         self.init_event(
             event_type.into(),
@@ -239,12 +239,12 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
     }
 
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-initkeyboardevent>
-    fn Key(&self) -> RootedDOMString {
+    fn Key(&self) -> RootedDomString {
         self.key.borrow().clone()
     }
 
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-code>
-    fn Code(&self) -> RootedDOMString {
+    fn Code(&self) -> RootedDomString {
         self.code.borrow().clone()
     }
 
@@ -284,7 +284,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
     }
 
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-getmodifierstate>
-    fn GetModifierState(&self, key_arg: RootedDOMString) -> bool {
+    fn GetModifierState(&self, key_arg: RootedDomString) -> bool {
         self.modifiers.get().contains(match &*key_arg.str() {
             "Alt" => Modifiers::ALT,
             "AltGraph" => Modifiers::ALT_GRAPH,
