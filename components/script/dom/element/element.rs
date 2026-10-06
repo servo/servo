@@ -1246,10 +1246,12 @@ impl<'dom> LayoutDom<'dom, Element> {
         get_attr_for_layout(self, &ns!(), &local_name!("class")).map(|attr| attr.as_tokens())
     }
 
+    #[inline]
     pub(crate) fn get_parts_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(self, &ns!(), &local_name!("part")).map(|attr| attr.as_tokens())
     }
 
+    #[inline]
     pub(crate) fn dimension_attr_value(self, name: LocalName) -> LengthOrPercentageOrAuto {
         self.get_attr_for_layout(&ns!(), &name)
             .map(AttrValue::as_dimension)
@@ -1276,6 +1278,31 @@ impl<'dom> LayoutDom<'dom, Element> {
     pub(crate) unsafe fn clear_style_data(self) {
         unsafe {
             self.unsafe_get().style_data.borrow_mut_for_layout().take();
+        }
+    }
+
+    #[inline]
+    fn apply_property_for_length_percentage<Callback>(
+        self,
+        length_percentage: LengthOrPercentageOrAuto,
+        callback: Callback,
+    ) where
+        Callback: FnOnce(specified::LengthPercentage),
+    {
+        match length_percentage {
+            LengthOrPercentageOrAuto::Auto => {},
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let value = specified::LengthPercentage::Percentage(
+                    specified::NoCalcPercentage::new(percentage),
+                );
+                callback(value)
+            },
+            LengthOrPercentageOrAuto::Length(length) => {
+                let value = specified::LengthPercentage::Length(specified::NoCalcLength::from_px(
+                    length.to_f32_px(),
+                ));
+                callback(value)
+            },
         }
     }
 
@@ -1427,26 +1454,11 @@ impl<'dom> LayoutDom<'dom, Element> {
             LengthOrPercentageOrAuto::Auto
         };
 
-        // FIXME(emilio): Use from_computed value here and below.
-        match width {
-            LengthOrPercentageOrAuto::Auto => {},
-            LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Percentage(specified::NoCalcPercentage::new(
-                        percentage,
-                    )),
-                ));
-                push(PropertyDeclaration::Width(width_value));
-            },
-            LengthOrPercentageOrAuto::Length(length) => {
-                let width_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(specified::NoCalcLength::from_px(
-                        length.to_f32_px(),
-                    )),
-                ));
-                push(PropertyDeclaration::Width(width_value));
-            },
-        }
+        self.apply_property_for_length_percentage(width, |value| {
+            push(PropertyDeclaration::Width(
+                specified::Size::LengthPercentage(NonNegative(value)),
+            ));
+        });
 
         let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.height()
@@ -1470,25 +1482,11 @@ impl<'dom> LayoutDom<'dom, Element> {
             LengthOrPercentageOrAuto::Auto
         };
 
-        match height {
-            LengthOrPercentageOrAuto::Auto => {},
-            LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let height_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Percentage(specified::NoCalcPercentage::new(
-                        percentage,
-                    )),
-                ));
-                push(PropertyDeclaration::Height(height_value));
-            },
-            LengthOrPercentageOrAuto::Length(length) => {
-                let height_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(specified::NoCalcLength::from_px(
-                        length.to_f32_px(),
-                    )),
-                ));
-                push(PropertyDeclaration::Height(height_value));
-            },
-        }
+        self.apply_property_for_length_percentage(height, |value| {
+            push(PropertyDeclaration::Height(
+                specified::Size::LengthPercentage(NonNegative(value)),
+            ));
+        });
 
         let margin_right_left = if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.margin_right_left()
@@ -1496,29 +1494,11 @@ impl<'dom> LayoutDom<'dom, Element> {
             LengthOrPercentageOrAuto::Auto
         };
 
-        match margin_right_left {
-            LengthOrPercentageOrAuto::Auto => {},
-            LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let margin_right_left_value =
-                    specified::Margin::LengthPercentage(specified::LengthPercentage::Percentage(
-                        specified::NoCalcPercentage::new(percentage),
-                    ));
-                push(PropertyDeclaration::MarginLeft(
-                    margin_right_left_value.clone(),
-                ));
-                push(PropertyDeclaration::MarginRight(margin_right_left_value));
-            },
-            LengthOrPercentageOrAuto::Length(length) => {
-                let margin_right_left_value =
-                    specified::Margin::LengthPercentage(specified::LengthPercentage::Length(
-                        specified::NoCalcLength::from_px(length.to_f32_px()),
-                    ));
-                push(PropertyDeclaration::MarginLeft(
-                    margin_right_left_value.clone(),
-                ));
-                push(PropertyDeclaration::MarginRight(margin_right_left_value));
-            },
-        }
+        self.apply_property_for_length_percentage(margin_right_left, |value| {
+            let value = specified::Margin::LengthPercentage(value);
+            push(PropertyDeclaration::MarginLeft(value.clone()));
+            push(PropertyDeclaration::MarginRight(value));
+        });
 
         let margin_top_bottom = if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.margin_top_bottom()
@@ -1526,29 +1506,11 @@ impl<'dom> LayoutDom<'dom, Element> {
             LengthOrPercentageOrAuto::Auto
         };
 
-        match margin_top_bottom {
-            LengthOrPercentageOrAuto::Auto => {},
-            LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let margin_top_bottom_value =
-                    specified::Margin::LengthPercentage(specified::LengthPercentage::Percentage(
-                        specified::NoCalcPercentage::new(percentage),
-                    ));
-                push(PropertyDeclaration::MarginTop(
-                    margin_top_bottom_value.clone(),
-                ));
-                push(PropertyDeclaration::MarginBottom(margin_top_bottom_value));
-            },
-            LengthOrPercentageOrAuto::Length(length) => {
-                let margin_top_bottom_value =
-                    specified::Margin::LengthPercentage(specified::LengthPercentage::Length(
-                        specified::NoCalcLength::from_px(length.to_f32_px()),
-                    ));
-                push(PropertyDeclaration::MarginTop(
-                    margin_top_bottom_value.clone(),
-                ));
-                push(PropertyDeclaration::MarginBottom(margin_top_bottom_value));
-            },
-        }
+        self.apply_property_for_length_percentage(margin_top_bottom, |value| {
+            let value = specified::Margin::LengthPercentage(value);
+            push(PropertyDeclaration::MarginTop(value.clone()));
+            push(PropertyDeclaration::MarginBottom(value));
+        });
 
         if let Some(svg_element) = self.downcast::<SVGElement>() {
             svg_element.synthesize_presentational_hints(document, &mut push);
