@@ -36,6 +36,7 @@ use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::types::MessageEvent;
 use crate::dom::{RootedPromise, TracedPromise};
 
+/// <https://w3c.github.io/ServiceWorker/#serviceworkercontainer>
 #[dom_struct]
 pub(crate) struct ServiceWorkerContainer {
     eventtarget: EventTarget,
@@ -531,4 +532,10 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         // Step 9: Return promise.
         promise
     }
+
+    // <https://w3c.github.io/ServiceWorker/#dom-serviceworkercontainer-onmessage>
+    event_handler!(message, GetOnmessage, SetOnmessage);
+
+    // <https://w3c.github.io/ServiceWorker/#dom-serviceworkercontainer-onmessageerror>
+    event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
 }
