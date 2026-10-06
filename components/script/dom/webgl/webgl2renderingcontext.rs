@@ -685,6 +685,7 @@ impl WebGL2RenderingContext {
                     (Some(Renderbuffer(ref a)), Some(Renderbuffer(ref b))) if a.id() == b.id() => {
                     },
                     (Some(Texture(ref a)), Some(Texture(ref b))) if a.id() == b.id() => {},
+                    (None, None) => {},
                     _ => return Err(InvalidOperation),
                 }
             },
@@ -3785,19 +3786,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         }
 
         match fb_slot.get() {
-            Some(fb) => match attachment {
-                constants::DEPTH_STENCIL_ATTACHMENT => {
-                    handle_potential_webgl_error!(
-                        self.base,
-                        fb.renderbuffer(constants::DEPTH_ATTACHMENT, rb)
-                    );
-                    handle_potential_webgl_error!(
-                        self.base,
-                        fb.renderbuffer(constants::STENCIL_ATTACHMENT, rb)
-                    );
-                },
-                _ => handle_potential_webgl_error!(self.base, fb.renderbuffer(attachment, rb)),
-            },
+            Some(fb) => handle_potential_webgl_error!(self.base, fb.renderbuffer(attachment, rb)),
             None => self.base.webgl_error(InvalidOperation),
         };
     }
